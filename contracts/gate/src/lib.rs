@@ -1,3 +1,5 @@
+mod events;
+mod policy;
 mod types;
 
 use near_sdk::{

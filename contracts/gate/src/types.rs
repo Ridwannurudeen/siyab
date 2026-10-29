@@ -29,6 +29,7 @@ pub struct Agent {
 }
 
 #[near(serializers = [json, borsh])]
+#[derive(Clone)]
 pub struct Pending {
     pub agent_pk: PublicKey,
     pub asset: Asset,
