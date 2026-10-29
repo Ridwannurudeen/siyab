@@ -1,14 +1,18 @@
 # Registry interface
 
-The registry records the latest verdict for a NEAR account and label assertions keyed by assertion hash. The recorder account submits records; anyone can call the views. `UNKNOWN is the zero value`, so a subject without a record does not read as allowed.
+The registry records the latest verdict for a NEAR account and label assertions keyed by assertion hash. The recorder account submits records; anyone can call the views. UNKNOWN is the zero value, so a subject without a record does not read as allowed.
+
+`new(owner_id, recorder_id)` sets the owner and recorder accounts and initializes the empty registry. The registry account pays storage for its records. With 3 NEAR available for storage, expect about 700 to 1000 records; actual capacity varies with subject and verdict ID lengths.
 
 ## Verdict records
 
-`record` takes the same fields as one `record_batch` entry: `subject` is a NEAR account ID, `verdict` is `Allow`, `Deny` or `Unknown`, `evidence_hash` is 64 lowercase hexadecimal characters, `observed_block` is a u64, and `verdict_id` is a string. `record_batch` takes `{"records": [...]}` and accepts at most 50 entries. A repeated subject replaces its latest record, increments `total_records`, and leaves `total_subjects` unchanged.
+`record` takes the same fields as one `record_batch` entry: `subject` is a NEAR account ID, `verdict` is `Allow`, `Deny` or `Unknown`, `evidence_hash` is 64 lowercase hexadecimal characters, `observed_block` is a u64, and `verdict_id` is a string. `record_batch` takes `{"records": [...]}` and accepts at most 29 entries. A repeated subject replaces its latest record, increments `total_records`, and leaves `total_subjects` unchanged.
 
 `latest(subject)` returns `null` or an object with `verdict`, lowercase hexadecimal `evidence_hash`, `observed_block`, `recorded_ms` and `verdict_id`. `is_allowed(subject, max_age_ms)` returns a two item array containing a boolean and one of `unrecorded`, `stale`, `deny`, `unknown` or `allow`. An unrecorded subject, a stale record, `Deny` and `Unknown` all return false.
 
 `record_label` takes `subject`, `chain`, `label`, `category`, `provenance` and a 64 character lowercase hexadecimal `assertion_hash`. Each assertion hash can be recorded once. `get_label(assertion_hash)` returns the stored label fields with a lowercase hexadecimal assertion hash, or null. `get_recorder`, `total_records`, `total_subjects`, `total_labels`, `version` and `contract_source_metadata` are views. `set_recorder` is owner only and requires exactly 1 yoctoNEAR.
+
+For `record_verdicts.sh`, the labels file can be a bare JSON list of `record_label` argument objects or an object containing a `labels` list.
 
 Refusal codes are `REFUSED:not_recorder`, `REFUSED:batch_too_large`, `REFUSED:label_exists`, `REFUSED:not_owner` and `REFUSED:bad_hash`. The owner method also rejects any attached deposit other than 1 yoctoNEAR using the SDK deposit assertion.
 

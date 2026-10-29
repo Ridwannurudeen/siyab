@@ -3,6 +3,8 @@ mod events;
 use events::emit;
 use near_sdk::{env, near, serde_json::json, store::LookupMap, AccountId, PanicOnDefault};
 
+const MAX_BATCH_RECORDS: usize = 29;
+
 #[near(serializers = [json, borsh])]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[borsh(use_discriminant = true)]
@@ -90,7 +92,7 @@ impl From<LabelRecord> for LabelRecordView {
     }
 }
 
-#[near(contract_state, contract_metadata())]
+#[near(contract_state)]
 #[derive(PanicOnDefault)]
 pub struct Registry {
     owner_id: AccountId,
@@ -137,7 +139,10 @@ impl Registry {
 
     pub fn record_batch(&mut self, records: Vec<RecordInput>) {
         self.assert_recorder();
-        near_sdk::require!(records.len() <= 50, "REFUSED:batch_too_large");
+        near_sdk::require!(
+            records.len() <= MAX_BATCH_RECORDS,
+            "REFUSED:batch_too_large"
+        );
         for record in records {
             self.record_one(record);
         }
@@ -184,11 +189,11 @@ impl Registry {
 
     #[payable]
     pub fn set_recorder(&mut self, recorder_id: AccountId) {
-        near_sdk::assert_one_yocto();
         near_sdk::require!(
             env::predecessor_account_id() == self.owner_id,
             "REFUSED:not_owner"
         );
+        near_sdk::assert_one_yocto();
         let previous = self.recorder_id.clone();
         self.recorder_id = recorder_id.clone();
         emit(
@@ -205,7 +210,7 @@ impl Registry {
         let Some(record) = self.latest.get(&subject) else {
             return (false, "unrecorded".to_owned());
         };
-        if env::block_timestamp_ms() - record.recorded_ms > max_age_ms {
+        if env::block_timestamp_ms().saturating_sub(record.recorded_ms) > max_age_ms {
             return (false, "stale".to_owned());
         }
         match record.verdict {
@@ -378,7 +383,7 @@ mod tests {
     #[should_panic(expected = "REFUSED:not_owner")]
     fn non_owner_cannot_rotate_recorder() {
         let mut registry = registry();
-        context("stranger.testnet", NearToken::from_yoctonear(1), 1_000);
+        context("stranger.testnet", NearToken::from_yoctonear(0), 1_000);
         registry.set_recorder(subject("new-recorder.testnet"));
     }
 
@@ -405,11 +410,11 @@ mod tests {
 
     #[test]
     #[should_panic(expected = "REFUSED:batch_too_large")]
-    fn batch_limit_is_fifty() {
+    fn batch_limit_is_enforced() {
         let mut registry = registry();
         context("recorder.testnet", NearToken::from_yoctonear(0), 1_000);
         registry.record_batch(
-            (0..51)
+            (0..=MAX_BATCH_RECORDS)
                 .map(|index| RecordInput {
                     subject: subject(&format!("subject{index}.testnet")),
                     verdict: VerdictCode::Allow,
@@ -475,6 +480,7 @@ mod tests {
     }
 
     #[test]
+    #[should_panic(expected = "REFUSED:label_exists")]
     fn record_label_is_once_per_assertion_hash() {
         let mut registry = registry();
         context("recorder.testnet", NearToken::from_yoctonear(0), 1_000);
@@ -499,18 +505,14 @@ mod tests {
             registry.get_label(hash('a')).unwrap().assertion_hash,
             hash('a')
         );
-        assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            registry.record_label(
-                args.0.clone(),
-                args.1.clone(),
-                args.2.clone(),
-                args.3.clone(),
-                args.4.clone(),
-                args.5.clone(),
-            )
-        }))
-        .is_err());
-        assert_eq!(registry.total_labels(), 1);
+        registry.record_label(
+            args.0.clone(),
+            args.1.clone(),
+            args.2.clone(),
+            args.3.clone(),
+            args.4.clone(),
+            args.5.clone(),
+        );
     }
 
     #[test]

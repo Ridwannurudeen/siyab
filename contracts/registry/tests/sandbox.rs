@@ -1,4 +1,5 @@
 use near_sdk::serde_json::{json, Value};
+use near_sdk::Gas;
 use near_workspaces::types::NearToken;
 
 fn hash(letter: char) -> String {
@@ -101,6 +102,32 @@ async fn registry_records_over_rpc_and_rotates_recorder() {
         .json()
         .unwrap();
     assert_eq!(allowed, json!([true, "allow"]));
+
+    let count = 29;
+    let records = (0..count)
+        .map(|index| {
+            json!({
+                "subject": format!("{}{:02}.test.near", "a".repeat(52), index),
+                "verdict": "Allow",
+                "evidence_hash": hash('a'),
+                "observed_block": index as u64,
+                "verdict_id": format!("{}-{index:02}", "v".repeat(240))
+            })
+        })
+        .collect::<Vec<_>>();
+    let result = recorder
+        .call(registry.id(), "record_batch")
+        .args_json(json!({"records": records}))
+        .gas(Gas::from_tgas(100))
+        .transact()
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap();
+    let log_bytes = result.logs().iter().map(|line| line.len()).sum::<usize>();
+    assert_eq!(result.logs().len(), count);
+    assert!(log_bytes <= 16_384);
+    println!("measured registry batch: records={count}, log_bytes={log_bytes}");
 
     let refusal = owner
         .call(registry.id(), "record")
