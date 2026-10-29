@@ -6,7 +6,21 @@ import os
 import sys
 from pathlib import Path
 
-from gate import canon, demo, ed25519, incident, intents, rpc, signer, verdict, verify
+from gate import (
+    agent,
+    canon,
+    demo,
+    ed25519,
+    incident,
+    intents,
+    registry,
+    rpc,
+    scan,
+    signer,
+    verdict,
+    verify,
+    wasm,
+)
 from intel import labels
 
 
@@ -108,6 +122,76 @@ def _verify(args):
     return 0 if ok else 1
 
 
+def _agent(args):
+    """pay and attack: the agent key on GATE_ACCOUNT_ID, testnet only."""
+    gate, key_file = os.environ.get("GATE_ACCOUNT_ID"), os.environ.get("AGENT_KEY_FILE")
+    try:
+        if not gate or not key_file:
+            raise agent.AgentError("set GATE_ACCOUNT_ID and AGENT_KEY_FILE")
+        if not gate.endswith(".testnet"):
+            raise agent.AgentError(f"the agent sends on testnet only, and {gate} is not a .testnet account")
+        public_hex, public_key, secret = agent.agent_key(key_file)
+        request = agent.transfer_request(args.kind, args.token, args.receiver, args.amount, args.memo, gate=gate,
+                                         agent_pk_hex=public_hex)
+        if args.via == "near-cli":
+            transport = agent.NearCliTransport(gate, key_file)
+        else:
+            transport = agent.PyNearTransport(gate, secret, os.environ.get("NEAR_RPC_URL") or rpc.TESTNET_RPC_URL)
+        context = agent.Agent(gate=gate, public_hex=public_hex, public_key=public_key, transport=transport,
+                              clients=_clients(gate), verifier=agent.live_signer, out_dir=Path(args.out))
+        if args.command == "pay":
+            return agent.pay(context, request, args.verdict_file)
+        return agent.attack(args.name, context, request)
+    except rpc.FixtureMiss:
+        print("not sent: pay reads the Gate live: set GATE_FIXTURES_MODE=record or off", file=sys.stderr)
+        return 2
+    except (agent.AgentError, signer.SignerError, canon.CanonError) as error:
+        print(f"not sent: {error}", file=sys.stderr)
+        return 2
+
+
+def _registry_args(args):
+    try:
+        batch, notes = registry.record_batch(args.verdicts, args.evidence_dir, args.observed_block)
+    except registry.RegistryError as error:
+        print(f"refused: {error}", file=sys.stderr)
+        return 2
+    for note in notes:
+        print(note, file=sys.stderr)
+    print(json.dumps(batch, indent=2))
+    return 0
+
+
+def _scan(args):
+    if args.account.endswith(".testnet"):
+        url = os.environ.get("NEAR_RPC_URL") or rpc.TESTNET_RPC_URL
+    else:
+        url = os.environ.get("NEAR_MAINNET_RPC_URL") or rpc.MAINNET_RPC_URL
+    result = scan.scan(args.account, client=rpc.Client(url, fixtures_dir=scan.FIXTURES_DIR), store=labels.load())
+    for line in result["lines"]:
+        print(line)
+    return 0
+
+
+def _wasm_file(handler):
+    """A wasm command: read the file, run handler on its bytes, exit 1 on a file that does not read or parse."""
+    def run(args):
+        try:
+            lines = handler(Path(args.wasm).read_bytes())
+        except (OSError, ValueError) as error:
+            print(f"cannot read {args.wasm}: {error}", file=sys.stderr)
+            return 1
+        for line in lines:
+            print(line)
+        return 0
+    return run
+
+
+def _codehash(data):
+    hex_digest, code_hash = wasm.codehash(data)
+    return [f"sha256: {hex_digest}", f"code_hash: {code_hash}"]
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="python -m gate")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -132,8 +216,11 @@ def main(argv=None):
                        help="the agent policy as JSON in the get_agent shape")
     judge.add_argument("--live", action="store_true",
                        help="sign with the PyNaCl key in VERIFIER_KEY_FILE instead of the TEST key")
-    judge.add_argument("--evidence-dir", default=verdict.EVIDENCE_DIR, help="where the evidence document goes")
-    judge.add_argument("--out", default=".", help="where the verdict file goes")
+    judge.add_argument("--evidence-dir", default=verdict.EVIDENCE_DIR,
+                       help="where the evidence document <hash>.json goes (default fixtures/evidence)")
+    judge.add_argument("--out", default=".",
+                       help="where the verdict file goes: <verdict_id>.verdict.json on ALLOW, "
+                            "<evidence hash>.verdict.json otherwise (default the current directory)")
     judge.set_defaults(handler=_verdict)
 
     show = commands.add_parser("demo", help="three verdicts over recorded fixtures")
@@ -162,6 +249,47 @@ def main(argv=None):
     page.add_argument("id", help="the incident id, such as rhea")
     page.add_argument("--json", action="store_true", help="print the incident file itself")
     page.set_defaults(handler=lambda args: incident.main(args.id, args.json))
+
+    for name, text in (("pay", ("pay on testnet through the Gate: judge the transfer, then send request_transfer "
+                                 "only on a signed ALLOW")),
+                       ("attack", ("the simulation switch: send one transaction the Gate or the protocol must "
+                                   "refuse, and keep its answer"))):
+        sender = commands.add_parser(name, help=text)
+        if name == "attack":
+            sender.add_argument("name", choices=agent.ATTACKS)
+        sender.add_argument("--kind", required=True, choices=canon.KINDS)
+        sender.add_argument("--token", help="the NEP-141 token account (kind ft)")
+        sender.add_argument("--receiver", required=True)
+        sender.add_argument("--amount", required=True, help="decimal amount in base units")
+        sender.add_argument("--memo")
+        if name == "pay":
+            sender.add_argument("--verdict-file", help="a verdict file the verdict service wrote with the live "
+                                                       "key, instead of judging here")
+        sender.add_argument("--via", choices=("py-near", "near-cli"), default="py-near",
+                            help="sign and send with py-near (default) or with near-cli-rs")
+        sender.add_argument("--out", required=True, metavar="DIR", help="where the outcome JSON goes")
+        sender.set_defaults(handler=_agent)
+
+    keys = commands.add_parser("scan", help="access key hygiene and verifier keys of an account, with its labels")
+    keys.add_argument("account", help="the account id; .testnet selects testnet")
+    keys.set_defaults(handler=_scan)
+
+    digest = commands.add_parser("codehash", help="the sha256 of a wasm file in hex and as the base58 code_hash")
+    digest.add_argument("wasm", help="the wasm file, such as res/gate.wasm")
+    digest.set_defaults(handler=_wasm_file(_codehash))
+
+    names = commands.add_parser("wasm-exports", help="the exported function names of a wasm file, sorted")
+    names.add_argument("wasm", help="the wasm file, such as res/gate.wasm")
+    names.set_defaults(handler=_wasm_file(wasm.exports))
+
+    batch = commands.add_parser("registry-args",
+                                help="print the registry record_batch arguments for verdict files")
+    batch.add_argument("verdicts", nargs="+", metavar="verdict.json", help="files python -m gate verdict wrote")
+    batch.add_argument("--observed-block", type=int, metavar="N",
+                       help="the block height to record instead of the evidence observed.block_height")
+    batch.add_argument("--evidence-dir", default=verdict.EVIDENCE_DIR,
+                       help="where the evidence documents are (default fixtures/evidence)")
+    batch.set_defaults(handler=_registry_args)
 
     args = parser.parse_args(argv)
     return args.handler(args)

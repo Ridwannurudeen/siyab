@@ -226,6 +226,30 @@ class CommandTest(VerdictCase):
         self.assertEqual(code, 2)
         self.assertIn("no signer:", errors)
 
+    def test_help_says_where_the_files_land(self):
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output), self.assertRaises(SystemExit) as stop:
+            gate_main.main(["verdict", "--help"])
+        self.assertEqual(stop.exception.code, 0)
+        text = " ".join(output.getvalue().split())
+        self.assertIn("where the evidence document <hash>.json goes (default fixtures/evidence)", text)
+        self.assertIn("where the verdict file goes: <verdict_id>.verdict.json on ALLOW, <evidence hash>.verdict.json "
+                      "otherwise (default the current directory)", text)
+
+    def test_without_out_the_verdict_file_lands_in_the_current_directory(self):
+        here = self.dir / "here"
+        here.mkdir()
+        argv = ["verdict", "--kind", "ft", "--token", "wrap.near", "--receiver", "intents.near", "--amount", "1000",
+                "--gate", "gate.near", "--evidence-dir", str(self.dir), "--policy", json.dumps(ALLOW_POLICY)]
+        previous = os.getcwd()
+        os.chdir(here)
+        self.addCleanup(os.chdir, previous)
+        with mock.patch.dict(os.environ, {}, clear=True), contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(gate_main.main(argv), 0)
+        written = sorted(path.name for path in here.iterdir())
+        self.assertEqual(len(written), 1)
+        self.assertTrue(written[0].endswith(".verdict.json"))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -3,7 +3,7 @@
 import argparse
 import sys
 
-from intel import labels, seed
+from intel import api, labels, seed
 
 
 def _counts(args):
@@ -25,6 +25,11 @@ def main(argv=None):
     seeding = commands.add_parser("seed", help="seed the label store from one source")
     seeding.add_argument("source", choices=seed.SOURCES)
     seeding.set_defaults(handler=_seed)
+    server = commands.add_parser("serve", help="serve the read only labels, incidents, evidence and flow API")
+    server.add_argument("--host", default="127.0.0.1")
+    server.add_argument("--port", type=int, default=8787)
+    server.add_argument("--site", help="a directory of static files to serve too, such as demo/site")
+    server.set_defaults(handler=lambda args: api.serve(args.host, args.port, args.site))
     args = parser.parse_args(argv)
     return args.handler(args)
 
