@@ -73,7 +73,7 @@ def _reject_floats(value):
     if isinstance(value, dict):
         for item in value.values():
             _reject_floats(item)
-    elif isinstance(value, list):
+    elif isinstance(value, (list, tuple)):
         for item in value:
             _reject_floats(item)
 

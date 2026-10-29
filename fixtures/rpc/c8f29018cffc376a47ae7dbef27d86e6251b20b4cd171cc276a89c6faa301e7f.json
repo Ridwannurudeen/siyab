@@ -1,0 +1,30 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "no-such-account-example.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "error": {
+      "name": "HANDLER_ERROR",
+      "cause": {
+        "info": {
+          "block_hash": "CYXNAb4v4pGSosoMk5JdgS1x6dWg5pXgWEHb7oC5Q8Tu",
+          "block_height": 222105558,
+          "requested_account_id": "no-such-account-example.near"
+        },
+        "name": "UNKNOWN_ACCOUNT"
+      },
+      "code": -32000,
+      "message": "Server error",
+      "data": "account no-such-account-example.near does not exist while viewing"
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-10-29T09:20:53Z"
+}

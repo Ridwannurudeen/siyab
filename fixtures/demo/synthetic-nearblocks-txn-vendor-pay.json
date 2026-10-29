@@ -1,0 +1,46 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "txns": [
+      {
+        "transaction_hash": "4pYq6N5Tg3kSWmFYmYjD5CwVzkbpzwLy6Z2qFqh1dE7u",
+        "included_in_block_hash": "8ZbCAs1aHZTDQjeL3K4SAnpPpvhHL1q7SGxS3gyRdNqC",
+        "block_timestamp": "1793523600000000000",
+        "signer_account_id": "attacker.testnet",
+        "receiver_account_id": "vendor-pay.testnet",
+        "block": {
+          "block_height": 229991000
+        },
+        "actions": [
+          {
+            "action": "CREATE_ACCOUNT",
+            "method": null,
+            "args": null
+          },
+          {
+            "action": "TRANSFER",
+            "method": null,
+            "args": null
+          },
+          {
+            "action": "ADD_KEY",
+            "method": null,
+            "args": null
+          }
+        ],
+        "actions_agg": {
+          "deposit": 1e+22,
+          "gas_attached": 0
+        },
+        "outcomes": {
+          "status": true
+        }
+      }
+    ]
+  },
+  "url": "https://api-testnet.nearblocks.io/v1/txns/4pYq6N5Tg3kSWmFYmYjD5CwVzkbpzwLy6Z2qFqh1dE7u",
+  "fetched_at": "2026-11-01T12:00:00Z"
+}
