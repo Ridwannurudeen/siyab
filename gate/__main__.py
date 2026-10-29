@@ -14,6 +14,7 @@ from gate import (
     intents,
     registry,
     rpc,
+    scan,
     signer,
     verdict,
     verify,
@@ -132,6 +133,17 @@ def _registry_args(args):
     return 0
 
 
+def _scan(args):
+    if args.account.endswith(".testnet"):
+        url = os.environ.get("NEAR_RPC_URL") or rpc.TESTNET_RPC_URL
+    else:
+        url = os.environ.get("NEAR_MAINNET_RPC_URL") or rpc.MAINNET_RPC_URL
+    result = scan.scan(args.account, client=rpc.Client(url, fixtures_dir=scan.FIXTURES_DIR), store=labels.load())
+    for line in result["lines"]:
+        print(line)
+    return 0
+
+
 def _wasm_file(handler):
     """A wasm command: read the file, run handler on its bytes, exit 1 on a file that does not read or parse."""
     def run(args):
@@ -208,6 +220,10 @@ def main(argv=None):
     page.add_argument("id", help="the incident id, such as rhea")
     page.add_argument("--json", action="store_true", help="print the incident file itself")
     page.set_defaults(handler=lambda args: incident.main(args.id, args.json))
+
+    keys = commands.add_parser("scan", help="access key hygiene and verifier keys of an account, with its labels")
+    keys.add_argument("account", help="the account id; .testnet selects testnet")
+    keys.set_defaults(handler=_scan)
 
     digest = commands.add_parser("codehash", help="the sha256 of a wasm file in hex and as the base58 code_hash")
     digest.add_argument("wasm", help="the wasm file, such as res/gate.wasm")
