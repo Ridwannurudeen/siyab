@@ -26,7 +26,7 @@ import sys
 print(json.dumps(json.loads(pathlib.Path(sys.argv[1]).read_text()), separators=(",", ":")))
 PY
 )
-call_transaction "$REGISTRY_ACCOUNT_ID" record_batch "$ARGS" "$RECORDER_ACCOUNT_ID" "$(account_key "$RECORDER_ACCOUNT_ID")"
+LABEL_ARGS=''
 if [[ -n "$labels_file" ]]; then
   LABEL_ARGS=$(python3 - "$labels_file" <<'PY'
 import json
@@ -39,10 +39,15 @@ else:
     labels = value
 if not isinstance(labels, list):
     raise SystemExit("labels file must be a list or an object with a labels list")
+if not all(isinstance(label, dict) for label in labels):
+    raise SystemExit("each labels entry must be an object")
 for label in labels:
     print(json.dumps(label, separators=(",", ":")))
 PY
   )
+fi
+call_transaction "$REGISTRY_ACCOUNT_ID" record_batch "$ARGS" "$RECORDER_ACCOUNT_ID" "$(account_key "$RECORDER_ACCOUNT_ID")"
+if [[ -n "$labels_file" ]]; then
   if [[ -n "$LABEL_ARGS" ]]; then
     while IFS= read -r args; do
       call_transaction "$REGISTRY_ACCOUNT_ID" record_label "$args" "$RECORDER_ACCOUNT_ID" "$(account_key "$RECORDER_ACCOUNT_ID")"

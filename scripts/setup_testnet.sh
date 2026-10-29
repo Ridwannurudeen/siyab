@@ -25,6 +25,12 @@ else
     GATE_WASM="$CARGO_TARGET_DIR/near/gate.wasm"
   fi
 fi
+for wasm in "$GATE_WASM" "$REGISTRY_WASM" "$TOKEN_WASM"; do
+  if [[ ! -f "$wasm" ]]; then
+    printf 'wasm file not found: %s\n' "$wasm" >&2
+    exit 1
+  fi
+done
 TOKEN_ACCOUNT_ID="token.$GATE_ACCOUNT_ID"
 REGISTRY_ACCOUNT_ID="registry.$GATE_ACCOUNT_ID"
 RECORDER_ACCOUNT_ID="recorder.$GATE_ACCOUNT_ID"
@@ -32,36 +38,52 @@ GATE_KEY=$(account_key "$GATE_ACCOUNT_ID")
 TOKEN_KEY=$(account_key "$TOKEN_ACCOUNT_ID")
 REGISTRY_KEY=$(account_key "$REGISTRY_ACCOUNT_ID")
 
+missing_accounts=()
+planned_spend_micronear=3750
+for account in "$TOKEN_ACCOUNT_ID" "$REGISTRY_ACCOUNT_ID" "$RECORDER_ACCOUNT_ID"; do
+  if ! account_exists "$account"; then
+    missing_accounts+=("$account")
+    amount=3
+    [[ "$account" == "$RECORDER_ACCOUNT_ID" ]] && amount=1
+    planned_spend_micronear=$((planned_spend_micronear + amount * 1000000))
+  fi
+done
+planned_spend=$(python3 - "$planned_spend_micronear" <<'PY'
+from decimal import Decimal
+import sys
+print(Decimal(sys.argv[1]) / Decimal(1000000))
+PY
+)
+printf 'planned setup spend: %s NEAR\n' "$planned_spend"
 if [[ "$DRY_RUN" == "1" ]]; then
   run near account view-account-summary "$GATE_ACCOUNT_ID" network-config "$NETWORK" now
-  printf 'preflight: Gate balance must cover 17.00375 NEAR before setup\n'
+  printf 'preflight: Gate balance must cover %s NEAR and retain at least 10 NEAR\n' "$planned_spend"
 else
   gate_summary=$(near account view-account-summary "$GATE_ACCOUNT_ID" network-config "$NETWORK" now)
   printf '%s\n' "$gate_summary"
+  # UNVERIFIED until first run: near-cli-rs 0.30.1 balance text output format.
   gate_balance=$(printf '%s\n' "$gate_summary" | python3 -c 'import re,sys; text=sys.stdin.read(); m=re.search(r"([0-9]+(?:[.][0-9]+)?) NEAR", text); print(m.group(1) if m else "")')
-  if [[ -z "$gate_balance" ]] || ! python3 - "$gate_balance" <<'PY'
+  if [[ -z "$gate_balance" ]] || ! python3 - "$gate_balance" "$planned_spend" <<'PY'
 from decimal import Decimal
 import sys
-raise SystemExit(0 if Decimal(sys.argv[1]) - Decimal("7.00375") >= Decimal("10") else 1)
+raise SystemExit(0 if Decimal(sys.argv[1]) - Decimal(sys.argv[2]) >= Decimal("10") else 1)
 PY
   then
-    printf 'Gate account must retain at least 10 NEAR after the planned 7.00375 NEAR setup spend\n' >&2
+    printf 'Gate account must retain at least 10 NEAR after the planned %s NEAR setup spend\n' "$planned_spend" >&2
     exit 1
   fi
 fi
 
-for account in "$TOKEN_ACCOUNT_ID" "$REGISTRY_ACCOUNT_ID" "$RECORDER_ACCOUNT_ID"; do
-  if [[ "$DRY_RUN" == "1" ]]; then
-    run near account view-account-summary "$account" network-config "$NETWORK" now
-    amount=3
-    [[ "$account" == "$RECORDER_ACCOUNT_ID" ]] && amount=1
-    create_subaccount "$account" "$amount"
-  elif ! account_exists "$account"; then
-    amount=3
-    [[ "$account" == "$RECORDER_ACCOUNT_ID" ]] && amount=1
-    create_subaccount "$account" "$amount"
-  fi
+for account in "${missing_accounts[@]}"; do
+  amount=3
+  [[ "$account" == "$RECORDER_ACCOUNT_ID" ]] && amount=1
+  create_subaccount "$account" "$amount"
 done
+if [[ "$DRY_RUN" != "1" ]]; then
+  install_generated_key "$TOKEN_ACCOUNT_ID"
+  install_generated_key "$REGISTRY_ACCOUNT_ID"
+  install_generated_key "$RECORDER_ACCOUNT_ID"
+fi
 
 token_new=$(python3 - "$GATE_ACCOUNT_ID" "$TOKEN_SUPPLY" "$TOKEN_SYMBOL" "$TOKEN_DECIMALS" <<'PY'
 import json

@@ -2,7 +2,6 @@
 set -euo pipefail
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 source "$ROOT_DIR/scripts/lib.sh"
-cd "$ROOT_DIR"
 parse_dry_run "$@"
 require_testnet
 require_vars GATE_ACCOUNT_ID NEAR_KEYS_DIR
@@ -12,6 +11,11 @@ if [[ "${#SCRIPT_ARGS[@]}" -ne 2 ]]; then
 fi
 contract=${SCRIPT_ARGS[0]}
 wasm=${SCRIPT_ARGS[1]}
+case "$wasm" in
+  /*) ;;
+  *) wasm="$(cd -- "$(dirname -- "$wasm")" && pwd)/$(basename -- "$wasm")" ;;
+esac
+cd "$ROOT_DIR"
 case "$contract" in
   gate) account=$GATE_ACCOUNT_ID ;;
   registry) account="registry.$GATE_ACCOUNT_ID" ;;
