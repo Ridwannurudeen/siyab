@@ -275,10 +275,8 @@ RHEA_ROLES = {
     "token": "one of the four token contracts that shared the code hash it names",
     "multica": ("an account within Rhea's own Multichain Account system that became active and later "
                 "received funds traceable to the subject wallet"),
-    "intents.near": ("the NEAR Intents contract, through which the subject wallet was funded within five "
-                     "minutes"),
-    "zec.omft.near": ("the NEAR Intents bridged ZEC token account, whose ft_withdraw routed ZEC into Zcash "
-                      "Unified Addresses"),
+    "intents.near": "the account through which the subject wallet was funded within five minutes",
+    "zec.omft.near": "the account whose ft_withdraw routed ZEC directly into Zcash Unified Addresses",
     "eth": "the attacker ETH wallet where the bridged USDC was deposited into Aave",
 }
 # The exit accounts, each with the words that find the sentence naming it in the report.
@@ -286,7 +284,7 @@ RHEA_EXITS = {"intents.near": "funded through intents.near", "zec.omft.near": "f
 # The exit accounts keep the category of their existing official or on chain rows (treasury page and
 # contract_source_metadata for intents.near, the catalog's .omft.near bridge row for zec.omft.near).
 RHEA_EXIT_CATEGORIES = {"intents.near": "infrastructure", "zec.omft.near": "bridge"}
-RHEA_EXIT_NOTE = "the category comes from the account's existing on chain or official rows, not from the report"
+RHEA_ONCHAIN_NOTE = "current mainnet state read for the Rhea incident, not a historical block replay"
 RHEA_NOT_PUBLIC = (
     "The report names no person, and this page names none.",
     "The exploit transaction list beyond the transactions the report prints is not reproduced here.",
@@ -443,8 +441,20 @@ def _rhea_reads(client, nearblocks, report):
     return facts
 
 
-def _rhea_rows(mode, raw_dir, client, nearblocks):
+def _exit_note(store, subject, category):
+    """Where an exit account's category comes from: its first official or on chain row in the store
+    with that category that this seed did not write, cited by id and label."""
+    for assertion in store.by_subject(subject, "near"):
+        if (assertion.category == category and assertion.superseded_by is None
+                and assertion.provenance in ("official_source", "onchain") and assertion.note != RHEA_ONCHAIN_NOTE):
+            return (f"the category comes from the existing row {assertion.id}, labelled {_quoted(assertion.label)}, "
+                    "not from the report")
+    raise SeedError(f"no official or on chain {category} row for {subject} in the store")
+
+
+def _rhea_rows(mode, raw_dir, client, nearblocks, store_path=labels.STORE_PATH):
     """(rows, report, facts, snapshot source) for the Rhea incident."""
+    store = labels.load(store_path)
     data, fetched_at, _ = snapshot("rhea", mode, raw_dir)
     report = rhea_report(data)
     source = _document_source(REKT_RHEA_URL, data, fetched_at)
@@ -457,7 +467,8 @@ def _rhea_rows(mode, raw_dir, client, nearblocks):
                              label=f"named in the rekt.news Rhea Finance report as {RHEA_ROLES[role]}",
                              category=category[subject], provenance="third_party", source=source,
                              observed_at=fetched_at, confidence=RHEA_CONFIDENCE,
-                             note=f"quote {_quoted(quote)}" + (f"; {RHEA_EXIT_NOTE}" if role in RHEA_EXITS else "")))
+                             note=f"quote {_quoted(quote)}"
+                             + (f"; {_exit_note(store, subject, category[subject])}" if role in RHEA_EXITS else "")))
     entities = {row["subject"]: row["entity"] for row in rows}
     facts = _rhea_reads(client, nearblocks, report)
     by_kind = {}
@@ -465,7 +476,7 @@ def _rhea_rows(mode, raw_dir, client, nearblocks):
         row = make_row(entity=entities[subject], subject=subject, chain="near", label=label,
                        category=category[subject], provenance="onchain", observed_at=observed_at,
                        source={"rpc": url, "method": method, "args": args, "block": block},
-                       note="current mainnet state read for the Rhea incident, not a historical block replay")
+                       note=RHEA_ONCHAIN_NOTE)
         rows.append(row)
         by_kind.setdefault((subject, kind), row)
     for role, subject, _, _ in report["accounts"]:
@@ -498,7 +509,7 @@ def rhea(mode=None, raw_dir=RAW_DIR, client=None, nearblocks=None):
 def rhea_incident(mode=None, raw_dir=RAW_DIR, store_path=labels.STORE_PATH, client=None, nearblocks=None):
     """The incident document for intel/incidents/rhea.json; rules_today runs gate.rules.judge in replay
     over the committed fixtures and the store at store_path."""
-    rows, report, facts, source = _rhea_rows(mode, raw_dir, *_clients(mode, client, nearblocks))
+    rows, report, facts, source = _rhea_rows(mode, raw_dir, *_clients(mode, client, nearblocks), store_path)
     ids = {}
     for row in rows:
         ids.setdefault((row["subject"], row["chain"]), []).append(row["id"])

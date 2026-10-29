@@ -497,6 +497,21 @@ class RheaLabelsTest(unittest.TestCase):
         self.assertIn(rhea[0].id, judgement.labels)
         self.assertEqual(judgement.verdict, "ALLOW")
 
+    def test_zec_omft_near_keeps_its_bridge_category_and_is_not_denied_by_the_label_check(self):
+        rhea = [a for a in self.store.by_subject("zec.omft.near", "near") if a.provenance == "third_party"]
+        self.assertEqual([a.category for a in rhea], ["bridge"])
+        [cited] = [a for a in self.store.by_subject("zec.omft.near", "near")
+                   if a.provenance == "official_source" and a.category == "bridge"]
+        self.assertTrue(rhea[0].note.startswith('quote "'))
+        self.assertTrue(rhea[0].note.endswith(f'; the category comes from the existing row {cited.id}, labelled '
+                                              f'{json.dumps(cited.label)}, not from the report'))
+        self.assertEqual(self.denying_ids("zec.omft.near"), [])
+        judgement = self.judge(request("zec.omft.near", kind="near", amount="1", memo=None),
+                               {"allowlist": ["zec.omft.near"], "caps": []})
+        self.assertEqual({c["id"]: c["status"] for c in judgement.checks}["label_denylist"], "pass")
+        self.assertIn(rhea[0].id, judgement.labels)
+
+
 class TextTest(RulesCase):
     def test_distance(self):
         for a, b, expected in (("vendor", "vendor", 0), ("vendor", "vednor", 1), ("vendor", "vend0r", 1),

@@ -163,7 +163,7 @@ class RheaIncidentTest(unittest.TestCase):
         for row in rhea:
             for field in ("entity", "label", "category", "note"):
                 with self.subTest(id=row["id"], field=field):
-                    outside = re.sub(r'^quote "(.*)"$', "", row[field], flags=re.DOTALL)
+                    outside = re.sub(r'^quote "(.*?)"(;.*)?$', lambda m: m.group(2) or "", row[field], flags=re.DOTALL)
                     self.assertIsNone(BARRED.search(outside))
 
     def test_rules_today_refuse_the_tokens_and_the_collector(self):

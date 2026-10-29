@@ -49,7 +49,7 @@ def render(document):
     for heading, accounts in groups:
         if not accounts:
             continue
-        lines += [""] + _wrap(heading, hang=2)
+        lines += [""] + _wrap(heading, hang=0)
         for account in accounts:
             lines += _wrap(f"{account['subject']} ({account['chain']})", 2)
             lines += _wrap(f"role as reported: {account['role_as_reported']}", 4)
