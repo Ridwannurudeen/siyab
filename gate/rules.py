@@ -172,9 +172,10 @@ def contains_allowlisted(receiver, allowlisted):
     """True when the receiver's first label holds an allowlisted first label of 4 or more
     characters: as a whole segment split on - and _, as a prefix or suffix with at most 4 letters
     or digits left over, or as the same label under another parent."""
+    raw = allowlisted.split(".", 1)[0]
     r = normalise(receiver.split(".", 1)[0])
-    a = normalise(allowlisted.split(".", 1)[0])
-    if len(a) < CONTAINMENT_MIN_LENGTH or receiver == allowlisted:
+    a = normalise(raw)
+    if len(raw) < CONTAINMENT_MIN_LENGTH or receiver == allowlisted:
         return False
     if r == a:
         # The same label under another parent; under the same parent it is a typo for the distance rule.

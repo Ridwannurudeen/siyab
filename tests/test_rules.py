@@ -460,6 +460,7 @@ class TextTest(RulesCase):
                          "payvendor.near", "vendor.attacker.near", "vendor.near", "acme-vendor-eu.testnet"):
             with self.subTest(receiver=receiver):
                 self.assertTrue(rules.contains_allowlisted(receiver, "vendor.testnet"))
+        self.assertTrue(rules.contains_allowlisted("corn-pay.testnet", "corn.testnet"))
         for receiver, allowlisted in (("vendorsandmore.testnet", "vendor.testnet"), ("vendor.testnet", "vendor.testnet"),
                                       ("bobcat.testnet", "bob.testnet"), ("ven.testnet", "vendor.testnet"),
                                       ("advendors.testnet", "vendor.testnet")):
