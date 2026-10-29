@@ -16,7 +16,7 @@ import json
 import re
 from pathlib import Path
 
-from gate import base58, ed25519
+from gate import base58, ed25519, evidence
 
 PREFIX = "GATEv1"
 LITERAL = "ALLOW"
@@ -253,27 +253,26 @@ def _vector_specs(root):
 
 def _evidence_document(request, literal):
     # No check runs for a test vector, so the document lists none and says so.
-    return {
-        "version": "1",
-        "subject": {
-            "gate": request["gate_account_id"],
-            "agent_pk": request["agent_pk_hex"],
-            "kind": request["kind"],
-            "token": request["token_id"],
-            "receiver": request["receiver_id"],
-            "amount": request["amount"],
-            "memo_sha256": None if request["memo"] is None else memo_field(request["memo"]),
-        },
-        "checks": [],
-        "labels": [],
-        "verdict": literal,
-        "reasons": ["canonical message test vector: no check ran, so this document records no judgement"],
-        "observed": {"block_height": None, "timestamp_ms": None},
-        "issued_ms": request["issued_ms"],
-        "expires_ms": request["expires_ms"],
-        "verdict_id": request["verdict_id"],
-        "latency_ms": None,
-    }
+    return evidence.document(
+        subject=evidence.subject(
+            gate=request["gate_account_id"],
+            agent_pk=request["agent_pk_hex"],
+            kind=request["kind"],
+            token=request["token_id"],
+            receiver=request["receiver_id"],
+            amount=request["amount"],
+            memo=request["memo"],
+        ),
+        checks=[],
+        labels=[],
+        verdict=literal,
+        reasons=["canonical message test vector: no check ran, so this document records no judgement"],
+        observed={"block_height": None, "timestamp_ms": None},
+        issued_ms=request["issued_ms"],
+        expires_ms=request["expires_ms"],
+        verdict_id=request["verdict_id"],
+        latency_ms=None,
+    )
 
 
 def _message(request):
@@ -294,7 +293,7 @@ def _message(request):
 
 
 def build_vectors(gate_root=DEFAULT_GATE_ROOT):
-    """The signed test vectors as (vector dict, evidence document bytes) pairs, in name order."""
+    """The signed test vectors as (vector dict, evidence document) pairs, in name order."""
     root = account_id(gate_root, "gate_root")
     verifier_pub = ed25519.public_from_seed(ed25519.TEST_VERIFIER_SEED)
     built = []
@@ -302,9 +301,8 @@ def build_vectors(gate_root=DEFAULT_GATE_ROOT):
         request = dict(base, verdict_id=_test_verdict_id(name))
         request.update(changes)
         literal = "DENY" if mode == "deny" else LITERAL
-        evidence = json.dumps(_evidence_document(request, literal), sort_keys=True,
-                              separators=(",", ":"), ensure_ascii=False).encode("utf-8")
-        request["evidence_sha256"] = hashlib.sha256(evidence).hexdigest()
+        document = _evidence_document(request, literal)
+        request["evidence_sha256"] = evidence.evidence_hash(document)
         message = _message(request)
         if mode == "deny":
             # The test only path: swap the literal after the strict builder, then sign.
@@ -324,7 +322,7 @@ def build_vectors(gate_root=DEFAULT_GATE_ROOT):
             "expect_contract": expect_contract,
             "note": note,
         })
-        built.append((vector, evidence))
+        built.append((vector, document))
     return built
 
 
@@ -338,16 +336,15 @@ def write_vectors(canon_dir, gate_root=DEFAULT_GATE_ROOT):
     canon_dir = Path(canon_dir)
     evidence_dir = canon_dir.parent / "evidence"
     keys_dir = canon_dir.parent / "keys"
-    for directory in (canon_dir, evidence_dir, keys_dir):
+    for directory in (canon_dir, keys_dir):
         directory.mkdir(parents=True, exist_ok=True)
     written = []
-    for vector, evidence in build_vectors(gate_root):
+    for vector, document in build_vectors(gate_root):
         path = canon_dir / f"{vector['name']}.json"
         path.write_bytes((json.dumps(vector, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
         written.append(path)
-        evidence_path = evidence_dir / f"{vector['evidence_sha256']}.json"
+        evidence_path = evidence.write(document, evidence_dir)
         if evidence_path not in written:
-            evidence_path.write_bytes(evidence)
             written.append(evidence_path)
     verifier_pub = ed25519.public_from_seed(ed25519.TEST_VERIFIER_SEED)
     key_path = keys_dir / "test-verifier.pub"
