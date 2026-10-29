@@ -16,6 +16,7 @@ FORMATS = (
     r"Incidents: \d+ pages\.",
     (r"Feed: (not run|since \d{4}-\d{2}-\d{2}, \d+ blocks, \d+ events \(\d+ code_hash_matches_incident, \d+ "
      r"fresh_dust_funded_pays_labelled, \d+ watch_account_key_added\))\."),
+    r"Flows: \d+ exit traces, \d+ hops\.",
     r"Latency: (not measured|p50 \d+ ms, p95 \d+ ms over \d+ verdict runs)\.",
 )
 
@@ -56,6 +57,18 @@ class CountsTest(unittest.TestCase):
                          f"inferred {p['inferred']}).")
         pages = len(list((ROOT / "intel" / "incidents").glob("*.json")))
         self.assertEqual(self.counts.incidents_line(), f"Incidents: {pages} pages.")
+
+    def test_the_feed_and_flows_lines_equal_a_recount(self):
+        state = json.loads((ROOT / "intel" / "feed" / "state.json").read_text(encoding="utf-8"))
+        signals = ", ".join(f"{count} {name}" for name, count in state["events"].items())
+        self.assertEqual(self.counts.feed_line(), f"Feed: since {state['start_time'][:10]}, {state['blocks']} blocks, "
+                                                  f"{sum(state['events'].values())} events ({signals}).")
+        traces = [json.loads(p.read_text(encoding="utf-8")) for p in (ROOT / "intel" / "flows").glob("*.json")]
+        self.assertTrue(traces)
+        self.assertEqual(self.counts.flows_line(),
+                         f"Flows: {len(traces)} exit traces, {sum(len(t['hops']) for t in traces)} hops.")
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(self.counts.flows_line(Path(tmp)), "Flows: 0 exit traces, 0 hops.")
 
     def test_the_feed_line_reads_not_run_without_a_state_file(self):
         with tempfile.TemporaryDirectory() as tmp:

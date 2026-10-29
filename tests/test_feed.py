@@ -9,7 +9,7 @@ from unittest import mock
 
 from gate import evidence, rpc, wasm
 from intel import __main__ as intel_main
-from intel import feed, labels
+from intel import api, feed, labels
 
 ROOT = Path(__file__).resolve().parent.parent
 BLOCKS = ROOT / "fixtures" / "feed" / "blocks"
@@ -194,6 +194,13 @@ class RecordedFeedTest(unittest.TestCase):
             once, _ = feed.run(heights[0], len(heights), False, state_path=Path(tmp) / "state.json",
                                events_dir=Path(tmp) / "events")
         self.assertEqual(restarted, once)
+
+    def test_the_api_serves_the_committed_state_and_events(self):
+        state = json.loads(feed.STATE_PATH.read_text(encoding="utf-8"))
+        status, body = api.route("/feed", labels.load())
+        self.assertEqual(status, 200)
+        self.assertEqual(body["stats"], state)
+        self.assertEqual(len(body["events"]), min(len(list(feed.EVENTS_DIR.glob("*.json"))), api.FEED_LIMIT))
 
     def test_a_missing_reduced_block_stops_the_replay(self):
         with tempfile.TemporaryDirectory() as tmp, self.assertRaises(feed.FeedError):

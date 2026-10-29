@@ -1,10 +1,10 @@
 """Print the counts the README states, from committed files only, in a fixed format.
 
 Usage:
-  python scripts/counts.py                    print the five lines
+  python scripts/counts.py                    print the six lines
   python scripts/counts.py --readme README.md rewrite the block between the counts markers
 
-The five lines, in this order (every number is counted from the files named):
+The six lines, in this order (every number is counted from the files named):
 
   On N recorded mainnet receivers the rules returned A ALLOW, D DENY, U Unknown.
       fixtures/receivers/judgements/*.json, one judgement per subject
@@ -16,12 +16,14 @@ The five lines, in this order (every number is counted from the files named):
   Z watch_account_key_added).
       intel/feed/state.json: its start date, block count and event count per signal, in the file's
       order; "Feed: not run." while that file does not exist
+  Flows: T exit traces, H hops.
+      intel/flows/*.json, the hops of every trace
   Latency: p50 X ms, p95 Y ms over R verdict runs.
       fixtures/latency/*.json, each a JSON list of integers or of objects with an integer latency_ms;
       the percentiles are nearest rank; "Latency: not measured." while no such file exists
 
 --readme replaces everything between the lines <!-- counts:start --> and <!-- counts:end --> with the
-five lines, each followed by a blank line so each renders as its own paragraph, and exits 2 when the
+six lines, each followed by a blank line so each renders as its own paragraph, and exits 2 when the
 file lacks the markers.
 """
 
@@ -39,6 +41,7 @@ from intel import labels
 JUDGEMENTS_DIR = ROOT / "fixtures" / "receivers" / "judgements"
 INCIDENTS_DIR = ROOT / "intel" / "incidents"
 FEED_STATE = ROOT / "intel" / "feed" / "state.json"
+FLOWS_DIR = ROOT / "intel" / "flows"
 LATENCY_DIR = ROOT / "fixtures" / "latency"
 START, END = "<!-- counts:start -->", "<!-- counts:end -->"
 
@@ -71,6 +74,11 @@ def feed_line(state_path=FEED_STATE):
             f"events ({signals}).")
 
 
+def flows_line(directory=FLOWS_DIR):
+    traces = [json.loads(path.read_text(encoding="utf-8")) for path in sorted(Path(directory).glob("*.json"))]
+    return f"Flows: {len(traces)} exit traces, {sum(len(t['hops']) for t in traces)} hops."
+
+
 def _latencies(path):
     value = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(value, list):
@@ -94,7 +102,7 @@ def latency_line(directory=LATENCY_DIR):
 
 
 def lines():
-    return [receivers_line(), labels_line(), incidents_line(), feed_line(), latency_line()]
+    return [receivers_line(), labels_line(), incidents_line(), feed_line(), flows_line(), latency_line()]
 
 
 def readme_block(count_lines):

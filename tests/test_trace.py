@@ -9,7 +9,7 @@ from unittest import mock
 
 from gate import rpc
 from intel import __main__ as intel_main
-from intel import labels, trace
+from intel import api, labels, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 RHEA = json.loads((ROOT / "intel" / "incidents" / "rhea.json").read_text(encoding="utf-8"))
@@ -143,6 +143,13 @@ class CommittedTraceTest(unittest.TestCase):
             self.assertEqual(trace.main(COLLECTOR, trace.DEFAULT_DEPTH, trace.DEFAULT_MAX, None, False,
                                         out=lambda line: None, flows_dir=Path(tmp)), 0)
             self.assertEqual(path.read_bytes(), FLOW_PATH.read_bytes())
+
+    def test_the_api_serves_the_trace_by_its_subject_and_refuses_the_rest(self):
+        store = labels.load()
+        self.assertEqual(api.route(f"/flow/{COLLECTOR}", store), (200, self.document))
+        self.assertEqual(api.route("/flow/intents.near", store), (403, {"error": "subject carries no incident label"}))
+        worker = RHEA["accounts"][2]["subject"]
+        self.assertEqual(api.route(f"/flow/{worker}", store), (404, {"error": f"no exit trace for {worker}"}))
 
     def test_a_missing_page_in_replay_stops(self):
         client = rpc.Client(trace.TRANSFERS_URL, "replay", kind="http", fixtures_dir=Path(tempfile.gettempdir()) / "none")
