@@ -29,7 +29,7 @@ The scripts use environment variables and the near-cli-rs command lines recorded
 | `AGENT_ALLOWANCE_NEAR` | Function call key allowance in NEAR, defaults to `1`. |
 | `GATE_STATE_FROZEN` | Must equal `1` to redeploy after 4 Nov. |
 
-`setup_testnet.sh` checks all wasm files and the Gate balance before creating any subaccount, then creates missing accounts, recovers generated keys, deploys missing contract state and registers the token storage accounts. The balance check subtracts 3 NEAR for each missing token or registry account, 1 NEAR for a missing recorder account, and 0.00375 NEAR for the three storage deposits, leaving at least 10 NEAR.
+`setup_testnet.sh` checks all wasm files and the Gate balance before creating any subaccount, then creates missing accounts, recovers generated keys, deploys missing contract state and registers the token storage accounts. The balance check subtracts 3 NEAR for each missing token or registry account, 1 NEAR for a missing recorder account, and 0.00387 NEAR for the three storage deposits (0.00129 each, the token's storage_balance_bounds minimum), leaving at least 10 NEAR.
 
 `register_agent.sh` registers the agent and converts token caps to base units.
 

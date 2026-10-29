@@ -39,7 +39,7 @@ TOKEN_KEY=$(account_key "$TOKEN_ACCOUNT_ID")
 REGISTRY_KEY=$(account_key "$REGISTRY_ACCOUNT_ID")
 
 missing_accounts=()
-planned_spend_micronear=3750
+planned_spend_micronear=3870
 for account in "$TOKEN_ACCOUNT_ID" "$REGISTRY_ACCOUNT_ID" "$RECORDER_ACCOUNT_ID"; do
   if ! account_exists "$account"; then
     missing_accounts+=("$account")
@@ -99,7 +99,7 @@ elif ! near contract call-function as-read-only "$TOKEN_ACCOUNT_ID" ft_metadata 
 fi
 
 for account in "$GATE_ACCOUNT_ID" "$VENDOR_ACCOUNT_ID" "$AGED_PAYEE_ACCOUNT_ID"; do
-  call_transaction "$TOKEN_ACCOUNT_ID" storage_deposit "$(printf '{\"account_id\":%s,\"registration_only\":false}' "$(json_string "$account")")" "$GATE_ACCOUNT_ID" "$GATE_KEY" '0.00125 NEAR'
+  call_transaction "$TOKEN_ACCOUNT_ID" storage_deposit "$(printf '{\"account_id\":%s,\"registration_only\":false}' "$(json_string "$account")")" "$GATE_ACCOUNT_ID" "$GATE_KEY" '0.00129 NEAR'
 done
 
 gate_new=$(python3 - "$OWNER_ACCOUNT_ID" "$VERIFIER_PUB" "$MAX_TTL_MS" <<'PY'
