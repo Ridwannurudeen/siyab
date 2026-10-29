@@ -26,8 +26,8 @@ The signals, each written as an evidence document under intel/feed/events/<sha25
                                    sends a FunctionCall or a Transfer to a NEAR account the label
                                    store labels
   watch_account_key_added          an AddKey with full access, or a function call key with an empty
-                                   method_names list, on a NEAR account labelled infrastructure or
-                                   treasury
+                                   method_names list, on a NEAR account labelled infrastructure,
+                                   treasury or watch
 """
 
 import base64
@@ -49,7 +49,7 @@ STATE_PATH = FEED_DIR / "state.json"
 EVENTS_DIR = FEED_DIR / "events"
 INCIDENTS_DIR = Path(__file__).resolve().parent / "incidents"
 SIGNALS = ("code_hash_matches_incident", "fresh_dust_funded_pays_labelled", "watch_account_key_added")
-WATCH_CATEGORIES = ("infrastructure", "treasury")
+WATCH_CATEGORIES = ("infrastructure", "treasury", "watch")
 FRESH_WINDOW_MS = 24 * 60 * 60 * 1000
 MAX_REQUESTS = 600
 BACKOFF_S = 10
@@ -142,13 +142,16 @@ class Context:
             reported = document.get("code_hash_as_reported")
             if reported:
                 self.code_hashes[reported["value"]] = document["id"]
-        self.labelled, self.watched = {}, {}
+        self.labelled, self.watched, self.watch_categories = {}, {}, {}
         for assertion in store.assertions:
             if assertion.chain != "near" or assertion.superseded_by is not None:
                 continue
             self.labelled.setdefault(assertion.subject, []).append(assertion.id)
             if assertion.category in WATCH_CATEGORIES:
                 self.watched.setdefault(assertion.subject, []).append(assertion.id)
+                categories = self.watch_categories.setdefault(assertion.subject, [])
+                if assertion.category not in categories:
+                    categories.append(assertion.category)
         self.store_sha256 = store.sha256
 
 
@@ -187,7 +190,7 @@ def signals(block, state, context, source):
                     kind = ("a full access key" if permission == "FullAccess"
                             else f"a function call key for {permission['receiver_id']} with no method_names")
                     events.append(_event(SIGNALS[2], receiver, f"{kind} added to {receiver}, an account labelled "
-                                         f"{' and '.join(WATCH_CATEGORIES)}", block, receipt,
+                                         f"{' and '.join(context.watch_categories[receiver])}", block, receipt,
                                          context.watched[receiver], source))
         if "CreateAccount" in types:
             deposit = sum(int(a["deposit"]) for a in receipt["actions"] if a["type"] == "Transfer")

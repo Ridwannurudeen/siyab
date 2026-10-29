@@ -91,11 +91,20 @@ class SignalTest(unittest.TestCase):
         rhea = json.loads((ROOT / "intel" / "incidents" / "rhea.json").read_text(encoding="utf-8"))
         self.assertEqual(self.context.code_hashes, {rhea["code_hash_as_reported"]["value"]: "rhea"})
 
-    def test_the_watch_set_is_every_infrastructure_and_treasury_near_account(self):
+    def test_the_watch_set_is_every_infrastructure_treasury_and_watch_near_account(self):
         expected = {a.subject for a in self.store.assertions if a.chain == "near" and a.superseded_by is None
-                    and a.category in ("infrastructure", "treasury")}
+                    and a.category in ("infrastructure", "treasury", "watch")}
         self.assertEqual(set(self.context.watched), expected)
+        self.assertEqual(self.context.watch_categories["game.hot.tg"], ["watch"])
         self.assertIn("intents.near", expected)
+
+    def test_a_full_access_key_on_a_watch_labelled_account_fires(self):
+        block = json.loads((BLOCKS / "synthetic-watch-addkey.json").read_text(encoding="utf-8"))
+        block["receipts"][0]["receiver_id"] = "game.hot.tg"
+        [event] = self.events(block)
+        self.assertEqual(event["signal"], "watch_account_key_added")
+        self.assertEqual(event["detail"], "a full access key added to game.hot.tg, an account labelled watch")
+        self.assertTrue(set(event["labels"]) <= {a.id for a in self.store.by_subject("game.hot.tg", "near")})
 
     def test_a_function_call_key_with_methods_or_on_an_unwatched_account_is_quiet(self):
         block = json.loads((BLOCKS / "synthetic-watch-addkey.json").read_text(encoding="utf-8"))
