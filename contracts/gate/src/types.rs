@@ -46,6 +46,7 @@ pub struct TransferRequest {
 }
 
 #[near(serializers = [json, borsh])]
+#[derive(Clone)]
 pub struct Verdict {
     pub literal: String,
     pub issued_ms: u64,

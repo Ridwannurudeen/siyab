@@ -170,3 +170,347 @@ fn agent_key_bytes(public_key: &PublicKey) -> [u8; 32] {
 fn lower_hex(bytes: &[u8]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ed25519_dalek::SigningKey;
+    use near_sdk::{
+        json_types::U128,
+        test_utils::{testing_env_with_promise_results, VMContextBuilder},
+        testing_env,
+    };
+    use serde_json::Value;
+    use std::{fs, path::PathBuf, str::FromStr};
+    use types::{Agent, AssetCap};
+
+    fn read_vector(name: &str) -> Value {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../fixtures/canon")
+            .join(format!("{name}.json"));
+        serde_json::from_slice(&fs::read(path).unwrap()).unwrap()
+    }
+
+    fn decode_hex(value: &str) -> Vec<u8> {
+        (0..value.len())
+            .step_by(2)
+            .map(|index| u8::from_str_radix(&value[index..index + 2], 16).unwrap())
+            .collect()
+    }
+
+    fn base58_encode(bytes: &[u8]) -> String {
+        const ALPHABET: &[u8] = b"123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+        let zeros = bytes.iter().take_while(|byte| **byte == 0).count();
+        let mut digits = vec![0u8];
+        for byte in bytes {
+            let mut carry = u32::from(*byte);
+            for digit in &mut digits {
+                carry += u32::from(*digit) << 8;
+                *digit = (carry % 58) as u8;
+                carry /= 58;
+            }
+            while carry > 0 {
+                digits.push((carry % 58) as u8);
+                carry /= 58;
+            }
+        }
+        let mut output = vec![b'1'; zeros];
+        output.extend(digits.iter().rev().map(|digit| ALPHABET[*digit as usize]));
+        String::from_utf8(output).unwrap()
+    }
+
+    fn public_key(bytes: &[u8]) -> PublicKey {
+        PublicKey::from_str(&format!("ed25519:{}", base58_encode(bytes))).unwrap()
+    }
+
+    fn prepare(vector_name: &str, allowlisted: bool) -> (Gate, TransferRequest, Verdict, PublicKey) {
+        prepare_with_result(vector_name, allowlisted, Gas::from_tgas(300), PromiseResult::Successful(Vec::new()))
+    }
+
+    fn prepare_with_gas(
+        vector_name: &str,
+        allowlisted: bool,
+        prepaid_gas: Gas,
+    ) -> (Gate, TransferRequest, Verdict, PublicKey) {
+        prepare_with_result(vector_name, allowlisted, prepaid_gas, PromiseResult::Successful(Vec::new()))
+    }
+
+    fn prepare_with_result(
+        vector_name: &str,
+        allowlisted: bool,
+        prepaid_gas: Gas,
+        promise_result: PromiseResult,
+    ) -> (Gate, TransferRequest, Verdict, PublicKey) {
+        let vector = read_vector(vector_name);
+        let gate_id: AccountId = "gate.testnet".parse().unwrap();
+        let owner_id: AccountId = "owner.testnet".parse().unwrap();
+        let agent_seed: [u8; 32] = env::sha256(b"gate test agent v1").try_into().unwrap();
+        let agent_bytes = SigningKey::from_bytes(&agent_seed).verifying_key().to_bytes();
+        let agent_pk = public_key(&agent_bytes);
+        let verifier_bytes: [u8; 32] = decode_hex(vector["verifier_pub_hex"].as_str().unwrap()).try_into().unwrap();
+        let verifier_key = public_key(&verifier_bytes);
+        let now_ms = 1_700_000_100_000u64;
+        let context = VMContextBuilder::new()
+            .current_account_id(gate_id.clone())
+            .predecessor_account_id(gate_id.clone())
+            .signer_account_pk(agent_pk.clone())
+            .block_timestamp(now_ms * 1_000_000)
+            .prepaid_gas(prepaid_gas)
+            .build();
+        testing_env_with_promise_results(context, promise_result);
+        let mut gate = Gate::new(owner_id, verifier_key, 300_000);
+        let token_id = vector["token_id"].as_str().map(|value| value.parse().unwrap());
+        let asset = if vector["kind"] == "near" {
+            Asset::Near
+        } else {
+            Asset::Ft(token_id.clone().unwrap())
+        };
+        let cap = AssetCap {
+            asset,
+            per_call: 10_000_000,
+            window_cap: 50_000_000,
+            window_ms: 86_400_000,
+            window_start_ms: now_ms,
+            spent: 0,
+        };
+        let receiver: AccountId = vector["receiver_id"].as_str().unwrap().parse().unwrap();
+        let unknown_caps = if allowlisted { None } else { Some(vec![cap.clone()]) };
+        gate.agents.insert(
+            agent_pk.clone(),
+            Agent {
+                label: "unit agent".to_owned(),
+                enabled: true,
+                allowlist: if allowlisted { vec![receiver] } else { Vec::new() },
+                caps: vec![cap],
+                unknown_caps,
+            },
+        );
+        let request = TransferRequest {
+            kind: vector["kind"].as_str().unwrap().to_owned(),
+            token_id,
+            receiver_id: vector["receiver_id"].as_str().unwrap().parse().unwrap(),
+            amount: U128(vector["amount"].as_str().unwrap().parse().unwrap()),
+            memo: vector["memo"].as_str().map(str::to_owned),
+        };
+        let verdict = Verdict {
+            literal: vector["literal"].as_str().unwrap().to_owned(),
+            issued_ms: vector["issued_ms"].as_u64().unwrap(),
+            expires_ms: vector["expires_ms"].as_u64().unwrap(),
+            verdict_id: vector["verdict_id"].as_str().unwrap().to_owned(),
+            evidence_hash: vector["evidence_sha256"].as_str().unwrap().to_owned(),
+            key_id: vector["key_id"].as_str().unwrap().to_owned(),
+            signature: vector["signature_hex"].as_str().unwrap().to_owned(),
+        };
+        (gate, request, verdict, agent_pk)
+    }
+
+    fn submit(gate: &mut Gate, request: TransferRequest, verdict: Option<Verdict>, agent_pk: PublicKey) {
+        let _ = agent_pk;
+        let _ = gate.request_transfer(request, verdict);
+    }
+
+    #[test]
+    fn happy_path_debits_cap_and_emits_events() {
+        let (mut gate, request, verdict, agent_pk) = prepare("04-ft-happy-unit", true);
+        submit(&mut gate, request, Some(verdict.clone()), agent_pk.clone());
+        let agent = gate.agents.get(&agent_pk).unwrap();
+        assert_eq!(agent.caps[0].spent, 1_000_000);
+        assert!(gate.used_verdicts.contains_key(&verdict.verdict_id));
+        assert!(near_sdk::test_utils::get_logs().iter().any(|line| line.starts_with("EVENT_JSON:") && line.contains("transfer_scheduled")));
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:no_verdict")]
+    fn missing_verdict_is_refused() {
+        let (mut gate, request, _, agent_pk) = prepare("04-ft-happy-unit", true);
+        submit(&mut gate, request, None, agent_pk);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:expired")]
+    fn expired_vector_is_refused() {
+        let (mut gate, request, verdict, agent_pk) = prepare("05-expired-unit", true);
+        submit(&mut gate, request, Some(verdict), agent_pk);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:ttl_too_long")]
+    fn excessive_ttl_vector_is_refused() {
+        let (mut gate, request, verdict, agent_pk) = prepare("06-ttl-too-long-unit", true);
+        submit(&mut gate, request, Some(verdict), agent_pk);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:bad_signature")]
+    fn flipped_signature_is_refused() {
+        let (mut gate, request, verdict, agent_pk) = prepare("07-bad-signature-unit", true);
+        submit(&mut gate, request, Some(verdict), agent_pk);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:not_allow")]
+    fn non_allow_literal_is_refused() {
+        let (mut gate, request, verdict, agent_pk) = prepare("08-wrong-literal-unit", true);
+        submit(&mut gate, request, Some(verdict), agent_pk);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:bad_signature")]
+    fn verdict_for_another_contract_is_refused() {
+        let (mut gate, request, verdict, agent_pk) = prepare("10-wrong-contract-unit", true);
+        submit(&mut gate, request, Some(verdict), agent_pk);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:bad_signature")]
+    fn verdict_for_another_agent_is_refused() {
+        let (mut gate, request, verdict, agent_pk) = prepare("11-wrong-agent-unit", true);
+        submit(&mut gate, request, Some(verdict), agent_pk);
+    }
+
+    #[test]
+    fn previous_key_is_accepted_before_deadline() {
+        let (mut gate, request, verdict, agent_pk) = prepare("09-prev-key-unit", true);
+        gate.verifier_previous = Some((gate.verifier_current, verdict.expires_ms));
+        submit(&mut gate, request, Some(verdict), agent_pk);
+        assert!(near_sdk::test_utils::get_logs().iter().any(|line| line.contains("transfer_scheduled")));
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:bad_key_id")]
+    fn previous_key_is_refused_after_deadline() {
+        let (mut gate, request, verdict, agent_pk) = prepare("09-prev-key-unit", true);
+        gate.verifier_previous = Some((gate.verifier_current, 1_700_000_099_999));
+        submit(&mut gate, request, Some(verdict), agent_pk);
+    }
+
+    #[test]
+    fn derives_agent_public_key_from_test_seed() {
+        let seed = near_sdk::env::sha256(b"gate test agent v1");
+        let seed: [u8; 32] = seed.try_into().unwrap();
+        let signing_key = SigningKey::from_bytes(&seed);
+        let vector = read_vector("04-ft-happy-unit");
+        assert_eq!(signing_key.verifying_key().to_bytes().to_vec(), decode_hex(vector["agent_pk_hex"].as_str().unwrap()));
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:paused")]
+    fn paused_gate_refuses_first() {
+        let (mut gate, request, verdict, agent_pk) = prepare("04-ft-happy-unit", true);
+        gate.paused = true;
+        submit(&mut gate, request, Some(verdict), agent_pk);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:unknown_agent")]
+    fn unregistered_signer_is_refused() {
+        let (mut gate, request, verdict, agent_pk) = prepare("04-ft-happy-unit", true);
+        gate.agents.remove(&agent_pk);
+        submit(&mut gate, request, Some(verdict), agent_pk);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:agent_disabled")]
+    fn disabled_agent_is_refused() {
+        let (mut gate, request, verdict, agent_pk) = prepare("04-ft-happy-unit", true);
+        gate.agents.get_mut(&agent_pk).unwrap().enabled = false;
+        submit(&mut gate, request, Some(verdict), agent_pk);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:denylisted")]
+    fn denylisted_receiver_is_refused() {
+        let (mut gate, request, verdict, agent_pk) = prepare("04-ft-happy-unit", true);
+        gate.denylist.insert(request.receiver_id.clone());
+        submit(&mut gate, request, Some(verdict), agent_pk);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:not_allowlisted")]
+    fn unlisted_receiver_without_unknown_caps_is_refused() {
+        let (mut gate, request, verdict, agent_pk) = prepare("04-ft-happy-unit", true);
+        let agent = gate.agents.get_mut(&agent_pk).unwrap();
+        agent.allowlist.clear();
+        agent.unknown_caps = None;
+        submit(&mut gate, request, Some(verdict), agent_pk);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:verdict_used")]
+    fn repeated_verdict_id_is_refused() {
+        let (mut gate, request, verdict, agent_pk) = prepare("04-ft-happy-unit", true);
+        gate.used_verdicts.insert(verdict.verdict_id.clone(), verdict.expires_ms);
+        submit(&mut gate, request, Some(verdict), agent_pk);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:per_call_cap")]
+    fn per_call_cap_is_enforced() {
+        let (mut gate, request, verdict, agent_pk) = prepare("04-ft-happy-unit", true);
+        gate.agents.get_mut(&agent_pk).unwrap().caps[0].per_call = 1;
+        submit(&mut gate, request, Some(verdict), agent_pk);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:window_cap")]
+    fn window_cap_is_enforced() {
+        let (mut gate, request, verdict, agent_pk) = prepare("04-ft-happy-unit", true);
+        gate.agents.get_mut(&agent_pk).unwrap().caps[0].window_cap = 1;
+        submit(&mut gate, request, Some(verdict), agent_pk);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:unknown_payee_cap")]
+    fn unknown_payee_cap_is_enforced() {
+        let (mut gate, request, verdict, agent_pk) = prepare("04-ft-happy-unit", false);
+        gate.agents.get_mut(&agent_pk).unwrap().unknown_caps.as_mut().unwrap()[0].per_call = 1;
+        submit(&mut gate, request, Some(verdict), agent_pk);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:low_gas")]
+    fn insufficient_gas_is_refused() {
+        let (mut gate, request, verdict, agent_pk) = prepare_with_gas(
+            "04-ft-happy-unit",
+            true,
+            Gas::from_tgas(20),
+        );
+        submit(&mut gate, request, Some(verdict), agent_pk);
+    }
+
+    #[test]
+    #[should_panic(expected = "Requires attached deposit of exactly 1 yoctoNEAR")]
+    fn owner_method_requires_one_yocto() {
+        let (mut gate, _, _, _) = prepare("04-ft-happy-unit", true);
+        let context = VMContextBuilder::new()
+            .current_account_id("gate.testnet".parse().unwrap())
+            .predecessor_account_id("owner.testnet".parse().unwrap())
+            .build();
+        testing_env!(context);
+        gate.set_paused(true);
+    }
+
+    #[test]
+    fn failed_transfer_restores_the_debited_cap() {
+        let (mut gate, request, verdict, agent_pk) = prepare_with_result(
+            "04-ft-happy-unit",
+            true,
+            Gas::from_tgas(300),
+            PromiseResult::Failed,
+        );
+        submit(&mut gate, request, Some(verdict), agent_pk.clone());
+        gate.on_transfer(0, false);
+        assert_eq!(gate.agents.get(&agent_pk).unwrap().caps[0].spent, 0);
+        assert!(gate.pending.get(&0).is_none());
+        assert!(near_sdk::test_utils::get_logs().iter().any(|line| line.contains("transfer_failed") && line.contains("true")));
+    }
+
+    #[test]
+    fn successful_transfer_keeps_the_debit() {
+        let (mut gate, request, verdict, agent_pk) = prepare("04-ft-happy-unit", true);
+        submit(&mut gate, request, Some(verdict), agent_pk.clone());
+        gate.on_transfer(0, false);
+        assert_eq!(gate.agents.get(&agent_pk).unwrap().caps[0].spent, 1_000_000);
+        assert!(gate.pending.get(&0).is_none());
+    }
+}
