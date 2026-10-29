@@ -1,0 +1,97 @@
+{
+  "subject": "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "DENY",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "pass",
+      "detail": "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5 exists",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "ea9ab76baae759eb6267d9266a8b65afa7fd3a7157f8c98a746378e6c8f5ed45",
+        "fetched_at": "2026-10-29T11:38:02Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "signal",
+      "detail": "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5 carries the incident label \"named in the rekt.news Rhea Finance report as the master account\" (assertion 56bcaa5972ef748cca8a1f9b9be8f856184a94fa7268ec9a681ee89664d4d207); 72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5 carries the incident label \"account exists with contract code hash BbQTHv9y5pJcAVbcZVRgMkZib9v2bfydRtBL9msUR4Wi\" (assertion a28b0030e0a5060ee2e24e8dd6b0cd288d795e347660baf73a7f2ca2bfcdf7f4)",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "pass",
+      "detail": "created 196 d ago",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "516eef037d0239bcdb1e8b62accb80a3a2f393a0fba138ef4dfe3a41cc393844",
+        "fetched_at": "2026-10-29T14:44:55Z"
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "pass",
+      "detail": "created by a 10 NEAR deposit",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "8cb0836d77be9f8fa3c8ba2965922f4828ddfb041a1deeed08ef7208c5262a60",
+        "fetched_at": "2026-10-29T14:45:05Z"
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "signal",
+      "detail": "code_without_metadata: contract code without contract_source_metadata",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "e99f332de711063deaf93d55f32e87aa4d1e6f2cf71ffabe5d3b51c60e02e9e4",
+        "fetched_at": "2026-10-29T14:45:06Z"
+      }
+    }
+  ],
+  "reasons": [
+    "Not on the owner's allowlist.",
+    "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5 carries the incident label \"named in the rekt.news Rhea Finance report as the master account\" (assertion 56bcaa5972ef748cca8a1f9b9be8f856184a94fa7268ec9a681ee89664d4d207); 72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5 carries the incident label \"account exists with contract code hash BbQTHv9y5pJcAVbcZVRgMkZib9v2bfydRtBL9msUR4Wi\" (assertion a28b0030e0a5060ee2e24e8dd6b0cd288d795e347660baf73a7f2ca2bfcdf7f4).",
+    "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5 has contract code without contract_source_metadata."
+  ],
+  "labels": [
+    "56bcaa5972ef748cca8a1f9b9be8f856184a94fa7268ec9a681ee89664d4d207",
+    "a28b0030e0a5060ee2e24e8dd6b0cd288d795e347660baf73a7f2ca2bfcdf7f4"
+  ],
+  "observed": {
+    "block_height": 222119657,
+    "timestamp_ms": 1793284573923
+  }
+}

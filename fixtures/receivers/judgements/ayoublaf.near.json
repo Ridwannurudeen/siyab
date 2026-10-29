@@ -1,0 +1,93 @@
+{
+  "subject": "ayoublaf.near",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "ayoublaf.near",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "ALLOW",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "pass",
+      "detail": "ayoublaf.near exists",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "1c8765bbccb45e7e5cc7af113ee76565f528700e86d66ce2aefc53f27fc86e51",
+        "fetched_at": "2026-10-29T14:36:26Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "pass",
+      "detail": "no denylist or incident label on ayoublaf.near",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "pass",
+      "detail": "created 450 d ago",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "63e79910139580a900134bc6ad64fb75909704868dd25404b1a9fa720f346351",
+        "fetched_at": "2026-10-29T14:36:35Z"
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "pass",
+      "detail": "created by a 0 NEAR deposit; not a signal without lookalike or account_age",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "41661ea1281014fe4b01e96ab98eea93e4b98edbf6853ee597596c468bb2a4d1",
+        "fetched_at": "2026-10-29T14:36:45Z"
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "pass",
+      "detail": "no contract code",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "1c8765bbccb45e7e5cc7af113ee76565f528700e86d66ce2aefc53f27fc86e51",
+        "fetched_at": "2026-10-29T14:36:26Z"
+      }
+    }
+  ],
+  "reasons": [
+    "Every check ran and none found a signal.",
+    "Not on the owner's allowlist."
+  ],
+  "labels": [],
+  "observed": {
+    "block_height": 222137386,
+    "timestamp_ms": 1793284573923
+  }
+}

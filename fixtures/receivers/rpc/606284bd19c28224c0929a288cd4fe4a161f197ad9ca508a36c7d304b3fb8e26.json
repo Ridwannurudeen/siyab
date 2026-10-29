@@ -1,0 +1,77 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "keys": [
+      {
+        "public_key": "ed25519:DJzWFLAyVeVK8jYfbXQPRx6VJsZ7ZByjsyWk2wT7TPdu",
+        "account_id": "mmt-arb.near",
+        "permission_kind": "FUNCTION_CALL",
+        "created": {
+          "transaction_hash": "7F9GnBW7w5pHX9DN5ASk4TiKij1PyBAAhWpAKR3jmqgQ",
+          "block_timestamp": 1793279298706638800
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:59FaUAn32N663pg8d6AuCymt6FcANKfvE7WDx6ZT5MRx",
+        "account_id": "mmt-arb.near",
+        "permission_kind": "FUNCTION_CALL",
+        "created": {
+          "transaction_hash": "7EEWESw3XfTYcDgBYt8BDD73iVJSGshzrJvtEMFBhrBE",
+          "block_timestamp": 1793279287083477500
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:5iTZKveG7myR2cWipRZhSGycxofRHo6Ky6TLMfmrwoC",
+        "account_id": "mmt-arb.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "4Bbz5Zvsq1A6Wu7T48zQMdktuPDSwyNsd9mR8MzFZvsR",
+          "block_timestamp": 1793262248764134400
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:DArJjbzhwVe44qdbZBdffuPwDfdhEnGg1ddqKdvvjzKf",
+        "account_id": "mmt-arb.near",
+        "permission_kind": "FUNCTION_CALL",
+        "created": {
+          "transaction_hash": "6UJRc8TZoGGmbAT4ZN8xmrQ1bB7ZBBhgYCC7RDUHZ6V7",
+          "block_timestamp": 1791189200713488600
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:673m3jrtdd11tXYHHnSZ4RxERwUEZRbcYJKyRNkf6B57",
+        "account_id": "mmt-arb.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "3YwqChtjMqAdutTBajpmRvMb5r2hvLeMQXYssMcNkUo7",
+          "block_timestamp": 1791188470968601300
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/account/mmt-arb.near/keys",
+  "fetched_at": "2026-10-29T14:36:15Z"
+}

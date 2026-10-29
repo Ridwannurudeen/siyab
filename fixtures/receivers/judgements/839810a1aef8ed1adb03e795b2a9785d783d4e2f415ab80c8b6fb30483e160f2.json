@@ -1,0 +1,98 @@
+{
+  "subject": "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "DENY",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "signal",
+      "detail": "receiver_missing: 839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2 does not exist",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "dadcd7c61f01105ce6cb77173a0810793a506a462837f4de4150f9387bc414e4",
+        "fetched_at": "2026-10-29T11:38:04Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "signal",
+      "detail": "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2 carries the incident label \"named in the rekt.news Rhea Finance report as one of the five worker accounts\" (assertion 7f0b7036681ecde8f4db2d0c311582cc4886dd0426f9403728e6acfbbbae5524); 839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2 carries the incident label \"account does not exist at this block (deleted or never created)\" (assertion 1c2f83d48512e6646e41fb2423443596f90f9848bd5aa54c9cf99f5654ef84c7); 839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2 carries the incident label \"created at block 194226550 by transaction BUkhCry3v7WihKw35sNy7nKzf6CVUf9AdyM37CTXru4R with a deposit of 15 NEAR\" (assertion e1545f2cf37080fe9c8ce43c008c5813335a57f891a37335054bf4ba71ccb999)",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "pass",
+      "detail": "created 196 d ago",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "360204f1ff183860c112d4467f9d70acbb28d1a3cf64cb803c01628ee8188a86",
+        "fetched_at": "2026-10-29T11:40:12Z"
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "pass",
+      "detail": "created by a 15 NEAR deposit",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "f085d43938c60db52f8ab50df62a581d1417d5ee53f4bd3f7fb83f72d83fc61d",
+        "fetched_at": "2026-10-29T11:40:22Z"
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "unknown",
+      "detail": "the receiver account could not be read",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "dadcd7c61f01105ce6cb77173a0810793a506a462837f4de4150f9387bc414e4",
+        "fetched_at": "2026-10-29T11:38:04Z"
+      }
+    }
+  ],
+  "reasons": [
+    "Not on the owner's allowlist.",
+    "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2 does not exist.",
+    "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2 carries the incident label \"named in the rekt.news Rhea Finance report as one of the five worker accounts\" (assertion 7f0b7036681ecde8f4db2d0c311582cc4886dd0426f9403728e6acfbbbae5524); 839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2 carries the incident label \"account does not exist at this block (deleted or never created)\" (assertion 1c2f83d48512e6646e41fb2423443596f90f9848bd5aa54c9cf99f5654ef84c7); 839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2 carries the incident label \"created at block 194226550 by transaction BUkhCry3v7WihKw35sNy7nKzf6CVUf9AdyM37CTXru4R with a deposit of 15 NEAR\" (assertion e1545f2cf37080fe9c8ce43c008c5813335a57f891a37335054bf4ba71ccb999)."
+  ],
+  "labels": [
+    "7f0b7036681ecde8f4db2d0c311582cc4886dd0426f9403728e6acfbbbae5524",
+    "1c2f83d48512e6646e41fb2423443596f90f9848bd5aa54c9cf99f5654ef84c7",
+    "e1545f2cf37080fe9c8ce43c008c5813335a57f891a37335054bf4ba71ccb999"
+  ],
+  "observed": {
+    "block_height": null,
+    "timestamp_ms": 1793284573923
+  }
+}

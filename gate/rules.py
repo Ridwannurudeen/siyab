@@ -394,30 +394,44 @@ def _tier2(request, policy, store, account, account_source, rpc, nearblocks, now
         checks.append(evidence.check("account_age", "unknown", f"could not read the account keys: "
                                      f"{_why(error)}", _source(nearblocks)))
 
+    dust = None
     if creation_hash is None:
-        checks.append(evidence.check("dust_funded", "unknown", "the creation transaction is not known",
-                                     _local("nearblocks")))
+        dust_check = evidence.check("dust_funded", "unknown", "the creation transaction is not known",
+                                    _local("nearblocks"))
     else:
         try:
             deposit = _creation_deposit(nearblocks.get(f"/v1/txns/{creation_hash}"))
             facts["deposit"] = _near_text(deposit)
             dust = deposit < DUST_YOCTO
-            checks.append(evidence.check("dust_funded", "signal" if dust else "pass",
-                                         f"created by a {facts['deposit']} NEAR deposit"
-                                         + (", below 0.1 NEAR" if dust else ""), _source(nearblocks)))
+            dust_source = _source(nearblocks)
         except UNAVAILABLE as error:
-            checks.append(evidence.check("dust_funded", "unknown", f"could not read the creation "
-                                         f"transaction: {_why(error)}", _source(nearblocks)))
+            dust_check = evidence.check("dust_funded", "unknown", f"could not read the creation "
+                                        f"transaction: {_why(error)}", _source(nearblocks))
 
     hit = _lookalike(policy, store, receiver)
     source = _local("allowlist and label store", store.sha256)
     if hit:
         facts["lookalike"], detail, matched = hit
-        checks.append(evidence.check("lookalike", "signal", detail, source))
+        lookalike_check = evidence.check("lookalike", "signal", detail, source)
     else:
-        checks.append(evidence.check("lookalike", "pass", "no allowlisted name contained and no allowlisted "
-                                     "or labelled NEAR account within the length scaled distance after "
-                                     "confusable normalisation", source))
+        lookalike_check = evidence.check("lookalike", "pass", "no allowlisted name contained and no allowlisted "
+                                         "or labelled NEAR account within the length scaled distance after "
+                                         "confusable normalisation", source)
+
+    # A dust creation deposit is the ordinary wallet pattern, so it is a signal only together with a
+    # lookalike or a young account (DISPOSITION-dust option A).
+    if dust is not None:
+        young = any(c["id"] == "account_age" and c["status"] == "signal" for c in checks)
+        if dust and (hit or young):
+            dust_check = evidence.check("dust_funded", "signal", f"created by a {facts['deposit']} NEAR deposit, "
+                                        "below 0.1 NEAR", dust_source)
+        elif dust:
+            dust_check = evidence.check("dust_funded", "pass", f"created by a {facts['deposit']} NEAR deposit; not "
+                                        "a signal without lookalike or account_age", dust_source)
+        else:
+            dust_check = evidence.check("dust_funded", "pass", f"created by a {facts['deposit']} NEAR deposit",
+                                        dust_source)
+    checks += [dust_check, lookalike_check]
 
     checks.append(_code_check(rpc, receiver, account, account_source))
     return checks, facts, matched

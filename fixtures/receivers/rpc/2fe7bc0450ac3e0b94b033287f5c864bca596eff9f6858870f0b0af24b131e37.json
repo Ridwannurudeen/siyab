@@ -1,0 +1,73 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "txns": [
+      {
+        "transaction_hash": "J28KLyuTAGRAtgNWurPZkzyBSaMKLWFBsJoKUPjeweXx",
+        "included_in_block_hash": "Fa1CMZkPHRLtPpzbGnwCtcXizXs7KLgmnSwM2pJnmFLa",
+        "block_timestamp": "1730829862127460282",
+        "signer_account_id": "1fa232020ab18712edd14015fe70d09401b94a58c2033af8f09850182576d4f5",
+        "receiver_account_id": "near",
+        "receipt_conversion_gas_burnt": "313495443510",
+        "receipt_conversion_tokens_burnt": "31349544351000000000",
+        "shard_id": "0",
+        "block": {
+          "block_height": 132033434
+        },
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "create_account",
+            "args": "{\"new_account_id\": \"bridge-mng.near\", \"new_public_key\": \"22Rh9RxeqhJ63KxKD4EJ5AgyMZ5xMcb5iqNEPFpR86S6\"}"
+          }
+        ],
+        "actions_agg": {
+          "deposit": 1e+23,
+          "gas_attached": 100000000000000
+        },
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": 1.1997361391288e+21,
+          "gas_used": 24522204453788
+        },
+        "receipts": [
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          }
+        ]
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/txns/J28KLyuTAGRAtgNWurPZkzyBSaMKLWFBsJoKUPjeweXx",
+  "fetched_at": "2026-10-29T14:41:05Z"
+}

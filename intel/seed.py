@@ -2,8 +2,11 @@
 
 Sub commands: treasuries (the NEAR Intents treasury page), catalog (the 1Click asset catalog),
 infrastructure (omft.near and intents.near source metadata, the .omft.near bridge token accounts,
-v1.signer and the OutLayer accounts) and rhea (the rekt.news Rhea Finance report, re-read on chain,
-which also writes intel/incidents/rhea.json). GATE_FIXTURES_MODE decides the network: replay (default)
+v1.signer and the OutLayer accounts), rhea (the rekt.news Rhea Finance report, re-read on chain,
+which also writes intel/incidents/rhea.json), sweat-hot (the Fireblocks SWEAT and HOT report and the
+DeFiLlama hacks entry, with the HOT token contract re-read on chain, which also writes
+intel/incidents/sweat-hot.json) and intents-2026-10-01 (the DeFiLlama hacks entry only, which writes
+intel/incidents/intents-2026-10-01.json and adds no row). GATE_FIXTURES_MODE decides the network: replay (default)
 reads the newest snapshot under intel/seeds/raw/ and the recorded RPC fixtures; record fetches
 the page once, stores it byte for byte as raw/<name>-<UTC time>.<ext> and records RPC reads.
 Each run appends only rows whose id is new and rewrites intel/seeds/README.md.
@@ -30,11 +33,15 @@ TREASURY_URL = "https://docs.near-intents.org/security-compliance/treasury-addre
 CATALOG_URL = "https://1click.chaindefuser.com/v0/tokens"
 REKT_RHEA_URL = "https://rekt.news/rhea-finance-rekt"
 QUOTE_DOC_URL = "https://docs.near-intents.org/api-reference/oneclick/request-a-swap-quote.md"
+FIREBLOCKS_URL = "https://www.fireblocks.com/blog/near-zero-day-sweat-hot-token-exploit"
+DEFILLAMA_URL = "https://api.llama.fi/hacks"
 SNAPSHOTS = {"treasuries": ("near-intents-treasury-addresses", "md", TREASURY_URL),
              "catalog": ("1click-tokens", "json", CATALOG_URL),
              "rhea": ("rekt-rhea", "html", REKT_RHEA_URL),
-             "quote_doc": ("intents-quote-doc", "md", QUOTE_DOC_URL)}
-SOURCES = ("treasuries", "catalog", "infrastructure", "rhea")
+             "quote_doc": ("intents-quote-doc", "md", QUOTE_DOC_URL),
+             "fireblocks": ("fireblocks-sweat-hot", "html", FIREBLOCKS_URL),
+             "defillama": ("defillama-hacks", "json", DEFILLAMA_URL)}
+SOURCES = ("treasuries", "catalog", "infrastructure", "rhea", "sweat-hot", "intents-2026-10-01")
 _STAMP = "%Y%m%dT%H%M%SZ"
 _TIME = "%Y-%m-%dT%H:%M:%SZ"
 # Page names to 1Click blockchain codes. Aurora has no code in the catalog and keeps its name;
@@ -558,6 +565,199 @@ def rhea_incident(mode=None, raw_dir=RAW_DIR, store_path=labels.STORE_PATH, clie
     }
 
 
+FIREBLOCKS_SOURCE_ID = "fireblocks"
+DEFILLAMA_SOURCE_ID = "defillama"
+INCIDENT_CONFIDENCE = 0.9
+INCIDENTS_DIR = INTEL_DIR / "incidents"
+SWEAT_HOT_INCIDENT_PATH = INCIDENTS_DIR / "sweat-hot.json"
+INTENTS_INCIDENT_PATH = INCIDENTS_DIR / "intents-2026-10-01.json"
+_NEARBLOCKS_LINK = re.compile(r'<p[^>]*>(?:(?!</p>).)*?href="https://nearblocks[.]io/(token|txns)/([^"]+)"(?:(?!</p>).)*?</p>',
+                              re.DOTALL)
+CURRENT_STATE = "current state of the contract, not a historical block replay"
+SWEAT_HOT_ROLE = ("the HOT token contract, in which the report detected the same unguarded ft_resolve_transfer "
+                  "callback, patched the same day")
+SWEAT_HOT_NOT_PUBLIC = (
+    ("The report names no SWEAT attacker account, no victim account and no SWEAT exploit transaction; this page "
+    "names none."),
+    "The report names no person, and this page names none.",
+    "The only account the report names is the HOT token contract, and the only transaction is the HOT patch.",
+    "The SWEAT token contract is not named by the report; its catalog row is not cited here.",
+)
+INTENTS_NOT_PUBLIC = (
+    ("No NEAR account and no EVM address appears in the source this page cites, so no address is asserted as "
+    "drained."),
+    ("The NEAR Intents treasury page lists the shared EVM treasury, but no cited source says which address was "
+    "drained."),
+    ("The Block's report of 1 Oct 2026 answered HTTP 403 to the one fetch made on 29 Oct 2026; nothing from it is "
+    "used here."),
+    "The Bitquery investigation page was fetched on 29 Oct 2026: fetched, no addresses.",
+    "The report names no person, and this page names none.",
+)
+INCIDENT_STANDARD = ("Only accounts named in the cited sources or provable on chain by a read anyone can repeat; "
+                     "no person, no motive; the sources' own words appear only inside quote fields with their "
+                     "source id; failed checks read Unknown.")
+
+
+def _paragraph_text(fragment):
+    return " ".join(html.unescape(re.sub(r"<[^>]+>", "", fragment)).split())
+
+
+def fireblocks_report(data):
+    """What the Fireblocks report names: [(kind, value, quote)] for each nearblocks.io token and
+    transaction link in its article, in page order."""
+    text = data.decode("utf-8")
+    start, end = text.find("<article"), text.find("</article>")
+    if start == -1 or end == -1:
+        raise SeedError("the Fireblocks snapshot has no article element")
+    found = [(kind, value, _paragraph_text(match.group(0))) for match in _NEARBLOCKS_LINK.finditer(text[start:end])
+             for kind, value in [match.groups()]]
+    kinds = [kind for kind, _, _ in found]
+    if kinds.count("token") != 1 or kinds.count("txns") != 1:
+        raise SeedError(f"the Fireblocks report links {kinds}, not one token and one transaction")
+    return found
+
+
+def defillama_entry(data, name):
+    """(the DeFiLlama hacks entry for the name, its compact JSON as the quote)."""
+    entries = [entry for entry in json.loads(data) if entry.get("name") == name]
+    if len(entries) != 1:
+        raise SeedError(f"the DeFiLlama snapshot holds {len(entries)} entries named {name!r}")
+    return entries[0], json.dumps(entries[0], sort_keys=True, ensure_ascii=False)
+
+
+def _entry_date(entry):
+    return datetime.fromtimestamp(entry["date"], UTC).strftime("%Y-%m-%d")
+
+
+def _sweat_hot_reads(client, nearblocks, token, transaction_hash):
+    """The on chain facts: [(label, rpc, method, args, block, observed_at, result_sha256)]."""
+    facts = []
+    view = client.view_account(token)
+    facts.append((f"account exists with contract code hash {view['code_hash']}", client.url, "view_account",
+                  {"account_id": token}, client.last_block_height, client.last_source["fetched_at"],
+                  _result_sha256(view)))
+    try:
+        metadata = client.call_function(token, "contract_source_metadata", {})
+        label = f"contract_source_metadata answers {_quoted(json.dumps(metadata, sort_keys=True))}"
+        block, result = client.last_block_height, metadata
+    except rpc.RpcError as error:
+        block = _error_block(error) or client.last_block_height
+        if block is None:
+            raise
+        missing = (error.cause in rules.MISSING_CODE_CAUSES
+                   or any(marker in json.dumps(error.error) for marker in rules.MISSING_METHOD_MARKERS))
+        label = ("no contract_source_metadata" if missing
+                 else f"contract_source_metadata fails on the contract: {_quoted(json.dumps(error.error, sort_keys=True))}")
+        result = error.error
+    facts.append((label, client.url, "contract_source_metadata", {}, block, client.last_source["fetched_at"],
+                  _result_sha256(result)))
+    txn = nearblocks.get(f"/v1/txns/{transaction_hash}")["txns"][0]
+    actions = ", ".join(_quoted(action["action"]) for action in txn["actions"])
+    facts.append(((f"transaction {transaction_hash} at block {txn['block']['block_height']}, signer "
+                  f"{_quoted(txn['signer_account_id'])}, receiver {_quoted(txn['receiver_account_id'])}, actions "
+                  f"{actions}"), nearblocks.url, "GET /v1/txns/{transaction_hash}", {"transaction_hash": transaction_hash},
+                  int(txn["block"]["block_height"]), nearblocks.last_source["fetched_at"], _result_sha256(txn)))
+    return facts
+
+
+def _sweat_hot_parts(mode, raw_dir, client, nearblocks):
+    """(rows, report links, facts, the two sources with their ids, the DeFiLlama entry and quote)."""
+    data, fetched_at, _ = snapshot("fireblocks", mode, raw_dir)
+    links = fireblocks_report(data)
+    fireblocks = _document_source(FIREBLOCKS_URL, data, fetched_at)
+    llama_data, llama_at, _ = snapshot("defillama", mode, raw_dir)
+    entry, entry_quote = defillama_entry(llama_data, "Sweat Foundation")
+    [(_, token, token_quote)] = [link for link in links if link[0] == "token"]
+    [(_, transaction_hash, _)] = [link for link in links if link[0] == "txns"]
+    entity = "HOT token contract, as the Fireblocks report names it"
+    rows = [make_row(entity=entity, subject=token, chain="near",
+                     label=f"named in the Fireblocks SWEAT and HOT report as {SWEAT_HOT_ROLE}", category="watch",
+                     provenance="third_party", source=fireblocks, observed_at=fetched_at,
+                     confidence=INCIDENT_CONFIDENCE, note=f"quote {_quoted(token_quote)}")]
+    facts = _sweat_hot_reads(client, nearblocks, token, transaction_hash)
+    for label, url, method, args, block, observed_at, _ in facts:
+        rows.append(make_row(entity=entity, subject=token, chain="near", label=label, category="watch",
+                             provenance="onchain", source={"rpc": url, "method": method, "args": args, "block": block},
+                             observed_at=observed_at, note=CURRENT_STATE))
+    sources = [{"id": FIREBLOCKS_SOURCE_ID, "publisher": "Fireblocks", **fireblocks},
+               {"id": DEFILLAMA_SOURCE_ID, "publisher": "DeFiLlama hacks API",
+                **_document_source(DEFILLAMA_URL, llama_data, llama_at)}]
+    return rows, links, facts, sources, (entry, entry_quote)
+
+
+def sweat_hot(mode=None, raw_dir=RAW_DIR, client=None, nearblocks=None):
+    """The SWEAT and HOT rows: one third_party row for the HOT token contract the Fireblocks report
+    names, and one onchain row per fact re-read for it (category watch, not a refusal category: the
+    report says the contract was patched)."""
+    return _sweat_hot_parts(mode, raw_dir, *_clients(mode, client, nearblocks))[0]
+
+
+def _rules_today(subject, store, now_ms):
+    """gate.rules.judge in replay for a token subject, as the token of a transfer to intents.near."""
+    replay = (rpc.Client(rpc.MAINNET_RPC_URL, "replay"), rpc.Client(rpc.NEARBLOCKS_URL, "replay", kind="http"))
+    request = {"kind": "ft", "token_id": subject, "receiver_id": "intents.near", "amount": "1000000", "memo": None}
+    judgement = rules.judge(request, {"allowlist": [], "caps": []}, store, *replay, now_ms=now_ms,
+                            injection_scanner=None)
+    return {"subject": subject, "as": "token", "request": request, "verdict": judgement.verdict,
+            "checks": judgement.checks, "reasons": judgement.reasons, "labels": judgement.labels}
+
+
+def sweat_hot_incident(mode=None, raw_dir=RAW_DIR, store_path=labels.STORE_PATH, client=None, nearblocks=None):
+    """The incident document for intel/incidents/sweat-hot.json."""
+    client, nearblocks = _clients(mode, client, nearblocks)
+    rows, links, facts, sources, (entry, entry_quote) = _sweat_hot_parts(mode, raw_dir, client, nearblocks)
+    [(_, token, token_quote)] = [link for link in links if link[0] == "token"]
+    [(_, transaction_hash, patch_quote)] = [link for link in links if link[0] == "txns"]
+    if client.mode == "record":
+        # Record the view calls the rules make for the token; NearBlocks is not spent here.
+        rules.judge({"kind": "ft", "token_id": token, "receiver_id": "intents.near", "amount": "1000000",
+                     "memo": None}, {"allowlist": [], "caps": []}, labels.load(store_path), client,
+                    rpc.Client(rpc.NEARBLOCKS_URL, "replay", kind="http"), now_ms=0, injection_scanner=None)
+    now_ms = int(datetime.strptime(max(f[5] for f in facts), _TIME).replace(tzinfo=UTC).timestamp() * 1000)
+    return {
+        "id": "sweat-hot",
+        "title": "SWEAT token ft_resolve_transfer exploit and the HOT token patch",
+        "date": _entry_date(entry),
+        "chains": ["near"],
+        "sources": sources,
+        "accounts": [{"subject": token, "chain": "near", "role_as_reported": SWEAT_HOT_ROLE,
+                      "quote": {"source": FIREBLOCKS_SOURCE_ID, "text": token_quote},
+                      "assertion_ids": [row["id"] for row in rows]}],
+        "patch_transaction_as_reported": {"value": transaction_hash,
+                                          "quote": {"source": FIREBLOCKS_SOURCE_ID, "text": patch_quote}},
+        "loss_as_reported": {"value": f"{entry['amount']} USD on {_entry_date(entry)}",
+                             "quote": {"source": DEFILLAMA_SOURCE_ID, "text": entry_quote}},
+        "onchain_facts": [{"subject": token, "method": method, "args": args, "block": block, "result_sha256": digest,
+                           "summary": label} for label, _, method, args, block, _, digest in facts],
+        "onchain_state": CURRENT_STATE,
+        "rules_today": [_rules_today(token, labels.load(store_path), now_ms)],
+        "rules_today_at_ms": now_ms,
+        "not_public": list(SWEAT_HOT_NOT_PUBLIC),
+        "standard": INCIDENT_STANDARD,
+    }
+
+
+def intents_incident(mode=None, raw_dir=RAW_DIR):
+    """The incident document for intel/incidents/intents-2026-10-01.json: the DeFiLlama entry only,
+    since no cited source names an address."""
+    data, fetched_at, _ = snapshot("defillama", mode, raw_dir)
+    entry, entry_quote = defillama_entry(data, "NEAR Intents")
+    return {
+        "id": "intents-2026-10-01",
+        "title": "NEAR Intents exploit",
+        "date": _entry_date(entry),
+        "chains": [chain.lower() for chain in entry["chain"]],
+        "sources": [{"id": DEFILLAMA_SOURCE_ID, "publisher": "DeFiLlama hacks API",
+                     **_document_source(DEFILLAMA_URL, data, fetched_at)}],
+        "accounts": [],
+        "loss_as_reported": {"value": f"{entry['amount']} USD on {_entry_date(entry)}",
+                             "quote": {"source": DEFILLAMA_SOURCE_ID, "text": entry_quote}},
+        "onchain_facts": [],
+        "rules_today": [],
+        "not_public": list(INTENTS_NOT_PUBLIC),
+        "standard": INCIDENT_STANDARD,
+    }
+
 def write_incident(document, path):
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     Path(path).write_bytes((json.dumps(document, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
@@ -621,10 +821,14 @@ def run(source, mode=None, store_path=labels.STORE_PATH, raw_dir=RAW_DIR, readme
         incident_path=RHEA_INCIDENT_PATH):
     """Seed one source into the store and rewrite the README (and for rhea the incident file);
     returns the number of new rows."""
-    rows = {"treasuries": treasuries, "catalog": catalog, "infrastructure": infrastructure, "rhea": rhea}[source](
-        mode=mode, raw_dir=raw_dir)
+    rows = {"treasuries": treasuries, "catalog": catalog, "infrastructure": infrastructure, "rhea": rhea,
+            "sweat-hot": sweat_hot, "intents-2026-10-01": lambda mode, raw_dir: []}[source](mode=mode, raw_dir=raw_dir)
     added = append(rows, store_path)
     Path(readme_path).write_bytes(readme_text(store_path, raw_dir).encode("utf-8"))
     if source == "rhea":
         write_incident(rhea_incident(mode, raw_dir, store_path), incident_path)
+    elif source == "sweat-hot":
+        write_incident(sweat_hot_incident(mode, raw_dir, store_path), SWEAT_HOT_INCIDENT_PATH)
+    elif source == "intents-2026-10-01":
+        write_incident(intents_incident(mode, raw_dir), INTENTS_INCIDENT_PATH)
     return added

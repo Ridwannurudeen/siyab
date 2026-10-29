@@ -1,0 +1,38 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "keys": [
+      {
+        "public_key": "ed25519:BS5tkyAHU6dyLHVYBGGxCKzqAa5jB1j1xyAMQ1Cwaqny",
+        "account_id": "protacioo.near",
+        "permission_kind": "FUNCTION_CALL",
+        "created": {
+          "transaction_hash": "26yWjgzBge4gVamt24z8f7TAsMjZLF3Nx9dXvBHmahYh",
+          "block_timestamp": 1790465557811156000
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:r9iSYRgLoPms8uP6fvp8wdjFgE1S2ZrPQDihmRDCsiZ",
+        "account_id": "protacioo.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "7HWAFfsi5chn5RhQFES64B53SBfunEK6ijPodtJtxzPD",
+          "block_timestamp": 1790394434327615000
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/account/protacioo.near/keys",
+  "fetched_at": "2026-10-29T14:44:15Z"
+}

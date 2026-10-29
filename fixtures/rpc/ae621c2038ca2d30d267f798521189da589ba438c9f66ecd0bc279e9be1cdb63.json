@@ -1,0 +1,24 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "call_function",
+      "finality": "final",
+      "account_id": "game.hot.tg",
+      "method_name": "storage_balance_of",
+      "args_base64": "eyJhY2NvdW50X2lkIjoiaW50ZW50cy5uZWFyIn0="
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "EW9b4aLqcCpMLjWZnZBRYCV1kr5444xBJKa5hFmTRXMa",
+      "block_height": 222142629,
+      "error": "wasm execution failed with error: MethodResolveError(MethodNotFound)",
+      "logs": []
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-10-29T15:29:10Z"
+}

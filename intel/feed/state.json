@@ -1,0 +1,25 @@
+{
+  "start_height": 222138899,
+  "start_time": "2026-10-29T14:51:35Z",
+  "last_height": 222139198,
+  "last_time": "2026-10-29T14:54:33Z",
+  "blocks": 300,
+  "skipped_heights": [],
+  "fresh_accounts": {
+    "bestrat2585.near": {
+      "deposit": "0",
+      "created_ms": 1793285574238,
+      "height": 222139030
+    },
+    "1612048277-hot.tg": {
+      "deposit": "1000",
+      "created_ms": 1793285616632,
+      "height": 222139100
+    }
+  },
+  "events": {
+    "code_hash_matches_incident": 0,
+    "fresh_dust_funded_pays_labelled": 0,
+    "watch_account_key_added": 0
+  }
+}

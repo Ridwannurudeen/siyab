@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>NEAR Intents exploit</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#dcd8cf;--card:#ffffff;--accent:#2f5d50;--deny:#8a2b1f}
+@media (prefers-color-scheme:dark){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3934;
+--card:#1f1f1c;--accent:#8fc1ae;--deny:#e08a7c}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
+font:16px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+main,header,footer{max-width:960px;margin:0 auto;padding:16px}
+header{border-bottom:1px solid var(--line)}header a{margin-right:16px}
+a{color:var(--accent)}h1{font-size:1.6rem;line-height:1.25}h2{font-size:1.2rem;margin-top:2rem}
+code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.85rem;
+overflow-wrap:anywhere}
+.card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px 16px;margin:12px 0}
+.muted{color:var(--muted)}.deny{color:var(--deny)}
+blockquote.data{margin:8px 0;padding:4px 12px;border-left:3px solid var(--line);color:var(--muted)}
+q.data{color:var(--muted)}
+table{border-collapse:collapse}td,th{border-bottom:1px solid var(--line);padding:6px 8px;
+text-align:left;vertical-align:top}.table{overflow-x:auto}
+input{display:block;width:60ch;max-width:calc(100vw - 72px);padding:8px;font:inherit;background:var(--card);color:var(--fg);border:1px solid var(--line)}
+button{padding:8px 16px;font:inherit;margin-top:8px}footer{border-top:1px solid var(--line);color:var(--muted)}
+</style>
+</head>
+<body>
+<header><nav><a href="../index.html">Home</a><a href="../feed.html">Feed</a><a href="../verify.html">Verify</a></nav></header>
+<main>
+<h1>NEAR Intents exploit</h1>
+<p>2026-10-01; chains bsc</p>
+<h2>Sources</h2>
+<div class="card"><p>[defillama] DeFiLlama hacks API: <a href="https://api.llama.fi/hacks">https://api.llama.fi/hacks</a></p><p class="mono">sha256 70699af10bafa8796baaf07d36fba597acb7f8faa1c25169955a02f6918de103<br>fetched 2026-10-29T15:26:44Z</p></div>
+<h2>Accounts named in the sources</h2>
+<p>The sources name no account.</p>
+<h2>Loss as reported</h2><div class="card"><p class="mono">3800000 USD on 2026-10-01</p><blockquote class="data" cite="https://api.llama.fi/hacks">{&quot;amount&quot;: 3800000, &quot;bridgeHack&quot;: true, &quot;chain&quot;: [&quot;BSC&quot;], &quot;classification&quot;: &quot;Bridge &amp; Cross-Chain&quot;, &quot;date&quot;: 1790812800, &quot;defillamaId&quot;: &quot;6225&quot;, &quot;language&quot;: &quot;Solidity&quot;, &quot;name&quot;: &quot;NEAR Intents&quot;, &quot;parentProtocolId&quot;: &quot;parent#near-protocol&quot;, &quot;returnedFunds&quot;: null, &quot;source&quot;: &quot;&quot;, &quot;targetType&quot;: &quot;DeFi Protocol&quot;, &quot;technique&quot;: &quot;Bridge Logic Flaw&quot;}<br><span class="muted">quoted from [defillama]</span></blockquote></div>
+<h2>On chain facts</h2>
+<h2>Rules today</h2>
+<p>No account to judge.</p>
+<h2>Not public</h2><ul><li>No NEAR account and no EVM address appears in the source this page cites, so no address is asserted as drained.</li><li>The NEAR Intents treasury page lists the shared EVM treasury, but no cited source says which address was drained.</li><li>The Block&#x27;s report of 1 Oct 2026 answered HTTP 403 to the one fetch made on 29 Oct 2026; nothing from it is used here.</li><li>The Bitquery investigation page was fetched on 29 Oct 2026: fetched, no addresses.</li><li>The report names no person, and this page names none.</li></ul>
+<h2>Standard</h2><p>Only accounts named in the cited sources or provable on chain by a read anyone can repeat; no person, no motive; the sources&#x27; own words appear only inside quote fields with their source id; failed checks read Unknown.</p>
+</main>
+<footer><p>Data: NearBlocks. Blocks: mainnet.neardata.xyz. Transfers: FastNEAR.</p></footer>
+</body>
+</html>

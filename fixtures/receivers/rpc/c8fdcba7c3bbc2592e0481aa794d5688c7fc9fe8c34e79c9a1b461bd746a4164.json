@@ -1,0 +1,220 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "keys": [
+      {
+        "public_key": "ed25519:9ZVBfvYJkfZ789kgQpq6zdUqELzxqMpMg6nfP4TUhba6",
+        "account_id": "closemeat6237.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "31NYuTHWKfVHmyv6YcacLbQxZ8xfRTnRhzv5ZPXbcr1M",
+          "block_timestamp": 1780645182484067800
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:DvHkmNcNUr7E6UyLhbVyprQoNy3gCYTrsQfAzYvopZVX",
+        "account_id": "closemeat6237.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "3q78vtSnhPN8ng2mEG7mevbZq74ZJzLFnAa36NUwZc5u",
+          "block_timestamp": 1780645150753105000
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:77iG6ZsH6CFoVpZQq6ceDWKu84RVB7jzPM5m855cRTcJ",
+        "account_id": "closemeat6237.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "HcUSZb2cYdSB5VNa4dv43dgw65qDzg8XEKmvoKaUGvQj",
+          "block_timestamp": 1780641702131533300
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:CVtaNSD9U95qNvCxZK6HnPgq181eB4J8a6CgEq6caDkM",
+        "account_id": "closemeat6237.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "48Mgx3ardm99DqRPENAUkDTjfe72DPUvgSXYqwHeoKt7",
+          "block_timestamp": 1780641671299222300
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:DrV2yehk4BDxPtBD7WYRYA99uAJhzjvPCRab6ukrnfqQ",
+        "account_id": "closemeat6237.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "H1LRZb74Cb16komRgBwdC6YhtXNo2wjaNgPSE9gTRG2H",
+          "block_timestamp": 1780641639141521000
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:GKRzsqu1GFpq8QuTc3xgkJKYoHDtVEYURhThxtEbhnuq",
+        "account_id": "closemeat6237.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "Fcrvgizn49j34K3v1Y52tPd1oE39GW32V9UuYBsCkv8X",
+          "block_timestamp": 1780535199904562200
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:5M8oNBDuYNaxkD9m5VpwEU3YNjoKqJSVvjSw5oF3SVJ2",
+        "account_id": "closemeat6237.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "BH2wx2QeMNzpJZ3EijcgUxmVNjKnKt6BTjA4QfvpCurX",
+          "block_timestamp": 1780535168325362000
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:T2X6cVo45dffowa2RRqH7dFmGJGPehKGLmuao7ZgTgx",
+        "account_id": "closemeat6237.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "EfDNmpQt6d8se4coYUfud7kzgo9zMVw5Wdq3eMhJMXuB",
+          "block_timestamp": 1779599305982082600
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:48B2aTJDbzDLVGpB6CSSRtKFksTiaLBwJ7hYE4z4Xf6q",
+        "account_id": "closemeat6237.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "G5xmJAN9ZPxg8j3N5Bed5Me8AxnLY1wme1r5niF2MUhP",
+          "block_timestamp": 1779599281440790300
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:7c9E1FFMNPG9hDQEkPmnATJaoE427484UmM8dRpCKaPu",
+        "account_id": "closemeat6237.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "HKLoRr5EJhj9DffVxzVvqm67jQyNGhQSaQQB7tUDebVn",
+          "block_timestamp": 1779599262427804200
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:7KiQaVkw9hKUwK2iY4MT4XgJtnEb8KVvCQu2EZqNASiR",
+        "account_id": "closemeat6237.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "H4kuuGAMZdDyVQdtCjpWoewhatzLFFhsG5KH9sTWmccq",
+          "block_timestamp": 1779599220783119400
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:G8VNjGdV3gm8ryEujPptx6QM84ZqcuabpTwPAbyHQgbA",
+        "account_id": "closemeat6237.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "93NY8xyoAVsRSRX3N65jPHNGLXCBuXhkRMi2PZ8DWgh5",
+          "block_timestamp": 1779590852295542000
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:FvrKELDTXFEHs2sQ2QPLCaLYdWa413xETZrVkLXGhofP",
+        "account_id": "closemeat6237.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "CS8s76mqByG5fu8h8AxvuPM5F2JwbAyvPULcKqWTVx1G",
+          "block_timestamp": 1770147826444274700
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:9RmkiQm2v1LVpGc5dSYGzWEyENkZ1YFWUUMGL3BHLCDu",
+        "account_id": "closemeat6237.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "BteRvtMKztJT5xdQP22bLdiMuveAJmrxHfJNFXZN3kVp",
+          "block_timestamp": 1770146066291879200
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:HFm7Yij3RJFWL1SbG8SCnQYAFzSZuXTtAp2rsQGjxVjE",
+        "account_id": "closemeat6237.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "8BiMYwsivzRBCWcpQ5e1LzXycDWe4XKEnv7c97uHUKM8",
+          "block_timestamp": 1770142920167185000
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:AMGGcrcMsh3yDLAbctKCjKHgAU57vDaVaYe11eRamztg",
+        "account_id": "closemeat6237.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "6EgC4D7UHn8duoMZLzNuwRAiQoeKcMGM9vRaebDrLhg7",
+          "block_timestamp": 1769900096151651300
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/account/closemeat6237.near/keys",
+  "fetched_at": "2026-10-29T14:36:55Z"
+}

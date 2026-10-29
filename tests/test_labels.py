@@ -102,7 +102,7 @@ class CommittedStoreTest(unittest.TestCase):
     def test_seeds_rebuild_the_committed_rows_offline(self):
         with mock.patch("urllib.request.urlopen", side_effect=no_network):
             rows = (seed.treasuries("replay") + seed.catalog("replay") + seed.infrastructure("replay")
-                    + seed.rhea("replay"))
+                    + seed.rhea("replay") + seed.sweat_hot("replay"))
         self.assertEqual([r["id"] for r in rows], [r["id"] for r in self.rows])
         self.assertEqual([labels.row_line(r) for r in rows], labels.STORE_PATH.read_text(encoding="utf-8").splitlines())
 

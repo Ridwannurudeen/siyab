@@ -1,0 +1,49 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "txns": [
+      {
+        "transaction_hash": "M7aGQyaqq3Pmzvxsh4VM31wgvYe5J7nQDGgyxM2UrwD",
+        "included_in_block_hash": "J8FXyz7VC8pGgY1Ns2vQGCzNP6eNtz9DqpMdkpPv6BcW",
+        "block_timestamp": "1779830059932087221",
+        "signer_account_id": "game.hot.tg",
+        "receiver_account_id": "game.hot.tg",
+        "receipt_conversion_gas_burnt": "2364242652961",
+        "receipt_conversion_tokens_burnt": "236424265296100000000",
+        "shard_id": "6",
+        "block": {
+          "block_height": 200042403
+        },
+        "actions": [
+          {
+            "action": "DEPLOY_CONTRACT",
+            "method": null,
+            "args": null
+          }
+        ],
+        "actions_agg": {
+          "deposit": 0,
+          "gas_attached": 0
+        },
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": 2.2289761223777e+21,
+          "gas_used": 22289761223777
+        },
+        "receipts": [
+          {
+            "fts": [],
+            "nfts": []
+          }
+        ]
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/txns/M7aGQyaqq3Pmzvxsh4VM31wgvYe5J7nQDGgyxM2UrwD",
+  "fetched_at": "2026-10-29T15:29:09Z"
+}

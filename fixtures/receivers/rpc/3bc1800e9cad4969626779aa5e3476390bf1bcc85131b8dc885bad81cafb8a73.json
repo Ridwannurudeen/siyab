@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "keys": [
+      {
+        "public_key": "ed25519:9XMdCmpw5jtV6uv4ZwdVwzF7wVWMFMovwu7G2WkbrYEn",
+        "account_id": "tx-bench.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "2y7oUAur5wJRr3ywPb1jDLbvVX9Avoo24drYtgYJCtmk",
+          "block_timestamp": 1713795499505092400
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/account/tx-bench.near/keys",
+  "fetched_at": "2026-10-29T14:38:55Z"
+}

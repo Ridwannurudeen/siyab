@@ -6,9 +6,11 @@ Routes (GET only; no route writes anything and no route opens the network):
     /labels/<subject>     every assertion on the subject, on any chain
     /incidents/<id>       the incident file intel/incidents/<id>.json
     /evidence/<hash>      an evidence document from fixtures/evidence/ or intel/feed/events/
-    /feed                 the feed state and its last 50 events, or null and an empty list
-    /flow/<subject>       the exit trace intel/flows/<subject>.json; 403 for a subject that carries
-                          no incident label, 404 when no trace was written
+    /feed                 the feed state without its fresh accounts and the last 50 events, or null
+                          and an empty list
+    /flow/<subject>       the exit trace intel/flows/<subject>.json, else the trace file under
+                          intel/flows/ whose subject it is (such as rhea-collector.json); 403 for a
+                          subject that carries no incident label, 404 when no trace was written
     anything else         a static file under --site when one is given, else 404
 
 Every answer is JSON (static files aside) and carries Cache-Control: no-store.
@@ -23,7 +25,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from gate import incident
-from intel import labels
+from intel import labels, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 EVIDENCE_DIRS = (ROOT / "fixtures" / "evidence", ROOT / "intel" / "feed" / "events")
@@ -62,8 +64,11 @@ def _evidence(evidence_hash):
 
 
 def _feed():
-    """The state file and the last FEED_LIMIT events ordered by observed block height, then hash."""
+    """The state file without its fresh accounts and the last FEED_LIMIT events ordered by observed
+    block height, then hash."""
     stats = _read_json(FEED_STATE) if FEED_STATE.is_file() else None
+    if stats is not None:
+        stats.pop("fresh_accounts", None)
     events = []
     if FEED_EVENTS.is_dir():
         for path in FEED_EVENTS.glob("*.json"):
@@ -79,6 +84,8 @@ def _flow(store, subject):
         return 403, {"error": "subject carries no incident label"}
     path = FLOWS_DIR / f"{subject}.json"
     if path.resolve().parent != FLOWS_DIR.resolve() or not path.is_file():
+        path = trace.find(subject, FLOWS_DIR)
+    if path is None:
         return 404, {"error": f"no exit trace for {subject}"}
     return 200, _read_json(path)
 

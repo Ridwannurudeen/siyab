@@ -1,0 +1,701 @@
+{
+  "chosen_at": "2026-10-29T14:36:13Z",
+  "judged_at_ms": 1793284573923,
+  "rule": "receivers [--record] judges the recorded mainnet receiver set with gate.rules.judge in replay (an empty allowlist and the committed label store) and writes one fixtures/receivers/judgements/<subject>.json per subject of fixtures/receivers/set.json. The set is the last COUNTERPARTIES distinct counterparties of each account in RECEIVER_SOURCES (the FastNEAR Transfers API, newest first; implicit accounts are left out as the likeliest personal wallets, unless the label store holds them as a catalog token), then the NEAR accounts of intel/incidents/rhea.json, then the first CATALOG_SUBJECTS catalog_token NEAR accounts of the label store that are not in the set yet. A token subject is judged as the token of a transfer to TOKEN_RECEIVER, as intel/incidents/rhea.json judges its token contracts, and every other subject as the receiver of a NEAR transfer. --record chooses the set and fetches what is missing: the transfers pages, the view calls the rules make, and the NearBlocks keys and creation transaction for the first AGE_SUBJECTS receivers only (at most two NearBlocks calls each), so every later receiver without an earlier recording reads unknown on age. The view calls and NearBlocks answers live under fixtures/receivers/rpc/. Without --record nothing touches the network.",
+  "sources": [
+    {
+      "account": "v2.ref-finance.near",
+      "role": "the Ref Finance v2 exchange contract (role from its documentation, UNVERIFIED)",
+      "requests": [
+        "f9170cc0c53ce75949254693fdcd97bb3e4a4151ca70f11976f3925bceec5814",
+        "aa567b28590d47a02975c5044c49c4370203102e8101764ee1faf629c5876bc6",
+        "5b6773ee335f693ae79fd083d4ed155aec4c90a0f8dc3fcb9bd1d570e055a67e"
+      ]
+    },
+    {
+      "account": "wrap.near",
+      "role": "the wrapped NEAR token contract, a catalog_token in the label store",
+      "requests": [
+        "44bf1790fda4f3b5e2bdf5e3bfe48bf8ccbc3528ddcb12899ce678e0e57c7d1c"
+      ]
+    }
+  ],
+  "subjects": [
+    {
+      "subject": "mmt-arb.near",
+      "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "mmt-arb.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "ayoublaf.near",
+      "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "ayoublaf.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "closemeat6237.near",
+      "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "closemeat6237.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "hideon.near",
+      "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "hideon.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "whatdoyoumean.near",
+      "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "whatdoyoumean.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "via-trading.near",
+      "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "via-trading.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "intents.near",
+      "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "intents.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "aggregatedex.near",
+      "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "aggregatedex.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "tx-bench.near",
+      "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "tx-bench.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "cryptovulcanedge.near",
+      "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "cryptovulcanedge.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "wrap.near",
+      "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
+      "as": "token",
+      "request": {
+        "kind": "ft",
+        "token_id": "wrap.near",
+        "receiver_id": "intents.near",
+        "amount": "1000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "davin2525.near",
+      "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "davin2525.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "grefdegen-53f63595b9.near",
+      "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "grefdegen-53f63595b9.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "frosty_santa3.user.intear.near",
+      "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "frosty_santa3.user.intear.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "keepsilence.near",
+      "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "keepsilence.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "bridge-mng.near",
+      "why": "one of the last 15 distinct counterparties of wrap.near in the FastNEAR Transfers API",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "bridge-mng.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "dclv2.ref-labs.near",
+      "why": "one of the last 15 distinct counterparties of wrap.near in the FastNEAR Transfers API",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "dclv2.ref-labs.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "freshgarden2689.near",
+      "why": "one of the last 15 distinct counterparties of wrap.near in the FastNEAR Transfers API",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "freshgarden2689.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "holderspot.near",
+      "why": "one of the last 15 distinct counterparties of wrap.near in the FastNEAR Transfers API",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "holderspot.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "kirillsokolovsky.tg",
+      "why": "one of the last 15 distinct counterparties of wrap.near in the FastNEAR Transfers API",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "kirillsokolovsky.tg",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "mrnicevery.near",
+      "why": "one of the last 15 distinct counterparties of wrap.near in the FastNEAR Transfers API",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "mrnicevery.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "safenode8556.near",
+      "why": "one of the last 15 distinct counterparties of wrap.near in the FastNEAR Transfers API",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "safenode8556.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "thecoins.near",
+      "why": "one of the last 15 distinct counterparties of wrap.near in the FastNEAR Transfers API",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "thecoins.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "irisout.near",
+      "why": "one of the last 15 distinct counterparties of wrap.near in the FastNEAR Transfers API",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "irisout.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "frigid_polar1.user.intear.near",
+      "why": "one of the last 15 distinct counterparties of wrap.near in the FastNEAR Transfers API",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "frigid_polar1.user.intear.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "protacioo.near",
+      "why": "one of the last 15 distinct counterparties of wrap.near in the FastNEAR Transfers API",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "protacioo.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "grid.deltatrade.near",
+      "why": "one of the last 15 distinct counterparties of wrap.near in the FastNEAR Transfers API",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "grid.deltatrade.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+      "why": "named in the incident page rhea as the collector account, which the report also prints as the attacker NEAR wallet",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5",
+      "why": "named in the incident page rhea as the master account",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03",
+      "why": "named in the incident page rhea as one of the five worker accounts",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473",
+      "why": "named in the incident page rhea as one of the five worker accounts",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2",
+      "why": "named in the incident page rhea as one of the five worker accounts",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": false
+    },
+    {
+      "subject": "9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616",
+      "why": "named in the incident page rhea as one of the five worker accounts",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": false
+    },
+    {
+      "subject": "5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040",
+      "why": "named in the incident page rhea as one of the five worker accounts",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": false
+    },
+    {
+      "subject": "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163",
+      "why": "named in the incident page rhea as one of the four token contracts that shared the code hash it names",
+      "as": "token",
+      "request": {
+        "kind": "ft",
+        "token_id": "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163",
+        "receiver_id": "intents.near",
+        "amount": "1000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640",
+      "why": "named in the incident page rhea as one of the four token contracts that shared the code hash it names",
+      "as": "token",
+      "request": {
+        "kind": "ft",
+        "token_id": "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640",
+        "receiver_id": "intents.near",
+        "amount": "1000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee",
+      "why": "named in the incident page rhea as one of the four token contracts that shared the code hash it names",
+      "as": "token",
+      "request": {
+        "kind": "ft",
+        "token_id": "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee",
+        "receiver_id": "intents.near",
+        "amount": "1000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705",
+      "why": "named in the incident page rhea as one of the four token contracts that shared the code hash it names",
+      "as": "token",
+      "request": {
+        "kind": "ft",
+        "token_id": "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705",
+        "receiver_id": "intents.near",
+        "amount": "1000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "rhea000453.multica.near",
+      "why": "named in the incident page rhea as an account within Rhea's own Multichain Account system that became active and later received funds traceable to the subject wallet",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "rhea000453.multica.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": false
+    },
+    {
+      "subject": "rhea000462.multica.near",
+      "why": "named in the incident page rhea as an account within Rhea's own Multichain Account system that became active and later received funds traceable to the subject wallet",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "rhea000462.multica.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": false
+    },
+    {
+      "subject": "rhea000505.multica.near",
+      "why": "named in the incident page rhea as an account within Rhea's own Multichain Account system that became active and later received funds traceable to the subject wallet",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "rhea000505.multica.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": false
+    },
+    {
+      "subject": "zec.omft.near",
+      "why": "named in the incident page rhea as the account whose ft_withdraw routed ZEC directly into Zcash Unified Addresses",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "zec.omft.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": false
+    },
+    {
+      "subject": "eth.bridge.near",
+      "why": "a catalog_token NEAR account of the label store, in store order",
+      "as": "token",
+      "request": {
+        "kind": "ft",
+        "token_id": "eth.bridge.near",
+        "receiver_id": "intents.near",
+        "amount": "1000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+      "why": "a catalog_token NEAR account of the label store, in store order",
+      "as": "token",
+      "request": {
+        "kind": "ft",
+        "token_id": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+        "receiver_id": "intents.near",
+        "amount": "1000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "853d955acef822db058eb8505911ed77f175b99e.factory.bridge.near",
+      "why": "a catalog_token NEAR account of the label store, in store order",
+      "as": "token",
+      "request": {
+        "kind": "ft",
+        "token_id": "853d955acef822db058eb8505911ed77f175b99e.factory.bridge.near",
+        "receiver_id": "intents.near",
+        "amount": "1000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "aaaaaa20d9e0e2461697782ef11675f668207961.factory.bridge.near",
+      "why": "a catalog_token NEAR account of the label store, in store order",
+      "as": "token",
+      "request": {
+        "kind": "ft",
+        "token_id": "aaaaaa20d9e0e2461697782ef11675f668207961.factory.bridge.near",
+        "receiver_id": "intents.near",
+        "amount": "1000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "2260fac5e5542a773aa44fbcfedf7c193bc2c599.factory.bridge.near",
+      "why": "a catalog_token NEAR account of the label store, in store order",
+      "as": "token",
+      "request": {
+        "kind": "ft",
+        "token_id": "2260fac5e5542a773aa44fbcfedf7c193bc2c599.factory.bridge.near",
+        "receiver_id": "intents.near",
+        "amount": "1000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "blackdragon.tkn.near",
+      "why": "a catalog_token NEAR account of the label store, in store order",
+      "as": "token",
+      "request": {
+        "kind": "ft",
+        "token_id": "blackdragon.tkn.near",
+        "receiver_id": "intents.near",
+        "amount": "1000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "token.0xshitzu.near",
+      "why": "a catalog_token NEAR account of the label store, in store order",
+      "as": "token",
+      "request": {
+        "kind": "ft",
+        "token_id": "token.0xshitzu.near",
+        "receiver_id": "intents.near",
+        "amount": "1000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "abg-966.meme-cooking.near",
+      "why": "a catalog_token NEAR account of the label store, in store order",
+      "as": "token",
+      "request": {
+        "kind": "ft",
+        "token_id": "abg-966.meme-cooking.near",
+        "receiver_id": "intents.near",
+        "amount": "1000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "noear-324.meme-cooking.near",
+      "why": "a catalog_token NEAR account of the label store, in store order",
+      "as": "token",
+      "request": {
+        "kind": "ft",
+        "token_id": "noear-324.meme-cooking.near",
+        "receiver_id": "intents.near",
+        "amount": "1000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "mpdao-token.near",
+      "why": "a catalog_token NEAR account of the label store, in store order",
+      "as": "token",
+      "request": {
+        "kind": "ft",
+        "token_id": "mpdao-token.near",
+        "receiver_id": "intents.near",
+        "amount": "1000000",
+        "memo": null
+      },
+      "age_recorded": true
+    }
+  ]
+}

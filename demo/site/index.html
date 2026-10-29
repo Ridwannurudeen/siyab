@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>ShieldBot for NEAR</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#dcd8cf;--card:#ffffff;--accent:#2f5d50;--deny:#8a2b1f}
+@media (prefers-color-scheme:dark){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3934;
+--card:#1f1f1c;--accent:#8fc1ae;--deny:#e08a7c}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
+font:16px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+main,header,footer{max-width:960px;margin:0 auto;padding:16px}
+header{border-bottom:1px solid var(--line)}header a{margin-right:16px}
+a{color:var(--accent)}h1{font-size:1.6rem;line-height:1.25}h2{font-size:1.2rem;margin-top:2rem}
+code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.85rem;
+overflow-wrap:anywhere}
+.card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px 16px;margin:12px 0}
+.muted{color:var(--muted)}.deny{color:var(--deny)}
+blockquote.data{margin:8px 0;padding:4px 12px;border-left:3px solid var(--line);color:var(--muted)}
+q.data{color:var(--muted)}
+table{border-collapse:collapse}td,th{border-bottom:1px solid var(--line);padding:6px 8px;
+text-align:left;vertical-align:top}.table{overflow-x:auto}
+input{display:block;width:60ch;max-width:calc(100vw - 72px);padding:8px;font:inherit;background:var(--card);color:var(--fg);border:1px solid var(--line)}
+button{padding:8px 16px;font:inherit;margin-top:8px}footer{border-top:1px solid var(--line);color:var(--muted)}
+</style>
+</head>
+<body>
+<header><nav><a href="index.html">Home</a><a href="feed.html">Feed</a><a href="verify.html">Verify</a></nav></header>
+<main>
+<h1>ShieldBot for NEAR: security intelligence for AI agent money on NEAR</h1>
+<h2>Counts</h2>
+<div class="card"><p>On 52 recorded mainnet receivers the rules returned 32 ALLOW, 19 DENY, 1 Unknown.</p><p>Label store: 412 assertions over 262 subjects (onchain 40, official_source 350, third_party 18, inferred 4).</p><p>Incidents: 3 pages.</p><p>Feed: since 2026-10-29, 300 blocks, 0 events (0 code_hash_matches_incident, 0 fresh_dust_funded_pays_labelled, 0 watch_account_key_added).</p><p>Flows: 1 exit traces, 200 hops.</p><p>Latency: not measured.</p></div>
+<p class="muted">Every number above is printed by <code>scripts/counts.py</code> from the committed files.</p>
+<h2>Pages</h2>
+<ul><li><a href="feed.html">The block feed and its events</a></li><li><a href="incidents/intents-2026-10-01.html">NEAR Intents exploit (2026-10-01)</a></li><li><a href="incidents/rhea.html">Rhea Lend margin trading route exploit (2026-04-16)</a></li><li><a href="incidents/sweat-hot.html">SWEAT token ft_resolve_transfer exploit and the HOT token patch (2026-04-29)</a></li><li><a href="entities/treasuries.html">Treasuries</a></li><li><a href="entities/catalog.html">Catalog tokens</a></li><li><a href="entities/infrastructure.html">Infrastructure and bridge accounts</a></li><li><a href="flows/rhea-collector.html">Exit trace from <span class="mono">31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540</span></a></li><li><a href="verify.html">Read a registry record and compare its evidence hash</a></li></ul>
+</main>
+<footer><p>Data: NearBlocks. Blocks: mainnet.neardata.xyz. Transfers: FastNEAR.</p></footer>
+</body>
+</html>

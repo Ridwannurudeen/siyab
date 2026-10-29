@@ -1,0 +1,73 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "txns": [
+      {
+        "transaction_hash": "BFGaDw8vpiBeBSZ8UTtxT6tZoRJEfhpURygA8jkF9snE",
+        "included_in_block_hash": "EnqBDv4rWW4w7Gjo8Mz3NLUdAC2zAHMpvoKVFj8y8uFG",
+        "block_timestamp": "1790510310964816615",
+        "signer_account_id": "free-name.herewallet.near",
+        "receiver_account_id": "near",
+        "receipt_conversion_gas_burnt": "314306066665",
+        "receipt_conversion_tokens_burnt": "31430606666500000000",
+        "shard_id": "9",
+        "block": {
+          "block_height": 217483087
+        },
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "create_account",
+            "args": "{\"new_account_id\": \"cryptovulcanedge.near\", \"new_public_key\": \"ed25519:Cn621PePrUjJa1bJHNGVKhn1grtZLnaeGmtQom1smmkx\"}"
+          }
+        ],
+        "actions_agg": {
+          "deposit": 1,
+          "gas_attached": 200000000000000
+        },
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": 7.4434382616328e+21,
+          "gas_used": 12303930303828
+        },
+        "receipts": [
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          }
+        ]
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/txns/BFGaDw8vpiBeBSZ8UTtxT6tZoRJEfhpURygA8jkF9snE",
+  "fetched_at": "2026-10-29T14:39:25Z"
+}

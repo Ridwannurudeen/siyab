@@ -1,0 +1,21 @@
+{
+  "height": 1,
+  "hash": "synthetic",
+  "timestamp_ns": "1793284740730787531",
+  "receipts": [
+    {
+      "receipt_id": "synthetic-receipt-1",
+      "tx_hash": "synthetic-tx",
+      "predecessor_id": "omft.near",
+      "receiver_id": "omft.near",
+      "ok": true,
+      "actions": [
+        {
+          "type": "AddKey",
+          "public_key": "ed25519:11111111111111111111111111111111",
+          "permission": "FullAccess"
+        }
+      ]
+    }
+  ]
+}

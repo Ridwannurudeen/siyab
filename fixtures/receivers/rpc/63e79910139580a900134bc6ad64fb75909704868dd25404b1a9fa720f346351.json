@@ -1,0 +1,77 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "keys": [
+      {
+        "public_key": "ed25519:BCWzav8JBG3uPgLtzvqoqr5w9RrjyipAscqaqaBJYTMb",
+        "account_id": "ayoublaf.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "7BZkTuJzSbb4jdMCBSeVPifthZYQev1HQkPmsKDNBYrb",
+          "block_timestamp": 1791454701678670300
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:48U4xCQoPzZvfK3meXH7Tq6ouUFxYyhMJajCAN8FQF25",
+        "account_id": "ayoublaf.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "BsTvcJNkeeEmHV6P83zy34DSo4fshVhFckbTTSLoymQG",
+          "block_timestamp": 1791453051296210000
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:GDMxrrMFipcgxEjxqCAMoue4E3T3skF8uuSM6hyqJMFo",
+        "account_id": "ayoublaf.near",
+        "permission_kind": "FUNCTION_CALL",
+        "created": {
+          "transaction_hash": "86giRWfnWXV5yotsionsNyT9LBJWrTmbAMGsGokCYaYV",
+          "block_timestamp": 1755489142342955000
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:A3aUwaw9cxvVGpXfCFzsgnEPLsQ5yL2NvKR2hHRniJnr",
+        "account_id": "ayoublaf.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "AFvcRQDcGLouF97mjgBThSPtUFHTWc7kvsJmG8vMjhgw",
+          "block_timestamp": 1755489015283049700
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:FpcjSMSkAiF61zEfgLb2auPPG8bGcg1HEpHenUym6bQc",
+        "account_id": "ayoublaf.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "7zSwHjZGYL899aF88etYf3u1U2MUCXXVTBbpkpQvitEV",
+          "block_timestamp": 1754355755444203800
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/account/ayoublaf.near/keys",
+  "fetched_at": "2026-10-29T14:36:35Z"
+}

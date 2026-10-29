@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "keys": [
+      {
+        "public_key": "ed25519:22Rh9RxeqhJ63KxKD4EJ5AgyMZ5xMcb5iqNEPFpR86S6",
+        "account_id": "bridge-mng.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "J28KLyuTAGRAtgNWurPZkzyBSaMKLWFBsJoKUPjeweXx",
+          "block_timestamp": 1730829862127460400
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/account/bridge-mng.near/keys",
+  "fetched_at": "2026-10-29T14:40:55Z"
+}

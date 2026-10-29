@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "grid.deltatrade.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "240801878490316476799867755",
+      "block_hash": "BwZHV69ZGRWeV7f71qbQp2fbUdrGxVHeDWbE6RuqohiV",
+      "block_height": 222138175,
+      "code_hash": "5GRTN7WGeNwBkNdKspgPbpLgxDCHSQwxNWRWYRRh6Vx6",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 8046977
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-10-29T14:44:26Z"
+}

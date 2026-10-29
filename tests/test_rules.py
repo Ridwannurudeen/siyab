@@ -282,8 +282,38 @@ class TierTwoTest(RulesCase):
         self.assertEqual(judgement.reasons, ["Created 2 d ago.", "Not on the owner's allowlist."])
         self.stranger("dusty.testnet", deposit=9e22)
         judgement = self.judge(request("dusty.testnet"))
+        self.assertEqual(self.status(judgement, "dust_funded"), "pass")
+        self.assertEqual(self.detail(judgement, "dust_funded"),
+                         "created by a 0.09 NEAR deposit; not a signal without lookalike or account_age")
+        self.assertEqual(judgement.verdict, "ALLOW")
+
+    def test_dust_alone_passes_with_the_deposit_in_the_detail(self):
+        self.stranger("wallet-user.testnet", deposit=0)
+        judgement = self.judge(request("wallet-user.testnet"))
+        self.assertEqual(self.status(judgement, "dust_funded"), "pass")
+        self.assertEqual(self.detail(judgement, "dust_funded"),
+                         "created by a 0 NEAR deposit; not a signal without lookalike or account_age")
+        self.assertEqual(judgement.verdict, "ALLOW")
+        self.assertEqual(judgement.reasons, ["Every check ran and none found a signal.",
+                                             "Not on the owner's allowlist."])
+
+    def test_dust_with_a_young_age_is_deny(self):
+        self.stranger("newcomer.testnet", age_ns=2 * HOUR_NS, deposit=1e22)
+        judgement = self.judge(request("newcomer.testnet"))
+        self.assertEqual(self.status(judgement, "account_age"), "signal")
         self.assertEqual(self.status(judgement, "dust_funded"), "signal")
-        self.assertEqual(judgement.reasons[0], "Created by a 0.09 NEAR deposit.")
+        self.assertEqual(self.detail(judgement, "dust_funded"), "created by a 0.01 NEAR deposit, below 0.1 NEAR")
+        self.assertEqual(judgement.verdict, "DENY")
+        self.assertEqual(judgement.reasons[0], "Created 2 h ago by a 0.01 NEAR deposit.")
+
+    def test_dust_with_a_lookalike_is_deny(self):
+        self.stranger("vend0r.testnet", deposit=1e22)
+        judgement = self.judge(request("vend0r.testnet"))
+        self.assertEqual(self.status(judgement, "account_age"), "pass")
+        self.assertEqual(self.status(judgement, "lookalike"), "signal")
+        self.assertEqual(self.status(judgement, "dust_funded"), "signal")
+        self.assertEqual(judgement.verdict, "DENY")
+        self.assertIn("Created by a 0.01 NEAR deposit.", judgement.reasons)
 
     def test_nearblocks_429_gives_unknown(self):
         self.fx.account("stranger.testnet")
