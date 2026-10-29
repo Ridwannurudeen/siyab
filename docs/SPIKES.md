@@ -20,7 +20,15 @@ No shell startup file is edited. Each command sets its variables inline:
 
 ## S1: sandbox under WSL
 
-Result, 29 Oct: BLOCKED before any wasm was built. Not a sandbox failure: WSL has no C linker, so no host build script links.
+Result, 29 Oct (rerun after the owner installed build-essential, pkg-config, libssl-dev and cmake in WSL): PASS.
+- `cargo near build non-reproducible-wasm` on rustc 1.99.1: exit 0 in 15 s, wasm 103032 bytes.
+- `cargo test` (template tests plus `tests/workspaces_s1.rs`), first run: exit 0 in 57 s including compile and the sandbox download; second run of the sandbox test: 3 s.
+- The sandbox root account id is `test.near`, measured, so the sandbox vectors in fixtures/canon are correct as generated.
+- Sandbox node: nearcore 2.13.4, protocol_version 86. The binary sits under the crate's build output (`target/debug/build/near-sandbox-*/out/.near/near-sandbox-2.13.4/`), so `NEAR_SANDBOX_BIN_PATH` is not needed.
+- Run the spike without `CARGO_TARGET_DIR`, because its test reads `target/near/*.wasm` relative to the crate.
+- The near-sdk 5.30.0 and near-workspaces 0.24.0 repeat was not run; the pins stay at 5.29.1 and 0.23.0.
+
+Earlier result, 29 Oct: BLOCKED before any wasm was built. Not a sandbox failure: WSL has no C linker, so no host build script links.
 
 What was run, in `~/spikes/s1` (WSL native, outside any repository):
 
