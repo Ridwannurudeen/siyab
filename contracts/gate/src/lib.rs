@@ -347,7 +347,11 @@ mod tests {
         promise_result: PromiseResult,
     ) -> (Gate, TransferRequest, Verdict, PublicKey) {
         let vector = read_vector(vector_name);
-        let gate_id: AccountId = "gate.testnet".parse().unwrap();
+        let gate_id: AccountId = if vector_name == "02-near-happy-sandbox" {
+            vector["gate_account_id"].as_str().unwrap().parse().unwrap()
+        } else {
+            "gate.testnet".parse().unwrap()
+        };
         let owner_id: AccountId = "owner.testnet".parse().unwrap();
         let agent_seed: [u8; 32] = env::sha256(b"gate test agent v1").try_into().unwrap();
         let agent_bytes = SigningKey::from_bytes(&agent_seed)
@@ -358,7 +362,11 @@ mod tests {
             .try_into()
             .unwrap();
         let verifier_key = public_key(&verifier_bytes);
-        let now_ms = 1_700_000_100_000u64;
+        let now_ms = if vector_name == "02-near-happy-sandbox" {
+            vector["issued_ms"].as_u64().unwrap()
+        } else {
+            1_700_000_100_000u64
+        };
         let context = VMContextBuilder::new()
             .current_account_id(gate_id.clone())
             .predecessor_account_id(gate_id.clone())
@@ -376,10 +384,18 @@ mod tests {
         } else {
             Asset::Ft(token_id.clone().unwrap())
         };
+        let (per_call, window_cap) = if asset == Asset::Near {
+            (
+                2_000_000_000_000_000_000_000_000,
+                5_000_000_000_000_000_000_000_000,
+            )
+        } else {
+            (10_000_000, 50_000_000)
+        };
         let cap = AssetCap {
             asset,
-            per_call: 10_000_000,
-            window_cap: 50_000_000,
+            per_call,
+            window_cap,
             window_ms: 86_400_000,
             window_start_ms: now_ms,
             spent: 0,
@@ -445,6 +461,16 @@ mod tests {
             .any(|line| line.starts_with("EVENT_JSON:") && line.contains("transfer_scheduled")));
         let pending = gate.get_pending(0).unwrap();
         assert_eq!(serde_json::to_value(pending).unwrap()["amount"], "1000000");
+    }
+
+    #[test]
+    fn native_near_happy_path_debits_cap() {
+        let (mut gate, request, verdict, agent_pk) = prepare("02-near-happy-sandbox", true);
+        submit(&mut gate, request, Some(verdict), agent_pk.clone());
+        assert_eq!(
+            gate.agents.get(&agent_pk).unwrap().caps[0].spent,
+            1_000_000_000_000_000_000_000_000
+        );
     }
 
     #[test]
@@ -620,6 +646,20 @@ mod tests {
     }
 
     #[test]
+    #[should_panic(expected = "REFUSED:unknown_payee_cap")]
+    fn unknown_payee_window_cap_is_enforced() {
+        let (mut gate, request, verdict, agent_pk) = prepare("04-ft-happy-unit", false);
+        gate.agents
+            .get_mut(&agent_pk)
+            .unwrap()
+            .unknown_caps
+            .as_mut()
+            .unwrap()[0]
+            .window_cap = 1;
+        submit(&mut gate, request, Some(verdict), agent_pk);
+    }
+
+    #[test]
     #[should_panic(expected = "REFUSED:low_gas")]
     fn insufficient_gas_is_refused() {
         let (mut gate, request, verdict, agent_pk) =
@@ -637,6 +677,32 @@ mod tests {
             .build();
         testing_env!(context);
         gate.set_paused(true);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:not_owner")]
+    fn owner_method_refuses_non_owner() {
+        let (mut gate, _, _, _) = prepare("04-ft-happy-unit", true);
+        let context = VMContextBuilder::new()
+            .current_account_id("gate.testnet".parse().unwrap())
+            .predecessor_account_id("stranger.testnet".parse().unwrap())
+            .attached_deposit(NearToken::from_yoctonear(1))
+            .build();
+        testing_env!(context);
+        gate.set_paused(true);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:agent_exists")]
+    fn duplicate_agent_registration_is_refused() {
+        let (mut gate, _, _, agent_pk) = prepare("04-ft-happy-unit", true);
+        let context = VMContextBuilder::new()
+            .current_account_id("gate.testnet".parse().unwrap())
+            .predecessor_account_id("owner.testnet".parse().unwrap())
+            .attached_deposit(NearToken::from_yoctonear(1))
+            .build();
+        testing_env!(context);
+        let _ = gate.register_agent(agent_pk, "duplicate".to_owned(), Vec::new(), None, U128(1));
     }
 
     #[test]

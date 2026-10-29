@@ -1,4 +1,4 @@
-use ed25519_dalek::SigningKey;
+use ed25519_dalek::{Signer, SigningKey};
 use near_sdk::serde_json::{json, Value};
 use near_workspaces::{
     types::{Gas, KeyType, NearToken, PublicKey, SecretKey},
@@ -26,6 +26,10 @@ fn base58_encode(bytes: &[u8]) -> String {
     let mut output = vec![b'1'; zeros];
     output.extend(digits.iter().rev().map(|digit| ALPHABET[*digit as usize]));
     String::from_utf8(output).unwrap()
+}
+
+fn hex_encode(bytes: &[u8]) -> String {
+    bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
 fn agent_keys() -> (PublicKey, SecretKey) {
@@ -118,6 +122,14 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         .unwrap()
         .into_result()
         .unwrap();
+    let fresh = root
+        .create_subaccount("fresh")
+        .initial_balance(NearToken::from_near(5))
+        .transact()
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap();
     let token = gate
         .create_subaccount("token")
         .initial_balance(NearToken::from_near(5))
@@ -127,9 +139,11 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         .into_result()
         .unwrap();
 
-    let target = std::env::var("CARGO_TARGET_DIR").unwrap();
-    let gate_wasm = fs::read(format!("{target}/near/gate.wasm")).unwrap();
-    let token_wasm = fs::read(format!("{target}/near/test_token.wasm")).unwrap();
+    let gate_wasm = near_workspaces::compile_project(env!("CARGO_MANIFEST_DIR"))
+        .await
+        .unwrap();
+    let token_path = format!("{}/../test-token", env!("CARGO_MANIFEST_DIR"));
+    let token_wasm = near_workspaces::compile_project(&token_path).await.unwrap();
     token
         .deploy(&token_wasm)
         .await
@@ -156,7 +170,7 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         .unwrap()
         .into_result()
         .unwrap();
-    for account_id in [gate.id(), vendor.id()] {
+    for account_id in [gate.id(), vendor.id(), stranger.id()] {
         owner
             .call(token.id(), "storage_deposit")
             .args_json(json!({"account_id": account_id, "registration_only": false}))
@@ -303,7 +317,13 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         .unwrap()
         .into_result()
         .unwrap_err();
-    assert!(format!("{replay_error:?}").contains("REFUSED:verdict_used"));
+    let refusal_text = replay_error.to_string();
+    let panic_text = refusal_text
+        .strip_prefix("Action #0: ExecutionError(\"")
+        .and_then(|text| text.strip_suffix("\")"))
+        .unwrap();
+    println!("sandbox refusal text: {panic_text}");
+    assert_eq!(panic_text, "Smart contract panicked: REFUSED:verdict_used");
     let no_verdict = agent
         .call(gate.id(), "request_transfer")
         .args_json(json!({"request": transfer_args(&happy)["request"], "verdict": null}))
@@ -317,7 +337,7 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
 
     let callback_error = agent
         .call(gate.id(), "on_transfer")
-        .args_json(json!({"request_id": 0, "unknown_payee": false}))
+        .args_json(json!({"request_id": 0}))
         .transact()
         .await
         .unwrap_err();
@@ -359,18 +379,19 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         .transact()
         .await
         .unwrap();
+    unknown_result.clone().into_result().unwrap();
     assert!(unknown_result
         .logs()
         .iter()
-        .any(|line| line.contains("transfer_failed")));
-    let agent_view: Value = gate
+        .any(|line| line.contains("transfer_completed")));
+    let unknown_agent_view: Value = gate
         .view(gate.id(), "get_agent")
         .args_json(json!({"public_key": public_key.to_string()}))
         .await
         .unwrap()
         .json()
         .unwrap();
-    assert_eq!(agent_view["unknown_caps"][0]["spent"], "0");
+    assert_eq!(unknown_agent_view["unknown_caps"][0]["spent"], "1");
     let over_cap = vector("13-unknown-payee-over-cap-sandbox");
     let over_cap_error = agent
         .call(gate.id(), "request_transfer")
@@ -382,6 +403,77 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         .into_result()
         .unwrap_err();
     assert!(format!("{over_cap_error:?}").contains("REFUSED:unknown_payee_cap"));
+
+    owner
+        .call(gate.id(), "set_allowlist")
+        .args_json(json!({
+            "agent_pk": public_key.to_string(),
+            "accounts": [vendor.id(), fresh.id()]
+        }))
+        .deposit(NearToken::from_yoctonear(1))
+        .transact()
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap();
+    let mut fresh_request = vector("01-ft-happy-sandbox");
+    fresh_request["receiver_id"] = json!(fresh.id());
+    let memo_hash = hex_encode(&Sha256::digest(
+        fresh_request["memo"].as_str().unwrap().as_bytes(),
+    ));
+    let verdict_id = hex_encode(&Sha256::digest(b"fresh unregistered receiver")[..16]);
+    let message = format!(
+        "GATEv1|{}|{}|ft|{}|{}|{}|{}|{}|{}|{}|{}|cur|ALLOW",
+        gate.id(),
+        fresh_request["agent_pk_hex"].as_str().unwrap(),
+        token.id(),
+        fresh.id(),
+        fresh_request["amount"].as_str().unwrap(),
+        memo_hash,
+        fresh_request["issued_ms"].as_u64().unwrap(),
+        fresh_request["expires_ms"].as_u64().unwrap(),
+        verdict_id,
+        fresh_request["evidence_sha256"].as_str().unwrap(),
+    );
+    let verifier_seed: [u8; 32] = Sha256::digest(b"gate test verifier v1").into();
+    let verifier = SigningKey::from_bytes(&verifier_seed);
+    let signature = hex_encode(
+        &verifier
+            .sign(&Sha256::digest(message.as_bytes()))
+            .to_bytes(),
+    );
+    fresh_request["verdict_id"] = json!(verdict_id);
+    fresh_request["signature_hex"] = json!(signature);
+    let fresh_before: Value = gate
+        .view(gate.id(), "get_agent")
+        .args_json(json!({"public_key": public_key.to_string()}))
+        .await
+        .unwrap()
+        .json()
+        .unwrap();
+    let fresh_result = agent
+        .call(gate.id(), "request_transfer")
+        .args_json(transfer_args(&fresh_request))
+        .gas(Gas::from_tgas(100))
+        .transact()
+        .await
+        .unwrap();
+    fresh_result.clone().into_result().unwrap();
+    assert!(fresh_result
+        .logs()
+        .iter()
+        .any(|line| line.contains("transfer_failed") && line.contains("\"restored\":true")));
+    let fresh_after: Value = gate
+        .view(gate.id(), "get_agent")
+        .args_json(json!({"public_key": public_key.to_string()}))
+        .await
+        .unwrap()
+        .json()
+        .unwrap();
+    assert_eq!(
+        fresh_after["caps"][0]["spent"],
+        fresh_before["caps"][0]["spent"]
+    );
 
     let near = vector("02-near-happy-sandbox");
     let vendor_balance = vendor.view_account().await.unwrap().balance;
