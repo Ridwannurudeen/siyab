@@ -112,10 +112,10 @@ class RegistryArgsTest(unittest.TestCase):
         with self.assertRaises(registry.RegistryError):
             registry.record_input(self.allow, self.dir)
 
-    def test_more_than_50_files_are_refused(self):
+    def test_more_than_29_files_are_refused(self):
         with self.assertRaises(registry.RegistryError):
-            registry.record_batch([self.allow] * 51, self.dir)
-        self.assertEqual(len(registry.record_batch([self.allow] * 50, self.dir)[0]["records"]), 50)
+            registry.record_batch([self.allow] * 30, self.dir)
+        self.assertEqual(len(registry.record_batch([self.allow] * 29, self.dir)[0]["records"]), 29)
 
 
 if __name__ == "__main__":

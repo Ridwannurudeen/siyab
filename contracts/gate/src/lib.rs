@@ -227,25 +227,24 @@ impl Gate {
             .remove(&request_id)
             .expect("pending request missing");
         if matches!(env::promise_result_checked(0, 0), Err(PromiseError::Failed)) {
-            let mut agent = self
-                .agents
-                .get(&pending.agent_pk)
-                .cloned()
-                .expect("agent missing");
-            let caps = if pending.unknown_payee {
-                agent.unknown_caps.as_mut().expect("unknown payee caps")
-            } else {
-                &mut agent.caps
-            };
-            let cap = caps
-                .iter_mut()
-                .find(|cap| cap.asset == pending.asset)
-                .expect("debited cap missing");
-            cap.spent = cap.spent.saturating_sub(pending.amount);
-            self.agents.insert(pending.agent_pk, agent);
+            let mut restored = false;
+            if let Some(mut agent) = self.agents.get(&pending.agent_pk).cloned() {
+                let caps = if pending.unknown_payee {
+                    agent.unknown_caps.as_mut()
+                } else {
+                    Some(&mut agent.caps)
+                };
+                if let Some(cap) =
+                    caps.and_then(|caps| caps.iter_mut().find(|cap| cap.asset == pending.asset))
+                {
+                    cap.spent = cap.spent.saturating_sub(pending.amount);
+                    self.agents.insert(pending.agent_pk, agent);
+                    restored = true;
+                }
+            }
             emit(
                 "transfer_failed",
-                json!({"request_id": request_id, "restored": true}),
+                json!({"request_id": request_id, "restored": restored}),
             );
         } else {
             emit("transfer_completed", json!({"request_id": request_id}));
@@ -738,6 +737,59 @@ mod tests {
         assert!(near_sdk::test_utils::get_logs()
             .iter()
             .any(|line| line.contains("transfer_failed") && line.contains("true")));
+    }
+
+    fn assert_failed_unrestored(gate: &Gate) {
+        assert!(gate.pending.get(&0).is_none());
+        assert!(near_sdk::test_utils::get_logs()
+            .iter()
+            .any(|line| line.contains("\"event\":\"transfer_failed\"")
+                && line.contains("\"restored\":false")));
+    }
+
+    #[test]
+    fn failed_transfer_after_agent_revoked_is_not_restored() {
+        let (mut gate, request, verdict, agent_pk) = prepare_with_result(
+            "04-ft-happy-unit",
+            true,
+            Gas::from_tgas(300),
+            PromiseResult::Failed,
+        );
+        submit(&mut gate, request, Some(verdict), agent_pk.clone());
+        gate.agents.remove(&agent_pk);
+        gate.on_transfer(0);
+        assert!(gate.agents.get(&agent_pk).is_none());
+        assert_failed_unrestored(&gate);
+    }
+
+    #[test]
+    fn failed_transfer_after_asset_cap_removed_is_not_restored() {
+        let (mut gate, request, verdict, agent_pk) = prepare_with_result(
+            "04-ft-happy-unit",
+            true,
+            Gas::from_tgas(300),
+            PromiseResult::Failed,
+        );
+        submit(&mut gate, request, Some(verdict), agent_pk.clone());
+        gate.agents.get_mut(&agent_pk).unwrap().caps.clear();
+        gate.on_transfer(0);
+        assert!(gate.agents.get(&agent_pk).unwrap().caps.is_empty());
+        assert_failed_unrestored(&gate);
+    }
+
+    #[test]
+    fn failed_transfer_after_unknown_caps_removed_is_not_restored() {
+        let (mut gate, request, verdict, agent_pk) = prepare_with_result(
+            "04-ft-happy-unit",
+            false,
+            Gas::from_tgas(300),
+            PromiseResult::Failed,
+        );
+        submit(&mut gate, request, Some(verdict), agent_pk.clone());
+        gate.agents.get_mut(&agent_pk).unwrap().unknown_caps = None;
+        gate.on_transfer(0);
+        assert!(gate.agents.get(&agent_pk).unwrap().unknown_caps.is_none());
+        assert_failed_unrestored(&gate);
     }
 
     #[test]

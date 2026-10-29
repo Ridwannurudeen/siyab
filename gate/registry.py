@@ -4,7 +4,7 @@ A verdict file is what python -m gate verdict writes: the Verdict object on ALLO
 {literal, evidence_hash} for an unsigned DENY or UNKNOWN. The record's subject, kind and block
 come from the evidence document the file names, which must hash to its name. The shape is the
 registry interface: {"records": [{subject, verdict: Allow | Deny | Unknown, evidence_hash,
-observed_block, verdict_id}]}, at most 50 records per call. An unsigned verdict has no verdict id,
+observed_block, verdict_id}]}, at most 29 records per call. An unsigned verdict has no verdict id,
 so its record uses the first 32 hex of the evidence hash. An intents verdict judges an EVM
 recipient and is a preflight; the registry records NEAR accounts only, so it is refused.
 """
@@ -16,7 +16,7 @@ from pathlib import Path
 from gate import evidence
 
 CODES = {"ALLOW": "Allow", "DENY": "Deny", "UNKNOWN": "Unknown"}
-MAX_BATCH = 50
+MAX_BATCH = 29
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 
 
