@@ -1,4 +1,5 @@
 import hashlib
+import http.client
 import importlib.util
 import json
 import os
@@ -247,6 +248,15 @@ class FailClosedClientTest(unittest.TestCase):
             with self.subTest(method=method, body=body),                     mock.patch("urllib.request.urlopen", return_value=reply(body)),                     self.assertRaises(rpc.MalformedResponse):
                 getattr(client, method)(*args)
         self.assertTrue(issubclass(rpc.MalformedResponse, ValueError))
+
+    def test_a_truncated_reply_is_a_transport_error(self):
+        client = rpc.Client("https://rpc.example", "record", fixtures_dir=self.tmp.name)
+        for error in (http.client.IncompleteRead(b""), http.client.BadStatusLine("x")):
+            with (self.subTest(error=type(error).__name__),
+                  mock.patch("urllib.request.urlopen", side_effect=error),
+                  self.assertRaises(rpc.TransportError)):
+                client.view_account("a.near")
+        self.assertEqual(list(Path(self.tmp.name).iterdir()), [])
 
     def test_a_post_body_is_never_written(self):
         memo = "pay me, seed phrase abandon abandon"

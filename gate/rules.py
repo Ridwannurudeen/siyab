@@ -23,6 +23,7 @@ from gate.rpc import (
     MalformedResponse,
     RateLimited,
     RpcError,
+    TransportError,
 )
 
 MIN_AGE_DAYS = 7
@@ -39,8 +40,9 @@ REFERENCE_CATEGORIES = ("catalog_token", "bridge", "treasury", "infrastructure")
 CONTAINMENT_MIN_LENGTH = 4
 CONTAINMENT_AFFIX = re.compile(r"[a-z0-9]{1,4}")
 # A check that meets one of these could not run: a missing fixture, an HTTP error such as a
-# NearBlocks 429, the NearBlocks budget, an RPC error, a network failure or a malformed response.
-UNAVAILABLE = (FixtureMiss, HttpError, RateLimited, RpcError, OSError, ValueError)
+# NearBlocks 429, the NearBlocks budget, an RPC error, a network failure, a truncated reply or a
+# malformed response.
+UNAVAILABLE = (FixtureMiss, HttpError, RateLimited, RpcError, TransportError, OSError, ValueError)
 # RPC answers that say the account, its code or the method is absent, which is an answer, not an
 # outage. Any other contract execution error could not run, so it reads unknown.
 MISSING_CODE_CAUSES = ("UNKNOWN_ACCOUNT", "NO_CONTRACT_CODE")

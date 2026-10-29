@@ -1,4 +1,5 @@
 import base64
+import http.client
 import json
 import re
 import tempfile
@@ -511,6 +512,15 @@ class FailClosedTest(RulesCase):
         judgement = self.judge(request())
         self.assertEqual(self.detail(judgement, "receiver_exists"),
                          "could not read vendor.testnet: RPC error TIMEOUT_ERROR")
+        self.assertEqual(judgement.verdict, "UNKNOWN")
+
+    def test_a_truncated_reply_reads_unknown(self):
+        self.token_ok()
+        self.rpc = rpc.Client(RPC_URL, "off", fixtures_dir=self.fx.directory)
+        with mock.patch("urllib.request.urlopen", side_effect=http.client.IncompleteRead(b"")):
+            judgement = self.judge(request())
+        self.assertEqual(self.status(judgement, "receiver_exists"), "unknown")
+        self.assertIn("TransportError", self.detail(judgement, "receiver_exists"))
         self.assertEqual(judgement.verdict, "UNKNOWN")
 
     def test_malformed_creation_transaction_reads_unknown(self):
