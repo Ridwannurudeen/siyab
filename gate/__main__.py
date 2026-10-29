@@ -6,7 +6,18 @@ import os
 import sys
 from pathlib import Path
 
-from gate import canon, demo, ed25519, incident, intents, rpc, signer, verdict, verify
+from gate import (
+    canon,
+    demo,
+    ed25519,
+    incident,
+    intents,
+    rpc,
+    signer,
+    verdict,
+    verify,
+    wasm,
+)
 from intel import labels
 
 
@@ -108,6 +119,25 @@ def _verify(args):
     return 0 if ok else 1
 
 
+def _wasm_file(handler):
+    """A wasm command: read the file, run handler on its bytes, exit 1 on a file that does not read or parse."""
+    def run(args):
+        try:
+            lines = handler(Path(args.wasm).read_bytes())
+        except (OSError, ValueError) as error:
+            print(f"cannot read {args.wasm}: {error}", file=sys.stderr)
+            return 1
+        for line in lines:
+            print(line)
+        return 0
+    return run
+
+
+def _codehash(data):
+    hex_digest, code_hash = wasm.codehash(data)
+    return [f"sha256: {hex_digest}", f"code_hash: {code_hash}"]
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="python -m gate")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -165,6 +195,14 @@ def main(argv=None):
     page.add_argument("id", help="the incident id, such as rhea")
     page.add_argument("--json", action="store_true", help="print the incident file itself")
     page.set_defaults(handler=lambda args: incident.main(args.id, args.json))
+
+    digest = commands.add_parser("codehash", help="the sha256 of a wasm file in hex and as the base58 code_hash")
+    digest.add_argument("wasm", help="the wasm file, such as res/gate.wasm")
+    digest.set_defaults(handler=_wasm_file(_codehash))
+
+    names = commands.add_parser("wasm-exports", help="the exported function names of a wasm file, sorted")
+    names.add_argument("wasm", help="the wasm file, such as res/gate.wasm")
+    names.set_defaults(handler=_wasm_file(wasm.exports))
 
     args = parser.parse_args(argv)
     return args.handler(args)
