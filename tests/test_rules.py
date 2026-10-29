@@ -16,9 +16,16 @@ from intel import labels
 RPC_URL = "https://rpc.example"
 NEARBLOCKS_URL = "https://nearblocks.example"
 API_URL = "https://api.example"
+ARCHIVAL_URL = "https://archival.example"
 NOW_MS = int(datetime(2026, 10, 29, 12, 0, tzinfo=UTC).timestamp() * 1000)
+MINUTE_NS = 60 * 10**9
 HOUR_NS = 3600 * 10**9
 DAY_NS = 24 * HOUR_NS
+# The archival head block 2 s before NOW_MS, the 7 day cutoff, and the first height looked up for it.
+HEAD_HEIGHT = 2_000_000
+HEAD_NS = (NOW_MS - 2000) * 10**6
+CUTOFF_NS = NOW_MS * 10**6 - 7 * DAY_NS
+GUESS_HEIGHT = 992003
 TOKEN = "token.gate.testnet"
 VENDOR = "vendor.testnet"
 POLICY = {"allowlist": [VENDOR], "caps": [{"asset": {"Ft": TOKEN}}, {"asset": "Near"}]}
@@ -97,6 +104,35 @@ class Fixtures:
     def scan(self, memo, answer):
         self.write(f"{API_URL}/api/scan/injection", "POST", rpc.body_params({"content": memo}), answer)
 
+    def block_final(self, height=HEAD_HEIGHT, timestamp_ns=HEAD_NS):
+        header = {"height": height, "timestamp": timestamp_ns, "hash": "HeadBlock"}
+        self.write(ARCHIVAL_URL, "block", {"finality": "final"},
+                   {"jsonrpc": "2.0", "id": "gate", "result": {"header": header}})
+
+    def block_at(self, height, timestamp_ns, block_hash="CutoffBlock"):
+        header = {"height": height, "timestamp": timestamp_ns, "hash": block_hash}
+        self.write(ARCHIVAL_URL, "block", {"block_id": height},
+                   {"jsonrpc": "2.0", "id": "gate", "result": {"header": header}})
+
+    def archival_error(self, method, params, cause):
+        error = {"name": "HANDLER_ERROR", "cause": {"name": cause, "info": {}}, "code": -32000}
+        self.write(ARCHIVAL_URL, method, params, {"jsonrpc": "2.0", "id": "gate", "error": error})
+
+    def block_missing(self, height):
+        self.archival_error("block", {"block_id": height}, "UNKNOWN_BLOCK")
+
+    def at_params(self, account_id, block_hash="CutoffBlock"):
+        return {"request_type": "view_account", "account_id": account_id, "block_id": block_hash}
+
+    def account_at(self, account_id, block_hash="CutoffBlock"):
+        result = {"amount": "1000", "locked": "0", "code_hash": rpc.EMPTY_CODE_HASH, "storage_usage": 182,
+                  "storage_paid_at": 0, "block_height": GUESS_HEIGHT, "block_hash": block_hash}
+        self.write(ARCHIVAL_URL, "query", self.at_params(account_id, block_hash),
+                   {"jsonrpc": "2.0", "id": "gate", "result": result})
+
+    def missing_at(self, account_id, block_hash="CutoffBlock"):
+        self.archival_error("query", self.at_params(account_id, block_hash), "UNKNOWN_ACCOUNT")
+
 
 def request(receiver=VENDOR, kind="ft", token=TOKEN, amount="1000000", memo="invoice 1"):
     return {"kind": kind, "token_id": token if kind == "ft" else None, "receiver_id": receiver,
@@ -122,6 +158,7 @@ class RulesCase(unittest.TestCase):
         self.rpc = rpc.Client(RPC_URL, "replay", fixtures_dir=tmp.name)
         self.nearblocks = rpc.Client(NEARBLOCKS_URL, "replay", kind="http", fixtures_dir=tmp.name)
         self.scanner = rpc.Client(API_URL, "replay", kind="http", fixtures_dir=tmp.name)
+        self.archival = rpc.Client(ARCHIVAL_URL, "replay", fixtures_dir=tmp.name)
         patcher = mock.patch("urllib.request.urlopen", side_effect=AssertionError("network"))
         patcher.start()
         self.addCleanup(patcher.stop)
@@ -139,9 +176,9 @@ class RulesCase(unittest.TestCase):
         self.fx.keys(name, NOW_MS * 10**6 - age_ns)
         self.fx.transaction(deposit)
 
-    def judge(self, req, policy=POLICY, scanner=None):
+    def judge(self, req, policy=POLICY, scanner=None, archival=None):
         return rules.judge(req, policy, self.store, self.rpc, self.nearblocks, now_ms=NOW_MS,
-                           injection_scanner=scanner)
+                           injection_scanner=scanner, archival=archival)
 
     def status(self, judgement, check_id):
         return {c["id"]: c["status"] for c in judgement.checks}[check_id]
@@ -315,14 +352,28 @@ class TierTwoTest(RulesCase):
         self.assertEqual(judgement.verdict, "DENY")
         self.assertIn("Created by a 0.01 NEAR deposit.", judgement.reasons)
 
-    def test_nearblocks_429_gives_unknown(self):
+    def nearblocks_429(self, archival):
         self.fx.account("stranger.testnet")
         self.token_ok("stranger.testnet")
         self.nearblocks = rpc.Client(NEARBLOCKS_URL, "record", kind="http",
                                      fixtures_dir=self.fx.directory)
         error = urllib.error.HTTPError("https://nearblocks.example", 429, "Too Many Requests", {}, None)
         with mock.patch("urllib.request.urlopen", side_effect=error):
-            judgement = self.judge(request("stranger.testnet"))
+            return self.judge(request("stranger.testnet"), archival=archival)
+
+    def test_nearblocks_429_with_archival_passes_on_the_archival_age(self):
+        self.fx.block_final()
+        self.fx.block_at(GUESS_HEIGHT, CUTOFF_NS - 10 * MINUTE_NS)
+        self.fx.account_at("stranger.testnet")
+        judgement = self.nearblocks_429(self.archival)
+        self.assertEqual(self.detail(judgement, "account_age"),
+                         "no creation time from NearBlocks (HTTP 429); existed at block 992003 "
+                         "(2026-10-22T11:50:00Z), at least 7 d old")
+        self.assertEqual(self.status(judgement, "dust_funded"), "pass")
+        self.assertEqual(judgement.verdict, "ALLOW")
+
+    def test_nearblocks_429_without_archival_gives_unknown(self):
+        judgement = self.nearblocks_429(None)
         self.assertEqual(self.detail(judgement, "account_age"), "could not read the account keys: HTTP 429")
         self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
         self.assertEqual(judgement.verdict, "UNKNOWN")
@@ -341,6 +392,148 @@ class TierTwoTest(RulesCase):
         self.fx.keys("stranger.testnet", NOW_MS * 10**6 - HOUR_NS, NOW_MS * 10**6 - 40 * DAY_NS)
         self.assertEqual(self.detail(self.judge(request("stranger.testnet")), "account_age"),
                          "created 40 d ago")
+
+
+class ArchivalAgeTest(RulesCase):
+    """account_age from an archival node when NearBlocks gives no creation time."""
+
+    def unaged(self, name="stranger.testnet", *created_ns):
+        """A receiver that exists now with no key NearBlocks dates, and the archival head block."""
+        self.fx.account(name)
+        self.token_ok(name)
+        self.fx.keys(name, *created_ns)
+        self.fx.block_final()
+
+    def test_existing_at_the_cutoff_passes_and_the_deposit_is_not_read(self):
+        self.unaged()
+        self.fx.block_at(GUESS_HEIGHT, CUTOFF_NS - 10 * MINUTE_NS)
+        self.fx.account_at("stranger.testnet")
+        judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+        self.assertEqual(self.detail(judgement, "account_age"),
+                         "no creation time from NearBlocks (keys empty); existed at block 992003 "
+                         "(2026-10-22T11:50:00Z), at least 7 d old")
+        self.assertEqual(self.status(judgement, "dust_funded"), "pass")
+        self.assertEqual(self.detail(judgement, "dust_funded"),
+                         "creation deposit not read: NearBlocks has no creation transaction for "
+                         "stranger.testnet; a deposit is a signal only with lookalike or account_age")
+        self.assertEqual(judgement.verdict, "ALLOW")
+        providers = {c["id"]: c["source"]["provider"] for c in judgement.checks}
+        self.assertEqual(providers["account_age"], "archival.example")
+        self.assertEqual(providers["dust_funded"], "nearblocks")
+
+    def test_absent_at_the_cutoff_is_deny_as_young(self):
+        self.unaged("stranger.testnet", None)
+        self.fx.block_at(GUESS_HEIGHT, CUTOFF_NS - 10 * MINUTE_NS)
+        self.fx.missing_at("stranger.testnet")
+        judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+        self.assertEqual(self.status(judgement, "account_age"), "signal")
+        self.assertEqual(self.detail(judgement, "account_age"),
+                         "no creation time from NearBlocks (no key carries a creation time); did not exist at "
+                         "block 992003 (2026-10-22T11:50:00Z), younger than 7 days")
+        self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
+        self.assertEqual(self.detail(judgement, "dust_funded"), "the creation transaction is not known")
+        self.assertEqual(judgement.verdict, "DENY")
+        self.assertEqual(judgement.reasons, ["Created less than 7 d ago.", "Not on the owner's allowlist."])
+
+    def test_an_unknown_block_steps_down_one_height(self):
+        self.unaged()
+        self.fx.block_missing(GUESS_HEIGHT)
+        self.fx.block_at(GUESS_HEIGHT - 1, CUTOFF_NS - 10 * MINUTE_NS)
+        self.fx.account_at("stranger.testnet")
+        judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+        self.assertEqual(self.detail(judgement, "account_age"),
+                         "no creation time from NearBlocks (keys empty); existed at block 992002 "
+                         "(2026-10-22T11:50:00Z), at least 7 d old")
+        self.assertEqual(judgement.verdict, "ALLOW")
+
+    def test_a_first_block_newer_than_the_cutoff_is_corrected(self):
+        self.unaged()
+        self.fx.block_at(GUESS_HEIGHT, HEAD_NS - 598 * (HEAD_HEIGHT - GUESS_HEIGHT) * 10**6, "NewerBlock")
+        self.fx.block_at(988632, CUTOFF_NS - 5 * MINUTE_NS)
+        self.fx.account_at("stranger.testnet")
+        judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+        self.assertEqual(self.detail(judgement, "account_age"),
+                         "no creation time from NearBlocks (keys empty); existed at block 988632 "
+                         "(2026-10-22T11:55:00Z), at least 7 d old")
+        self.assertEqual(judgement.verdict, "ALLOW")
+
+    def test_six_missing_blocks_read_unknown(self):
+        self.unaged()
+        for height in range(GUESS_HEIGHT - 5, GUESS_HEIGHT + 1):
+            self.fx.block_missing(height)
+        judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+        self.assertEqual(self.detail(judgement, "account_age"),
+                         "no creation time from NearBlocks (keys empty); archival could not run: no archival "
+                         "block within 1 h before the cutoff after 6 lookups")
+        self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
+        self.assertEqual(judgement.verdict, "UNKNOWN")
+
+    def test_a_head_block_older_than_the_cutoff_reads_unknown(self):
+        self.unaged()
+        self.fx.block_final(timestamp_ns=CUTOFF_NS)
+        judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+        self.assertEqual(self.detail(judgement, "account_age"),
+                         "no creation time from NearBlocks (keys empty); archival could not run: head block "
+                         "older than the cutoff")
+        self.assertEqual(judgement.verdict, "UNKNOWN")
+
+    def test_a_garbage_collected_block_reads_unknown(self):
+        self.unaged()
+        self.fx.block_at(GUESS_HEIGHT, CUTOFF_NS - 10 * MINUTE_NS)
+        self.fx.archival_error("query", self.fx.at_params("stranger.testnet"), "GARBAGE_COLLECTED_BLOCK")
+        judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+        self.assertEqual(self.detail(judgement, "account_age"),
+                         "no creation time from NearBlocks (keys empty); archival could not run: RPC error "
+                         "GARBAGE_COLLECTED_BLOCK")
+        self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
+        self.assertEqual(judgement.verdict, "UNKNOWN")
+
+    def test_no_archival_fixture_reads_unknown_never_a_pass(self):
+        self.fx.account("stranger.testnet")
+        self.token_ok("stranger.testnet")
+        self.fx.keys("stranger.testnet")
+        judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+        self.assertEqual(self.status(judgement, "account_age"), "unknown")
+        self.assertEqual(self.detail(judgement, "account_age"),
+                         "no creation time from NearBlocks (keys empty); archival could not run: no recorded "
+                         "response for the request")
+        self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
+        self.assertEqual(judgement.verdict, "UNKNOWN")
+
+    def test_a_nearblocks_creation_time_never_calls_the_archival_node(self):
+        self.stranger("stranger.testnet")
+        archival = mock.Mock(spec=rpc.Client)
+        judgement = self.judge(request("stranger.testnet"), archival=archival)
+        self.assertEqual(archival.method_calls, [])
+        self.assertEqual(self.detail(judgement, "account_age"), "created 30 d ago")
+        self.assertEqual(self.detail(judgement, "dust_funded"), "created by a 0.5 NEAR deposit")
+        self.assertEqual(judgement.verdict, "ALLOW")
+
+    def test_a_missing_receiver_is_not_probed(self):
+        self.fx.missing("gone.testnet")
+        self.token_ok("gone.testnet")
+        self.fx.keys("gone.testnet")
+        archival = mock.Mock(spec=rpc.Client)
+        judgement = self.judge(request("gone.testnet"), archival=archival)
+        self.assertEqual(archival.method_calls, [])
+        self.assertEqual(self.detail(judgement, "account_age"), "no key of gone.testnet carries a creation time")
+
+    def test_without_archival_the_texts_are_unchanged(self):
+        self.unaged()
+        judgement = self.judge(request("stranger.testnet"))
+        self.assertEqual(self.detail(judgement, "account_age"), "no key of stranger.testnet carries a creation time")
+        self.assertEqual(self.detail(judgement, "dust_funded"), "the creation transaction is not known")
+        self.assertEqual(judgement.verdict, "UNKNOWN")
+
+    def test_a_lookalike_keeps_the_unread_deposit_unknown(self):
+        self.unaged("vend0r.testnet")
+        self.fx.block_at(GUESS_HEIGHT, CUTOFF_NS - 10 * MINUTE_NS)
+        self.fx.account_at("vend0r.testnet")
+        judgement = self.judge(request("vend0r.testnet"), archival=self.archival)
+        self.assertEqual(self.status(judgement, "account_age"), "pass")
+        self.assertEqual(self.status(judgement, "lookalike"), "signal")
+        self.assertEqual(self.detail(judgement, "dust_funded"), "the creation transaction is not known")
+        self.assertEqual(judgement.verdict, "DENY")
 
 
 class TierOneTest(RulesCase):
