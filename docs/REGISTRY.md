@@ -6,7 +6,7 @@ The registry records the latest verdict for a NEAR account and label assertions 
 
 ## Verdict records
 
-`record` takes the same fields as one `record_batch` entry: `subject` is a NEAR account ID, `verdict` is `Allow`, `Deny` or `Unknown`, `evidence_hash` is 64 lowercase hexadecimal characters, `observed_block` is a u64, and `verdict_id` is a string. `record_batch` takes `{"records": [...]}` and accepts at most 29 entries. A repeated subject replaces its latest record, increments `total_records`, and leaves `total_subjects` unchanged.
+`record` takes the same fields as one `record_batch` entry: `subject` is a NEAR account ID, `verdict` is `Allow`, `Deny` or `Unknown`, `evidence_hash` is 64 lowercase hexadecimal characters, `observed_block` is a u64, and `verdict_id` is at most 64 bytes. Longer verdict IDs are refused with `REFUSED:bad_verdict_id`. System verdict IDs are 32 hexadecimal characters. `record_batch` takes `{"records": [...]}` and accepts at most 29 entries. A repeated subject replaces its latest record, increments `total_records`, and leaves `total_subjects` unchanged.
 
 `latest(subject)` returns `null` or an object with `verdict`, lowercase hexadecimal `evidence_hash`, `observed_block`, `recorded_ms` and `verdict_id`. `is_allowed(subject, max_age_ms)` returns a two item array containing a boolean and one of `unrecorded`, `stale`, `deny`, `unknown` or `allow`. An unrecorded subject, a stale record, `Deny` and `Unknown` all return false.
 
@@ -14,7 +14,7 @@ The registry records the latest verdict for a NEAR account and label assertions 
 
 For `record_verdicts.sh`, the labels file can be a bare JSON list of `record_label` argument objects or an object containing a `labels` list.
 
-Refusal codes are `REFUSED:not_recorder`, `REFUSED:batch_too_large`, `REFUSED:label_exists`, `REFUSED:not_owner` and `REFUSED:bad_hash`. The owner method also rejects any attached deposit other than 1 yoctoNEAR using the SDK deposit assertion.
+Refusal codes are `REFUSED:not_recorder`, `REFUSED:batch_too_large`, `REFUSED:label_exists`, `REFUSED:not_owner`, `REFUSED:bad_hash` and `REFUSED:bad_verdict_id`. The owner method also rejects any attached deposit other than 1 yoctoNEAR using the SDK deposit assertion.
 
 Verdict events use NEP-297 with `standard` equal to `shieldbot-near` and `version` equal to `1.0.0`. `verdict_recorded` contains the subject, verdict, evidence hash, observed block and verdict id. `label_recorded` contains the label assertion fields. `recorder_updated` contains the previous and current recorder account IDs.
 

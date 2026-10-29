@@ -4,6 +4,7 @@ use events::emit;
 use near_sdk::{env, near, serde_json::json, store::LookupMap, AccountId, PanicOnDefault};
 
 const MAX_BATCH_RECORDS: usize = 29;
+const MAX_VERDICT_ID_LEN: usize = 64;
 
 #[near(serializers = [json, borsh])]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -257,6 +258,10 @@ impl Registry {
     }
 
     fn record_one(&mut self, input: RecordInput) {
+        near_sdk::require!(
+            input.verdict_id.len() <= MAX_VERDICT_ID_LEN,
+            "REFUSED:bad_verdict_id"
+        );
         let evidence_hash = parse_hash(&input.evidence_hash);
         if !self.latest.contains_key(&input.subject) {
             self.total_subjects += 1;
@@ -476,6 +481,20 @@ mod tests {
             "ABC".to_owned(),
             42,
             "verdict".to_owned(),
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:bad_verdict_id")]
+    fn long_verdict_id_is_refused() {
+        let mut registry = registry();
+        context("recorder.testnet", NearToken::from_yoctonear(0), 1_000);
+        registry.record(
+            subject("vendor.testnet"),
+            VerdictCode::Allow,
+            hash('a'),
+            42,
+            "v".repeat(MAX_VERDICT_ID_LEN + 1),
         );
     }
 

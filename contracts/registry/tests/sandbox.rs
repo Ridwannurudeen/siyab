@@ -111,7 +111,7 @@ async fn registry_records_over_rpc_and_rotates_recorder() {
                 "verdict": "Allow",
                 "evidence_hash": hash('a'),
                 "observed_block": index as u64,
-                "verdict_id": format!("{}-{index:02}", "v".repeat(240))
+                "verdict_id": format!("{}-{index:02}", "v".repeat(60))
             })
         })
         .collect::<Vec<_>>();
