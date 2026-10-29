@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Rejects a commit message that holds a 64 hex literal, an em or en dash, a co-author trailer or a tool name.
+set -uo pipefail
+
+export LC_ALL=C
+msg=$(grep -v '^#' "$1")
+em=$'\xe2\x80\x94'
+en=$'\xe2\x80\x93'
+fail=0
+
+if printf '%s\n' "$msg" | grep -qE '[0-9a-fA-F]{64}'; then
+  echo "commit-msg: 64 hex literal in the message" >&2
+  fail=1
+fi
+if printf '%s\n' "$msg" | grep -qF -e "$em" -e "$en"; then
+  echo "commit-msg: em or en dash in the message" >&2
+  fail=1
+fi
+if printf '%s\n' "$msg" | grep -qi 'co-authored-by'; then
+  echo "commit-msg: Co-Authored-By trailer in the message" >&2
+  fail=1
+fi
+if printf '%s\n' "$msg" | grep -qiE '\b(claude|codex|anthropic|openai|fable|opus|gpt)\b'; then
+  echo "commit-msg: tool or vendor name in the message" >&2
+  fail=1
+fi
+
+exit "$fail"

@@ -1,0 +1,17 @@
+target/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.claude/
+.codex/
+node_modules/
+.env
+*.env
+*.key
+*-key.json
+*.pem
+.DS_Store
+Thumbs.db
+*.log
+.pytest_cache/

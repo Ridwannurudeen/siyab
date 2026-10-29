@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Runs the hygiene check on the staged content, then ruff on staged Python files when the venv has it.
+set -euo pipefail
+
+PY=python3
+if ! "$PY" -c "import sys" >/dev/null 2>&1; then
+  PY=python
+fi
+
+"$PY" scripts/check_hygiene.py --staged
+
+RUFF="$HOME/.venvs/near/bin/ruff"
+if [ -x "$RUFF" ]; then
+  mapfile -t py_files < <(git diff --cached --name-only --diff-filter=AM -- '*.py')
+  if [ "${#py_files[@]}" -gt 0 ]; then
+    "$RUFF" check "${py_files[@]}"
+  fi
+fi
