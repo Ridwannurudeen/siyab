@@ -245,7 +245,9 @@ class FailClosedClientTest(unittest.TestCase):
             ("final_block", (), {"result": {"chunks": []}}),
         ]
         for method, args, body in cases:
-            with self.subTest(method=method, body=body),                     mock.patch("urllib.request.urlopen", return_value=reply(body)),                     self.assertRaises(rpc.MalformedResponse):
+            with (self.subTest(method=method, body=body),
+                  mock.patch("urllib.request.urlopen", return_value=reply(body)),
+                  self.assertRaises(rpc.MalformedResponse)):
                 getattr(client, method)(*args)
         self.assertTrue(issubclass(rpc.MalformedResponse, ValueError))
 

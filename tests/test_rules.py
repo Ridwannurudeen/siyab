@@ -480,7 +480,6 @@ class TextTest(RulesCase):
                 self.assertNotIn("safe", text.lower())
 
 
-
 class FailClosedTest(RulesCase):
     """Malformed bodies, other RPC causes and limits read unknown; nothing crashes or passes."""
 
@@ -591,6 +590,7 @@ class PopulatedStoreTest(RulesCase):
             with self.subTest(text=text):
                 self.assertNotIn("safe", re.sub(r'"[^"]*"', "", text).lower())
         self.assertIn('symbol "SAFE"', self.detail(judgement, "ft_metadata_sane"))
+
 
 if __name__ == "__main__":
     unittest.main()
