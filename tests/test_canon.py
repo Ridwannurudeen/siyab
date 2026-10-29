@@ -82,7 +82,7 @@ class CanonicalMessageTest(unittest.TestCase):
         self.assertEqual(field, hashlib.sha256(b"").hexdigest().encode("ascii"))
 
     def test_memo_hash_is_over_utf8_bytes(self):
-        memo = "café"
+        memo = "caf\u00e9"
         field = canon.canonical_message(**fields(memo=memo)).split(b"|")[7]
         self.assertEqual(field, hashlib.sha256(memo.encode("utf-8")).hexdigest().encode("ascii"))
 
@@ -125,7 +125,7 @@ class RejectionTest(unittest.TestCase):
         ("gate", "gate__x.testnet"),
         ("gate", "gate testnet"),
         ("gate", "gate.testnet\n"),
-        ("gate", "g١.testnet"),
+        ("gate", "g\u0661.testnet"),
         ("gate", None),
         ("receiver_id", "vendor@testnet"),
         ("receiver_id", "VENDOR.testnet"),
@@ -150,7 +150,7 @@ class RejectionTest(unittest.TestCase):
         ("amount", "1.0"),
         ("amount", "1e6"),
         ("amount", ""),
-        ("amount", "١"),
+        ("amount", "\u0661"),
         ("amount", 2**128),
         ("amount", str(2**128)),
         ("amount", "9" * 5000),
@@ -187,6 +187,15 @@ class RejectionTest(unittest.TestCase):
         for token in ("token.gate.testnet", "-"):
             with self.subTest(token=token), self.assertRaises(canon.CanonError):
                 canon.canonical_message(**fields(kind="near", token_id=token))
+
+    def test_expiry_before_issue_is_rejected(self):
+        with self.assertRaises(canon.CanonError):
+            canon.canonical_message(**fields(issued_ms=1700000000001, expires_ms=1700000000000))
+        message = canon.canonical_message(**fields(issued_ms=5, expires_ms=5))
+        self.assertEqual(message.split(b"|")[8:10], [b"5", b"5"])
+        spoiled = canon.canonical_message(**fields()).replace(b"|1700000300000|", b"|1600000000000|")
+        with self.assertRaises(canon.CanonError):
+            canon.parse_canonical(spoiled)
 
     def test_account_id_bounds_accepted(self):
         for value in ("ab", "a" * 64, "a-b_c.d.near", "0" * 64):
@@ -283,9 +292,18 @@ class VectorTest(unittest.TestCase):
                 evidence = (EVIDENCE_DIR / f"{vector['evidence_sha256']}.json").read_bytes()
                 self.assertEqual(hashlib.sha256(evidence).hexdigest(), vector["evidence_sha256"])
                 document = json.loads(evidence)
-                self.assertEqual(document["verdict_id"], vector["verdict_id"])
                 self.assertEqual(document["verdict"], vector["literal"])
                 self.assertEqual(document["checks"], [])
+                subject = document["subject"]
+                self.assertEqual(subject["gate"], parsed["gate"])
+                self.assertEqual(subject["agent_pk"], parsed["agent_pk_hex"])
+                self.assertEqual(subject["token"], parsed["token_id"])
+                self.assertEqual(subject["receiver"], parsed["receiver_id"])
+                self.assertEqual(subject["amount"], parsed["amount"])
+                self.assertEqual(subject["memo_sha256"], parsed["memo_sha256"])
+                allow = vector["literal"] == "ALLOW"
+                for field in ("issued_ms", "expires_ms", "verdict_id"):
+                    self.assertEqual(document[field], parsed[field] if allow else None)
 
     def test_vectors_07_and_08(self):
         by_name = {vector["name"]: vector for vector in committed_vectors()}
@@ -313,9 +331,14 @@ class VectorTest(unittest.TestCase):
     def test_regeneration_is_byte_exact(self):
         root = committed_vectors()[0]["gate_account_id"].removeprefix("gate.")
         with tempfile.TemporaryDirectory() as tmp:
-            written = canon.write_vectors(Path(tmp) / "canon", root)
+            written, removed = canon.write_vectors(Path(tmp) / "canon", root)
+            self.assertEqual(removed, [])
             self.assertEqual(sorted(path.name for path in (Path(tmp) / "canon").iterdir()),
                              sorted(path.name for path in CANON_DIR.glob("*.json")))
+            vector_evidence = [path.name for path in sorted(EVIDENCE_DIR.glob("*.json"))
+                               if json.loads(path.read_bytes())["reasons"] == [canon.VECTOR_REASON]]
+            self.assertEqual(sorted(path.name for path in (Path(tmp) / "evidence").iterdir()),
+                             vector_evidence)
             for path in written:
                 relative = path.relative_to(tmp)
                 with self.subTest(path=relative.as_posix()):
@@ -332,9 +355,87 @@ class VectorTest(unittest.TestCase):
                     self.assertEqual(other[name]["gate_account_id"], "gate.sandbox")
                     self.assertTrue(other[name]["receiver_id"].endswith(".sandbox"))
 
+    def test_regeneration_removes_stale_vector_evidence_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            evidence_dir = Path(tmp) / "evidence"
+            evidence_dir.mkdir()
+            other = evidence_dir / "other.json"
+            other.write_bytes(b'{"reasons":["a verdict"]}')
+            first, _ = canon.write_vectors(Path(tmp) / "canon", "test.near")
+            second, removed = canon.write_vectors(Path(tmp) / "canon", "sandbox")
+            self.assertTrue(other.exists())
+            self.assertEqual(len(removed), 5)
+            self.assertTrue(all(path in first and path not in second for path in removed))
+            remaining = sorted(path for path in evidence_dir.glob("*.json") if path != other)
+            self.assertEqual(remaining, sorted(path for path in second if path.parent == evidence_dir))
+
     def test_gate_root_is_validated(self):
         with self.assertRaises(canon.CanonError):
             canon.build_vectors("Bad Root")
+
+
+
+class VectorRelationTest(unittest.TestCase):
+    """Each vector differs from its base in the way its name says, and only that way."""
+
+    MAX_TTL_MS = 300000
+
+    def setUp(self):
+        self.v = {vector["name"]: vector for vector in committed_vectors()}
+
+    def ttl(self, name):
+        return self.v[name]["expires_ms"] - self.v[name]["issued_ms"]
+
+    def test_04_is_valid_at_the_unit_block_time(self):
+        self.assertGreater(self.v["04-ft-happy-unit"]["expires_ms"], canon.UNIT_BLOCK_MS)
+        self.assertLessEqual(self.v["04-ft-happy-unit"]["issued_ms"], canon.UNIT_BLOCK_MS)
+        self.assertLessEqual(self.ttl("04-ft-happy-unit"), self.MAX_TTL_MS)
+
+    def test_05_is_expired_and_06_is_too_long(self):
+        self.assertLessEqual(self.v["05-expired-unit"]["expires_ms"], canon.UNIT_BLOCK_MS)
+        self.assertLessEqual(self.ttl("05-expired-unit"), self.MAX_TTL_MS)
+        self.assertGreater(self.ttl("06-ttl-too-long-unit"), self.MAX_TTL_MS)
+        self.assertGreater(self.v["06-ttl-too-long-unit"]["expires_ms"], canon.UNIT_BLOCK_MS)
+
+    def test_sandbox_vectors_are_valid_far_ahead(self):
+        for name, vector in self.v.items():
+            if name.endswith("-sandbox"):
+                with self.subTest(name=name):
+                    self.assertEqual(self.ttl(name), self.MAX_TTL_MS)
+                    self.assertGreater(vector["issued_ms"], 4000000000000)
+
+    def test_10_names_another_gate(self):
+        gates = {name: vector["gate_account_id"] for name, vector in self.v.items()
+                 if name.endswith("-unit")}
+        self.assertEqual(gates.pop("10-wrong-contract-unit"), "other.testnet")
+        self.assertEqual(set(gates.values()), {"gate.testnet"})
+
+    def test_11_alone_is_agent_2(self):
+        agent1 = ed25519.public_from_seed(ed25519.TEST_AGENT_SEED).hex()
+        agent2 = ed25519.public_from_seed(ed25519.TEST_AGENT2_SEED).hex()
+        for name, vector in self.v.items():
+            with self.subTest(name=name):
+                expected = agent2 if name == "11-wrong-agent-unit" else agent1
+                self.assertEqual(vector["agent_pk_hex"], expected)
+
+    def test_09_alone_uses_the_previous_key(self):
+        self.assertEqual([n for n, v in self.v.items() if v["key_id"] != "cur"], ["09-prev-key-unit"])
+
+    def test_12_and_13_differ_only_in_amount(self):
+        low, high = self.v["12-unknown-payee-sandbox"], self.v["13-unknown-payee-over-cap-sandbox"]
+        self.assertEqual((low["amount"], high["amount"]), ("1", "1000000"))
+        self.assertEqual(low["receiver_id"], high["receiver_id"])
+        self.assertTrue(low["receiver_id"].startswith("stranger."))
+        self.assertNotEqual(low["receiver_id"], self.v["01-ft-happy-sandbox"]["receiver_id"])
+        for field in ("gate_account_id", "token_id", "kind", "memo", "issued_ms", "expires_ms"):
+            self.assertEqual(low[field], high[field])
+            self.assertEqual(low[field], self.v["01-ft-happy-sandbox"][field])
+
+    def test_02_is_native_and_03_has_the_empty_memo(self):
+        native = self.v["02-near-happy-sandbox"]
+        self.assertEqual((native["kind"], native["token_id"], native["memo"]), ("near", None, None))
+        self.assertEqual(native["amount"], str(10**24))
+        self.assertEqual(self.v["03-memo-empty-sandbox"]["memo"], "")
 
 
 if __name__ == "__main__":

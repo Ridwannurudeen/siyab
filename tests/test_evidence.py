@@ -13,7 +13,7 @@ def sample(**changes):
     doc = evidence.document(
         subject=evidence.subject(gate="gate.testnet", agent_pk="ab" * 32, kind="ft",
                                  token="token.gate.testnet", receiver="vendor.testnet",
-                                 amount="1000000", memo="café"),
+                                 amount="1000000", memo="caf\u00e9"),
         checks=[evidence.check("receiver_exists", "pass", "account exists",
                                {"provider": "rpc", "request_sha256": "0" * 64,
                                 "fetched_at": "2026-10-30T00:00:00Z"})],
@@ -32,7 +32,7 @@ def sample(**changes):
 
 class CanonicalBytesTest(unittest.TestCase):
     def test_exact_bytes_and_hash(self):
-        memo_hash = hashlib.sha256("café".encode()).hexdigest()
+        memo_hash = hashlib.sha256("caf\u00e9".encode()).hexdigest()
         expected = (
             '{"checks":[{"detail":"account exists","id":"receiver_exists","source":'
             '{"fetched_at":"2026-10-30T00:00:00Z","provider":"rpc","request_sha256":"' + "0" * 64
@@ -60,9 +60,37 @@ class CanonicalBytesTest(unittest.TestCase):
                 self.assertNotEqual(evidence.evidence_hash(sample(**changes)), base)
 
     def test_non_ascii_is_kept_as_utf8(self):
-        data = evidence.canonical_bytes({"detail": "café"})
-        self.assertEqual(data, '{"detail":"café"}'.encode())
+        data = evidence.canonical_bytes({"detail": "caf\u00e9"})
+        self.assertEqual(data, '{"detail":"caf\u00e9"}'.encode())
         self.assertFalse(data.endswith(b"\n"))
+
+    def test_control_characters_are_escaped(self):
+        backslash = chr(92)
+        data = evidence.canonical_bytes({"d": "a" + chr(10) + chr(9) + chr(1) + '"' + backslash})
+        expected = ('{"d":"a' + backslash + "n" + backslash + "t" + backslash + "u0001"
+                    + backslash + '"' + backslash + backslash + '"}')
+        self.assertEqual(data, expected.encode("ascii"))
+
+    def test_keys_sort_by_code_point(self):
+        data = evidence.canonical_bytes({"b": 1, "B": 2, "a": 3, "_": 4})
+        self.assertEqual(data, b'{"B":2,"_":4,"a":3,"b":1}')
+
+    def test_floats_are_rejected(self):
+        for value in (1.5, float("nan"), float("inf"), [0.0], {"x": {"y": 2.0}}):
+            with self.subTest(value=value), self.assertRaises(TypeError):
+                evidence.canonical_bytes({"checks": value})
+        with self.assertRaises(TypeError):
+            evidence.evidence_hash(sample(latency_ms=1.0))
+
+    def test_document_latency_is_an_integer_or_none(self):
+        for value in (1.0, True, "5"):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                evidence.document(subject={}, checks=[], labels=[], verdict="UNKNOWN", reasons=[],
+                                  observed={}, issued_ms=None, expires_ms=None, verdict_id=None,
+                                  latency_ms=value)
+        for value in (0, 12, None):
+            with self.subTest(value=value):
+                self.assertEqual(sample(latency_ms=value)["latency_ms"], value)
 
     def test_memo_absent_is_null(self):
         subject = evidence.subject(gate="g.testnet", agent_pk="ab" * 32, kind="near", token=None,
@@ -107,6 +135,14 @@ class FileTest(unittest.TestCase):
             path = Path(tmp) / f"{hashlib.sha256(data).hexdigest()}.json"
             path.write_bytes(data)
             self.assertFalse(evidence.check_file(path))
+
+    def test_invalid_json_named_by_its_hash_is_detected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for data in (b'{"a":', b'{"a":1.5}', bytes([0xff, 0xfe])):
+                path = Path(tmp) / f"{hashlib.sha256(data).hexdigest()}.json"
+                path.write_bytes(data)
+                with self.subTest(data=data):
+                    self.assertFalse(evidence.check_file(path))
 
     def test_committed_evidence_files_check(self):
         paths = sorted(EVIDENCE_DIR.glob("*.json"))
