@@ -28,7 +28,10 @@ def _key_id(key_id):
 
 def _read_key_file(path):
     """(seed32, public32) from a near-cli style key file; the halves must agree."""
-    document = json.loads(Path(path).read_text(encoding="utf-8"))
+    try:
+        document = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError) as error:
+        raise SignerError(f"{path}: cannot read a key file") from error
     try:
         secret = base58.decode_key(document["secret_key"])
         public = base58.decode_key(document["public_key"])
