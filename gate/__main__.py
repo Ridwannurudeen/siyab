@@ -132,8 +132,11 @@ def main(argv=None):
                        help="the agent policy as JSON in the get_agent shape")
     judge.add_argument("--live", action="store_true",
                        help="sign with the PyNaCl key in VERIFIER_KEY_FILE instead of the TEST key")
-    judge.add_argument("--evidence-dir", default=verdict.EVIDENCE_DIR, help="where the evidence document goes")
-    judge.add_argument("--out", default=".", help="where the verdict file goes")
+    judge.add_argument("--evidence-dir", default=verdict.EVIDENCE_DIR,
+                       help="where the evidence document <hash>.json goes (default fixtures/evidence)")
+    judge.add_argument("--out", default=".",
+                       help="where the verdict file goes: <verdict_id>.verdict.json on ALLOW, "
+                            "<evidence hash>.verdict.json otherwise (default the current directory)")
     judge.set_defaults(handler=_verdict)
 
     show = commands.add_parser("demo", help="three verdicts over recorded fixtures")
