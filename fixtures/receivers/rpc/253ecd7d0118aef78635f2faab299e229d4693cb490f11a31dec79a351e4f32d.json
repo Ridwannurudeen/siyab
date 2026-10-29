@@ -1,0 +1,73 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "txns": [
+      {
+        "transaction_hash": "2YAUQagkYDWTV663ZUqLVEMHWiySsuSJ4LmF2NrJhv5b",
+        "included_in_block_hash": "9DwEbrXNCVzXNMzYkKRGfJfXKZXB637dDgaSmqmk2AJZ",
+        "block_timestamp": "1730495327460329831",
+        "signer_account_id": "defuse-ops.near",
+        "receiver_account_id": "near",
+        "receipt_conversion_gas_burnt": "313733862085",
+        "receipt_conversion_tokens_burnt": "31373386208500000000",
+        "shard_id": "2",
+        "block": {
+          "block_height": 131734074
+        },
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "create_account",
+            "args": "{\"new_account_id\": \"intents.near\", \"new_public_key\": \"ed25519:3HWkUBGDLyJJRi2azQWZ5sWXvnxcR6zqjk55CZMnC5zm\"}"
+          }
+        ],
+        "actions_agg": {
+          "deposit": 1e+23,
+          "gas_attached": 30000000000000
+        },
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": 1.204432446657e+21,
+          "gas_used": 12713872154070
+        },
+        "receipts": [
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          }
+        ]
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/txns/2YAUQagkYDWTV663ZUqLVEMHWiySsuSJ4LmF2NrJhv5b",
+  "fetched_at": "2026-10-29T14:38:25Z"
+}

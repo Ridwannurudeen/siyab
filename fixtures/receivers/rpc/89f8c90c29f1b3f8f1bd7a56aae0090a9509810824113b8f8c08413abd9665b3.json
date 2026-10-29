@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "dclv2.ref-labs.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "9493942414460529136338840293",
+      "block_hash": "GrMvL6ZRf893wdHfq61oZfh2VbXfTq1RG7gvfXEcX93Q",
+      "block_height": 222137845,
+      "code_hash": "FvsWeo3ZBAAZs6mdFAatf2kvga37y5BiRkRnW8GvfZix",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 26991204
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-10-29T14:41:06Z"
+}

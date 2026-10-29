@@ -1,0 +1,93 @@
+{
+  "subject": "thecoins.near",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "thecoins.near",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "DENY",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "pass",
+      "detail": "thecoins.near exists",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "1273525076083803d786a6ca79232775e549aca2ade006cd857cbb649280d490",
+        "fetched_at": "2026-10-29T14:43:06Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "pass",
+      "detail": "no denylist or incident label on thecoins.near",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "4980d157cd94ceb1d6bafdc50438c779463076d5fe1feb5ea493849aecaaaa52",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "signal",
+      "detail": "created 10 min ago, younger than 7 days",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "9ff9dc619585e440580add5359b11837bdf3bbf4a1867739165336bdffaf22ef",
+        "fetched_at": "2026-10-29T14:43:15Z"
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "signal",
+      "detail": "created by a 0 NEAR deposit, below 0.1 NEAR",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "528f5239b684baed8de778981c0c995c7eb0d5e995bd4c1727d9027f5421eec9",
+        "fetched_at": "2026-10-29T14:43:25Z"
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "4980d157cd94ceb1d6bafdc50438c779463076d5fe1feb5ea493849aecaaaa52",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "pass",
+      "detail": "no contract code",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "1273525076083803d786a6ca79232775e549aca2ade006cd857cbb649280d490",
+        "fetched_at": "2026-10-29T14:43:06Z"
+      }
+    }
+  ],
+  "reasons": [
+    "Created 10 min ago by a 0 NEAR deposit.",
+    "Not on the owner's allowlist."
+  ],
+  "labels": [],
+  "observed": {
+    "block_height": 222138044,
+    "timestamp_ms": 1793284573923
+  }
+}

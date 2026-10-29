@@ -1,0 +1,93 @@
+{
+  "subject": "bridge-mng.near",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "bridge-mng.near",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "ALLOW",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "pass",
+      "detail": "bridge-mng.near exists",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "0a1b22d3a4cc266abaf629778a8445cdf57bf7bfd81c78a33c780ff1e001961c",
+        "fetched_at": "2026-10-29T14:40:47Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "pass",
+      "detail": "no denylist or incident label on bridge-mng.near",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "4980d157cd94ceb1d6bafdc50438c779463076d5fe1feb5ea493849aecaaaa52",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "pass",
+      "detail": "created 722 d ago",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "e9ca6d1fafedd63547545ab1c0e291aeadbc487b9ddf23afba7bdeeec8087a0a",
+        "fetched_at": "2026-10-29T14:40:55Z"
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "pass",
+      "detail": "created by a 0.1 NEAR deposit",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "2fe7bc0450ac3e0b94b033287f5c864bca596eff9f6858870f0b0af24b131e37",
+        "fetched_at": "2026-10-29T14:41:05Z"
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "4980d157cd94ceb1d6bafdc50438c779463076d5fe1feb5ea493849aecaaaa52",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "pass",
+      "detail": "no contract code",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "0a1b22d3a4cc266abaf629778a8445cdf57bf7bfd81c78a33c780ff1e001961c",
+        "fetched_at": "2026-10-29T14:40:47Z"
+      }
+    }
+  ],
+  "reasons": [
+    "Every check ran and none found a signal.",
+    "Not on the owner's allowlist."
+  ],
+  "labels": [],
+  "observed": {
+    "block_height": 222137816,
+    "timestamp_ms": 1793284573923
+  }
+}

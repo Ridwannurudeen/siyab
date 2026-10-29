@@ -1,0 +1,90 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "keys": [
+      {
+        "public_key": "ed25519:ACbRegJgMXsDEWMhyHLV71wZ8YJRHoGAewJLuALtDuCM",
+        "account_id": "frosty_santa3.user.intear.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "B49P3bSjEpKgorFDUTPSybfDpgf35QAxpGMLZMvPv1Pt",
+          "block_timestamp": 1792932116937820400
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:9UPcaAWyGhT91bgA8DDvVQsPkEUgWmz9dQiXmQajbByS",
+        "account_id": "frosty_santa3.user.intear.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "FHhiBfzmXhDmBmsC1PmjGXRD2TgjmVWCF62DsqHUBJU9",
+          "block_timestamp": 1792092667867937800
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:4L9L38DXrduRoBXVKS8Ke9TvGwpsgfnFzLcLzTVXQ99t",
+        "account_id": "frosty_santa3.user.intear.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "8W1PesVeFNiN3Dmi4hP9zxiUGaSeijdJR9uXpXkCtEAL",
+          "block_timestamp": 1792081852840401200
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:6ZfcBEyCE5sPRLBp8fEKF3pgwbxjpxMyWXYA4FK7FvHZ",
+        "account_id": "frosty_santa3.user.intear.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "DCximBRkYLDbYywcspSNAWX9QUjaooKXN6Xu7E12JaS4",
+          "block_timestamp": 1764949565850451700
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:3NhAUPmuSHbXoqzsvbsNzLiyWwm3LSWkCTpNB1RkxN7X",
+        "account_id": "frosty_santa3.user.intear.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "9wAdTiY4X1DhEQTaB4bPrqJy5u41yM2cscNTCSC8BuFj",
+          "block_timestamp": 1762860557649993200
+        },
+        "deleted": {
+          "transaction_hash": "DCximBRkYLDbYywcspSNAWX9QUjaooKXN6Xu7E12JaS4",
+          "block_timestamp": 1764949565850451700
+        }
+      },
+      {
+        "public_key": "ed25519:FaaVVcaLFAiB3akQQ4ShNmHfXGkuxmHLL32pQHYXd3Ao",
+        "account_id": "frosty_santa3.user.intear.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "62cnjZo92dRfppcPZtddrgfFo7ceRGbRbiwvfixeBFP",
+          "block_timestamp": 1762861912622027800
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/account/frosty_santa3.user.intear.near/keys",
+  "fetched_at": "2026-10-29T14:40:15Z"
+}

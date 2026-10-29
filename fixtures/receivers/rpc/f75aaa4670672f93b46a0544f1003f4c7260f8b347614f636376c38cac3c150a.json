@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "keys": [
+      {
+        "public_key": "ed25519:2wv4Fj7QfUqamM3qWbjsQDzVGkiph9aRvvywL7TAftTt",
+        "account_id": "safenode8556.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "3WksH3YxNd534n6BJKebwp642p6KJ4xauan8pDAmNBsW",
+          "block_timestamp": 1783247899339875800
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/account/safenode8556.near/keys",
+  "fetched_at": "2026-10-29T14:42:55Z"
+}

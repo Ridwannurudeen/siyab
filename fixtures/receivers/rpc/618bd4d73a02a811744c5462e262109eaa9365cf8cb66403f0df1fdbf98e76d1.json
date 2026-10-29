@@ -1,0 +1,207 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "keys": [
+      {
+        "public_key": "ed25519:HC6P9wCH5nsURY1Jb2NfCzp1Nua6jGdKrDgHhqwbdsGx",
+        "account_id": "frigid_polar1.user.intear.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "2wGaAEeS62iGaDsHTd6bL4uWoEUeowVb9cJT5tCgrwg8",
+          "block_timestamp": 1790714194210407400
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      },
+      {
+        "public_key": "ed25519:5cZEEsCfk8RgLrHvc7DyGVm954J2n1oPKHgUt716yK3D",
+        "account_id": "frigid_polar1.user.intear.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "5yjaL4rZd43fJUQD2hvCfZ4GDdgtkbQiWghfzpM6YKnf",
+          "block_timestamp": 1745356953954355000
+        },
+        "deleted": {
+          "transaction_hash": "8YaJy19Pges84CVsHiJMY7PvohW2Hr4BTHUuVDMmS4xN",
+          "block_timestamp": 1790705444912405800
+        }
+      },
+      {
+        "public_key": "ed25519:6ZfcBEyCE5sPRLBp8fEKF3pgwbxjpxMyWXYA4FK7FvHZ",
+        "account_id": "frigid_polar1.user.intear.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "7MMoUE9hp65JKLzXqmPf73efNqiV3QJaiPibAkdFxZUC",
+          "block_timestamp": 1764950173176509400
+        },
+        "deleted": {
+          "transaction_hash": "CVxuAVnsjTohgTMe8WLdz2CNLaGerXxAwQB1yLhZPxRM",
+          "block_timestamp": 1790705433663744500
+        }
+      },
+      {
+        "public_key": "ed25519:8UQ7zNG4ABHxafWS8cc6LfsomtXT2ZFPutDL5DViA1Pa",
+        "account_id": "frigid_polar1.user.intear.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "5ai2CArmPHzgavkL2sWSHAVw1N8NGrtdxoQ3VMicm3Bb",
+          "block_timestamp": 1754555149932588800
+        },
+        "deleted": {
+          "transaction_hash": "2S1wKzPuMdQFJKYS8zabUEbVkYJMXtUK7gno6johbxDX",
+          "block_timestamp": 1790689046930322000
+        }
+      },
+      {
+        "public_key": "ed25519:AjYYnqdnAkM55tFo8xbNsaAgmb4GvzvFEvzoq3Cr1F7z",
+        "account_id": "frigid_polar1.user.intear.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "ARATc2MinN9RARf9WB4VdPuJ5FEjvAULsK4rdfPfHZaj",
+          "block_timestamp": 1755021641677040600
+        },
+        "deleted": {
+          "transaction_hash": "5Z9GvKRBK8P1WhgKWkewBz7d1qW68K1w29jMLfQhniAU",
+          "block_timestamp": 1790689014312018400
+        }
+      },
+      {
+        "public_key": "ed25519:EbRdkbTTPPjB4Tvbc36LaYbKd1ELAjF7fmriNhCzk7PZ",
+        "account_id": "frigid_polar1.user.intear.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "8Ly3eDLsatMPqKtwsPehfEojGPb5U7vVqsDAauhHSLSm",
+          "block_timestamp": 1790621341151611400
+        },
+        "deleted": {
+          "transaction_hash": "12zjHaSHfPEocTDAcaVCwaaZMkn4kLEMhUHks5Q1fjSu",
+          "block_timestamp": 1790689003937463600
+        }
+      },
+      {
+        "public_key": "ed25519:FbpAumYHYrZ941LsVMsuZBBXLgk9moqVU84Gp8douFeh",
+        "account_id": "frigid_polar1.user.intear.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "EVQoFaNXpjfKGdD7Af5Acaowqh7V6eBenzMebsDhyrsG",
+          "block_timestamp": 1755249098679133700
+        },
+        "deleted": {
+          "transaction_hash": "3vpABWr3t6jf26XYsXRMDgrErjNKEhtKvAcL35yG6L9L",
+          "block_timestamp": 1790688994690144000
+        }
+      },
+      {
+        "public_key": "ed25519:GHqGGCb7VknGLY8QHHy2sL1uu3JdxwQmt8kDPVMVB6mU",
+        "account_id": "frigid_polar1.user.intear.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "DVWT1xiNDHvpssdr8JWfh6xPG77MBvamiWAEkYykMLcT",
+          "block_timestamp": 1790621389819398400
+        },
+        "deleted": {
+          "transaction_hash": "BLEVP3woTtgGkJJXXGhDN7cLSLTXwF4y9aK6RWV6An68",
+          "block_timestamp": 1790688985808646700
+        }
+      },
+      {
+        "public_key": "ed25519:HjW84VHCutqv1XPtt2uqGDX9r5H1VX1z4Q9EHBvUpqYS",
+        "account_id": "frigid_polar1.user.intear.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "4AFu3HD27QzvxUuEHSaqj2ExaLgspxNKNoZnvn2RFBQL",
+          "block_timestamp": 1761083662667058700
+        },
+        "deleted": {
+          "transaction_hash": "5QMWP6r1ci7rV5ZNC4vgu66h7KVJG4PihSSKc3FBGGHL",
+          "block_timestamp": 1790688975104428500
+        }
+      },
+      {
+        "public_key": "ed25519:E9cbv1vcR4abB36u6oFBNLJad9QQEvDmBm3wfmTDxjPn",
+        "account_id": "frigid_polar1.user.intear.near",
+        "permission_kind": "FUNCTION_CALL",
+        "created": {
+          "transaction_hash": "D4KzFRLfsqPSAPzP4JyzZ6gR2FzJUfz6zSV3LemwUDkd",
+          "block_timestamp": 1761099686012209000
+        },
+        "deleted": {
+          "transaction_hash": "EwA7pNCABZhkTnReWfGG9irtHgxqECjCo39KZs5KXGPs",
+          "block_timestamp": 1771838431777943600
+        }
+      },
+      {
+        "public_key": "ed25519:Ex1J96RkCpxrDENL3oxr6MpSe3esaMNTXx6ULupee6hX",
+        "account_id": "frigid_polar1.user.intear.near",
+        "permission_kind": "FUNCTION_CALL",
+        "created": {
+          "transaction_hash": "8g8gHzdygbZNFmtpHeTxV3U7nB1HcViQaCScEt9Qdq2A",
+          "block_timestamp": 1760961378678185500
+        },
+        "deleted": {
+          "transaction_hash": "EwA7pNCABZhkTnReWfGG9irtHgxqECjCo39KZs5KXGPs",
+          "block_timestamp": 1771838431777943600
+        }
+      },
+      {
+        "public_key": "ed25519:8JAMUUNQEtaJtDFJrzpHS8vydcS3c1eJRyvxsxZd1NbS",
+        "account_id": "frigid_polar1.user.intear.near",
+        "permission_kind": "FUNCTION_CALL",
+        "created": {
+          "transaction_hash": "ENP5KgiPsJ8j7q5iZTt8B7QCJJSmiXnxw5CrA4ZDoVu9",
+          "block_timestamp": 1759791159250267400
+        },
+        "deleted": {
+          "transaction_hash": "EwA7pNCABZhkTnReWfGG9irtHgxqECjCo39KZs5KXGPs",
+          "block_timestamp": 1771838431777943600
+        }
+      },
+      {
+        "public_key": "ed25519:GA2wNnFR7kpq4tqCAFBbDJGSZutgv832GASv4QCwfmJo",
+        "account_id": "frigid_polar1.user.intear.near",
+        "permission_kind": "FUNCTION_CALL",
+        "created": {
+          "transaction_hash": "smHxa8vD1rSRdDe13rpkKdj85ryNH5gjhMzFSPLDf9w",
+          "block_timestamp": 1761099388123544600
+        },
+        "deleted": {
+          "transaction_hash": "EwA7pNCABZhkTnReWfGG9irtHgxqECjCo39KZs5KXGPs",
+          "block_timestamp": 1771838431777943600
+        }
+      },
+      {
+        "public_key": "ed25519:3NhAUPmuSHbXoqzsvbsNzLiyWwm3LSWkCTpNB1RkxN7X",
+        "account_id": "frigid_polar1.user.intear.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "ABygbLH5xrRjsVg5sfreup67j6JpZXvULGWApZbFFRkx",
+          "block_timestamp": 1741813287953210600
+        },
+        "deleted": {
+          "transaction_hash": "7MMoUE9hp65JKLzXqmPf73efNqiV3QJaiPibAkdFxZUC",
+          "block_timestamp": 1764950173176509400
+        }
+      },
+      {
+        "public_key": "ed25519:DNAKGJg8bwVgiHoCyaBEc9QhsiEffkjXa85dAXKKgLUj",
+        "account_id": "frigid_polar1.user.intear.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "86RCKES4QiWgLZPcvNQXAFk9bjReCVKNxVze7mhGKeNQ",
+          "block_timestamp": 1753976537033630700
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/account/frigid_polar1.user.intear.near/keys",
+  "fetched_at": "2026-10-29T14:43:55Z"
+}

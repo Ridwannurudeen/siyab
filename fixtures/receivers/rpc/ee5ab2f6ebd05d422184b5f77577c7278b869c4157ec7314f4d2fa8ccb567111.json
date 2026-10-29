@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "keys": [
+      {
+        "public_key": "ed25519:GcrPTc11ckbRW58mBSfmEmzRasoHAT8b3ktMKoHXB2bs",
+        "account_id": "irisout.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "AbgnpUdBKaVxXYknfdU7eATDTkouXLr3HkpizZAMom5Y",
+          "block_timestamp": 1768600323138339800
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/account/irisout.near/keys",
+  "fetched_at": "2026-10-29T14:43:35Z"
+}
