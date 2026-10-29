@@ -8,13 +8,14 @@ Transfers API, newest first; implicit accounts are left out as the likeliest per
 unless the label store holds them as a catalog token), then the NEAR accounts of
 intel/incidents/rhea.json, then the first CATALOG_SUBJECTS catalog_token NEAR accounts of the label
 store that are not in the set yet. A token subject is judged as the token of a transfer to
-TOKEN_RECEIVER, every other subject as the receiver of a NEAR transfer.
+TOKEN_RECEIVER, as intel/incidents/rhea.json judges its token contracts, and every other subject as
+the receiver of a NEAR transfer.
 
 --record chooses the set and fetches what is missing: the transfers pages, the view calls the
 rules make, and the NearBlocks keys and creation transaction for the first AGE_SUBJECTS receivers
-only (at most two NearBlocks calls each), so every later receiver reads unknown on age. The view
-calls and NearBlocks answers live under fixtures/receivers/rpc/. Without --record nothing touches
-the network.
+only (at most two NearBlocks calls each), so every later receiver without an earlier recording
+reads unknown on age. The view calls and NearBlocks answers live under fixtures/receivers/rpc/.
+Without --record nothing touches the network.
 """
 
 import argparse
@@ -147,6 +148,11 @@ def _write_json(path, value):
     path.write_bytes((json.dumps(value, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
 
 
+def receivers_rule():
+    """The selection and recording rule set.json states: the two receivers paragraphs of this docstring."""
+    return " ".join(" ".join(__doc__.split("\n\n")[1:3]).split())
+
+
 def record_receivers(store, clock=time.time):
     """Choose the set and fetch what the rules read for it; returns the set document."""
     transfers_client = rpc.Client(TRANSFERS_URL, "record", kind="http", fixtures_dir=FASTNEAR_DIR)
@@ -164,7 +170,7 @@ def record_receivers(store, clock=time.time):
     for entry in subjects:
         entry["age_recorded"] = entry["request"]["receiver_id"] in aged
     return {"chosen_at": time.strftime(_TIME, time.gmtime(now_ms // 1000)), "judged_at_ms": now_ms,
-            "rule": " ".join(__doc__.split("\n\n")[1].split()), "sources": sources, "subjects": subjects}
+            "rule": receivers_rule(), "sources": sources, "subjects": subjects}
 
 
 def judge_receivers(document, store, directory=RECEIVERS_DIR):

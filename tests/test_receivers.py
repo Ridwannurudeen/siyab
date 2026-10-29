@@ -78,6 +78,11 @@ class ReceiverSetTest(unittest.TestCase):
             if "counterparties of" in entry["why"] and intel_main.IMPLICIT.fullmatch(entry["subject"]):
                 self.assertIn(entry["subject"], catalog)
 
+    def test_the_set_states_the_rule_of_the_code(self):
+        self.assertEqual(self.document["rule"], intel_main.receivers_rule())
+        self.assertIn("without an earlier recording reads unknown on age", self.document["rule"])
+        self.assertIn("as intel/incidents/rhea.json judges its token contracts", self.document["rule"])
+
     def test_at_most_30_receivers_had_their_age_recorded(self):
         aged = {e["request"]["receiver_id"] for e in self.document["subjects"] if e["age_recorded"]}
         self.assertLessEqual(len(aged), intel_main.AGE_SUBJECTS)
