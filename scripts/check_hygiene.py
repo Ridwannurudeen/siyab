@@ -18,10 +18,14 @@ HEX_EXTENSIONS = {".md", ".py", ".rs", ".sh", ".toml", ".yml"}
 HEX_EXEMPT_DIRS = ("fixtures/", "tests/", "intel/seeds/raw/", "res/")
 PHRASE_EXTENSIONS = {".md", ".py", ".rs", ".sh", ".html", ".json", ".toml", ".yml"}
 RAW_DIR = "intel/seeds/raw/"
-# This file has to name the phrases it rejects, so the phrase rule skips it.
+# This file has to name the phrases and the word it rejects, so the phrase and word rules skip it.
 SELF = "scripts/check_hygiene.py"
 
 HEX64 = re.compile(r"[0-9a-fA-F]{64}")
+# The one 64 hex value a crate manifest needs: the public digest of the reproducible build image, which
+# cargo near reads from [package.metadata.near.reproducible_build]. Only this exact line, lower case, in a
+# file named Cargo.toml, passes; any other 64 hex literal in a manifest is still rejected.
+IMAGE_DIGEST_LINE = re.compile(r'image_digest = "sha256:[0-9a-f]{64}"')
 # A recorded RPC fixture never holds a 128 hex string: that is the length of a hex secret key or
 # signature, and the canonical vectors that carry signatures live under fixtures/canon/.
 HEX128 = re.compile(r"[0-9a-fA-F]{128}")
@@ -29,6 +33,8 @@ RPC_FIXTURES = "fixtures/rpc/"
 # ShieldBot's own text never uses this word. Third party strings that carry it (a token symbol)
 # live only in data: seeds, raw snapshots, fixtures and the label store.
 AUTHORED_WORD = re.compile(r"safe", re.IGNORECASE)
+# Root and seed documents ShieldBot writes itself; the word rule covers them like gate/ and docs/.
+AUTHORED_FILES = ("README.md", "AGENTS.md", "intel/seeds/README.md")
 KEY_FORMS = (
     (re.compile(r"ed25519:[1-9A-HJ-NP-Za-km-z]{80,}"), "ed25519 private key form"),
     (re.compile(r'"(secret_key|private_key)"\s*:\s*"[^"]+"'), "secret_key or private_key value"),
@@ -56,10 +62,15 @@ def check_text(path, text):
     dash_rule = not path.startswith(RAW_DIR) and path != "LICENSE"
     phrase_rule = ext in PHRASE_EXTENSIONS and not path.startswith(RAW_DIR) and path != SELF
     hex128_rule = path.startswith(RPC_FIXTURES)
-    word_rule = path.startswith(("gate/", "docs/")) or (path.startswith("intel/") and ext == ".py")
+    word_rule = path != SELF and (
+        path.startswith(("gate/", "docs/", "mcp/", "scripts/"))
+        or (path.startswith("intel/") and ext == ".py")
+        or path in AUTHORED_FILES
+    )
     hits = []
     for number, line in enumerate(text.splitlines(), start=1):
-        if hex_rule and HEX64.search(line):
+        digest_line = os.path.basename(path) == "Cargo.toml" and IMAGE_DIGEST_LINE.fullmatch(line)
+        if hex_rule and HEX64.search(line) and not digest_line:
             hits.append((number, "64 hex literal"))
         for pattern, reason in KEY_FORMS:
             if pattern.search(line):
