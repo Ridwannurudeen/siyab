@@ -247,9 +247,15 @@ def pay(agent, request, verdict_file=None, out=print):
                      out)
     _write(agent, f"pay-{verdict_object['verdict_id']}", {"command": "pay", "gate": agent.gate, "submitted": True,
                                                           **record}, out)
-    if any("transfer_failed" in log for log in record["outcome"]["logs"]):
-        out("the transfer failed after it was scheduled: the Gate restored the budget, the verdict stays used, "
-            "and the payment needs a fresh ALLOW")
+    failed = [log for log in record["outcome"]["logs"] if "transfer_failed" in log]
+    if failed:
+        event = json.loads(failed[0].partition("EVENT_JSON:")[2])
+        if event["data"][0]["restored"]:
+            out("the transfer failed after it was scheduled: the Gate restored the budget, the verdict stays used, "
+                "and the payment needs a fresh ALLOW")
+        else:
+            out("the transfer failed after it was scheduled: the agent or its cap changed before the callback, so "
+                "nothing was restored, the verdict stays used, and the payment needs a fresh ALLOW")
         return 1
     return 0 if _succeeded(record["outcome"]) else 1
 

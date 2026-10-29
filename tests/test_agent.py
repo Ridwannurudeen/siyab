@@ -157,13 +157,26 @@ class PayTest(AgentCase):
         self.assertFalse(self.written("pay-not-sent")["submitted"])
         self.assertFalse((self.dir / "out" / "pay-None.json").exists())
 
-    def test_a_transfer_that_failed_after_scheduling_exits_1(self):
-        restored = {**SUCCESS, "logs": SUCCESS["logs"] + [
-            'EVENT_JSON:{"standard":"shieldbot-near","event":"transfer_failed","data":[{"request_id":0}]}']}
+    def failed_after_scheduling(self, restored):
+        event = json.dumps({"standard": "shieldbot-near", "version": "1.0.0", "event": "transfer_failed",
+                            "data": [{"request_id": 0, "restored": restored}]}, separators=(",", ":"))
+        outcome = {**SUCCESS, "logs": SUCCESS["logs"] + [f"EVENT_JSON:{event}"]}
+        self.lines = []
         with mock.patch("gate.verdict.request", return_value=judged()):
-            self.assertEqual(agent.pay(self.make(restored), self.request(), out=self.lines.append), 1)
+            self.assertEqual(agent.pay(self.make(outcome), self.request(), out=self.lines.append), 1)
+        return self.lines
+
+    def test_a_transfer_that_failed_after_scheduling_exits_1(self):
+        lines = self.failed_after_scheduling(True)
         self.assertIn("the transfer failed after it was scheduled: the Gate restored the budget, the verdict stays "
-                      "used, and the payment needs a fresh ALLOW", self.lines)
+                      "used, and the payment needs a fresh ALLOW", lines)
+        self.assertFalse(any("nothing was restored" in line for line in lines))
+
+    def test_a_failed_transfer_that_was_not_restored_says_so(self):
+        lines = self.failed_after_scheduling(False)
+        self.assertIn("the transfer failed after it was scheduled: the agent or its cap changed before the callback, "
+                      "so nothing was restored, the verdict stays used, and the payment needs a fresh ALLOW", lines)
+        self.assertFalse(any("restored the budget" in line for line in lines))
 
     def test_a_failed_receipt_exits_1(self):
         with mock.patch("gate.verdict.request", return_value=judged()):
