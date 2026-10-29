@@ -1,0 +1,9 @@
+{
+  "literal": "ALLOW",
+  "issued_ms": 1793534400000,
+  "expires_ms": 1793534700000,
+  "verdict_id": "2ebb8f1dcba43f2861590189bfa9c2fa",
+  "evidence_hash": "c9afcae56b4f7e1d5ab6b4cb9b1a01d8fa8a129e4f510a8aab63acc49b3a2782",
+  "key_id": "cur",
+  "signature": "1397bebd5b9066b6fc7f09e48ec66ec4ece63f30e571ab39e5a062e370b223f4c2351b04c8a2c597785d6f3e836bb0ea02fee4a80238dacf5f2d0017a022ba02"
+}

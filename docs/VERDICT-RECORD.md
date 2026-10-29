@@ -111,3 +111,33 @@ Vectors named `*-unit` use gate `gate.testnet` and a contract block timestamp of
 ## Why sha256
 
 Verdict records on NEAR hash with sha256 because `env::sha256` is on chain and the Python standard library has no keccak; the EVM registries use keccak256.
+
+## The registry record
+
+The registry contract keeps the latest record per subject (a receiver or a token account). The shape below is the one PLAN-v3 section 3b specifies; `docs/REGISTRY.md` does not exist on this branch yet, and the JSON forms of the verdict code and the hash are UNVERIFIED until the registry contract serialises them, which is why `verify` accepts each form listed.
+
+| Field | Content |
+|---|---|
+| `verdict` | `Unknown` (0), `Allow` (1) or `Deny` (2); UNKNOWN is the zero value, so an unrecorded subject never reads as allowed |
+| `evidence_hash` | the sha256 of the evidence document, as 64 lowercase hex characters or 32 bytes |
+| `observed_block` | the block height the checks read |
+| `recorded_ms` | when the record was written, in milliseconds (the `latest` view only) |
+| `verdict_id` | the verdict id of an ALLOW |
+
+`latest(subject)` returns `{verdict, evidence_hash, observed_block, recorded_ms, verdict_id}`. Each `record` emits a NEP-297 event, `EVENT_JSON:{"standard": "shieldbot-near", "version": "1.0.0", "event": "verdict_recorded", "data": [{subject, verdict, evidence_hash, observed_block, verdict_id}]}`.
+
+## Verify a record offline
+
+```
+python -m gate verify <record.json> <evidence.json> [--verdict <verdict.json> --key ed25519:<base58>]
+```
+
+The record file holds either the `latest` view or the event (the whole event or its one `data` object). `verify` recomputes the sha256 of the evidence file's bytes and compares it with `evidence_hash`, and checks that the evidence's `verdict` equals the record's. With a Verdict file and a verifier key it also checks that the Verdict names the same evidence hash and verdict id, rebuilds the canonical message from the evidence subject and the Verdict fields (the evidence keeps the memo as its sha256, which is the message's memo field), and checks the signature with `gate.ed25519.verify`. It prints the NEP-297 fields to compare with the explorer's event, one `ok` or `FAIL` line per comparison and `verified`, and exits 0 when every comparison holds, 1 otherwise. Nothing touches the network. The sample under `fixtures/registry/` is an ALLOW for the demo vendor signed with the TEST key:
+
+```
+python -m gate verify fixtures/registry/sample-allow.json fixtures/registry/sample-allow-evidence.json --verdict fixtures/registry/sample-allow-verdict.json --key ed25519:36ZbCswnc8QBvUxFF1pEwKwj6PZwgRWGe4nqcdy9HCzL
+```
+
+The evidence hash is sha256, not the keccak256 of ShieldBot's EVM registries, so a NEAR record is checked with `sha256sum` or `hashlib.sha256` and an EVM record with keccak256; the two never compare.
+
+EVM leg verdicts are a preflight and are not recorded on the NEAR registry in this version.

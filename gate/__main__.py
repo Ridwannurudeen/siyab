@@ -6,7 +6,7 @@ import os
 import sys
 from pathlib import Path
 
-from gate import canon, demo, ed25519, intents, rpc, signer, verdict
+from gate import canon, demo, ed25519, intents, rpc, signer, verdict, verify
 from intel import labels
 
 
@@ -93,6 +93,17 @@ def _intents(args):
     return 0
 
 
+def _verify(args):
+    try:
+        ok, lines = verify.verify(args.record, args.evidence, args.verdict, args.key)
+    except (OSError, ValueError, KeyError) as error:
+        print(f"cannot verify: {error}", file=sys.stderr)
+        return 1
+    for line in lines:
+        print(line)
+    return 0 if ok else 1
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="python -m gate")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -135,6 +146,13 @@ def main(argv=None):
     leg.add_argument("--live", action="store_true",
                      help="fetch a live dry quote and labels instead of replaying fixtures; writes nothing")
     leg.set_defaults(handler=_intents)
+
+    check = commands.add_parser("verify", help="check a registry record against its evidence file, offline")
+    check.add_argument("record", help="a registry record: the latest view or the verdict_recorded event data")
+    check.add_argument("evidence", help="the evidence document the record's evidence_hash names")
+    check.add_argument("--verdict", help="the Verdict object file, to check its signature")
+    check.add_argument("--key", help="the verifier public key as ed25519:<base58>")
+    check.set_defaults(handler=_verify)
 
     args = parser.parse_args(argv)
     return args.handler(args)
