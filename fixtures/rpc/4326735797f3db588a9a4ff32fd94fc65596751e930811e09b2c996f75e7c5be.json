@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "keys": [
+      {
+        "public_key": "ed25519:EN9Ae5zxonuigYrEVVUYHT8JRCPCmhbgnGUxBCCzBxX9",
+        "account_id": "connectors.outlayer.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "9otnkZJonXGKiDFJmTJBg7AcZhydRC6TWUprvvbt5qFk",
+          "block_timestamp": 1789900457478387500
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/account/connectors.outlayer.near/keys",
+  "fetched_at": "2026-10-29T09:22:15Z"
+}
