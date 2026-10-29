@@ -39,7 +39,7 @@ TOKEN_KEY=$(account_key "$TOKEN_ACCOUNT_ID")
 REGISTRY_KEY=$(account_key "$REGISTRY_ACCOUNT_ID")
 
 missing_accounts=()
-planned_spend_micronear=3750
+planned_spend_micronear=3870
 for account in "$TOKEN_ACCOUNT_ID" "$REGISTRY_ACCOUNT_ID" "$RECORDER_ACCOUNT_ID"; do
   if ! account_exists "$account"; then
     missing_accounts+=("$account")
@@ -61,7 +61,6 @@ if [[ "$DRY_RUN" == "1" ]]; then
 else
   gate_summary=$(near account view-account-summary "$GATE_ACCOUNT_ID" network-config "$NETWORK" now)
   printf '%s\n' "$gate_summary"
-  # UNVERIFIED until first run: near-cli-rs 0.30.1 balance text output format.
   gate_balance=$(printf '%s\n' "$gate_summary" | python3 -c 'import re,sys; text=sys.stdin.read(); m=re.search(r"([0-9]+(?:[.][0-9]+)?) NEAR", text); print(m.group(1) if m else "")')
   if [[ -z "$gate_balance" ]] || ! python3 - "$gate_balance" "$planned_spend" <<'PY'
 from decimal import Decimal
@@ -99,7 +98,7 @@ elif ! near contract call-function as-read-only "$TOKEN_ACCOUNT_ID" ft_metadata 
 fi
 
 for account in "$GATE_ACCOUNT_ID" "$VENDOR_ACCOUNT_ID" "$AGED_PAYEE_ACCOUNT_ID"; do
-  call_transaction "$TOKEN_ACCOUNT_ID" storage_deposit "$(printf '{\"account_id\":%s,\"registration_only\":false}' "$(json_string "$account")")" "$GATE_ACCOUNT_ID" "$GATE_KEY" '0.00125 NEAR'
+  call_transaction "$TOKEN_ACCOUNT_ID" storage_deposit "$(printf '{\"account_id\":%s,\"registration_only\":false}' "$(json_string "$account")")" "$GATE_ACCOUNT_ID" "$GATE_KEY" '0.00129 NEAR'
 done
 
 gate_new=$(python3 - "$OWNER_ACCOUNT_ID" "$VERIFIER_PUB" "$MAX_TTL_MS" <<'PY'

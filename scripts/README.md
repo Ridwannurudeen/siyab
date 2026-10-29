@@ -29,7 +29,7 @@ The scripts use environment variables and the near-cli-rs command lines recorded
 | `AGENT_ALLOWANCE_NEAR` | Function call key allowance in NEAR, defaults to `1`. |
 | `GATE_STATE_FROZEN` | Must equal `1` to redeploy after 4 Nov. |
 
-`setup_testnet.sh` checks all wasm files and the Gate balance before creating any subaccount, then creates missing accounts, recovers generated keys, deploys missing contract state and registers the token storage accounts. The balance check subtracts 3 NEAR for each missing token or registry account, 1 NEAR for a missing recorder account, and 0.00375 NEAR for the three storage deposits, leaving at least 10 NEAR.
+`setup_testnet.sh` checks all wasm files and the Gate balance before creating any subaccount, then creates missing accounts, recovers generated keys, deploys missing contract state and registers the token storage accounts. The balance check subtracts 3 NEAR for each missing token or registry account, 1 NEAR for a missing recorder account, and 0.00387 NEAR for the three storage deposits (0.00129 each, the token's storage_balance_bounds minimum), leaving at least 10 NEAR.
 
 `register_agent.sh` registers the agent and converts token caps to base units.
 
@@ -41,4 +41,4 @@ The scripts use environment variables and the near-cli-rs command lines recorded
 
 `record_verdicts.sh` records a batch from a JSON argument file and can record labels from a second file. The labels file can be a bare JSON list of label argument objects or an object with a `labels` list; the script validates the file before submitting either transaction.
 
-Run a dry pass with `DRY_RUN=1 bash scripts/<script>.sh` and the required environment variables. `record_verdicts.sh` also needs its input JSON file to be readable during a dry pass. The near-cli-rs legacy key path is UNVERIFIED until the first run; created files are moved into `NEAR_KEYS_DIR` and set to mode 600 on a Linux filesystem, while chmod is a no op on `/mnt/c`. See the marked lines in the scripts.
+Run a dry pass with `DRY_RUN=1 bash scripts/<script>.sh` and the required environment variables. `record_verdicts.sh` also needs its input JSON file to be readable during a dry pass. The first testnet run on 29 Oct confirmed the legacy key path (`~/.near-credentials/testnet/<account>.json`); created files are moved into `NEAR_KEYS_DIR` and set to mode 600 on a Linux filesystem, while chmod is a no op on `/mnt/c`.

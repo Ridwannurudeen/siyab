@@ -72,6 +72,8 @@ From the crate sources (UNVERIFIED until the run prints them):
 
 Result, 29 Oct: the Docker half cannot run on this machine; the hash half is closed.
 
+Update, 29 Oct (later): Docker Engine 29.1.3 (the Ubuntu `docker.io` package) now runs in WSL under systemd, and containers run without sudo. Ladder step 1 is met without Docker Desktop. The `[package.metadata.near.reproducible_build]` section is still missing from every crate.
+
 - `docker --version` in WSL: `bash: line 1: docker: command not found` (exit 127).
 - `cargo near build reproducible-wasm --help` (cargo-near 0.22.0): "Requires `[reproducible_build]` section in Cargo.toml, and all changes committed to git (recommended for the production release)". Options: `--no-locked` (makes the build not reproducible), `--profile`, `--out-dir`, `--manifest-path`, `--color`, `--variant` (a named override under `[package.metadata.near.reproducible_build.variant.<name>]`). The contract is built inside a Docker container; the image, its digest, the passed environment variables and the build command come from `[package.metadata.near.reproducible_build]`; `--locked` is on by default, so the crate needs a committed `Cargo.lock` that is current.
 - What it needs: that metadata section in each crate's `Cargo.toml`, a Docker daemon that can pull the image, a clean committed git tree, and a current `Cargo.lock`.
@@ -137,14 +139,15 @@ Notes from the help output:
 - Key deletion is `delete-keys` (plural), with `public-keys` taking a comma separated list.
 - The parser accepted `'100.0 Tgas'`, `'30 Tgas'`, `'0 NEAR'` and `'1 yoctoNEAR'` at `--help` time and rejected `100.0_Tgas` with `invalid value`.
 - `create-account ... autogenerate-new-keypair` also takes `--signature-scheme` (`ed25519` default, `ml-dsa-65`).
-- UNVERIFIED until first use: the JSON layout `sign-with-access-key-file` expects (expected: the legacy keychain file with the account id, the public key and the private key), whether `save-to-keychain` works in WSL without a desktop keyring, the directory the legacy keychain writes to, and whether `--function-names` takes a comma separated list.
+- Update, 29 Oct (later), from the first signed testnet runs: `sign-with-access-key-file` accepts the legacy keychain file; `save-to-legacy-keychain` writes `~/.near-credentials/testnet/<account>.json` (the `credentials_home_dir` of the near-cli config) plus a per key copy in `~/.near-credentials/testnet/<account>/`. Still UNVERIFIED: whether `save-to-keychain` works in WSL without a desktop keyring, and whether `--function-names` takes a comma separated list.
+- Update, 29 Oct (later): the token's `storage_balance_bounds` minimum is 0.00129 NEAR; a 0.00125 NEAR `storage_deposit` panics with "The attached deposit is less than the minimum storage balance".
 
 ## S7: py-near install and signing with a function call key
 
 - Install, 29 Oct: the venv `~/.venvs/near` runs Python 3.11.16 and was made with uv, because the distro's `python3` has no working venv module. Installed: pynacl 1.6.2, py-near 1.2.22, ruff 0.17.3. `~/.venvs/near/bin/python -c "import nacl.signing, py_near; print('ok')"` prints `ok`.
 - py-near on Python 3.12 stays UNVERIFIED: the venv is 3.11, which meets the 3.11 or later floor.
-- Signing a testnet transaction with a function call key: not run. Due 1 Nov, 30 minute box. Fallback: a near-cli-rs subprocess from `gate/agent.py`, using the `sign-with-access-key-file` line above.
+- Signing a testnet transaction with a function call key, 29 Oct: PASS. A throwaway function call key (receiver the attacker account, method `noop`, allowance 0.25 NEAR) was added with the `add-key` line above; py-near 1.2.22 `Account(...).function_call(attacker, "noop", {})` signed with it and the RPC accepted the transaction, which failed in execution with `CodeDoesNotExist` as expected (no contract on that account). The key was deleted afterwards. `gate/agent.py` keeps py-near; the near-cli-rs fallback is not needed.
 
 ## S8: NearBlocks testnet keys endpoint and account age
 
-Not run. Due 2 Nov: the `/keys` fixture for an account created that day decides whether account age stays in the rules.
+Aged payee `lindenvale.testnet` created 29 Oct. The two NearBlocks calls about 30 s after creation returned `{"keys":[]}` and `{"txns":[]}`: indexer lag, not a result. Rerun on 2 Nov; the account age decision waits for that reply.
