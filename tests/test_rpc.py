@@ -243,6 +243,8 @@ class FailClosedClientTest(unittest.TestCase):
             ("call_function", ("t.near", "m", {}), {"result": {"result": list(b"{bad")}}),
             ("view_access_key_list", ("a.near",), {"result": {"nonce": 1}}),
             ("final_block", (), {"result": {"chunks": []}}),
+            ("block_at", (5,), {"result": {"chunks": []}}),
+            ("view_account_at", ("a.near", "h"), {"result": {"amount": "1"}}),
         ]
         for method, args, body in cases:
             with (self.subTest(method=method, body=body),
