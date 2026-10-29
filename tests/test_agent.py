@@ -132,6 +132,30 @@ class PayTest(AgentCase):
         context = self.make()
         self.assertEqual(agent.pay(context, self.request(), str(unsigned), out=self.lines.append), 1)
         self.assertEqual(self.transport.sent, [])
+        allow = judged()["verdict"]
+        broken = {
+            "an ALLOW without a signature": {key: value for key, value in allow.items() if key != "signature"},
+            "a short signature": {**allow, "signature": "ef" * 32},
+            "an upper case signature": {**allow, "signature": "EF" * 64},
+            "an extra key": {**allow, "note": "x"},
+            "a verdict id that is a path": {**allow, "verdict_id": "../../elsewhere"},
+            "not an object": ["ALLOW"],
+        }
+        for name, body in broken.items():
+            with self.subTest(case=name):
+                self.lines = []
+                path = self.dir / "broken.verdict.json"
+                path.write_text(json.dumps(body), encoding="utf-8")
+                context = self.make()
+                self.assertEqual(agent.pay(context, self.request(), str(path), out=self.lines.append), 1)
+                self.assertEqual(self.transport.sent, [])
+                self.assertTrue(any(line.startswith("not sent: ") for line in self.lines))
+        self.assertFalse(self.written("pay-not-sent")["submitted"])
+        unsigned.write_text(json.dumps({"literal": "DENY"}), encoding="utf-8")
+        (self.dir / "out" / "pay-not-sent.json").unlink()
+        self.assertEqual(agent.pay(self.make(), self.request(), str(unsigned), out=self.lines.append), 1)
+        self.assertFalse(self.written("pay-not-sent")["submitted"])
+        self.assertFalse((self.dir / "out" / "pay-None.json").exists())
 
     def test_a_failed_receipt_exits_1(self):
         with mock.patch("gate.verdict.request", return_value=judged()):

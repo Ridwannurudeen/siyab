@@ -36,6 +36,10 @@ EXPLORER_URL = "https://testnet.nearblocks.io/txns/"
 ATTACKS = ("no-verdict", "forged-signature", "replay", "expired", "over-cap", "callback", "token-direct",
            "service-down", "one-yocto", "unknown-payee")
 DAY_MS = 24 * 60 * 60 * 1000
+VERDICT_KEYS = {"literal", "issued_ms", "expires_ms", "verdict_id", "evidence_hash", "key_id", "signature"}
+_SIGNATURE = re.compile(r"[0-9a-f]{128}")
+_HEX64 = re.compile(r"[0-9a-f]{64}")
+_VERDICT_ID = re.compile(r"[0-9a-f]{32}")
 NEAR_CLI_TIMEOUT_S = 120
 # near-cli-rs prints the hash as "Transaction ID: <base58>"; UNVERIFIED until the first testnet run.
 _CLI_HASH = re.compile(r"Transaction ID: ([1-9A-HJ-NP-Za-km-z]{43,44})")
@@ -203,19 +207,37 @@ def _allow(agent, request, out):
     return result["verdict"]
 
 
+def _signed_allow(verdict_object):
+    """True for a Verdict object in the interface shape: exactly its seven keys, ALLOW, a 32 hex verdict id
+    and a 128 hex signature."""
+    if not isinstance(verdict_object, dict) or set(verdict_object) != VERDICT_KEYS:
+        return False
+    verdict_id, signature = verdict_object["verdict_id"], verdict_object["signature"]
+    return (verdict_object["literal"] == canon.LITERAL and isinstance(verdict_id, str)
+            and bool(_VERDICT_ID.fullmatch(verdict_id)) and isinstance(signature, str)
+            and bool(_SIGNATURE.fullmatch(signature)))
+
+
 def pay(agent, request, verdict_file=None, out=print):
     """Submit request_transfer with the service's signed ALLOW; 0 when the transaction succeeded."""
     if verdict_file:
         verdict_object = json.loads(Path(verdict_file).read_text(encoding="utf-8"))
-        outcome, evidence_hash = verdict_object.get("literal"), verdict_object.get("evidence_hash")
+        outcome = verdict_object.get("literal") if isinstance(verdict_object, dict) else None
+        evidence_hash = verdict_object.get("evidence_hash") if isinstance(verdict_object, dict) else None
         out(f"verdict file {verdict_file}: {outcome}, evidence {evidence_hash}")
     else:
         result = _judge(agent, request, agent.verifier(), out)
         verdict_object, outcome, evidence_hash = result["verdict"], result["outcome"], result["evidence_hash"]
-    if outcome != canon.LITERAL or not verdict_object or verdict_object.get("literal") != canon.LITERAL:
-        out(f"not sent: the verdict is {outcome}, and the Gate pays only on a signed ALLOW")
-        _write(agent, f"pay-{evidence_hash}", {"command": "pay", "gate": agent.gate, "request": request,
-                                                "verdict": verdict_object, "submitted": False}, out)
+    if outcome != canon.LITERAL or not _signed_allow(verdict_object):
+        if outcome == canon.LITERAL:
+            out("not sent: the ALLOW is not a signed Verdict object (literal, issued_ms, expires_ms, verdict_id, "
+                "evidence_hash, key_id and a 128 hex signature)")
+        else:
+            out(f"not sent: the verdict is {outcome}, and the Gate pays only on a signed ALLOW")
+        hashed = isinstance(evidence_hash, str) and bool(_HEX64.fullmatch(evidence_hash))
+        name = f"pay-{evidence_hash}" if hashed else "pay-not-sent"
+        _write(agent, name, {"command": "pay", "gate": agent.gate, "request": request, "verdict": verdict_object,
+                             "submitted": False}, out)
         return 1
     record = _submit(agent, action(agent.gate, "request_transfer", {"request": request, "verdict": verdict_object}),
                      out)
