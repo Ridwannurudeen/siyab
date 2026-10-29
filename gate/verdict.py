@@ -17,21 +17,22 @@ DEFAULT_TTL_MS = 300000
 
 
 def request(kind, token, receiver, amount, memo, *, gate, agent_pk_hex, policy, store, rpc, nearblocks,
-            signer, ttl_ms=DEFAULT_TTL_MS, injection_scanner=None, evidence_dir=EVIDENCE_DIR):
+            signer, ttl_ms=DEFAULT_TTL_MS, injection_scanner=None, evidence_dir=EVIDENCE_DIR, clock=time.time):
     """Judge one transfer for the agent agent_pk_hex at the Gate gate.
 
     Returns {"outcome", "verdict", "request", "checks", "reasons", "evidence_hash", "evidence_path",
     "latency_ms", "message"}: "request" is the TransferRequest and "verdict" the Verdict object the
-    Gate's request_transfer takes, or None unless the outcome is ALLOW.
+    Gate's request_transfer takes, or None unless the outcome is ALLOW. clock gives the wall time in
+    seconds for the rules and the issue time; the latency always uses time.perf_counter.
     """
     amount = canon.validate_transfer(gate=gate, agent_pk_hex=agent_pk_hex, kind=kind, token_id=token,
                                      receiver_id=receiver, amount=amount, memo=memo)
     transfer = {"kind": kind, "token_id": token, "receiver_id": receiver, "amount": amount, "memo": memo}
     started = time.perf_counter()
-    judgement = rules.judge(transfer, policy, store, rpc, nearblocks, now_ms=int(time.time() * 1000),
+    judgement = rules.judge(transfer, policy, store, rpc, nearblocks, now_ms=int(clock() * 1000),
                             injection_scanner=injection_scanner)
     allow = judgement.verdict == "ALLOW"
-    issued_ms = int(time.time() * 1000) if allow else None
+    issued_ms = int(clock() * 1000) if allow else None
     expires_ms = issued_ms + ttl_ms if allow else None
     verdict_id = secrets.token_hex(16) if allow else None
     latency_ms = int((time.perf_counter() - started) * 1000)

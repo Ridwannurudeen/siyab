@@ -6,7 +6,7 @@ import os
 import sys
 from pathlib import Path
 
-from gate import canon, ed25519, rpc, signer, verdict
+from gate import canon, demo, ed25519, rpc, signer, verdict
 from intel import labels
 
 
@@ -102,6 +102,11 @@ def main(argv=None):
     judge.add_argument("--evidence-dir", default=verdict.EVIDENCE_DIR, help="where the evidence document goes")
     judge.add_argument("--out", default=".", help="where the verdict file goes")
     judge.set_defaults(handler=_verdict)
+
+    show = commands.add_parser("demo", help="three verdicts over recorded fixtures")
+    mode = show.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--offline", action="store_true", help="replay the fixtures under fixtures/demo")
+    show.set_defaults(handler=lambda args: demo.main(args.offline))
 
     args = parser.parse_args(argv)
     return args.handler(args)
