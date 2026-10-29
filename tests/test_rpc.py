@@ -270,6 +270,14 @@ class FailClosedClientTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             client.get("https://key@other.example/x")
 
+    def test_a_query_string_in_a_url_is_refused(self):
+        for url in ("https://api.example?apikey=k", "https://api.example/v1?token=t"):
+            with self.subTest(url=url), self.assertRaises(ValueError):
+                rpc.Client(url, "off", kind="http")
+        client = rpc.Client("https://api.example", "off", kind="http")
+        with mock.patch("urllib.request.urlopen", side_effect=no_network), self.assertRaises(ValueError):
+            client.get("https://other.example/x?apikey=k")
+
     def test_nearblocks_fetches_are_spaced_and_budgeted(self):
         now = [T0]
         slept = []
