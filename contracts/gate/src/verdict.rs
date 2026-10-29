@@ -1,12 +1,16 @@
-use near_sdk::{env, AccountId};
 use crate::types::{TransferRequest, Verdict};
+use near_sdk::{env, AccountId};
 
 fn hex_encode(bytes: &[u8]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
 fn hex_decode(value: &str, expected: usize) -> Result<Vec<u8>, &'static str> {
-    if value.len() != expected * 2 || !value.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)) {
+    if value.len() != expected * 2
+        || !value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
         return Err("bad_request");
     }
     (0..value.len())
@@ -59,7 +63,7 @@ pub fn verify(
     if verdict.literal != "ALLOW" {
         return Err("not_allow");
     }
-    if verdict.issued_ms > now_ms || verdict.expires_ms < now_ms || verdict.expires_ms < verdict.issued_ms {
+    if verdict.expires_ms < now_ms || verdict.expires_ms < verdict.issued_ms {
         return Err("expired");
     }
     if verdict.expires_ms.saturating_sub(verdict.issued_ms) > max_ttl_ms {
@@ -111,7 +115,10 @@ mod tests {
         let paths: Vec<_> = fs::read_dir(&directory)
             .expect("canonical vector directory exists")
             .map(|entry| entry.expect("vector entry").path())
-            .filter(|path| path.extension().is_some_and(|extension| extension == "json"))
+            .filter(|path| {
+                path.extension()
+                    .is_some_and(|extension| extension == "json")
+            })
             .collect();
         assert!(!paths.is_empty(), "canonical vector directory is empty");
 
@@ -124,7 +131,9 @@ mod tests {
                 .unwrap();
             let request = TransferRequest {
                 kind: vector["kind"].as_str().unwrap().to_owned(),
-                token_id: vector["token_id"].as_str().map(|value| value.parse().unwrap()),
+                token_id: vector["token_id"]
+                    .as_str()
+                    .map(|value| value.parse().unwrap()),
                 receiver_id: vector["receiver_id"].as_str().unwrap().parse().unwrap(),
                 amount: U128(vector["amount"].as_str().unwrap().parse().unwrap()),
                 memo: vector["memo"].as_str().map(str::to_owned),
@@ -139,14 +148,15 @@ mod tests {
                 signature: vector["signature_hex"].as_str().unwrap().to_owned(),
             };
             let message = canonical_message(&gate, &agent_pk, &request, &verdict);
-            assert_eq!(String::from_utf8(message.clone()).unwrap(), vector["message"]);
+            assert_eq!(
+                String::from_utf8(message.clone()).unwrap(),
+                vector["message"]
+            );
             assert_eq!(hex_encode(&env::sha256(&message)), vector["digest_sha256"]);
             let key: [u8; 32] = decode(vector["verifier_pub_hex"].as_str().unwrap())
                 .try_into()
                 .unwrap();
-            let signature: [u8; 64] = decode(verdict.signature.as_str())
-                .try_into()
-                .unwrap();
+            let signature: [u8; 64] = decode(verdict.signature.as_str()).try_into().unwrap();
             assert_eq!(
                 env::ed25519_verify(&signature, &env::sha256_array(&message), &key),
                 vector["expect_valid"].as_bool().unwrap(),

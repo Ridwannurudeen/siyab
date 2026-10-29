@@ -1,11 +1,12 @@
-use near_sdk::{
-    env,
-    json_types::U128,
-    near,
-    serde_json::json,
-    assert_one_yocto, AccountId, Allowance, CurveType, NearToken, Promise, PublicKey,
+use crate::{
+    events,
+    types::{Agent, AgentView, Asset, AssetCap, AssetCapInput},
+    Gate, GateExt,
 };
-use crate::{events, types::{Agent, AgentView, Asset, AssetCap}, Gate, GateExt};
+use near_sdk::{
+    assert_one_yocto, env, json_types::U128, near, serde_json::json, AccountId, Allowance,
+    CurveType, NearToken, Promise, PublicKey,
+};
 
 fn hex_encode(bytes: &[u8]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
@@ -14,12 +15,20 @@ fn hex_encode(bytes: &[u8]) -> String {
 #[near]
 impl Gate {
     fn assert_owner(&self) {
-        assert_eq!(env::predecessor_account_id(), self.owner_id, "REFUSED:not_owner");
+        assert_eq!(
+            env::predecessor_account_id(),
+            self.owner_id,
+            "REFUSED:not_owner"
+        );
         assert_one_yocto();
     }
 
     fn key_bytes(public_key: &PublicKey) -> [u8; 32] {
-        assert_eq!(public_key.curve_type(), CurveType::ED25519, "REFUSED:bad_request");
+        assert_eq!(
+            public_key.curve_type(),
+            CurveType::ED25519,
+            "REFUSED:bad_request"
+        );
         let mut bytes = [0; 32];
         bytes.copy_from_slice(&public_key.as_bytes()[1..]);
         bytes
@@ -30,24 +39,31 @@ impl Gate {
         &mut self,
         public_key: PublicKey,
         label: String,
-        caps: Vec<AssetCap>,
-        unknown_caps: Option<Vec<AssetCap>>,
+        caps: Vec<AssetCapInput>,
+        unknown_caps: Option<Vec<AssetCapInput>>,
         allowance_yocto: U128,
     ) -> Promise {
         self.assert_owner();
-        assert!(!self.agents.contains_key(&public_key), "REFUSED:agent_exists");
-        assert!(allowance_yocto.0 > 0, "REFUSED:zero_allowance");
+        assert!(
+            !self.agents.contains_key(&public_key),
+            "REFUSED:agent_exists"
+        );
+        near_sdk::require!(allowance_yocto.0 > 0, "REFUSED:zero_allowance");
         self.agents.insert(
             public_key.clone(),
             Agent {
                 label,
                 enabled: true,
                 allowlist: Vec::new(),
-                caps,
-                unknown_caps,
+                caps: caps.into_iter().map(AssetCap::from).collect(),
+                unknown_caps: unknown_caps
+                    .map(|caps| caps.into_iter().map(AssetCap::from).collect()),
             },
         );
-        events::emit("agent_registered", json!({"agent_pk": hex_encode(&Self::key_bytes(&public_key))}));
+        events::emit(
+            "agent_registered",
+            json!({"agent_pk": hex_encode(&Self::key_bytes(&public_key))}),
+        );
         Promise::new(env::current_account_id()).add_access_key_allowance(
             public_key,
             Allowance::limited(NearToken::from_yoctonear(allowance_yocto.0)).expect("non zero"),
@@ -60,14 +76,21 @@ impl Gate {
     pub fn revoke_agent(&mut self, public_key: PublicKey) -> Promise {
         self.assert_owner();
         self.agents.remove(&public_key);
-        events::emit("agent_revoked", json!({"agent_pk": hex_encode(&Self::key_bytes(&public_key))}));
+        events::emit(
+            "agent_revoked",
+            json!({"agent_pk": hex_encode(&Self::key_bytes(&public_key))}),
+        );
         Promise::new(env::current_account_id()).delete_key(public_key)
     }
 
     #[payable]
     pub fn set_allowlist(&mut self, agent_pk: PublicKey, accounts: Vec<AccountId>) {
         self.assert_owner();
-        let mut agent = self.agents.get(&agent_pk).cloned().expect("REFUSED:unknown_agent");
+        let mut agent = self
+            .agents
+            .get(&agent_pk)
+            .cloned()
+            .expect("REFUSED:unknown_agent");
         agent.allowlist = accounts;
         self.agents.insert(agent_pk, agent);
     }
@@ -86,7 +109,11 @@ impl Gate {
     #[payable]
     pub fn set_agent_enabled(&mut self, agent_pk: PublicKey, enabled: bool) {
         self.assert_owner();
-        let mut agent = self.agents.get(&agent_pk).cloned().expect("REFUSED:unknown_agent");
+        let mut agent = self
+            .agents
+            .get(&agent_pk)
+            .cloned()
+            .expect("REFUSED:unknown_agent");
         agent.enabled = enabled;
         self.agents.insert(agent_pk, agent);
     }
@@ -95,13 +122,18 @@ impl Gate {
     pub fn set_caps(
         &mut self,
         agent_pk: PublicKey,
-        caps: Vec<AssetCap>,
-        unknown_caps: Option<Vec<AssetCap>>,
+        caps: Vec<AssetCapInput>,
+        unknown_caps: Option<Vec<AssetCapInput>>,
     ) {
         self.assert_owner();
-        let mut agent = self.agents.get(&agent_pk).cloned().expect("REFUSED:unknown_agent");
-        agent.caps = caps;
-        agent.unknown_caps = unknown_caps;
+        let mut agent = self
+            .agents
+            .get(&agent_pk)
+            .cloned()
+            .expect("REFUSED:unknown_agent");
+        agent.caps = caps.into_iter().map(AssetCap::from).collect();
+        agent.unknown_caps =
+            unknown_caps.map(|caps| caps.into_iter().map(AssetCap::from).collect());
         self.agents.insert(agent_pk, agent);
     }
 
@@ -114,11 +146,15 @@ impl Gate {
     ) {
         self.assert_owner();
         self.verifier_current = Self::key_bytes(&current);
-        self.verifier_previous = previous.map(|key| (Self::key_bytes(&key), previous_valid_until_ms));
-        events::emit("verifier_keys_updated", json!({
-            "current": hex_encode(&self.verifier_current),
-            "previous_valid_until_ms": previous_valid_until_ms
-        }));
+        self.verifier_previous =
+            previous.map(|key| (Self::key_bytes(&key), previous_valid_until_ms));
+        events::emit(
+            "verifier_keys_updated",
+            json!({
+                "current": hex_encode(&self.verifier_current),
+                "previous_valid_until_ms": previous_valid_until_ms
+            }),
+        );
     }
 
     #[payable]
@@ -141,7 +177,9 @@ impl Gate {
             Asset::Near => Promise::new(receiver_id).transfer(NearToken::from_yoctonear(amount.0)),
             Asset::Ft(token_id) => Promise::new(token_id).function_call(
                 "ft_transfer".to_owned(),
-                json!({"receiver_id": receiver_id, "amount": amount}).to_string().into_bytes(),
+                json!({"receiver_id": receiver_id, "amount": amount})
+                    .to_string()
+                    .into_bytes(),
                 NearToken::from_yoctonear(1),
                 near_sdk::Gas::from_tgas(10),
             ),

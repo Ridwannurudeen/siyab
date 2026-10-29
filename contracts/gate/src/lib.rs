@@ -3,20 +3,22 @@ mod policy;
 mod types;
 mod verdict;
 
+use events::emit;
 use near_sdk::{
     env,
-    near,
     json_types::U128,
+    near,
     serde_json::json,
     store::{IterableMap, IterableSet, LookupMap},
     AccountId, CurveType, Gas, NearToken, PanicOnDefault, Promise, PromiseResult, PublicKey,
 };
-use events::emit;
 use types::{Agent, Asset, Pending, TransferRequest, Verdict};
 use verdict::verify;
 
-const GAS_FT_TRANSFER: Gas = Gas::from_tgas(10);
-const GAS_CALLBACK: Gas = Gas::from_tgas(10);
+// FT receipt burned 1719818926064 gas, twice stays below the 5 Tgas floor.
+const GAS_FT_TRANSFER: Gas = Gas::from_tgas(5);
+// Callback receipt burned 1630829006859 gas, twice stays below the 5 Tgas floor.
+const GAS_CALLBACK: Gas = Gas::from_tgas(5);
 const GAS_BASE_RESERVE: Gas = Gas::from_tgas(10);
 
 #[near(contract_state)]
@@ -38,7 +40,11 @@ pub struct Gate {
 impl Gate {
     #[init]
     pub fn new(owner_id: AccountId, verifier_key: PublicKey, max_ttl_ms: u64) -> Self {
-        assert_eq!(verifier_key.curve_type(), CurveType::ED25519, "REFUSED:bad_request");
+        assert_eq!(
+            verifier_key.curve_type(),
+            CurveType::ED25519,
+            "REFUSED:bad_request"
+        );
         assert!(max_ttl_ms > 0, "REFUSED:bad_request");
         let mut key = [0; 32];
         key.copy_from_slice(&verifier_key.as_bytes()[1..]);
@@ -60,21 +66,48 @@ impl Gate {
         env!("CARGO_PKG_VERSION").to_owned()
     }
 
-    pub fn request_transfer(&mut self, request: TransferRequest, verdict: Option<Verdict>) -> Promise {
+    pub fn request_transfer(
+        &mut self,
+        request: TransferRequest,
+        verdict: Option<Verdict>,
+    ) -> Promise {
         assert!(!self.paused, "REFUSED:paused");
-        assert_eq!(env::predecessor_account_id(), env::current_account_id(), "REFUSED:unknown_agent");
+        assert_eq!(
+            env::predecessor_account_id(),
+            env::current_account_id(),
+            "REFUSED:unknown_agent"
+        );
         let agent_pk = env::signer_account_pk();
-        assert_eq!(agent_pk.curve_type(), CurveType::ED25519, "REFUSED:unknown_agent");
-        let mut agent = self.agents.get(&agent_pk).cloned().expect("REFUSED:unknown_agent");
+        assert_eq!(
+            agent_pk.curve_type(),
+            CurveType::ED25519,
+            "REFUSED:unknown_agent"
+        );
+        let mut agent = self
+            .agents
+            .get(&agent_pk)
+            .cloned()
+            .expect("REFUSED:unknown_agent");
         assert!(agent.enabled, "REFUSED:agent_disabled");
-        assert!(!self.denylist.contains(&request.receiver_id), "REFUSED:denylisted");
+        assert!(
+            !self.denylist.contains(&request.receiver_id),
+            "REFUSED:denylisted"
+        );
         let allowlisted = agent.allowlist.contains(&request.receiver_id);
-        assert!(allowlisted || agent.unknown_caps.is_some(), "REFUSED:not_allowlisted");
-        assert!(env::is_valid_account_id(request.receiver_id.as_bytes()), "REFUSED:bad_request");
+        assert!(
+            allowlisted || agent.unknown_caps.is_some(),
+            "REFUSED:not_allowlisted"
+        );
+        assert!(
+            env::is_valid_account_id(request.receiver_id.as_bytes()),
+            "REFUSED:bad_request"
+        );
         assert!(request.amount.0 > 0, "REFUSED:bad_request");
         let asset = match (&request.kind[..], &request.token_id) {
             ("near", None) => Asset::Near,
-            ("ft", Some(token_id)) if env::is_valid_account_id(token_id.as_bytes()) => Asset::Ft(token_id.clone()),
+            ("ft", Some(token_id)) if env::is_valid_account_id(token_id.as_bytes()) => {
+                Asset::Ft(token_id.clone())
+            }
             _ => env::panic_str("REFUSED:bad_request"),
         };
         let verdict = verdict.expect("REFUSED:no_verdict");
@@ -92,46 +125,87 @@ impl Gate {
         ) {
             env::panic_str(&format!("REFUSED:{code}"));
         }
-        assert!(!self.used_verdicts.contains_key(&verdict.verdict_id), "REFUSED:verdict_used");
+        assert!(
+            !self.used_verdicts.contains_key(&verdict.verdict_id),
+            "REFUSED:verdict_used"
+        );
         let caps = if allowlisted {
             &mut agent.caps
         } else {
             agent.unknown_caps.as_mut().expect("unknown payee caps")
         };
-        let cap = caps.iter_mut().find(|cap| cap.asset == asset).unwrap_or_else(|| {
-            env::panic_str(if allowlisted { "REFUSED:per_call_cap" } else { "REFUSED:unknown_payee_cap" })
-        });
+        let cap = caps
+            .iter_mut()
+            .find(|cap| cap.asset == asset)
+            .unwrap_or_else(|| {
+                env::panic_str(if allowlisted {
+                    "REFUSED:per_call_cap"
+                } else {
+                    "REFUSED:unknown_payee_cap"
+                })
+            });
         if now_ms.saturating_sub(cap.window_start_ms) >= cap.window_ms {
             cap.window_start_ms = now_ms;
             cap.spent = 0;
         }
         if allowlisted {
             assert!(request.amount.0 <= cap.per_call, "REFUSED:per_call_cap");
-            assert!(cap.spent.checked_add(request.amount.0).is_some_and(|spent| spent <= cap.window_cap), "REFUSED:window_cap");
+            assert!(
+                cap.spent
+                    .checked_add(request.amount.0)
+                    .is_some_and(|spent| spent <= cap.window_cap),
+                "REFUSED:window_cap"
+            );
         } else {
-            assert!(request.amount.0 <= cap.per_call, "REFUSED:unknown_payee_cap");
-            assert!(cap.spent.checked_add(request.amount.0).is_some_and(|spent| spent <= cap.window_cap), "REFUSED:unknown_payee_cap");
+            assert!(
+                request.amount.0 <= cap.per_call,
+                "REFUSED:unknown_payee_cap"
+            );
+            assert!(
+                cap.spent
+                    .checked_add(request.amount.0)
+                    .is_some_and(|spent| spent <= cap.window_cap),
+                "REFUSED:unknown_payee_cap"
+            );
         }
-        let required_gas = GAS_FT_TRANSFER.as_gas() + GAS_CALLBACK.as_gas() + GAS_BASE_RESERVE.as_gas();
-        assert!(env::prepaid_gas().as_gas() >= required_gas, "REFUSED:low_gas");
+        let required_gas =
+            GAS_FT_TRANSFER.as_gas() + GAS_CALLBACK.as_gas() + GAS_BASE_RESERVE.as_gas();
+        assert!(
+            env::prepaid_gas().as_gas() >= required_gas,
+            "REFUSED:low_gas"
+        );
 
         cap.spent += request.amount.0;
         self.agents.insert(agent_pk.clone(), agent);
-        self.used_verdicts.insert(verdict.verdict_id.clone(), verdict.expires_ms);
+        self.used_verdicts
+            .insert(verdict.verdict_id.clone(), verdict.expires_ms);
         let request_id = self.next_request_id;
-        self.next_request_id = self.next_request_id.checked_add(1).expect("request id exhausted");
-        self.pending.insert(request_id, Pending { agent_pk: agent_pk.clone(), asset: asset.clone(), amount: request.amount.0 });
+        self.next_request_id = self
+            .next_request_id
+            .checked_add(1)
+            .expect("request id exhausted");
+        self.pending.insert(
+            request_id,
+            Pending {
+                agent_pk: agent_pk.clone(),
+                asset: asset.clone(),
+                amount: request.amount.0,
+            },
+        );
         let agent_hex = lower_hex(&agent_key_bytes(&agent_pk));
-        emit("transfer_scheduled", json!({
-            "request_id": request_id,
-            "agent_pk": agent_hex,
-            "kind": request.kind,
-            "token": request.token_id,
-            "receiver": request.receiver_id,
-            "amount": request.amount.0.to_string(),
-            "verdict_id": verdict.verdict_id,
-            "evidence_hash": verdict.evidence_hash
-        }));
+        emit(
+            "transfer_scheduled",
+            json!({
+                "request_id": request_id,
+                "agent_pk": agent_hex,
+                "kind": request.kind,
+                "token": request.token_id,
+                "receiver": request.receiver_id,
+                "amount": request.amount.0.to_string(),
+                "verdict_id": verdict.verdict_id,
+                "evidence_hash": verdict.evidence_hash
+            }),
+        );
         let transfer = match asset {
             Asset::Near => Promise::new(request.receiver_id).transfer(NearToken::from_yoctonear(request.amount.0)),
             Asset::Ft(token_id) => Promise::new(token_id).function_call(
@@ -141,21 +215,44 @@ impl Gate {
                 GAS_FT_TRANSFER,
             ),
         };
-        transfer.then(Self::ext(env::current_account_id()).with_static_gas(GAS_CALLBACK).on_transfer(request_id, !allowlisted))
+        transfer.then(
+            Self::ext(env::current_account_id())
+                .with_static_gas(GAS_CALLBACK)
+                .on_transfer(request_id, !allowlisted),
+        )
     }
 
     #[private]
     pub fn on_transfer(&mut self, request_id: u64, unknown_payee: bool) {
-        let pending = self.pending.remove(&request_id).expect("pending request missing");
+        let pending = self
+            .pending
+            .remove(&request_id)
+            .expect("pending request missing");
         match env::promise_result(0) {
-            PromiseResult::Successful(_) => emit("transfer_completed", json!({"request_id": request_id})),
+            PromiseResult::Successful(_) => {
+                emit("transfer_completed", json!({"request_id": request_id}))
+            }
             PromiseResult::Failed => {
-                let mut agent = self.agents.get(&pending.agent_pk).cloned().expect("agent missing");
-                let caps = if unknown_payee { agent.unknown_caps.as_mut().expect("unknown payee caps") } else { &mut agent.caps };
-                let cap = caps.iter_mut().find(|cap| cap.asset == pending.asset).expect("debited cap missing");
+                let mut agent = self
+                    .agents
+                    .get(&pending.agent_pk)
+                    .cloned()
+                    .expect("agent missing");
+                let caps = if unknown_payee {
+                    agent.unknown_caps.as_mut().expect("unknown payee caps")
+                } else {
+                    &mut agent.caps
+                };
+                let cap = caps
+                    .iter_mut()
+                    .find(|cap| cap.asset == pending.asset)
+                    .expect("debited cap missing");
                 cap.spent = cap.spent.saturating_sub(pending.amount);
                 self.agents.insert(pending.agent_pk, agent);
-                emit("transfer_failed", json!({"request_id": request_id, "restored": true}));
+                emit(
+                    "transfer_failed",
+                    json!({"request_id": request_id, "restored": true}),
+                );
             }
         }
     }
@@ -223,8 +320,16 @@ mod tests {
         PublicKey::from_str(&format!("ed25519:{}", base58_encode(bytes))).unwrap()
     }
 
-    fn prepare(vector_name: &str, allowlisted: bool) -> (Gate, TransferRequest, Verdict, PublicKey) {
-        prepare_with_result(vector_name, allowlisted, Gas::from_tgas(300), PromiseResult::Successful(Vec::new()))
+    fn prepare(
+        vector_name: &str,
+        allowlisted: bool,
+    ) -> (Gate, TransferRequest, Verdict, PublicKey) {
+        prepare_with_result(
+            vector_name,
+            allowlisted,
+            Gas::from_tgas(300),
+            PromiseResult::Successful(Vec::new()),
+        )
     }
 
     fn prepare_with_gas(
@@ -232,7 +337,12 @@ mod tests {
         allowlisted: bool,
         prepaid_gas: Gas,
     ) -> (Gate, TransferRequest, Verdict, PublicKey) {
-        prepare_with_result(vector_name, allowlisted, prepaid_gas, PromiseResult::Successful(Vec::new()))
+        prepare_with_result(
+            vector_name,
+            allowlisted,
+            prepaid_gas,
+            PromiseResult::Successful(Vec::new()),
+        )
     }
 
     fn prepare_with_result(
@@ -245,9 +355,13 @@ mod tests {
         let gate_id: AccountId = "gate.testnet".parse().unwrap();
         let owner_id: AccountId = "owner.testnet".parse().unwrap();
         let agent_seed: [u8; 32] = env::sha256(b"gate test agent v1").try_into().unwrap();
-        let agent_bytes = SigningKey::from_bytes(&agent_seed).verifying_key().to_bytes();
+        let agent_bytes = SigningKey::from_bytes(&agent_seed)
+            .verifying_key()
+            .to_bytes();
         let agent_pk = public_key(&agent_bytes);
-        let verifier_bytes: [u8; 32] = decode_hex(vector["verifier_pub_hex"].as_str().unwrap()).try_into().unwrap();
+        let verifier_bytes: [u8; 32] = decode_hex(vector["verifier_pub_hex"].as_str().unwrap())
+            .try_into()
+            .unwrap();
         let verifier_key = public_key(&verifier_bytes);
         let now_ms = 1_700_000_100_000u64;
         let context = VMContextBuilder::new()
@@ -259,7 +373,9 @@ mod tests {
             .build();
         testing_env_with_promise_results(context, promise_result);
         let mut gate = Gate::new(owner_id, verifier_key, 300_000);
-        let token_id = vector["token_id"].as_str().map(|value| value.parse().unwrap());
+        let token_id = vector["token_id"]
+            .as_str()
+            .map(|value| value.parse().unwrap());
         let asset = if vector["kind"] == "near" {
             Asset::Near
         } else {
@@ -274,13 +390,21 @@ mod tests {
             spent: 0,
         };
         let receiver: AccountId = vector["receiver_id"].as_str().unwrap().parse().unwrap();
-        let unknown_caps = if allowlisted { None } else { Some(vec![cap.clone()]) };
+        let unknown_caps = if allowlisted {
+            None
+        } else {
+            Some(vec![cap.clone()])
+        };
         gate.agents.insert(
             agent_pk.clone(),
             Agent {
                 label: "unit agent".to_owned(),
                 enabled: true,
-                allowlist: if allowlisted { vec![receiver] } else { Vec::new() },
+                allowlist: if allowlisted {
+                    vec![receiver]
+                } else {
+                    Vec::new()
+                },
                 caps: vec![cap],
                 unknown_caps,
             },
@@ -304,7 +428,12 @@ mod tests {
         (gate, request, verdict, agent_pk)
     }
 
-    fn submit(gate: &mut Gate, request: TransferRequest, verdict: Option<Verdict>, agent_pk: PublicKey) {
+    fn submit(
+        gate: &mut Gate,
+        request: TransferRequest,
+        verdict: Option<Verdict>,
+        agent_pk: PublicKey,
+    ) {
         let _ = agent_pk;
         let _ = gate.request_transfer(request, verdict);
     }
@@ -316,7 +445,9 @@ mod tests {
         let agent = gate.agents.get(&agent_pk).unwrap();
         assert_eq!(agent.caps[0].spent, 1_000_000);
         assert!(gate.used_verdicts.contains_key(&verdict.verdict_id));
-        assert!(near_sdk::test_utils::get_logs().iter().any(|line| line.starts_with("EVENT_JSON:") && line.contains("transfer_scheduled")));
+        assert!(near_sdk::test_utils::get_logs()
+            .iter()
+            .any(|line| line.starts_with("EVENT_JSON:") && line.contains("transfer_scheduled")));
     }
 
     #[test]
@@ -373,7 +504,9 @@ mod tests {
         let (mut gate, request, verdict, agent_pk) = prepare("09-prev-key-unit", true);
         gate.verifier_previous = Some((gate.verifier_current, verdict.expires_ms));
         submit(&mut gate, request, Some(verdict), agent_pk);
-        assert!(near_sdk::test_utils::get_logs().iter().any(|line| line.contains("transfer_scheduled")));
+        assert!(near_sdk::test_utils::get_logs()
+            .iter()
+            .any(|line| line.contains("transfer_scheduled")));
     }
 
     #[test]
@@ -390,7 +523,10 @@ mod tests {
         let seed: [u8; 32] = seed.try_into().unwrap();
         let signing_key = SigningKey::from_bytes(&seed);
         let vector = read_vector("04-ft-happy-unit");
-        assert_eq!(signing_key.verifying_key().to_bytes().to_vec(), decode_hex(vector["agent_pk_hex"].as_str().unwrap()));
+        assert_eq!(
+            signing_key.verifying_key().to_bytes().to_vec(),
+            decode_hex(vector["agent_pk_hex"].as_str().unwrap())
+        );
     }
 
     #[test]
@@ -439,7 +575,8 @@ mod tests {
     #[should_panic(expected = "REFUSED:verdict_used")]
     fn repeated_verdict_id_is_refused() {
         let (mut gate, request, verdict, agent_pk) = prepare("04-ft-happy-unit", true);
-        gate.used_verdicts.insert(verdict.verdict_id.clone(), verdict.expires_ms);
+        gate.used_verdicts
+            .insert(verdict.verdict_id.clone(), verdict.expires_ms);
         submit(&mut gate, request, Some(verdict), agent_pk);
     }
 
@@ -460,21 +597,36 @@ mod tests {
     }
 
     #[test]
+    fn elapsed_window_resets_spent_before_debit() {
+        let (mut gate, request, verdict, agent_pk) = prepare("04-ft-happy-unit", true);
+        let cap = &mut gate.agents.get_mut(&agent_pk).unwrap().caps[0];
+        cap.window_start_ms = 1_700_000_100_000 - cap.window_ms;
+        cap.spent = cap.window_cap;
+        submit(&mut gate, request, Some(verdict), agent_pk.clone());
+        let cap = &gate.agents.get(&agent_pk).unwrap().caps[0];
+        assert_eq!(cap.spent, 1_000_000);
+        assert_eq!(cap.window_start_ms, 1_700_000_100_000);
+    }
+
+    #[test]
     #[should_panic(expected = "REFUSED:unknown_payee_cap")]
     fn unknown_payee_cap_is_enforced() {
         let (mut gate, request, verdict, agent_pk) = prepare("04-ft-happy-unit", false);
-        gate.agents.get_mut(&agent_pk).unwrap().unknown_caps.as_mut().unwrap()[0].per_call = 1;
+        gate.agents
+            .get_mut(&agent_pk)
+            .unwrap()
+            .unknown_caps
+            .as_mut()
+            .unwrap()[0]
+            .per_call = 1;
         submit(&mut gate, request, Some(verdict), agent_pk);
     }
 
     #[test]
     #[should_panic(expected = "REFUSED:low_gas")]
     fn insufficient_gas_is_refused() {
-        let (mut gate, request, verdict, agent_pk) = prepare_with_gas(
-            "04-ft-happy-unit",
-            true,
-            Gas::from_tgas(20),
-        );
+        let (mut gate, request, verdict, agent_pk) =
+            prepare_with_gas("04-ft-happy-unit", true, Gas::from_tgas(19));
         submit(&mut gate, request, Some(verdict), agent_pk);
     }
 
@@ -491,6 +643,24 @@ mod tests {
     }
 
     #[test]
+    #[should_panic(expected = "REFUSED:zero_allowance")]
+    fn zero_agent_allowance_is_refused() {
+        let (mut gate, _, _, _) = prepare("04-ft-happy-unit", true);
+        let second_seed: [u8; 32] = env::sha256(b"gate test agent v2").try_into().unwrap();
+        let second_public = SigningKey::from_bytes(&second_seed)
+            .verifying_key()
+            .to_bytes();
+        let agent_pk = public_key(&second_public);
+        let context = VMContextBuilder::new()
+            .current_account_id("gate.testnet".parse().unwrap())
+            .predecessor_account_id("owner.testnet".parse().unwrap())
+            .attached_deposit(NearToken::from_yoctonear(1))
+            .build();
+        testing_env!(context);
+        let _ = gate.register_agent(agent_pk, "zero".to_owned(), Vec::new(), None, U128(0));
+    }
+
+    #[test]
     fn failed_transfer_restores_the_debited_cap() {
         let (mut gate, request, verdict, agent_pk) = prepare_with_result(
             "04-ft-happy-unit",
@@ -502,7 +672,9 @@ mod tests {
         gate.on_transfer(0, false);
         assert_eq!(gate.agents.get(&agent_pk).unwrap().caps[0].spent, 0);
         assert!(gate.pending.get(&0).is_none());
-        assert!(near_sdk::test_utils::get_logs().iter().any(|line| line.contains("transfer_failed") && line.contains("true")));
+        assert!(near_sdk::test_utils::get_logs()
+            .iter()
+            .any(|line| line.contains("transfer_failed") && line.contains("true")));
     }
 
     #[test]

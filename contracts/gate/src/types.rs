@@ -18,6 +18,29 @@ pub struct AssetCap {
     pub spent: u128,
 }
 
+#[near(serializers = [json])]
+pub struct AssetCapInput {
+    pub asset: Asset,
+    pub per_call: U128,
+    pub window_cap: U128,
+    pub window_ms: u64,
+    pub window_start_ms: u64,
+    pub spent: U128,
+}
+
+impl From<AssetCapInput> for AssetCap {
+    fn from(cap: AssetCapInput) -> Self {
+        Self {
+            asset: cap.asset,
+            per_call: cap.per_call.0,
+            window_cap: cap.window_cap.0,
+            window_ms: cap.window_ms,
+            window_start_ms: cap.window_start_ms,
+            spent: cap.spent.0,
+        }
+    }
+}
+
 #[near(serializers = [json, borsh])]
 #[derive(Clone)]
 pub struct Agent {
@@ -96,7 +119,9 @@ impl From<Agent> for AgentView {
             enabled: agent.enabled,
             allowlist: agent.allowlist,
             caps: agent.caps.into_iter().map(AssetCapView::from).collect(),
-            unknown_caps: agent.unknown_caps.map(|caps| caps.into_iter().map(AssetCapView::from).collect()),
+            unknown_caps: agent
+                .unknown_caps
+                .map(|caps| caps.into_iter().map(AssetCapView::from).collect()),
         }
     }
 }
