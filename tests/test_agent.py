@@ -401,7 +401,6 @@ class PyNearTest(unittest.TestCase):
         self.assertEqual(outcome, {"transaction_hash": REJECTED["transaction_hash"], "status": None, "logs": [],
                                    "rpc_error": REJECTED["rpc_error"]})
 
-
     def test_each_send_gets_its_own_account_and_closes_it(self):
         # asyncio.run makes a new event loop per send; an account reused across loops kept a session bound to
         # the closed first loop, so the second send of the replay attack never reached the RPC.
@@ -433,8 +432,9 @@ class PyNearTest(unittest.TestCase):
         error.trx_hash = REJECTED["transaction_hash"]
         with mock.patch.object(Account, "startup", mock.AsyncMock()), \
                 mock.patch.object(Account, "function_call", mock.AsyncMock(side_effect=error)), \
-                mock.patch.object(Account, "shutdown", mock.AsyncMock()):
+                mock.patch.object(Account, "shutdown", mock.AsyncMock()) as shutdown:
             outcome = self.transport(sent)
+        self.assertEqual(shutdown.await_count, 1)
         self.assertEqual(outcome["status"], None)
         self.assertEqual(outcome["rpc_error"], {"error": "InvalidTransactionError", "message": "DepositWithFunctionCall"})
         self.assertFalse(agent._succeeded(outcome))

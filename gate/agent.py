@@ -12,9 +12,9 @@ receipt exists. The attacks are the rows of the adversarial table; each verdict 
 or replays is built only on this path.
 
 Transports: py-near (Account.function_call; the default) or near-cli-rs through subprocess
-(--via near-cli), with the command line recorded in docs/SPIKES.md. UNVERIFIED until the S7 spike
-runs on testnet: py-near signing with a function call key, the shape of its error JSON for a
-rejected transaction, and the near-cli-rs output the transaction hash and logs are read from.
+(--via near-cli), with the command line recorded in docs/SPIKES.md. Verified on testnet on 29 Oct:
+py-near signing with a function call key, and its rejection errors, whose JSON is sometimes missing.
+UNVERIFIED: the near-cli-rs output the transaction hash and logs are read from.
 """
 
 import asyncio
@@ -104,15 +104,15 @@ class PyNearTransport:
     def _new_account(self):
         """A fresh py-near account: its session is bound to the event loop of the one send that uses it."""
         account = self._account_class(account_id=self._gate, private_key=self._secret, rpc_addr=self._rpc_url)
-        # py-near waits up to 600 s per request by default; the provider's timeout attribute is private to
-        # py-near 1.2.22 and UNVERIFIED on testnet.
+        # py-near waits up to 600 s per request by default; the provider reads .timeout when it opens its
+        # session on the first request.
         account._provider.timeout = rpc.TIMEOUT_S
         return account
 
     async def _send(self, sent):
         account = self._new_account()
-        await account.startup()
         try:
+            await account.startup()
             result = await account.function_call(sent["receiver_id"], sent["method_name"], sent["args"],
                                                  gas=sent["gas"], amount=sent["deposit"])
         except self._rejected as error:
