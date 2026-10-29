@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "game.hot.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "23550400133070013684201639548",
+      "block_hash": "ATuWQkNWHRr6YzHPaQa3niN8RqhUeBDym66tKoCpK1iK",
+      "block_height": 222142624,
+      "code_hash": "GH7Zs8zab1YHiTkdveDj18Uu2je6fpiXcHmXkqYNCuew",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 2302491136
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-10-29T15:29:07Z"
+}

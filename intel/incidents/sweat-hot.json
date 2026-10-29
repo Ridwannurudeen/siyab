@@ -1,0 +1,224 @@
+{
+  "id": "sweat-hot",
+  "title": "SWEAT token ft_resolve_transfer exploit and the HOT token patch",
+  "date": "2026-04-29",
+  "chains": [
+    "near"
+  ],
+  "sources": [
+    {
+      "id": "fireblocks",
+      "publisher": "Fireblocks",
+      "url": "https://www.fireblocks.com/blog/near-zero-day-sweat-hot-token-exploit",
+      "content_sha256": "364bda02a4b0274990037064d4b23bfffe5e90f2414763c83fc8b09881fe2641",
+      "fetched_at": "2026-10-29T15:26:42Z"
+    },
+    {
+      "id": "defillama",
+      "publisher": "DeFiLlama hacks API",
+      "url": "https://api.llama.fi/hacks",
+      "content_sha256": "70699af10bafa8796baaf07d36fba597acb7f8faa1c25169955a02f6918de103",
+      "fetched_at": "2026-10-29T15:26:44Z"
+    }
+  ],
+  "accounts": [
+    {
+      "subject": "game.hot.tg",
+      "chain": "near",
+      "role_as_reported": "the HOT token contract, in which the report detected the same unguarded ft_resolve_transfer callback, patched the same day",
+      "quote": {
+        "source": "fireblocks",
+        "text": "After identifying the issue, we asked ourselves. If one major team missed this macro, who else did? We used agents and to proactive screening of the broader NEAR ecosystem for the exact same structural flaw. Using this method we detected the same flaw in the HOT token contract."
+      },
+      "assertion_ids": [
+        "1232c50828a251ddb4a1de4dae3337b3f63f63efee38611eb124562b392d7b4c",
+        "8dbca45da57d0690851fd2568e9fe37df6ec048ad85df50ba7d68b33ca011411",
+        "b5d9c445555e3b2a28dcb7d8a5449ab062ea47537556b93bca1ed923b5966a6b",
+        "e7b080027e770af1f4f689a70edc9316fcded859357e6dd2aa22580c76633e03"
+      ]
+    }
+  ],
+  "patch_transaction_as_reported": {
+    "value": "M7aGQyaqq3Pmzvxsh4VM31wgvYe5J7nQDGgyxM2UrwD",
+    "quote": {
+      "source": "fireblocks",
+      "text": "We reached out to the HOT token maintainers, and reported the issue. They acknowledged the issue and deployed a patch the same day."
+    }
+  },
+  "loss_as_reported": {
+    "value": "3500000 USD on 2026-04-29",
+    "quote": {
+      "source": "defillama",
+      "text": "{\"amount\": 3500000, \"bridgeHack\": false, \"chain\": [\"Near\"], \"classification\": \"Protocol Logic\", \"date\": 1777420800, \"defillamaId\": null, \"language\": \"Rust\", \"name\": \"Sweat Foundation\", \"returnedFunds\": null, \"source\": \"\", \"targetType\": \"DeFi Protocol\", \"technique\": \"Withdrawal Logic Flaw\"}"
+    }
+  },
+  "onchain_facts": [
+    {
+      "subject": "game.hot.tg",
+      "method": "view_account",
+      "args": {
+        "account_id": "game.hot.tg"
+      },
+      "block": 222142624,
+      "result_sha256": "0d162aff7d32c78cf72cf49abcdaeef92c2ad905aba2f1e81766e322dc958282",
+      "summary": "account exists with contract code hash GH7Zs8zab1YHiTkdveDj18Uu2je6fpiXcHmXkqYNCuew"
+    },
+    {
+      "subject": "game.hot.tg",
+      "method": "contract_source_metadata",
+      "args": {},
+      "block": 222142625,
+      "result_sha256": "422789e57aa170ab6d2865104e43e155cfa1e4d41110c81e2573c1021e1e9433",
+      "summary": "contract_source_metadata answers \"{\\\"build_info\\\": null, \\\"link\\\": null, \\\"standards\\\": [{\\\"standard\\\": \\\"nep330\\\", \\\"version\\\": \\\"1.3.0\\\"}], \\\"version\\\": \\\"1.2.0\\\"}\""
+    },
+    {
+      "subject": "game.hot.tg",
+      "method": "GET /v1/txns/{transaction_hash}",
+      "args": {
+        "transaction_hash": "M7aGQyaqq3Pmzvxsh4VM31wgvYe5J7nQDGgyxM2UrwD"
+      },
+      "block": 200042403,
+      "result_sha256": "a4819ae44ab7ba2067ef921c7a0ca1f95ad3a214c1fafc3c533007d454552a0d",
+      "summary": "transaction M7aGQyaqq3Pmzvxsh4VM31wgvYe5J7nQDGgyxM2UrwD at block 200042403, signer \"game.hot.tg\", receiver \"game.hot.tg\", actions \"DEPLOY_CONTRACT\""
+    }
+  ],
+  "onchain_state": "current state of the contract, not a historical block replay",
+  "rules_today": [
+    {
+      "subject": "game.hot.tg",
+      "as": "token",
+      "request": {
+        "kind": "ft",
+        "token_id": "game.hot.tg",
+        "receiver_id": "intents.near",
+        "amount": "1000000",
+        "memo": null
+      },
+      "verdict": "DENY",
+      "checks": [
+        {
+          "id": "receiver_exists",
+          "status": "pass",
+          "detail": "intents.near exists",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "aeca5be441be45abec5d698a9b5c3dd2a8b8090db3a2abc222c3e6b6463ccdd0",
+            "fetched_at": "2026-10-29T09:20:50Z"
+          }
+        },
+        {
+          "id": "label_denylist",
+          "status": "pass",
+          "detail": "no denylist or incident label on intents.near or game.hot.tg",
+          "source": {
+            "provider": "label store",
+            "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "token_in_catalog",
+          "status": "signal",
+          "detail": "token_not_in_catalog: game.hot.tg is neither a cap asset nor a catalog_token",
+          "source": {
+            "provider": "label store",
+            "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "ft_metadata_sane",
+          "status": "pass",
+          "detail": "symbol \"HOT\", 6 decimals",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "e54a0dbc8748f12121f1d8d4eb888e74e20d3ca60b7cda58072220c2ad4e446d",
+            "fetched_at": "2026-10-29T15:29:10Z"
+          }
+        },
+        {
+          "id": "storage_registered",
+          "status": "unknown",
+          "detail": "could not read storage_balance_of: RPC error wasm execution failed with error: MethodResolveError(MethodNotFound)",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "ae621c2038ca2d30d267f798521189da589ba438c9f66ecd0bc279e9be1cdb63",
+            "fetched_at": "2026-10-29T15:29:10Z"
+          }
+        },
+        {
+          "id": "memo_injection",
+          "status": "pass",
+          "detail": "no memo",
+          "source": {
+            "provider": "local patterns",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "account_age",
+          "status": "unknown",
+          "detail": "could not read the account keys: no recorded response for the request",
+          "source": {
+            "provider": "api.nearblocks.io",
+            "request_sha256": "657c4845e82b92107209708622a1f8de3ae1afa87514183caf3d66e640a5422e",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "dust_funded",
+          "status": "unknown",
+          "detail": "the creation transaction is not known",
+          "source": {
+            "provider": "nearblocks",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "lookalike",
+          "status": "pass",
+          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+          "source": {
+            "provider": "allowlist and label store",
+            "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "code_without_metadata",
+          "status": "pass",
+          "detail": "contract code with contract_source_metadata",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "2ac1817c825961725d072dc0658ff59c66c85a1520d76901c350e7e8c4c2d6d8",
+            "fetched_at": "2026-10-29T09:21:08Z"
+          }
+        }
+      ],
+      "reasons": [
+        "Not on the owner's allowlist.",
+        "game.hot.tg is not a catalog token or a cap asset of the agent."
+      ],
+      "labels": [
+        "522c8a621dbd41266cdf8a2d5020f4b27a608037e06ec4d3a50d2d9bb0681402",
+        "a4620b716e67ab13490ba33b67297ca168d93d4461c229e30dfa8a36b5396ebc",
+        "17ef934e0652d8aa8cd4795e1b1f1f7259124fc1422601906c0272e5f9d71062",
+        "c55b108c502a3834f1acf605aed7284991956078fe345a72d5025a54e6b5c4a2",
+        "1232c50828a251ddb4a1de4dae3337b3f63f63efee38611eb124562b392d7b4c",
+        "8dbca45da57d0690851fd2568e9fe37df6ec048ad85df50ba7d68b33ca011411",
+        "b5d9c445555e3b2a28dcb7d8a5449ab062ea47537556b93bca1ed923b5966a6b",
+        "e7b080027e770af1f4f689a70edc9316fcded859357e6dd2aa22580c76633e03"
+      ]
+    }
+  ],
+  "rules_today_at_ms": 1793287749000,
+  "not_public": [
+    "The report names no SWEAT attacker account, no victim account and no SWEAT exploit transaction; this page names none.",
+    "The report names no person, and this page names none.",
+    "The only account the report names is the HOT token contract, and the only transaction is the HOT patch.",
+    "The SWEAT token contract is not named by the report; its catalog row is not cited here."
+  ],
+  "standard": "Only accounts named in the cited sources or provable on chain by a read anyone can repeat; no person, no motive; the sources' own words appear only inside quote fields with their source id; failed checks read Unknown."
+}

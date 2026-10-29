@@ -1,4 +1,5 @@
 import contextlib
+import hashlib
 import io
 import json
 import re
@@ -257,6 +258,79 @@ class IncidentPageTest(unittest.TestCase):
         document["accounts"][0]["quote"]["source"] = "elsewhere"
         with self.assertRaises(ValueError):
             incident.render(document)
+
+
+class ShouldIncidentsTest(unittest.TestCase):
+    def setUp(self):
+        self.documents = {incident_id: json.loads((ROOT / "intel" / "incidents" / f"{incident_id}.json")
+                                                  .read_text(encoding="utf-8"))
+                          for incident_id in ("sweat-hot", "intents-2026-10-01")}
+        self.store = labels.load()
+        self.ids = {a.id: a for a in self.store.assertions}
+
+    def test_both_files_match_the_schema_and_cite_stored_snapshots(self):
+        snapshots = {hashlib.sha256(p.read_bytes()).hexdigest() for p in seed.RAW_DIR.iterdir()}
+        for incident_id, document in self.documents.items():
+            with self.subTest(incident=incident_id):
+                self.assertEqual(document["id"], incident_id)
+                for key, kind in SCHEMA.items():
+                    self.assertIsInstance(document[key], kind)
+                for key, keys in ITEM_KEYS.items():
+                    for item in document[key]:
+                        self.assertEqual(set(item), keys)
+                for source in document["sources"]:
+                    self.assertTrue(source["url"].startswith("https://"))
+                    self.assertRegex(source["fetched_at"], TIME)
+                    self.assertIn(source["content_sha256"], snapshots)
+                self.assertTrue(document["not_public"])
+
+    def test_no_barred_word_outside_a_quote_with_its_source(self):
+        for incident_id, document in self.documents.items():
+            with self.subTest(incident=incident_id):
+                self.assertEqual(barred_words_outside_quotes(document), [])
+
+    def test_sweat_hot_names_only_the_hot_token_contract(self):
+        document = self.documents["sweat-hot"]
+        self.assertEqual(document["date"], "2026-04-29")
+        self.assertEqual([(a["subject"], a["chain"]) for a in document["accounts"]], [("game.hot.tg", "near")])
+        cited = [self.ids[i] for i in document["accounts"][0]["assertion_ids"]]
+        self.assertEqual({a.subject for a in cited}, {"game.hot.tg"})
+        self.assertEqual({a.category for a in cited}, {"watch"})
+        self.assertEqual({a.provenance for a in cited}, {"third_party", "onchain"})
+        for assertion in cited:
+            if assertion.provenance == "onchain":
+                self.assertGreater(assertion.source["block"], 0)
+        patch = document["patch_transaction_as_reported"]["value"]
+        self.assertIn(patch, [f["args"].get("transaction_hash") for f in document["onchain_facts"]])
+        self.assertEqual(document["loss_as_reported"]["value"], "3500000 USD on 2026-04-29")
+        self.assertTrue(any("no SWEAT attacker account" in item for item in document["not_public"]))
+
+    def test_intents_asserts_no_address(self):
+        document = self.documents["intents-2026-10-01"]
+        self.assertEqual((document["date"], document["chains"]), ("2026-10-01", ["bsc"]))
+        self.assertEqual((document["accounts"], document["onchain_facts"], document["rules_today"]), ([], [], []))
+        self.assertEqual(document["loss_as_reported"]["value"], "3800000 USD on 2026-10-01")
+        self.assertIn("The Bitquery investigation page was fetched on 29 Oct 2026: fetched, no addresses.",
+                      document["not_public"])
+        text = json.dumps({k: v for k, v in document.items() if k not in ("sources", "loss_as_reported")})
+        self.assertIsNone(re.search(r"0x[0-9a-fA-F]{40}|[0-9a-f]{64}", text))
+
+    def test_both_pages_reproduce_in_replay(self):
+        with mock.patch("urllib.request.urlopen", side_effect=no_network):
+            self.assertEqual(seed.sweat_hot_incident("replay"), self.documents["sweat-hot"])
+            self.assertEqual(seed.intents_incident("replay"), self.documents["intents-2026-10-01"])
+
+    def test_both_pages_render_under_80_columns(self):
+        for incident_id, document in self.documents.items():
+            with self.subTest(incident=incident_id):
+                output = io.StringIO()
+                with contextlib.redirect_stdout(output):
+                    self.assertEqual(gate_main.main(["incident", incident_id]), 0)
+                lines = output.getvalue().splitlines()
+                self.assertEqual(lines[0], f"{document['title']} ({document['date']})")
+                self.assertTrue(all(len(line) < 80 for line in lines))
+                for item in document["not_public"]:
+                    self.assertIn(f"- {item}", " ".join(line.strip() for line in lines))
 
 
 if __name__ == "__main__":

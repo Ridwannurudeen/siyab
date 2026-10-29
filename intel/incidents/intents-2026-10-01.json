@@ -1,0 +1,35 @@
+{
+  "id": "intents-2026-10-01",
+  "title": "NEAR Intents exploit",
+  "date": "2026-10-01",
+  "chains": [
+    "bsc"
+  ],
+  "sources": [
+    {
+      "id": "defillama",
+      "publisher": "DeFiLlama hacks API",
+      "url": "https://api.llama.fi/hacks",
+      "content_sha256": "70699af10bafa8796baaf07d36fba597acb7f8faa1c25169955a02f6918de103",
+      "fetched_at": "2026-10-29T15:26:44Z"
+    }
+  ],
+  "accounts": [],
+  "loss_as_reported": {
+    "value": "3800000 USD on 2026-10-01",
+    "quote": {
+      "source": "defillama",
+      "text": "{\"amount\": 3800000, \"bridgeHack\": true, \"chain\": [\"BSC\"], \"classification\": \"Bridge & Cross-Chain\", \"date\": 1790812800, \"defillamaId\": \"6225\", \"language\": \"Solidity\", \"name\": \"NEAR Intents\", \"parentProtocolId\": \"parent#near-protocol\", \"returnedFunds\": null, \"source\": \"\", \"targetType\": \"DeFi Protocol\", \"technique\": \"Bridge Logic Flaw\"}"
+    }
+  },
+  "onchain_facts": [],
+  "rules_today": [],
+  "not_public": [
+    "No NEAR account and no EVM address appears in the source this page cites, so no address is asserted as drained.",
+    "The NEAR Intents treasury page lists the shared EVM treasury, but no cited source says which address was drained.",
+    "The Block's report of 1 Oct 2026 answered HTTP 403 to the one fetch made on 29 Oct 2026; nothing from it is used here.",
+    "The Bitquery investigation page was fetched on 29 Oct 2026: fetched, no addresses.",
+    "The report names no person, and this page names none."
+  ],
+  "standard": "Only accounts named in the cited sources or provable on chain by a read anyone can repeat; no person, no motive; the sources' own words appear only inside quote fields with their source id; failed checks read Unknown."
+}

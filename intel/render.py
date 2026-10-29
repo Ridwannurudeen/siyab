@@ -150,12 +150,11 @@ def incident_page(document):
         parts.append(f'<div class="card"><p class="mono">{esc(account["subject"])} ({esc(account["chain"])})</p>'
                      f'<p>role as reported: {esc(account["role_as_reported"])}</p>'
                      f'{quote_block(account["quote"], sources)}<p class="mono muted">assertions<br>{ids}</p></div>')
-    for key, title in (("code_hash_as_reported", "Code hash as reported"), ("ref_pools_as_reported", "Ref pools as reported")):
-        if key in document:
-            item = document[key]
-            value = item.get("value") or ", ".join(str(n) for n in item.get("ids", []))
-            parts.append(f'<h2>{title}</h2><div class="card"><p class="mono">{esc(value)}</p>'
-                         f'{quote_block(item["quote"], sources)}</div>')
+    for key in [key for key in document if key.endswith("_as_reported")]:
+        item = document[key]
+        value = item.get("value") or ", ".join(str(n) for n in item.get("ids", []))
+        parts.append(f'<h2>{esc(key.replace("_", " ").capitalize())}</h2><div class="card"><p class="mono">'
+                     f'{esc(value)}</p>{quote_block(item["quote"], sources)}</div>')
     parts.append("<h2>On chain facts</h2>")
     if document.get("onchain_state"):
         parts.append(f"<p>{esc(document['onchain_state'])}</p>")
