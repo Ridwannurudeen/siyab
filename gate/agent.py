@@ -28,7 +28,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from gate import base58, canon, signer, verdict
+from gate import base58, canon, rpc, signer, verdict
 from intel import labels
 
 GAS = 30 * 10**12
@@ -40,6 +40,7 @@ VERDICT_KEYS = {"literal", "issued_ms", "expires_ms", "verdict_id", "evidence_ha
 _SIGNATURE = re.compile(r"[0-9a-f]{128}")
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 _VERDICT_ID = re.compile(r"[0-9a-f]{32}")
+# Bounds one near-cli-rs send, which signs, broadcasts and waits for the final outcome.
 NEAR_CLI_TIMEOUT_S = 120
 # near-cli-rs prints the hash as "Transaction ID: <base58>"; UNVERIFIED until the first testnet run.
 _CLI_HASH = re.compile(r"Transaction ID: ([1-9A-HJ-NP-Za-km-z]{43,44})")
@@ -98,6 +99,9 @@ class PyNearTransport:
             raise AgentError("py-near is not installed; run from the venv ~/.venvs/near or pass --via "
                              "near-cli") from error
         self._account = Account(account_id=gate, private_key=secret, rpc_addr=rpc_url)
+        # py-near waits up to 600 s per request by default; the provider's timeout attribute is private to
+        # py-near 1.2.22 and UNVERIFIED on testnet.
+        self._account._provider.timeout = rpc.TIMEOUT_S
         self._rejected = JsonProviderError
 
     async def _send(self, sent):
@@ -154,7 +158,7 @@ def _submit(agent, sent, out):
         f"yoctoNEAR, gas {sent['gas'] // 10**12} Tgas")
     out(f"args: {json.dumps(sent['args'])}")
     outcome = agent.transport(sent)
-    if outcome["transaction_hash"]:
+    if outcome["transaction_hash"] and outcome["rpc_error"] is None:
         out(f"transaction: {outcome['transaction_hash']}")
         out(f"explorer: {EXPLORER_URL}{outcome['transaction_hash']}")
     for log in outcome["logs"]:
@@ -243,6 +247,10 @@ def pay(agent, request, verdict_file=None, out=print):
                      out)
     _write(agent, f"pay-{verdict_object['verdict_id']}", {"command": "pay", "gate": agent.gate, "submitted": True,
                                                           **record}, out)
+    if any("transfer_failed" in log for log in record["outcome"]["logs"]):
+        out("the transfer failed after it was scheduled: the Gate restored the budget, the verdict stays used, "
+            "and the payment needs a fresh ALLOW")
+        return 1
     return 0 if _succeeded(record["outcome"]) else 1
 
 

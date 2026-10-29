@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest import mock
 
 from gate import __main__ as gate_main
-from gate import agent, base58, canon, ed25519, signer
+from gate import agent, base58, canon, ed25519, rpc, signer
 
 ROOT = Path(__file__).resolve().parent.parent
 AGENT_SOURCE = ROOT / "gate" / "agent.py"
@@ -157,6 +157,14 @@ class PayTest(AgentCase):
         self.assertFalse(self.written("pay-not-sent")["submitted"])
         self.assertFalse((self.dir / "out" / "pay-None.json").exists())
 
+    def test_a_transfer_that_failed_after_scheduling_exits_1(self):
+        restored = {**SUCCESS, "logs": SUCCESS["logs"] + [
+            'EVENT_JSON:{"standard":"shieldbot-near","event":"transfer_failed","data":[{"request_id":0}]}']}
+        with mock.patch("gate.verdict.request", return_value=judged()):
+            self.assertEqual(agent.pay(self.make(restored), self.request(), out=self.lines.append), 1)
+        self.assertIn("the transfer failed after it was scheduled: the Gate restored the budget, the verdict stays "
+                      "used, and the payment needs a fresh ALLOW", self.lines)
+
     def test_a_failed_receipt_exits_1(self):
         with mock.patch("gate.verdict.request", return_value=judged()):
             self.assertEqual(agent.pay(self.make(PANIC), self.request(), out=self.lines.append), 1)
@@ -193,6 +201,8 @@ class NoBypassTest(unittest.TestCase):
         self.assertIn("_submit", from_pay)
         for name in ("_attack_signer", "_attack_actions", "_attack_transfer", "_attack_evidence", "attack"):
             self.assertNotIn(name, from_pay)
+        self.assertNotIn("os", set().union(*(functions[name] for name in from_pay)))
+        self.assertIn("os", functions["live_signer"])
         users = {name for name, names in functions.items() if "_attack_signer" in names}
         self.assertEqual(users, {"_attack_actions"})
         self.assertEqual({name for name in functions if self.reachable(name, functions) & {"_attack_actions"}},
@@ -293,6 +303,7 @@ class AttackTest(AgentCase):
     def test_a_protocol_rejection_is_printed_and_kept(self):
         code, _ = self.run_attack("callback", REJECTED)
         self.assertEqual(code, 0)
+        self.assertFalse(any(line.startswith(("explorer:", "transaction:")) for line in self.lines))
         self.assertIn(f"rejected, no receipt: {json.dumps(REJECTED['rpc_error'])}", self.lines)
         self.assertEqual(self.written("callback")["submissions"][0]["outcome"]["rpc_error"], REJECTED["rpc_error"])
 
@@ -351,6 +362,7 @@ class PyNearTest(unittest.TestCase):
         self.transport = agent.PyNearTransport(GATE, base58.encode_key(seed + AGENT_PK), "http://127.0.0.1:9")
 
     def test_py_near_reads_the_secret_as_the_agent_key(self):
+        self.assertEqual(self.transport._account._provider.timeout, rpc.TIMEOUT_S)
         self.assertEqual(list(self.transport._account._signer_by_pk), [base58.encode(AGENT_PK)])
 
     def test_the_outcome_of_a_sent_and_a_rejected_transaction(self):
@@ -392,6 +404,20 @@ class CommandTest(unittest.TestCase):
                                         {"GATE_ACCOUNT_ID": GATE, "AGENT_KEY_FILE": "missing.json"})
         self.assertEqual(code, 2)
         self.assertIn("cannot read a key file", errors)
+
+    def test_pay_in_replay_mode_says_it_reads_the_gate_live(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            key_file = Path(tmp) / "agent.json"
+            seed = ed25519.TEST_AGENT_SEED
+            document = {"account_id": GATE, "public_key": base58.encode_key(AGENT_PK)}
+            document["secret_key"] = base58.encode_key(seed + AGENT_PK)
+            key_file.write_text(json.dumps(document), encoding="utf-8")
+            argv = ["pay", "--kind", "near", "--receiver", "vendor-shop.testnet", "--amount", "1", "--via", "near-cli",
+                    "--out", str(Path(tmp) / "out")]
+            with mock.patch("gate.agent.live_signer", return_value=signer.TestSigner()):
+                code, errors = self.run_command(argv, {"GATE_ACCOUNT_ID": GATE, "AGENT_KEY_FILE": str(key_file)})
+        self.assertEqual(code, 2)
+        self.assertEqual(errors, "not sent: pay reads the Gate live: set GATE_FIXTURES_MODE=record or off\n")
 
 
 if __name__ == "__main__":

@@ -142,6 +142,9 @@ def _agent(args):
         if args.command == "pay":
             return agent.pay(context, request, args.verdict_file)
         return agent.attack(args.name, context, request)
+    except rpc.FixtureMiss:
+        print("not sent: pay reads the Gate live: set GATE_FIXTURES_MODE=record or off", file=sys.stderr)
+        return 2
     except (agent.AgentError, signer.SignerError, canon.CanonError) as error:
         print(f"not sent: {error}", file=sys.stderr)
         return 2
