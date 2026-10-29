@@ -1,6 +1,7 @@
 mod events;
 mod policy;
 mod types;
+mod verdict;
 
 use near_sdk::{
     env,
