@@ -375,16 +375,18 @@ class PyNearTest(unittest.TestCase):
         self.transport = agent.PyNearTransport(GATE, base58.encode_key(seed + AGENT_PK), "http://127.0.0.1:9")
 
     def test_py_near_reads_the_secret_as_the_agent_key(self):
-        self.assertEqual(self.transport._account._provider.timeout, rpc.TIMEOUT_S)
-        self.assertEqual(list(self.transport._account._signer_by_pk), [base58.encode(AGENT_PK)])
+        account = self.transport._new_account()
+        self.assertEqual(account._provider.timeout, rpc.TIMEOUT_S)
+        self.assertEqual(list(account._signer_by_pk), [base58.encode(AGENT_PK)])
 
     def test_the_outcome_of_a_sent_and_a_rejected_transaction(self):
         sent = agent.action(GATE, "request_transfer", {"request": {}, "verdict": None})
         result = mock.Mock(status={"SuccessValue": ""}, logs=["EVENT_JSON:{}"])
         result.transaction.hash = SUCCESS["transaction_hash"]
-        account = self.transport._account
-        with mock.patch.object(account, "startup", mock.AsyncMock()), \
-                mock.patch.object(account, "function_call", mock.AsyncMock(return_value=result)) as call:
+        from py_near.account import Account
+        with mock.patch.object(Account, "startup", mock.AsyncMock()), \
+                mock.patch.object(Account, "shutdown", mock.AsyncMock()), \
+                mock.patch.object(Account, "function_call", mock.AsyncMock(return_value=result)) as call:
             outcome = self.transport(sent)
         call.assert_awaited_once_with(GATE, "request_transfer", {"request": {}, "verdict": None}, gas=30 * 10**12,
                                       amount=0)
@@ -392,11 +394,50 @@ class PyNearTest(unittest.TestCase):
                                    "logs": ["EVENT_JSON:{}"], "rpc_error": None})
         error = self.rejected({}, error_json=REJECTED["rpc_error"])
         error.trx_hash = REJECTED["transaction_hash"]
-        with mock.patch.object(account, "startup", mock.AsyncMock()), \
-                mock.patch.object(account, "function_call", mock.AsyncMock(side_effect=error)):
+        with mock.patch.object(Account, "startup", mock.AsyncMock()), \
+                mock.patch.object(Account, "shutdown", mock.AsyncMock()), \
+                mock.patch.object(Account, "function_call", mock.AsyncMock(side_effect=error)):
             outcome = self.transport(sent)
         self.assertEqual(outcome, {"transaction_hash": REJECTED["transaction_hash"], "status": None, "logs": [],
                                    "rpc_error": REJECTED["rpc_error"]})
+
+    def test_each_send_gets_its_own_account_and_closes_it(self):
+        # asyncio.run makes a new event loop per send; an account reused across loops kept a session bound to
+        # the closed first loop, so the second send of the replay attack never reached the RPC.
+        from py_near.account import Account
+        sent = agent.action(GATE, "request_transfer", {"request": {}, "verdict": None})
+        result = mock.Mock(status={"SuccessValue": ""}, logs=[])
+        result.transaction.hash = SUCCESS["transaction_hash"]
+        seen = []
+
+        async def startup(account):
+            seen.append(account)
+
+        with mock.patch.object(Account, "startup", startup), \
+                mock.patch.object(Account, "function_call", mock.AsyncMock(return_value=result)), \
+                mock.patch.object(Account, "shutdown", mock.AsyncMock()) as shutdown:
+            self.transport(sent)
+            self.transport(sent)
+        self.assertEqual(len(seen), 2)
+        self.assertIsNot(seen[0], seen[1])
+        self.assertEqual(shutdown.await_count, 2)
+
+    def test_a_rejection_without_rpc_json_still_records_why(self):
+        # py-near 1.2.22 raises InvalidTransactionError("DepositWithFunctionCall") with error_json None when a
+        # function call key attaches a deposit; the record must still say it was rejected and why.
+        import py_near.exceptions.provider
+        from py_near.account import Account
+        sent = agent.action(GATE, "request_transfer", {"request": {}, "verdict": None})
+        error = py_near.exceptions.provider.InvalidTransactionError("DepositWithFunctionCall")
+        error.trx_hash = REJECTED["transaction_hash"]
+        with mock.patch.object(Account, "startup", mock.AsyncMock()), \
+                mock.patch.object(Account, "function_call", mock.AsyncMock(side_effect=error)), \
+                mock.patch.object(Account, "shutdown", mock.AsyncMock()) as shutdown:
+            outcome = self.transport(sent)
+        self.assertEqual(shutdown.await_count, 1)
+        self.assertEqual(outcome["status"], None)
+        self.assertEqual(outcome["rpc_error"], {"error": "InvalidTransactionError", "message": "DepositWithFunctionCall"})
+        self.assertFalse(agent._succeeded(outcome))
 
 
 class CommandTest(unittest.TestCase):
