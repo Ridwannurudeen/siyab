@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parent.parent
 BLOCKS = ROOT / "fixtures" / "feed" / "blocks"
 SYNTHETIC = {"synthetic-code-hash.json": "code_hash_matches_incident",
              "synthetic-fresh-dust.json": "fresh_dust_funded_pays_labelled",
-             "synthetic-watch-key.json": "watch_account_key_added"}
+             "synthetic-watch-addkey.json": "watch_account_key_added"}
 MAX_BYTES = 64 * 1024
 
 
@@ -98,7 +98,7 @@ class SignalTest(unittest.TestCase):
         self.assertIn("intents.near", expected)
 
     def test_a_function_call_key_with_methods_or_on_an_unwatched_account_is_quiet(self):
-        block = json.loads((BLOCKS / "synthetic-watch-key.json").read_text(encoding="utf-8"))
+        block = json.loads((BLOCKS / "synthetic-watch-addkey.json").read_text(encoding="utf-8"))
         scoped = json.loads(json.dumps(block))
         scoped["receipts"][0]["actions"][0]["permission"] = {"receiver_id": "x.near", "method_names": ["m"]}
         self.assertEqual(self.events(scoped), [])
