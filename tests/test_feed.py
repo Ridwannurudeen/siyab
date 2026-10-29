@@ -208,7 +208,9 @@ class RecordedFeedTest(unittest.TestCase):
         state = json.loads(feed.STATE_PATH.read_text(encoding="utf-8"))
         status, body = api.route("/feed", labels.load())
         self.assertEqual(status, 200)
-        self.assertEqual(body["stats"], state)
+        self.assertNotIn("fresh_accounts", body["stats"])
+        self.assertEqual(body["stats"], {key: value for key, value in state.items() if key != "fresh_accounts"})
+        self.assertTrue(state["fresh_accounts"])
         self.assertEqual(len(body["events"]), min(len(list(feed.EVENTS_DIR.glob("*.json"))), api.FEED_LIMIT))
 
     def test_a_missing_reduced_block_stops_the_replay(self):

@@ -6,7 +6,8 @@ Routes (GET only; no route writes anything and no route opens the network):
     /labels/<subject>     every assertion on the subject, on any chain
     /incidents/<id>       the incident file intel/incidents/<id>.json
     /evidence/<hash>      an evidence document from fixtures/evidence/ or intel/feed/events/
-    /feed                 the feed state and its last 50 events, or null and an empty list
+    /feed                 the feed state without its fresh accounts and the last 50 events, or null
+                          and an empty list
     /flow/<subject>       the exit trace intel/flows/<subject>.json, else the trace file under
                           intel/flows/ whose subject it is (such as rhea-collector.json); 403 for a
                           subject that carries no incident label, 404 when no trace was written
@@ -63,8 +64,11 @@ def _evidence(evidence_hash):
 
 
 def _feed():
-    """The state file and the last FEED_LIMIT events ordered by observed block height, then hash."""
+    """The state file without its fresh accounts and the last FEED_LIMIT events ordered by observed
+    block height, then hash."""
     stats = _read_json(FEED_STATE) if FEED_STATE.is_file() else None
+    if stats is not None:
+        stats.pop("fresh_accounts", None)
     events = []
     if FEED_EVENTS.is_dir():
         for path in FEED_EVENTS.glob("*.json"):
