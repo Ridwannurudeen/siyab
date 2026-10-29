@@ -1,0 +1,20 @@
+{
+  "height": 1,
+  "hash": "synthetic",
+  "timestamp_ns": "1793284740730787531",
+  "receipts": [
+    {
+      "receipt_id": "synthetic-receipt-1",
+      "tx_hash": "synthetic-tx",
+      "predecessor_id": "synthetic-maker.near",
+      "receiver_id": "synthetic-token.near",
+      "ok": true,
+      "actions": [
+        {
+          "type": "DeployContract",
+          "code_hash": "BBeoVgxZC5Ce1ef7nErevX98QonNsedBFfqzep5RV1Vu"
+        }
+      ]
+    }
+  ]
+}

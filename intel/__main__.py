@@ -25,7 +25,7 @@ import time
 from pathlib import Path
 
 from gate import rpc, rules
-from intel import api, labels, seed
+from intel import api, feed, labels, seed
 
 ROOT = Path(__file__).resolve().parent.parent
 RECEIVERS_DIR = ROOT / "fixtures" / "receivers"
@@ -196,6 +196,22 @@ def _receivers(args):
     return 0
 
 
+def _feed(args):
+    try:
+        state, events = feed.run(args.start, args.blocks, args.record)
+    except (feed.FeedError, rpc.HttpError, rpc.TransportError) as error:
+        print(f"stopped: {error}", file=sys.stderr)
+        return 1
+    print(f"{state['blocks']} blocks to height {state['last_height']}, {len(events)} new events")
+    return 0
+
+
+def _feed_stats(args):
+    for line in feed.stats_lines(feed.load_state()):
+        print(line)
+    return 0
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="python -m intel")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -211,6 +227,12 @@ def main(argv=None):
     receivers = commands.add_parser("receivers", help="judge the recorded mainnet receiver set in replay")
     receivers.add_argument("--record", action="store_true", help="choose the set and record what is missing")
     receivers.set_defaults(handler=_receivers)
+    feeding = commands.add_parser("feed", help="run the three signals over finalized mainnet blocks")
+    feeding.add_argument("--from", dest="start", type=int, help="the first height (default: after the state)")
+    feeding.add_argument("--blocks", type=int, required=True, help="how many heights to walk")
+    feeding.add_argument("--record", action="store_true", help="fetch and reduce the blocks not recorded yet")
+    feeding.set_defaults(handler=_feed)
+    commands.add_parser("feed-stats", help="print the feed state").set_defaults(handler=_feed_stats)
     args = parser.parse_args(argv)
     return args.handler(args)
 
