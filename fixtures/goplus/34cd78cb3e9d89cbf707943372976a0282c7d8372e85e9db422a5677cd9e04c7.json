@@ -1,0 +1,33 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "code": 1,
+    "message": "ok",
+    "result": {
+      "cybercrime": "0",
+      "money_laundering": "0",
+      "number_of_malicious_contracts_created": "0",
+      "gas_abuse": "0",
+      "financial_crime": "0",
+      "darkweb_transactions": "0",
+      "reinit": "0",
+      "phishing_activities": "0",
+      "fake_kyc": "0",
+      "blacklist_doubt": "0",
+      "fake_standard_interface": "0",
+      "data_source": "SlowMist,BlockSec",
+      "stealing_attack": "1",
+      "blackmail_activities": "0",
+      "sanctioned": "0",
+      "malicious_mining_activities": "0",
+      "mixer": "0",
+      "fake_token": "0",
+      "honeypot_related_address": "0"
+    }
+  },
+  "url": "https://api.gopluslabs.io/api/v1/address_security/0x1fcdb04d0c5364fbd92c73ca8af9baa72c269107",
+  "fetched_at": "2026-10-29T11:48:40Z"
+}

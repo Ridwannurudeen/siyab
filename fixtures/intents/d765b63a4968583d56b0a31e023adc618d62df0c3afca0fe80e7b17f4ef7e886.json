@@ -1,0 +1,52 @@
+{
+  "request": {
+    "method": "POST",
+    "params": {
+      "body_sha256": "d33250a632054ce0caeac42554ae27917b3e97c8ed2ec2da38a817f57711fb30"
+    }
+  },
+  "response": {
+    "quote": {
+      "amountIn": "1000000000000000000000000",
+      "amountInFormatted": "1.0",
+      "amountInUsd": "4.420000000000",
+      "minAmountIn": "1000000000000000000000000",
+      "amountOut": "4398699",
+      "amountOutFormatted": "4.398699",
+      "amountOutUsd": "4.396596421878",
+      "minAmountOut": "4354712",
+      "timeEstimate": 24,
+      "refundFee": "0",
+      "withdrawFee": "2400"
+    },
+    "quoteRequest": {
+      "dry": true,
+      "depositMode": "SIMPLE",
+      "swapType": "EXACT_INPUT",
+      "slippageTolerance": 100,
+      "originAsset": "nep141:wrap.near",
+      "depositType": "ORIGIN_CHAIN",
+      "destinationAsset": "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near",
+      "amount": "1000000000000000000000000",
+      "refundTo": "intents.near",
+      "refundType": "ORIGIN_CHAIN",
+      "recipient": "0x1fcdb04d0c5364fbd92c73ca8af9baa72c269107",
+      "recipientType": "DESTINATION_CHAIN",
+      "deadline": "2026-10-30T00:00:00.000Z",
+      "confidentiality": "public",
+      "quoteWaitingTimeMs": 0,
+      "insured": false,
+      "appFees": [
+        {
+          "recipient": "5880ad2b362620fadf759cbceb1cd5737ce8c6ed7fb8e9942881e6731f9247dd",
+          "fee": 20
+        }
+      ]
+    },
+    "signature": "omitted: 1Click's ed25519 quote signature is not committed, it reads as a key form to the hygiene hook",
+    "timestamp": "2026-10-29T11:48:38.554Z",
+    "correlationId": "b1895363-f91c-4b19-add2-29a3cdab9ca0"
+  },
+  "url": "https://1click.chaindefuser.com/v0/quote",
+  "fetched_at": "2026-10-29T11:48:39Z"
+}

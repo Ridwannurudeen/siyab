@@ -29,9 +29,11 @@ README_PATH = INTEL_DIR / "seeds" / "README.md"
 TREASURY_URL = "https://docs.near-intents.org/security-compliance/treasury-addresses.md"
 CATALOG_URL = "https://1click.chaindefuser.com/v0/tokens"
 REKT_RHEA_URL = "https://rekt.news/rhea-finance-rekt"
+QUOTE_DOC_URL = "https://docs.near-intents.org/api-reference/oneclick/request-a-swap-quote.md"
 SNAPSHOTS = {"treasuries": ("near-intents-treasury-addresses", "md", TREASURY_URL),
              "catalog": ("1click-tokens", "json", CATALOG_URL),
-             "rhea": ("rekt-rhea", "html", REKT_RHEA_URL)}
+             "rhea": ("rekt-rhea", "html", REKT_RHEA_URL),
+             "quote_doc": ("intents-quote-doc", "md", QUOTE_DOC_URL)}
 SOURCES = ("treasuries", "catalog", "infrastructure", "rhea")
 _STAMP = "%Y%m%dT%H%M%SZ"
 _TIME = "%Y-%m-%dT%H:%M:%SZ"
@@ -579,6 +581,19 @@ def readme_text(store_path=labels.STORE_PATH, raw_dir=RAW_DIR):
         if digest not in files:
             raise SeedError(f"no snapshot under {raw_dir} has the sha256 {digest} that rows cite")
         lines.append(f"| `raw/{files[digest]}` | {url} | {digest[:4]}...{digest[-4:]} | {fetched_at} | {count} |")
+    # A snapshot no row cites (a reference page the code was written against) is listed with 0 rows.
+    cited_digests = {digest for digest, _, _ in cited}
+    for digest, name in sorted(files.items(), key=lambda item: item[1]):
+        if digest in cited_digests:
+            continue
+        for prefix, ext, url in SNAPSHOTS.values():
+            if name.startswith(f"{prefix}-") and name.endswith(f".{ext}"):
+                stamp = name[len(prefix) + 1: -len(ext) - 1]
+                fetched_at = datetime.strptime(stamp, _STAMP).strftime(_TIME)
+                lines.append(f"| `raw/{name}` | {url} | {digest[:4]}...{digest[-4:]} | {fetched_at} | 0 |")
+                break
+        else:
+            raise SeedError(f"the snapshot {name} under {raw_dir} matches no known source")
     return "\n".join(lines) + "\n"
 
 
