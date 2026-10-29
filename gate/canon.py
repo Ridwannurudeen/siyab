@@ -93,6 +93,10 @@ def _fields(gate, agent_pk_hex, kind, token_id, receiver_id, amount, memo, issue
         token = account_id(token_id, "token_id")
     if key_id not in KEY_IDS:
         raise CanonError(f"key_id: not cur or prev: {key_id!r}")
+    issued = _ms_field(issued_ms, "issued_ms")
+    expires = _ms_field(expires_ms, "expires_ms")
+    if expires_ms < issued_ms:
+        raise CanonError(f"expires_ms: {expires_ms} is earlier than issued_ms {issued_ms}")
     return [
         PREFIX,
         account_id(gate, "gate"),
@@ -102,8 +106,8 @@ def _fields(gate, agent_pk_hex, kind, token_id, receiver_id, amount, memo, issue
         account_id(receiver_id, "receiver_id"),
         amount_field(amount),
         memo_field(memo),
-        _ms_field(issued_ms, "issued_ms"),
-        _ms_field(expires_ms, "expires_ms"),
+        issued,
+        expires,
         _hex_field(verdict_id, 32, "verdict_id"),
         _hex_field(evidence_sha256, 64, "evidence_sha256"),
         key_id,
@@ -126,8 +130,9 @@ def digest(message):
 def parse_canonical(message):
     """The fields of a canonical message; raises CanonError when the bytes are not canonical.
 
-    The memo comes back as its hash (memo_sha256), because the message holds only the hash. The
-    literal comes back as written, so a test vector signed over another literal parses too.
+    The memo comes back as its hash (memo_sha256), because the message holds only the hash. Any
+    upper case literal is accepted and returned as written, by design, so a test vector signed
+    over DENY parses too; only canonical_message is restricted to ALLOW.
     """
     try:
         text = message.decode("utf-8")
@@ -176,6 +181,9 @@ UNIT_EXPIRES_MS = 1700000300000
 UNIT_BLOCK_MS = 1700000100000
 VECTOR_FIELDS = ("gate_account_id", "agent_pk_hex", "kind", "token_id", "receiver_id", "amount",
                  "memo", "issued_ms", "expires_ms", "verdict_id", "evidence_sha256", "key_id")
+
+
+VECTOR_REASON = "canonical message test vector: no check ran, so this document records no judgement"
 
 
 def _test_verdict_id(name):
@@ -252,7 +260,9 @@ def _vector_specs(root):
 
 
 def _evidence_document(request, literal):
-    # No check runs for a test vector, so the document lists none and says so.
+    # No check runs for a test vector, so the document lists none and says so. As in every
+    # evidence document, issue, expiry and verdict id are set on ALLOW only.
+    allow = literal == LITERAL
     return evidence.document(
         subject=evidence.subject(
             gate=request["gate_account_id"],
@@ -266,11 +276,11 @@ def _evidence_document(request, literal):
         checks=[],
         labels=[],
         verdict=literal,
-        reasons=["canonical message test vector: no check ran, so this document records no judgement"],
+        reasons=[VECTOR_REASON],
         observed={"block_height": None, "timestamp_ms": None},
-        issued_ms=request["issued_ms"],
-        expires_ms=request["expires_ms"],
-        verdict_id=request["verdict_id"],
+        issued_ms=request["issued_ms"] if allow else None,
+        expires_ms=request["expires_ms"] if allow else None,
+        verdict_id=request["verdict_id"] if allow else None,
         latency_ms=None,
     )
 
@@ -328,10 +338,11 @@ def build_vectors(gate_root=DEFAULT_GATE_ROOT):
 
 def write_vectors(canon_dir, gate_root=DEFAULT_GATE_ROOT):
     """Write the vectors to canon_dir, their evidence to the sibling evidence/ and the TEST
-    verifier public key to the sibling keys/; returns the written paths.
+    verifier public key to the sibling keys/; returns (written paths, removed paths).
 
     Ed25519 signing is deterministic and every field is fixed, so the output is byte for byte
-    the same on every run with the same gate root.
+    the same on every run with the same gate root. Vector evidence documents left from an
+    earlier run (another gate root) are removed; other evidence documents are left alone.
     """
     canon_dir = Path(canon_dir)
     evidence_dir = canon_dir.parent / "evidence"
@@ -346,8 +357,13 @@ def write_vectors(canon_dir, gate_root=DEFAULT_GATE_ROOT):
         evidence_path = evidence.write(document, evidence_dir)
         if evidence_path not in written:
             written.append(evidence_path)
+    removed = []
+    for path in sorted(evidence_dir.glob("*.json")):
+        if path not in written and json.loads(path.read_bytes()).get("reasons") == [VECTOR_REASON]:
+            path.unlink()
+            removed.append(path)
     verifier_pub = ed25519.public_from_seed(ed25519.TEST_VERIFIER_SEED)
     key_path = keys_dir / "test-verifier.pub"
     key_path.write_bytes(f"{base58.encode_key(verifier_pub)}\n{verifier_pub.hex()}\n".encode("ascii"))
     written.append(key_path)
-    return written
+    return written, removed

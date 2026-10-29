@@ -13,8 +13,8 @@ A document is a dict with these keys:
     issued_ms, expires_ms, verdict_id   set on ALLOW only, else null
     latency_ms   the time the verdict took
 
-Its canonical bytes are compact JSON with sorted keys in UTF-8 and no trailing newline. The
-evidence hash is the sha256 hex of those bytes, and the document is stored as <hash>.json
+Its canonical bytes are compact JSON with sorted keys in UTF-8 and no trailing newline; numbers
+are integers only, so the hash never depends on how a float prints. The evidence hash is the sha256 hex of those bytes, and the document is stored as <hash>.json
 holding exactly those bytes, so `sha256sum` of the file equals its name and the hash in the
 signed message.
 """
@@ -49,7 +49,9 @@ def check(check_id, status, detail, source):
 
 def document(*, subject, checks, labels, verdict, reasons, observed, issued_ms, expires_ms,
              verdict_id, latency_ms):
-    """A version 1 evidence document."""
+    """A version 1 evidence document; latency_ms is an integer or None."""
+    if latency_ms is not None and (isinstance(latency_ms, bool) or not isinstance(latency_ms, int)):
+        raise ValueError(f"latency_ms must be an integer or None, not {latency_ms!r}")
     return {
         "version": VERSION,
         "subject": subject,
@@ -65,9 +67,22 @@ def document(*, subject, checks, labels, verdict, reasons, observed, issued_ms, 
     }
 
 
+def _reject_floats(value):
+    if isinstance(value, float):
+        raise TypeError(f"evidence holds integers only, not the float {value!r}")
+    if isinstance(value, dict):
+        for item in value.values():
+            _reject_floats(item)
+    elif isinstance(value, list):
+        for item in value:
+            _reject_floats(item)
+
+
 def canonical_bytes(doc):
-    """Compact JSON with sorted keys, UTF-8, no trailing newline."""
-    return json.dumps(doc, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    """Compact JSON with sorted keys, UTF-8, no trailing newline; raises TypeError on a float."""
+    _reject_floats(doc)
+    return json.dumps(doc, sort_keys=True, separators=(",", ":"), ensure_ascii=False,
+                      allow_nan=False).encode("utf-8")
 
 
 def evidence_hash(doc):
@@ -89,4 +104,9 @@ def check_file(path):
     """True when the file's sha256 equals its name and its bytes are the canonical form."""
     path = Path(path)
     data = path.read_bytes()
-    return hashlib.sha256(data).hexdigest() == path.stem and canonical_bytes(json.loads(data)) == data
+    if hashlib.sha256(data).hexdigest() != path.stem:
+        return False
+    try:
+        return canonical_bytes(json.loads(data)) == data
+    except (TypeError, ValueError):
+        return False

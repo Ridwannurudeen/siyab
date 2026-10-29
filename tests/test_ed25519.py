@@ -81,6 +81,21 @@ class Rfc8032Test(unittest.TestCase):
             ed25519.sign(b"\0" * 31, b"message")
 
 
+    def test_public_from_seed_needs_32_bytes(self):
+        for seed in (bytes(31), bytes(33)):
+            with self.subTest(length=len(seed)), self.assertRaises(ValueError):
+                ed25519.public_from_seed(seed)
+
+    def test_coordinates_at_or_above_p_fail(self):
+        _, public, message, signature = (bytes.fromhex(v) for v in RFC8032_VECTORS[0])
+        for y in (ed25519.p, ed25519.p + 1, 2**255 - 1):
+            encoded = (y % 2**255).to_bytes(32, "little")
+            with self.subTest(y=y):
+                self.assertIsNone(ed25519.point_decompress(encoded))
+                self.assertFalse(ed25519.verify(encoded, message, signature))
+                self.assertFalse(ed25519.verify(public, message, encoded + signature[32:]))
+
+
 class TestKeyTest(unittest.TestCase):
     def test_seeds_come_from_the_published_strings(self):
         self.assertEqual(ed25519.TEST_VERIFIER_SEED, hashlib.sha256(b"gate test verifier v1").digest())

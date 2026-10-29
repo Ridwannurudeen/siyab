@@ -7,8 +7,11 @@ from gate import canon
 
 
 def _canon_vectors(args):
-    for path in canon.write_vectors(args.write, args.gate_root):
+    written, removed = canon.write_vectors(args.write, args.gate_root)
+    for path in written:
         print(f"wrote {path.as_posix()}")
+    for path in removed:
+        print(f"removed {path.as_posix()}")
     return 0
 
 

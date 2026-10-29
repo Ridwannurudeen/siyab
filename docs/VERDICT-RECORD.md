@@ -27,7 +27,7 @@ UTF-8, 14 fields joined by `|`, no trailing newline. It is not JSON, so Python a
 | `receiver_id` | the payee account id |
 | `amount` | the decimal of the amount as a u128 in 1 to 2^128 minus 1, with no sign, spaces, separators or leading zeros. Both sides parse the amount and serialise it again, so `0100` is rejected. |
 | `memo` | `-` when the memo is absent, else the sha256 hex of its UTF-8 bytes. The empty string is hashed like any other memo. |
-| `issued_ms`, `expires_ms` | milliseconds since the Unix epoch, u64 decimals |
+| `issued_ms`, `expires_ms` | milliseconds since the Unix epoch, u64 decimals with no leading zeros; `expires_ms` is not earlier than `issued_ms` |
 | `verdict_id` | 32 lowercase hex characters (16 random bytes) |
 | `evidence_sha256` | 64 lowercase hex characters: the hash of the evidence document below |
 | `key_id` | `cur` or `prev`: which verifier key signed |
@@ -37,7 +37,7 @@ Account ids match `^(([a-z\d]+[-_])*[a-z\d]+\.)*([a-z\d]+[-_])*[a-z\d]+$` and ar
 
 ## Digest and signature
 
-`digest = sha256(message)`, 32 bytes. `signature = Ed25519(verifier key, digest)`, 64 bytes, written as 128 lowercase hex characters. The signature is pure Ed25519 over the sha256 digest of the canonical message; it is not Ed25519ph. A verifier rebuilds the message from the transfer and the verdict fields, hashes it with sha256 (`env::sha256` in the contract) and checks the signature against the key the verdict names (`env::ed25519_verify` in the contract, `gate.ed25519.verify` in Python).
+`digest = sha256(message)`, 32 bytes. `signature = Ed25519(verifier key, digest)`, 64 bytes, written as 128 lowercase hex characters. The signature is pure Ed25519 over the sha256 digest of the canonical message; it is not Ed25519ph. A verifier rebuilds the message from the transfer and the verdict fields, hashes it with sha256 (`env::sha256` in the contract) and checks the signature against the key the verdict names (`env::ed25519_verify` in the contract, `gate.ed25519.verify` in Python). The rebuilt message ends with the verdict's own `literal` field, so a message signed over another literal (vector 08) rebuilds to exactly the bytes that were signed; the contract refuses any literal other than ALLOW as `not_allow` before it verifies the signature.
 
 ## Keys and rotation
 
@@ -48,7 +48,7 @@ Account ids match `^(([a-z\d]+[-_])*[a-z\d]+\.)*([a-z\d]+[-_])*[a-z\d]+$` and ar
 
 ## Expiry and ttl
 
-A verdict is valid only while `expires_ms` is later than the block timestamp in milliseconds and `expires_ms - issued_ms` is at most the Gate's `max_ttl_ms` (set by the owner, default 300000, five minutes). An expired verdict is refused as `expired`, one with a longer ttl as `ttl_too_long`.
+A verdict is valid only while `expires_ms` is later than the block timestamp in milliseconds and `expires_ms - issued_ms` is at most the Gate's `max_ttl_ms` (set by the owner, default 300000, five minutes). An expired verdict is refused as `expired`, one with a longer ttl as `ttl_too_long`. A verifier compares `expires_ms` with `issued_ms` before it subtracts, so the unsigned subtraction cannot underflow; `canonical_message` and `parse_canonical` reject an expiry earlier than the issue time.
 
 ## Verdict id and replay
 
@@ -70,7 +70,7 @@ A verdict's evidence is a JSON document (`gate/evidence.py`):
 | `issued_ms`, `expires_ms`, `verdict_id` | set on ALLOW, null otherwise |
 | `latency_ms` | the time the verdict took |
 
-The canonical bytes are `json.dumps(doc, sort_keys=True, separators=(",", ":"), ensure_ascii=False)` encoded as UTF-8, with no trailing newline. The evidence hash is the sha256 hex of those bytes. `write` stores the document as `<hash>.json` holding exactly those bytes, so `sha256sum <hash>.json` prints the file's own name, and `check_file` recomputes the hash and the canonical form. The hash is a field of the signed message, so changing one byte of the document breaks the link between the document and the signature.
+The canonical bytes are JSON written so that any language can reproduce them: object keys sorted by Unicode code point; no whitespace outside strings; non ASCII characters written as themselves in UTF-8, not escaped; inside strings, `"` and `\` escaped as `\"` and `\\`, and the control characters U+0000 to U+001F escaped as `\n`, `\t`, `\r`, `\b`, `\f` or `\u00XX` (lowercase hex); numbers are integers only, so no float, NaN or infinity ever appears; no trailing newline. In Python this is `json.dumps(doc, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False)` encoded as UTF-8, and `canonical_bytes` refuses a document that holds a float. The evidence hash is the sha256 hex of those bytes. `write` stores the document as `<hash>.json` holding exactly those bytes, so `sha256sum <hash>.json` prints the file's own name, and `check_file` recomputes the hash and the canonical form. The hash is a field of the signed message, so changing one byte of the document breaks the link between the document and the signature.
 
 ## Contract argument shapes
 
@@ -86,7 +86,7 @@ Verdict         {"literal": "ALLOW", "issued_ms": <u64 number>, "expires_ms": <u
 
 ## Test vectors
 
-`python -m gate canon-vectors --write fixtures/canon [--gate-root <root>]` writes one JSON file per vector to `fixtures/canon/`, each vector's evidence document to `fixtures/evidence/<hash>.json` and the TEST verifier public key to `fixtures/keys/test-verifier.pub`. Every field is fixed and Ed25519 signing is deterministic, so a test regenerates the set into a temporary directory and compares it byte for byte with the committed files. The Python tests and the Rust contract tests read the same files.
+`python -m gate canon-vectors --write fixtures/canon [--gate-root <root>]` writes one JSON file per vector to `fixtures/canon/`, each vector's evidence document to `fixtures/evidence/<hash>.json` and the TEST verifier public key to `fixtures/keys/test-verifier.pub`. Every field is fixed and Ed25519 signing is deterministic, so a test regenerates the set into a temporary directory and compares it byte for byte with the committed files. The Python tests and the Rust contract tests read the same files. Regenerating with another gate root removes the evidence documents of the earlier vectors and leaves every other evidence document alone. A vector whose literal is not ALLOW (08) has an evidence document with null `issued_ms`, `expires_ms` and `verdict_id`, as every non ALLOW document does; its message still carries them, because the contract reads them from the verdict.
 
 A vector holds `name`, `gate_account_id`, `agent_pk_hex`, `kind`, `token_id` (string or null), `receiver_id`, `amount` (decimal string), `memo` (string or null), `issued_ms`, `expires_ms`, `verdict_id`, `evidence_sha256`, `key_id`, `literal`, `message` (the exact UTF-8 string), `digest_sha256`, `verifier_pub_hex`, `signature_hex`, `expect_valid` (whether the signature verifies over this vector's own message with `verifier_pub_hex`), `expect_contract` (`OK`, or the `REFUSED:<code>` the contract answers when the vector is submitted to the Gate and by the agent the table below names) and `note`.
 

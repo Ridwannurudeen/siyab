@@ -22,6 +22,6 @@ jobs:
           fi
       - name: Offline demo
         run: |
-          if [ -d gate ]; then
+          if [ -f gate/demo.py ]; then
             python -m gate demo --offline
           fi
