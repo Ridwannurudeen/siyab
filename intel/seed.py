@@ -35,15 +35,12 @@ REKT_RHEA_URL = "https://rekt.news/rhea-finance-rekt"
 QUOTE_DOC_URL = "https://docs.near-intents.org/api-reference/oneclick/request-a-swap-quote.md"
 FIREBLOCKS_URL = "https://www.fireblocks.com/blog/near-zero-day-sweat-hot-token-exploit"
 DEFILLAMA_URL = "https://api.llama.fi/hacks"
-THEBLOCK_URL = ("https://www.theblock.co/news/ecosystems/2026-10-01-near-intents-halts-services-after-3-8-million-"
-                "exploit-promises-full-compensation-417404")
 SNAPSHOTS = {"treasuries": ("near-intents-treasury-addresses", "md", TREASURY_URL),
              "catalog": ("1click-tokens", "json", CATALOG_URL),
              "rhea": ("rekt-rhea", "html", REKT_RHEA_URL),
              "quote_doc": ("intents-quote-doc", "md", QUOTE_DOC_URL),
              "fireblocks": ("fireblocks-sweat-hot", "html", FIREBLOCKS_URL),
-             "defillama": ("defillama-hacks", "json", DEFILLAMA_URL),
-             "theblock": ("theblock-intents-2026-10-01", "html", THEBLOCK_URL)}
+             "defillama": ("defillama-hacks", "json", DEFILLAMA_URL)}
 SOURCES = ("treasuries", "catalog", "infrastructure", "rhea", "sweat-hot", "intents-2026-10-01")
 _STAMP = "%Y%m%dT%H%M%SZ"
 _TIME = "%Y-%m-%dT%H:%M:%SZ"
