@@ -18,7 +18,7 @@ HEX_EXTENSIONS = {".md", ".py", ".rs", ".sh", ".toml", ".yml"}
 HEX_EXEMPT_DIRS = ("fixtures/", "tests/", "intel/seeds/raw/", "res/")
 PHRASE_EXTENSIONS = {".md", ".py", ".rs", ".sh", ".html", ".json", ".toml", ".yml"}
 RAW_DIR = "intel/seeds/raw/"
-# This file has to name the phrases it rejects, so the phrase rule skips it.
+# This file has to name the phrases and the word it rejects, so the phrase and word rules skip it.
 SELF = "scripts/check_hygiene.py"
 
 HEX64 = re.compile(r"[0-9a-fA-F]{64}")

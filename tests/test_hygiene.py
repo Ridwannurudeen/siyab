@@ -15,7 +15,7 @@ def load():
 class WordRuleTest(unittest.TestCase):
     def setUp(self):
         self.hygiene = load()
-        self.word = "s" + "afe"
+        self.word = "safe"
 
     def test_authored_paths_reject_the_word(self):
         line = f"the account is {self.word}"
