@@ -194,9 +194,8 @@ def flow_page(document):
         f'<span class="mono">{esc(h["asset_id"])}</span>, method {esc(h["method_name"] or "none")}</p>'
         f'<p class="mono muted">block {h["block"]}<br>transaction {esc(h["transaction_hash"])}<br>receipt '
         f'{esc(h["receipt_id"])}</p></div>' for h in document["hops"])
-    body = (f'<h1>Exit trace</h1><p class="mono">{esc(document["subject"])}</p><p>{len(document["hops"])} hops to depth '
-            f'{document["depth"]}; terminal accounts {esc(", ".join(document["terminal_accounts"]) or "none")}; '
-            f'truncated {str(document["truncated"]).lower()}; read {esc(document["fetched_at"])}.</p>'
+    body = (f'<h1>Exit trace</h1><p class="mono">{esc(document["subject"])}</p><p>{esc(trace.summary(document))}; read '
+            f'{esc(document["fetched_at"])}.</p>'
             "<p class=\"muted\">Only an account that carries an incident label is traced. Each card is one transfer "
             "read from the FastNEAR Transfers API.</p>" + cards)
     return page("Exit trace", body, depth=1)

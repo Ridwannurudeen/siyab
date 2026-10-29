@@ -41,8 +41,27 @@ class Refused(Exception):
 
 
 def incident_ids(store, subject):
-    """The ids of the incident assertions on the subject, on any chain."""
-    return [a.id for a in store.assertions if a.subject == subject and a.category == "incident"]
+    """The ids of the current incident assertions on the subject, on any chain."""
+    return [a.id for a in store.assertions
+            if a.subject == subject and a.category == "incident" and a.superseded_by is None]
+
+
+def reached_depth(document):
+    """The depth the walk reached: 1 for a hop from the subject, one more for each hop beyond it."""
+    depths, reached = {document["subject"]: 0}, 0
+    for hop in document["hops"]:
+        depth = depths[hop["from"]] + 1
+        depths.setdefault(hop["to"], depth)
+        reached = max(reached, depth)
+    return reached
+
+
+def summary(document):
+    """One line on how far the walk went and why it stopped."""
+    stop = ("; the transfer cap or the page budget stopped it" if document["truncated"]
+            else "; every account within the bound was read")
+    return (f"{len(document['hops'])} hops; the walk reached depth {reached_depth(document)} of a bound of "
+            f"{document['depth']}{stop}; terminal accounts {', '.join(document['terminal_accounts']) or 'none'}")
 
 
 def terminal_accounts(store):
@@ -141,7 +160,6 @@ def main(subject, depth, cap, name, record, out=print, store=None, flows_dir=FLO
     path = flow_path(subject, name, flows_dir)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes((json.dumps(document, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
-    out(f"{len(document['hops'])} hops to depth {depth} from {subject}; terminal accounts "
-        f"{', '.join(document['terminal_accounts']) or 'none'}; truncated {str(document['truncated']).lower()}")
+    out(f"{subject}: {summary(document)}")
     out(f"written to {path.name}")
     return 0

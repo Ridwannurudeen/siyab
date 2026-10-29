@@ -69,6 +69,14 @@ class RefusalTest(unittest.TestCase):
                 self.assertEqual(str(caught.exception), "subject carries no incident label")
                 self.assertEqual(client.calls, [])
 
+    def test_a_superseded_incident_label_does_not_open_a_trace(self):
+        old = SimpleNamespace(id="id-old", subject="old.near", category="incident", chain="near",
+                              superseded_by="id-new")
+        client = FakeTransfers({})
+        with self.assertRaises(trace.Refused):
+            trace.trace("old.near", Store(old), client)
+        self.assertEqual(client.calls, [])
+
     def test_the_command_refuses_with_the_reason_and_exit_2(self):
         for subject in ("intents.near", "nobody-here.near"):
             with self.subTest(subject=subject):
@@ -99,6 +107,9 @@ class WalkTest(unittest.TestCase):
         document = trace.trace("start.near", STORE, FakeTransfers(chain), depth=3)
         self.assertEqual([h["from"] for h in document["hops"]], ["start.near", "n0.near", "n1.near"])
         self.assertFalse(document["truncated"])
+        self.assertEqual(trace.reached_depth(document), 3)
+        self.assertTrue(trace.summary(document).startswith("3 hops; the walk reached depth 3 of a bound of 3; every "
+                                                           "account within the bound was read"))
 
     def test_the_transfer_cap_truncates(self):
         pages = {"start.near": [[row("start.near", f"x{i}.near", i) for i in range(n, n + 3)] for n in (0, 3, 6)]}
@@ -135,6 +146,12 @@ class CommittedTraceTest(unittest.TestCase):
         store = labels.load()
         ids = {a.id for a in store.assertions if a.subject == COLLECTOR and a.category == "incident"}
         self.assertEqual(set(self.document["assertion_ids"]), ids)
+
+    def test_the_committed_trace_says_the_cap_stopped_it_at_depth_1(self):
+        self.assertTrue(self.document["truncated"])
+        self.assertEqual(trace.reached_depth(self.document), 1)
+        self.assertIn("the walk reached depth 1 of a bound of 3; the transfer cap or the page budget stopped it",
+                      trace.summary(self.document))
 
     def test_a_replay_rewrites_the_committed_trace(self):
         with tempfile.TemporaryDirectory() as tmp, mock.patch("urllib.request.urlopen", side_effect=no_network):
