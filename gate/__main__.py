@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from gate import (
+    agent,
     canon,
     demo,
     ed25519,
@@ -121,6 +122,31 @@ def _verify(args):
     return 0 if ok else 1
 
 
+def _agent(args):
+    """pay and attack: the agent key on GATE_ACCOUNT_ID, testnet only."""
+    gate, key_file = os.environ.get("GATE_ACCOUNT_ID"), os.environ.get("AGENT_KEY_FILE")
+    try:
+        if not gate or not key_file:
+            raise agent.AgentError("set GATE_ACCOUNT_ID and AGENT_KEY_FILE")
+        if not gate.endswith(".testnet"):
+            raise agent.AgentError(f"the agent sends on testnet only, and {gate} is not a .testnet account")
+        public_hex, public_key, secret = agent.agent_key(key_file)
+        request = agent.transfer_request(args.kind, args.token, args.receiver, args.amount, args.memo, gate=gate,
+                                         agent_pk_hex=public_hex)
+        if args.via == "near-cli":
+            transport = agent.NearCliTransport(gate, key_file)
+        else:
+            transport = agent.PyNearTransport(gate, secret, os.environ.get("NEAR_RPC_URL") or rpc.TESTNET_RPC_URL)
+        context = agent.Agent(gate=gate, public_hex=public_hex, public_key=public_key, transport=transport,
+                              clients=_clients(gate), verifier=agent.live_signer, out_dir=Path(args.out))
+        if args.command == "pay":
+            return agent.pay(context, request, args.verdict_file)
+        return agent.attack(args.name, context, request)
+    except (agent.AgentError, signer.SignerError, canon.CanonError) as error:
+        print(f"not sent: {error}", file=sys.stderr)
+        return 2
+
+
 def _registry_args(args):
     try:
         batch, notes = registry.record_batch(args.verdicts, args.evidence_dir, args.observed_block)
@@ -220,6 +246,26 @@ def main(argv=None):
     page.add_argument("id", help="the incident id, such as rhea")
     page.add_argument("--json", action="store_true", help="print the incident file itself")
     page.set_defaults(handler=lambda args: incident.main(args.id, args.json))
+
+    for name, text in (("pay", ("pay on testnet through the Gate: judge the transfer, then send request_transfer "
+                                 "only on a signed ALLOW")),
+                       ("attack", ("the simulation switch: send one transaction the Gate or the protocol must "
+                                   "refuse, and keep its answer"))):
+        sender = commands.add_parser(name, help=text)
+        if name == "attack":
+            sender.add_argument("name", choices=agent.ATTACKS)
+        sender.add_argument("--kind", required=True, choices=canon.KINDS)
+        sender.add_argument("--token", help="the NEP-141 token account (kind ft)")
+        sender.add_argument("--receiver", required=True)
+        sender.add_argument("--amount", required=True, help="decimal amount in base units")
+        sender.add_argument("--memo")
+        if name == "pay":
+            sender.add_argument("--verdict-file", help="a verdict file the verdict service wrote with the live "
+                                                       "key, instead of judging here")
+        sender.add_argument("--via", choices=("py-near", "near-cli"), default="py-near",
+                            help="sign and send with py-near (default) or with near-cli-rs")
+        sender.add_argument("--out", required=True, metavar="DIR", help="where the outcome JSON goes")
+        sender.set_defaults(handler=_agent)
 
     keys = commands.add_parser("scan", help="access key hygiene and verifier keys of an account, with its labels")
     keys.add_argument("account", help="the account id; .testnet selects testnet")
