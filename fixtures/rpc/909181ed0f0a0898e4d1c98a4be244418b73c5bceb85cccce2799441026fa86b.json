@@ -1,0 +1,24 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "call_function",
+      "finality": "final",
+      "account_id": "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640",
+      "method_name": "ft_metadata",
+      "args_base64": "e30="
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "3mPNgqAnVRt5h84uKuCkQiEngbSiS2YeovPGa1jgkZ6S",
+      "block_height": 222119756,
+      "error": "wasm execution failed with error: HostError(GuestPanic { panic_msg: \"panicked at contracts/mock-ft/src/lib.rs:70:9:\\nnot implemented\" })",
+      "logs": []
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-10-29T11:39:00Z"
+}

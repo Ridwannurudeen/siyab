@@ -1,4 +1,5 @@
 import base64
+import http.client
 import json
 import re
 import tempfile
@@ -246,11 +247,13 @@ class TierTwoTest(RulesCase):
     def test_typo_lookalike_after_normalisation(self):
         self.stranger("vend0r.testnet")
         self.assertEqual(self.detail(self.judge(request("vend0r.testnet")), "lookalike"),
-                         "lookalike of vendor.testnet (distance 0 after confusable normalisation)")
+                         "lookalike of vendor.testnet: first label vend0r against vendor, distance 0 after "
+                         "confusable normalisation")
         policy = {"allowlist": ["microsoft.testnet"], "caps": POLICY["caps"]}
         self.stranger("rnicros0ft.testnet")
         self.assertEqual(self.detail(self.judge(request("rnicros0ft.testnet"), policy), "lookalike"),
-                         "lookalike of microsoft.testnet (distance 0 after confusable normalisation)")
+                         "lookalike of microsoft.testnet: first label rnicros0ft against microsoft, distance 0 "
+                         "after confusable normalisation")
         self.stranger("microsofts.testnet")
         self.assertEqual(self.status(self.judge(request("microsofts.testnet"), policy), "lookalike"), "signal")
         self.stranger("macrohard.testnet")
@@ -440,6 +443,75 @@ class RecordedMainnetTest(unittest.TestCase):
         self.assertEqual(judgement.verdict, "DENY")
 
 
+class RheaLabelsTest(unittest.TestCase):
+    """The committed Rhea incident labels, consulted on every verdict, over recorded mainnet reads."""
+
+    COLLECTOR = "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+    TOKEN = "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163"
+
+    def setUp(self):
+        patcher = mock.patch("urllib.request.urlopen", side_effect=AssertionError("network"))
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.store = labels.load()
+        self.rpc = rpc.Client(rpc.MAINNET_RPC_URL, "replay")
+        self.nearblocks = rpc.Client(rpc.NEARBLOCKS_URL, "replay", kind="http")
+
+    def judge(self, req, policy):
+        return rules.judge(req, policy, self.store, self.rpc, self.nearblocks, now_ms=NOW_MS,
+                           injection_scanner=None)
+
+    def denying_ids(self, subject):
+        return [a.id for a in self.store.by_subject(subject, "near")
+                if a.superseded_by is None and a.category in rules.DENY_CATEGORIES]
+
+    def test_a_transfer_to_the_collector_is_deny_with_the_assertion_ids(self):
+        judgement = self.judge(request(self.COLLECTOR, kind="near", amount="1", memo=None),
+                               {"allowlist": [self.COLLECTOR], "caps": []})
+        self.assertEqual(judgement.verdict, "DENY")
+        check = {c["id"]: c for c in judgement.checks}["label_denylist"]
+        self.assertEqual(check["status"], "signal")
+        ids = self.denying_ids(self.COLLECTOR)
+        self.assertTrue(ids)
+        for assertion_id in ids:
+            self.assertIn(f"(assertion {assertion_id})", check["detail"])
+            self.assertIn(assertion_id, judgement.labels)
+
+    def test_a_transfer_of_a_listed_token_is_deny(self):
+        judgement = self.judge(request("intents.near", token=self.TOKEN, memo=None),
+                               {"allowlist": ["intents.near"], "caps": []})
+        self.assertEqual(judgement.verdict, "DENY")
+        check = {c["id"]: c for c in judgement.checks}["label_denylist"]
+        self.assertEqual(check["status"], "signal")
+        self.assertIn("denylist label", check["detail"])
+        for assertion_id in self.denying_ids(self.TOKEN):
+            self.assertIn(assertion_id, check["detail"])
+
+    def test_intents_near_is_not_denied_by_the_label_check(self):
+        rhea = [a for a in self.store.by_subject("intents.near", "near") if a.provenance == "third_party"]
+        self.assertEqual([a.category for a in rhea], ["infrastructure"])
+        self.assertEqual(self.denying_ids("intents.near"), [])
+        judgement = self.judge(request("intents.near", kind="near", amount="1", memo=None),
+                               {"allowlist": ["intents.near"], "caps": []})
+        self.assertEqual({c["id"]: c["status"] for c in judgement.checks}["label_denylist"], "pass")
+        self.assertIn(rhea[0].id, judgement.labels)
+        self.assertEqual(judgement.verdict, "ALLOW")
+
+    def test_zec_omft_near_keeps_its_bridge_category_and_is_not_denied_by_the_label_check(self):
+        rhea = [a for a in self.store.by_subject("zec.omft.near", "near") if a.provenance == "third_party"]
+        self.assertEqual([a.category for a in rhea], ["bridge"])
+        [cited] = [a for a in self.store.by_subject("zec.omft.near", "near")
+                   if a.provenance == "official_source" and a.category == "bridge"]
+        self.assertTrue(rhea[0].note.startswith('quote "'))
+        self.assertTrue(rhea[0].note.endswith(f'; the category comes from the existing row {cited.id}, labelled '
+                                              f'{json.dumps(cited.label)}, not from the report'))
+        self.assertEqual(self.denying_ids("zec.omft.near"), [])
+        judgement = self.judge(request("zec.omft.near", kind="near", amount="1", memo=None),
+                               {"allowlist": ["zec.omft.near"], "caps": []})
+        self.assertEqual({c["id"]: c["status"] for c in judgement.checks}["label_denylist"], "pass")
+        self.assertIn(rhea[0].id, judgement.labels)
+
+
 class TextTest(RulesCase):
     def test_distance(self):
         for a, b, expected in (("vendor", "vendor", 0), ("vendor", "vednor", 1), ("vendor", "vend0r", 1),
@@ -459,6 +531,7 @@ class TextTest(RulesCase):
                          "payvendor.near", "vendor.attacker.near", "vendor.near", "acme-vendor-eu.testnet"):
             with self.subTest(receiver=receiver):
                 self.assertTrue(rules.contains_allowlisted(receiver, "vendor.testnet"))
+        self.assertTrue(rules.contains_allowlisted("corn-pay.testnet", "corn.testnet"))
         for receiver, allowlisted in (("vendorsandmore.testnet", "vendor.testnet"), ("vendor.testnet", "vendor.testnet"),
                                       ("bobcat.testnet", "bob.testnet"), ("ven.testnet", "vendor.testnet"),
                                       ("advendors.testnet", "vendor.testnet")):
@@ -476,7 +549,6 @@ class TextTest(RulesCase):
         for judgement in judgements:
             for text in strings([judgement.verdict, judgement.checks, judgement.reasons]):
                 self.assertNotIn("safe", text.lower())
-
 
 
 class FailClosedTest(RulesCase):
@@ -511,6 +583,15 @@ class FailClosedTest(RulesCase):
         judgement = self.judge(request())
         self.assertEqual(self.detail(judgement, "receiver_exists"),
                          "could not read vendor.testnet: RPC error TIMEOUT_ERROR")
+        self.assertEqual(judgement.verdict, "UNKNOWN")
+
+    def test_a_truncated_reply_reads_unknown(self):
+        self.token_ok()
+        self.rpc = rpc.Client(RPC_URL, "off", fixtures_dir=self.fx.directory)
+        with mock.patch("urllib.request.urlopen", side_effect=http.client.IncompleteRead(b"")):
+            judgement = self.judge(request())
+        self.assertEqual(self.status(judgement, "receiver_exists"), "unknown")
+        self.assertIn("TransportError", self.detail(judgement, "receiver_exists"))
         self.assertEqual(judgement.verdict, "UNKNOWN")
 
     def test_malformed_creation_transaction_reads_unknown(self):
@@ -567,6 +648,20 @@ class PopulatedStoreTest(RulesCase):
             with self.subTest(name=name):
                 self.assertEqual(self.lookalike(name), "signal")
 
+    def test_no_two_labelled_reference_accounts_are_lookalikes_of_each_other(self):
+        accounts = sorted({a.subject for a in self.store.assertions if a.chain == "near"
+                           and a.category in rules.REFERENCE_CATEGORIES and a.superseded_by is None})
+        self.assertGreater(len(accounts), 100)
+        pairs = [(a, b) for a in accounts for b in accounts
+                 if a < b and (rules.lookalike_detail(a, b) or rules.lookalike_detail(b, a))]
+        self.assertEqual(pairs, [])
+
+    def test_omft_siblings_pass_and_their_imitations_are_caught(self):
+        self.assertEqual(self.lookalike("zec.omft.near"), "pass")
+        for name in ("zec-omft.near", "zecomft.near", "zec.ornft.near", "zec.omft.testnet"):
+            with self.subTest(name=name):
+                self.assertEqual(self.lookalike(name), "signal")
+
     def test_the_rules_print_no_barred_word_outside_quoted_data(self):
         token = "eth-0x5afe3855358e112b5647b952709e6165e1c1eeee.omft.near"
         self.assertTrue(self.store.by_subject(token, "near"))
@@ -580,6 +675,7 @@ class PopulatedStoreTest(RulesCase):
             with self.subTest(text=text):
                 self.assertNotIn("safe", re.sub(r'"[^"]*"', "", text).lower())
         self.assertIn('symbol "SAFE"', self.detail(judgement, "ft_metadata_sane"))
+
 
 if __name__ == "__main__":
     unittest.main()

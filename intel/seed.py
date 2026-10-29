@@ -1,22 +1,26 @@
 """Seed the label store from verified official sources and on chain reads.
 
-Sub commands: treasuries (the NEAR Intents treasury page), catalog (the 1Click asset catalog) and
+Sub commands: treasuries (the NEAR Intents treasury page), catalog (the 1Click asset catalog),
 infrastructure (omft.near and intents.near source metadata, the .omft.near bridge token accounts,
-v1.signer and the OutLayer accounts). GATE_FIXTURES_MODE decides the network: replay (default)
+v1.signer and the OutLayer accounts) and rhea (the rekt.news Rhea Finance report, re-read on chain,
+which also writes intel/incidents/rhea.json). GATE_FIXTURES_MODE decides the network: replay (default)
 reads the newest snapshot under intel/seeds/raw/ and the recorded RPC fixtures; record fetches
 the page once, stores it byte for byte as raw/<name>-<UTC time>.<ext> and records RPC reads.
 Each run appends only rows whose id is new and rewrites intel/seeds/README.md.
 """
 
 import hashlib
+import html
 import json
 import os
+import re
 import time
 import urllib.request
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 
-from gate import rpc
+from gate import rpc, rules
 from intel import labels
 
 INTEL_DIR = Path(__file__).resolve().parent
@@ -24,9 +28,13 @@ RAW_DIR = INTEL_DIR / "seeds" / "raw"
 README_PATH = INTEL_DIR / "seeds" / "README.md"
 TREASURY_URL = "https://docs.near-intents.org/security-compliance/treasury-addresses.md"
 CATALOG_URL = "https://1click.chaindefuser.com/v0/tokens"
+REKT_RHEA_URL = "https://rekt.news/rhea-finance-rekt"
+QUOTE_DOC_URL = "https://docs.near-intents.org/api-reference/oneclick/request-a-swap-quote.md"
 SNAPSHOTS = {"treasuries": ("near-intents-treasury-addresses", "md", TREASURY_URL),
-             "catalog": ("1click-tokens", "json", CATALOG_URL)}
-SOURCES = ("treasuries", "catalog", "infrastructure")
+             "catalog": ("1click-tokens", "json", CATALOG_URL),
+             "rhea": ("rekt-rhea", "html", REKT_RHEA_URL),
+             "quote_doc": ("intents-quote-doc", "md", QUOTE_DOC_URL)}
+SOURCES = ("treasuries", "catalog", "infrastructure", "rhea")
 _STAMP = "%Y%m%dT%H%M%SZ"
 _TIME = "%Y-%m-%dT%H:%M:%SZ"
 # Page names to 1Click blockchain codes. Aurora has no code in the catalog and keeps its name;
@@ -247,6 +255,314 @@ def infrastructure(mode=None, raw_dir=RAW_DIR, client=None):
     return rows
 
 
+RHEA_SOURCE_ID = "rekt-rhea"
+RHEA_CONFIDENCE = 0.9
+RHEA_INCIDENT_PATH = INTEL_DIR / "incidents" / "rhea.json"
+RHEA_ATTACKER = "the unnamed party behind the Rhea Lend incident, as rekt.news reports it"
+_HEX_ACCOUNT = re.compile(r"[0-9a-f]{64}")
+_BASE58_HASH = re.compile(r"[1-9A-HJ-NP-Za-km-z]{43,44}")
+_ETH_ADDRESS = re.compile(r"0x[0-9a-fA-F]{40}")
+_MULTICA = re.compile(r"rhea[0-9]+[.]multica[.]near")
+_POOLS = re.compile(r"pools ([0-9]+) through ([0-9]+)")
+# The page's headings for the accounts it lists: (role key, heading, how many accounts it names).
+RHEA_LISTS = (("collector", "Collector account:", 1), ("master", "Master account:", 1),
+              ("worker", "Worker accounts:", 5), ("token", "Fake Token Contracts:", 4))
+# Each role as the report words it, in ShieldBot's text; the report's own sentence goes in the quote.
+RHEA_ROLES = {
+    "collector": "the collector account, which the report also prints as the attacker NEAR wallet",
+    "master": "the master account",
+    "worker": "one of the five worker accounts",
+    "token": "one of the four token contracts that shared the code hash it names",
+    "multica": ("an account within Rhea's own Multichain Account system that became active and later "
+                "received funds traceable to the subject wallet"),
+    "intents.near": "the account through which the subject wallet was funded within five minutes",
+    "zec.omft.near": "the account whose ft_withdraw routed ZEC directly into Zcash Unified Addresses",
+    "eth": "the attacker ETH wallet where the bridged USDC was deposited into Aave",
+}
+# The exit accounts, each with the words that find the sentence naming it in the report.
+RHEA_EXITS = {"intents.near": "funded through intents.near", "zec.omft.near": "ft_withdraw on zec.omft.near"}
+# The exit accounts keep the category of their existing official or on chain rows (treasury page and
+# contract_source_metadata for intents.near, the catalog's .omft.near bridge row for zec.omft.near).
+RHEA_EXIT_CATEGORIES = {"intents.near": "infrastructure", "zec.omft.near": "bridge"}
+RHEA_ONCHAIN_NOTE = "current mainnet state read for the Rhea incident, not a historical block replay"
+RHEA_NOT_PUBLIC = (
+    "The report names no person, and this page names none.",
+    "The exploit transaction list beyond the transactions the report prints is not reproduced here.",
+    "The 123 token contracts the report counts are not listed by it; only the four it names are here.",
+    "Which party controls each account is not stated beyond the roles the report gives.",
+)
+RHEA_STANDARD = ("Only accounts named in the cited report or provable on chain by a read anyone can "
+                 "repeat; no person, no motive; the report's own words appear only inside quote fields "
+                 "with their source id; failed checks read Unknown.")
+
+
+def _report_lines(data):
+    """The article text of a rekt.news page, one paragraph per line."""
+    text = data.decode("utf-8")
+    start, end = text.find("<article"), text.find("</article>")
+    if start == -1 or end == -1:
+        raise SeedError("the report snapshot has no article element")
+    body = re.sub(r"<script.*?</script>|<style.*?</style>", "", text[start:end], flags=re.DOTALL)
+    body = re.sub(r"<br */?>|</p>|</li>|</h[1-6]>", "\n", body)
+    body = html.unescape(re.sub(r"<[^>]+>", "", body))
+    return [line.strip() for line in body.splitlines() if line.strip()]
+
+
+def _after(lines, heading, pattern, count):
+    """(the values pattern finds after the heading, the quoted text): the heading's own line, or the
+    heading line and the next one when the values sit on the next line."""
+    for number, line in enumerate(lines):
+        if line.startswith(heading):
+            found = pattern.findall(line[len(heading):])
+            quote = line
+            if not found and number + 1 < len(lines):
+                found = pattern.findall(lines[number + 1])
+                quote = f"{line} {lines[number + 1]}"
+            if len(found) != count:
+                raise SeedError(f"the report lists {len(found)} values after {heading!r}, not {count}")
+            return found, quote
+    raise SeedError(f"the report has no line {heading!r}")
+
+
+def _line_with(lines, needle):
+    for line in lines:
+        if needle in line:
+            return line
+    raise SeedError(f"the report has no line naming {needle!r}")
+
+
+def rhea_report(data):
+    """What the rekt.news Rhea report names, read from the snapshot: the accounts in page order as
+    (role key, subject, chain, quote), the shared code hash, the Ref pool ids, each with its quote."""
+    lines = _report_lines(data)
+    accounts = []
+    for role, heading, count in RHEA_LISTS:
+        found, quote = _after(lines, heading, _HEX_ACCOUNT, count)
+        accounts += [(role, subject, "near", quote) for subject in found]
+    multica_line = _line_with(lines, "multica.near")
+    accounts += [("multica", subject, "near", multica_line) for subject in _MULTICA.findall(multica_line)]
+    for exit_account, needle in RHEA_EXITS.items():
+        accounts.append((exit_account, exit_account, "near", _line_with(lines, needle)))
+    [eth], eth_quote = _after(lines, "Attacker ETH wallet:", _ETH_ADDRESS, 1)
+    accounts.append(("eth", eth, "eth", eth_quote))
+    if accounts[0][1] not in _after(lines, "Attacker NEAR wallet:", _HEX_ACCOUNT, 1)[0]:
+        raise SeedError("the collector account is not the attacker NEAR wallet the report prints")
+    hash_line = _line_with(lines, "shared the same code hash:")
+    [code_hash] = _BASE58_HASH.findall(hash_line.split("code hash:", 1)[1])
+    pools_line = _line_with(lines, "pools 8514")
+    first, last = (int(n) for n in _POOLS.search(pools_line).groups())
+    return {"accounts": accounts, "code_hash": (code_hash, hash_line),
+            "pools": (list(range(first, last + 1)), pools_line)}
+
+
+def _result_sha256(value):
+    text = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _error_block(error):
+    """The block height an RPC error reports in its cause info, or None."""
+    cause = error.error.get("cause") if isinstance(error.error, dict) else None
+    info = cause.get("info") if isinstance(cause, dict) else None
+    return info.get("block_height") if isinstance(info, dict) else None
+
+
+def _rhea_reads(client, nearblocks, report):
+    """The on chain facts: [(subject, label, rpc, method, args, block, observed_at, result_sha256, kind)]."""
+    code_hash = report["code_hash"][0]
+    facts = []
+    for role, subject, chain, _ in report["accounts"]:
+        if chain != "near":
+            continue
+        try:
+            view = client.view_account(subject)
+            hash_now = view["code_hash"]
+            if role == "token":
+                label = ("code hash equals the hash named in the Rhea report" if hash_now == code_hash
+                         else f"code hash {hash_now}, not the hash named in the Rhea report")
+            elif hash_now == rpc.EMPTY_CODE_HASH:
+                label = "account exists with no contract code"
+            else:
+                label = f"account exists with contract code hash {hash_now}"
+            block, result = client.last_block_height, view
+            kind = "hash_equal" if role == "token" and hash_now == code_hash else "view"
+        except rpc.RpcError as error:
+            if error.cause != "UNKNOWN_ACCOUNT" or _error_block(error) is None:
+                raise
+            label, block, result, kind = ("account does not exist at this block (deleted or never created)",
+                                          _error_block(error), error.error, "view")
+        facts.append((subject, label, client.url, "view_account", {"account_id": subject}, block,
+                      client.last_source["fetched_at"], _result_sha256(result), kind))
+        if role != "token":
+            continue
+        for method in ("ft_metadata", "contract_source_metadata"):
+            try:
+                answer = client.call_function(subject, method, {})
+                label = f"{method} answers {_quoted(json.dumps(answer, sort_keys=True))}"
+                block, result, kind = client.last_block_height, answer, "answer"
+            except rpc.RpcError as error:
+                # A contract execution failure comes back inside the result, which carries the block.
+                block = _error_block(error) or client.last_block_height
+                missing = (error.cause in rules.MISSING_CODE_CAUSES
+                           or any(marker in json.dumps(error.error) for marker in rules.MISSING_METHOD_MARKERS))
+                if missing:
+                    label = f"no {method}"
+                elif isinstance(error.error, str):
+                    label = f"{method} fails on the contract: {_quoted(error.error)}"
+                else:
+                    raise
+                if block is None:
+                    raise
+                result = error.error
+                kind = "ft_metadata_fails" if method == "ft_metadata" else "answer"
+            facts.append((subject, label, client.url, method, {}, block, client.last_source["fetched_at"],
+                          _result_sha256(result), kind))
+    for role, subject, _, _ in report["accounts"]:
+        if role not in ("collector", "worker"):
+            continue
+        try:
+            keys = nearblocks.get(f"/v1/account/{subject}/keys")
+            created = sorted((int(k["created"]["block_timestamp"]), k["created"]["transaction_hash"])
+                             for k in keys.get("keys", [])
+                             if isinstance(k.get("created"), dict) and k["created"].get("block_timestamp"))
+            if not created:
+                continue
+            transaction_hash = created[0][1]
+            txn = nearblocks.get(f"/v1/txns/{transaction_hash}")["txns"][0]
+        except (rpc.FixtureMiss, rpc.HttpError, rpc.RateLimited, rpc.TransportError, KeyError, IndexError):
+            continue
+        block = int(txn["block"]["block_height"])
+        deposit = Decimal(str(txn["actions_agg"]["deposit"]))
+        near = format((deposit / rules.YOCTO_PER_NEAR).normalize(), "f")
+        label = f"created at block {block} by transaction {transaction_hash} with a deposit of {near} NEAR"
+        facts.append((subject, label, nearblocks.url, "GET /v1/account/{account_id}/keys and /v1/txns/{transaction_hash}",
+                      {"account_id": subject, "transaction_hash": transaction_hash}, block,
+                      nearblocks.last_source["fetched_at"], _result_sha256(txn), "created"))
+    return facts
+
+
+def _exit_note(store, subject, category):
+    """Where an exit account's category comes from: its first official or on chain row in the store
+    with that category that this seed did not write, cited by id and label."""
+    for assertion in store.by_subject(subject, "near"):
+        if (assertion.category == category and assertion.superseded_by is None
+                and assertion.provenance in ("official_source", "onchain") and assertion.note != RHEA_ONCHAIN_NOTE):
+            return (f"the category comes from the existing row {assertion.id}, labelled {_quoted(assertion.label)}, "
+                    "not from the report")
+    raise SeedError(f"no official or on chain {category} row for {subject} in the store")
+
+
+def _rhea_rows(mode, raw_dir, client, nearblocks, store_path=labels.STORE_PATH):
+    """(rows, report, facts, snapshot source) for the Rhea incident."""
+    store = labels.load(store_path)
+    data, fetched_at, _ = snapshot("rhea", mode, raw_dir)
+    report = rhea_report(data)
+    source = _document_source(REKT_RHEA_URL, data, fetched_at)
+    rows, category = [], {}
+    for role, subject, chain, quote in report["accounts"]:
+        category[subject] = RHEA_EXIT_CATEGORIES.get(role, "incident")
+        entity = ("NEAR Intents" if role in RHEA_EXITS else "Rhea Finance Multichain Account system"
+                  if role == "multica" else RHEA_ATTACKER)
+        rows.append(make_row(entity=entity, subject=subject, chain=chain,
+                             label=f"named in the rekt.news Rhea Finance report as {RHEA_ROLES[role]}",
+                             category=category[subject], provenance="third_party", source=source,
+                             observed_at=fetched_at, confidence=RHEA_CONFIDENCE,
+                             note=f"quote {_quoted(quote)}"
+                             + (f"; {_exit_note(store, subject, category[subject])}" if role in RHEA_EXITS else "")))
+    entities = {row["subject"]: row["entity"] for row in rows}
+    facts = _rhea_reads(client, nearblocks, report)
+    by_kind = {}
+    for subject, label, url, method, args, block, observed_at, _, kind in facts:
+        row = make_row(entity=entities[subject], subject=subject, chain="near", label=label,
+                       category=category[subject], provenance="onchain", observed_at=observed_at,
+                       source={"rpc": url, "method": method, "args": args, "block": block},
+                       note=RHEA_ONCHAIN_NOTE)
+        rows.append(row)
+        by_kind.setdefault((subject, kind), row)
+    for role, subject, _, _ in report["accounts"]:
+        inputs = [by_kind.get((subject, "hash_equal")), by_kind.get((subject, "ft_metadata_fails"))]
+        if role != "token" or None in inputs:
+            continue
+        rows.append(make_row(
+            entity=entities[subject], subject=subject, chain="near",
+            label=("token contract whose ft_metadata call fails and whose code hash equals the hash named in the "
+                   "Rhea report"),
+            category="denylist", provenance="inferred", rule_id="fake_token_shared_hash",
+            source={"rule_id": "fake_token_shared_hash", "inputs": [r["id"] for r in inputs]},
+            observed_at=max(r["observed_at"] for r in inputs), confidence=RHEA_CONFIDENCE,
+            note="derived from the two onchain assertions in source.inputs"))
+    return rows, report, facts, source
+
+
+def _clients(mode, client, nearblocks):
+    return (client or rpc.Client(rpc.MAINNET_RPC_URL, _mode(mode)),
+            nearblocks or rpc.Client(rpc.NEARBLOCKS_URL, _mode(mode), kind="http"))
+
+
+def rhea(mode=None, raw_dir=RAW_DIR, client=None, nearblocks=None):
+    """The Rhea Lend incident rows: one third_party row per account the rekt.news report names, one
+    onchain row per fact re-read on chain, and one inferred denylist row per token contract whose
+    code hash equals the reported hash and which has no ft_metadata."""
+    return _rhea_rows(mode, raw_dir, *_clients(mode, client, nearblocks))[0]
+
+
+def rhea_incident(mode=None, raw_dir=RAW_DIR, store_path=labels.STORE_PATH, client=None, nearblocks=None):
+    """The incident document for intel/incidents/rhea.json; rules_today runs gate.rules.judge in replay
+    over the committed fixtures and the store at store_path."""
+    rows, report, facts, source = _rhea_rows(mode, raw_dir, *_clients(mode, client, nearblocks), store_path)
+    ids = {}
+    for row in rows:
+        ids.setdefault((row["subject"], row["chain"]), []).append(row["id"])
+    accounts = [{"subject": subject, "chain": chain, "role_as_reported": RHEA_ROLES[role],
+                 "quote": {"source": RHEA_SOURCE_ID, "text": quote}, "assertion_ids": ids[(subject, chain)]}
+                for role, subject, chain, quote in report["accounts"]]
+    onchain_facts = [{"subject": subject, "method": method, "args": args, "block": block,
+                      "result_sha256": digest, "summary": label}
+                     for subject, label, _, method, args, block, _, digest, _ in facts]
+    store = labels.load(store_path)
+    replay = (rpc.Client(rpc.MAINNET_RPC_URL, "replay"), rpc.Client(rpc.NEARBLOCKS_URL, "replay", kind="http"))
+    now_ms = int(datetime.strptime(max(f[6] for f in facts), _TIME).replace(tzinfo=UTC).timestamp() * 1000)
+    rules_today = []
+    for role, subject, chain, _ in report["accounts"]:
+        if chain != "near":
+            continue
+        if role == "token":
+            request = {"kind": "ft", "token_id": subject, "receiver_id": "intents.near", "amount": "1000000",
+                       "memo": None}
+        else:
+            request = {"kind": "near", "token_id": None, "receiver_id": subject,
+                       "amount": str(rules.YOCTO_PER_NEAR), "memo": None}
+        judgement = rules.judge(request, {"allowlist": [], "caps": []}, store, *replay, now_ms=now_ms,
+                                injection_scanner=None)
+        rules_today.append({"subject": subject, "as": "token" if role == "token" else "receiver",
+                            "request": request, "verdict": judgement.verdict, "checks": judgement.checks,
+                            "reasons": judgement.reasons, "labels": judgement.labels})
+    code_hash, hash_quote = report["code_hash"]
+    pools, pools_quote = report["pools"]
+    return {
+        "id": "rhea",
+        "title": "Rhea Lend margin trading route exploit",
+        "date": "2026-04-16",
+        "chains": ["near", "eth"],
+        "sources": [{"id": RHEA_SOURCE_ID, "publisher": "rekt.news", **source}],
+        "accounts": accounts,
+        "code_hash_as_reported": {"value": code_hash, "quote": {"source": RHEA_SOURCE_ID, "text": hash_quote}},
+        "ref_pools_as_reported": {"ids": pools, "quote": {"source": RHEA_SOURCE_ID, "text": pools_quote}},
+        "onchain_facts": onchain_facts,
+        "route_subjects": list(RHEA_EXITS),
+        "onchain_state": "current state of the contracts, not a historical block replay",
+        "rules_today": rules_today,
+        "rules_today_at_ms": now_ms,
+        "not_public": list(RHEA_NOT_PUBLIC),
+        "standard": RHEA_STANDARD,
+    }
+
+
+def write_incident(document, path):
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    Path(path).write_bytes((json.dumps(document, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
+
+
 def append(rows, store_path=labels.STORE_PATH):
     """Append the rows whose id the store does not hold yet; returns how many were added."""
     store_path = Path(store_path)
@@ -285,13 +601,30 @@ def readme_text(store_path=labels.STORE_PATH, raw_dir=RAW_DIR):
         if digest not in files:
             raise SeedError(f"no snapshot under {raw_dir} has the sha256 {digest} that rows cite")
         lines.append(f"| `raw/{files[digest]}` | {url} | {digest[:4]}...{digest[-4:]} | {fetched_at} | {count} |")
+    # A snapshot no row cites (a reference page the code was written against) is listed with 0 rows.
+    cited_digests = {digest for digest, _, _ in cited}
+    for digest, name in sorted(files.items(), key=lambda item: item[1]):
+        if digest in cited_digests:
+            continue
+        for prefix, ext, url in SNAPSHOTS.values():
+            if name.startswith(f"{prefix}-") and name.endswith(f".{ext}"):
+                stamp = name[len(prefix) + 1: -len(ext) - 1]
+                fetched_at = datetime.strptime(stamp, _STAMP).strftime(_TIME)
+                lines.append(f"| `raw/{name}` | {url} | {digest[:4]}...{digest[-4:]} | {fetched_at} | 0 |")
+                break
+        else:
+            raise SeedError(f"the snapshot {name} under {raw_dir} matches no known source")
     return "\n".join(lines) + "\n"
 
 
-def run(source, mode=None, store_path=labels.STORE_PATH, raw_dir=RAW_DIR, readme_path=README_PATH):
-    """Seed one source into the store and rewrite the README; returns the number of new rows."""
-    rows = {"treasuries": treasuries, "catalog": catalog, "infrastructure": infrastructure}[source](
+def run(source, mode=None, store_path=labels.STORE_PATH, raw_dir=RAW_DIR, readme_path=README_PATH,
+        incident_path=RHEA_INCIDENT_PATH):
+    """Seed one source into the store and rewrite the README (and for rhea the incident file);
+    returns the number of new rows."""
+    rows = {"treasuries": treasuries, "catalog": catalog, "infrastructure": infrastructure, "rhea": rhea}[source](
         mode=mode, raw_dir=raw_dir)
     added = append(rows, store_path)
     Path(readme_path).write_bytes(readme_text(store_path, raw_dir).encode("utf-8"))
+    if source == "rhea":
+        write_incident(rhea_incident(mode, raw_dir, store_path), incident_path)
     return added

@@ -1,0 +1,16 @@
+{
+  "request": {
+    "method": "eth_getCode",
+    "params": [
+      "0x1fcdb04d0c5364fbd92c73ca8af9baa72c269107",
+      "latest"
+    ]
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": "gate",
+    "result": "0x"
+  },
+  "url": "https://mainnet.base.org",
+  "fetched_at": "2026-10-29T11:48:41Z"
+}

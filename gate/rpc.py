@@ -11,15 +11,17 @@ The mode comes from GATE_FIXTURES_MODE:
 A fixture is fixtures/rpc/<key>.json holding {"request", "response", "url", "fetched_at"}, where
 the key is the sha256 hex of json.dumps({"url", "method", "params"}, sort_keys=True,
 separators=(",", ":")). A POST body is never written: its params are {"body_sha256": ...}, the
-sha256 of the body as sorted compact JSON. No header is written, and a URL with user info is
-refused. Every request has a 30 s timeout. HTTP errors (a 429 included) raise HttpError and are
-never written. A body without the fields the caller reads raises MalformedResponse. NearBlocks
-fetches (its free tier allows 6 calls a minute and 333 a day) are spaced at least 10 s apart, and
-past 300 in one UTC day per process they raise RateLimited without a request.
+sha256 of the body as sorted compact JSON. No header is written, and a URL with user info or a
+query string is refused. Every request has a 30 s timeout. HTTP errors (a 429 included) raise
+HttpError and are never written; a truncated or broken reply raises TransportError. A body
+without the fields the caller reads raises MalformedResponse. NearBlocks fetches (its free tier
+allows 6 calls a minute and 333 a day) are spaced at least 10 s apart, and past 300 in one UTC
+day per process they raise RateLimited without a request.
 """
 
 import base64
 import hashlib
+import http.client
 import json
 import os
 import time
@@ -66,6 +68,10 @@ class HttpError(Exception):
         self.status = status
 
 
+class TransportError(Exception):
+    """The reply was cut off or was not valid HTTP."""
+
+
 class RateLimited(Exception):
     """The NearBlocks daily budget is used up; no request was sent."""
 
@@ -105,6 +111,8 @@ def _check_url(url):
     parts = urllib.parse.urlsplit(url)
     if parts.username is not None or parts.password is not None:
         raise ValueError("a URL with user info would be written into fixtures; it is refused")
+    if parts.query:
+        raise ValueError("a URL with a query string would be written into fixtures; it is refused")
     return url
 
 
@@ -214,7 +222,7 @@ class Client:
     def _absolute(self, url):
         if self.kind != "http":
             raise ValueError("get and post need a client of kind http")
-        return _check_url(url) if url.startswith(("https://", "http://")) else self.url + url
+        return _check_url(url if url.startswith(("https://", "http://")) else self.url + url)
 
     def _respect_nearblocks(self, host):
         """Space NearBlocks fetches 10 s apart and refuse past the daily budget."""
@@ -270,3 +278,5 @@ def _fetch(url, body):
             return json.loads(reply.read())
     except urllib.error.HTTPError as error:
         raise HttpError(error.code, url) from error
+    except http.client.HTTPException as error:
+        raise TransportError(f"{type(error).__name__} from {url}") from error

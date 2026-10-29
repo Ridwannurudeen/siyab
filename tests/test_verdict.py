@@ -172,6 +172,14 @@ class SignerTest(unittest.TestCase):
                 self.assertRaises(signer.SignerError):
             signer.PurePythonLiveSigner(self.key_file)
 
+    def test_a_missing_or_unreadable_key_file_raises_signer_error(self):
+        self.key_file.write_text("not json", encoding="utf-8")
+        for path in (self.key_file.with_name("missing.json"), self.key_file):
+            with (self.subTest(path=path.name),
+                  mock.patch.dict(os.environ, {"GATE_ALLOW_PURE_PYTHON_SIGNER": "1"}),
+                  self.assertRaises(signer.SignerError)):
+                signer.PurePythonLiveSigner(path)
+
     def test_key_id_is_cur_or_prev(self):
         with self.assertRaises(signer.SignerError):
             signer.TestSigner("next")
@@ -213,6 +221,10 @@ class CommandTest(VerdictCase):
         code, _, errors = self.run_command("--live")
         self.assertEqual(code, 2)
         self.assertIn("VERIFIER_KEY_FILE", errors)
+        missing = str(self.dir / "missing-key.json")
+        code, _, errors = self.run_command("--live", environment={"VERIFIER_KEY_FILE": missing})
+        self.assertEqual(code, 2)
+        self.assertIn("no signer:", errors)
 
 
 if __name__ == "__main__":

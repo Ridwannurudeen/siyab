@@ -6,7 +6,7 @@ import os
 import sys
 from pathlib import Path
 
-from gate import canon, demo, ed25519, rpc, signer, verdict
+from gate import canon, demo, ed25519, incident, intents, rpc, signer, verdict, verify
 from intel import labels
 
 
@@ -75,6 +75,39 @@ def _verdict(args):
     return 0
 
 
+def _intents(args):
+    mode = "off" if args.live else "replay"
+    deadline = intents.live_deadline() if args.live else intents.RECORDED_DEADLINE
+    try:
+        result = intents.judge_quote(args.origin, args.destination, args.amount, args.recipient, args.recipient_type,
+                                     mode=mode, firewall_url=os.environ.get("SHIELDBOT_API_URL"), deadline=deadline)
+    except ValueError as error:
+        print(f"invalid request: {error}", file=sys.stderr)
+        return 2
+    quote = result["quote"] or {}
+    print(f"dry quote: {args.amount} of {args.origin} to {args.destination}, recipient {args.recipient}, "
+          f"amountOut {quote.get('amountOut', 'not known')}")
+    for check in result["checks"]:
+        print(f"{check['status']:<7} {check['id']}: {check['detail']}")
+    print(f"verdict: {result['verdict']} (unsigned preflight)")
+    for reason in result["reasons"]:
+        print(f"  {reason}")
+    print(f"evidence: {result['evidence_hash']}")
+    print("Nothing was signed, nothing was deposited.")
+    return 0
+
+
+def _verify(args):
+    try:
+        ok, lines = verify.verify(args.record, args.evidence, args.verdict, args.key)
+    except (OSError, ValueError, KeyError) as error:
+        print(f"cannot verify: {error}", file=sys.stderr)
+        return 1
+    for line in lines:
+        print(line)
+    return 0 if ok else 1
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="python -m gate")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -107,6 +140,28 @@ def main(argv=None):
     mode = show.add_mutually_exclusive_group(required=True)
     mode.add_argument("--offline", action="store_true", help="replay the fixtures under fixtures/demo")
     show.set_defaults(handler=lambda args: demo.main(args.offline))
+
+    leg = commands.add_parser("intents", help="judge where a 1Click quote sends NEAR money (dry quote, unsigned)")
+    leg.add_argument("--origin", required=True, help="the 1Click origin asset id")
+    leg.add_argument("--destination", required=True, help="the 1Click destination asset id")
+    leg.add_argument("--amount", required=True, help="the amount in the origin asset's base units")
+    leg.add_argument("--recipient", required=True, help="the 0x recipient on the destination chain")
+    leg.add_argument("--recipient-type", default="DESTINATION_CHAIN")
+    leg.add_argument("--live", action="store_true",
+                     help="fetch a live dry quote and labels instead of replaying fixtures; writes nothing")
+    leg.set_defaults(handler=_intents)
+
+    check = commands.add_parser("verify", help="check a registry record against its evidence file, offline")
+    check.add_argument("record", help="a registry record: the latest view or the verdict_recorded event data")
+    check.add_argument("evidence", help="the evidence document the record's evidence_hash names")
+    check.add_argument("--verdict", help="the Verdict object file, to check its signature")
+    check.add_argument("--key", help="the verifier public key as ed25519:<base58>")
+    check.set_defaults(handler=_verify)
+
+    page = commands.add_parser("incident", help="print an incident page from intel/incidents")
+    page.add_argument("id", help="the incident id, such as rhea")
+    page.add_argument("--json", action="store_true", help="print the incident file itself")
+    page.set_defaults(handler=lambda args: incident.main(args.id, args.json))
 
     args = parser.parse_args(argv)
     return args.handler(args)

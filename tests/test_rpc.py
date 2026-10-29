@@ -1,4 +1,5 @@
 import hashlib
+import http.client
 import importlib.util
 import json
 import os
@@ -244,9 +245,20 @@ class FailClosedClientTest(unittest.TestCase):
             ("final_block", (), {"result": {"chunks": []}}),
         ]
         for method, args, body in cases:
-            with self.subTest(method=method, body=body),                     mock.patch("urllib.request.urlopen", return_value=reply(body)),                     self.assertRaises(rpc.MalformedResponse):
+            with (self.subTest(method=method, body=body),
+                  mock.patch("urllib.request.urlopen", return_value=reply(body)),
+                  self.assertRaises(rpc.MalformedResponse)):
                 getattr(client, method)(*args)
         self.assertTrue(issubclass(rpc.MalformedResponse, ValueError))
+
+    def test_a_truncated_reply_is_a_transport_error(self):
+        client = rpc.Client("https://rpc.example", "record", fixtures_dir=self.tmp.name)
+        for error in (http.client.IncompleteRead(b""), http.client.BadStatusLine("x")):
+            with (self.subTest(error=type(error).__name__),
+                  mock.patch("urllib.request.urlopen", side_effect=error),
+                  self.assertRaises(rpc.TransportError)):
+                client.view_account("a.near")
+        self.assertEqual(list(Path(self.tmp.name).iterdir()), [])
 
     def test_a_post_body_is_never_written(self):
         memo = "pay me, seed phrase abandon abandon"
@@ -269,6 +281,16 @@ class FailClosedClientTest(unittest.TestCase):
         client = rpc.Client("https://api.example", "off", kind="http")
         with self.assertRaises(ValueError):
             client.get("https://key@other.example/x")
+
+    def test_a_query_string_in_a_url_is_refused(self):
+        for url in ("https://api.example?apikey=k", "https://api.example/v1?token=t"):
+            with self.subTest(url=url), self.assertRaises(ValueError):
+                rpc.Client(url, "off", kind="http")
+        client = rpc.Client("https://api.example", "off", kind="http")
+        with mock.patch("urllib.request.urlopen", side_effect=no_network), self.assertRaises(ValueError):
+            client.get("https://other.example/x?apikey=k")
+        with mock.patch("urllib.request.urlopen", side_effect=no_network), self.assertRaises(ValueError):
+            client.get("/api/v1/address_security/0xabc?apikey=k")
 
     def test_nearblocks_fetches_are_spaced_and_budgeted(self):
         now = [T0]

@@ -87,7 +87,8 @@ class CommittedStoreTest(unittest.TestCase):
         assets = json.loads(snapshot.read_bytes())
         self.assertEqual(self.store.counts()["category"]["catalog_token"], len(assets))
         bridged = {a["assetId"].rsplit(":", 1)[-1] for a in assets if a["assetId"].endswith(".omft.near")}
-        self.assertEqual(self.store.counts()["category"]["bridge"], len(bridged))
+        catalog_bridges = [a for a in self.store.assertions if a.category == "bridge" and a.provenance == "official_source"]
+        self.assertEqual(len(catalog_bridges), len(bridged))
 
     def test_readme_lists_every_snapshot(self):
         readme = seed.README_PATH.read_text(encoding="utf-8")
@@ -100,7 +101,8 @@ class CommittedStoreTest(unittest.TestCase):
 
     def test_seeds_rebuild_the_committed_rows_offline(self):
         with mock.patch("urllib.request.urlopen", side_effect=no_network):
-            rows = seed.treasuries("replay") + seed.catalog("replay") + seed.infrastructure("replay")
+            rows = (seed.treasuries("replay") + seed.catalog("replay") + seed.infrastructure("replay")
+                    + seed.rhea("replay"))
         self.assertEqual([r["id"] for r in rows], [r["id"] for r in self.rows])
         self.assertEqual([labels.row_line(r) for r in rows], labels.STORE_PATH.read_text(encoding="utf-8").splitlines())
 
@@ -126,7 +128,10 @@ class CommittedStoreTest(unittest.TestCase):
                 with self.subTest(id=item["id"], field=field):
                     self.assertNotIn("safe", re.sub(r'"[^"]*"', "", item[field]).lower())
         quoted = [item for item in self.rows if 'symbol "SAFE"' in item["label"]]
-        self.assertEqual(len(quoted), 4)
+        assets = [a for a in json.loads(seed.snapshot("catalog", "replay")[0]) if a["symbol"] == "SAFE"]
+        bridged = {a["assetId"].rsplit(":", 1)[-1] for a in assets if a["assetId"].endswith(".omft.near")}
+        self.assertTrue(assets)
+        self.assertEqual(len(quoted), len(assets) + len(bridged))
 
     def test_the_hygiene_rule_covers_authored_text_only(self):
         spec = importlib.util.spec_from_file_location("check_hygiene", ROOT / "scripts" / "check_hygiene.py")
