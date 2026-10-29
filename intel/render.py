@@ -63,7 +63,8 @@ def data_text(text):
     parts, last = [], 0
     for match in _QUOTED.finditer(str(text)):
         parts.append(esc(text[last:match.start()]))
-        parts.append(f'<q class="data">{esc(_UNESCAPE.sub(r"\1", match.group(1)))}</q>')
+        quoted = esc(_UNESCAPE.sub(r"\1", match.group(1)))
+        parts.append(f'<q class="data">{quoted}</q>')
         last = match.end()
     return "".join(parts) + esc(str(text)[last:])
 
