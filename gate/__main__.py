@@ -34,16 +34,18 @@ def _canon_vectors(args):
 
 
 def _clients(gate):
-    """The NEAR RPC, NearBlocks and optional ShieldBot API clients for the Gate's network."""
+    """The NEAR RPC, NearBlocks, optional ShieldBot API and archival RPC clients for the Gate's network."""
     if gate.endswith(".testnet"):
         rpc_url = os.environ.get("NEAR_RPC_URL") or rpc.TESTNET_RPC_URL
         nearblocks_url = os.environ.get("NEARBLOCKS_API_URL") or rpc.NEARBLOCKS_TESTNET_URL
+        archival_url = os.environ.get("NEAR_ARCHIVAL_RPC_URL") or rpc.ARCHIVAL_TESTNET_RPC_URL
     else:
         rpc_url = os.environ.get("NEAR_MAINNET_RPC_URL") or rpc.MAINNET_RPC_URL
         nearblocks_url = os.environ.get("NEARBLOCKS_API_URL") or rpc.NEARBLOCKS_URL
+        archival_url = os.environ.get("NEAR_ARCHIVAL_RPC_URL") or rpc.ARCHIVAL_RPC_URL
     api_url = os.environ.get("SHIELDBOT_API_URL")
     scanner = rpc.Client(api_url, kind="http") if api_url else None
-    return rpc.Client(rpc_url), rpc.Client(nearblocks_url, kind="http"), scanner
+    return rpc.Client(rpc_url), rpc.Client(nearblocks_url, kind="http"), scanner, rpc.Client(archival_url)
 
 
 def _verdict(args):
@@ -62,12 +64,12 @@ def _verdict(args):
     except signer.SignerError as error:
         print(f"no signer: {error}", file=sys.stderr)
         return 2
-    client, nearblocks, scanner = _clients(args.gate)
+    client, nearblocks, scanner, archival = _clients(args.gate)
     try:
         result = verdict.request(args.kind, args.token, args.receiver, args.amount, args.memo, gate=args.gate,
                                  agent_pk_hex=args.agent_pk, policy=policy, store=labels.load(), rpc=client,
                                  nearblocks=nearblocks, signer=verdict_signer, injection_scanner=scanner,
-                                 evidence_dir=args.evidence_dir)
+                                 archival=archival, evidence_dir=args.evidence_dir)
     except canon.CanonError as error:
         print(f"invalid request: {error}", file=sys.stderr)
         return 2

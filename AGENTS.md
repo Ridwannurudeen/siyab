@@ -43,6 +43,7 @@ docs/                   spikes, records, log
 
 - `NEAR_RPC_URL`: testnet JSON-RPC endpoint; default `https://test.rpc.fastnear.com`
 - `NEAR_MAINNET_RPC_URL`: mainnet JSON-RPC endpoint for read only views; default `https://free.rpc.fastnear.com`
+- `NEAR_ARCHIVAL_RPC_URL`: archival JSON-RPC endpoint that dates a receiver when NearBlocks gives no creation time; default `https://archival-rpc.testnet.fastnear.com` for a testnet Gate, else `https://archival-rpc.mainnet.fastnear.com`
 - `GATE_ACCOUNT_ID`, `REGISTRY_ACCOUNT_ID`, `OWNER_ACCOUNT_ID`: the guard, the registry and the owner accounts
 - `VERIFIER_KEY_FILE`, `RECORDER_KEY_FILE`, `AGENT_KEY_FILE`: key file paths, kept outside the repository
 - `SHIELDBOT_API_URL` (empty means off), `NEARBLOCKS_API_URL`, `GOPLUS_API_URL`, `ONECLICK_API_URL`: data source base URLs

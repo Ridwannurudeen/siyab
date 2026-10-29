@@ -17,7 +17,8 @@ DEFAULT_TTL_MS = 300000
 
 
 def request(kind, token, receiver, amount, memo, *, gate, agent_pk_hex, policy, store, rpc, nearblocks,
-            signer, ttl_ms=DEFAULT_TTL_MS, injection_scanner=None, evidence_dir=EVIDENCE_DIR, clock=time.time):
+            signer, ttl_ms=DEFAULT_TTL_MS, injection_scanner=None, archival=None, evidence_dir=EVIDENCE_DIR,
+            clock=time.time):
     """Judge one transfer for the agent agent_pk_hex at the Gate gate.
 
     Returns {"outcome", "verdict", "request", "checks", "reasons", "evidence_hash", "evidence_path",
@@ -30,7 +31,7 @@ def request(kind, token, receiver, amount, memo, *, gate, agent_pk_hex, policy, 
     transfer = {"kind": kind, "token_id": token, "receiver_id": receiver, "amount": amount, "memo": memo}
     started = time.perf_counter()
     judgement = rules.judge(transfer, policy, store, rpc, nearblocks, now_ms=int(clock() * 1000),
-                            injection_scanner=injection_scanner)
+                            injection_scanner=injection_scanner, archival=archival)
     allow = judgement.verdict == "ALLOW"
     issued_ms = int(clock() * 1000) if allow else None
     expires_ms = issued_ms + ttl_ms if allow else None

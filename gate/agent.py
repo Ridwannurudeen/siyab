@@ -198,11 +198,11 @@ def read_policy(agent):
 
 def _judge(agent, request, verdict_signer, out):
     """The verdict service's answer for the request: gate.verdict.request with the agent's policy."""
-    client, nearblocks, scanner = agent.clients
+    client, nearblocks, scanner, archival = agent.clients
     result = verdict.request(request["kind"], request["token_id"], request["receiver_id"], request["amount"],
                              request["memo"], gate=agent.gate, agent_pk_hex=agent.public_hex,
                              policy=read_policy(agent), store=labels.load(), rpc=client, nearblocks=nearblocks,
-                             signer=verdict_signer, injection_scanner=scanner)
+                             signer=verdict_signer, injection_scanner=scanner, archival=archival)
     for check in result["checks"]:
         out(f"{check['status']:<7} {check['id']}: {check['detail']}")
     out(f"verdict: {result['outcome']}")
