@@ -58,7 +58,10 @@ def scan(account_id, *, client, store):
     try:
         result = client.view_access_key_list(account_id)
         findings["block_height"] = result.get("block_height")
-        findings["keys"] = _key_findings(result["keys"], account_id)
+        try:
+            findings["keys"] = _key_findings(result["keys"], account_id)
+        except (KeyError, TypeError) as error:
+            raise rpc.MalformedResponse(f"a key entry lacks the fields scan reads: {error!r}") from error
     except rules.UNAVAILABLE as error:
         findings["keys_error"] = rules._why(error)
     try:

@@ -126,7 +126,7 @@ class ApiTest(unittest.TestCase):
         self.assertIn(b"<title>demo</title>", body)
         status, content_type, _, body = self.request("/pages/a.css")
         self.assertEqual((status, content_type, body), (200, "text/css", b"body{}"))
-        for path in ("/../tests/test_api.py", "/%2e%2e/%2e%2e/README.md", "/missing.html"):
+        for path in ("/../tests/test_api.py", "/%2e%2e/%2e%2e/README.md", "/missing.html", "/a%00b.html"):
             with self.subTest(path=path):
                 self.assertEqual(self.get_json(path), (404, {"error": "not found"}))
 

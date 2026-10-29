@@ -108,11 +108,14 @@ def _static(site, path):
     if site is None:
         return None
     relative = urllib.parse.unquote(urllib.parse.urlsplit(path).path).lstrip("/") or "index.html"
-    root = Path(site).resolve()
-    target = (root / relative).resolve()
-    if target.is_dir():
-        target = target / "index.html"
-    if root not in target.parents or not target.is_file():
+    try:
+        root = Path(site).resolve()
+        target = (root / relative).resolve()
+        if target.is_dir():
+            target = target / "index.html"
+        if root not in target.parents or not target.is_file():
+            return None
+    except (OSError, ValueError):
         return None
     return 200, mimetypes.guess_type(target.name)[0] or "application/octet-stream", target.read_bytes()
 

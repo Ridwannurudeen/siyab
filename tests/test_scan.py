@@ -124,6 +124,16 @@ class ScanTest(unittest.TestCase):
         self.record_gate(verifier={"current": "not hex", "previous": None})
         self.assertTrue(self.scan()["findings"]["verifier_error"].startswith("MalformedResponse"))
 
+    def test_a_malformed_key_entry_is_unknown(self):
+        for permission in ({"FunctionCall": None}, {"Other": {}}, ["FullAccess"]):
+            with self.subTest(permission=permission):
+                self.record_gate(keys=[(key("odd"), permission)])
+                result = self.scan()
+                self.assertIsNone(result["findings"]["keys"])
+                self.assertTrue(result["findings"]["keys_error"].startswith("MalformedResponse: a key entry lacks"))
+                self.assert_heading_order(result["lines"])
+                self.assertIn("full access keys: unknown", result["lines"])
+
     def test_the_recorded_mainnet_example_is_unknown_not_clean(self):
         output = io.StringIO()
         with contextlib.redirect_stdout(output):
