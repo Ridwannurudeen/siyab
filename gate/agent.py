@@ -98,20 +98,30 @@ class PyNearTransport:
         except ImportError as error:
             raise AgentError("py-near is not installed; run from the venv ~/.venvs/near or pass --via "
                              "near-cli") from error
-        self._account = Account(account_id=gate, private_key=secret, rpc_addr=rpc_url)
-        # py-near waits up to 600 s per request by default; the provider's timeout attribute is private to
-        # py-near 1.2.22 and UNVERIFIED on testnet.
-        self._account._provider.timeout = rpc.TIMEOUT_S
+        self._account_class, self._gate, self._secret, self._rpc_url = Account, gate, secret, rpc_url
         self._rejected = JsonProviderError
 
+    def _new_account(self):
+        """A fresh py-near account: its session is bound to the event loop of the one send that uses it."""
+        account = self._account_class(account_id=self._gate, private_key=self._secret, rpc_addr=self._rpc_url)
+        # py-near waits up to 600 s per request by default; the provider's timeout attribute is private to
+        # py-near 1.2.22 and UNVERIFIED on testnet.
+        account._provider.timeout = rpc.TIMEOUT_S
+        return account
+
     async def _send(self, sent):
-        await self._account.startup()
+        account = self._new_account()
+        await account.startup()
         try:
-            result = await self._account.function_call(sent["receiver_id"], sent["method_name"], sent["args"],
-                                                       gas=sent["gas"], amount=sent["deposit"])
+            result = await account.function_call(sent["receiver_id"], sent["method_name"], sent["args"],
+                                                 gas=sent["gas"], amount=sent["deposit"])
         except self._rejected as error:
+            # py-near leaves error_json None when it cannot parse the RPC error (DepositWithFunctionCall).
+            rpc_error = error.error_json or {"error": type(error).__name__, "message": str(error)}
             return {"transaction_hash": getattr(error, "trx_hash", None), "status": None, "logs": [],
-                    "rpc_error": error.error_json}
+                    "rpc_error": rpc_error}
+        finally:
+            await account.shutdown()
         return {"transaction_hash": result.transaction.hash, "status": result.status, "logs": result.logs,
                 "rpc_error": None}
 
