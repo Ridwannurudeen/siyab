@@ -33,7 +33,7 @@ UTF-8, 14 fields joined by `|`, no trailing newline. It is not JSON, so Python a
 | `key_id` | `cur` or `prev`: which verifier key signed |
 | literal | always `ALLOW` on the signing path |
 
-Account ids match `^(([a-z\d]+[-_])*[a-z\d]+\.)*([a-z\d]+[-_])*[a-z\d]+$` and are 2 to 64 characters long. No field can hold `|`: account ids, lowercase hex, decimals and the literals exclude it, and `canonical_message` validates every field before it joins them (it raises `CanonError` otherwise). `parse_canonical` reads a message back and rejects any bytes that are not in canonical form.
+Account ids match `^(([a-z\d]+[-_])*[a-z\d]+\.)*([a-z\d]+[-_])*[a-z\d]+$` and are 2 to 64 characters long. No field can hold `|`: account ids, lowercase hex, decimals and the literals exclude it, and `canonical_message` validates every field before it joins them (it raises `CanonError` otherwise). `parse_canonical` reads a message back and rejects any field that is not in canonical form, except the literal: by design it accepts any upper case literal in the last field, so a test vector signed over DENY parses. Only `canonical_message` is restricted to ALLOW.
 
 ## Digest and signature
 
@@ -44,7 +44,7 @@ Account ids match `^(([a-z\d]+[-_])*[a-z\d]+\.)*([a-z\d]+[-_])*[a-z\d]+$` and ar
 - A Gate holds a current verifier key and an optional previous key with a deadline in milliseconds. A verdict with `key_id` `cur` is checked against the current key. A verdict with `key_id` `prev` is checked against the previous key, and only until the deadline. To rotate, install the new key as current and the old key as previous, with a deadline at least one ttl ahead, so verdicts already issued stay valid until they expire.
 - No private key is committed. The live verifier key is generated and kept outside the repository.
 - The TEST verifier key is derived in `gate/ed25519.py` from the public seed `sha256(b"gate test verifier v1")`. Its public key is `fixtures/keys/test-verifier.pub`: line 1 is `ed25519:<base58>`, line 2 is the hex. Anyone can derive the TEST key, so it signs only the test vectors and offline runs and is never registered on testnet. The TEST agent keys come from the seeds `sha256(b"gate test agent v1")` and `sha256(b"gate test agent v2")`.
-- `gate/ed25519.py` follows RFC 8032 Appendix A in pure Python, is used for verification everywhere and signs only with the TEST key. It is checked against the RFC 8032 section 7.1 test vectors and against PyNaCl in `tests/test_ed25519.py`.
+- `gate/ed25519.py` follows the Ed25519 Python illustration of RFC 8032 section 6, is used for verification everywhere and signs only with the TEST key. It is checked against the RFC 8032 section 7.1 test vectors and against PyNaCl in `tests/test_ed25519.py`.
 
 ## Expiry and ttl
 

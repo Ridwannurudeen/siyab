@@ -1,55 +1,37 @@
 """Pure Python Ed25519 (RFC 8032): verification everywhere, signing only with the TEST key.
 
 Origin: RFC 8032, "Edwards-Curve Digital Signature Algorithm (EdDSA)", S. Josefsson and
-I. Liusvaara, January 2017, Appendix A, "Ed25519/Ed448 Python Library" (the Ed25519 part,
-Python 3.2 or later). The code between the BEGIN and END markers follows that appendix. It
-was written out for this file, not fetched; tests/test_ed25519.py checks it against the
-RFC 8032 section 7.1 test vectors 1 to 3 and against PyNaCl. Changes from the appendix:
-`verify` returns False for a public key or signature of the wrong length instead of raising,
-and the size errors raise ValueError. The appendix says the library is not intended for
-production use, which is why the live verifier key is signed with PyNaCl (gate/signer.py) and
-this code signs only with the TEST key derived from a published seed.
+I. Liusvaara, January 2017 (IRTF stream, Informational), section 6, "Ed25519 Python
+Illustration" (Python 3.2 or later). Section 6 points to Appendix A for the complete Ed25519 and
+Ed448 library; this file holds the section 6 code, not Appendix A. The code between the BEGIN
+and END markers was compared token by token with section 6 of
+https://www.rfc-editor.org/rfc/rfc8032.txt (fetched on 29 Oct 2026). Apart from whitespace,
+blank lines, statement ending semicolons and the section's "##" heading comments, it differs
+only here:
+- the three size errors raise ValueError instead of Exception;
+- verify returns False for a public key or a signature of the wrong length, where the RFC
+  raises for the key and, lacking a raise statement, ignores the signature length;
+- two noqa comments for the linter.
+tests/test_ed25519.py checks it against the RFC 8032 section 7.1 test vectors 1 to 3 and against
+PyNaCl. The RFC says this code is not intended for production, which is why the live verifier
+key is signed with PyNaCl and this code signs only with the TEST key derived from a published
+seed.
 
-Licence: RFC 8032 is subject to BCP 78 and the IETF Trust's Legal Provisions Relating to IETF
-Documents (https://trustee.ietf.org/license-info) in effect on the date of its publication;
-Code Components extracted from it must include the Simplified BSD License text as described in
-Section 4.e of the Trust Legal Provisions and are provided without warranty as described in
-the Simplified BSD License. The page https://trustee.ietf.org/license-info was fetched on
-29 Oct 2026: it redirects to https://trustee.ietf.org/documents/trust-legal-provisions/, which
-lists the Trust Legal Provisions 5.0 (published and effective 25 Mar 2015, still current, so in
-effect in January 2017) and links the document, but does not hold the clause text itself.
-UNVERIFIED: the clause wording above and the licence text below are the RFC boilerplate and
-TLP section 4.e as known, not read from the TLP 5.0 document on that fetch.
-
-Copyright (c) 2017 IETF Trust and the persons identified as the document authors.
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without modification, are
-permitted provided that the following conditions are met:
-
-- Redistributions of source code must retain the above copyright notice, this list of
-  conditions and the following disclaimer.
-- Redistributions in binary form must reproduce the above copyright notice, this list of
-  conditions and the following disclaimer in the documentation and/or other materials
-  provided with the distribution.
-- Neither the name of Internet Society, IETF or IETF Trust, nor the names of specific
-  contributors, may be used to endorse or promote products derived from this software
-  without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS
-OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
-GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
-OF THE POSSIBILITY OF SUCH DAMAGE.
+Licence: the RFC's copyright notice reads "Copyright (c) 2017 IETF Trust and the persons
+identified as the document authors. All rights reserved." and makes the document subject to
+BCP 78 and the IETF Trust's Legal Provisions Relating to IETF Documents
+(http://trustee.ietf.org/license-info) in effect on its publication date. Unlike an IETF stream
+RFC, its notice has no sentence on Code Components or the Simplified BSD License. The licence
+page was fetched on 29 Oct 2026: it redirects to
+https://trustee.ietf.org/documents/trust-legal-provisions/, which lists the Trust Legal
+Provisions 5.0 (effective 25 Mar 2015, still current) but does not hold their text.
+UNVERIFIED: which licence the Trust Legal Provisions 5.0 grant for code in an IRTF stream RFC;
+reading sections 3 and 4 of that document settles it.
 """
 
 import hashlib
 
-# ---- BEGIN RFC 8032 Appendix A (Ed25519 part) ----
+# ---- BEGIN RFC 8032 section 6 ----
 
 
 def sha512(s):
@@ -101,7 +83,7 @@ def point_equal(P, Q):
     # x1 / z1 == x2 / z2  <==>  x1 * z2 == x2 * z1
     if (P[0] * Q[2] - Q[0] * P[2]) % p != 0:
         return False
-    if (P[1] * Q[2] - Q[1] * P[2]) % p != 0:  # noqa: SIM103 (kept as in the appendix)
+    if (P[1] * Q[2] - Q[1] * P[2]) % p != 0:  # noqa: SIM103 (kept as in RFC 8032 section 6)
         return False
     return True
 
@@ -167,12 +149,12 @@ def secret_expand(secret):
     h = sha512(secret)
     a = int.from_bytes(h[:32], "little")
     a &= (1 << 254) - 8
-    a |= 1 << 254
+    a |= (1 << 254)
     return (a, h[32:])
 
 
 def secret_to_public(secret):
-    (a, dummy) = secret_expand(secret)  # noqa: RUF059 (kept as in the appendix)
+    (a, dummy) = secret_expand(secret)  # noqa: RUF059 (kept as in RFC 8032 section 6)
     return point_compress(point_mul(a, G))
 
 
@@ -208,7 +190,7 @@ def verify(public, msg, signature):
     return point_equal(sB, point_add(R, hA))
 
 
-# ---- END RFC 8032 Appendix A ----
+# ---- END RFC 8032 section 6 ----
 
 
 def public_from_seed(seed32):

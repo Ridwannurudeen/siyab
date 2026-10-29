@@ -66,9 +66,9 @@ class CanonicalBytesTest(unittest.TestCase):
 
     def test_control_characters_are_escaped(self):
         backslash = chr(92)
-        data = evidence.canonical_bytes({"d": "a" + chr(10) + chr(9) + chr(1) + '"' + backslash})
-        expected = ('{"d":"a' + backslash + "n" + backslash + "t" + backslash + "u0001"
-                    + backslash + '"' + backslash + backslash + '"}')
+        data = evidence.canonical_bytes({"d": "a" + chr(10) + chr(9) + chr(1) + chr(0x1F) + '"' + backslash})
+        expected = ('{"d":"a' + backslash + "n" + backslash + "t" + backslash + "u0001" + backslash
+                    + "u001f" + backslash + '"' + backslash + backslash + '"}')
         self.assertEqual(data, expected.encode("ascii"))
 
     def test_keys_sort_by_code_point(self):
@@ -76,7 +76,7 @@ class CanonicalBytesTest(unittest.TestCase):
         self.assertEqual(data, b'{"B":2,"_":4,"a":3,"b":1}')
 
     def test_floats_are_rejected(self):
-        for value in (1.5, float("nan"), float("inf"), [0.0], {"x": {"y": 2.0}}):
+        for value in (1.5, float("nan"), float("inf"), [0.0], (1, 2.5), {"x": {"y": 2.0}}):
             with self.subTest(value=value), self.assertRaises(TypeError):
                 evidence.canonical_bytes({"checks": value})
         with self.assertRaises(TypeError):

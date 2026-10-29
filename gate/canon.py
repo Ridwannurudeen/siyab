@@ -359,7 +359,13 @@ def write_vectors(canon_dir, gate_root=DEFAULT_GATE_ROOT):
             written.append(evidence_path)
     removed = []
     for path in sorted(evidence_dir.glob("*.json")):
-        if path not in written and json.loads(path.read_bytes()).get("reasons") == [VECTOR_REASON]:
+        if path in written:
+            continue
+        try:
+            document = json.loads(path.read_bytes())
+        except ValueError:
+            continue
+        if isinstance(document, dict) and document.get("reasons") == [VECTOR_REASON]:
             path.unlink()
             removed.append(path)
     verifier_pub = ed25519.public_from_seed(ed25519.TEST_VERIFIER_SEED)

@@ -361,12 +361,15 @@ class VectorTest(unittest.TestCase):
             evidence_dir.mkdir()
             other = evidence_dir / "other.json"
             other.write_bytes(b'{"reasons":["a verdict"]}')
+            unrelated = [other, evidence_dir / "not-json.json", evidence_dir / "array.json"]
+            unrelated[1].write_bytes(b"not json")
+            unrelated[2].write_bytes(b"[1]")
             first, _ = canon.write_vectors(Path(tmp) / "canon", "test.near")
             second, removed = canon.write_vectors(Path(tmp) / "canon", "sandbox")
-            self.assertTrue(other.exists())
+            self.assertTrue(all(path.exists() for path in unrelated))
             self.assertEqual(len(removed), 5)
             self.assertTrue(all(path in first and path not in second for path in removed))
-            remaining = sorted(path for path in evidence_dir.glob("*.json") if path != other)
+            remaining = sorted(path for path in evidence_dir.glob("*.json") if path not in unrelated)
             self.assertEqual(remaining, sorted(path for path in second if path.parent == evidence_dir))
 
     def test_gate_root_is_validated(self):
