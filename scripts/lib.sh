@@ -42,8 +42,7 @@ run() {
   local output status line hash shortened
   if output=$("$@" 2>&1); then
     while IFS= read -r line; do
-      if [[ "${line,,}" == *transaction* ]]; then
-        # UNVERIFIED until first run: transaction hash output line format from near-cli-rs.
+      if [[ "${line,,}" == *"transaction id:"* ]]; then
         hash=$(printf '%s\n' "$line" | grep -oE '[1-9A-HJ-NP-Za-km-z]{43,50}' | head -n 1 || true)
         if [[ -n "$hash" ]]; then
           shortened="${hash:0:8}...${hash: -6}"
@@ -110,7 +109,6 @@ create_subaccount() {
   local balance=$2
   local gate_key
   gate_key=$(account_key "$GATE_ACCOUNT_ID")
-  # UNVERIFIED until first run: the legacy keychain output path and key file layout; near-cli-rs 0.30.1 help lists fund-myself and autogenerate-new-keypair.
   run near account create-account fund-myself "$account_id" "$balance NEAR" autogenerate-new-keypair save-to-legacy-keychain sign-as "$GATE_ACCOUNT_ID" network-config "$NETWORK" sign-with-access-key-file "$gate_key" send
 }
 

@@ -139,8 +139,8 @@ Notes from the help output:
 - Key deletion is `delete-keys` (plural), with `public-keys` taking a comma separated list.
 - The parser accepted `'100.0 Tgas'`, `'30 Tgas'`, `'0 NEAR'` and `'1 yoctoNEAR'` at `--help` time and rejected `100.0_Tgas` with `invalid value`.
 - `create-account ... autogenerate-new-keypair` also takes `--signature-scheme` (`ed25519` default, `ml-dsa-65`).
-- Verified on 29 Oct: `sign-with-access-key-file` accepts the legacy keychain file; `save-to-legacy-keychain` writes `~/.near-credentials/testnet/<account>.json` (the `credentials_home_dir` of the near-cli config) plus a per key copy in `~/.near-credentials/testnet/<account>/`. Still UNVERIFIED: whether `save-to-keychain` works in WSL without a desktop keyring, and whether `--function-names` takes a comma separated list.
-- The token's `storage_balance_bounds` minimum is 0.00129 NEAR; a 0.00125 NEAR `storage_deposit` panics with "The attached deposit is less than the minimum storage balance".
+- Update, 29 Oct (later), from the first signed testnet runs: `sign-with-access-key-file` accepts the legacy keychain file; `save-to-legacy-keychain` writes `~/.near-credentials/testnet/<account>.json` (the `credentials_home_dir` of the near-cli config) plus a per key copy in `~/.near-credentials/testnet/<account>/`. Still UNVERIFIED: whether `save-to-keychain` works in WSL without a desktop keyring, and whether `--function-names` takes a comma separated list.
+- Update, 29 Oct (later): the token's `storage_balance_bounds` minimum is 0.00129 NEAR; a 0.00125 NEAR `storage_deposit` panics with "The attached deposit is less than the minimum storage balance".
 
 ## S7: py-near install and signing with a function call key
 

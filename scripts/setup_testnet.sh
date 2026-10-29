@@ -61,7 +61,6 @@ if [[ "$DRY_RUN" == "1" ]]; then
 else
   gate_summary=$(near account view-account-summary "$GATE_ACCOUNT_ID" network-config "$NETWORK" now)
   printf '%s\n' "$gate_summary"
-  # UNVERIFIED until first run: near-cli-rs 0.30.1 balance text output format.
   gate_balance=$(printf '%s\n' "$gate_summary" | python3 -c 'import re,sys; text=sys.stdin.read(); m=re.search(r"([0-9]+(?:[.][0-9]+)?) NEAR", text); print(m.group(1) if m else "")')
   if [[ -z "$gate_balance" ]] || ! python3 - "$gate_balance" "$planned_spend" <<'PY'
 from decimal import Decimal

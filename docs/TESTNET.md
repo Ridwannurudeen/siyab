@@ -1,6 +1,6 @@
 # Testnet accounts and deployment
 
-Network: NEAR testnet. Accounts created 29 Oct 2026 through the faucet service (10 NEAR each). The Gate account was topped up by two transfers from the owner (6 NEAR) and the vendor (5 NEAR).
+Network: NEAR testnet. The four top level role accounts were created 29 Oct 2026 through the faucet service (10 NEAR each); the aged payee and the three sub accounts were funded by `fund-myself`. The Gate account was topped up by two transfers from the owner (6 NEAR) and the vendor (5 NEAR).
 
 ## Accounts
 
