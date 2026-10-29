@@ -275,12 +275,18 @@ RHEA_ROLES = {
     "token": "one of the four token contracts that shared the code hash it names",
     "multica": ("an account within Rhea's own Multichain Account system that became active and later "
                 "received funds traceable to the subject wallet"),
-    "intents.near": "the account through which the subject wallet was funded within five minutes",
-    "zec.omft.near": "the account whose ft_withdraw routed ZEC into Zcash Unified Addresses",
+    "intents.near": ("the NEAR Intents contract, through which the subject wallet was funded within five "
+                     "minutes"),
+    "zec.omft.near": ("the NEAR Intents bridged ZEC token account, whose ft_withdraw routed ZEC into Zcash "
+                      "Unified Addresses"),
     "eth": "the attacker ETH wallet where the bridged USDC was deposited into Aave",
 }
 # The exit accounts, each with the words that find the sentence naming it in the report.
 RHEA_EXITS = {"intents.near": "funded through intents.near", "zec.omft.near": "ft_withdraw on zec.omft.near"}
+# The exit accounts keep the category of their existing official or on chain rows (treasury page and
+# contract_source_metadata for intents.near, the catalog's .omft.near bridge row for zec.omft.near).
+RHEA_EXIT_CATEGORIES = {"intents.near": "infrastructure", "zec.omft.near": "bridge"}
+RHEA_EXIT_NOTE = "the category comes from the account's existing on chain or official rows, not from the report"
 RHEA_NOT_PUBLIC = (
     "The report names no person, and this page names none.",
     "The exploit transaction list beyond the transactions the report prints is not reproduced here.",
@@ -404,13 +410,13 @@ def _rhea_reads(client, nearblocks, report):
                 if missing:
                     label = f"no {method}"
                 elif isinstance(error.error, str):
-                    label = f"no {method}: the call fails with {_quoted(error.error)}"
+                    label = f"{method} fails on the contract: {_quoted(error.error)}"
                 else:
                     raise
                 if block is None:
                     raise
                 result = error.error
-                kind = "no_ft_metadata" if method == "ft_metadata" else "answer"
+                kind = "ft_metadata_fails" if method == "ft_metadata" else "answer"
             facts.append((subject, label, client.url, method, {}, block, client.last_source["fetched_at"],
                           _result_sha256(result), kind))
     for role, subject, _, _ in report["accounts"]:
@@ -444,13 +450,14 @@ def _rhea_rows(mode, raw_dir, client, nearblocks):
     source = _document_source(REKT_RHEA_URL, data, fetched_at)
     rows, category = [], {}
     for role, subject, chain, quote in report["accounts"]:
-        category[subject] = "infrastructure" if role in RHEA_EXITS else "incident"
+        category[subject] = RHEA_EXIT_CATEGORIES.get(role, "incident")
         entity = ("NEAR Intents" if role in RHEA_EXITS else "Rhea Finance Multichain Account system"
                   if role == "multica" else RHEA_ATTACKER)
         rows.append(make_row(entity=entity, subject=subject, chain=chain,
                              label=f"named in the rekt.news Rhea Finance report as {RHEA_ROLES[role]}",
                              category=category[subject], provenance="third_party", source=source,
-                             observed_at=fetched_at, confidence=RHEA_CONFIDENCE, note=f"quote {_quoted(quote)}"))
+                             observed_at=fetched_at, confidence=RHEA_CONFIDENCE,
+                             note=f"quote {_quoted(quote)}" + (f"; {RHEA_EXIT_NOTE}" if role in RHEA_EXITS else "")))
     entities = {row["subject"]: row["entity"] for row in rows}
     facts = _rhea_reads(client, nearblocks, report)
     by_kind = {}
@@ -462,12 +469,13 @@ def _rhea_rows(mode, raw_dir, client, nearblocks):
         rows.append(row)
         by_kind.setdefault((subject, kind), row)
     for role, subject, _, _ in report["accounts"]:
-        inputs = [by_kind.get((subject, "hash_equal")), by_kind.get((subject, "no_ft_metadata"))]
+        inputs = [by_kind.get((subject, "hash_equal")), by_kind.get((subject, "ft_metadata_fails"))]
         if role != "token" or None in inputs:
             continue
         rows.append(make_row(
             entity=entities[subject], subject=subject, chain="near",
-            label="token contract without ft_metadata whose code hash equals the hash named in the Rhea report",
+            label=("token contract whose ft_metadata call fails and whose code hash equals the hash named in the "
+                   "Rhea report"),
             category="denylist", provenance="inferred", rule_id="fake_token_shared_hash",
             source={"rule_id": "fake_token_shared_hash", "inputs": [r["id"] for r in inputs]},
             observed_at=max(r["observed_at"] for r in inputs), confidence=RHEA_CONFIDENCE,
@@ -505,7 +513,7 @@ def rhea_incident(mode=None, raw_dir=RAW_DIR, store_path=labels.STORE_PATH, clie
     now_ms = int(datetime.strptime(max(f[6] for f in facts), _TIME).replace(tzinfo=UTC).timestamp() * 1000)
     rules_today = []
     for role, subject, chain, _ in report["accounts"]:
-        if chain != "near" or role in RHEA_EXITS:
+        if chain != "near":
             continue
         if role == "token":
             request = {"kind": "ft", "token_id": subject, "receiver_id": "intents.near", "amount": "1000000",
@@ -530,6 +538,7 @@ def rhea_incident(mode=None, raw_dir=RAW_DIR, store_path=labels.STORE_PATH, clie
         "code_hash_as_reported": {"value": code_hash, "quote": {"source": RHEA_SOURCE_ID, "text": hash_quote}},
         "ref_pools_as_reported": {"ids": pools, "quote": {"source": RHEA_SOURCE_ID, "text": pools_quote}},
         "onchain_facts": onchain_facts,
+        "route_subjects": list(RHEA_EXITS),
         "onchain_state": "current state of the contracts, not a historical block replay",
         "rules_today": rules_today,
         "rules_today_at_ms": now_ms,

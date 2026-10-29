@@ -24,7 +24,7 @@ A chain code that is not a 1Click code says so in the note: `aurora` (a chain th
 
 ## Source strings are data
 
-A label or note repeats strings from its source (token symbols, page names, contract metadata) inside double quotes, as data with the row's source, never as ShieldBot's own words. ShieldBot's own text (verdict literals, check outcomes, reason and detail templates, the labels it writes) keeps to the word rules `scripts/check_hygiene.py` enforces over `gate/`, `intel/*.py` and `docs/`; strings inside quoted source data are exempt, as are the snapshots, fixtures and the label store, which hold source data.
+A label or note repeats strings from its source (token symbols, page names, contract metadata) inside double quotes, as data with the row's source, never as ShieldBot's own words. ShieldBot's own text (verdict literals, check outcomes, reason and detail templates, the labels it writes) keeps to the word rules `scripts/check_hygiene.py` enforces over `gate/`, `intel/*.py` and `docs/`; strings inside quoted source data are exempt, as are the snapshots, fixtures and the label store, which hold source data. A row that repeats a report's sentence writes it in `note` as `quote "<sentence>"`, with the row's source as the citation, and renderers show it as a quote.
 
 ## Categories
 

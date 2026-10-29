@@ -41,14 +41,22 @@ def render(document):
         lines += _wrap(f"[{source['id']}] {source['publisher']}, {source['url']}", 2)
         lines += _wrap(f"sha256 {source['content_sha256']}", 4)
         lines += _wrap(f"fetched {source['fetched_at']}", 4)
-    lines += ["", "Accounts named in the report"]
-    for account in document["accounts"]:
-        lines += _wrap(f"{account['subject']} ({account['chain']})", 2)
-        lines += _wrap(f"role as reported: {account['role_as_reported']}", 4)
-        quote = account["quote"]
-        lines += _wrap(f"quoted from [{quote['source']}]: \"{quote['text']}\"", 4)
-        lines += _wrap("assertions:", 4)
-        lines += [f"      {assertion_id}" for assertion_id in account["assertion_ids"]]
+    route = set(document.get("route_subjects", []))
+    route_heading = ("Protocol accounts the report names as the route (infrastructure and bridge labels, which "
+                     "the label check does not refuse)")
+    groups = (("Accounts named in the report", [a for a in document["accounts"] if a["subject"] not in route]),
+              (route_heading, [a for a in document["accounts"] if a["subject"] in route]))
+    for heading, accounts in groups:
+        if not accounts:
+            continue
+        lines += [""] + _wrap(heading, hang=2)
+        for account in accounts:
+            lines += _wrap(f"{account['subject']} ({account['chain']})", 2)
+            lines += _wrap(f"role as reported: {account['role_as_reported']}", 4)
+            quote = account["quote"]
+            lines += _wrap(f"quoted from [{quote['source']}]: \"{quote['text']}\"", 4)
+            lines += _wrap("assertions:", 4)
+            lines += [f"      {assertion_id}" for assertion_id in account["assertion_ids"]]
     for key, title in (("code_hash_as_reported", "Code hash as reported"), ("ref_pools_as_reported", "Ref pools as reported")):
         if key in document:
             item = document[key]

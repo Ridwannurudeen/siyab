@@ -134,7 +134,8 @@ class RheaIncidentTest(unittest.TestCase):
                 current = [a for a in self.store.by_subject(token, "near") if a.superseded_by is None]
                 facts = {a.label for a in current if a.provenance == "onchain"}
                 self.assertIn("code hash equals the hash named in the Rhea report", facts)
-                self.assertTrue(any(label.startswith("no ft_metadata") for label in facts))
+                self.assertTrue(any(label.startswith("ft_metadata fails on the contract: ") for label in facts))
+                self.assertFalse(any("no ft_metadata" in label for label in facts))
                 [inferred] = [a for a in current if a.provenance == "inferred"]
                 self.assertEqual((inferred.category, inferred.rule_id), ("denylist", "fake_token_shared_hash"))
                 inputs = [self.ids[i] for i in inferred.source["inputs"]]
@@ -176,7 +177,15 @@ class RheaIncidentTest(unittest.TestCase):
                 for assertion_id in entry["labels"]:
                     self.assertIn(assertion_id, self.ids)
         self.assertEqual({verdicts[t]["as"] for t in TOKENS}, {"token"})
-        self.assertEqual({e["verdict"] for e in self.document["rules_today"]}, {"DENY"})
+        exits = ("intents.near", "zec.omft.near")
+        self.assertEqual(self.document["route_subjects"], list(exits))
+        for subject in exits:
+            with self.subTest(subject=subject):
+                entry = verdicts[subject]
+                self.assertEqual(entry["as"], "receiver")
+                self.assertEqual({c["id"]: c["status"] for c in entry["checks"]}["label_denylist"], "pass")
+        self.assertEqual({e["verdict"] for e in self.document["rules_today"] if e["subject"] not in exits},
+                         {"DENY"})
 
     def test_rules_today_reproduce_in_replay(self):
         with mock.patch("urllib.request.urlopen", side_effect=no_network):
@@ -188,7 +197,6 @@ class RheaIncidentTest(unittest.TestCase):
         for key in ("accounts", "onchain_facts", "sources", "not_public", "code_hash_as_reported"):
             with self.subTest(key=key):
                 self.assertEqual(rebuilt[key], self.document[key])
-
 
 
 class IncidentPageTest(unittest.TestCase):
@@ -221,6 +229,16 @@ class IncidentPageTest(unittest.TestCase):
         for item in document["not_public"]:
             self.assertIn(f"- {item}", flat)
 
+    def test_the_route_accounts_have_their_own_heading(self):
+        lines = self.run_command("rhea")[1].splitlines()
+        start = lines.index("Protocol accounts the report names as the route (infrastructure and bridge")
+        end = lines.index("Code hash as reported")
+        listed = [line.split()[0] for line in lines[start:end] if line.startswith("  ") and line.endswith("(near)")]
+        self.assertEqual(listed, ["intents.near", "zec.omft.near"])
+        before = lines[:start]
+        self.assertNotIn("  intents.near (near)", before)
+        self.assertIn(f"  {COLLECTOR} (near)", before)
+
     def test_json_prints_the_file(self):
         code, output, _ = self.run_command("--json", "rhea")
         self.assertEqual(code, 0)
@@ -239,6 +257,7 @@ class IncidentPageTest(unittest.TestCase):
         document["accounts"][0]["quote"]["source"] = "elsewhere"
         with self.assertRaises(ValueError):
             incident.render(document)
+
 
 if __name__ == "__main__":
     unittest.main()

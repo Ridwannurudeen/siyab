@@ -124,9 +124,9 @@
       "assertion_ids": [
         "5ebef8b10c3f91f9b97215f39492df2cc0ea81397c9ca9636732d0fd0f6bdf19",
         "8afc1bbf04d7f5b4afe8eb07afdf4b1db5f50aa6534617b92b48c85616adcef9",
-        "5e0f0ce291e0453f6606f1acc7d23cb226ff719b65b999db90ad2a7b531b0ac0",
+        "4dee8f7bf4d04282c2422d2a31108dd0bdae5faee9a028753f5ff6b0505fe8f9",
         "20c880bd4b817b6cf8801fd24681b9608791eaaeebcf8261a03c1fbb5625f97e",
-        "bcc188e45bc059142854f9c2263e7c13e48eef219b1227ae8e558ef37db50d36"
+        "c388d0b2030a32c524704505544b00f1ee4112f142fbdac6795bd6fa23bb4609"
       ]
     },
     {
@@ -140,9 +140,9 @@
       "assertion_ids": [
         "07feed659b36ce884781596aa507780db9153179c3b7edfd0f0bfd9058c9776b",
         "78370768ade233245897313e0f41d52551aacfb008b8a4bd60d4d743b59f4fb3",
-        "f9da386132795c9d24456d0fb452b9cb4d0c4cb3b607bd3e0129d8d7810b11c3",
+        "1c3b3c6372ac893787d01f2f56a1f4d50bae066934bdb87f870066bf59b1bf37",
         "aea88cc478f8d80aff15b5a3b0c3fbbbf032d5aec5a8eec1ec6afa650e660677",
-        "2a29e747be4c2a21bf0f2c173f4b27a7932d1d2d43f92cf20859f6962c85b827"
+        "51f29a0fe76c071c90d4c06ea58b1621faea6fad06bd79b200d853b54ee78991"
       ]
     },
     {
@@ -156,9 +156,9 @@
       "assertion_ids": [
         "d28bf094c8621b2454306d76e7c9f5a44d67a709d9bc335258ea74720e70ca45",
         "649b76dfc17aa8c3fcc229e936596b52a75ac520c6ba388c4644a4ac6f474af4",
-        "51bb72c37480283d1f66735ceb3299d2de14bb5fc130cae91aefcf29ac870b66",
+        "62604882cb19af5d60acede36c30796fef66ebfe79abdd7b6300a0c42c9c5201",
         "6e32987a2040d583403c543bcf9a281c9c2e21e72f225d88a9747212ee44fcbd",
-        "66361bdfe8e2cb1d3f2a06a7894460265316b05eef3ced1fff3d9a8782cfcda9"
+        "d24e818790b62881b6175b5fb2940c1d681c066f53f96e50de78973dec7bf9ed"
       ]
     },
     {
@@ -172,9 +172,9 @@
       "assertion_ids": [
         "063d8b4d1a637bb28f41769d118663b5288be9309a0ad24bc82159154bbc1621",
         "b51fb6796a5e3ea7a2402b15274d0e0ad4519043b78e26785640c287ecbbf0a8",
-        "dc13b7a6cf7103ef0c0ce26ec188f553e1ca762f996af7d338239380b997b3cb",
+        "eee6ce4cf42a604ab5f48f2bfff992a2cf231a811f02cfdab1ffa8d5a3a71040",
         "e22fdac806dc5088cf731515b519b2725860f4274e20165e1636c04c77df307b",
-        "d41f89b572497872ced1a37ab7bcca9aff81d292f0a398a4ab4268d18d2c5032"
+        "e0b6861919bf1464415972ca19df341baef9ba4a755b74e319fe6d3c5ddaa07b"
       ]
     },
     {
@@ -219,27 +219,27 @@
     {
       "subject": "intents.near",
       "chain": "near",
-      "role_as_reported": "the account through which the subject wallet was funded within five minutes",
+      "role_as_reported": "the NEAR Intents contract, through which the subject wallet was funded within five minutes",
       "quote": {
         "source": "rekt-rhea",
         "text": "The subject wallet itself was created on April 15 via a dust NEAR transfer, funded through intents.near within five minutes, then began distributing capital to dozens of intermediary accounts in rapid automated succession."
       },
       "assertion_ids": [
-        "8742d8a4d9ef3adc6bb7401bb852749f3f2111bb7db1c461695b475ba15cb351",
+        "7b308850959f48e79b097fe2f1e24f0cac5f2b7f8c88dbe1acb9dfeb29cc5cbc",
         "c55b108c502a3834f1acf605aed7284991956078fe345a72d5025a54e6b5c4a2"
       ]
     },
     {
       "subject": "zec.omft.near",
       "chain": "near",
-      "role_as_reported": "the account whose ft_withdraw routed ZEC into Zcash Unified Addresses",
+      "role_as_reported": "the NEAR Intents bridged ZEC token account, whose ft_withdraw routed ZEC into Zcash Unified Addresses",
       "quote": {
         "source": "rekt-rhea",
         "text": "And ft_withdraw on zec.omft.near routed ZEC directly into Zcash Unified Addresses, the fully shielded pool."
       },
       "assertion_ids": [
-        "2e4d00f38aa868e52697513b7c8221b87ed72d565816bf334de77f0c196fc903",
-        "55863d74ff6425823f1b1e903a46991c969598bbfbabac0d5312c116759819d0"
+        "188824656539689da2cce8c7066217a7a65bb21a1ba88982952a6f3da5770735",
+        "da38379cf462153d06021fb513d5658dd277192230978f2295e826a61c2cdc90"
       ]
     },
     {
@@ -382,7 +382,7 @@
       "args": {},
       "block": 222119665,
       "result_sha256": "a6ffa9c4f04ef2be3cc952550343ee5c928aad80fba2d055a3a85b3739428330",
-      "summary": "no ft_metadata: the call fails with \"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\nnot implemented\\\" })\""
+      "summary": "ft_metadata fails on the contract: \"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\nnot implemented\\\" })\""
     },
     {
       "subject": "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163",
@@ -408,7 +408,7 @@
       "args": {},
       "block": 222119756,
       "result_sha256": "a6ffa9c4f04ef2be3cc952550343ee5c928aad80fba2d055a3a85b3739428330",
-      "summary": "no ft_metadata: the call fails with \"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\nnot implemented\\\" })\""
+      "summary": "ft_metadata fails on the contract: \"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\nnot implemented\\\" })\""
     },
     {
       "subject": "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640",
@@ -434,7 +434,7 @@
       "args": {},
       "block": 222119761,
       "result_sha256": "a6ffa9c4f04ef2be3cc952550343ee5c928aad80fba2d055a3a85b3739428330",
-      "summary": "no ft_metadata: the call fails with \"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\nnot implemented\\\" })\""
+      "summary": "ft_metadata fails on the contract: \"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\nnot implemented\\\" })\""
     },
     {
       "subject": "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee",
@@ -460,7 +460,7 @@
       "args": {},
       "block": 222119765,
       "result_sha256": "a6ffa9c4f04ef2be3cc952550343ee5c928aad80fba2d055a3a85b3739428330",
-      "summary": "no ft_metadata: the call fails with \"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\nnot implemented\\\" })\""
+      "summary": "ft_metadata fails on the contract: \"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\nnot implemented\\\" })\""
     },
     {
       "subject": "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705",
@@ -587,6 +587,10 @@
       "summary": "created at block 194226542 by transaction 4wrLZQmMcxNGe7hEpzc91UHJT8r6AE4W1SvT2gZirb9 with a deposit of 15 NEAR"
     }
   ],
+  "route_subjects": [
+    "intents.near",
+    "zec.omft.near"
+  ],
   "onchain_state": "current state of the contracts, not a historical block replay",
   "rules_today": [
     {
@@ -617,7 +621,7 @@
           "detail": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \"named in the rekt.news Rhea Finance report as the collector account, which the report also prints as the attacker NEAR wallet\" (assertion 664db39d7af57209306fd948412fe59353389d94aba4aafc6c3b2779f1767ee2); 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \"account exists with no contract code\" (assertion 2c7133b4d2c48237508311fab74b65053251d074a29b786471bed1f177cda275); 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \"created at block 194074444 by transaction 8ogy5xrbQG78Kw5Eo52iJnfNZQZzeh2iLMWeWXV1Wyuu with a deposit of 0.0000000000000000000001 NEAR\" (assertion 6ac99683a4192b79113c521dfde4a5e45ad506d353609438e48e48104f7010ad)",
           "source": {
             "provider": "label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -657,7 +661,7 @@
           "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
           "source": {
             "provider": "allowlist and label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -711,7 +715,7 @@
           "detail": "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5 carries the incident label \"named in the rekt.news Rhea Finance report as the master account\" (assertion 56bcaa5972ef748cca8a1f9b9be8f856184a94fa7268ec9a681ee89664d4d207); 72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5 carries the incident label \"account exists with contract code hash BbQTHv9y5pJcAVbcZVRgMkZib9v2bfydRtBL9msUR4Wi\" (assertion a28b0030e0a5060ee2e24e8dd6b0cd288d795e347660baf73a7f2ca2bfcdf7f4)",
           "source": {
             "provider": "label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -751,7 +755,7 @@
           "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
           "source": {
             "provider": "allowlist and label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -803,7 +807,7 @@
           "detail": "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03 carries the incident label \"named in the rekt.news Rhea Finance report as one of the five worker accounts\" (assertion d0950956ec052f5969d95cefc8591864de3c88568c4b2966d5227c9002f7f693); d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03 carries the incident label \"account does not exist at this block (deleted or never created)\" (assertion 82b84c71d81bf3008c90cf7ef695683fd8e9b7547a702d4958c2a498ab756c0a); d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03 carries the incident label \"created at block 194226546 by transaction CXVsn1nNZ9Rv4c7X5Hg1FEtcRZSAG5QwmhyyfsgahWj7 with a deposit of 15 NEAR\" (assertion afe41a71fa6abe8078bf8245133a31859e72eb66e91a11d57db19dd8716c2326)",
           "source": {
             "provider": "label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -843,7 +847,7 @@
           "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
           "source": {
             "provider": "allowlist and label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -897,7 +901,7 @@
           "detail": "d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473 carries the incident label \"named in the rekt.news Rhea Finance report as one of the five worker accounts\" (assertion 6604099647fc449b2b27c122ec168df5a169b5b7061c4582cec410c211e982fa); d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473 carries the incident label \"account exists with no contract code\" (assertion 55b2eafe1093b7b3dd8dbdd44e6932970a34e6f05617df6b0d705bee9bf71d92); d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473 carries the incident label \"created at block 194226560 by transaction 8LU8TZjjw87By1mcWvarrjTESgGy2aTKvNmDADNSsa3t with a deposit of 15 NEAR\" (assertion 0cc9e717b641ec428ebad282f817494adf2d1db2f08fbe01054e98f7be938418)",
           "source": {
             "provider": "label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -937,7 +941,7 @@
           "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
           "source": {
             "provider": "allowlist and label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -990,7 +994,7 @@
           "detail": "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2 carries the incident label \"named in the rekt.news Rhea Finance report as one of the five worker accounts\" (assertion 7f0b7036681ecde8f4db2d0c311582cc4886dd0426f9403728e6acfbbbae5524); 839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2 carries the incident label \"account does not exist at this block (deleted or never created)\" (assertion 1c2f83d48512e6646e41fb2423443596f90f9848bd5aa54c9cf99f5654ef84c7); 839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2 carries the incident label \"created at block 194226550 by transaction BUkhCry3v7WihKw35sNy7nKzf6CVUf9AdyM37CTXru4R with a deposit of 15 NEAR\" (assertion e1545f2cf37080fe9c8ce43c008c5813335a57f891a37335054bf4ba71ccb999)",
           "source": {
             "provider": "label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -1030,7 +1034,7 @@
           "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
           "source": {
             "provider": "allowlist and label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -1084,7 +1088,7 @@
           "detail": "9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616 carries the incident label \"named in the rekt.news Rhea Finance report as one of the five worker accounts\" (assertion faf1044c81efdd52961fa2ba1f7afc837e8cd0d8a47ac0d378a8d0384cbd42e1); 9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616 carries the incident label \"account does not exist at this block (deleted or never created)\" (assertion c2271f9a894e7f92e29d2a3c2116b41878833a9a0e88db68e36bd5e4d3bf4b39); 9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616 carries the incident label \"created at block 194226555 by transaction 7EWXTEPaVM2iFgthFBgMPA4hT1VeDAQGFy7vfcEYpEcM with a deposit of 15 NEAR\" (assertion 7bc19a9d619c05a125c14582204d5166963d3b526b113ce9f0a25194915c8cad)",
           "source": {
             "provider": "label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -1124,7 +1128,7 @@
           "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
           "source": {
             "provider": "allowlist and label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -1178,7 +1182,7 @@
           "detail": "5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040 carries the incident label \"named in the rekt.news Rhea Finance report as one of the five worker accounts\" (assertion 35b941cd98ca03d551a040a02e17a14ba7e65a53329d15a6bad19d3f05f88b22); 5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040 carries the incident label \"account does not exist at this block (deleted or never created)\" (assertion e04b02ea3ea1bcbc588be86b45413564743bb1e29da385ff314a270549dee0fa); 5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040 carries the incident label \"created at block 194226542 by transaction 4wrLZQmMcxNGe7hEpzc91UHJT8r6AE4W1SvT2gZirb9 with a deposit of 15 NEAR\" (assertion 42f5593d5dda49777189f15e09803f4a7c2452b7feb0829506c96f16a1edab9e)",
           "source": {
             "provider": "label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -1218,7 +1222,7 @@
           "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
           "source": {
             "provider": "allowlist and label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -1269,10 +1273,10 @@
         {
           "id": "label_denylist",
           "status": "signal",
-          "detail": "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the incident label \"named in the rekt.news Rhea Finance report as one of the four token contracts that shared the code hash it names\" (assertion 5ebef8b10c3f91f9b97215f39492df2cc0ea81397c9ca9636732d0fd0f6bdf19); c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the incident label \"code hash equals the hash named in the Rhea report\" (assertion 8afc1bbf04d7f5b4afe8eb07afdf4b1db5f50aa6534617b92b48c85616adcef9); c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the incident label \"no ft_metadata: the call fails with \\\"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\\\\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\\\\\nnot implemented\\\\\\\" })\\\"\" (assertion 5e0f0ce291e0453f6606f1acc7d23cb226ff719b65b999db90ad2a7b531b0ac0); c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the incident label \"no contract_source_metadata\" (assertion 20c880bd4b817b6cf8801fd24681b9608791eaaeebcf8261a03c1fbb5625f97e); c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the denylist label \"token contract without ft_metadata whose code hash equals the hash named in the Rhea report\" (assertion bcc188e45bc059142854f9c2263e7c13e48eef219b1227ae8e558ef37db50d36)",
+          "detail": "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the incident label \"named in the rekt.news Rhea Finance report as one of the four token contracts that shared the code hash it names\" (assertion 5ebef8b10c3f91f9b97215f39492df2cc0ea81397c9ca9636732d0fd0f6bdf19); c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the incident label \"code hash equals the hash named in the Rhea report\" (assertion 8afc1bbf04d7f5b4afe8eb07afdf4b1db5f50aa6534617b92b48c85616adcef9); c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the incident label \"ft_metadata fails on the contract: \\\"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\\\\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\\\\\nnot implemented\\\\\\\" })\\\"\" (assertion 4dee8f7bf4d04282c2422d2a31108dd0bdae5faee9a028753f5ff6b0505fe8f9); c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the incident label \"no contract_source_metadata\" (assertion 20c880bd4b817b6cf8801fd24681b9608791eaaeebcf8261a03c1fbb5625f97e); c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the denylist label \"token contract whose ft_metadata call fails and whose code hash equals the hash named in the Rhea report\" (assertion c388d0b2030a32c524704505544b00f1ee4112f142fbdac6795bd6fa23bb4609)",
           "source": {
             "provider": "label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -1282,7 +1286,7 @@
           "detail": "token_not_in_catalog: c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 is neither a cap asset nor a catalog_token",
           "source": {
             "provider": "label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -1342,7 +1346,7 @@
           "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
           "source": {
             "provider": "allowlist and label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -1359,19 +1363,19 @@
       ],
       "reasons": [
         "Not on the owner's allowlist.",
-        "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the incident label \"named in the rekt.news Rhea Finance report as one of the four token contracts that shared the code hash it names\" (assertion 5ebef8b10c3f91f9b97215f39492df2cc0ea81397c9ca9636732d0fd0f6bdf19); c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the incident label \"code hash equals the hash named in the Rhea report\" (assertion 8afc1bbf04d7f5b4afe8eb07afdf4b1db5f50aa6534617b92b48c85616adcef9); c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the incident label \"no ft_metadata: the call fails with \\\"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\\\\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\\\\\nnot implemented\\\\\\\" })\\\"\" (assertion 5e0f0ce291e0453f6606f1acc7d23cb226ff719b65b999db90ad2a7b531b0ac0); c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the incident label \"no contract_source_metadata\" (assertion 20c880bd4b817b6cf8801fd24681b9608791eaaeebcf8261a03c1fbb5625f97e); c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the denylist label \"token contract without ft_metadata whose code hash equals the hash named in the Rhea report\" (assertion bcc188e45bc059142854f9c2263e7c13e48eef219b1227ae8e558ef37db50d36).",
+        "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the incident label \"named in the rekt.news Rhea Finance report as one of the four token contracts that shared the code hash it names\" (assertion 5ebef8b10c3f91f9b97215f39492df2cc0ea81397c9ca9636732d0fd0f6bdf19); c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the incident label \"code hash equals the hash named in the Rhea report\" (assertion 8afc1bbf04d7f5b4afe8eb07afdf4b1db5f50aa6534617b92b48c85616adcef9); c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the incident label \"ft_metadata fails on the contract: \\\"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\\\\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\\\\\nnot implemented\\\\\\\" })\\\"\" (assertion 4dee8f7bf4d04282c2422d2a31108dd0bdae5faee9a028753f5ff6b0505fe8f9); c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the incident label \"no contract_source_metadata\" (assertion 20c880bd4b817b6cf8801fd24681b9608791eaaeebcf8261a03c1fbb5625f97e); c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the denylist label \"token contract whose ft_metadata call fails and whose code hash equals the hash named in the Rhea report\" (assertion c388d0b2030a32c524704505544b00f1ee4112f142fbdac6795bd6fa23bb4609).",
         "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 is not a catalog token or a cap asset of the agent."
       ],
       "labels": [
         "522c8a621dbd41266cdf8a2d5020f4b27a608037e06ec4d3a50d2d9bb0681402",
         "a4620b716e67ab13490ba33b67297ca168d93d4461c229e30dfa8a36b5396ebc",
-        "8742d8a4d9ef3adc6bb7401bb852749f3f2111bb7db1c461695b475ba15cb351",
+        "7b308850959f48e79b097fe2f1e24f0cac5f2b7f8c88dbe1acb9dfeb29cc5cbc",
         "c55b108c502a3834f1acf605aed7284991956078fe345a72d5025a54e6b5c4a2",
         "5ebef8b10c3f91f9b97215f39492df2cc0ea81397c9ca9636732d0fd0f6bdf19",
         "8afc1bbf04d7f5b4afe8eb07afdf4b1db5f50aa6534617b92b48c85616adcef9",
-        "5e0f0ce291e0453f6606f1acc7d23cb226ff719b65b999db90ad2a7b531b0ac0",
+        "4dee8f7bf4d04282c2422d2a31108dd0bdae5faee9a028753f5ff6b0505fe8f9",
         "20c880bd4b817b6cf8801fd24681b9608791eaaeebcf8261a03c1fbb5625f97e",
-        "bcc188e45bc059142854f9c2263e7c13e48eef219b1227ae8e558ef37db50d36"
+        "c388d0b2030a32c524704505544b00f1ee4112f142fbdac6795bd6fa23bb4609"
       ]
     },
     {
@@ -1399,10 +1403,10 @@
         {
           "id": "label_denylist",
           "status": "signal",
-          "detail": "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the incident label \"named in the rekt.news Rhea Finance report as one of the four token contracts that shared the code hash it names\" (assertion 07feed659b36ce884781596aa507780db9153179c3b7edfd0f0bfd9058c9776b); 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the incident label \"code hash equals the hash named in the Rhea report\" (assertion 78370768ade233245897313e0f41d52551aacfb008b8a4bd60d4d743b59f4fb3); 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the incident label \"no ft_metadata: the call fails with \\\"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\\\\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\\\\\nnot implemented\\\\\\\" })\\\"\" (assertion f9da386132795c9d24456d0fb452b9cb4d0c4cb3b607bd3e0129d8d7810b11c3); 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the incident label \"no contract_source_metadata\" (assertion aea88cc478f8d80aff15b5a3b0c3fbbbf032d5aec5a8eec1ec6afa650e660677); 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the denylist label \"token contract without ft_metadata whose code hash equals the hash named in the Rhea report\" (assertion 2a29e747be4c2a21bf0f2c173f4b27a7932d1d2d43f92cf20859f6962c85b827)",
+          "detail": "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the incident label \"named in the rekt.news Rhea Finance report as one of the four token contracts that shared the code hash it names\" (assertion 07feed659b36ce884781596aa507780db9153179c3b7edfd0f0bfd9058c9776b); 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the incident label \"code hash equals the hash named in the Rhea report\" (assertion 78370768ade233245897313e0f41d52551aacfb008b8a4bd60d4d743b59f4fb3); 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the incident label \"ft_metadata fails on the contract: \\\"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\\\\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\\\\\nnot implemented\\\\\\\" })\\\"\" (assertion 1c3b3c6372ac893787d01f2f56a1f4d50bae066934bdb87f870066bf59b1bf37); 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the incident label \"no contract_source_metadata\" (assertion aea88cc478f8d80aff15b5a3b0c3fbbbf032d5aec5a8eec1ec6afa650e660677); 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the denylist label \"token contract whose ft_metadata call fails and whose code hash equals the hash named in the Rhea report\" (assertion 51f29a0fe76c071c90d4c06ea58b1621faea6fad06bd79b200d853b54ee78991)",
           "source": {
             "provider": "label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -1412,7 +1416,7 @@
           "detail": "token_not_in_catalog: 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 is neither a cap asset nor a catalog_token",
           "source": {
             "provider": "label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -1472,7 +1476,7 @@
           "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
           "source": {
             "provider": "allowlist and label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -1489,19 +1493,19 @@
       ],
       "reasons": [
         "Not on the owner's allowlist.",
-        "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the incident label \"named in the rekt.news Rhea Finance report as one of the four token contracts that shared the code hash it names\" (assertion 07feed659b36ce884781596aa507780db9153179c3b7edfd0f0bfd9058c9776b); 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the incident label \"code hash equals the hash named in the Rhea report\" (assertion 78370768ade233245897313e0f41d52551aacfb008b8a4bd60d4d743b59f4fb3); 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the incident label \"no ft_metadata: the call fails with \\\"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\\\\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\\\\\nnot implemented\\\\\\\" })\\\"\" (assertion f9da386132795c9d24456d0fb452b9cb4d0c4cb3b607bd3e0129d8d7810b11c3); 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the incident label \"no contract_source_metadata\" (assertion aea88cc478f8d80aff15b5a3b0c3fbbbf032d5aec5a8eec1ec6afa650e660677); 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the denylist label \"token contract without ft_metadata whose code hash equals the hash named in the Rhea report\" (assertion 2a29e747be4c2a21bf0f2c173f4b27a7932d1d2d43f92cf20859f6962c85b827).",
+        "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the incident label \"named in the rekt.news Rhea Finance report as one of the four token contracts that shared the code hash it names\" (assertion 07feed659b36ce884781596aa507780db9153179c3b7edfd0f0bfd9058c9776b); 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the incident label \"code hash equals the hash named in the Rhea report\" (assertion 78370768ade233245897313e0f41d52551aacfb008b8a4bd60d4d743b59f4fb3); 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the incident label \"ft_metadata fails on the contract: \\\"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\\\\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\\\\\nnot implemented\\\\\\\" })\\\"\" (assertion 1c3b3c6372ac893787d01f2f56a1f4d50bae066934bdb87f870066bf59b1bf37); 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the incident label \"no contract_source_metadata\" (assertion aea88cc478f8d80aff15b5a3b0c3fbbbf032d5aec5a8eec1ec6afa650e660677); 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the denylist label \"token contract whose ft_metadata call fails and whose code hash equals the hash named in the Rhea report\" (assertion 51f29a0fe76c071c90d4c06ea58b1621faea6fad06bd79b200d853b54ee78991).",
         "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 is not a catalog token or a cap asset of the agent."
       ],
       "labels": [
         "522c8a621dbd41266cdf8a2d5020f4b27a608037e06ec4d3a50d2d9bb0681402",
         "a4620b716e67ab13490ba33b67297ca168d93d4461c229e30dfa8a36b5396ebc",
-        "8742d8a4d9ef3adc6bb7401bb852749f3f2111bb7db1c461695b475ba15cb351",
+        "7b308850959f48e79b097fe2f1e24f0cac5f2b7f8c88dbe1acb9dfeb29cc5cbc",
         "c55b108c502a3834f1acf605aed7284991956078fe345a72d5025a54e6b5c4a2",
         "07feed659b36ce884781596aa507780db9153179c3b7edfd0f0bfd9058c9776b",
         "78370768ade233245897313e0f41d52551aacfb008b8a4bd60d4d743b59f4fb3",
-        "f9da386132795c9d24456d0fb452b9cb4d0c4cb3b607bd3e0129d8d7810b11c3",
+        "1c3b3c6372ac893787d01f2f56a1f4d50bae066934bdb87f870066bf59b1bf37",
         "aea88cc478f8d80aff15b5a3b0c3fbbbf032d5aec5a8eec1ec6afa650e660677",
-        "2a29e747be4c2a21bf0f2c173f4b27a7932d1d2d43f92cf20859f6962c85b827"
+        "51f29a0fe76c071c90d4c06ea58b1621faea6fad06bd79b200d853b54ee78991"
       ]
     },
     {
@@ -1529,10 +1533,10 @@
         {
           "id": "label_denylist",
           "status": "signal",
-          "detail": "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the incident label \"named in the rekt.news Rhea Finance report as one of the four token contracts that shared the code hash it names\" (assertion d28bf094c8621b2454306d76e7c9f5a44d67a709d9bc335258ea74720e70ca45); 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the incident label \"code hash equals the hash named in the Rhea report\" (assertion 649b76dfc17aa8c3fcc229e936596b52a75ac520c6ba388c4644a4ac6f474af4); 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the incident label \"no ft_metadata: the call fails with \\\"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\\\\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\\\\\nnot implemented\\\\\\\" })\\\"\" (assertion 51bb72c37480283d1f66735ceb3299d2de14bb5fc130cae91aefcf29ac870b66); 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the incident label \"no contract_source_metadata\" (assertion 6e32987a2040d583403c543bcf9a281c9c2e21e72f225d88a9747212ee44fcbd); 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the denylist label \"token contract without ft_metadata whose code hash equals the hash named in the Rhea report\" (assertion 66361bdfe8e2cb1d3f2a06a7894460265316b05eef3ced1fff3d9a8782cfcda9)",
+          "detail": "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the incident label \"named in the rekt.news Rhea Finance report as one of the four token contracts that shared the code hash it names\" (assertion d28bf094c8621b2454306d76e7c9f5a44d67a709d9bc335258ea74720e70ca45); 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the incident label \"code hash equals the hash named in the Rhea report\" (assertion 649b76dfc17aa8c3fcc229e936596b52a75ac520c6ba388c4644a4ac6f474af4); 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the incident label \"ft_metadata fails on the contract: \\\"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\\\\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\\\\\nnot implemented\\\\\\\" })\\\"\" (assertion 62604882cb19af5d60acede36c30796fef66ebfe79abdd7b6300a0c42c9c5201); 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the incident label \"no contract_source_metadata\" (assertion 6e32987a2040d583403c543bcf9a281c9c2e21e72f225d88a9747212ee44fcbd); 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the denylist label \"token contract whose ft_metadata call fails and whose code hash equals the hash named in the Rhea report\" (assertion d24e818790b62881b6175b5fb2940c1d681c066f53f96e50de78973dec7bf9ed)",
           "source": {
             "provider": "label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -1542,7 +1546,7 @@
           "detail": "token_not_in_catalog: 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee is neither a cap asset nor a catalog_token",
           "source": {
             "provider": "label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -1602,7 +1606,7 @@
           "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
           "source": {
             "provider": "allowlist and label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -1619,19 +1623,19 @@
       ],
       "reasons": [
         "Not on the owner's allowlist.",
-        "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the incident label \"named in the rekt.news Rhea Finance report as one of the four token contracts that shared the code hash it names\" (assertion d28bf094c8621b2454306d76e7c9f5a44d67a709d9bc335258ea74720e70ca45); 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the incident label \"code hash equals the hash named in the Rhea report\" (assertion 649b76dfc17aa8c3fcc229e936596b52a75ac520c6ba388c4644a4ac6f474af4); 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the incident label \"no ft_metadata: the call fails with \\\"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\\\\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\\\\\nnot implemented\\\\\\\" })\\\"\" (assertion 51bb72c37480283d1f66735ceb3299d2de14bb5fc130cae91aefcf29ac870b66); 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the incident label \"no contract_source_metadata\" (assertion 6e32987a2040d583403c543bcf9a281c9c2e21e72f225d88a9747212ee44fcbd); 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the denylist label \"token contract without ft_metadata whose code hash equals the hash named in the Rhea report\" (assertion 66361bdfe8e2cb1d3f2a06a7894460265316b05eef3ced1fff3d9a8782cfcda9).",
+        "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the incident label \"named in the rekt.news Rhea Finance report as one of the four token contracts that shared the code hash it names\" (assertion d28bf094c8621b2454306d76e7c9f5a44d67a709d9bc335258ea74720e70ca45); 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the incident label \"code hash equals the hash named in the Rhea report\" (assertion 649b76dfc17aa8c3fcc229e936596b52a75ac520c6ba388c4644a4ac6f474af4); 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the incident label \"ft_metadata fails on the contract: \\\"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\\\\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\\\\\nnot implemented\\\\\\\" })\\\"\" (assertion 62604882cb19af5d60acede36c30796fef66ebfe79abdd7b6300a0c42c9c5201); 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the incident label \"no contract_source_metadata\" (assertion 6e32987a2040d583403c543bcf9a281c9c2e21e72f225d88a9747212ee44fcbd); 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the denylist label \"token contract whose ft_metadata call fails and whose code hash equals the hash named in the Rhea report\" (assertion d24e818790b62881b6175b5fb2940c1d681c066f53f96e50de78973dec7bf9ed).",
         "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee is not a catalog token or a cap asset of the agent."
       ],
       "labels": [
         "522c8a621dbd41266cdf8a2d5020f4b27a608037e06ec4d3a50d2d9bb0681402",
         "a4620b716e67ab13490ba33b67297ca168d93d4461c229e30dfa8a36b5396ebc",
-        "8742d8a4d9ef3adc6bb7401bb852749f3f2111bb7db1c461695b475ba15cb351",
+        "7b308850959f48e79b097fe2f1e24f0cac5f2b7f8c88dbe1acb9dfeb29cc5cbc",
         "c55b108c502a3834f1acf605aed7284991956078fe345a72d5025a54e6b5c4a2",
         "d28bf094c8621b2454306d76e7c9f5a44d67a709d9bc335258ea74720e70ca45",
         "649b76dfc17aa8c3fcc229e936596b52a75ac520c6ba388c4644a4ac6f474af4",
-        "51bb72c37480283d1f66735ceb3299d2de14bb5fc130cae91aefcf29ac870b66",
+        "62604882cb19af5d60acede36c30796fef66ebfe79abdd7b6300a0c42c9c5201",
         "6e32987a2040d583403c543bcf9a281c9c2e21e72f225d88a9747212ee44fcbd",
-        "66361bdfe8e2cb1d3f2a06a7894460265316b05eef3ced1fff3d9a8782cfcda9"
+        "d24e818790b62881b6175b5fb2940c1d681c066f53f96e50de78973dec7bf9ed"
       ]
     },
     {
@@ -1659,10 +1663,10 @@
         {
           "id": "label_denylist",
           "status": "signal",
-          "detail": "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the incident label \"named in the rekt.news Rhea Finance report as one of the four token contracts that shared the code hash it names\" (assertion 063d8b4d1a637bb28f41769d118663b5288be9309a0ad24bc82159154bbc1621); 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the incident label \"code hash equals the hash named in the Rhea report\" (assertion b51fb6796a5e3ea7a2402b15274d0e0ad4519043b78e26785640c287ecbbf0a8); 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the incident label \"no ft_metadata: the call fails with \\\"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\\\\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\\\\\nnot implemented\\\\\\\" })\\\"\" (assertion dc13b7a6cf7103ef0c0ce26ec188f553e1ca762f996af7d338239380b997b3cb); 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the incident label \"no contract_source_metadata\" (assertion e22fdac806dc5088cf731515b519b2725860f4274e20165e1636c04c77df307b); 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the denylist label \"token contract without ft_metadata whose code hash equals the hash named in the Rhea report\" (assertion d41f89b572497872ced1a37ab7bcca9aff81d292f0a398a4ab4268d18d2c5032)",
+          "detail": "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the incident label \"named in the rekt.news Rhea Finance report as one of the four token contracts that shared the code hash it names\" (assertion 063d8b4d1a637bb28f41769d118663b5288be9309a0ad24bc82159154bbc1621); 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the incident label \"code hash equals the hash named in the Rhea report\" (assertion b51fb6796a5e3ea7a2402b15274d0e0ad4519043b78e26785640c287ecbbf0a8); 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the incident label \"ft_metadata fails on the contract: \\\"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\\\\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\\\\\nnot implemented\\\\\\\" })\\\"\" (assertion eee6ce4cf42a604ab5f48f2bfff992a2cf231a811f02cfdab1ffa8d5a3a71040); 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the incident label \"no contract_source_metadata\" (assertion e22fdac806dc5088cf731515b519b2725860f4274e20165e1636c04c77df307b); 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the denylist label \"token contract whose ft_metadata call fails and whose code hash equals the hash named in the Rhea report\" (assertion e0b6861919bf1464415972ca19df341baef9ba4a755b74e319fe6d3c5ddaa07b)",
           "source": {
             "provider": "label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -1672,7 +1676,7 @@
           "detail": "token_not_in_catalog: 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 is neither a cap asset nor a catalog_token",
           "source": {
             "provider": "label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -1732,7 +1736,7 @@
           "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
           "source": {
             "provider": "allowlist and label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -1749,19 +1753,19 @@
       ],
       "reasons": [
         "Not on the owner's allowlist.",
-        "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the incident label \"named in the rekt.news Rhea Finance report as one of the four token contracts that shared the code hash it names\" (assertion 063d8b4d1a637bb28f41769d118663b5288be9309a0ad24bc82159154bbc1621); 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the incident label \"code hash equals the hash named in the Rhea report\" (assertion b51fb6796a5e3ea7a2402b15274d0e0ad4519043b78e26785640c287ecbbf0a8); 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the incident label \"no ft_metadata: the call fails with \\\"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\\\\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\\\\\nnot implemented\\\\\\\" })\\\"\" (assertion dc13b7a6cf7103ef0c0ce26ec188f553e1ca762f996af7d338239380b997b3cb); 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the incident label \"no contract_source_metadata\" (assertion e22fdac806dc5088cf731515b519b2725860f4274e20165e1636c04c77df307b); 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the denylist label \"token contract without ft_metadata whose code hash equals the hash named in the Rhea report\" (assertion d41f89b572497872ced1a37ab7bcca9aff81d292f0a398a4ab4268d18d2c5032).",
+        "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the incident label \"named in the rekt.news Rhea Finance report as one of the four token contracts that shared the code hash it names\" (assertion 063d8b4d1a637bb28f41769d118663b5288be9309a0ad24bc82159154bbc1621); 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the incident label \"code hash equals the hash named in the Rhea report\" (assertion b51fb6796a5e3ea7a2402b15274d0e0ad4519043b78e26785640c287ecbbf0a8); 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the incident label \"ft_metadata fails on the contract: \\\"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\\\\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\\\\\nnot implemented\\\\\\\" })\\\"\" (assertion eee6ce4cf42a604ab5f48f2bfff992a2cf231a811f02cfdab1ffa8d5a3a71040); 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the incident label \"no contract_source_metadata\" (assertion e22fdac806dc5088cf731515b519b2725860f4274e20165e1636c04c77df307b); 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the denylist label \"token contract whose ft_metadata call fails and whose code hash equals the hash named in the Rhea report\" (assertion e0b6861919bf1464415972ca19df341baef9ba4a755b74e319fe6d3c5ddaa07b).",
         "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 is not a catalog token or a cap asset of the agent."
       ],
       "labels": [
         "522c8a621dbd41266cdf8a2d5020f4b27a608037e06ec4d3a50d2d9bb0681402",
         "a4620b716e67ab13490ba33b67297ca168d93d4461c229e30dfa8a36b5396ebc",
-        "8742d8a4d9ef3adc6bb7401bb852749f3f2111bb7db1c461695b475ba15cb351",
+        "7b308850959f48e79b097fe2f1e24f0cac5f2b7f8c88dbe1acb9dfeb29cc5cbc",
         "c55b108c502a3834f1acf605aed7284991956078fe345a72d5025a54e6b5c4a2",
         "063d8b4d1a637bb28f41769d118663b5288be9309a0ad24bc82159154bbc1621",
         "b51fb6796a5e3ea7a2402b15274d0e0ad4519043b78e26785640c287ecbbf0a8",
-        "dc13b7a6cf7103ef0c0ce26ec188f553e1ca762f996af7d338239380b997b3cb",
+        "eee6ce4cf42a604ab5f48f2bfff992a2cf231a811f02cfdab1ffa8d5a3a71040",
         "e22fdac806dc5088cf731515b519b2725860f4274e20165e1636c04c77df307b",
-        "d41f89b572497872ced1a37ab7bcca9aff81d292f0a398a4ab4268d18d2c5032"
+        "e0b6861919bf1464415972ca19df341baef9ba4a755b74e319fe6d3c5ddaa07b"
       ]
     },
     {
@@ -1792,7 +1796,7 @@
           "detail": "rhea000453.multica.near carries the incident label \"named in the rekt.news Rhea Finance report as an account within Rhea's own Multichain Account system that became active and later received funds traceable to the subject wallet\" (assertion ad091cc5fd41c831a8415f5cdd4bd83ef52ecc951826f126243d1afb995434e5); rhea000453.multica.near carries the incident label \"account exists with no contract code\" (assertion 27b6edab01f0941464ab22e14a1aee2bfee20208062df19fe16a7f1ade5fbe27)",
           "source": {
             "provider": "label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -1832,7 +1836,7 @@
           "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
           "source": {
             "provider": "allowlist and label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -1884,7 +1888,7 @@
           "detail": "rhea000462.multica.near carries the incident label \"named in the rekt.news Rhea Finance report as an account within Rhea's own Multichain Account system that became active and later received funds traceable to the subject wallet\" (assertion 6c3c8a5fe01ebe4eb864900efb19069b09b463422a9a3831af9617277206f700); rhea000462.multica.near carries the incident label \"account exists with no contract code\" (assertion 8a04c320ddbb1c882cb849f11d864eef1d3479b3763e3d92f023e300ef4c969b)",
           "source": {
             "provider": "label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -1924,7 +1928,7 @@
           "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
           "source": {
             "provider": "allowlist and label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -1976,7 +1980,7 @@
           "detail": "rhea000505.multica.near carries the incident label \"named in the rekt.news Rhea Finance report as an account within Rhea's own Multichain Account system that became active and later received funds traceable to the subject wallet\" (assertion 960bfecb5da01f7efaa22a4a97c57c31eebc093cab824330d2c30f6e9719cf31); rhea000505.multica.near carries the incident label \"account exists with no contract code\" (assertion 830794de0e89bf739ac59eeb5532015cf2451276fed128f8aabcccd6f324bc1a)",
           "source": {
             "provider": "label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -2016,7 +2020,7 @@
           "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
           "source": {
             "provider": "allowlist and label store",
-            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
             "fetched_at": null
           }
         },
@@ -2038,6 +2042,198 @@
       "labels": [
         "960bfecb5da01f7efaa22a4a97c57c31eebc093cab824330d2c30f6e9719cf31",
         "830794de0e89bf739ac59eeb5532015cf2451276fed128f8aabcccd6f324bc1a"
+      ]
+    },
+    {
+      "subject": "intents.near",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "intents.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "verdict": "UNKNOWN",
+      "checks": [
+        {
+          "id": "receiver_exists",
+          "status": "pass",
+          "detail": "intents.near exists",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "aeca5be441be45abec5d698a9b5c3dd2a8b8090db3a2abc222c3e6b6463ccdd0",
+            "fetched_at": "2026-10-29T09:20:50Z"
+          }
+        },
+        {
+          "id": "label_denylist",
+          "status": "pass",
+          "detail": "no denylist or incident label on intents.near",
+          "source": {
+            "provider": "label store",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "memo_injection",
+          "status": "pass",
+          "detail": "no memo",
+          "source": {
+            "provider": "local patterns",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "account_age",
+          "status": "unknown",
+          "detail": "could not read the account keys: no recorded response for the request",
+          "source": {
+            "provider": "api.nearblocks.io",
+            "request_sha256": "657c4845e82b92107209708622a1f8de3ae1afa87514183caf3d66e640a5422e",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "dust_funded",
+          "status": "unknown",
+          "detail": "the creation transaction is not known",
+          "source": {
+            "provider": "nearblocks",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "lookalike",
+          "status": "pass",
+          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+          "source": {
+            "provider": "allowlist and label store",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "code_without_metadata",
+          "status": "pass",
+          "detail": "contract code with contract_source_metadata",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "2ac1817c825961725d072dc0658ff59c66c85a1520d76901c350e7e8c4c2d6d8",
+            "fetched_at": "2026-10-29T09:21:08Z"
+          }
+        }
+      ],
+      "reasons": [
+        "account_age could not run: could not read the account keys: no recorded response for the request.",
+        "dust_funded could not run: the creation transaction is not known."
+      ],
+      "labels": [
+        "522c8a621dbd41266cdf8a2d5020f4b27a608037e06ec4d3a50d2d9bb0681402",
+        "a4620b716e67ab13490ba33b67297ca168d93d4461c229e30dfa8a36b5396ebc",
+        "7b308850959f48e79b097fe2f1e24f0cac5f2b7f8c88dbe1acb9dfeb29cc5cbc",
+        "c55b108c502a3834f1acf605aed7284991956078fe345a72d5025a54e6b5c4a2"
+      ]
+    },
+    {
+      "subject": "zec.omft.near",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "zec.omft.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "verdict": "DENY",
+      "checks": [
+        {
+          "id": "receiver_exists",
+          "status": "pass",
+          "detail": "zec.omft.near exists",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "504423839a5adaf58ecf7b5612e659bcde368b1446218124c83e6742602d04c2",
+            "fetched_at": "2026-10-29T11:39:12Z"
+          }
+        },
+        {
+          "id": "label_denylist",
+          "status": "pass",
+          "detail": "no denylist or incident label on zec.omft.near",
+          "source": {
+            "provider": "label store",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "memo_injection",
+          "status": "pass",
+          "detail": "no memo",
+          "source": {
+            "provider": "local patterns",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "account_age",
+          "status": "unknown",
+          "detail": "could not read the account keys: no recorded response for the request",
+          "source": {
+            "provider": "api.nearblocks.io",
+            "request_sha256": "bc9dd217a26ebbcbb27203f08802d2befe22a2fb18224457ec9c51269244dc77",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "dust_funded",
+          "status": "unknown",
+          "detail": "the creation transaction is not known",
+          "source": {
+            "provider": "nearblocks",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "lookalike",
+          "status": "signal",
+          "detail": "lookalike of qtc.omft.near (distance 2 after confusable normalisation)",
+          "source": {
+            "provider": "allowlist and label store",
+            "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "code_without_metadata",
+          "status": "unknown",
+          "detail": "could not read contract_source_metadata: no recorded response for the request",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "19ffb71d632fb8e4c79d69e7b224fc51ba284c3529c0c2feb88ba96b58b06e7e",
+            "fetched_at": null
+          }
+        }
+      ],
+      "reasons": [
+        "zec.omft.near is a lookalike of qtc.omft.near.",
+        "Not on the owner's allowlist."
+      ],
+      "labels": [
+        "38e8cd2adc1909e5c41e8358fa1313c729f68f4539b09c826430fab9cb6847fa",
+        "2ab38db9712e6322db7ab2b714bf07c024ed17bb6a2b10bf0690d2f08dff4ded",
+        "5d1508825a495b13088d67dedc3f53c8bf4f0676bd2ad22103c383ff29fef4d2",
+        "188824656539689da2cce8c7066217a7a65bb21a1ba88982952a6f3da5770735",
+        "da38379cf462153d06021fb513d5658dd277192230978f2295e826a61c2cdc90",
+        "d94140fa8ecb364cbe3ad64c4b41384ff22a436dc8c9666a7f3d1fe0aab1e742",
+        "6bf0a0abb9b669ddfa3415c9f91a83328423fa70dc0fb520fa8d5690b1257b3d",
+        "8f53ca35de9e7de1653ba938bac25a91848cf82286c909f372f67d392a7ccabb"
       ]
     }
   ],

@@ -87,7 +87,8 @@ class CommittedStoreTest(unittest.TestCase):
         assets = json.loads(snapshot.read_bytes())
         self.assertEqual(self.store.counts()["category"]["catalog_token"], len(assets))
         bridged = {a["assetId"].rsplit(":", 1)[-1] for a in assets if a["assetId"].endswith(".omft.near")}
-        self.assertEqual(self.store.counts()["category"]["bridge"], len(bridged))
+        catalog_bridges = [a for a in self.store.assertions if a.category == "bridge" and a.provenance == "official_source"]
+        self.assertEqual(len(catalog_bridges), len(bridged))
 
     def test_readme_lists_every_snapshot(self):
         readme = seed.README_PATH.read_text(encoding="utf-8")
