@@ -2148,7 +2148,7 @@
         "amount": "1000000000000000000000000",
         "memo": null
       },
-      "verdict": "DENY",
+      "verdict": "UNKNOWN",
       "checks": [
         {
           "id": "receiver_exists",
@@ -2202,8 +2202,8 @@
         },
         {
           "id": "lookalike",
-          "status": "signal",
-          "detail": "lookalike of qtc.omft.near (distance 2 after confusable normalisation)",
+          "status": "pass",
+          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
           "source": {
             "provider": "allowlist and label store",
             "request_sha256": "ffb21ab94a62bb9b93906a8c34a0f9607edecfd0a7b41e6fa82cb264823cd296",
@@ -2222,18 +2222,16 @@
         }
       ],
       "reasons": [
-        "zec.omft.near is a lookalike of qtc.omft.near.",
-        "Not on the owner's allowlist."
+        "account_age could not run: could not read the account keys: no recorded response for the request.",
+        "dust_funded could not run: the creation transaction is not known.",
+        "code_without_metadata could not run: could not read contract_source_metadata: no recorded response for the request."
       ],
       "labels": [
         "38e8cd2adc1909e5c41e8358fa1313c729f68f4539b09c826430fab9cb6847fa",
         "2ab38db9712e6322db7ab2b714bf07c024ed17bb6a2b10bf0690d2f08dff4ded",
         "5d1508825a495b13088d67dedc3f53c8bf4f0676bd2ad22103c383ff29fef4d2",
         "188824656539689da2cce8c7066217a7a65bb21a1ba88982952a6f3da5770735",
-        "da38379cf462153d06021fb513d5658dd277192230978f2295e826a61c2cdc90",
-        "d94140fa8ecb364cbe3ad64c4b41384ff22a436dc8c9666a7f3d1fe0aab1e742",
-        "6bf0a0abb9b669ddfa3415c9f91a83328423fa70dc0fb520fa8d5690b1257b3d",
-        "8f53ca35de9e7de1653ba938bac25a91848cf82286c909f372f67d392a7ccabb"
+        "da38379cf462153d06021fb513d5658dd277192230978f2295e826a61c2cdc90"
       ]
     }
   ],

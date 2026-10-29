@@ -247,11 +247,13 @@ class TierTwoTest(RulesCase):
     def test_typo_lookalike_after_normalisation(self):
         self.stranger("vend0r.testnet")
         self.assertEqual(self.detail(self.judge(request("vend0r.testnet")), "lookalike"),
-                         "lookalike of vendor.testnet (distance 0 after confusable normalisation)")
+                         "lookalike of vendor.testnet: first label vend0r against vendor, distance 0 after "
+                         "confusable normalisation")
         policy = {"allowlist": ["microsoft.testnet"], "caps": POLICY["caps"]}
         self.stranger("rnicros0ft.testnet")
         self.assertEqual(self.detail(self.judge(request("rnicros0ft.testnet"), policy), "lookalike"),
-                         "lookalike of microsoft.testnet (distance 0 after confusable normalisation)")
+                         "lookalike of microsoft.testnet: first label rnicros0ft against microsoft, distance 0 "
+                         "after confusable normalisation")
         self.stranger("microsofts.testnet")
         self.assertEqual(self.status(self.judge(request("microsofts.testnet"), policy), "lookalike"), "signal")
         self.stranger("macrohard.testnet")
@@ -628,6 +630,20 @@ class PopulatedStoreTest(RulesCase):
     def test_impersonations_are_flagged(self):
         for name in ("vend0r.testnet", "vendor-pay.testnet", "vendorpay.near", "vendor.attacker.near",
                      "rnicros0ft.testnet", "intents1.near", "wrap1.near"):
+            with self.subTest(name=name):
+                self.assertEqual(self.lookalike(name), "signal")
+
+    def test_no_two_labelled_reference_accounts_are_lookalikes_of_each_other(self):
+        accounts = sorted({a.subject for a in self.store.assertions if a.chain == "near"
+                           and a.category in rules.REFERENCE_CATEGORIES and a.superseded_by is None})
+        self.assertGreater(len(accounts), 100)
+        pairs = [(a, b) for a in accounts for b in accounts
+                 if a < b and (rules.lookalike_detail(a, b) or rules.lookalike_detail(b, a))]
+        self.assertEqual(pairs, [])
+
+    def test_omft_siblings_pass_and_their_imitations_are_caught(self):
+        self.assertEqual(self.lookalike("zec.omft.near"), "pass")
+        for name in ("zec-omft.near", "zecomft.near", "zec.ornft.near", "zec.omft.testnet"):
             with self.subTest(name=name):
                 self.assertEqual(self.lookalike(name), "signal")
 

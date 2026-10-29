@@ -202,15 +202,35 @@ def _lookalike(policy, store, receiver):
     for account in policy.get("allowlist", []):
         if contains_allowlisted(receiver, account):
             return account, f"contains the allowlisted name {account}", []
-    name = normalise(_name(receiver))
     for account, ids in _references(policy, store, receiver).items():
-        reference = normalise(_name(account))
-        limit = distance_limit(reference)
-        if abs(len(name) - len(reference)) <= limit:
-            gap = distance(name, reference)
-            if gap <= limit:
-                return account, f"lookalike of {account} (distance {gap} after confusable normalisation)", ids
+        detail = lookalike_detail(receiver, account)
+        if detail:
+            return account, detail, ids
     return None
+
+
+def lookalike_detail(receiver, reference):
+    """The check detail when the receiver is a lookalike of the reference account, else None.
+
+    Under the same parent account (everything after the first dot) only the first labels are
+    compared, with the limit of the reference's first label: only the parent can create a sub
+    account on NEAR, so siblings such as zec.omft.near and qtc.omft.near are not each other's
+    lookalikes. Across parents the names without their network suffix are compared."""
+    sibling = receiver.partition(".")[2] == reference.partition(".")[2]
+    if sibling:
+        name, target = normalise(receiver.split(".", 1)[0]), normalise(reference.split(".", 1)[0])
+    else:
+        name, target = normalise(_name(receiver)), normalise(_name(reference))
+    limit = distance_limit(target)
+    if abs(len(name) - len(target)) > limit:
+        return None
+    gap = distance(name, target)
+    if gap > limit:
+        return None
+    if sibling:
+        return (f"lookalike of {reference}: first label {receiver.split('.', 1)[0]} against "
+                f"{reference.split('.', 1)[0]}, distance {gap} after confusable normalisation")
+    return f"lookalike of {reference} (distance {gap} after confusable normalisation)"
 
 
 def _oldest_creation(response):
