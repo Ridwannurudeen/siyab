@@ -441,6 +441,60 @@ class RecordedMainnetTest(unittest.TestCase):
         self.assertEqual(judgement.verdict, "DENY")
 
 
+class RheaLabelsTest(unittest.TestCase):
+    """The committed Rhea incident labels, consulted on every verdict, over recorded mainnet reads."""
+
+    COLLECTOR = "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+    TOKEN = "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163"
+
+    def setUp(self):
+        patcher = mock.patch("urllib.request.urlopen", side_effect=AssertionError("network"))
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.store = labels.load()
+        self.rpc = rpc.Client(rpc.MAINNET_RPC_URL, "replay")
+        self.nearblocks = rpc.Client(rpc.NEARBLOCKS_URL, "replay", kind="http")
+
+    def judge(self, req, policy):
+        return rules.judge(req, policy, self.store, self.rpc, self.nearblocks, now_ms=NOW_MS,
+                           injection_scanner=None)
+
+    def denying_ids(self, subject):
+        return [a.id for a in self.store.by_subject(subject, "near")
+                if a.superseded_by is None and a.category in rules.DENY_CATEGORIES]
+
+    def test_a_transfer_to_the_collector_is_deny_with_the_assertion_ids(self):
+        judgement = self.judge(request(self.COLLECTOR, kind="near", amount="1", memo=None),
+                               {"allowlist": [self.COLLECTOR], "caps": []})
+        self.assertEqual(judgement.verdict, "DENY")
+        check = {c["id"]: c for c in judgement.checks}["label_denylist"]
+        self.assertEqual(check["status"], "signal")
+        ids = self.denying_ids(self.COLLECTOR)
+        self.assertTrue(ids)
+        for assertion_id in ids:
+            self.assertIn(f"(assertion {assertion_id})", check["detail"])
+            self.assertIn(assertion_id, judgement.labels)
+
+    def test_a_transfer_of_a_listed_token_is_deny(self):
+        judgement = self.judge(request("intents.near", token=self.TOKEN, memo=None),
+                               {"allowlist": ["intents.near"], "caps": []})
+        self.assertEqual(judgement.verdict, "DENY")
+        check = {c["id"]: c for c in judgement.checks}["label_denylist"]
+        self.assertEqual(check["status"], "signal")
+        self.assertIn("denylist label", check["detail"])
+        for assertion_id in self.denying_ids(self.TOKEN):
+            self.assertIn(assertion_id, check["detail"])
+
+    def test_intents_near_is_not_denied_by_the_label_check(self):
+        rhea = [a for a in self.store.by_subject("intents.near", "near") if a.provenance == "third_party"]
+        self.assertEqual([a.category for a in rhea], ["infrastructure"])
+        self.assertEqual(self.denying_ids("intents.near"), [])
+        judgement = self.judge(request("intents.near", kind="near", amount="1", memo=None),
+                               {"allowlist": ["intents.near"], "caps": []})
+        self.assertEqual({c["id"]: c["status"] for c in judgement.checks}["label_denylist"], "pass")
+        self.assertIn(rhea[0].id, judgement.labels)
+        self.assertEqual(judgement.verdict, "ALLOW")
+
 class TextTest(RulesCase):
     def test_distance(self):
         for a, b, expected in (("vendor", "vendor", 0), ("vendor", "vednor", 1), ("vendor", "vend0r", 1),
