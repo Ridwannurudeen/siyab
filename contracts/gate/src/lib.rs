@@ -173,6 +173,7 @@ impl Gate {
         );
 
         cap.spent += request.amount.0;
+        let window_start_ms = cap.window_start_ms;
         self.agents.insert(agent_pk.clone(), agent);
         self.used_verdicts
             .insert(verdict.verdict_id.clone(), verdict.expires_ms);
@@ -188,6 +189,7 @@ impl Gate {
                 asset: asset.clone(),
                 amount: request.amount.0,
                 unknown_payee: !allowlisted,
+                window_start_ms,
             },
         );
         let agent_hex = lower_hex(&agent_key_bytes(&agent_pk));
@@ -234,9 +236,11 @@ impl Gate {
                 } else {
                     Some(&mut agent.caps)
                 };
-                if let Some(cap) =
-                    caps.and_then(|caps| caps.iter_mut().find(|cap| cap.asset == pending.asset))
-                {
+                if let Some(cap) = caps.and_then(|caps| {
+                    caps.iter_mut().find(|cap| {
+                        cap.asset == pending.asset && cap.window_start_ms == pending.window_start_ms
+                    })
+                }) {
                     cap.spent = cap.spent.saturating_sub(pending.amount);
                     self.agents.insert(pending.agent_pk, agent);
                     restored = true;
@@ -789,6 +793,23 @@ mod tests {
         gate.agents.get_mut(&agent_pk).unwrap().unknown_caps = None;
         gate.on_transfer(0);
         assert!(gate.agents.get(&agent_pk).unwrap().unknown_caps.is_none());
+        assert_failed_unrestored(&gate);
+    }
+
+    #[test]
+    fn failed_transfer_after_window_roll_is_not_restored() {
+        let (mut gate, request, verdict, agent_pk) = prepare_with_result(
+            "04-ft-happy-unit",
+            true,
+            Gas::from_tgas(300),
+            PromiseResult::Failed,
+        );
+        submit(&mut gate, request, Some(verdict), agent_pk.clone());
+        let cap = &mut gate.agents.get_mut(&agent_pk).unwrap().caps[0];
+        cap.window_start_ms += cap.window_ms;
+        cap.spent = 3_000_000;
+        gate.on_transfer(0);
+        assert_eq!(gate.agents.get(&agent_pk).unwrap().caps[0].spent, 3_000_000);
         assert_failed_unrestored(&gate);
     }
 

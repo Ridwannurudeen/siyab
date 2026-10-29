@@ -58,6 +58,7 @@ pub struct Pending {
     pub asset: Asset,
     pub amount: u128,
     pub unknown_payee: bool,
+    pub window_start_ms: u64,
 }
 
 #[near(serializers = [json])]
@@ -66,6 +67,7 @@ pub struct PendingView {
     pub asset: Asset,
     pub amount: U128,
     pub unknown_payee: bool,
+    pub window_start_ms: u64,
 }
 
 impl From<Pending> for PendingView {
@@ -75,6 +77,7 @@ impl From<Pending> for PendingView {
             asset: pending.asset,
             amount: U128(pending.amount),
             unknown_payee: pending.unknown_payee,
+            window_start_ms: pending.window_start_ms,
         }
     }
 }
