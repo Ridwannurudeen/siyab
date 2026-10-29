@@ -6,3 +6,4 @@ Each file under `raw/` is the body a source returned, stored byte for byte and n
 |---|---|---|---|---|
 | `raw/1click-tokens-20261029T092002Z.json` | https://1click.chaindefuser.com/v0/tokens | 3bce...f8c6 | 2026-10-29T09:20:02Z | 316 |
 | `raw/near-intents-treasury-addresses-20261029T092003Z.md` | https://docs.near-intents.org/security-compliance/treasury-addresses.md | 701e...3843 | 2026-10-29T09:20:03Z | 34 |
+| `raw/rekt-rhea-20261029T112635Z.html` | https://rekt.news/rhea-finance-rekt | 1743...6c1f | 2026-10-29T11:26:35Z | 17 |

@@ -1,0 +1,2052 @@
+{
+  "id": "rhea",
+  "title": "Rhea Lend margin trading route exploit",
+  "date": "2026-04-16",
+  "chains": [
+    "near",
+    "eth"
+  ],
+  "sources": [
+    {
+      "id": "rekt-rhea",
+      "publisher": "rekt.news",
+      "url": "https://rekt.news/rhea-finance-rekt",
+      "content_sha256": "1743d14145c7bfbcace5fc04a060bffb98fd5566887f4db2ee0c863eeb0e6c1f",
+      "fetched_at": "2026-10-29T11:26:35Z"
+    }
+  ],
+  "accounts": [
+    {
+      "subject": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+      "chain": "near",
+      "role_as_reported": "the collector account, which the report also prints as the attacker NEAR wallet",
+      "quote": {
+        "source": "rekt-rhea",
+        "text": "Collector account: 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "assertion_ids": [
+        "664db39d7af57209306fd948412fe59353389d94aba4aafc6c3b2779f1767ee2",
+        "2c7133b4d2c48237508311fab74b65053251d074a29b786471bed1f177cda275",
+        "6ac99683a4192b79113c521dfde4a5e45ad506d353609438e48e48104f7010ad"
+      ]
+    },
+    {
+      "subject": "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5",
+      "chain": "near",
+      "role_as_reported": "the master account",
+      "quote": {
+        "source": "rekt-rhea",
+        "text": "Master account: 72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5"
+      },
+      "assertion_ids": [
+        "56bcaa5972ef748cca8a1f9b9be8f856184a94fa7268ec9a681ee89664d4d207",
+        "a28b0030e0a5060ee2e24e8dd6b0cd288d795e347660baf73a7f2ca2bfcdf7f4"
+      ]
+    },
+    {
+      "subject": "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03",
+      "chain": "near",
+      "role_as_reported": "one of the five worker accounts",
+      "quote": {
+        "source": "rekt-rhea",
+        "text": "Worker accounts: d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03 d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473 839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2 9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616 5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040"
+      },
+      "assertion_ids": [
+        "d0950956ec052f5969d95cefc8591864de3c88568c4b2966d5227c9002f7f693",
+        "82b84c71d81bf3008c90cf7ef695683fd8e9b7547a702d4958c2a498ab756c0a",
+        "afe41a71fa6abe8078bf8245133a31859e72eb66e91a11d57db19dd8716c2326"
+      ]
+    },
+    {
+      "subject": "d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473",
+      "chain": "near",
+      "role_as_reported": "one of the five worker accounts",
+      "quote": {
+        "source": "rekt-rhea",
+        "text": "Worker accounts: d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03 d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473 839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2 9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616 5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040"
+      },
+      "assertion_ids": [
+        "6604099647fc449b2b27c122ec168df5a169b5b7061c4582cec410c211e982fa",
+        "55b2eafe1093b7b3dd8dbdd44e6932970a34e6f05617df6b0d705bee9bf71d92",
+        "0cc9e717b641ec428ebad282f817494adf2d1db2f08fbe01054e98f7be938418"
+      ]
+    },
+    {
+      "subject": "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2",
+      "chain": "near",
+      "role_as_reported": "one of the five worker accounts",
+      "quote": {
+        "source": "rekt-rhea",
+        "text": "Worker accounts: d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03 d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473 839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2 9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616 5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040"
+      },
+      "assertion_ids": [
+        "7f0b7036681ecde8f4db2d0c311582cc4886dd0426f9403728e6acfbbbae5524",
+        "1c2f83d48512e6646e41fb2423443596f90f9848bd5aa54c9cf99f5654ef84c7",
+        "e1545f2cf37080fe9c8ce43c008c5813335a57f891a37335054bf4ba71ccb999"
+      ]
+    },
+    {
+      "subject": "9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616",
+      "chain": "near",
+      "role_as_reported": "one of the five worker accounts",
+      "quote": {
+        "source": "rekt-rhea",
+        "text": "Worker accounts: d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03 d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473 839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2 9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616 5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040"
+      },
+      "assertion_ids": [
+        "faf1044c81efdd52961fa2ba1f7afc837e8cd0d8a47ac0d378a8d0384cbd42e1",
+        "c2271f9a894e7f92e29d2a3c2116b41878833a9a0e88db68e36bd5e4d3bf4b39",
+        "7bc19a9d619c05a125c14582204d5166963d3b526b113ce9f0a25194915c8cad"
+      ]
+    },
+    {
+      "subject": "5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040",
+      "chain": "near",
+      "role_as_reported": "one of the five worker accounts",
+      "quote": {
+        "source": "rekt-rhea",
+        "text": "Worker accounts: d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03 d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473 839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2 9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616 5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040"
+      },
+      "assertion_ids": [
+        "35b941cd98ca03d551a040a02e17a14ba7e65a53329d15a6bad19d3f05f88b22",
+        "e04b02ea3ea1bcbc588be86b45413564743bb1e29da385ff314a270549dee0fa",
+        "42f5593d5dda49777189f15e09803f4a7c2452b7feb0829506c96f16a1edab9e"
+      ]
+    },
+    {
+      "subject": "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163",
+      "chain": "near",
+      "role_as_reported": "one of the four token contracts that shared the code hash it names",
+      "quote": {
+        "source": "rekt-rhea",
+        "text": "Fake Token Contracts: c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705"
+      },
+      "assertion_ids": [
+        "5ebef8b10c3f91f9b97215f39492df2cc0ea81397c9ca9636732d0fd0f6bdf19",
+        "8afc1bbf04d7f5b4afe8eb07afdf4b1db5f50aa6534617b92b48c85616adcef9",
+        "5e0f0ce291e0453f6606f1acc7d23cb226ff719b65b999db90ad2a7b531b0ac0",
+        "20c880bd4b817b6cf8801fd24681b9608791eaaeebcf8261a03c1fbb5625f97e",
+        "bcc188e45bc059142854f9c2263e7c13e48eef219b1227ae8e558ef37db50d36"
+      ]
+    },
+    {
+      "subject": "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640",
+      "chain": "near",
+      "role_as_reported": "one of the four token contracts that shared the code hash it names",
+      "quote": {
+        "source": "rekt-rhea",
+        "text": "Fake Token Contracts: c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705"
+      },
+      "assertion_ids": [
+        "07feed659b36ce884781596aa507780db9153179c3b7edfd0f0bfd9058c9776b",
+        "78370768ade233245897313e0f41d52551aacfb008b8a4bd60d4d743b59f4fb3",
+        "f9da386132795c9d24456d0fb452b9cb4d0c4cb3b607bd3e0129d8d7810b11c3",
+        "aea88cc478f8d80aff15b5a3b0c3fbbbf032d5aec5a8eec1ec6afa650e660677",
+        "2a29e747be4c2a21bf0f2c173f4b27a7932d1d2d43f92cf20859f6962c85b827"
+      ]
+    },
+    {
+      "subject": "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee",
+      "chain": "near",
+      "role_as_reported": "one of the four token contracts that shared the code hash it names",
+      "quote": {
+        "source": "rekt-rhea",
+        "text": "Fake Token Contracts: c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705"
+      },
+      "assertion_ids": [
+        "d28bf094c8621b2454306d76e7c9f5a44d67a709d9bc335258ea74720e70ca45",
+        "649b76dfc17aa8c3fcc229e936596b52a75ac520c6ba388c4644a4ac6f474af4",
+        "51bb72c37480283d1f66735ceb3299d2de14bb5fc130cae91aefcf29ac870b66",
+        "6e32987a2040d583403c543bcf9a281c9c2e21e72f225d88a9747212ee44fcbd",
+        "66361bdfe8e2cb1d3f2a06a7894460265316b05eef3ced1fff3d9a8782cfcda9"
+      ]
+    },
+    {
+      "subject": "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705",
+      "chain": "near",
+      "role_as_reported": "one of the four token contracts that shared the code hash it names",
+      "quote": {
+        "source": "rekt-rhea",
+        "text": "Fake Token Contracts: c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705"
+      },
+      "assertion_ids": [
+        "063d8b4d1a637bb28f41769d118663b5288be9309a0ad24bc82159154bbc1621",
+        "b51fb6796a5e3ea7a2402b15274d0e0ad4519043b78e26785640c287ecbbf0a8",
+        "dc13b7a6cf7103ef0c0ce26ec188f553e1ca762f996af7d338239380b997b3cb",
+        "e22fdac806dc5088cf731515b519b2725860f4274e20165e1636c04c77df307b",
+        "d41f89b572497872ced1a37ab7bcca9aff81d292f0a398a4ab4268d18d2c5032"
+      ]
+    },
+    {
+      "subject": "rhea000453.multica.near",
+      "chain": "near",
+      "role_as_reported": "an account within Rhea's own Multichain Account system that became active and later received funds traceable to the subject wallet",
+      "quote": {
+        "source": "rekt-rhea",
+        "text": "Multiple accounts within Rhea's own Multichain Account system - including rhea000453.multica.near, rhea000462.multica.near, and rhea000505.multica.near - became active, later receiving funds traceable to the subject wallet."
+      },
+      "assertion_ids": [
+        "ad091cc5fd41c831a8415f5cdd4bd83ef52ecc951826f126243d1afb995434e5",
+        "27b6edab01f0941464ab22e14a1aee2bfee20208062df19fe16a7f1ade5fbe27"
+      ]
+    },
+    {
+      "subject": "rhea000462.multica.near",
+      "chain": "near",
+      "role_as_reported": "an account within Rhea's own Multichain Account system that became active and later received funds traceable to the subject wallet",
+      "quote": {
+        "source": "rekt-rhea",
+        "text": "Multiple accounts within Rhea's own Multichain Account system - including rhea000453.multica.near, rhea000462.multica.near, and rhea000505.multica.near - became active, later receiving funds traceable to the subject wallet."
+      },
+      "assertion_ids": [
+        "6c3c8a5fe01ebe4eb864900efb19069b09b463422a9a3831af9617277206f700",
+        "8a04c320ddbb1c882cb849f11d864eef1d3479b3763e3d92f023e300ef4c969b"
+      ]
+    },
+    {
+      "subject": "rhea000505.multica.near",
+      "chain": "near",
+      "role_as_reported": "an account within Rhea's own Multichain Account system that became active and later received funds traceable to the subject wallet",
+      "quote": {
+        "source": "rekt-rhea",
+        "text": "Multiple accounts within Rhea's own Multichain Account system - including rhea000453.multica.near, rhea000462.multica.near, and rhea000505.multica.near - became active, later receiving funds traceable to the subject wallet."
+      },
+      "assertion_ids": [
+        "960bfecb5da01f7efaa22a4a97c57c31eebc093cab824330d2c30f6e9719cf31",
+        "830794de0e89bf739ac59eeb5532015cf2451276fed128f8aabcccd6f324bc1a"
+      ]
+    },
+    {
+      "subject": "intents.near",
+      "chain": "near",
+      "role_as_reported": "the account through which the subject wallet was funded within five minutes",
+      "quote": {
+        "source": "rekt-rhea",
+        "text": "The subject wallet itself was created on April 15 via a dust NEAR transfer, funded through intents.near within five minutes, then began distributing capital to dozens of intermediary accounts in rapid automated succession."
+      },
+      "assertion_ids": [
+        "8742d8a4d9ef3adc6bb7401bb852749f3f2111bb7db1c461695b475ba15cb351",
+        "c55b108c502a3834f1acf605aed7284991956078fe345a72d5025a54e6b5c4a2"
+      ]
+    },
+    {
+      "subject": "zec.omft.near",
+      "chain": "near",
+      "role_as_reported": "the account whose ft_withdraw routed ZEC into Zcash Unified Addresses",
+      "quote": {
+        "source": "rekt-rhea",
+        "text": "And ft_withdraw on zec.omft.near routed ZEC directly into Zcash Unified Addresses, the fully shielded pool."
+      },
+      "assertion_ids": [
+        "2e4d00f38aa868e52697513b7c8221b87ed72d565816bf334de77f0c196fc903",
+        "55863d74ff6425823f1b1e903a46991c969598bbfbabac0d5312c116759819d0"
+      ]
+    },
+    {
+      "subject": "0xbb5fa936469cadb8907f3aef80f5b53f55bc11f6",
+      "chain": "eth",
+      "role_as_reported": "the attacker ETH wallet where the bridged USDC was deposited into Aave",
+      "quote": {
+        "source": "rekt-rhea",
+        "text": "Attacker ETH wallet: 0xbb5fa936469cadb8907f3aef80f5b53f55bc11f6"
+      },
+      "assertion_ids": [
+        "47c3ce91871da64cbc4f2c59c7d89e17b5b0ffe018b4afb67c3bdbc7c4b90e1e"
+      ]
+    }
+  ],
+  "code_hash_as_reported": {
+    "value": "BBeoVgxZC5Ce1ef7nErevX98QonNsedBFfqzep5RV1Vu",
+    "quote": {
+      "source": "rekt-rhea",
+      "text": "All of the fake fungible-token contracts shared the same code hash: BBeoVgxZC5Ce1ef7nErevX98QonNsedBFfqzep5RV1Vu"
+    }
+  },
+  "ref_pools_as_reported": {
+    "ids": [
+      8514,
+      8515,
+      8516,
+      8517,
+      8518,
+      8519,
+      8520,
+      8521,
+      8522,
+      8523,
+      8524,
+      8525,
+      8526,
+      8527,
+      8528,
+      8529,
+      8530,
+      8531,
+      8532,
+      8533,
+      8534,
+      8535,
+      8536,
+      8537,
+      8538
+    ],
+    "quote": {
+      "source": "rekt-rhea",
+      "text": "Around those tokens, the attacker built a consecutive cluster of 25 liquidity pools on Ref Finance, pools 8514 through 8538, structured in deliberate layers: ZEC paired against first-stage fake tokens, fake-to-fake cross-pools, and fake-to-USDC pools."
+    }
+  },
+  "onchain_facts": [
+    {
+      "subject": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+      "method": "view_account",
+      "args": {
+        "account_id": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "block": 222119656,
+      "result_sha256": "df3265129c860f297181d71a6534f7047fd6eb746fbeb20e302a380cca039a81",
+      "summary": "account exists with no contract code"
+    },
+    {
+      "subject": "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5",
+      "method": "view_account",
+      "args": {
+        "account_id": "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5"
+      },
+      "block": 222119657,
+      "result_sha256": "6366caba3cafd421223b1dfb9ed39d407c00c7cea2f4d4d7c20ddc47a5d80410",
+      "summary": "account exists with contract code hash BbQTHv9y5pJcAVbcZVRgMkZib9v2bfydRtBL9msUR4Wi"
+    },
+    {
+      "subject": "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03",
+      "method": "view_account",
+      "args": {
+        "account_id": "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03"
+      },
+      "block": 222119658,
+      "result_sha256": "835ecc42ddcfdb0a8e7ce8f218fe802d2345f56819967c57ea21b7e36e74c55f",
+      "summary": "account does not exist at this block (deleted or never created)"
+    },
+    {
+      "subject": "d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473",
+      "method": "view_account",
+      "args": {
+        "account_id": "d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473"
+      },
+      "block": 222119659,
+      "result_sha256": "e06e11eb16ea5ccb34ec6debb3cddff1c96264085593dcd78b47db8749ebb7e1",
+      "summary": "account exists with no contract code"
+    },
+    {
+      "subject": "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2",
+      "method": "view_account",
+      "args": {
+        "account_id": "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2"
+      },
+      "block": 222119661,
+      "result_sha256": "018cbd0c1a332a7b90ce219391084fc2dc34af07b94e5c2b51cd5437e196ba52",
+      "summary": "account does not exist at this block (deleted or never created)"
+    },
+    {
+      "subject": "9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616",
+      "method": "view_account",
+      "args": {
+        "account_id": "9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616"
+      },
+      "block": 222119662,
+      "result_sha256": "cc115228a3cb39a528ce3c3d34063193b9d786bdf5eebfc615a7714e2c7dfd28",
+      "summary": "account does not exist at this block (deleted or never created)"
+    },
+    {
+      "subject": "5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040",
+      "method": "view_account",
+      "args": {
+        "account_id": "5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040"
+      },
+      "block": 222119663,
+      "result_sha256": "2e86381427d8bb5d5cd8fa35a13ee6bd77c28e2356634d0796f6e292a8e0d6c1",
+      "summary": "account does not exist at this block (deleted or never created)"
+    },
+    {
+      "subject": "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163",
+      "method": "view_account",
+      "args": {
+        "account_id": "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163"
+      },
+      "block": 222119664,
+      "result_sha256": "a4f4a2612117f504d5648a644a5c3b1ec1bdcdbfbc467ea52327839a636289e4",
+      "summary": "code hash equals the hash named in the Rhea report"
+    },
+    {
+      "subject": "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163",
+      "method": "ft_metadata",
+      "args": {},
+      "block": 222119665,
+      "result_sha256": "a6ffa9c4f04ef2be3cc952550343ee5c928aad80fba2d055a3a85b3739428330",
+      "summary": "no ft_metadata: the call fails with \"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\nnot implemented\\\" })\""
+    },
+    {
+      "subject": "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163",
+      "method": "contract_source_metadata",
+      "args": {},
+      "block": 222119753,
+      "result_sha256": "c396f32fae39af0ee6521378f47ed7bc89b870baecfc08e98b4522a4a268506d",
+      "summary": "no contract_source_metadata"
+    },
+    {
+      "subject": "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640",
+      "method": "view_account",
+      "args": {
+        "account_id": "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640"
+      },
+      "block": 222119754,
+      "result_sha256": "c2e7a27a600a3ea7adad644083c297291cb31fabf6099f90c0b55123ed7587df",
+      "summary": "code hash equals the hash named in the Rhea report"
+    },
+    {
+      "subject": "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640",
+      "method": "ft_metadata",
+      "args": {},
+      "block": 222119756,
+      "result_sha256": "a6ffa9c4f04ef2be3cc952550343ee5c928aad80fba2d055a3a85b3739428330",
+      "summary": "no ft_metadata: the call fails with \"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\nnot implemented\\\" })\""
+    },
+    {
+      "subject": "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640",
+      "method": "contract_source_metadata",
+      "args": {},
+      "block": 222119757,
+      "result_sha256": "c396f32fae39af0ee6521378f47ed7bc89b870baecfc08e98b4522a4a268506d",
+      "summary": "no contract_source_metadata"
+    },
+    {
+      "subject": "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee",
+      "method": "view_account",
+      "args": {
+        "account_id": "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee"
+      },
+      "block": 222119758,
+      "result_sha256": "21875ba1ee066e168dadc30ea40349c844689d05f9e1b4c369281375207ba36e",
+      "summary": "code hash equals the hash named in the Rhea report"
+    },
+    {
+      "subject": "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee",
+      "method": "ft_metadata",
+      "args": {},
+      "block": 222119761,
+      "result_sha256": "a6ffa9c4f04ef2be3cc952550343ee5c928aad80fba2d055a3a85b3739428330",
+      "summary": "no ft_metadata: the call fails with \"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\nnot implemented\\\" })\""
+    },
+    {
+      "subject": "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee",
+      "method": "contract_source_metadata",
+      "args": {},
+      "block": 222119762,
+      "result_sha256": "c396f32fae39af0ee6521378f47ed7bc89b870baecfc08e98b4522a4a268506d",
+      "summary": "no contract_source_metadata"
+    },
+    {
+      "subject": "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705",
+      "method": "view_account",
+      "args": {
+        "account_id": "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705"
+      },
+      "block": 222119763,
+      "result_sha256": "e42bc585779fc57c5c4cf200bd887e05c193e1deec71cdd24dec3aada0d85b81",
+      "summary": "code hash equals the hash named in the Rhea report"
+    },
+    {
+      "subject": "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705",
+      "method": "ft_metadata",
+      "args": {},
+      "block": 222119765,
+      "result_sha256": "a6ffa9c4f04ef2be3cc952550343ee5c928aad80fba2d055a3a85b3739428330",
+      "summary": "no ft_metadata: the call fails with \"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\nnot implemented\\\" })\""
+    },
+    {
+      "subject": "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705",
+      "method": "contract_source_metadata",
+      "args": {},
+      "block": 222119768,
+      "result_sha256": "c396f32fae39af0ee6521378f47ed7bc89b870baecfc08e98b4522a4a268506d",
+      "summary": "no contract_source_metadata"
+    },
+    {
+      "subject": "rhea000453.multica.near",
+      "method": "view_account",
+      "args": {
+        "account_id": "rhea000453.multica.near"
+      },
+      "block": 222119769,
+      "result_sha256": "7cc1f7775f4b39fa874bb9fa8f8e6ea77cb21577fa54e0928fc9a5c1522f91c9",
+      "summary": "account exists with no contract code"
+    },
+    {
+      "subject": "rhea000462.multica.near",
+      "method": "view_account",
+      "args": {
+        "account_id": "rhea000462.multica.near"
+      },
+      "block": 222119771,
+      "result_sha256": "0cd8f61fd7744e5c51030d7ef365e0a0e5a23c5e9f9826b1be6291ac7b727084",
+      "summary": "account exists with no contract code"
+    },
+    {
+      "subject": "rhea000505.multica.near",
+      "method": "view_account",
+      "args": {
+        "account_id": "rhea000505.multica.near"
+      },
+      "block": 222119772,
+      "result_sha256": "b1b3cf5f29d661ca2fef9a9d5aa068d3fd9c6c8928db621e4ae2d2053ab645c0",
+      "summary": "account exists with no contract code"
+    },
+    {
+      "subject": "intents.near",
+      "method": "view_account",
+      "args": {
+        "account_id": "intents.near"
+      },
+      "block": 222105553,
+      "result_sha256": "357f47d292b44207df72030b2b58c95da40fcf8b6f2f77c9eb83301c2e3ffc0a",
+      "summary": "account exists with contract code hash BtA1BEFNS619KkvXFsgcpQ21Tb5yMm32aaUkn7xNothk"
+    },
+    {
+      "subject": "zec.omft.near",
+      "method": "view_account",
+      "args": {
+        "account_id": "zec.omft.near"
+      },
+      "block": 222119775,
+      "result_sha256": "01f67db8de9a18848dc9b7b8f536468e47b03b1183d46838ebf5b4edda227eb8",
+      "summary": "account exists with contract code hash 2akS4vNtbGMSoAPYf4FXbgyZypb4HYJDMcbVq95KYz6g"
+    },
+    {
+      "subject": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+      "method": "GET /v1/account/{account_id}/keys and /v1/txns/{transaction_hash}",
+      "args": {
+        "account_id": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+        "transaction_hash": "8ogy5xrbQG78Kw5Eo52iJnfNZQZzeh2iLMWeWXV1Wyuu"
+      },
+      "block": 194074444,
+      "result_sha256": "bdf1f5532f1f6c394a970a7a317507da0a22bb19fcf092b001dfea088b643c3f",
+      "summary": "created at block 194074444 by transaction 8ogy5xrbQG78Kw5Eo52iJnfNZQZzeh2iLMWeWXV1Wyuu with a deposit of 0.0000000000000000000001 NEAR"
+    },
+    {
+      "subject": "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03",
+      "method": "GET /v1/account/{account_id}/keys and /v1/txns/{transaction_hash}",
+      "args": {
+        "account_id": "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03",
+        "transaction_hash": "CXVsn1nNZ9Rv4c7X5Hg1FEtcRZSAG5QwmhyyfsgahWj7"
+      },
+      "block": 194226546,
+      "result_sha256": "a683c48aad94775e6d7cdaed6191c2a8f42c455eed1a7947a01d77ecd1509bae",
+      "summary": "created at block 194226546 by transaction CXVsn1nNZ9Rv4c7X5Hg1FEtcRZSAG5QwmhyyfsgahWj7 with a deposit of 15 NEAR"
+    },
+    {
+      "subject": "d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473",
+      "method": "GET /v1/account/{account_id}/keys and /v1/txns/{transaction_hash}",
+      "args": {
+        "account_id": "d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473",
+        "transaction_hash": "8LU8TZjjw87By1mcWvarrjTESgGy2aTKvNmDADNSsa3t"
+      },
+      "block": 194226560,
+      "result_sha256": "1ac2ac5ee52d532bafcaf2349b7f5432cb18f9deb0817ab2d81d9c697df0ee13",
+      "summary": "created at block 194226560 by transaction 8LU8TZjjw87By1mcWvarrjTESgGy2aTKvNmDADNSsa3t with a deposit of 15 NEAR"
+    },
+    {
+      "subject": "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2",
+      "method": "GET /v1/account/{account_id}/keys and /v1/txns/{transaction_hash}",
+      "args": {
+        "account_id": "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2",
+        "transaction_hash": "BUkhCry3v7WihKw35sNy7nKzf6CVUf9AdyM37CTXru4R"
+      },
+      "block": 194226550,
+      "result_sha256": "516f4e687dcfd41b7c92692f4d2684ae73484795a7d57f1b065e2468839d15a9",
+      "summary": "created at block 194226550 by transaction BUkhCry3v7WihKw35sNy7nKzf6CVUf9AdyM37CTXru4R with a deposit of 15 NEAR"
+    },
+    {
+      "subject": "9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616",
+      "method": "GET /v1/account/{account_id}/keys and /v1/txns/{transaction_hash}",
+      "args": {
+        "account_id": "9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616",
+        "transaction_hash": "7EWXTEPaVM2iFgthFBgMPA4hT1VeDAQGFy7vfcEYpEcM"
+      },
+      "block": 194226555,
+      "result_sha256": "7e7c499d56857b88fdca04b1ff46475a6b88cb72af28909146abe64883ba2f1c",
+      "summary": "created at block 194226555 by transaction 7EWXTEPaVM2iFgthFBgMPA4hT1VeDAQGFy7vfcEYpEcM with a deposit of 15 NEAR"
+    },
+    {
+      "subject": "5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040",
+      "method": "GET /v1/account/{account_id}/keys and /v1/txns/{transaction_hash}",
+      "args": {
+        "account_id": "5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040",
+        "transaction_hash": "4wrLZQmMcxNGe7hEpzc91UHJT8r6AE4W1SvT2gZirb9"
+      },
+      "block": 194226542,
+      "result_sha256": "4b5b118f8090a93b6ec3c38b47355ec2ce708026663edd4abd64412bc2b5a517",
+      "summary": "created at block 194226542 by transaction 4wrLZQmMcxNGe7hEpzc91UHJT8r6AE4W1SvT2gZirb9 with a deposit of 15 NEAR"
+    }
+  ],
+  "onchain_state": "current state of the contracts, not a historical block replay",
+  "rules_today": [
+    {
+      "subject": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "verdict": "DENY",
+      "checks": [
+        {
+          "id": "receiver_exists",
+          "status": "pass",
+          "detail": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 exists",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "5da33fbeb9bad6cdab4d005c2ef329eace9c681dcd3f65f78b825adfa29fca7b",
+            "fetched_at": "2026-10-29T11:38:02Z"
+          }
+        },
+        {
+          "id": "label_denylist",
+          "status": "signal",
+          "detail": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \"named in the rekt.news Rhea Finance report as the collector account, which the report also prints as the attacker NEAR wallet\" (assertion 664db39d7af57209306fd948412fe59353389d94aba4aafc6c3b2779f1767ee2); 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \"account exists with no contract code\" (assertion 2c7133b4d2c48237508311fab74b65053251d074a29b786471bed1f177cda275); 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \"created at block 194074444 by transaction 8ogy5xrbQG78Kw5Eo52iJnfNZQZzeh2iLMWeWXV1Wyuu with a deposit of 0.0000000000000000000001 NEAR\" (assertion 6ac99683a4192b79113c521dfde4a5e45ad506d353609438e48e48104f7010ad)",
+          "source": {
+            "provider": "label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "memo_injection",
+          "status": "pass",
+          "detail": "no memo",
+          "source": {
+            "provider": "local patterns",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "account_age",
+          "status": "pass",
+          "detail": "created 197 d ago",
+          "source": {
+            "provider": "api.nearblocks.io",
+            "request_sha256": "61f9c16b7f8568bf74a74272d1ce56bbf56ab73c11410c5ba776b6011b0acffe",
+            "fetched_at": "2026-10-29T11:39:14Z"
+          }
+        },
+        {
+          "id": "dust_funded",
+          "status": "signal",
+          "detail": "created by a 0.0000000000000000000001 NEAR deposit, below 0.1 NEAR",
+          "source": {
+            "provider": "api.nearblocks.io",
+            "request_sha256": "ff47c14b9de293d3fb98eb222a93475a0fac42bc17c76c7cd056a2de5e55a87c",
+            "fetched_at": "2026-10-29T11:39:22Z"
+          }
+        },
+        {
+          "id": "lookalike",
+          "status": "pass",
+          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+          "source": {
+            "provider": "allowlist and label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "code_without_metadata",
+          "status": "pass",
+          "detail": "no contract code",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "5da33fbeb9bad6cdab4d005c2ef329eace9c681dcd3f65f78b825adfa29fca7b",
+            "fetched_at": "2026-10-29T11:38:02Z"
+          }
+        }
+      ],
+      "reasons": [
+        "Created by a 0.0000000000000000000001 NEAR deposit.",
+        "Not on the owner's allowlist.",
+        "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \"named in the rekt.news Rhea Finance report as the collector account, which the report also prints as the attacker NEAR wallet\" (assertion 664db39d7af57209306fd948412fe59353389d94aba4aafc6c3b2779f1767ee2); 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \"account exists with no contract code\" (assertion 2c7133b4d2c48237508311fab74b65053251d074a29b786471bed1f177cda275); 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \"created at block 194074444 by transaction 8ogy5xrbQG78Kw5Eo52iJnfNZQZzeh2iLMWeWXV1Wyuu with a deposit of 0.0000000000000000000001 NEAR\" (assertion 6ac99683a4192b79113c521dfde4a5e45ad506d353609438e48e48104f7010ad)."
+      ],
+      "labels": [
+        "664db39d7af57209306fd948412fe59353389d94aba4aafc6c3b2779f1767ee2",
+        "2c7133b4d2c48237508311fab74b65053251d074a29b786471bed1f177cda275",
+        "6ac99683a4192b79113c521dfde4a5e45ad506d353609438e48e48104f7010ad"
+      ]
+    },
+    {
+      "subject": "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "verdict": "DENY",
+      "checks": [
+        {
+          "id": "receiver_exists",
+          "status": "pass",
+          "detail": "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5 exists",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "ea9ab76baae759eb6267d9266a8b65afa7fd3a7157f8c98a746378e6c8f5ed45",
+            "fetched_at": "2026-10-29T11:38:02Z"
+          }
+        },
+        {
+          "id": "label_denylist",
+          "status": "signal",
+          "detail": "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5 carries the incident label \"named in the rekt.news Rhea Finance report as the master account\" (assertion 56bcaa5972ef748cca8a1f9b9be8f856184a94fa7268ec9a681ee89664d4d207); 72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5 carries the incident label \"account exists with contract code hash BbQTHv9y5pJcAVbcZVRgMkZib9v2bfydRtBL9msUR4Wi\" (assertion a28b0030e0a5060ee2e24e8dd6b0cd288d795e347660baf73a7f2ca2bfcdf7f4)",
+          "source": {
+            "provider": "label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "memo_injection",
+          "status": "pass",
+          "detail": "no memo",
+          "source": {
+            "provider": "local patterns",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "account_age",
+          "status": "unknown",
+          "detail": "could not read the account keys: no recorded response for the request",
+          "source": {
+            "provider": "api.nearblocks.io",
+            "request_sha256": "516eef037d0239bcdb1e8b62accb80a3a2f393a0fba138ef4dfe3a41cc393844",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "dust_funded",
+          "status": "unknown",
+          "detail": "the creation transaction is not known",
+          "source": {
+            "provider": "nearblocks",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "lookalike",
+          "status": "pass",
+          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+          "source": {
+            "provider": "allowlist and label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "code_without_metadata",
+          "status": "unknown",
+          "detail": "could not read contract_source_metadata: no recorded response for the request",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "e99f332de711063deaf93d55f32e87aa4d1e6f2cf71ffabe5d3b51c60e02e9e4",
+            "fetched_at": null
+          }
+        }
+      ],
+      "reasons": [
+        "Not on the owner's allowlist.",
+        "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5 carries the incident label \"named in the rekt.news Rhea Finance report as the master account\" (assertion 56bcaa5972ef748cca8a1f9b9be8f856184a94fa7268ec9a681ee89664d4d207); 72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5 carries the incident label \"account exists with contract code hash BbQTHv9y5pJcAVbcZVRgMkZib9v2bfydRtBL9msUR4Wi\" (assertion a28b0030e0a5060ee2e24e8dd6b0cd288d795e347660baf73a7f2ca2bfcdf7f4)."
+      ],
+      "labels": [
+        "56bcaa5972ef748cca8a1f9b9be8f856184a94fa7268ec9a681ee89664d4d207",
+        "a28b0030e0a5060ee2e24e8dd6b0cd288d795e347660baf73a7f2ca2bfcdf7f4"
+      ]
+    },
+    {
+      "subject": "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "verdict": "DENY",
+      "checks": [
+        {
+          "id": "receiver_exists",
+          "status": "signal",
+          "detail": "receiver_missing: d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03 does not exist",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "1d16e0bc134dddd9c190e712b600faf7701eccfb23d44953dc90df47e61bdaef",
+            "fetched_at": "2026-10-29T11:38:03Z"
+          }
+        },
+        {
+          "id": "label_denylist",
+          "status": "signal",
+          "detail": "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03 carries the incident label \"named in the rekt.news Rhea Finance report as one of the five worker accounts\" (assertion d0950956ec052f5969d95cefc8591864de3c88568c4b2966d5227c9002f7f693); d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03 carries the incident label \"account does not exist at this block (deleted or never created)\" (assertion 82b84c71d81bf3008c90cf7ef695683fd8e9b7547a702d4958c2a498ab756c0a); d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03 carries the incident label \"created at block 194226546 by transaction CXVsn1nNZ9Rv4c7X5Hg1FEtcRZSAG5QwmhyyfsgahWj7 with a deposit of 15 NEAR\" (assertion afe41a71fa6abe8078bf8245133a31859e72eb66e91a11d57db19dd8716c2326)",
+          "source": {
+            "provider": "label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "memo_injection",
+          "status": "pass",
+          "detail": "no memo",
+          "source": {
+            "provider": "local patterns",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "account_age",
+          "status": "pass",
+          "detail": "created 196 d ago",
+          "source": {
+            "provider": "api.nearblocks.io",
+            "request_sha256": "1a1559e3272b49973019c065f982de8ed03a6754698d3aa0e9ea06f4ec01838d",
+            "fetched_at": "2026-10-29T11:39:32Z"
+          }
+        },
+        {
+          "id": "dust_funded",
+          "status": "pass",
+          "detail": "created by a 15 NEAR deposit",
+          "source": {
+            "provider": "api.nearblocks.io",
+            "request_sha256": "e143c599cc60171ebcdef1856768099af13d92baaf3e1fe5efa7d045647a0a04",
+            "fetched_at": "2026-10-29T11:39:43Z"
+          }
+        },
+        {
+          "id": "lookalike",
+          "status": "pass",
+          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+          "source": {
+            "provider": "allowlist and label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "code_without_metadata",
+          "status": "unknown",
+          "detail": "the receiver account could not be read",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "1d16e0bc134dddd9c190e712b600faf7701eccfb23d44953dc90df47e61bdaef",
+            "fetched_at": "2026-10-29T11:38:03Z"
+          }
+        }
+      ],
+      "reasons": [
+        "Not on the owner's allowlist.",
+        "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03 does not exist.",
+        "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03 carries the incident label \"named in the rekt.news Rhea Finance report as one of the five worker accounts\" (assertion d0950956ec052f5969d95cefc8591864de3c88568c4b2966d5227c9002f7f693); d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03 carries the incident label \"account does not exist at this block (deleted or never created)\" (assertion 82b84c71d81bf3008c90cf7ef695683fd8e9b7547a702d4958c2a498ab756c0a); d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03 carries the incident label \"created at block 194226546 by transaction CXVsn1nNZ9Rv4c7X5Hg1FEtcRZSAG5QwmhyyfsgahWj7 with a deposit of 15 NEAR\" (assertion afe41a71fa6abe8078bf8245133a31859e72eb66e91a11d57db19dd8716c2326)."
+      ],
+      "labels": [
+        "d0950956ec052f5969d95cefc8591864de3c88568c4b2966d5227c9002f7f693",
+        "82b84c71d81bf3008c90cf7ef695683fd8e9b7547a702d4958c2a498ab756c0a",
+        "afe41a71fa6abe8078bf8245133a31859e72eb66e91a11d57db19dd8716c2326"
+      ]
+    },
+    {
+      "subject": "d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "verdict": "DENY",
+      "checks": [
+        {
+          "id": "receiver_exists",
+          "status": "pass",
+          "detail": "d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473 exists",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "dae3beca91752034d471d163a4af58ba9b46db2b30334c04d319bae6dac1b6cd",
+            "fetched_at": "2026-10-29T11:38:03Z"
+          }
+        },
+        {
+          "id": "label_denylist",
+          "status": "signal",
+          "detail": "d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473 carries the incident label \"named in the rekt.news Rhea Finance report as one of the five worker accounts\" (assertion 6604099647fc449b2b27c122ec168df5a169b5b7061c4582cec410c211e982fa); d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473 carries the incident label \"account exists with no contract code\" (assertion 55b2eafe1093b7b3dd8dbdd44e6932970a34e6f05617df6b0d705bee9bf71d92); d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473 carries the incident label \"created at block 194226560 by transaction 8LU8TZjjw87By1mcWvarrjTESgGy2aTKvNmDADNSsa3t with a deposit of 15 NEAR\" (assertion 0cc9e717b641ec428ebad282f817494adf2d1db2f08fbe01054e98f7be938418)",
+          "source": {
+            "provider": "label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "memo_injection",
+          "status": "pass",
+          "detail": "no memo",
+          "source": {
+            "provider": "local patterns",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "account_age",
+          "status": "pass",
+          "detail": "created 196 d ago",
+          "source": {
+            "provider": "api.nearblocks.io",
+            "request_sha256": "11035415a29164c92c2823f5ff9c70f2d5131920adef9b4bb881a783ea28322a",
+            "fetched_at": "2026-10-29T11:39:53Z"
+          }
+        },
+        {
+          "id": "dust_funded",
+          "status": "pass",
+          "detail": "created by a 15 NEAR deposit",
+          "source": {
+            "provider": "api.nearblocks.io",
+            "request_sha256": "1f3828a62c9d08a5b8d7be41f7758bb9da723dbfc47c4580e01bcd5162389dc1",
+            "fetched_at": "2026-10-29T11:40:02Z"
+          }
+        },
+        {
+          "id": "lookalike",
+          "status": "pass",
+          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+          "source": {
+            "provider": "allowlist and label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "code_without_metadata",
+          "status": "pass",
+          "detail": "no contract code",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "dae3beca91752034d471d163a4af58ba9b46db2b30334c04d319bae6dac1b6cd",
+            "fetched_at": "2026-10-29T11:38:03Z"
+          }
+        }
+      ],
+      "reasons": [
+        "Not on the owner's allowlist.",
+        "d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473 carries the incident label \"named in the rekt.news Rhea Finance report as one of the five worker accounts\" (assertion 6604099647fc449b2b27c122ec168df5a169b5b7061c4582cec410c211e982fa); d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473 carries the incident label \"account exists with no contract code\" (assertion 55b2eafe1093b7b3dd8dbdd44e6932970a34e6f05617df6b0d705bee9bf71d92); d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473 carries the incident label \"created at block 194226560 by transaction 8LU8TZjjw87By1mcWvarrjTESgGy2aTKvNmDADNSsa3t with a deposit of 15 NEAR\" (assertion 0cc9e717b641ec428ebad282f817494adf2d1db2f08fbe01054e98f7be938418)."
+      ],
+      "labels": [
+        "6604099647fc449b2b27c122ec168df5a169b5b7061c4582cec410c211e982fa",
+        "55b2eafe1093b7b3dd8dbdd44e6932970a34e6f05617df6b0d705bee9bf71d92",
+        "0cc9e717b641ec428ebad282f817494adf2d1db2f08fbe01054e98f7be938418"
+      ]
+    },
+    {
+      "subject": "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "verdict": "DENY",
+      "checks": [
+        {
+          "id": "receiver_exists",
+          "status": "signal",
+          "detail": "receiver_missing: 839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2 does not exist",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "dadcd7c61f01105ce6cb77173a0810793a506a462837f4de4150f9387bc414e4",
+            "fetched_at": "2026-10-29T11:38:04Z"
+          }
+        },
+        {
+          "id": "label_denylist",
+          "status": "signal",
+          "detail": "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2 carries the incident label \"named in the rekt.news Rhea Finance report as one of the five worker accounts\" (assertion 7f0b7036681ecde8f4db2d0c311582cc4886dd0426f9403728e6acfbbbae5524); 839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2 carries the incident label \"account does not exist at this block (deleted or never created)\" (assertion 1c2f83d48512e6646e41fb2423443596f90f9848bd5aa54c9cf99f5654ef84c7); 839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2 carries the incident label \"created at block 194226550 by transaction BUkhCry3v7WihKw35sNy7nKzf6CVUf9AdyM37CTXru4R with a deposit of 15 NEAR\" (assertion e1545f2cf37080fe9c8ce43c008c5813335a57f891a37335054bf4ba71ccb999)",
+          "source": {
+            "provider": "label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "memo_injection",
+          "status": "pass",
+          "detail": "no memo",
+          "source": {
+            "provider": "local patterns",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "account_age",
+          "status": "pass",
+          "detail": "created 196 d ago",
+          "source": {
+            "provider": "api.nearblocks.io",
+            "request_sha256": "360204f1ff183860c112d4467f9d70acbb28d1a3cf64cb803c01628ee8188a86",
+            "fetched_at": "2026-10-29T11:40:12Z"
+          }
+        },
+        {
+          "id": "dust_funded",
+          "status": "pass",
+          "detail": "created by a 15 NEAR deposit",
+          "source": {
+            "provider": "api.nearblocks.io",
+            "request_sha256": "f085d43938c60db52f8ab50df62a581d1417d5ee53f4bd3f7fb83f72d83fc61d",
+            "fetched_at": "2026-10-29T11:40:22Z"
+          }
+        },
+        {
+          "id": "lookalike",
+          "status": "pass",
+          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+          "source": {
+            "provider": "allowlist and label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "code_without_metadata",
+          "status": "unknown",
+          "detail": "the receiver account could not be read",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "dadcd7c61f01105ce6cb77173a0810793a506a462837f4de4150f9387bc414e4",
+            "fetched_at": "2026-10-29T11:38:04Z"
+          }
+        }
+      ],
+      "reasons": [
+        "Not on the owner's allowlist.",
+        "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2 does not exist.",
+        "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2 carries the incident label \"named in the rekt.news Rhea Finance report as one of the five worker accounts\" (assertion 7f0b7036681ecde8f4db2d0c311582cc4886dd0426f9403728e6acfbbbae5524); 839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2 carries the incident label \"account does not exist at this block (deleted or never created)\" (assertion 1c2f83d48512e6646e41fb2423443596f90f9848bd5aa54c9cf99f5654ef84c7); 839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2 carries the incident label \"created at block 194226550 by transaction BUkhCry3v7WihKw35sNy7nKzf6CVUf9AdyM37CTXru4R with a deposit of 15 NEAR\" (assertion e1545f2cf37080fe9c8ce43c008c5813335a57f891a37335054bf4ba71ccb999)."
+      ],
+      "labels": [
+        "7f0b7036681ecde8f4db2d0c311582cc4886dd0426f9403728e6acfbbbae5524",
+        "1c2f83d48512e6646e41fb2423443596f90f9848bd5aa54c9cf99f5654ef84c7",
+        "e1545f2cf37080fe9c8ce43c008c5813335a57f891a37335054bf4ba71ccb999"
+      ]
+    },
+    {
+      "subject": "9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "verdict": "DENY",
+      "checks": [
+        {
+          "id": "receiver_exists",
+          "status": "signal",
+          "detail": "receiver_missing: 9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616 does not exist",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "120129f968064c68fd7dd0b09d0d64ff3572889a7783fc6e5360e701e0f90418",
+            "fetched_at": "2026-10-29T11:38:05Z"
+          }
+        },
+        {
+          "id": "label_denylist",
+          "status": "signal",
+          "detail": "9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616 carries the incident label \"named in the rekt.news Rhea Finance report as one of the five worker accounts\" (assertion faf1044c81efdd52961fa2ba1f7afc837e8cd0d8a47ac0d378a8d0384cbd42e1); 9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616 carries the incident label \"account does not exist at this block (deleted or never created)\" (assertion c2271f9a894e7f92e29d2a3c2116b41878833a9a0e88db68e36bd5e4d3bf4b39); 9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616 carries the incident label \"created at block 194226555 by transaction 7EWXTEPaVM2iFgthFBgMPA4hT1VeDAQGFy7vfcEYpEcM with a deposit of 15 NEAR\" (assertion 7bc19a9d619c05a125c14582204d5166963d3b526b113ce9f0a25194915c8cad)",
+          "source": {
+            "provider": "label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "memo_injection",
+          "status": "pass",
+          "detail": "no memo",
+          "source": {
+            "provider": "local patterns",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "account_age",
+          "status": "pass",
+          "detail": "created 196 d ago",
+          "source": {
+            "provider": "api.nearblocks.io",
+            "request_sha256": "14afd1aad1e778816b6676b21d29974753a31a9b2cf862a2fda075bb26b6bace",
+            "fetched_at": "2026-10-29T11:40:32Z"
+          }
+        },
+        {
+          "id": "dust_funded",
+          "status": "pass",
+          "detail": "created by a 15 NEAR deposit",
+          "source": {
+            "provider": "api.nearblocks.io",
+            "request_sha256": "1272fdb9af23590fc7582969381fe15e16247535397474dc604781dee1a95525",
+            "fetched_at": "2026-10-29T11:40:42Z"
+          }
+        },
+        {
+          "id": "lookalike",
+          "status": "pass",
+          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+          "source": {
+            "provider": "allowlist and label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "code_without_metadata",
+          "status": "unknown",
+          "detail": "the receiver account could not be read",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "120129f968064c68fd7dd0b09d0d64ff3572889a7783fc6e5360e701e0f90418",
+            "fetched_at": "2026-10-29T11:38:05Z"
+          }
+        }
+      ],
+      "reasons": [
+        "Not on the owner's allowlist.",
+        "9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616 does not exist.",
+        "9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616 carries the incident label \"named in the rekt.news Rhea Finance report as one of the five worker accounts\" (assertion faf1044c81efdd52961fa2ba1f7afc837e8cd0d8a47ac0d378a8d0384cbd42e1); 9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616 carries the incident label \"account does not exist at this block (deleted or never created)\" (assertion c2271f9a894e7f92e29d2a3c2116b41878833a9a0e88db68e36bd5e4d3bf4b39); 9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616 carries the incident label \"created at block 194226555 by transaction 7EWXTEPaVM2iFgthFBgMPA4hT1VeDAQGFy7vfcEYpEcM with a deposit of 15 NEAR\" (assertion 7bc19a9d619c05a125c14582204d5166963d3b526b113ce9f0a25194915c8cad)."
+      ],
+      "labels": [
+        "faf1044c81efdd52961fa2ba1f7afc837e8cd0d8a47ac0d378a8d0384cbd42e1",
+        "c2271f9a894e7f92e29d2a3c2116b41878833a9a0e88db68e36bd5e4d3bf4b39",
+        "7bc19a9d619c05a125c14582204d5166963d3b526b113ce9f0a25194915c8cad"
+      ]
+    },
+    {
+      "subject": "5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "verdict": "DENY",
+      "checks": [
+        {
+          "id": "receiver_exists",
+          "status": "signal",
+          "detail": "receiver_missing: 5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040 does not exist",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "f414945f6ac1a0bb7f4a9bfca628f9605cbd5fcf7b7eb6c4bd5cf308793add49",
+            "fetched_at": "2026-10-29T11:38:05Z"
+          }
+        },
+        {
+          "id": "label_denylist",
+          "status": "signal",
+          "detail": "5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040 carries the incident label \"named in the rekt.news Rhea Finance report as one of the five worker accounts\" (assertion 35b941cd98ca03d551a040a02e17a14ba7e65a53329d15a6bad19d3f05f88b22); 5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040 carries the incident label \"account does not exist at this block (deleted or never created)\" (assertion e04b02ea3ea1bcbc588be86b45413564743bb1e29da385ff314a270549dee0fa); 5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040 carries the incident label \"created at block 194226542 by transaction 4wrLZQmMcxNGe7hEpzc91UHJT8r6AE4W1SvT2gZirb9 with a deposit of 15 NEAR\" (assertion 42f5593d5dda49777189f15e09803f4a7c2452b7feb0829506c96f16a1edab9e)",
+          "source": {
+            "provider": "label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "memo_injection",
+          "status": "pass",
+          "detail": "no memo",
+          "source": {
+            "provider": "local patterns",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "account_age",
+          "status": "pass",
+          "detail": "created 196 d ago",
+          "source": {
+            "provider": "api.nearblocks.io",
+            "request_sha256": "3fc55eb1e46747d6c1cfaad9f7b6459b859f972364e138c25ad6098bee90eefa",
+            "fetched_at": "2026-10-29T11:40:52Z"
+          }
+        },
+        {
+          "id": "dust_funded",
+          "status": "pass",
+          "detail": "created by a 15 NEAR deposit",
+          "source": {
+            "provider": "api.nearblocks.io",
+            "request_sha256": "86fb01fb99cc6d7497907f200b993f00e69209d4a5872d1e947f69f80de5e493",
+            "fetched_at": "2026-10-29T11:41:02Z"
+          }
+        },
+        {
+          "id": "lookalike",
+          "status": "pass",
+          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+          "source": {
+            "provider": "allowlist and label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "code_without_metadata",
+          "status": "unknown",
+          "detail": "the receiver account could not be read",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "f414945f6ac1a0bb7f4a9bfca628f9605cbd5fcf7b7eb6c4bd5cf308793add49",
+            "fetched_at": "2026-10-29T11:38:05Z"
+          }
+        }
+      ],
+      "reasons": [
+        "Not on the owner's allowlist.",
+        "5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040 does not exist.",
+        "5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040 carries the incident label \"named in the rekt.news Rhea Finance report as one of the five worker accounts\" (assertion 35b941cd98ca03d551a040a02e17a14ba7e65a53329d15a6bad19d3f05f88b22); 5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040 carries the incident label \"account does not exist at this block (deleted or never created)\" (assertion e04b02ea3ea1bcbc588be86b45413564743bb1e29da385ff314a270549dee0fa); 5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040 carries the incident label \"created at block 194226542 by transaction 4wrLZQmMcxNGe7hEpzc91UHJT8r6AE4W1SvT2gZirb9 with a deposit of 15 NEAR\" (assertion 42f5593d5dda49777189f15e09803f4a7c2452b7feb0829506c96f16a1edab9e)."
+      ],
+      "labels": [
+        "35b941cd98ca03d551a040a02e17a14ba7e65a53329d15a6bad19d3f05f88b22",
+        "e04b02ea3ea1bcbc588be86b45413564743bb1e29da385ff314a270549dee0fa",
+        "42f5593d5dda49777189f15e09803f4a7c2452b7feb0829506c96f16a1edab9e"
+      ]
+    },
+    {
+      "subject": "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163",
+      "as": "token",
+      "request": {
+        "kind": "ft",
+        "token_id": "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163",
+        "receiver_id": "intents.near",
+        "amount": "1000000",
+        "memo": null
+      },
+      "verdict": "DENY",
+      "checks": [
+        {
+          "id": "receiver_exists",
+          "status": "pass",
+          "detail": "intents.near exists",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "aeca5be441be45abec5d698a9b5c3dd2a8b8090db3a2abc222c3e6b6463ccdd0",
+            "fetched_at": "2026-10-29T09:20:50Z"
+          }
+        },
+        {
+          "id": "label_denylist",
+          "status": "signal",
+          "detail": "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the incident label \"named in the rekt.news Rhea Finance report as one of the four token contracts that shared the code hash it names\" (assertion 5ebef8b10c3f91f9b97215f39492df2cc0ea81397c9ca9636732d0fd0f6bdf19); c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the incident label \"code hash equals the hash named in the Rhea report\" (assertion 8afc1bbf04d7f5b4afe8eb07afdf4b1db5f50aa6534617b92b48c85616adcef9); c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the incident label \"no ft_metadata: the call fails with \\\"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\\\\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\\\\\nnot implemented\\\\\\\" })\\\"\" (assertion 5e0f0ce291e0453f6606f1acc7d23cb226ff719b65b999db90ad2a7b531b0ac0); c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the incident label \"no contract_source_metadata\" (assertion 20c880bd4b817b6cf8801fd24681b9608791eaaeebcf8261a03c1fbb5625f97e); c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the denylist label \"token contract without ft_metadata whose code hash equals the hash named in the Rhea report\" (assertion bcc188e45bc059142854f9c2263e7c13e48eef219b1227ae8e558ef37db50d36)",
+          "source": {
+            "provider": "label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "token_in_catalog",
+          "status": "signal",
+          "detail": "token_not_in_catalog: c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 is neither a cap asset nor a catalog_token",
+          "source": {
+            "provider": "label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "ft_metadata_sane",
+          "status": "unknown",
+          "detail": "could not read ft_metadata: RPC error wasm execution failed with error: HostError(GuestPanic { panic_msg: \"panicked at contracts/mock-ft/src/lib.rs:70:9:\\nnot implemented\" })",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "1b36bb1d6d23d7ceec70da83ddf548ca66f8075806e7869973d26ffc46aa9578",
+            "fetched_at": "2026-10-29T11:38:07Z"
+          }
+        },
+        {
+          "id": "storage_registered",
+          "status": "unknown",
+          "detail": "could not read storage_balance_of: no recorded response for the request",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "3ef64682702ebe100a22d6269092954b4ec06e2585bfeb1d256f2e0784aaeda7",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "memo_injection",
+          "status": "pass",
+          "detail": "no memo",
+          "source": {
+            "provider": "local patterns",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "account_age",
+          "status": "unknown",
+          "detail": "could not read the account keys: no recorded response for the request",
+          "source": {
+            "provider": "api.nearblocks.io",
+            "request_sha256": "657c4845e82b92107209708622a1f8de3ae1afa87514183caf3d66e640a5422e",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "dust_funded",
+          "status": "unknown",
+          "detail": "the creation transaction is not known",
+          "source": {
+            "provider": "nearblocks",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "lookalike",
+          "status": "pass",
+          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+          "source": {
+            "provider": "allowlist and label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "code_without_metadata",
+          "status": "pass",
+          "detail": "contract code with contract_source_metadata",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "2ac1817c825961725d072dc0658ff59c66c85a1520d76901c350e7e8c4c2d6d8",
+            "fetched_at": "2026-10-29T09:21:08Z"
+          }
+        }
+      ],
+      "reasons": [
+        "Not on the owner's allowlist.",
+        "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the incident label \"named in the rekt.news Rhea Finance report as one of the four token contracts that shared the code hash it names\" (assertion 5ebef8b10c3f91f9b97215f39492df2cc0ea81397c9ca9636732d0fd0f6bdf19); c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the incident label \"code hash equals the hash named in the Rhea report\" (assertion 8afc1bbf04d7f5b4afe8eb07afdf4b1db5f50aa6534617b92b48c85616adcef9); c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the incident label \"no ft_metadata: the call fails with \\\"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\\\\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\\\\\nnot implemented\\\\\\\" })\\\"\" (assertion 5e0f0ce291e0453f6606f1acc7d23cb226ff719b65b999db90ad2a7b531b0ac0); c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the incident label \"no contract_source_metadata\" (assertion 20c880bd4b817b6cf8801fd24681b9608791eaaeebcf8261a03c1fbb5625f97e); c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 carries the denylist label \"token contract without ft_metadata whose code hash equals the hash named in the Rhea report\" (assertion bcc188e45bc059142854f9c2263e7c13e48eef219b1227ae8e558ef37db50d36).",
+        "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 is not a catalog token or a cap asset of the agent."
+      ],
+      "labels": [
+        "522c8a621dbd41266cdf8a2d5020f4b27a608037e06ec4d3a50d2d9bb0681402",
+        "a4620b716e67ab13490ba33b67297ca168d93d4461c229e30dfa8a36b5396ebc",
+        "8742d8a4d9ef3adc6bb7401bb852749f3f2111bb7db1c461695b475ba15cb351",
+        "c55b108c502a3834f1acf605aed7284991956078fe345a72d5025a54e6b5c4a2",
+        "5ebef8b10c3f91f9b97215f39492df2cc0ea81397c9ca9636732d0fd0f6bdf19",
+        "8afc1bbf04d7f5b4afe8eb07afdf4b1db5f50aa6534617b92b48c85616adcef9",
+        "5e0f0ce291e0453f6606f1acc7d23cb226ff719b65b999db90ad2a7b531b0ac0",
+        "20c880bd4b817b6cf8801fd24681b9608791eaaeebcf8261a03c1fbb5625f97e",
+        "bcc188e45bc059142854f9c2263e7c13e48eef219b1227ae8e558ef37db50d36"
+      ]
+    },
+    {
+      "subject": "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640",
+      "as": "token",
+      "request": {
+        "kind": "ft",
+        "token_id": "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640",
+        "receiver_id": "intents.near",
+        "amount": "1000000",
+        "memo": null
+      },
+      "verdict": "DENY",
+      "checks": [
+        {
+          "id": "receiver_exists",
+          "status": "pass",
+          "detail": "intents.near exists",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "aeca5be441be45abec5d698a9b5c3dd2a8b8090db3a2abc222c3e6b6463ccdd0",
+            "fetched_at": "2026-10-29T09:20:50Z"
+          }
+        },
+        {
+          "id": "label_denylist",
+          "status": "signal",
+          "detail": "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the incident label \"named in the rekt.news Rhea Finance report as one of the four token contracts that shared the code hash it names\" (assertion 07feed659b36ce884781596aa507780db9153179c3b7edfd0f0bfd9058c9776b); 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the incident label \"code hash equals the hash named in the Rhea report\" (assertion 78370768ade233245897313e0f41d52551aacfb008b8a4bd60d4d743b59f4fb3); 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the incident label \"no ft_metadata: the call fails with \\\"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\\\\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\\\\\nnot implemented\\\\\\\" })\\\"\" (assertion f9da386132795c9d24456d0fb452b9cb4d0c4cb3b607bd3e0129d8d7810b11c3); 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the incident label \"no contract_source_metadata\" (assertion aea88cc478f8d80aff15b5a3b0c3fbbbf032d5aec5a8eec1ec6afa650e660677); 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the denylist label \"token contract without ft_metadata whose code hash equals the hash named in the Rhea report\" (assertion 2a29e747be4c2a21bf0f2c173f4b27a7932d1d2d43f92cf20859f6962c85b827)",
+          "source": {
+            "provider": "label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "token_in_catalog",
+          "status": "signal",
+          "detail": "token_not_in_catalog: 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 is neither a cap asset nor a catalog_token",
+          "source": {
+            "provider": "label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "ft_metadata_sane",
+          "status": "unknown",
+          "detail": "could not read ft_metadata: RPC error wasm execution failed with error: HostError(GuestPanic { panic_msg: \"panicked at contracts/mock-ft/src/lib.rs:70:9:\\nnot implemented\" })",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "909181ed0f0a0898e4d1c98a4be244418b73c5bceb85cccce2799441026fa86b",
+            "fetched_at": "2026-10-29T11:39:00Z"
+          }
+        },
+        {
+          "id": "storage_registered",
+          "status": "unknown",
+          "detail": "could not read storage_balance_of: no recorded response for the request",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "57545788e478c1f0feebc932ca62498a6b12cb6ceb998274de97a4fcabbd7747",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "memo_injection",
+          "status": "pass",
+          "detail": "no memo",
+          "source": {
+            "provider": "local patterns",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "account_age",
+          "status": "unknown",
+          "detail": "could not read the account keys: no recorded response for the request",
+          "source": {
+            "provider": "api.nearblocks.io",
+            "request_sha256": "657c4845e82b92107209708622a1f8de3ae1afa87514183caf3d66e640a5422e",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "dust_funded",
+          "status": "unknown",
+          "detail": "the creation transaction is not known",
+          "source": {
+            "provider": "nearblocks",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "lookalike",
+          "status": "pass",
+          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+          "source": {
+            "provider": "allowlist and label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "code_without_metadata",
+          "status": "pass",
+          "detail": "contract code with contract_source_metadata",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "2ac1817c825961725d072dc0658ff59c66c85a1520d76901c350e7e8c4c2d6d8",
+            "fetched_at": "2026-10-29T09:21:08Z"
+          }
+        }
+      ],
+      "reasons": [
+        "Not on the owner's allowlist.",
+        "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the incident label \"named in the rekt.news Rhea Finance report as one of the four token contracts that shared the code hash it names\" (assertion 07feed659b36ce884781596aa507780db9153179c3b7edfd0f0bfd9058c9776b); 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the incident label \"code hash equals the hash named in the Rhea report\" (assertion 78370768ade233245897313e0f41d52551aacfb008b8a4bd60d4d743b59f4fb3); 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the incident label \"no ft_metadata: the call fails with \\\"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\\\\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\\\\\nnot implemented\\\\\\\" })\\\"\" (assertion f9da386132795c9d24456d0fb452b9cb4d0c4cb3b607bd3e0129d8d7810b11c3); 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the incident label \"no contract_source_metadata\" (assertion aea88cc478f8d80aff15b5a3b0c3fbbbf032d5aec5a8eec1ec6afa650e660677); 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 carries the denylist label \"token contract without ft_metadata whose code hash equals the hash named in the Rhea report\" (assertion 2a29e747be4c2a21bf0f2c173f4b27a7932d1d2d43f92cf20859f6962c85b827).",
+        "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 is not a catalog token or a cap asset of the agent."
+      ],
+      "labels": [
+        "522c8a621dbd41266cdf8a2d5020f4b27a608037e06ec4d3a50d2d9bb0681402",
+        "a4620b716e67ab13490ba33b67297ca168d93d4461c229e30dfa8a36b5396ebc",
+        "8742d8a4d9ef3adc6bb7401bb852749f3f2111bb7db1c461695b475ba15cb351",
+        "c55b108c502a3834f1acf605aed7284991956078fe345a72d5025a54e6b5c4a2",
+        "07feed659b36ce884781596aa507780db9153179c3b7edfd0f0bfd9058c9776b",
+        "78370768ade233245897313e0f41d52551aacfb008b8a4bd60d4d743b59f4fb3",
+        "f9da386132795c9d24456d0fb452b9cb4d0c4cb3b607bd3e0129d8d7810b11c3",
+        "aea88cc478f8d80aff15b5a3b0c3fbbbf032d5aec5a8eec1ec6afa650e660677",
+        "2a29e747be4c2a21bf0f2c173f4b27a7932d1d2d43f92cf20859f6962c85b827"
+      ]
+    },
+    {
+      "subject": "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee",
+      "as": "token",
+      "request": {
+        "kind": "ft",
+        "token_id": "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee",
+        "receiver_id": "intents.near",
+        "amount": "1000000",
+        "memo": null
+      },
+      "verdict": "DENY",
+      "checks": [
+        {
+          "id": "receiver_exists",
+          "status": "pass",
+          "detail": "intents.near exists",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "aeca5be441be45abec5d698a9b5c3dd2a8b8090db3a2abc222c3e6b6463ccdd0",
+            "fetched_at": "2026-10-29T09:20:50Z"
+          }
+        },
+        {
+          "id": "label_denylist",
+          "status": "signal",
+          "detail": "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the incident label \"named in the rekt.news Rhea Finance report as one of the four token contracts that shared the code hash it names\" (assertion d28bf094c8621b2454306d76e7c9f5a44d67a709d9bc335258ea74720e70ca45); 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the incident label \"code hash equals the hash named in the Rhea report\" (assertion 649b76dfc17aa8c3fcc229e936596b52a75ac520c6ba388c4644a4ac6f474af4); 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the incident label \"no ft_metadata: the call fails with \\\"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\\\\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\\\\\nnot implemented\\\\\\\" })\\\"\" (assertion 51bb72c37480283d1f66735ceb3299d2de14bb5fc130cae91aefcf29ac870b66); 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the incident label \"no contract_source_metadata\" (assertion 6e32987a2040d583403c543bcf9a281c9c2e21e72f225d88a9747212ee44fcbd); 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the denylist label \"token contract without ft_metadata whose code hash equals the hash named in the Rhea report\" (assertion 66361bdfe8e2cb1d3f2a06a7894460265316b05eef3ced1fff3d9a8782cfcda9)",
+          "source": {
+            "provider": "label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "token_in_catalog",
+          "status": "signal",
+          "detail": "token_not_in_catalog: 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee is neither a cap asset nor a catalog_token",
+          "source": {
+            "provider": "label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "ft_metadata_sane",
+          "status": "unknown",
+          "detail": "could not read ft_metadata: RPC error wasm execution failed with error: HostError(GuestPanic { panic_msg: \"panicked at contracts/mock-ft/src/lib.rs:70:9:\\nnot implemented\" })",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "362f26c2235d0c68ceda4adc2b5553393e9800011e5640023239d4bc6d04cab5",
+            "fetched_at": "2026-10-29T11:39:03Z"
+          }
+        },
+        {
+          "id": "storage_registered",
+          "status": "unknown",
+          "detail": "could not read storage_balance_of: no recorded response for the request",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "72b4f4eb61d2be6c4d370fdd67d071c2891c94ae837fcb631304cd490fa33013",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "memo_injection",
+          "status": "pass",
+          "detail": "no memo",
+          "source": {
+            "provider": "local patterns",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "account_age",
+          "status": "unknown",
+          "detail": "could not read the account keys: no recorded response for the request",
+          "source": {
+            "provider": "api.nearblocks.io",
+            "request_sha256": "657c4845e82b92107209708622a1f8de3ae1afa87514183caf3d66e640a5422e",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "dust_funded",
+          "status": "unknown",
+          "detail": "the creation transaction is not known",
+          "source": {
+            "provider": "nearblocks",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "lookalike",
+          "status": "pass",
+          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+          "source": {
+            "provider": "allowlist and label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "code_without_metadata",
+          "status": "pass",
+          "detail": "contract code with contract_source_metadata",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "2ac1817c825961725d072dc0658ff59c66c85a1520d76901c350e7e8c4c2d6d8",
+            "fetched_at": "2026-10-29T09:21:08Z"
+          }
+        }
+      ],
+      "reasons": [
+        "Not on the owner's allowlist.",
+        "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the incident label \"named in the rekt.news Rhea Finance report as one of the four token contracts that shared the code hash it names\" (assertion d28bf094c8621b2454306d76e7c9f5a44d67a709d9bc335258ea74720e70ca45); 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the incident label \"code hash equals the hash named in the Rhea report\" (assertion 649b76dfc17aa8c3fcc229e936596b52a75ac520c6ba388c4644a4ac6f474af4); 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the incident label \"no ft_metadata: the call fails with \\\"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\\\\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\\\\\nnot implemented\\\\\\\" })\\\"\" (assertion 51bb72c37480283d1f66735ceb3299d2de14bb5fc130cae91aefcf29ac870b66); 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the incident label \"no contract_source_metadata\" (assertion 6e32987a2040d583403c543bcf9a281c9c2e21e72f225d88a9747212ee44fcbd); 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee carries the denylist label \"token contract without ft_metadata whose code hash equals the hash named in the Rhea report\" (assertion 66361bdfe8e2cb1d3f2a06a7894460265316b05eef3ced1fff3d9a8782cfcda9).",
+        "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee is not a catalog token or a cap asset of the agent."
+      ],
+      "labels": [
+        "522c8a621dbd41266cdf8a2d5020f4b27a608037e06ec4d3a50d2d9bb0681402",
+        "a4620b716e67ab13490ba33b67297ca168d93d4461c229e30dfa8a36b5396ebc",
+        "8742d8a4d9ef3adc6bb7401bb852749f3f2111bb7db1c461695b475ba15cb351",
+        "c55b108c502a3834f1acf605aed7284991956078fe345a72d5025a54e6b5c4a2",
+        "d28bf094c8621b2454306d76e7c9f5a44d67a709d9bc335258ea74720e70ca45",
+        "649b76dfc17aa8c3fcc229e936596b52a75ac520c6ba388c4644a4ac6f474af4",
+        "51bb72c37480283d1f66735ceb3299d2de14bb5fc130cae91aefcf29ac870b66",
+        "6e32987a2040d583403c543bcf9a281c9c2e21e72f225d88a9747212ee44fcbd",
+        "66361bdfe8e2cb1d3f2a06a7894460265316b05eef3ced1fff3d9a8782cfcda9"
+      ]
+    },
+    {
+      "subject": "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705",
+      "as": "token",
+      "request": {
+        "kind": "ft",
+        "token_id": "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705",
+        "receiver_id": "intents.near",
+        "amount": "1000000",
+        "memo": null
+      },
+      "verdict": "DENY",
+      "checks": [
+        {
+          "id": "receiver_exists",
+          "status": "pass",
+          "detail": "intents.near exists",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "aeca5be441be45abec5d698a9b5c3dd2a8b8090db3a2abc222c3e6b6463ccdd0",
+            "fetched_at": "2026-10-29T09:20:50Z"
+          }
+        },
+        {
+          "id": "label_denylist",
+          "status": "signal",
+          "detail": "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the incident label \"named in the rekt.news Rhea Finance report as one of the four token contracts that shared the code hash it names\" (assertion 063d8b4d1a637bb28f41769d118663b5288be9309a0ad24bc82159154bbc1621); 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the incident label \"code hash equals the hash named in the Rhea report\" (assertion b51fb6796a5e3ea7a2402b15274d0e0ad4519043b78e26785640c287ecbbf0a8); 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the incident label \"no ft_metadata: the call fails with \\\"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\\\\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\\\\\nnot implemented\\\\\\\" })\\\"\" (assertion dc13b7a6cf7103ef0c0ce26ec188f553e1ca762f996af7d338239380b997b3cb); 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the incident label \"no contract_source_metadata\" (assertion e22fdac806dc5088cf731515b519b2725860f4274e20165e1636c04c77df307b); 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the denylist label \"token contract without ft_metadata whose code hash equals the hash named in the Rhea report\" (assertion d41f89b572497872ced1a37ab7bcca9aff81d292f0a398a4ab4268d18d2c5032)",
+          "source": {
+            "provider": "label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "token_in_catalog",
+          "status": "signal",
+          "detail": "token_not_in_catalog: 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 is neither a cap asset nor a catalog_token",
+          "source": {
+            "provider": "label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "ft_metadata_sane",
+          "status": "unknown",
+          "detail": "could not read ft_metadata: RPC error wasm execution failed with error: HostError(GuestPanic { panic_msg: \"panicked at contracts/mock-ft/src/lib.rs:70:9:\\nnot implemented\" })",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "4c6dd04588efb30e6f1065cf525b31e42dc3fa1e99915766a87a220d89bef7da",
+            "fetched_at": "2026-10-29T11:39:06Z"
+          }
+        },
+        {
+          "id": "storage_registered",
+          "status": "unknown",
+          "detail": "could not read storage_balance_of: no recorded response for the request",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "33fbfd1c14dc0e0d00f3be937abe00385784d27140e69541d24d05bad7981105",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "memo_injection",
+          "status": "pass",
+          "detail": "no memo",
+          "source": {
+            "provider": "local patterns",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "account_age",
+          "status": "unknown",
+          "detail": "could not read the account keys: no recorded response for the request",
+          "source": {
+            "provider": "api.nearblocks.io",
+            "request_sha256": "657c4845e82b92107209708622a1f8de3ae1afa87514183caf3d66e640a5422e",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "dust_funded",
+          "status": "unknown",
+          "detail": "the creation transaction is not known",
+          "source": {
+            "provider": "nearblocks",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "lookalike",
+          "status": "pass",
+          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+          "source": {
+            "provider": "allowlist and label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "code_without_metadata",
+          "status": "pass",
+          "detail": "contract code with contract_source_metadata",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "2ac1817c825961725d072dc0658ff59c66c85a1520d76901c350e7e8c4c2d6d8",
+            "fetched_at": "2026-10-29T09:21:08Z"
+          }
+        }
+      ],
+      "reasons": [
+        "Not on the owner's allowlist.",
+        "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the incident label \"named in the rekt.news Rhea Finance report as one of the four token contracts that shared the code hash it names\" (assertion 063d8b4d1a637bb28f41769d118663b5288be9309a0ad24bc82159154bbc1621); 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the incident label \"code hash equals the hash named in the Rhea report\" (assertion b51fb6796a5e3ea7a2402b15274d0e0ad4519043b78e26785640c287ecbbf0a8); 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the incident label \"no ft_metadata: the call fails with \\\"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\\\\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\\\\\nnot implemented\\\\\\\" })\\\"\" (assertion dc13b7a6cf7103ef0c0ce26ec188f553e1ca762f996af7d338239380b997b3cb); 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the incident label \"no contract_source_metadata\" (assertion e22fdac806dc5088cf731515b519b2725860f4274e20165e1636c04c77df307b); 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 carries the denylist label \"token contract without ft_metadata whose code hash equals the hash named in the Rhea report\" (assertion d41f89b572497872ced1a37ab7bcca9aff81d292f0a398a4ab4268d18d2c5032).",
+        "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 is not a catalog token or a cap asset of the agent."
+      ],
+      "labels": [
+        "522c8a621dbd41266cdf8a2d5020f4b27a608037e06ec4d3a50d2d9bb0681402",
+        "a4620b716e67ab13490ba33b67297ca168d93d4461c229e30dfa8a36b5396ebc",
+        "8742d8a4d9ef3adc6bb7401bb852749f3f2111bb7db1c461695b475ba15cb351",
+        "c55b108c502a3834f1acf605aed7284991956078fe345a72d5025a54e6b5c4a2",
+        "063d8b4d1a637bb28f41769d118663b5288be9309a0ad24bc82159154bbc1621",
+        "b51fb6796a5e3ea7a2402b15274d0e0ad4519043b78e26785640c287ecbbf0a8",
+        "dc13b7a6cf7103ef0c0ce26ec188f553e1ca762f996af7d338239380b997b3cb",
+        "e22fdac806dc5088cf731515b519b2725860f4274e20165e1636c04c77df307b",
+        "d41f89b572497872ced1a37ab7bcca9aff81d292f0a398a4ab4268d18d2c5032"
+      ]
+    },
+    {
+      "subject": "rhea000453.multica.near",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "rhea000453.multica.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "verdict": "DENY",
+      "checks": [
+        {
+          "id": "receiver_exists",
+          "status": "pass",
+          "detail": "rhea000453.multica.near exists",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "98de1c9c09150c41c0095b81330cffbdd7e01b7026c5518b496d928620ea3de6",
+            "fetched_at": "2026-10-29T11:39:08Z"
+          }
+        },
+        {
+          "id": "label_denylist",
+          "status": "signal",
+          "detail": "rhea000453.multica.near carries the incident label \"named in the rekt.news Rhea Finance report as an account within Rhea's own Multichain Account system that became active and later received funds traceable to the subject wallet\" (assertion ad091cc5fd41c831a8415f5cdd4bd83ef52ecc951826f126243d1afb995434e5); rhea000453.multica.near carries the incident label \"account exists with no contract code\" (assertion 27b6edab01f0941464ab22e14a1aee2bfee20208062df19fe16a7f1ade5fbe27)",
+          "source": {
+            "provider": "label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "memo_injection",
+          "status": "pass",
+          "detail": "no memo",
+          "source": {
+            "provider": "local patterns",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "account_age",
+          "status": "unknown",
+          "detail": "could not read the account keys: no recorded response for the request",
+          "source": {
+            "provider": "api.nearblocks.io",
+            "request_sha256": "d48b9753a2eda6c78ad6921556faa9336dd511acc9766192d8d710aa20f12cb2",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "dust_funded",
+          "status": "unknown",
+          "detail": "the creation transaction is not known",
+          "source": {
+            "provider": "nearblocks",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "lookalike",
+          "status": "pass",
+          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+          "source": {
+            "provider": "allowlist and label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "code_without_metadata",
+          "status": "pass",
+          "detail": "no contract code",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "98de1c9c09150c41c0095b81330cffbdd7e01b7026c5518b496d928620ea3de6",
+            "fetched_at": "2026-10-29T11:39:08Z"
+          }
+        }
+      ],
+      "reasons": [
+        "Not on the owner's allowlist.",
+        "rhea000453.multica.near carries the incident label \"named in the rekt.news Rhea Finance report as an account within Rhea's own Multichain Account system that became active and later received funds traceable to the subject wallet\" (assertion ad091cc5fd41c831a8415f5cdd4bd83ef52ecc951826f126243d1afb995434e5); rhea000453.multica.near carries the incident label \"account exists with no contract code\" (assertion 27b6edab01f0941464ab22e14a1aee2bfee20208062df19fe16a7f1ade5fbe27)."
+      ],
+      "labels": [
+        "ad091cc5fd41c831a8415f5cdd4bd83ef52ecc951826f126243d1afb995434e5",
+        "27b6edab01f0941464ab22e14a1aee2bfee20208062df19fe16a7f1ade5fbe27"
+      ]
+    },
+    {
+      "subject": "rhea000462.multica.near",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "rhea000462.multica.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "verdict": "DENY",
+      "checks": [
+        {
+          "id": "receiver_exists",
+          "status": "pass",
+          "detail": "rhea000462.multica.near exists",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "a8772f8c956f0611edc6a5efa70c96639144a7b1f7d7e9211802f9c6059fe0b8",
+            "fetched_at": "2026-10-29T11:39:09Z"
+          }
+        },
+        {
+          "id": "label_denylist",
+          "status": "signal",
+          "detail": "rhea000462.multica.near carries the incident label \"named in the rekt.news Rhea Finance report as an account within Rhea's own Multichain Account system that became active and later received funds traceable to the subject wallet\" (assertion 6c3c8a5fe01ebe4eb864900efb19069b09b463422a9a3831af9617277206f700); rhea000462.multica.near carries the incident label \"account exists with no contract code\" (assertion 8a04c320ddbb1c882cb849f11d864eef1d3479b3763e3d92f023e300ef4c969b)",
+          "source": {
+            "provider": "label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "memo_injection",
+          "status": "pass",
+          "detail": "no memo",
+          "source": {
+            "provider": "local patterns",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "account_age",
+          "status": "unknown",
+          "detail": "could not read the account keys: no recorded response for the request",
+          "source": {
+            "provider": "api.nearblocks.io",
+            "request_sha256": "85c878629200db0a15a1440f14a0f5dff969174584de53a5e15f356bbc024bbf",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "dust_funded",
+          "status": "unknown",
+          "detail": "the creation transaction is not known",
+          "source": {
+            "provider": "nearblocks",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "lookalike",
+          "status": "pass",
+          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+          "source": {
+            "provider": "allowlist and label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "code_without_metadata",
+          "status": "pass",
+          "detail": "no contract code",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "a8772f8c956f0611edc6a5efa70c96639144a7b1f7d7e9211802f9c6059fe0b8",
+            "fetched_at": "2026-10-29T11:39:09Z"
+          }
+        }
+      ],
+      "reasons": [
+        "Not on the owner's allowlist.",
+        "rhea000462.multica.near carries the incident label \"named in the rekt.news Rhea Finance report as an account within Rhea's own Multichain Account system that became active and later received funds traceable to the subject wallet\" (assertion 6c3c8a5fe01ebe4eb864900efb19069b09b463422a9a3831af9617277206f700); rhea000462.multica.near carries the incident label \"account exists with no contract code\" (assertion 8a04c320ddbb1c882cb849f11d864eef1d3479b3763e3d92f023e300ef4c969b)."
+      ],
+      "labels": [
+        "6c3c8a5fe01ebe4eb864900efb19069b09b463422a9a3831af9617277206f700",
+        "8a04c320ddbb1c882cb849f11d864eef1d3479b3763e3d92f023e300ef4c969b"
+      ]
+    },
+    {
+      "subject": "rhea000505.multica.near",
+      "as": "receiver",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "rhea000505.multica.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "verdict": "DENY",
+      "checks": [
+        {
+          "id": "receiver_exists",
+          "status": "pass",
+          "detail": "rhea000505.multica.near exists",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "3e3180ab66630b95e616180f3f77f0cfab18b6c0f89155895ce2e7e171dca982",
+            "fetched_at": "2026-10-29T11:39:10Z"
+          }
+        },
+        {
+          "id": "label_denylist",
+          "status": "signal",
+          "detail": "rhea000505.multica.near carries the incident label \"named in the rekt.news Rhea Finance report as an account within Rhea's own Multichain Account system that became active and later received funds traceable to the subject wallet\" (assertion 960bfecb5da01f7efaa22a4a97c57c31eebc093cab824330d2c30f6e9719cf31); rhea000505.multica.near carries the incident label \"account exists with no contract code\" (assertion 830794de0e89bf739ac59eeb5532015cf2451276fed128f8aabcccd6f324bc1a)",
+          "source": {
+            "provider": "label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "memo_injection",
+          "status": "pass",
+          "detail": "no memo",
+          "source": {
+            "provider": "local patterns",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "account_age",
+          "status": "unknown",
+          "detail": "could not read the account keys: no recorded response for the request",
+          "source": {
+            "provider": "api.nearblocks.io",
+            "request_sha256": "fe27dbb70c10994dabba4ef165fcb2e61b5e913683ffc7fedf17987737a67462",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "dust_funded",
+          "status": "unknown",
+          "detail": "the creation transaction is not known",
+          "source": {
+            "provider": "nearblocks",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "lookalike",
+          "status": "pass",
+          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+          "source": {
+            "provider": "allowlist and label store",
+            "request_sha256": "58d9d44379d3a00f7116695e7fa6cd66bde1ccfcc7e032f07aa8423c8c8f2e54",
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "code_without_metadata",
+          "status": "pass",
+          "detail": "no contract code",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "3e3180ab66630b95e616180f3f77f0cfab18b6c0f89155895ce2e7e171dca982",
+            "fetched_at": "2026-10-29T11:39:10Z"
+          }
+        }
+      ],
+      "reasons": [
+        "Not on the owner's allowlist.",
+        "rhea000505.multica.near carries the incident label \"named in the rekt.news Rhea Finance report as an account within Rhea's own Multichain Account system that became active and later received funds traceable to the subject wallet\" (assertion 960bfecb5da01f7efaa22a4a97c57c31eebc093cab824330d2c30f6e9719cf31); rhea000505.multica.near carries the incident label \"account exists with no contract code\" (assertion 830794de0e89bf739ac59eeb5532015cf2451276fed128f8aabcccd6f324bc1a)."
+      ],
+      "labels": [
+        "960bfecb5da01f7efaa22a4a97c57c31eebc093cab824330d2c30f6e9719cf31",
+        "830794de0e89bf739ac59eeb5532015cf2451276fed128f8aabcccd6f324bc1a"
+      ]
+    }
+  ],
+  "rules_today_at_ms": 1793274062000,
+  "not_public": [
+    "The report names no person, and this page names none.",
+    "The exploit transaction list beyond the transactions the report prints is not reproduced here.",
+    "The 123 token contracts the report counts are not listed by it; only the four it names are here.",
+    "Which party controls each account is not stated beyond the roles the report gives."
+  ],
+  "standard": "Only accounts named in the cited report or provable on chain by a read anyone can repeat; no person, no motive; the report's own words appear only inside quote fields with their source id; failed checks read Unknown."
+}
