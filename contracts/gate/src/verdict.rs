@@ -6,7 +6,7 @@ fn hex_encode(bytes: &[u8]) -> String {
 }
 
 fn hex_decode(value: &str, expected: usize) -> Result<Vec<u8>, &'static str> {
-    if value.len() != expected * 2 {
+    if value.len() != expected * 2 || !value.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)) {
         return Err("bad_request");
     }
     (0..value.len())
@@ -59,7 +59,7 @@ pub fn verify(
     if verdict.literal != "ALLOW" {
         return Err("not_allow");
     }
-    if verdict.expires_ms < now_ms || verdict.expires_ms < verdict.issued_ms {
+    if verdict.issued_ms > now_ms || verdict.expires_ms < now_ms || verdict.expires_ms < verdict.issued_ms {
         return Err("expired");
     }
     if verdict.expires_ms.saturating_sub(verdict.issued_ms) > max_ttl_ms {
@@ -78,6 +78,8 @@ pub fn verify(
         }
         _ => return Err("bad_key_id"),
     };
+    hex_decode(&verdict.verdict_id, 16)?;
+    hex_decode(&verdict.evidence_hash, 32)?;
     let signature = hex_decode(&verdict.signature, 64)?;
     let signature: [u8; 64] = signature.try_into().map_err(|_| "bad_request")?;
     let message = canonical_message(gate, agent_pk, request, verdict);
