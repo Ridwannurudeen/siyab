@@ -7,7 +7,7 @@
     "keys": [
       {
         "public_key": "ed25519:9pXz1Tq4xYb8Wc2Vn6Rk3Lm5Hd7Gf2Js8Ka4Qe6Tu1W",
-        "account_id": "vend0r.testnet",
+        "account_id": "vendor-pay.testnet",
         "permission_kind": "FULL_ACCESS",
         "created": {
           "transaction_hash": "4pYq6N5Tg3kSWmFYmYjD5CwVzkbpzwLy6Z2qFqh1dE7u",
@@ -20,6 +20,6 @@
       }
     ]
   },
-  "url": "https://api-testnet.nearblocks.io/v1/account/vend0r.testnet/keys",
+  "url": "https://api-testnet.nearblocks.io/v1/account/vendor-pay.testnet/keys",
   "fetched_at": "2026-11-01T12:00:00Z"
 }

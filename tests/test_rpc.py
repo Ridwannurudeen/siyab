@@ -1,4 +1,5 @@
 import hashlib
+import importlib.util
 import json
 import os
 import tempfile
@@ -9,6 +10,8 @@ from pathlib import Path
 from unittest import mock
 
 from gate import rpc
+
+ROOT = Path(__file__).resolve().parent.parent
 
 INTENTS_VIEW_KEY = "aeca5be441be45abec5d698a9b5c3dd2a8b8090db3a2abc222c3e6b6463ccdd0"
 USDC = "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1"
@@ -214,6 +217,97 @@ class ModeTest(unittest.TestCase):
     def test_empty_code_hash(self):
         self.assertEqual(rpc.EMPTY_CODE_HASH, "1" * 32)
 
+
+
+class FailClosedClientTest(unittest.TestCase):
+    """Malformed bodies, what record mode writes, and the NearBlocks limits."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.addCleanup(rpc._NEARBLOCKS_USE.clear)
+        rpc._NEARBLOCKS_USE.clear()
+
+    def test_malformed_bodies_raise_malformed_response(self):
+        client = rpc.Client("https://rpc.example", "off")
+        cases = [
+            ("view_account", ("a.near",), {"jsonrpc": "2.0", "id": "gate", "result": None}),
+            ("view_account", ("a.near",), {"jsonrpc": "2.0", "id": "gate"}),
+            ("view_account", ("a.near",), ["a", "list"]),
+            ("view_account", ("a.near",), {"result": "oops"}),
+            ("view_account", ("a.near",), {"result": {"amount": "1"}}),
+            ("call_function", ("t.near", "m", {}), {"result": {"result": "text"}}),
+            ("call_function", ("t.near", "m", {}), {"result": {"logs": []}}),
+            ("call_function", ("t.near", "m", {}), {"result": {"result": [256]}}),
+            ("call_function", ("t.near", "m", {}), {"result": {"result": list(b"{bad")}}),
+            ("view_access_key_list", ("a.near",), {"result": {"nonce": 1}}),
+            ("final_block", (), {"result": {"chunks": []}}),
+        ]
+        for method, args, body in cases:
+            with self.subTest(method=method, body=body),                     mock.patch("urllib.request.urlopen", return_value=reply(body)),                     self.assertRaises(rpc.MalformedResponse):
+                getattr(client, method)(*args)
+        self.assertTrue(issubclass(rpc.MalformedResponse, ValueError))
+
+    def test_a_post_body_is_never_written(self):
+        memo = "pay me, seed phrase abandon abandon"
+        client = rpc.Client("https://api.example", "record", kind="http", fixtures_dir=self.tmp.name)
+        with mock.patch("urllib.request.urlopen", return_value=reply({"clean": True})) as opened:
+            client.post("/api/scan/injection", {"content": memo})
+        self.assertEqual(json.loads(opened.call_args.args[0].data), {"content": memo})
+        [path] = Path(self.tmp.name).iterdir()
+        text = path.read_text(encoding="utf-8")
+        self.assertNotIn("abandon", text)
+        self.assertEqual(json.loads(text)["request"]["params"], rpc.body_params({"content": memo}))
+        with mock.patch("urllib.request.urlopen", side_effect=no_network):
+            replayed = rpc.Client("https://api.example", "replay", kind="http", fixtures_dir=self.tmp.name)
+            self.assertEqual(replayed.post("/api/scan/injection", {"content": memo}), {"clean": True})
+
+    def test_user_info_in_a_url_is_refused(self):
+        for url in ("https://user:pass@api.example", "https://token@api.example"):
+            with self.subTest(url=url), self.assertRaises(ValueError):
+                rpc.Client(url, "off", kind="http")
+        client = rpc.Client("https://api.example", "off", kind="http")
+        with self.assertRaises(ValueError):
+            client.get("https://key@other.example/x")
+
+    def test_nearblocks_fetches_are_spaced_and_budgeted(self):
+        now = [T0]
+        slept = []
+        client = rpc.Client(rpc.NEARBLOCKS_URL, "off", kind="http", clock=lambda: now[0], sleep=slept.append)
+        with mock.patch("urllib.request.urlopen", return_value=reply({"keys": []})) as opened:
+            client.get("/v1/account/a.near/keys")
+            now[0] += 4
+            client.get("/v1/account/b.near/keys")
+            now[0] += 30
+            client.get("/v1/account/c.near/keys")
+        self.assertEqual(slept, [6])
+        self.assertEqual(opened.call_count, 3)
+        rpc._NEARBLOCKS_USE["api.nearblocks.io"]["count"] = rpc.NEARBLOCKS_DAILY_BUDGET
+        with mock.patch("urllib.request.urlopen", side_effect=no_network), self.assertRaises(rpc.RateLimited):
+            client.get("/v1/account/d.near/keys")
+        now[0] += DAY
+        with mock.patch("urllib.request.urlopen", return_value=reply({"keys": []})):
+            client.get("/v1/account/d.near/keys")
+
+    def test_other_hosts_and_replay_are_not_throttled(self):
+        slept = []
+        client = rpc.Client("https://rpc.example", "off", clock=lambda: T0, sleep=slept.append)
+        with mock.patch("urllib.request.urlopen", return_value=reply({"result": {"x": 1}})):
+            client.call("status", [])
+            client.call("status", [])
+        self.assertEqual(slept, [])
+        self.assertEqual(rpc._NEARBLOCKS_USE, {})
+
+
+class HygieneRuleTest(unittest.TestCase):
+    def test_a_128_hex_string_under_fixtures_rpc_is_rejected(self):
+        spec = importlib.util.spec_from_file_location("check_hygiene", ROOT / "scripts" / "check_hygiene.py")
+        hygiene = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(hygiene)
+        secret = "ab" * 64
+        self.assertTrue(hygiene.check_text("fixtures/rpc/x.json", f'{{"memo": "{secret}"}}'))
+        self.assertFalse(hygiene.check_text("fixtures/canon/x.json", f'{{"signature_hex": "{secret}"}}'))
+        self.assertFalse(hygiene.check_text("fixtures/rpc/x.json", '{"hash": "' + "ab" * 32 + '"}'))
 
 if __name__ == "__main__":
     unittest.main()

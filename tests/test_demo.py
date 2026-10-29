@@ -8,7 +8,7 @@ from unittest import mock
 
 from gate import demo, rpc
 
-DENIED = ("DENIED. vend0r.testnet is a lookalike of vendor.testnet. Created 3 h ago by a 0.01 NEAR deposit. "
+DENIED = ("DENIED. vendor-pay.testnet is a lookalike of vendor.testnet. Created 3 h ago by a 0.01 NEAR deposit. "
           "Not on the owner's allowlist.")
 
 

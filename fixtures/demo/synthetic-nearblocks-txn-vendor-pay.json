@@ -10,7 +10,7 @@
         "included_in_block_hash": "8ZbCAs1aHZTDQjeL3K4SAnpPpvhHL1q7SGxS3gyRdNqC",
         "block_timestamp": "1793523600000000000",
         "signer_account_id": "attacker.testnet",
-        "receiver_account_id": "vend0r.testnet",
+        "receiver_account_id": "vendor-pay.testnet",
         "block": {
           "block_height": 229991000
         },

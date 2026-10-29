@@ -1,7 +1,9 @@
 import contextlib
 import hashlib
+import importlib.util
 import io
 import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -12,6 +14,7 @@ from intel import __main__ as intel_main
 from intel import labels, seed
 
 RAW_DIR = seed.RAW_DIR
+ROOT = Path(__file__).resolve().parent.parent
 DOCUMENT = {"url": "https://example.org/page", "content_sha256": "a" * 64, "fetched_at": "2026-10-29T09:00:00Z"}
 ONCHAIN = {"rpc": "https://free.rpc.fastnear.com", "method": "view_account",
            "args": {"account_id": "x.near"}, "block": 10}
@@ -82,10 +85,8 @@ class CommittedStoreTest(unittest.TestCase):
     def test_catalog_count_is_the_snapshot_count(self):
         [snapshot] = RAW_DIR.glob("1click-tokens-*.json")
         assets = json.loads(snapshot.read_bytes())
-        self.assertTrue(set(seed.EXCLUDED_ASSETS) <= {a["assetId"] for a in assets})
-        listed = [a for a in assets if a["assetId"] not in seed.EXCLUDED_ASSETS]
-        self.assertEqual(self.store.counts()["category"]["catalog_token"], len(listed))
-        bridged = {a["assetId"].rsplit(":", 1)[-1] for a in listed if a["assetId"].endswith(".omft.near")}
+        self.assertEqual(self.store.counts()["category"]["catalog_token"], len(assets))
+        bridged = {a["assetId"].rsplit(":", 1)[-1] for a in assets if a["assetId"].endswith(".omft.near")}
         self.assertEqual(self.store.counts()["category"]["bridge"], len(bridged))
 
     def test_readme_lists_every_snapshot(self):
@@ -118,8 +119,26 @@ class CommittedStoreTest(unittest.TestCase):
         self.assertIn("intents.near", [a.subject for a in self.store.assertions if a.id in judgement.labels])
         self.assertEqual(judgement.checks[1]["source"]["request_sha256"], self.store.sha256)
 
-    def test_no_label_text_says_safe(self):
-        self.assertNotIn("safe", labels.STORE_PATH.read_text(encoding="utf-8").lower())
+    def test_authored_text_never_holds_the_barred_word(self):
+        # Source strings sit inside double quotes as data; everything outside them is our own text.
+        for item in self.rows:
+            for field in ("entity", "label", "category", "provenance", "note"):
+                with self.subTest(id=item["id"], field=field):
+                    self.assertNotIn("safe", re.sub(r'"[^"]*"', "", item[field]).lower())
+        quoted = [item for item in self.rows if 'symbol "SAFE"' in item["label"]]
+        self.assertEqual(len(quoted), 4)
+
+    def test_the_hygiene_rule_covers_authored_text_only(self):
+        spec = importlib.util.spec_from_file_location("check_hygiene", ROOT / "scripts" / "check_hygiene.py")
+        hygiene = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(hygiene)
+        line = "detail = 'the account is safe'"
+        for path in ("gate/rules.py", "intel/seed.py", "docs/VERDICT-RECORD.md"):
+            with self.subTest(path=path):
+                self.assertTrue(hygiene.check_text(path, line))
+        for path in ("intel/labels.jsonl", "intel/seeds/raw/x.json", "fixtures/rpc/x.json", "tests/test_x.py"):
+            with self.subTest(path=path):
+                self.assertFalse(hygiene.check_text(path, line))
 
 
 class ValidationTest(unittest.TestCase):

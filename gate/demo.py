@@ -24,7 +24,7 @@ VENDOR = "vendor.testnet"
 POLICY = {"allowlist": [VENDOR], "caps": [{"asset": {"Ft": TOKEN}}]}
 RUNS = (
     ("The allowlisted vendor", VENDOR),
-    ("A lookalike of the vendor, off the allowlist", "vend0r.testnet"),
+    ("A lookalike of the vendor, off the allowlist", "vendor-pay.testnet"),
     ("A receiver off the allowlist whose account age record is missing", "supplier.testnet"),
 )
 

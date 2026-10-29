@@ -22,6 +22,13 @@ RAW_DIR = "intel/seeds/raw/"
 SELF = "scripts/check_hygiene.py"
 
 HEX64 = re.compile(r"[0-9a-fA-F]{64}")
+# A recorded RPC fixture never holds a 128 hex string: that is the length of a hex secret key or
+# signature, and the canonical vectors that carry signatures live under fixtures/canon/.
+HEX128 = re.compile(r"[0-9a-fA-F]{128}")
+RPC_FIXTURES = "fixtures/rpc/"
+# ShieldBot's own text never uses this word. Third party strings that carry it (a token symbol)
+# live only in data: seeds, raw snapshots, fixtures and the label store.
+AUTHORED_WORD = re.compile(r"safe", re.IGNORECASE)
 KEY_FORMS = (
     (re.compile(r"ed25519:[1-9A-HJ-NP-Za-km-z]{80,}"), "ed25519 private key form"),
     (re.compile(r'"(secret_key|private_key)"\s*:\s*"[^"]+"'), "secret_key or private_key value"),
@@ -48,6 +55,8 @@ def check_text(path, text):
     hex_rule = ext in HEX_EXTENSIONS and not path.startswith(HEX_EXEMPT_DIRS)
     dash_rule = not path.startswith(RAW_DIR) and path != "LICENSE"
     phrase_rule = ext in PHRASE_EXTENSIONS and not path.startswith(RAW_DIR) and path != SELF
+    hex128_rule = path.startswith(RPC_FIXTURES)
+    word_rule = path.startswith(("gate/", "docs/")) or (path.startswith("intel/") and ext == ".py")
     hits = []
     for number, line in enumerate(text.splitlines(), start=1):
         if hex_rule and HEX64.search(line):
@@ -61,6 +70,10 @@ def check_text(path, text):
             match = PHRASES.search(line)
             if match:
                 hits.append((number, f"forbidden phrase {match.group(0)!r}"))
+        if hex128_rule and HEX128.search(line):
+            hits.append((number, "128 hex string in a recorded RPC fixture"))
+        if word_rule and AUTHORED_WORD.search(line):
+            hits.append((number, "a word ShieldBot never uses in its own text"))
     return hits
 
 

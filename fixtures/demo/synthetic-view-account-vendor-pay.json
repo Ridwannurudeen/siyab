@@ -4,7 +4,7 @@
     "params": {
       "request_type": "view_account",
       "finality": "final",
-      "account_id": "vend0r.testnet"
+      "account_id": "vendor-pay.testnet"
     }
   },
   "response": {

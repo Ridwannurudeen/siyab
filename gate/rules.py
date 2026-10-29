@@ -11,25 +11,40 @@ on its own.
 """
 
 import dataclasses
+import json
 import re
 from decimal import Decimal, InvalidOperation
 
-from gate import evidence
-from gate.rpc import EMPTY_CODE_HASH, FixtureMiss, HttpError, RpcError
+from gate import canon, evidence
+from gate.rpc import (
+    EMPTY_CODE_HASH,
+    FixtureMiss,
+    HttpError,
+    MalformedResponse,
+    RateLimited,
+    RpcError,
+)
 
 MIN_AGE_DAYS = 7
 DAY_MS = 24 * 60 * 60 * 1000
 YOCTO_PER_NEAR = 10**24
 DUST_YOCTO = 10**23  # 0.1 NEAR
-LOOKALIKE_DISTANCE = 2
-CONFUSABLES = (("0", "o"), ("1", "l"), ("1", "i"), ("l", "i"), ("rn", "m"), ("vv", "w"))
+# Confusable normalisation, applied in this order to both names before any comparison.
+CONFUSABLES = (("rn", "m"), ("vv", "w"), ("0", "o"), ("1", "l"), ("i", "l"))
 NETWORK_SUFFIXES = (".near", ".testnet")
 DENY_CATEGORIES = ("denylist", "incident")
+# Labelled NEAR accounts a receiver is compared with, besides the allowlist. Token symbols are not
+# compared: a ticker is not a payee, and token identity is checked on token_id.
+REFERENCE_CATEGORIES = ("catalog_token", "bridge", "treasury", "infrastructure")
+CONTAINMENT_MIN_LENGTH = 4
+CONTAINMENT_AFFIX = re.compile(r"[a-z0-9]{1,4}")
 # A check that meets one of these could not run: a missing fixture, an HTTP error such as a
-# NearBlocks 429, an RPC error, a network failure or a malformed response.
-UNAVAILABLE = (FixtureMiss, HttpError, RpcError, OSError, ValueError)
-# RPC causes that mean the contract or the method is not there, which is an answer, not an outage.
-MISSING_CODE_CAUSES = ("UNKNOWN_ACCOUNT", "NO_CONTRACT_CODE", "CONTRACT_EXECUTION_ERROR")
+# NearBlocks 429, the NearBlocks budget, an RPC error, a network failure or a malformed response.
+UNAVAILABLE = (FixtureMiss, HttpError, RateLimited, RpcError, OSError, ValueError)
+# RPC answers that say the account, its code or the method is absent, which is an answer, not an
+# outage. Any other contract execution error could not run, so it reads unknown.
+MISSING_CODE_CAUSES = ("UNKNOWN_ACCOUNT", "NO_CONTRACT_CODE")
+MISSING_METHOD_MARKERS = ("MethodNotFound", "CodeDoesNotExist")
 
 _ZERO_WIDTH = "".join(chr(code) for code in (0x200B, 0x200C, 0x200D, 0x2060, 0xFEFF))
 INJECTION_PATTERNS = tuple((name, re.compile(pattern, re.IGNORECASE)) for name, pattern in (
@@ -60,10 +75,6 @@ INJECTION_PATTERNS = tuple((name, re.compile(pattern, re.IGNORECASE)) for name, 
 ))
 
 
-class MalformedResponse(ValueError):
-    """A data source answered with a body that lacks the fields a check reads."""
-
-
 @dataclasses.dataclass
 class Judgement:
     """The verdict with the checks behind it, the reasons, the label ids consulted and the
@@ -84,9 +95,19 @@ def _local(provider, digest=None):
     return {"provider": provider, "request_sha256": digest, "fetched_at": None}
 
 
+def _quoted(text):
+    """A third party string as quoted data, never as ShieldBot's own words."""
+    return json.dumps(text, ensure_ascii=False)
+
+
 def _missing_code(error):
-    """True when an RPC error says the contract or the method is absent."""
-    return isinstance(error.error, str) or error.cause in MISSING_CODE_CAUSES
+    """True only when an RPC error says the account, its code or the method is absent."""
+    if error.cause in MISSING_CODE_CAUSES:
+        return True
+    if error.cause != "CONTRACT_EXECUTION_ERROR" and not isinstance(error.error, str):
+        return False
+    text = error.error if isinstance(error.error, str) else json.dumps(error.error)
+    return any(marker in text for marker in MISSING_METHOD_MARKERS)
 
 
 def _age_text(age_ms):
@@ -133,30 +154,60 @@ def distance(a, b):
     return rows[len(a)][len(b)]
 
 
-def confusable_swap(a, b):
-    """True when one swap from the confusable table turns a into b."""
-    for left, right in CONFUSABLES:
-        for old, new in ((left, right), (right, left)):
-            start = a.find(old)
-            while start != -1:
-                if a[:start] + new + a[start + len(old):] == b:
-                    return True
-                start = a.find(old, start + 1)
-    return False
+def normalise(name):
+    """The name after confusable normalisation: rn to m, vv to w, 0 to o, 1 and i to l."""
+    for old, new in CONFUSABLES:
+        name = name.replace(old, new)
+    return name
 
 
-def _lookalike_references(policy, store, receiver):
-    """(compared name, shown name, assertion id or None) for every allowlisted account, every
-    catalog_token symbol and every catalog_token account on NEAR."""
-    references = [(_name(account), account, None) for account in policy.get("allowlist", [])
-                  if account != receiver]
+def distance_limit(reference):
+    """The largest distance that counts as a lookalike of a reference of this length."""
+    return 2 if len(reference) >= 6 else 1 if len(reference) >= 4 else 0
+
+
+def contains_allowlisted(receiver, allowlisted):
+    """True when the receiver's first label holds an allowlisted first label of 4 or more
+    characters: as a whole segment split on - and _, as a prefix or suffix with at most 4 letters
+    or digits left over, or as the same label under another parent."""
+    r = normalise(receiver.split(".", 1)[0])
+    a = normalise(allowlisted.split(".", 1)[0])
+    if len(a) < CONTAINMENT_MIN_LENGTH or receiver == allowlisted:
+        return False
+    if r == a:
+        # The same label under another parent; under the same parent it is a typo for the distance rule.
+        return receiver.partition(".")[2] != allowlisted.partition(".")[2]
+    if a in re.split(r"[-_]", r):
+        return True
+    return ((r.startswith(a) and bool(CONTAINMENT_AFFIX.fullmatch(r[len(a):])))
+            or (r.endswith(a) and bool(CONTAINMENT_AFFIX.fullmatch(r[: -len(a)]))))
+
+
+def _references(policy, store, receiver):
+    """{account: assertion ids} for the allowlist and every current labelled NEAR account in
+    REFERENCE_CATEGORIES, the receiver itself left out."""
+    references = {account: [] for account in policy.get("allowlist", []) if account != receiver}
     for assertion in store.assertions:
-        if assertion.category != "catalog_token" or assertion.superseded_by is not None:
-            continue
-        references.append((assertion.label.lower(), f"the {assertion.label} token symbol", assertion.id))
-        if assertion.chain == "near" and assertion.subject != receiver:
-            references.append((_name(assertion.subject), assertion.subject, assertion.id))
+        if (assertion.chain == "near" and assertion.category in REFERENCE_CATEGORIES
+                and assertion.superseded_by is None and assertion.subject != receiver):
+            references.setdefault(assertion.subject, []).append(assertion.id)
     return references
+
+
+def _lookalike(policy, store, receiver):
+    """(the account the receiver imitates, the check detail, assertion ids) or None."""
+    for account in policy.get("allowlist", []):
+        if contains_allowlisted(receiver, account):
+            return account, f"contains the allowlisted name {account}", []
+    name = normalise(_name(receiver))
+    for account, ids in _references(policy, store, receiver).items():
+        reference = normalise(_name(account))
+        limit = distance_limit(reference)
+        if abs(len(name) - len(reference)) <= limit:
+            gap = distance(name, reference)
+            if gap <= limit:
+                return account, f"lookalike of {account} (distance {gap} after confusable normalisation)", ids
+    return None
 
 
 def _oldest_creation(response):
@@ -217,7 +268,7 @@ def _tier1(request, policy, store, rpc, injection_scanner):
     consulted = _current(store, receiver) + (_current(store, token) if kind == "ft" else [])
     hits = [a for a in consulted if a.category in DENY_CATEGORIES]
     if hits:
-        detail = "; ".join(f"{a.subject} carries the {a.category} label {a.label} (assertion {a.id})"
+        detail = "; ".join(f"{a.subject} carries the {a.category} label {_quoted(a.label)} (assertion {a.id})"
                            for a in hits)
         checks.append(evidence.check("label_denylist", "signal", detail, store_source))
     else:
@@ -268,7 +319,8 @@ def _ft_metadata_check(rpc, token):
     if not sane:
         return evidence.check("ft_metadata_sane", "signal", f"ft_metadata on {token} lacks a name, a symbol "
                               "or decimals in 0 to 24", _source(rpc))
-    return evidence.check("ft_metadata_sane", "pass", f"{meta['symbol']}, {decimals} decimals", _source(rpc))
+    return evidence.check("ft_metadata_sane", "pass", f"symbol {_quoted(meta['symbol'])}, {decimals} decimals",
+                          _source(rpc))
 
 
 def _memo_check(memo, injection_scanner):
@@ -334,20 +386,15 @@ def _tier2(request, policy, store, account, account_source, rpc, nearblocks, now
             checks.append(evidence.check("dust_funded", "unknown", f"could not read the creation "
                                          f"transaction: {_why(error)}", _source(nearblocks)))
 
-    name = _name(receiver)
-    for compared, shown, assertion_id in _lookalike_references(policy, store, receiver):
-        gap = distance(name, compared)
-        if gap <= LOOKALIKE_DISTANCE or confusable_swap(name, compared):
-            facts["lookalike"] = shown
-            matched += [assertion_id] if assertion_id else []
-            how = f"distance {gap}" if gap <= LOOKALIKE_DISTANCE else "one confusable swap"
-            checks.append(evidence.check("lookalike", "signal", f"lookalike of {shown} ({how})",
-                                         _local("allowlist and label store", store.sha256)))
-            break
+    hit = _lookalike(policy, store, receiver)
+    source = _local("allowlist and label store", store.sha256)
+    if hit:
+        facts["lookalike"], detail, matched = hit
+        checks.append(evidence.check("lookalike", "signal", detail, source))
     else:
-        checks.append(evidence.check("lookalike", "pass", "no allowlisted or catalog name within distance "
-                                     f"{LOOKALIKE_DISTANCE} or one confusable swap",
-                                     _local("allowlist and label store", store.sha256)))
+        checks.append(evidence.check("lookalike", "pass", "no allowlisted name contained and no allowlisted "
+                                     "or labelled NEAR account within the length scaled distance after "
+                                     "confusable normalisation", source))
 
     checks.append(_code_check(rpc, receiver, account, account_source))
     return checks, facts, matched
@@ -412,7 +459,9 @@ def _reasons(verdict, checks, facts, request, tier2):
 def judge(request, policy, store, rpc, nearblocks, *, now_ms, injection_scanner, min_age_days=MIN_AGE_DAYS):
     """Judge one TransferRequest for the agent whose policy (allowlist and caps, in the get_agent
     shape) is given; store is the label store, rpc the NEAR JSON-RPC client, nearblocks the
-    NearBlocks client and injection_scanner the ShieldBot API client or None."""
+    NearBlocks client and injection_scanner the ShieldBot API client or None. A receiver that is
+    not a valid account id raises canon.CanonError, a ValueError, before any request."""
+    canon.account_id(request["receiver_id"], "receiver_id")
     tier1_checks, account, account_source, labels = _tier1(request, policy, store, rpc, injection_scanner)
     block_height = account.get("block_height") if account else None
     tier2 = request["receiver_id"] not in policy.get("allowlist", [])

@@ -41,10 +41,6 @@ TREASURY_ROWS = (("EVM Chains", "NEAR Intents"), ("EVM Chains", "HOT Bridge"),
                  ("Layer 1 Chains", "NEAR"), ("Layer 1 Chains", "Solana (SOL)"), ("Layer 1 Chains", "TON"),
                  ("Refill Addresses", "EVM Chains"), ("Refill Addresses", "Solana"),
                  ("Refill Addresses", "TON"))
-# Catalog assets left out of the store: their symbol is the one word the honesty rule bars from
-# every label and reason, so no row, and no lookalike reason, can carry it.
-EXCLUDED_ASSETS = ("nep141:eth-0x5afe3855358e112b5647b952709e6165e1c1eeee.omft.near",
-                   "nep141:gnosis-0x4d18815d14fe5c3304e87b3fa18318baa5c23820.omft.near")
 # Accounts confirmed with view_account; the roles come from documentation, not from the chain.
 DOCUMENTED_ACCOUNTS = (
     ("v1.signer", "NEAR MPC", "MPC signer contract"),
@@ -88,6 +84,11 @@ def snapshot(source, mode=None, raw_dir=RAW_DIR, clock=time.time):
     stamp = path.name[len(name) + 1: -len(ext) - 1]
     fetched_at = datetime.strptime(stamp, _STAMP).strftime(_TIME)
     return data, fetched_at, path
+
+
+def _quoted(text):
+    """A string from a source, rendered as quoted data rather than as our own words."""
+    return json.dumps(text, ensure_ascii=False)
 
 
 def _document_source(url, data, fetched_at):
@@ -147,17 +148,17 @@ def treasuries(mode=None, raw_dir=RAW_DIR):
         for entity in ("NEAR Intents", "HOT Bridge"):
             rows.append(make_row(entity=entity, subject=tables[("EVM Chains", entity)][0],
                                  chain=CHAIN_CODES[name], label=f"{entity} treasury",
-                                 note=f"EVM Chains table, listed for {name}", **common))
+                                 note=f"EVM Chains table, listed for {_quoted(name)}", **common))
     for section, name in TREASURY_ROWS[2:7]:
         for entity, address in zip(("NEAR Intents", "HOT Bridge"), tables[(section, name)]):
             if address:
                 rows.append(make_row(entity=entity, subject=address, chain=CHAIN_CODES[name],
-                                     label=f"{entity} treasury", note=f"{section} table, row {name}",
+                                     label=f"{entity} treasury", note=f"{section} table, row {_quoted(name)}",
                                      **common))
     for section, name in TREASURY_ROWS[7:]:
         rows.append(make_row(entity="NEAR Intents or HOT Bridge (the page does not say which)",
                              subject=tables[(section, name)][0], chain=CHAIN_CODES[name],
-                             label="refill address", note=f"{section} table, row {name}; the page says "
+                             label="refill address", note=f"{section} table, row {_quoted(name)}; the page says "
                              "these addresses are used for operational refills across networks", **common))
     return rows
 
@@ -175,13 +176,11 @@ def _catalog_assets(mode, raw_dir):
     assets = json.loads(data)
     if not isinstance(assets, list) or not all(isinstance(a, dict) and a.get("assetId") for a in assets):
         raise SeedError("the catalog snapshot is not a list of assets")
-    listed = [a for a in assets if a["assetId"] not in EXCLUDED_ASSETS]
-    return listed, _document_source(CATALOG_URL, data, fetched_at), fetched_at
+    return assets, _document_source(CATALOG_URL, data, fetched_at), fetched_at
 
 
 def catalog(mode=None, raw_dir=RAW_DIR):
-    """One catalog_token assertion per asset in the 1Click catalog snapshot except EXCLUDED_ASSETS.
-    A NEP-141 token on NEAR
+    """One catalog_token assertion per asset in the 1Click catalog snapshot. A NEP-141 token on NEAR
     is keyed by its NEAR account on chain near; any other asset by its contract address (or its
     asset id when it has none) on its own blockchain."""
     assets, source, fetched_at = _catalog_assets(mode, raw_dir)
@@ -190,10 +189,12 @@ def catalog(mode=None, raw_dir=RAW_DIR):
         account = _near_token(asset["assetId"])
         subject, chain = ((account, "near") if account
                           else (asset.get("contractAddress") or asset["assetId"], asset["blockchain"]))
-        note = (f"assetId {asset['assetId']}; symbol {asset['symbol']}; blockchain {asset['blockchain']}; "
-                f"contractAddress {asset.get('contractAddress') or 'none'}; decimals {asset['decimals']}")
+        note = (f"assetId {_quoted(asset['assetId'])}; symbol {_quoted(asset['symbol'])}; blockchain "
+                f"{_quoted(asset['blockchain'])}; contractAddress {_quoted(asset.get('contractAddress'))}; "
+                f"decimals {asset['decimals']}")
         rows.append(make_row(entity="NEAR Intents 1Click catalog", subject=subject, chain=chain,
-                             label=asset["symbol"], category="catalog_token", provenance="official_source",
+                             label=f"symbol {_quoted(asset['symbol'])}", category="catalog_token",
+                             provenance="official_source",
                              source=source, observed_at=fetched_at, note=note))
     return rows
 
@@ -206,13 +207,14 @@ def infrastructure(mode=None, raw_dir=RAW_DIR, client=None):
     for account, label in (("intents.near", "NEAR Intents contract"),
                            ("omft.near", "parent account of the .omft.near bridge token accounts")):
         metadata = client.call_function(account, "contract_source_metadata", {})
-        standards = ", ".join(f"{s['standard']} {s['version']}" for s in metadata.get("standards", []))
+        standards = ", ".join(_quoted(f"{s['standard']} {s['version']}") for s in metadata.get("standards", []))
         rows.append(make_row(
             entity="NEAR Intents", subject=account, chain="near", label=label, category="infrastructure",
             provenance="onchain", observed_at=client.last_source["fetched_at"],
             source={"rpc": client.url, "method": "contract_source_metadata", "args": {},
                     "block": client.last_block_height},
-            note=f"contract_source_metadata: version {metadata.get('version')}, link {metadata.get('link')}, "
+            note=f"contract_source_metadata: version {_quoted(metadata.get('version'))}, link "
+                 f"{_quoted(metadata.get('link'))}, "
                  f"standards {standards}"))
 
     assets, source, fetched_at = _catalog_assets(mode, raw_dir)
@@ -223,9 +225,10 @@ def infrastructure(mode=None, raw_dir=RAW_DIR, client=None):
     for account, group in bridged.items():
         rows.append(make_row(
             entity="NEAR Intents omft bridge", subject=account, chain="near",
-            label=f"bridged token account for {group[0]['symbol']}", category="bridge",
+            label=f"bridged token account, symbol {_quoted(group[0]['symbol'])}", category="bridge",
             provenance="official_source", source=source, observed_at=fetched_at,
-            note="1Click assets " + "; ".join(f"{a['assetId']} ({a['blockchain']})" for a in group)))
+            note="1Click assets " + "; ".join(f"{_quoted(a['assetId'])} on {_quoted(a['blockchain'])}"
+                                             for a in group)))
 
     for account, entity, label in DOCUMENTED_ACCOUNTS:
         try:

@@ -1,5 +1,6 @@
 import base64
 import json
+import re
 import tempfile
 import unittest
 import urllib.error
@@ -9,6 +10,7 @@ from types import SimpleNamespace
 from unittest import mock
 
 from gate import rpc, rules
+from intel import labels
 
 RPC_URL = "https://rpc.example"
 NEARBLOCKS_URL = "https://nearblocks.example"
@@ -55,8 +57,8 @@ class Fixtures:
                   "storage_paid_at": 0, "block_height": 100, "block_hash": "h"}
         self.write(RPC_URL, "query", params, {"jsonrpc": "2.0", "id": "gate", "result": result})
 
-    def rpc_error(self, params, cause):
-        error = {"name": "HANDLER_ERROR", "cause": {"name": cause, "info": {}}, "code": -32000}
+    def rpc_error(self, params, cause, info=None):
+        error = {"name": "HANDLER_ERROR", "cause": {"name": cause, "info": info or {}}, "code": -32000}
         self.write(RPC_URL, "query", params, {"jsonrpc": "2.0", "id": "gate", "error": error})
 
     def missing(self, account_id):
@@ -74,8 +76,11 @@ class Fixtures:
         self.write(RPC_URL, "query", self._function_params(contract, method, args),
                    {"jsonrpc": "2.0", "id": "gate", "result": result})
 
-    def function_error(self, contract, method, args, cause="CONTRACT_EXECUTION_ERROR"):
-        self.rpc_error(self._function_params(contract, method, args), cause)
+    def function_error(self, contract, method, args, cause="CONTRACT_EXECUTION_ERROR", vm_error="GuestPanic"):
+        self.rpc_error(self._function_params(contract, method, args), cause, {"vm_error": vm_error})
+
+    def method_missing(self, contract, method, args):
+        self.function_error(contract, method, args, vm_error="MethodResolveError(MethodNotFound)")
 
     def keys(self, account_id, *created_ns, transaction_hash="CreationTx"):
         keys = [{"public_key": "ed25519:K", "account_id": account_id, "permission_kind": "FULL_ACCESS",
@@ -89,7 +94,7 @@ class Fixtures:
         self.write(f"{NEARBLOCKS_URL}/v1/txns/{transaction_hash}", "GET", None, {"txns": [txn]})
 
     def scan(self, memo, answer):
-        self.write(f"{API_URL}/api/scan/injection", "POST", {"content": memo}, answer)
+        self.write(f"{API_URL}/api/scan/injection", "POST", rpc.body_params({"content": memo}), answer)
 
 
 def request(receiver=VENDOR, kind="ft", token=TOKEN, amount="1000000", memo="invoice 1"):
@@ -127,7 +132,7 @@ class RulesCase(unittest.TestCase):
         self.fx.function(TOKEN, "storage_balance_of", {"account_id": receiver},
                          {"total": "1250000000000000000000", "available": "0"})
 
-    def stranger(self, name, age_ns=30 * DAY_NS, deposit=5 * 10**23, code_hash=rpc.EMPTY_CODE_HASH):
+    def stranger(self, name, age_ns=30 * DAY_NS, deposit=5e23, code_hash=rpc.EMPTY_CODE_HASH):
         self.fx.account(name, code_hash)
         self.token_ok(name)
         self.fx.keys(name, NOW_MS * 10**6 - age_ns)
@@ -218,55 +223,64 @@ class TierTwoTest(RulesCase):
 
     def test_code_without_metadata(self):
         self.stranger("stranger.testnet", code_hash="SomeCodeHash")
-        self.fx.function_error("stranger.testnet", "contract_source_metadata", {})
+        self.fx.method_missing("stranger.testnet", "contract_source_metadata", {})
         self.assertEqual(self.status(self.judge(request("stranger.testnet")), "code_without_metadata"),
                          "signal")
+        self.fx.function_error("stranger.testnet", "contract_source_metadata", {})
+        self.assertEqual(self.status(self.judge(request("stranger.testnet")), "code_without_metadata"),
+                         "unknown")
         self.fx.function("stranger.testnet", "contract_source_metadata", {}, {"version": "1.0.0"})
         judgement = self.judge(request("stranger.testnet"))
         self.assertEqual(self.status(judgement, "code_without_metadata"), "pass")
         self.assertEqual(judgement.verdict, "ALLOW")
 
     def test_lookalike_young_dust_funded_gives_the_denied_line(self):
-        self.stranger("vend0r.testnet", age_ns=3 * HOUR_NS, deposit=10**22)
-        judgement = self.judge(request("vend0r.testnet"))
+        self.stranger("vendor-pay.testnet", age_ns=3 * HOUR_NS, deposit=1e22)
+        judgement = self.judge(request("vendor-pay.testnet"))
         self.assertEqual(judgement.verdict, "DENY")
         self.assertEqual(" ".join(["DENIED."] + judgement.reasons),
-                         "DENIED. vend0r.testnet is a lookalike of vendor.testnet. Created 3 h ago by a "
+                         "DENIED. vendor-pay.testnet is a lookalike of vendor.testnet. Created 3 h ago by a "
                          "0.01 NEAR deposit. Not on the owner's allowlist.")
-        self.assertEqual(self.detail(judgement, "lookalike"), "lookalike of vendor.testnet (distance 1)")
+        self.assertEqual(self.detail(judgement, "lookalike"), "contains the allowlisted name vendor.testnet")
 
-    def test_lookalike_by_confusable_swap(self):
-        self.store = Store()
+    def test_typo_lookalike_after_normalisation(self):
+        self.stranger("vend0r.testnet")
+        self.assertEqual(self.detail(self.judge(request("vend0r.testnet")), "lookalike"),
+                         "lookalike of vendor.testnet (distance 0 after confusable normalisation)")
         policy = {"allowlist": ["microsoft.testnet"], "caps": POLICY["caps"]}
-        self.stranger("rnicrosoft.testnet")
-        judgement = self.judge(request("rnicrosoft.testnet"), policy)
-        self.assertEqual(self.detail(judgement, "lookalike"), "lookalike of microsoft.testnet (distance 2)")
-        self.assertTrue(rules.confusable_swap("rnicrosoft", "microsoft"))
-        self.stranger("rnicrosoftt.testnet")
-        self.assertEqual(self.status(self.judge(request("rnicrosoftt.testnet"), policy), "lookalike"), "pass")
+        self.stranger("rnicros0ft.testnet")
+        self.assertEqual(self.detail(self.judge(request("rnicros0ft.testnet"), policy), "lookalike"),
+                         "lookalike of microsoft.testnet (distance 0 after confusable normalisation)")
+        self.stranger("microsofts.testnet")
+        self.assertEqual(self.status(self.judge(request("microsofts.testnet"), policy), "lookalike"), "signal")
+        self.stranger("macrohard.testnet")
+        self.assertEqual(self.status(self.judge(request("macrohard.testnet"), policy), "lookalike"), "pass")
 
-    def test_catalog_is_part_of_the_lookalike_set(self):
+    def test_labelled_accounts_but_not_symbols_are_compared(self):
         self.stranger("wrap1.testnet")
         self.assertEqual(self.status(self.judge(request("wrap1.testnet")), "lookalike"), "pass")
-        self.store = Store(assertion("a" * 64, "wrap.near", "catalog_token", "wNEAR"),
-                           assertion("b" * 64, "0xa0b8", "catalog_token", "USDC", chain="eth"))
+        self.store = Store(assertion("a" * 64, "wrap.near", "catalog_token", "symbol \"wNEAR\""),
+                           assertion("b" * 64, "0xa0b8", "catalog_token", "symbol \"USDC\"", chain="eth"),
+                           assertion("c" * 64, "usdc.near", "watch", "watched"))
         judgement = self.judge(request("wrap1.testnet"))
-        self.assertEqual(self.detail(judgement, "lookalike"), "lookalike of wrap.near (distance 1)")
-        self.assertIn("a" * 64, judgement.labels)
-        self.stranger("usdc.testnet")
-        judgement = self.judge(request("usdc.testnet"))
         self.assertEqual(self.detail(judgement, "lookalike"),
-                         "lookalike of the USDC token symbol (distance 0)")
+                         "lookalike of wrap.near (distance 1 after confusable normalisation)")
+        self.assertIn("a" * 64, judgement.labels)
+        for name in ("usdc.testnet", "wnear.testnet"):
+            with self.subTest(name=name):
+                self.stranger(name)
+                self.assertEqual(self.status(self.judge(request(name)), "lookalike"), "pass")
 
     def test_young_account_and_dust(self):
-        self.stranger("fresh.testnet", age_ns=2 * DAY_NS, deposit=10**23)
+        self.stranger("fresh.testnet", age_ns=2 * DAY_NS, deposit=1e23)
         judgement = self.judge(request("fresh.testnet"))
         self.assertEqual(self.status(judgement, "account_age"), "signal")
         self.assertEqual(self.status(judgement, "dust_funded"), "pass")
         self.assertEqual(judgement.reasons, ["Created 2 d ago.", "Not on the owner's allowlist."])
-        self.stranger("dusty.testnet", deposit=10**23 - 1)
+        self.stranger("dusty.testnet", deposit=9e22)
         judgement = self.judge(request("dusty.testnet"))
-        self.assertEqual(judgement.reasons[0], "Created by a 0.099999999999999999999999 NEAR deposit.")
+        self.assertEqual(self.status(judgement, "dust_funded"), "signal")
+        self.assertEqual(judgement.reasons[0], "Created by a 0.09 NEAR deposit.")
 
     def test_nearblocks_429_gives_unknown(self):
         self.fx.account("stranger.testnet")
@@ -336,10 +350,16 @@ class TierOneTest(RulesCase):
             with self.subTest(value=value):
                 self.fx.function(TOKEN, "ft_metadata", {}, value)
                 self.assertEqual(self.status(self.judge(request()), "ft_metadata_sane"), status)
-        self.fx.function_error(TOKEN, "ft_metadata", {})
+        self.fx.method_missing(TOKEN, "ft_metadata", {})
         self.assertEqual(self.status(self.judge(request()), "ft_metadata_sane"), "signal")
-        self.fx.function_error(TOKEN, "ft_metadata", {}, cause="TIMEOUT_ERROR")
-        self.assertEqual(self.status(self.judge(request()), "ft_metadata_sane"), "unknown")
+        self.fx.function_error(TOKEN, "ft_metadata", {}, cause="NO_CONTRACT_CODE")
+        self.assertEqual(self.status(self.judge(request()), "ft_metadata_sane"), "signal")
+        for cause in ("CONTRACT_EXECUTION_ERROR", "TIMEOUT_ERROR"):
+            with self.subTest(cause=cause):
+                self.fx.function_error(TOKEN, "ft_metadata", {}, cause=cause)
+                self.assertEqual(self.status(self.judge(request()), "ft_metadata_sane"), "unknown")
+        self.fx.function(TOKEN, "ft_metadata", {}, {"name": "T", "symbol": "TST", "decimals": 6})
+        self.assertEqual(self.detail(self.judge(request()), "ft_metadata_sane"), 'symbol "TST", 6 decimals')
 
     def test_unregistered_receiver(self):
         self.fx.function(TOKEN, "storage_balance_of", {"account_id": VENDOR}, None)
@@ -401,7 +421,7 @@ class RecordedMainnetTest(unittest.TestCase):
         judgement = self.judge(request("intents.near", token="wrap.near", memo=None), policy)
         self.assertEqual(judgement.verdict, "ALLOW")
         self.assertEqual({c["id"]: c["detail"] for c in judgement.checks}["ft_metadata_sane"],
-                         "wNEAR, 24 decimals")
+                         'symbol "wNEAR", 24 decimals')
 
     def test_aged_plain_account_off_the_allowlist(self):
         judgement = self.judge(request("connectors.outlayer.near", kind="near", memo=None),
@@ -427,17 +447,28 @@ class TextTest(RulesCase):
             with self.subTest(a=a, b=b):
                 self.assertEqual(rules.distance(a, b), expected)
 
-    def test_confusable_swaps(self):
-        for a, b in (("vend0r", "vendor"), ("l1nk", "link"), ("vvallet", "wallet"), ("rnint", "mint"),
-                     ("wallet", "vvallet"), ("mint", "rnint")):
-            with self.subTest(a=a, b=b):
-                self.assertTrue(rules.confusable_swap(a, b))
-        self.assertFalse(rules.confusable_swap("vend00r", "vendoor0"))
+    def test_normalise_and_the_distance_limit(self):
+        for name, expected in (("vend0r", "vendor"), ("rnicros0ft", "mlcrosoft"), ("vvallet", "wallet"),
+                               ("l1nk", "llnk"), ("link", "llnk")):
+            with self.subTest(name=name):
+                self.assertEqual(rules.normalise(name), expected)
+        self.assertEqual([rules.distance_limit("a" * n) for n in (1, 3, 4, 5, 6, 30)], [0, 0, 1, 1, 2, 2])
+
+    def test_contains_allowlisted(self):
+        for receiver in ("vendor-pay.testnet", "pay_vendor.testnet", "vendorpay.testnet", "vendor2.testnet",
+                         "payvendor.near", "vendor.attacker.near", "vendor.near", "acme-vendor-eu.testnet"):
+            with self.subTest(receiver=receiver):
+                self.assertTrue(rules.contains_allowlisted(receiver, "vendor.testnet"))
+        for receiver, allowlisted in (("vendorsandmore.testnet", "vendor.testnet"), ("vendor.testnet", "vendor.testnet"),
+                                      ("bobcat.testnet", "bob.testnet"), ("ven.testnet", "vendor.testnet"),
+                                      ("advendors.testnet", "vendor.testnet")):
+            with self.subTest(receiver=receiver, allowlisted=allowlisted):
+                self.assertFalse(rules.contains_allowlisted(receiver, allowlisted))
 
     def test_no_output_says_safe(self):
         self.fx.account(VENDOR)
         self.token_ok()
-        self.stranger("vend0r.testnet", age_ns=3 * HOUR_NS, deposit=10**22)
+        self.stranger("vend0r.testnet", age_ns=3 * HOUR_NS, deposit=1e22)
         self.fx.missing("gone.testnet")
         judgements = [self.judge(request()), self.judge(request("vend0r.testnet")),
                       self.judge(request("gone.testnet")), self.judge(request("nobody.testnet"))]
@@ -446,6 +477,109 @@ class TextTest(RulesCase):
             for text in strings([judgement.verdict, judgement.checks, judgement.reasons]):
                 self.assertNotIn("safe", text.lower())
 
+
+
+class FailClosedTest(RulesCase):
+    """Malformed bodies, other RPC causes and limits read unknown; nothing crashes or passes."""
+
+    def view_params(self, name=VENDOR):
+        return {"request_type": "view_account", "finality": "final", "account_id": name}
+
+    def test_malformed_view_account_bodies_read_unknown(self):
+        self.token_ok()
+        for body in ({"jsonrpc": "2.0", "id": "gate", "result": None}, {"jsonrpc": "2.0", "id": "gate"},
+                     {"jsonrpc": "2.0", "id": "gate", "result": "oops"}, ["not", "an", "object"],
+                     {"jsonrpc": "2.0", "id": "gate", "result": {"amount": "1"}}):
+            with self.subTest(body=body):
+                self.fx.write(RPC_URL, "query", self.view_params(), body)
+                judgement = self.judge(request())
+                self.assertEqual(self.status(judgement, "receiver_exists"), "unknown")
+                self.assertEqual(judgement.verdict, "UNKNOWN")
+
+    def test_malformed_call_function_bodies_read_unknown(self):
+        self.fx.account(VENDOR)
+        self.token_ok()
+        params = self.fx._function_params(TOKEN, "ft_metadata", {})
+        for result in ({"result": "not bytes"}, {"logs": []}, {"result": [300]}, {"result": list(b"not json")}):
+            with self.subTest(result=result):
+                self.fx.write(RPC_URL, "query", params, {"jsonrpc": "2.0", "id": "gate", "result": result})
+                self.assertEqual(self.status(self.judge(request()), "ft_metadata_sane"), "unknown")
+
+    def test_another_rpc_cause_on_the_receiver_reads_unknown(self):
+        self.token_ok()
+        self.fx.rpc_error(self.view_params(), "TIMEOUT_ERROR")
+        judgement = self.judge(request())
+        self.assertEqual(self.detail(judgement, "receiver_exists"),
+                         "could not read vendor.testnet: RPC error TIMEOUT_ERROR")
+        self.assertEqual(judgement.verdict, "UNKNOWN")
+
+    def test_malformed_creation_transaction_reads_unknown(self):
+        self.stranger("stranger.testnet")
+        for body in ({"txns": []}, {"txns": [{"actions_agg": None}]}, {"txns": [{"actions_agg": {"deposit": "x"}}]}):
+            with self.subTest(body=body):
+                self.fx.write(f"{NEARBLOCKS_URL}/v1/txns/CreationTx", "GET", None, body)
+                self.assertEqual(self.status(self.judge(request("stranger.testnet")), "dust_funded"), "unknown")
+
+    def test_code_check_on_a_missing_account_reads_unknown(self):
+        self.fx.missing("gone.testnet")
+        self.token_ok("gone.testnet")
+        judgement = self.judge(request("gone.testnet"))
+        self.assertEqual(self.detail(judgement, "code_without_metadata"), "the receiver account could not be read")
+        self.assertEqual(self.status(judgement, "code_without_metadata"), "unknown")
+
+    def test_invalid_receiver_raises_before_any_request(self):
+        for receiver in ("../../v1/x", "Vendor.testnet", "a", "vendor.testnet/keys"):
+            with self.subTest(receiver=receiver), self.assertRaises(ValueError):
+                self.judge(request(receiver))
+
+    def test_nearblocks_budget_reads_unknown(self):
+        self.fx.account("stranger.testnet")
+        self.token_ok("stranger.testnet")
+        day = datetime.fromtimestamp(NOW_MS / 1000, UTC).strftime("%Y-%m-%d")
+        rpc._NEARBLOCKS_USE["api-testnet.nearblocks.io"] = {"last": None, "day": day, "count": 300}
+        self.addCleanup(rpc._NEARBLOCKS_USE.clear)
+        self.nearblocks = rpc.Client(rpc.NEARBLOCKS_TESTNET_URL, "off", kind="http", clock=lambda: NOW_MS / 1000)
+        judgement = self.judge(request("stranger.testnet"))
+        self.assertEqual(self.status(judgement, "account_age"), "unknown")
+        self.assertIn("budget is 300", self.detail(judgement, "account_age"))
+        self.assertEqual(judgement.verdict, "UNKNOWN")
+
+
+class PopulatedStoreTest(RulesCase):
+    """The lookalike rule against the committed label store."""
+
+    def setUp(self):
+        super().setUp()
+        self.store = labels.load()
+        self.policy = {"allowlist": [VENDOR, "microsoft.testnet"], "caps": POLICY["caps"]}
+
+    def lookalike(self, receiver):
+        return self.status(self.judge(request(receiver), self.policy), "lookalike")
+
+    def test_ordinary_short_names_are_not_flagged(self):
+        for name in ("bob", "op", "eth", "sol", "sui", "cafe", "beta", "alice", "dao", "shop", "node", "sam"):
+            with self.subTest(name=name):
+                self.assertEqual(self.lookalike(f"{name}.testnet"), "pass")
+
+    def test_impersonations_are_flagged(self):
+        for name in ("vend0r.testnet", "vendor-pay.testnet", "vendorpay.near", "vendor.attacker.near",
+                     "rnicros0ft.testnet", "intents1.near", "wrap1.near"):
+            with self.subTest(name=name):
+                self.assertEqual(self.lookalike(name), "signal")
+
+    def test_the_rules_print_no_barred_word_outside_quoted_data(self):
+        token = "eth-0x5afe3855358e112b5647b952709e6165e1c1eeee.omft.near"
+        self.assertTrue(self.store.by_subject(token, "near"))
+        self.fx.account("cafe.testnet")
+        self.fx.function(token, "ft_metadata", {}, {"name": "Safe Token", "symbol": "SAFE", "decimals": 18})
+        self.fx.function(token, "storage_balance_of", {"account_id": "cafe.testnet"}, None)
+        judgement = self.judge(request("cafe.testnet", token=token), {"allowlist": [], "caps": []})
+        texts = [judgement.verdict, *judgement.reasons]
+        texts += [c["detail"] for c in judgement.checks] + [c["id"] for c in judgement.checks]
+        for text in texts:
+            with self.subTest(text=text):
+                self.assertNotIn("safe", re.sub(r'"[^"]*"', "", text).lower())
+        self.assertIn('symbol "SAFE"', self.detail(judgement, "ft_metadata_sane"))
 
 if __name__ == "__main__":
     unittest.main()

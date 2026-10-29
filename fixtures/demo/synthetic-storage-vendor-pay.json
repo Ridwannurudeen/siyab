@@ -6,7 +6,7 @@
       "finality": "final",
       "account_id": "token.gate.testnet",
       "method_name": "storage_balance_of",
-      "args_base64": "eyJhY2NvdW50X2lkIjoidmVuZDByLnRlc3RuZXQifQ=="
+      "args_base64": "eyJhY2NvdW50X2lkIjoidmVuZG9yLXBheS50ZXN0bmV0In0="
     }
   },
   "response": {
