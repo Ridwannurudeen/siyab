@@ -1,16 +1,10 @@
 mod events;
 
 use events::emit;
-use near_sdk::{
-    env,
-    near,
-    serde_json::json,
-    store::LookupMap,
-    AccountId, PanicOnDefault,
-};
+use near_sdk::{env, near, serde_json::json, store::LookupMap, AccountId, PanicOnDefault};
 
 #[near(serializers = [json, borsh])]
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[borsh(use_discriminant = true)]
 pub enum VerdictCode {
     Unknown = 0,
@@ -186,7 +180,7 @@ impl Registry {
         let Some(record) = self.latest.get(&subject) else {
             return (false, "unrecorded".to_owned());
         };
-        if env::block_timestamp_ms().saturating_sub(record.recorded_ms) > max_age_ms {
+        if env::block_timestamp_ms() - record.recorded_ms > max_age_ms {
             return (false, "stale".to_owned());
         }
         match record.verdict {
@@ -279,3 +273,245 @@ fn lower_hex(bytes: &[u8; 32]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use near_sdk::{
+        test_utils::{get_logs, VMContextBuilder},
+        testing_env, NearToken,
+    };
+
+    fn hash(letter: char) -> String {
+        letter.to_string().repeat(64)
+    }
+
+    fn context(predecessor: &str, deposit: NearToken, timestamp_ms: u64) {
+        testing_env!(VMContextBuilder::new()
+            .current_account_id("registry.testnet".parse().unwrap())
+            .predecessor_account_id(predecessor.parse().unwrap())
+            .attached_deposit(deposit)
+            .block_timestamp(timestamp_ms * 1_000_000)
+            .build());
+    }
+
+    fn registry() -> Registry {
+        context("recorder.testnet", NearToken::from_yoctonear(0), 1_000);
+        Registry::new(
+            "owner.testnet".parse().unwrap(),
+            "recorder.testnet".parse().unwrap(),
+        )
+    }
+
+    fn subject(value: &str) -> AccountId {
+        value.parse().unwrap()
+    }
+
+    fn record(registry: &mut Registry, subject_id: &str, verdict: VerdictCode, time: u64) {
+        context("recorder.testnet", NearToken::from_yoctonear(0), time);
+        registry.record(
+            subject(subject_id),
+            verdict,
+            hash('a'),
+            42,
+            format!("verdict-{subject_id}"),
+        );
+    }
+
+    #[test]
+    fn recorder_can_record() {
+        let mut registry = registry();
+        record(&mut registry, "vendor.testnet", VerdictCode::Allow, 1_000);
+        assert_eq!(registry.total_records(), 1);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:not_recorder")]
+    fn stranger_cannot_record() {
+        let mut registry = registry();
+        context("stranger.testnet", NearToken::from_yoctonear(0), 1_000);
+        registry.record(
+            subject("vendor.testnet"),
+            VerdictCode::Allow,
+            hash('a'),
+            42,
+            "verdict".to_owned(),
+        );
+    }
+
+    #[test]
+    fn owner_rotates_recorder_with_one_yocto() {
+        let mut registry = registry();
+        context("owner.testnet", NearToken::from_yoctonear(1), 1_000);
+        registry.set_recorder(subject("new-recorder.testnet"));
+        assert_eq!(registry.get_recorder(), subject("new-recorder.testnet"));
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:not_owner")]
+    fn non_owner_cannot_rotate_recorder() {
+        let mut registry = registry();
+        context("stranger.testnet", NearToken::from_yoctonear(1), 1_000);
+        registry.set_recorder(subject("new-recorder.testnet"));
+    }
+
+    #[test]
+    #[should_panic(expected = "Requires attached deposit of exactly 1 yoctoNEAR")]
+    fn recorder_rotation_requires_one_yocto() {
+        let mut registry = registry();
+        context("owner.testnet", NearToken::from_yoctonear(0), 1_000);
+        registry.set_recorder(subject("new-recorder.testnet"));
+    }
+
+    #[test]
+    fn record_upserts_without_inflating_subject_count() {
+        let mut registry = registry();
+        record(&mut registry, "vendor.testnet", VerdictCode::Allow, 1_000);
+        record(&mut registry, "vendor.testnet", VerdictCode::Deny, 1_001);
+        assert_eq!(registry.total_records(), 2);
+        assert_eq!(registry.total_subjects(), 1);
+        assert_eq!(
+            registry.latest(subject("vendor.testnet")).unwrap().verdict,
+            VerdictCode::Deny
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:batch_too_large")]
+    fn batch_limit_is_fifty() {
+        let mut registry = registry();
+        context("recorder.testnet", NearToken::from_yoctonear(0), 1_000);
+        registry.record_batch(
+            (0..51)
+                .map(|index| RecordInput {
+                    subject: subject(&format!("subject{index}.testnet")),
+                    verdict: VerdictCode::Allow,
+                    evidence_hash: hash('a'),
+                    observed_block: 42,
+                    verdict_id: format!("verdict-{index}"),
+                })
+                .collect(),
+        );
+    }
+
+    #[test]
+    fn is_allowed_returns_each_reason() {
+        let mut registry = registry();
+        assert_eq!(
+            registry.is_allowed(subject("missing.testnet"), 10),
+            (false, "unrecorded".to_owned())
+        );
+        record(&mut registry, "allow.testnet", VerdictCode::Allow, 1_000);
+        record(&mut registry, "deny.testnet", VerdictCode::Deny, 1_000);
+        record(
+            &mut registry,
+            "unknown.testnet",
+            VerdictCode::Unknown,
+            1_000,
+        );
+        assert_eq!(
+            registry.is_allowed(subject("allow.testnet"), 10),
+            (true, "allow".to_owned())
+        );
+        assert_eq!(
+            registry.is_allowed(subject("deny.testnet"), 10),
+            (false, "deny".to_owned())
+        );
+        assert_eq!(
+            registry.is_allowed(subject("unknown.testnet"), 10),
+            (false, "unknown".to_owned())
+        );
+        context("recorder.testnet", NearToken::from_yoctonear(0), 1_011);
+        assert_eq!(
+            registry.is_allowed(subject("allow.testnet"), 10),
+            (false, "stale".to_owned())
+        );
+    }
+
+    #[test]
+    fn latest_is_none_for_an_unrecorded_subject() {
+        assert!(registry().latest(subject("missing.testnet")).is_none());
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:bad_hash")]
+    fn invalid_hash_is_refused() {
+        let mut registry = registry();
+        context("recorder.testnet", NearToken::from_yoctonear(0), 1_000);
+        registry.record(
+            subject("vendor.testnet"),
+            VerdictCode::Allow,
+            "ABC".to_owned(),
+            42,
+            "verdict".to_owned(),
+        );
+    }
+
+    #[test]
+    fn record_label_is_once_per_assertion_hash() {
+        let mut registry = registry();
+        context("recorder.testnet", NearToken::from_yoctonear(0), 1_000);
+        let args = (
+            "vendor.testnet".to_owned(),
+            "near".to_owned(),
+            "catalog_entry".to_owned(),
+            "infrastructure".to_owned(),
+            "official_source".to_owned(),
+            hash('a'),
+        );
+        registry.record_label(
+            args.0.clone(),
+            args.1.clone(),
+            args.2.clone(),
+            args.3.clone(),
+            args.4.clone(),
+            args.5.clone(),
+        );
+        assert_eq!(registry.total_labels(), 1);
+        assert!(registry.get_label(hash('a')).is_some());
+        assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            registry.record_label(
+                args.0.clone(),
+                args.1.clone(),
+                args.2.clone(),
+                args.3.clone(),
+                args.4.clone(),
+                args.5.clone(),
+            )
+        }))
+        .is_err());
+        assert_eq!(registry.total_labels(), 1);
+    }
+
+    #[test]
+    fn emits_all_nep_297_events() {
+        let mut registry = registry();
+        record(&mut registry, "vendor.testnet", VerdictCode::Allow, 1_000);
+        let verdict_logs = get_logs();
+        context("recorder.testnet", NearToken::from_yoctonear(0), 1_000);
+        registry.record_label(
+            "vendor.testnet".to_owned(),
+            "near".to_owned(),
+            "catalog_entry".to_owned(),
+            "infrastructure".to_owned(),
+            "official_source".to_owned(),
+            hash('b'),
+        );
+        let label_logs = get_logs();
+        context("owner.testnet", NearToken::from_yoctonear(1), 1_000);
+        registry.set_recorder(subject("next-recorder.testnet"));
+        let recorder_logs = get_logs();
+        for event in ["verdict_recorded", "label_recorded", "recorder_updated"] {
+            let logs = match event {
+                "verdict_recorded" => &verdict_logs,
+                "label_recorded" => &label_logs,
+                _ => &recorder_logs,
+            };
+            assert!(logs.iter().any(|line| {
+                line.starts_with("EVENT_JSON:")
+                    && line.contains("\"standard\":\"shieldbot-near\"")
+                    && line.contains("\"version\":\"1.0.0\"")
+                    && line.contains(&format!("\"event\":\"{event}\""))
+            }));
+        }
+    }
+}
