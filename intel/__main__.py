@@ -25,7 +25,7 @@ import time
 from pathlib import Path
 
 from gate import rpc, rules
-from intel import api, feed, labels, seed
+from intel import api, feed, labels, seed, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 RECEIVERS_DIR = ROOT / "fixtures" / "receivers"
@@ -212,6 +212,14 @@ def _feed_stats(args):
     return 0
 
 
+def _flow(args):
+    try:
+        return trace.main(args.subject, args.depth, args.max, args.name, args.record)
+    except (rpc.FixtureMiss, rpc.HttpError, rpc.TransportError) as error:
+        print(f"stopped: {error}", file=sys.stderr)
+        return 1
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="python -m intel")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -232,6 +240,13 @@ def main(argv=None):
     feeding.add_argument("--blocks", type=int, required=True, help="how many heights to walk")
     feeding.add_argument("--record", action="store_true", help="fetch and reduce the blocks not recorded yet")
     feeding.set_defaults(handler=_feed)
+    flow = commands.add_parser("flow", help="the bounded exit trace of an account with an incident label")
+    flow.add_argument("subject")
+    flow.add_argument("--depth", type=int, default=trace.DEFAULT_DEPTH)
+    flow.add_argument("--max", type=int, default=trace.DEFAULT_MAX, help="the transfer cap")
+    flow.add_argument("--name", help="the trace file name under intel/flows/ (default: the existing one, else the subject)")
+    flow.add_argument("--record", action="store_true", help="fetch the transfer pages not recorded yet")
+    flow.set_defaults(handler=_flow)
     commands.add_parser("feed-stats", help="print the feed state").set_defaults(handler=_feed_stats)
     args = parser.parse_args(argv)
     return args.handler(args)
