@@ -49,7 +49,9 @@ text-align:left;vertical-align:top}.table{overflow-x:auto}
 input{display:block;width:60ch;max-width:calc(100vw - 72px);padding:8px;font:inherit;background:var(--card);color:var(--fg);border:1px solid var(--line)}
 button{padding:8px 16px;font:inherit;margin-top:8px}footer{border-top:1px solid var(--line);color:var(--muted)}
 """
-_QUOTED = re.compile(r'"([^"]*)"')
+# A double quoted source string, which may itself hold escaped quotes and backslashes (JSON text).
+_QUOTED = re.compile(r'"((?:[^"\\]|\\.)*)"')
+_UNESCAPE = re.compile(r'\\(["\\])')
 
 
 def esc(text):
@@ -61,7 +63,7 @@ def data_text(text):
     parts, last = [], 0
     for match in _QUOTED.finditer(str(text)):
         parts.append(esc(text[last:match.start()]))
-        parts.append(f'<q class="data">{esc(match.group(1))}</q>')
+        parts.append(f'<q class="data">{esc(_UNESCAPE.sub(r"\1", match.group(1)))}</q>')
         last = match.end()
     return "".join(parts) + esc(str(text)[last:])
 

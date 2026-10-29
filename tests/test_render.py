@@ -91,6 +91,21 @@ class RenderTest(unittest.TestCase):
         self.assertTrue(forbidden(own_text("<p>" + "trust" + "less</p>")))
         self.assertTrue(BARRED.search(own_text('<blockquote class="other">a fake</blockquote>')))
 
+    def test_an_escaped_quote_stays_inside_the_quoted_data(self):
+        bs = chr(92)
+        source = f'ft_metadata fails on the contract: "wasm {bs}"panicked{bs}" at {bs}{bs}src" and our words'
+        marked = render.data_text(source)
+        self.assertEqual(marked, 'ft_metadata fails on the contract: <q class="data">wasm &quot;panicked&quot; at '
+                         + bs + "src</q> and our words")
+        self.assertEqual(own_text(marked).split(), ["ft_metadata", "fails", "on", "the", "contract:", "and", "our",
+                                                    "words"])
+
+    def test_no_escaped_source_text_leaks_into_the_own_text_of_an_incident_page(self):
+        for name, page in self.pages.items():
+            if name.startswith("incidents/"):
+                with self.subTest(page=name):
+                    self.assertNotIn(chr(92), own_text(page))
+
     def test_every_local_link_resolves_inside_the_site(self):
         root = self.out.resolve()
         for name, page in self.pages.items():
