@@ -35,5 +35,28 @@ class WordRuleTest(unittest.TestCase):
                 self.assertFalse(self.hygiene.check_text(path, line))
 
 
+class ImageDigestTest(unittest.TestCase):
+    def setUp(self):
+        self.hygiene = load()
+        self.digest = "ab" * 32
+        self.line = f'image_digest = "sha256:{self.digest}"'
+
+    def test_the_exact_digest_line_passes_in_a_crate_manifest(self):
+        for path in ("contracts/gate/Cargo.toml", "contracts/registry/Cargo.toml"):
+            with self.subTest(path=path):
+                self.assertFalse(self.hygiene.check_text(path, self.line))
+
+    def test_anything_else_with_64_hex_in_a_manifest_is_rejected(self):
+        for line in (self.line.upper(), self.line + " # pinned", f"# {self.line}", f'key = "{self.digest}"',
+                     f'image_digest = "{self.digest}"', " " + self.line):
+            with self.subTest(line=line):
+                self.assertTrue(self.hygiene.check_text("contracts/gate/Cargo.toml", line))
+
+    def test_the_digest_line_outside_a_crate_manifest_is_rejected(self):
+        for path in ("contracts/gate/other.toml", "docs/BUILD.md", "rust-toolchain.toml"):
+            with self.subTest(path=path):
+                self.assertTrue(self.hygiene.check_text(path, self.line))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -22,6 +22,10 @@ RAW_DIR = "intel/seeds/raw/"
 SELF = "scripts/check_hygiene.py"
 
 HEX64 = re.compile(r"[0-9a-fA-F]{64}")
+# The one 64 hex value a crate manifest needs: the public digest of the reproducible build image, which
+# cargo near reads from [package.metadata.near.reproducible_build]. Only this exact line, lower case, in a
+# file named Cargo.toml, passes; any other 64 hex literal in a manifest is still rejected.
+IMAGE_DIGEST_LINE = re.compile(r'image_digest = "sha256:[0-9a-f]{64}"')
 # A recorded RPC fixture never holds a 128 hex string: that is the length of a hex secret key or
 # signature, and the canonical vectors that carry signatures live under fixtures/canon/.
 HEX128 = re.compile(r"[0-9a-fA-F]{128}")
@@ -65,7 +69,8 @@ def check_text(path, text):
     )
     hits = []
     for number, line in enumerate(text.splitlines(), start=1):
-        if hex_rule and HEX64.search(line):
+        digest_line = os.path.basename(path) == "Cargo.toml" and IMAGE_DIGEST_LINE.fullmatch(line)
+        if hex_rule and HEX64.search(line) and not digest_line:
             hits.append((number, "64 hex literal"))
         for pattern, reason in KEY_FORMS:
             if pattern.search(line):
