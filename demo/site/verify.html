@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Verify a record</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#dcd8cf;--card:#ffffff;--accent:#2f5d50;--deny:#8a2b1f}
+@media (prefers-color-scheme:dark){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3934;
+--card:#1f1f1c;--accent:#8fc1ae;--deny:#e08a7c}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
+font:16px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+main,header,footer{max-width:960px;margin:0 auto;padding:16px}
+header{border-bottom:1px solid var(--line)}header a{margin-right:16px}
+a{color:var(--accent)}h1{font-size:1.6rem;line-height:1.25}h2{font-size:1.2rem;margin-top:2rem}
+code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.85rem;
+overflow-wrap:anywhere}
+.card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px 16px;margin:12px 0}
+.muted{color:var(--muted)}.deny{color:var(--deny)}
+blockquote.data{margin:8px 0;padding:4px 12px;border-left:3px solid var(--line);color:var(--muted)}
+q.data{color:var(--muted)}
+table{border-collapse:collapse}td,th{border-bottom:1px solid var(--line);padding:6px 8px;
+text-align:left;vertical-align:top}.table{overflow-x:auto}
+input{display:block;width:60ch;max-width:calc(100vw - 72px);padding:8px;font:inherit;background:var(--card);color:var(--fg);border:1px solid var(--line)}
+button{padding:8px 16px;font:inherit;margin-top:8px}footer{border-top:1px solid var(--line);color:var(--muted)}
+</style>
+</head>
+<body>
+<header><nav><a href="index.html">Home</a><a href="feed.html">Feed</a><a href="verify.html">Verify</a></nav></header>
+<main>
+<h1>Read a registry record</h1><p>The page calls <code>latest</code> on the registry contract over the public testnet RPC <code>https://test.rpc.fastnear.com</code> from your browser and shows the record next to the evidence hash you paste. Compute the hash yourself with <code>sha256sum</code> of the evidence file.</p><div class="card"><label>Registry account<input id="registry" autocomplete="off"></label><label>Subject (a NEAR account id)<input id="subject" autocomplete="off"></label><label>Evidence hash (64 hex)<input id="hash" autocomplete="off"></label><button id="read" type="button">Read the record</button></div><pre id="out" class="card mono"></pre><script>
+document.getElementById("read").addEventListener("click", async function () {
+  var out = document.getElementById("out");
+  var registry = document.getElementById("registry").value.trim();
+  var subject = document.getElementById("subject").value.trim();
+  var pasted = document.getElementById("hash").value.trim().toLowerCase();
+  out.textContent = "reading";
+  try {
+    var args = btoa(unescape(encodeURIComponent(JSON.stringify({subject: subject}))));
+    var reply = await fetch("https://test.rpc.fastnear.com", {method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({jsonrpc: "2.0", id: "verify", method: "query", params: {request_type: "call_function",
+        finality: "final", account_id: registry, method_name: "latest", args_base64: args}})});
+    var body = await reply.json();
+    if (body.error || !body.result || body.result.error) {
+      out.textContent = "the read failed: " + JSON.stringify(body.error || (body.result && body.result.error));
+      return;
+    }
+    var record = JSON.parse(new TextDecoder().decode(new Uint8Array(body.result.result)));
+    if (record === null) {
+      out.textContent = "no record for this subject (the registry reads it as Unknown)";
+      return;
+    }
+    var same = pasted && record.evidence_hash === pasted;
+    out.textContent = JSON.stringify(record, null, 2) + "\n\nevidence hash you pasted: " + (pasted || "none") +
+      "\n" + (pasted ? (same ? "equal to the recorded evidence hash" : "different from the recorded evidence hash") : "");
+  } catch (error) {
+    out.textContent = "the read failed: " + error;
+  }
+});
+</script>
+</main>
+<footer><p>Data: NearBlocks. Blocks: mainnet.neardata.xyz. Transfers: FastNEAR.</p></footer>
+</body>
+</html>
