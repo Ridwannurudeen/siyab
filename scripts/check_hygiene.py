@@ -29,6 +29,8 @@ RPC_FIXTURES = "fixtures/rpc/"
 # ShieldBot's own text never uses this word. Third party strings that carry it (a token symbol)
 # live only in data: seeds, raw snapshots, fixtures and the label store.
 AUTHORED_WORD = re.compile(r"safe", re.IGNORECASE)
+# Root and seed documents ShieldBot writes itself; the word rule covers them like gate/ and docs/.
+AUTHORED_FILES = ("README.md", "AGENTS.md", "intel/seeds/README.md")
 KEY_FORMS = (
     (re.compile(r"ed25519:[1-9A-HJ-NP-Za-km-z]{80,}"), "ed25519 private key form"),
     (re.compile(r'"(secret_key|private_key)"\s*:\s*"[^"]+"'), "secret_key or private_key value"),
@@ -56,7 +58,11 @@ def check_text(path, text):
     dash_rule = not path.startswith(RAW_DIR) and path != "LICENSE"
     phrase_rule = ext in PHRASE_EXTENSIONS and not path.startswith(RAW_DIR) and path != SELF
     hex128_rule = path.startswith(RPC_FIXTURES)
-    word_rule = path.startswith(("gate/", "docs/")) or (path.startswith("intel/") and ext == ".py")
+    word_rule = path != SELF and (
+        path.startswith(("gate/", "docs/", "mcp/", "scripts/"))
+        or (path.startswith("intel/") and ext == ".py")
+        or path in AUTHORED_FILES
+    )
     hits = []
     for number, line in enumerate(text.splitlines(), start=1):
         if hex_rule and HEX64.search(line):
