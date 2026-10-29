@@ -6,7 +6,7 @@ import os
 import sys
 from pathlib import Path
 
-from gate import canon, demo, ed25519, intents, rpc, signer, verdict, verify
+from gate import canon, demo, ed25519, incident, intents, rpc, signer, verdict, verify
 from intel import labels
 
 
@@ -153,6 +153,11 @@ def main(argv=None):
     check.add_argument("--verdict", help="the Verdict object file, to check its signature")
     check.add_argument("--key", help="the verifier public key as ed25519:<base58>")
     check.set_defaults(handler=_verify)
+
+    page = commands.add_parser("incident", help="print an incident page from intel/incidents")
+    page.add_argument("id", help="the incident id, such as rhea")
+    page.add_argument("--json", action="store_true", help="print the incident file itself")
+    page.set_defaults(handler=lambda args: incident.main(args.id, args.json))
 
     args = parser.parse_args(argv)
     return args.handler(args)

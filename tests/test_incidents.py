@@ -1,9 +1,13 @@
+import contextlib
+import io
 import json
 import re
 import unittest
 from pathlib import Path
 from unittest import mock
 
+from gate import __main__ as gate_main
+from gate import incident
 from intel import labels, seed
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -185,6 +189,56 @@ class RheaIncidentTest(unittest.TestCase):
             with self.subTest(key=key):
                 self.assertEqual(rebuilt[key], self.document[key])
 
+
+
+class IncidentPageTest(unittest.TestCase):
+    def run_command(self, *argv):
+        output, errors = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(output), contextlib.redirect_stderr(errors):
+            code = gate_main.main(["incident", *argv])
+        return code, output.getvalue(), errors.getvalue()
+
+    def test_the_rhea_page_renders_under_80_columns(self):
+        code, output, _ = self.run_command("rhea")
+        self.assertEqual(code, 0)
+        lines = output.splitlines()
+        self.assertEqual(lines[0], "Rhea Lend margin trading route exploit (2026-04-16)")
+        self.assertTrue(all(len(line) < 80 for line in lines))
+        document = json.loads(RHEA_PATH.read_text(encoding="utf-8"))
+        for heading in ("Sources", "Accounts named in the report", "On chain facts", "Not public", "Standard"):
+            self.assertIn(heading, lines)
+        self.assertIn(f"    sha256 {document['sources'][0]['content_sha256']}", lines)
+        self.assertIn(f"    fetched {document['sources'][0]['fetched_at']}", lines)
+        for account in document["accounts"]:
+            self.assertIn(f"  {account['subject']} ({account['chain']})", lines)
+            for assertion_id in account["assertion_ids"]:
+                self.assertIn(f"      {assertion_id}", lines)
+        flat = " ".join(line.strip() for line in lines)
+        for fact in document["onchain_facts"]:
+            self.assertIn(f"{fact['method']} at block {fact['block']}:", flat)
+        for entry in document["rules_today"]:
+            self.assertIn(f"{entry['subject']} as {entry['as']}: {entry['verdict']}", flat)
+        for item in document["not_public"]:
+            self.assertIn(f"- {item}", flat)
+
+    def test_json_prints_the_file(self):
+        code, output, _ = self.run_command("--json", "rhea")
+        self.assertEqual(code, 0)
+        self.assertEqual(output, RHEA_PATH.read_text(encoding="utf-8"))
+
+    def test_an_unknown_or_unsafe_id_exits_2(self):
+        for incident_id in ("nope", "../labels", "Rhea", "rhea.json"):
+            with self.subTest(incident_id=incident_id):
+                code, output, errors = self.run_command(incident_id)
+                self.assertEqual(code, 2)
+                self.assertEqual(output, "")
+                self.assertIn("no incident", errors)
+
+    def test_a_quote_from_an_unlisted_source_is_refused(self):
+        document = json.loads(RHEA_PATH.read_text(encoding="utf-8"))
+        document["accounts"][0]["quote"]["source"] = "elsewhere"
+        with self.assertRaises(ValueError):
+            incident.render(document)
 
 if __name__ == "__main__":
     unittest.main()
