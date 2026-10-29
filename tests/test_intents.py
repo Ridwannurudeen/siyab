@@ -169,6 +169,19 @@ class FailClosedTest(Case):
         self.assertIn("gnosis is not one of", detail(result, "destination_supported"))
         self.assertEqual(result["verdict"], "UNKNOWN")
 
+    def test_a_recipient_that_is_not_an_evm_address_is_refused_before_any_request(self):
+        for recipient in ("0xabc?apikey=k", "0x1fcdb04d0c5364fbd92c73ca8af9baa72c26910", "vendor.near",
+                          DEMO_RECIPIENT + "/x", None):
+            with self.subTest(recipient=recipient), self.assertRaises(ValueError):
+                judge(recipient, mode="off")
+        self.urlopen.assert_not_called()
+        errors = io.StringIO()
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(errors):
+            code = gate_main.main(["intents", "--origin", "nep141:wrap.near", "--destination", USDC_BASE_ASSET,
+                                   "--amount", ONE_NEAR, "--recipient", "0xabc?apikey=k"])
+        self.assertEqual(code, 2)
+        self.assertIn("invalid request", errors.getvalue())
+
     def test_the_firewall_is_not_called_without_code(self):
         with mock.patch("gate.intents.firewall", side_effect=AssertionError("firewall called")):
             result = judge(firewall_url=FIREWALL_URL)
@@ -202,6 +215,7 @@ class FailClosedTest(Case):
         self.quote_for(root, USDC_BASE)
         result = judge(USDC_BASE, fixtures_root=root, firewall_url="https://api.shieldbotsecurity.online")
         self.assertIn('classification "CAUTION"', result["checks"][-1]["detail"])
+        self.assertIn("judged as a native value transfer of amountOut base units", result["checks"][-1]["detail"])
         self.assertIn("evidence_url", result["checks"][-1]["detail"])
         without = judge(USDC_BASE, fixtures_root=root)
         self.assertEqual(statuses(without)["recipient_code"], "unknown")

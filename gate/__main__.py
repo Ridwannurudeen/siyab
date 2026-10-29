@@ -78,8 +78,12 @@ def _verdict(args):
 def _intents(args):
     mode = "off" if args.live else "replay"
     deadline = intents.live_deadline() if args.live else intents.RECORDED_DEADLINE
-    result = intents.judge_quote(args.origin, args.destination, args.amount, args.recipient, args.recipient_type,
-                                 mode=mode, firewall_url=os.environ.get("SHIELDBOT_API_URL"), deadline=deadline)
+    try:
+        result = intents.judge_quote(args.origin, args.destination, args.amount, args.recipient, args.recipient_type,
+                                     mode=mode, firewall_url=os.environ.get("SHIELDBOT_API_URL"), deadline=deadline)
+    except ValueError as error:
+        print(f"invalid request: {error}", file=sys.stderr)
+        return 2
     quote = result["quote"] or {}
     print(f"dry quote: {args.amount} of {args.origin} to {args.destination}, recipient {args.recipient}, "
           f"amountOut {quote.get('amountOut', 'not known')}")

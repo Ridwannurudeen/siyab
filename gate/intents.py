@@ -14,6 +14,7 @@ fixtures/intents (1Click), fixtures/goplus (GoPlus) and fixtures/evm (eth_getCod
 """
 
 import json
+import re
 import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -71,6 +72,7 @@ RECORDED_DEADLINE = "2026-10-30T00:00:00Z"
 UNAVAILABLE = (rpc.FixtureMiss, rpc.HttpError, rpc.RateLimited, rpc.RpcError, rpc.TransportError, OSError,
                ValueError)
 _OMFT = ".omft.near"
+_EVM_ADDRESS = re.compile(r"0x[0-9a-fA-F]{40}")
 
 
 def _why(error):
@@ -145,8 +147,8 @@ def goplus_address(address, *, client):
 def eth_get_code(chain_id, address, *, client=None):
     """The hex code at address on the chain with this id ("0x" when there is none)."""
     if client is None:
-        code = {number: name for name, number in CHAIN_IDS.items()}[chain_id]
-        client = rpc.Client(EVM_RPC_URLS[code], fixtures_dir=FIXTURES_ROOT / "evm")
+        chain = {number: name for name, number in CHAIN_IDS.items()}[chain_id]
+        client = rpc.Client(EVM_RPC_URLS[chain], fixtures_dir=FIXTURES_ROOT / "evm")
     code = client.call("eth_getCode", [address, "latest"])
     if not isinstance(code, str) or not code.startswith("0x"):
         raise rpc.MalformedResponse("eth_getCode did not return hex")
@@ -179,7 +181,10 @@ def judge_quote(origin_asset, destination_asset, amount, recipient, recipient_ty
                 mode=None, fixtures_root=FIXTURES_ROOT, firewall_url=None, clock=time.time,
                 deadline=RECORDED_DEADLINE):
     """The EVM leg verdict for one quote: {verdict, checks, reasons, quote, document, evidence_hash}.
-    Unsigned on every outcome. firewall_url is SHIELDBOT_API_URL or None."""
+    Unsigned on every outcome. firewall_url is SHIELDBOT_API_URL or None. A recipient that is not
+    0x and 40 hex characters raises ValueError before any request."""
+    if not isinstance(recipient, str) or not _EVM_ADDRESS.fullmatch(recipient):
+        raise ValueError(f"recipient: not 0x and 40 hex characters: {recipient!r}")
     root = Path(fixtures_root)
     quote_client = rpc.Client(ONECLICK_URL, mode, kind="http", fixtures_dir=root / "intents")
     goplus_client = rpc.Client(GOPLUS_URL, mode, kind="http", fixtures_dir=root / "goplus")
@@ -268,7 +273,8 @@ def _code_check(chain, recipient, quote, root, mode, firewall_url):
         return evidence.check("recipient_code", "unknown", f"contract code at {recipient} on {chain}; the "
                               f"firewall could not run: {_why(error)}", dict(client.last_source))
     source = dict(client.last_source)
-    detail = (f"contract code at {recipient} on {chain}; ShieldBot firewall at {firewall_url} "
+    detail = (f"contract code at {recipient} on {chain}; judged as a native value transfer of amountOut base "
+              f"units by the ShieldBot firewall at {firewall_url} "
               f"(fetched {source['fetched_at']}) classification {_quoted(classification)}, evidence_hash "
               f"{_quoted(answer.get('evidence_hash'))}, evidence_url {_quoted(answer.get('evidence_url'))}")
     return evidence.check("recipient_code", "signal" if classification in FIREWALL_SIGNALS else "pass", detail,

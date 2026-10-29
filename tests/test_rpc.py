@@ -289,6 +289,8 @@ class FailClosedClientTest(unittest.TestCase):
         client = rpc.Client("https://api.example", "off", kind="http")
         with mock.patch("urllib.request.urlopen", side_effect=no_network), self.assertRaises(ValueError):
             client.get("https://other.example/x?apikey=k")
+        with mock.patch("urllib.request.urlopen", side_effect=no_network), self.assertRaises(ValueError):
+            client.get("/api/v1/address_security/0xabc?apikey=k")
 
     def test_nearblocks_fetches_are_spaced_and_budgeted(self):
         now = [T0]

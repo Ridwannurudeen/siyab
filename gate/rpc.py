@@ -222,7 +222,7 @@ class Client:
     def _absolute(self, url):
         if self.kind != "http":
             raise ValueError("get and post need a client of kind http")
-        return _check_url(url) if url.startswith(("https://", "http://")) else self.url + url
+        return _check_url(url if url.startswith(("https://", "http://")) else self.url + url)
 
     def _respect_nearblocks(self, host):
         """Space NearBlocks fetches 10 s apart and refuse past the daily budget."""
