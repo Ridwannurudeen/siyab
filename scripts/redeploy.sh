@@ -2,11 +2,12 @@
 set -euo pipefail
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 source "$ROOT_DIR/scripts/lib.sh"
+cd "$ROOT_DIR"
 parse_dry_run "$@"
 require_testnet
 require_vars GATE_ACCOUNT_ID NEAR_KEYS_DIR
 if [[ "${#SCRIPT_ARGS[@]}" -ne 2 ]]; then
-  printf 'usage: redeploy.sh <gate|registry> <wasm>' >&2
+  printf 'usage: redeploy.sh <gate|registry> <wasm>\n' >&2
   exit 2
 fi
 contract=${SCRIPT_ARGS[0]}
@@ -34,12 +35,12 @@ if [[ "$DRY_RUN" == "1" ]]; then
   printf 'code_hash: unavailable during dry run\n'
   printf 'wasm_sha256: '
   if command -v sha256sum >/dev/null 2>&1; then sha256sum "$wasm"; else printf 'sha256sum unavailable\n'; fi
-  if python3 -c 'import gate' >/dev/null 2>&1; then run python3 -m gate codehash "$wasm"; fi
+  if python3 -m gate codehash --help >/dev/null 2>&1; then run python3 -m gate codehash "$wasm"; fi
 else
   after=$(near contract call-function as-read-only "$account" version json-args "$before_args" network-config "$NETWORK" now)
   printf 'version after: %s\n' "$after"
   near account view-account-summary "$account" network-config "$NETWORK" now
   sha256sum "$wasm"
-  if python3 -c 'import gate' >/dev/null 2>&1; then python3 -m gate codehash "$wasm"; fi
+  if python3 -m gate codehash --help >/dev/null 2>&1; then python3 -m gate codehash "$wasm"; fi
 fi
 summary_block "$account"

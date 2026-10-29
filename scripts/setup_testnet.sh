@@ -9,13 +9,46 @@ require_vars OWNER_ACCOUNT_ID GATE_ACCOUNT_ID VENDOR_ACCOUNT_ID AGED_PAYEE_ACCOU
 TOKEN_SYMBOL=${TOKEN_SYMBOL:-DMT}
 TOKEN_DECIMALS=${TOKEN_DECIMALS:-6}
 MAX_TTL_MS=${MAX_TTL_MS:-300000}
-GATE_WASM=${GATE_WASM:-res/gate.wasm}
+CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-"$HOME/target/shieldbot-near"}
+case "$CARGO_TARGET_DIR" in
+  /*) ;;
+  *) CARGO_TARGET_DIR="$ROOT_DIR/$CARGO_TARGET_DIR" ;;
+esac
+if [[ -n "${GATE_WASM:-}" ]]; then
+  case "$GATE_WASM" in
+    /*) ;;
+    *) GATE_WASM="$ROOT_DIR/$GATE_WASM" ;;
+  esac
+else
+  GATE_WASM="$ROOT_DIR/res/gate.wasm"
+  if [[ ! -f "$GATE_WASM" ]]; then
+    GATE_WASM="$CARGO_TARGET_DIR/near/gate.wasm"
+  fi
+fi
 TOKEN_ACCOUNT_ID="token.$GATE_ACCOUNT_ID"
 REGISTRY_ACCOUNT_ID="registry.$GATE_ACCOUNT_ID"
 RECORDER_ACCOUNT_ID="recorder.$GATE_ACCOUNT_ID"
 GATE_KEY=$(account_key "$GATE_ACCOUNT_ID")
 TOKEN_KEY=$(account_key "$TOKEN_ACCOUNT_ID")
 REGISTRY_KEY=$(account_key "$REGISTRY_ACCOUNT_ID")
+
+if [[ "$DRY_RUN" == "1" ]]; then
+  run near account view-account-summary "$GATE_ACCOUNT_ID" network-config "$NETWORK" now
+  printf 'preflight: Gate balance must cover 17.00375 NEAR before setup\n'
+else
+  gate_summary=$(near account view-account-summary "$GATE_ACCOUNT_ID" network-config "$NETWORK" now)
+  printf '%s\n' "$gate_summary"
+  gate_balance=$(printf '%s\n' "$gate_summary" | python3 -c 'import re,sys; text=sys.stdin.read(); m=re.search(r"([0-9]+(?:[.][0-9]+)?) NEAR", text); print(m.group(1) if m else "")')
+  if [[ -z "$gate_balance" ]] || ! python3 - "$gate_balance" <<'PY'
+from decimal import Decimal
+import sys
+raise SystemExit(0 if Decimal(sys.argv[1]) - Decimal("7.00375") >= Decimal("10") else 1)
+PY
+  then
+    printf 'Gate account must retain at least 10 NEAR after the planned 7.00375 NEAR setup spend\n' >&2
+    exit 1
+  fi
+fi
 
 for account in "$TOKEN_ACCOUNT_ID" "$REGISTRY_ACCOUNT_ID" "$RECORDER_ACCOUNT_ID"; do
   if [[ "$DRY_RUN" == "1" ]]; then
@@ -73,21 +106,4 @@ elif ! contract_initialized "$REGISTRY_ACCOUNT_ID"; then
   deploy_with_init "$REGISTRY_ACCOUNT_ID" "$REGISTRY_WASM" new "$registry_new" "$REGISTRY_KEY"
 fi
 
-if [[ "$DRY_RUN" == "1" ]]; then
-  run near account view-account-summary "$GATE_ACCOUNT_ID" network-config "$NETWORK" now
-else
-  # UNVERIFIED until first run: near-cli-rs view-account-summary balance output parsing.
-  gate_summary=$(near account view-account-summary "$GATE_ACCOUNT_ID" network-config "$NETWORK" now)
-  printf '%s\n' "$gate_summary"
-  gate_balance=$(printf '%s\n' "$gate_summary" | python3 -c 'import re,sys; text=sys.stdin.read(); m=re.search(r"([0-9]+(?:[.][0-9]+)?) NEAR", text); print(m.group(1) if m else "")')
-  if [[ -z "$gate_balance" ]] || ! python3 - "$gate_balance" <<'PY'
-from decimal import Decimal
-import sys
-raise SystemExit(0 if Decimal(sys.argv[1]) >= 10 else 1)
-PY
-  then
-    printf 'Gate account must retain at least 10 NEAR\n' >&2
-    exit 1
-  fi
-fi
 summary_block "$GATE_ACCOUNT_ID" "$TOKEN_ACCOUNT_ID" "$REGISTRY_ACCOUNT_ID" "$RECORDER_ACCOUNT_ID"

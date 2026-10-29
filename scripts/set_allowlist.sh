@@ -6,7 +6,7 @@ parse_dry_run "$@"
 require_testnet
 require_vars OWNER_ACCOUNT_ID GATE_ACCOUNT_ID NEAR_KEYS_DIR
 if [[ "${#SCRIPT_ARGS[@]}" -ne 2 ]]; then
-  printf 'usage: set_allowlist.sh <agent_pub> <account[,account...]>' >&2
+  printf 'usage: set_allowlist.sh <agent_pub> <account[,account...]>\n' >&2
   exit 2
 fi
 AGENT_PUB=${SCRIPT_ARGS[0]}

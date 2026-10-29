@@ -10,14 +10,14 @@ The scripts use environment variables and the near-cli-rs command lines recorded
 | `VENDOR_ACCOUNT_ID` | Account used for the vendor payment path. |
 | `AGED_PAYEE_ACCOUNT_ID` | Account used for the aged payee path. |
 | `ATTACKER_ACCOUNT_ID` | Account that funds the lookalike receiver. |
-| `NEAR_KEYS_DIR` | Directory of `<account>.json` key files with mode 600. |
+| `NEAR_KEYS_DIR` | Directory for `<account>.json` key files; created subaccount files are set to mode 600. |
 | `VERIFIER_PUB` | Public verifier key passed to the Gate initializer. |
 | `AGENT_PUB` | Function call public key registered with the Gate. |
 | `AGENT_LABEL` | Label stored with the agent. |
 | `TOKEN_SYMBOL` | Token symbol, defaults to `DMT`. |
 | `TOKEN_DECIMALS` | Token decimals, defaults to `6`. |
 | `TOKEN_SUPPLY` | Initial token supply in base units. |
-| `GATE_WASM` | Gate wasm path, defaults to `res/gate.wasm`. |
+| `GATE_WASM` | Gate wasm path, defaults to `res/gate.wasm` and falls back to `$CARGO_TARGET_DIR/near/gate.wasm`. |
 | `REGISTRY_WASM` | Registry wasm path. |
 | `TOKEN_WASM` | Test token wasm path. |
 | `MAX_TTL_MS` | Gate verdict lifetime in milliseconds, defaults to `300000`. |
@@ -39,6 +39,6 @@ The scripts use environment variables and the near-cli-rs command lines recorded
 
 `make_attack_receiver.sh` creates a funded receiver account and prints the creation time.
 
-`record_verdicts.sh` records a batch from a JSON argument file and can record labels from a second file.
+`record_verdicts.sh` records a batch from a JSON argument file and can record labels from a second file. The labels file can be a JSON list of label argument objects or an object with a `labels` list.
 
-Run a dry pass with `DRY_RUN=1 bash scripts/<script>.sh` and the required environment variables. `record_verdicts.sh` also needs its input JSON file to be readable during a dry pass. Subaccount key export from near-cli-rs legacy keychain storage is UNVERIFIED until the first run; see the marked lines in the scripts.
+Run a dry pass with `DRY_RUN=1 bash scripts/<script>.sh` and the required environment variables. `record_verdicts.sh` also needs its input JSON file to be readable during a dry pass. The near-cli-rs legacy key path is UNVERIFIED until the first run; created files are moved into `NEAR_KEYS_DIR` and set to mode 600. See the marked lines in the scripts.

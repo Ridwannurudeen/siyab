@@ -112,6 +112,47 @@ create_subaccount() {
   gate_key=$(account_key "$GATE_ACCOUNT_ID")
   # UNVERIFIED until first run: the legacy keychain output path and key file layout; near-cli-rs 0.30.1 help lists fund-myself and autogenerate-new-keypair.
   run near account create-account fund-myself "$account_id" "$balance NEAR" autogenerate-new-keypair save-to-legacy-keychain sign-as "$GATE_ACCOUNT_ID" network-config "$NETWORK" sign-with-access-key-file "$gate_key" send
+  if [[ "$DRY_RUN" != "1" ]]; then
+    install_generated_key "$account_id"
+  fi
+}
+
+install_generated_key() {
+  local account_id=$1
+  local key_path legacy_home legacy_path config_path
+  key_path=$(account_key "$account_id")
+  if [[ -f "$key_path" ]]; then
+    chmod 600 "$key_path"
+    return 0
+  fi
+  config_path="$HOME/.config/near-cli/config.toml"
+  legacy_home=$(python3 - "$config_path" "$HOME/.near-credentials" <<'PY'
+import pathlib
+import sys
+import tomllib
+
+config_path = pathlib.Path(sys.argv[1])
+fallback = pathlib.Path(sys.argv[2])
+try:
+    config = tomllib.loads(config_path.read_text())
+    configured = config.get("credentials_home_dir")
+except (OSError, tomllib.TOMLDecodeError):
+    configured = None
+home = pathlib.Path(configured).expanduser() if configured else fallback
+if not home.is_absolute():
+    home = pathlib.Path.home() / home
+print(home)
+PY
+  )
+  legacy_path="$legacy_home/$NETWORK/$account_id.json"
+  if [[ -f "$legacy_path" ]]; then
+    mkdir -p -- "$NEAR_KEYS_DIR"
+    mv -- "$legacy_path" "$key_path"
+    chmod 600 "$key_path"
+    return 0
+  fi
+  printf 'generated key missing at %s and %s\n' "$key_path" "$legacy_path" >&2
+  return 1
 }
 
 deploy_with_init() {
