@@ -8,7 +8,7 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "DENY",
+  "verdict": "ALLOW",
   "checks": [
     {
       "id": "receiver_exists",
@@ -52,8 +52,8 @@
     },
     {
       "id": "dust_funded",
-      "status": "signal",
-      "detail": "created by a 0 NEAR deposit, below 0.1 NEAR",
+      "status": "pass",
+      "detail": "created by a 0 NEAR deposit; not a signal without lookalike or account_age",
       "source": {
         "provider": "api.nearblocks.io",
         "request_sha256": "41661ea1281014fe4b01e96ab98eea93e4b98edbf6853ee597596c468bb2a4d1",
@@ -82,7 +82,7 @@
     }
   ],
   "reasons": [
-    "Created by a 0 NEAR deposit.",
+    "Every check ran and none found a signal.",
     "Not on the owner's allowlist."
   ],
   "labels": [],
