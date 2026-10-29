@@ -141,7 +141,8 @@ def handle(message, evidence_dir):
                 "error": {"code": -32600, "message": "not a JSON-RPC 2.0 request"}}
     if "id" not in message:
         return None
-    method, params, reply = message["method"], message.get("params") or {}, {"jsonrpc": "2.0", "id": message["id"]}
+    params = message.get("params") if isinstance(message.get("params"), dict) else {}
+    method, reply = message["method"], {"jsonrpc": "2.0", "id": message["id"]}
     if method == "initialize":
         requested = params.get("protocolVersion")
         reply["result"] = {"protocolVersion": requested if requested in PROTOCOL_VERSIONS else FALLBACK_VERSION,
@@ -161,6 +162,9 @@ def handle(message, evidence_dir):
                 reply["result"] = _content(HANDLERS[name](arguments, evidence_dir), False)
             except ToolError as error:
                 reply["result"] = _content(str(error), True)
+            except Exception as error:  # noqa: BLE001 (a tool failure is answered as isError, never a crash)
+                print(f"tool {name} failed: {type(error).__name__}: {error}", file=sys.stderr)
+                reply["result"] = _content(f"the tool failed: {type(error).__name__}: {error}", True)
     else:
         reply["error"] = {"code": -32601, "message": f"method not found: {method}"}
     return reply
@@ -185,9 +189,12 @@ def _messages(stream):
                 return
             if not header.strip():
                 break
-            name, _, value = header.decode("ascii").partition(":")
-            if name.strip().lower() == "content-length":
-                length = int(value.strip())
+            try:
+                name, _, value = header.decode("ascii").partition(":")
+                if name.strip().lower() == "content-length":
+                    length = int(value.strip())
+            except (ValueError, UnicodeDecodeError) as error:
+                print(f"skipped a header that does not parse: {error}", file=sys.stderr)
         if length is None:
             return
         yield True, stream.read(length)
@@ -208,6 +215,8 @@ def serve(stdin, stdout):
         data = json.dumps(reply, ensure_ascii=False).encode("utf-8")
         stdout.write(b"Content-Length: %d\r\n\r\n" % len(data) + data if framed else data + b"\n")
         stdout.flush()
+    if not os.listdir(evidence_dir):
+        os.rmdir(evidence_dir)
     return 0
 
 

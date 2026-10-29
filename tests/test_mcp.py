@@ -1,3 +1,5 @@
+import contextlib
+import io
 import json
 import os
 import subprocess
@@ -5,6 +7,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parent.parent
 EVIDENCE_DIR = ROOT / "fixtures" / "evidence"
@@ -147,6 +150,44 @@ class McpServerTest(McpSessionCase):
         first, second = [json.loads(line) for line in stdout.splitlines()]
         self.assertEqual((first["id"], first["error"]["code"]), (None, -32700))
         self.assertEqual((second["id"], second["error"]["code"]), (None, -32600))
+
+    def test_params_that_are_not_an_object_count_as_empty(self):
+        by_id, _ = self.replies([{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": [1]},
+                                 {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": "scan"}])
+        self.assertEqual(by_id[1]["result"]["protocolVersion"], "2024-11-05")
+        self.assertEqual(by_id[2]["error"]["code"], -32602)
+
+    def test_a_header_that_does_not_parse_is_skipped(self):
+        body = json.dumps({"jsonrpc": "2.0", "id": 5, "method": "ping"}).encode("utf-8")
+        data = (b"Content-Length: %d\r\nX-Note: caf\xe9\r\nContent-Length: abc\r\n\r\n" % len(body)) + body
+        stdout, stderr = self.run_server(data)
+        header, _, rest = stdout.partition(b"\r\n\r\n")
+        self.assertEqual(header, b"Content-Length: %d" % len(json.dumps({"jsonrpc": "2.0", "id": 5, "result": {}})))
+        self.assertEqual(json.loads(rest), {"jsonrpc": "2.0", "id": 5, "result": {}})
+        self.assertEqual(stderr.count("skipped a header that does not parse"), 2)
+
+    def test_the_empty_evidence_directory_is_removed_at_exit(self):
+        self.replies([initialize("2025-06-18"), call(2, "scan_near_account", {"account_id": "near"})])
+        self.assertEqual(os.listdir(self.tmp), [])
+        self.replies([call(1, "check_near_payment", {"kind": "ft", "token": "wrap.near", "receiver": "intents.near",
+                                                     "amount": "1000"})])
+        self.assertEqual(len(os.listdir(self.tmp)), 1)
+
+
+class McpHandlerTest(unittest.TestCase):
+    def test_an_unexpected_tool_failure_is_error_content_not_a_crash(self):
+        from mcp import server
+
+        def broken(arguments, evidence_dir):
+            raise RuntimeError("disk full")
+
+        errors = io.StringIO()
+        with mock.patch.dict(server.HANDLERS, {"scan_near_account": broken}), contextlib.redirect_stderr(errors):
+            reply = server.handle(call(1, "scan_near_account", {"account_id": "near"}), "unused")
+        self.assertEqual(reply["result"], {"content": [{"type": "text", "text": "the tool failed: RuntimeError: disk "
+                                                                                 "full"}], "isError": True})
+        self.assertIn("tool scan_near_account failed: RuntimeError: disk full", errors.getvalue())
+        self.assertTrue(Path(server.__file__).is_relative_to(ROOT))
 
 
 if __name__ == "__main__":
