@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 from gate import __main__ as gate_main
-from gate import base58, ed25519, verify
+from gate import base58, canon, ed25519, verify
 
 ROOT = Path(__file__).resolve().parent.parent
 REGISTRY = ROOT / "fixtures" / "registry"
@@ -38,7 +38,7 @@ class VerifyTest(unittest.TestCase):
         self.assertEqual(lines[-1], "verified")
         self.assertIn("  standard shieldbot-near, version 1.0.0, event verdict_recorded", lines)
         self.assertNotIn("FAIL", output)
-        self.assertEqual(sum(line.startswith("ok   ") for line in lines), 5)
+        self.assertEqual(sum(line.startswith("ok   ") for line in lines), 6)
         self.assertEqual(run(RECORD, EVIDENCE)[0], 0)
 
     def test_one_flipped_byte_in_the_evidence_fails(self):
@@ -64,6 +64,22 @@ class VerifyTest(unittest.TestCase):
         changed = self.dir / "verdict.json"
         changed.write_text(json.dumps(verdict_object), encoding="utf-8")
         self.assertEqual(run(RECORD, EVIDENCE, "--verdict", changed, "--key", TEST_KEY)[0], 1)
+
+    def test_a_validly_signed_deny_literal_verdict_fails(self):
+        verdict_object = json.loads(VERDICT.read_text(encoding="utf-8"))
+        message = verify.rebuild_message(json.loads(EVIDENCE.read_bytes()), verdict_object)
+        deny = message[: -len(b"ALLOW")] + b"DENY"
+        verdict_object["literal"] = "DENY"
+        verdict_object["signature"] = ed25519.sign(ed25519.TEST_VERIFIER_SEED, canon.digest(deny)).hex()
+        self.assertTrue(ed25519.verify(base58.decode_key(TEST_KEY), canon.digest(deny),
+                                       bytes.fromhex(verdict_object["signature"])))
+        path = self.dir / "deny.json"
+        path.write_text(json.dumps(verdict_object), encoding="utf-8")
+        code, output, _ = run(RECORD, EVIDENCE, "--verdict", path, "--key", TEST_KEY)
+        self.assertEqual(code, 1)
+        self.assertIn("FAIL verdict literal is ALLOW", output)
+        self.assertIn("FAIL signature verifies", output)
+        self.assertTrue(verify.rebuild_message(json.loads(EVIDENCE.read_bytes()), verdict_object).endswith(b"|ALLOW"))
 
     def test_a_record_with_another_verdict_fails(self):
         record = json.loads(RECORD.read_text(encoding="utf-8"))

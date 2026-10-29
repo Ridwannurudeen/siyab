@@ -72,7 +72,8 @@ def load_record(document):
 
 
 def rebuild_message(evidence_document, verdict_object):
-    """The canonical message for the transfer in the evidence and the Verdict's fields."""
+    """The canonical ALLOW message for the transfer in the evidence and the Verdict's fields; the
+    literal is always ALLOW, never the one the Verdict file carries."""
     subject = evidence_document["subject"]
     message = canon.canonical_message(
         gate=subject["gate"], agent_pk_hex=subject["agent_pk"], kind=subject["kind"], token_id=subject["token"],
@@ -84,7 +85,6 @@ def rebuild_message(evidence_document, verdict_object):
     if subject["memo_sha256"] is not None:
         # The evidence keeps the memo as its sha256, which is exactly the message's memo field.
         parts[7] = subject["memo_sha256"]
-    parts[-1] = verdict_object["literal"]
     rebuilt = "|".join(parts).encode("utf-8")
     canon.parse_canonical(rebuilt)
     return rebuilt
@@ -107,6 +107,7 @@ def verify(record_path, evidence_path, verdict_path=None, key=None):
         public = base58.decode_key(key)
         if len(public) != 32:
             raise VerifyError("--key: not a 32 byte ed25519 public key")
+        results.append(("verdict literal is ALLOW", verdict_object.get("literal") == canon.LITERAL))
         results.append(("verdict evidence_hash equals the evidence sha256", verdict_object["evidence_hash"] == computed))
         results.append(("verdict verdict_id equals the record's verdict_id",
                         verdict_object["verdict_id"] == record["verdict_id"]))
