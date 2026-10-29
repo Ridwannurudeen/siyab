@@ -68,7 +68,7 @@ A verdict's evidence is a JSON document (`gate/evidence.py`):
 | `reasons` | the reasons for the verdict |
 | `observed` | `{block_height, timestamp_ms}` of the chain state the checks read |
 | `issued_ms`, `expires_ms`, `verdict_id` | set on ALLOW, null otherwise |
-| `latency_ms` | the time the verdict took |
+| `latency_ms` | the time the verdict took: the time the checks took; the evidence write and the signature are outside it |
 
 The canonical bytes are JSON written so that any language can reproduce them: object keys sorted by Unicode code point; no whitespace outside strings; non ASCII characters written as themselves in UTF-8, not escaped; inside strings, `"` and `\` escaped as `\"` and `\\`, and the control characters U+0000 to U+001F escaped as `\n`, `\t`, `\r`, `\b`, `\f` or `\u00XX` (lowercase hex); numbers are integers only, so no float, NaN or infinity ever appears; no trailing newline. In Python this is `json.dumps(doc, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False)` encoded as UTF-8, and `canonical_bytes` refuses a document that holds a float. The evidence hash is the sha256 hex of those bytes. `write` stores the document as `<hash>.json` holding exactly those bytes, so `sha256sum <hash>.json` prints the file's own name, and `check_file` recomputes the hash and the canonical form. The hash is a field of the signed message, so changing one byte of the document breaks the link between the document and the signature.
 
