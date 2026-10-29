@@ -65,6 +65,31 @@ pub struct LabelRecord {
     recorded_ms: u64,
 }
 
+#[near(serializers = [json])]
+pub struct LabelRecordView {
+    subject: String,
+    chain: String,
+    label: String,
+    category: String,
+    provenance: String,
+    assertion_hash: String,
+    recorded_ms: u64,
+}
+
+impl From<LabelRecord> for LabelRecordView {
+    fn from(record: LabelRecord) -> Self {
+        Self {
+            subject: record.subject,
+            chain: record.chain,
+            label: record.label,
+            category: record.category,
+            provenance: record.provenance,
+            assertion_hash: lower_hex(&record.assertion_hash),
+            recorded_ms: record.recorded_ms,
+        }
+    }
+}
+
 #[near(contract_state, contract_metadata())]
 #[derive(PanicOnDefault)]
 pub struct Registry {
@@ -202,8 +227,11 @@ impl Registry {
         self.total_labels
     }
 
-    pub fn get_label(&self, assertion_hash: String) -> Option<LabelRecord> {
-        self.labels.get(&assertion_hash).cloned()
+    pub fn get_label(&self, assertion_hash: String) -> Option<LabelRecordView> {
+        self.labels
+            .get(&assertion_hash)
+            .cloned()
+            .map(LabelRecordView::from)
     }
 
     pub fn get_recorder(&self) -> AccountId {
@@ -467,7 +495,10 @@ mod tests {
             args.5.clone(),
         );
         assert_eq!(registry.total_labels(), 1);
-        assert!(registry.get_label(hash('a')).is_some());
+        assert_eq!(
+            registry.get_label(hash('a')).unwrap().assertion_hash,
+            hash('a')
+        );
         assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             registry.record_label(
                 args.0.clone(),
