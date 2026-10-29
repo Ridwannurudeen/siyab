@@ -1,9 +1,13 @@
 """Command line: python -m gate <command>."""
 
 import argparse
+import json
+import os
 import sys
+from pathlib import Path
 
-from gate import canon
+from gate import canon, ed25519, rpc, signer, verdict
+from intel import labels
 
 
 def _canon_vectors(args):
@@ -12,6 +16,62 @@ def _canon_vectors(args):
         print(f"wrote {path.as_posix()}")
     for path in removed:
         print(f"removed {path.as_posix()}")
+    return 0
+
+
+def _clients(gate):
+    """The NEAR RPC, NearBlocks and optional ShieldBot API clients for the Gate's network."""
+    if gate.endswith(".testnet"):
+        rpc_url = os.environ.get("NEAR_RPC_URL") or rpc.TESTNET_RPC_URL
+        nearblocks_url = os.environ.get("NEARBLOCKS_API_URL") or rpc.NEARBLOCKS_TESTNET_URL
+    else:
+        rpc_url = os.environ.get("NEAR_MAINNET_RPC_URL") or rpc.MAINNET_RPC_URL
+        nearblocks_url = os.environ.get("NEARBLOCKS_API_URL") or rpc.NEARBLOCKS_URL
+    api_url = os.environ.get("SHIELDBOT_API_URL")
+    scanner = rpc.Client(api_url, kind="http") if api_url else None
+    return rpc.Client(rpc_url), rpc.Client(nearblocks_url, kind="http"), scanner
+
+
+def _verdict(args):
+    try:
+        policy = json.loads(args.policy)
+    except ValueError as error:
+        print(f"--policy is not JSON: {error}", file=sys.stderr)
+        return 2
+    try:
+        if args.live:
+            if not os.environ.get("VERIFIER_KEY_FILE"):
+                raise signer.SignerError("--live signs with the key file VERIFIER_KEY_FILE names, and it is unset")
+            verdict_signer = signer.NaClSigner(os.environ["VERIFIER_KEY_FILE"])
+        else:
+            verdict_signer = signer.TestSigner()
+    except signer.SignerError as error:
+        print(f"no signer: {error}", file=sys.stderr)
+        return 2
+    client, nearblocks, scanner = _clients(args.gate)
+    try:
+        result = verdict.request(args.kind, args.token, args.receiver, args.amount, args.memo, gate=args.gate,
+                                 agent_pk_hex=args.agent_pk, policy=policy, store=labels.load(), rpc=client,
+                                 nearblocks=nearblocks, signer=verdict_signer, injection_scanner=scanner,
+                                 evidence_dir=args.evidence_dir)
+    except canon.CanonError as error:
+        print(f"invalid request: {error}", file=sys.stderr)
+        return 2
+    for check in result["checks"]:
+        print(f"{check['status']:<7} {check['id']}: {check['detail']}")
+    print(f"verdict: {result['outcome']}")
+    for reason in result["reasons"]:
+        print(f"  {reason}")
+    print(f"evidence: {result['evidence_hash']}")
+    print(f"latency: {result['latency_ms']} ms")
+    if result["verdict"]:
+        name, body = result["verdict"]["verdict_id"], result["verdict"]
+    else:
+        name, body = result["evidence_hash"], {"literal": result["outcome"], "evidence_hash": result["evidence_hash"]}
+    path = Path(args.out) / f"{name}.verdict.json"
+    path.write_bytes((json.dumps(body, indent=2) + "\n").encode("utf-8"))
+    print(json.dumps(body))
+    print(f"wrote {path.as_posix()}")
     return 0
 
 
@@ -25,6 +85,23 @@ def main(argv=None):
     vectors.add_argument("--gate-root", default=canon.DEFAULT_GATE_ROOT, metavar="ACCOUNT",
                          help=f"sandbox root account id (default {canon.DEFAULT_GATE_ROOT})")
     vectors.set_defaults(handler=_canon_vectors)
+
+    judge = commands.add_parser("verdict", help="judge one transfer and sign it only on ALLOW")
+    judge.add_argument("--kind", required=True, choices=canon.KINDS)
+    judge.add_argument("--token", help="the NEP-141 token account (kind ft)")
+    judge.add_argument("--receiver", required=True)
+    judge.add_argument("--amount", required=True, help="decimal amount in base units")
+    judge.add_argument("--memo")
+    judge.add_argument("--gate", required=True, help="the Gate account id; .testnet selects testnet")
+    judge.add_argument("--agent-pk", default=ed25519.public_from_seed(ed25519.TEST_AGENT_SEED).hex(),
+                       help="the agent public key as 64 lowercase hex (default TEST agent 1)")
+    judge.add_argument("--policy", default='{"allowlist": [], "caps": []}',
+                       help="the agent policy as JSON in the get_agent shape")
+    judge.add_argument("--live", action="store_true",
+                       help="sign with the PyNaCl key in VERIFIER_KEY_FILE instead of the TEST key")
+    judge.add_argument("--evidence-dir", default=verdict.EVIDENCE_DIR, help="where the evidence document goes")
+    judge.add_argument("--out", default=".", help="where the verdict file goes")
+    judge.set_defaults(handler=_verdict)
 
     args = parser.parse_args(argv)
     return args.handler(args)

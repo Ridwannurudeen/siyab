@@ -42,7 +42,7 @@ Account ids match `^(([a-z\d]+[-_])*[a-z\d]+\.)*([a-z\d]+[-_])*[a-z\d]+$` and ar
 ## Keys and rotation
 
 - A Gate holds a current verifier key and an optional previous key with a deadline in milliseconds. A verdict with `key_id` `cur` is checked against the current key. A verdict with `key_id` `prev` is checked against the previous key, and only until the deadline. To rotate, install the new key as current and the old key as previous, with a deadline at least one ttl ahead, so verdicts already issued stay valid until they expire.
-- No private key is committed. The live verifier key is generated and kept outside the repository.
+- No private key is committed. The live verifier key is generated and kept outside the repository. `gate/signer.py` holds the signers: `TestSigner` (the TEST key, pure Python), `NaClSigner` (a live key read from the near-cli style key file `VERIFIER_KEY_FILE` names, signed with PyNaCl) and `PurePythonLiveSigner` (a live key signed in pure Python, which refuses to start unless `GATE_ALLOW_PURE_PYTHON_SIGNER=1`). `python -m gate verdict --live` uses `NaClSigner`; without `--live` it signs with the TEST key.
 - The TEST verifier key is derived in `gate/ed25519.py` from the public seed `sha256(b"gate test verifier v1")`. Its public key is `fixtures/keys/test-verifier.pub`: line 1 is `ed25519:<base58>`, line 2 is the hex. Anyone can derive the TEST key, so it signs only the test vectors and offline runs and is never registered on testnet. The TEST agent keys come from the seeds `sha256(b"gate test agent v1")` and `sha256(b"gate test agent v2")`.
 - `gate/ed25519.py` is based on the public domain Python reference implementation at https://ed25519.cr.yp.to/python/ed25519.py, with the changes its header lists; RFC 8032 is the normative reference for the algorithm. It is used for verification everywhere and signs only with the TEST key. It is checked against the RFC 8032 section 7.1 test vectors (as lines 1 to 3 of the public domain `sign.input`) and against PyNaCl in `tests/test_ed25519.py`.
 
@@ -74,7 +74,7 @@ The canonical bytes are JSON written so that any language can reproduce them: ob
 
 ## Contract argument shapes
 
-The agent calls `request_transfer(request, verdict)` with these JSON objects; the verdict is passed through exactly as the service produced it.
+The agent calls `request_transfer(request, verdict)` with these JSON objects; the verdict is passed through exactly as the service produced it. `gate.verdict.request` returns both under the keys `request` and `verdict` (the latter null unless the outcome is ALLOW), and `python -m gate verdict` prints the checks, the outcome, the evidence hash, the latency and the Verdict object, which it also writes to `<verdict_id>.verdict.json` (for DENY or UNKNOWN, an unsigned `{"literal", "evidence_hash"}` record named by the evidence hash).
 
 ```
 TransferRequest {"kind": "near" | "ft", "token_id": <account id or null>, "receiver_id": <account id>,

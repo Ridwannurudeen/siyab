@@ -122,6 +122,13 @@ def canonical_message(*, gate, agent_pk_hex, kind, token_id, receiver_id, amount
     return "|".join(fields + [LITERAL]).encode("utf-8")
 
 
+def validate_transfer(*, gate, agent_pk_hex, kind, token_id, receiver_id, amount, memo):
+    """Raise CanonError unless the transfer fields have a canonical form; return the amount as its
+    canonical decimal. The verdict service calls this before it judges or writes anything."""
+    _fields(gate, agent_pk_hex, kind, token_id, receiver_id, amount, memo, 0, 0, "0" * 32, "0" * 64, "cur")
+    return amount_field(amount)
+
+
 def digest(message):
     """sha256 of the message: the 32 bytes that are signed."""
     return hashlib.sha256(message).digest()

@@ -35,6 +35,7 @@ MAX_AGE_S = 24 * 60 * 60
 MAINNET_RPC_URL = "https://free.rpc.fastnear.com"
 TESTNET_RPC_URL = "https://test.rpc.fastnear.com"
 NEARBLOCKS_URL = "https://api.nearblocks.io"
+NEARBLOCKS_TESTNET_URL = "https://api-testnet.nearblocks.io"
 # The code_hash view_account reports for an account with no contract: base58 of 32 zero bytes.
 EMPTY_CODE_HASH = base58.encode(bytes(32))
 _TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
