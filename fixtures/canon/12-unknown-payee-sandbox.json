@@ -1,0 +1,23 @@
+{
+  "name": "12-unknown-payee-sandbox",
+  "gate_account_id": "gate.test.near",
+  "agent_pk_hex": "29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a",
+  "kind": "ft",
+  "token_id": "token.gate.test.near",
+  "receiver_id": "stranger.test.near",
+  "amount": "1",
+  "memo": "invoice 1",
+  "issued_ms": 4102444500000,
+  "expires_ms": 4102444800000,
+  "verdict_id": "d25064169deff667f9439aba68deda63",
+  "evidence_sha256": "682ece643158ca425db28400995588bd9da40f128fcc107cd16160e46dc00bee",
+  "key_id": "cur",
+  "literal": "ALLOW",
+  "message": "GATEv1|gate.test.near|29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a|ft|token.gate.test.near|stranger.test.near|1|55cd62f7f45dce42d37072c46dedc5ffbf761632fc8d0f04837adb65121bd1c5|4102444500000|4102444800000|d25064169deff667f9439aba68deda63|682ece643158ca425db28400995588bd9da40f128fcc107cd16160e46dc00bee|cur|ALLOW",
+  "digest_sha256": "b27442e173436fc3f2c15a000a4b9ea464f0ceec27319a398d051d6659a00983",
+  "verifier_pub_hex": "1f2420924a74739ba244ab012966945ee69bdbfe8549e03976e2046d1883fa09",
+  "signature_hex": "a80d48061931bc906237e58529be3e269c20a391d8dd2515023cea4f782a1fb83321475eaf1d5e909965f1057d6a29805384c9a2a41f2a80645af68de27e7e0f",
+  "expect_valid": true,
+  "expect_contract": "OK",
+  "note": "Receiver not on the allowlist, amount 1 base unit; OK on the first submission within the unknown payee cap; other fields as 01. Agent TEST agent 1 unless stated. Sandbox root account id test.near: UNVERIFIED until docs/SPIKES.md S1 records the measured id; regenerate with python -m gate canon-vectors --write fixtures/canon --gate-root <id>."
+}

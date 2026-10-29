@@ -1,0 +1,23 @@
+{
+  "name": "09-prev-key-unit",
+  "gate_account_id": "gate.testnet",
+  "agent_pk_hex": "29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a",
+  "kind": "ft",
+  "token_id": "token.gate.testnet",
+  "receiver_id": "vendor.testnet",
+  "amount": "1000000",
+  "memo": "invoice 1",
+  "issued_ms": 1700000000000,
+  "expires_ms": 1700000300000,
+  "verdict_id": "82b3abe540a314f038075c248b12482c",
+  "evidence_sha256": "c5a9ecf077e48de1c694cbf78a588e2d10211bfaac84912d779d8939dea6841d",
+  "key_id": "prev",
+  "literal": "ALLOW",
+  "message": "GATEv1|gate.testnet|29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a|ft|token.gate.testnet|vendor.testnet|1000000|55cd62f7f45dce42d37072c46dedc5ffbf761632fc8d0f04837adb65121bd1c5|1700000000000|1700000300000|82b3abe540a314f038075c248b12482c|c5a9ecf077e48de1c694cbf78a588e2d10211bfaac84912d779d8939dea6841d|prev|ALLOW",
+  "digest_sha256": "f06f446fcbc9f8add493a5b56c179583f083b73aed2385cfd4402cb6ed5b65e4",
+  "verifier_pub_hex": "1f2420924a74739ba244ab012966945ee69bdbfe8549e03976e2046d1883fa09",
+  "signature_hex": "0f939701f505f3899a59e5631142a1ef449d68b1c30ed094c4faa8f702cb34d465bc12c1be8834078bd6ef0d1cbdf2902f9a7ffd783c3bf43379161f38d42904",
+  "expect_valid": true,
+  "expect_contract": "OK",
+  "note": "As 04 with key_id prev; OK when the TEST verifier key is registered as the previous key and its deadline has not passed. Agent TEST agent 1 unless stated; contract block timestamp 1700000100000 ms."
+}

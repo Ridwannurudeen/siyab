@@ -1,0 +1,23 @@
+{
+  "name": "04-ft-happy-unit",
+  "gate_account_id": "gate.testnet",
+  "agent_pk_hex": "29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a",
+  "kind": "ft",
+  "token_id": "token.gate.testnet",
+  "receiver_id": "vendor.testnet",
+  "amount": "1000000",
+  "memo": "invoice 1",
+  "issued_ms": 1700000000000,
+  "expires_ms": 1700000300000,
+  "verdict_id": "4d9184c6b4ec99800e259aaf3fec0489",
+  "evidence_sha256": "3fe3f0681e29215f3b80cdb29a1776d11e3a04395019299a6ab998906cf820d3",
+  "key_id": "cur",
+  "literal": "ALLOW",
+  "message": "GATEv1|gate.testnet|29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a|ft|token.gate.testnet|vendor.testnet|1000000|55cd62f7f45dce42d37072c46dedc5ffbf761632fc8d0f04837adb65121bd1c5|1700000000000|1700000300000|4d9184c6b4ec99800e259aaf3fec0489|3fe3f0681e29215f3b80cdb29a1776d11e3a04395019299a6ab998906cf820d3|cur|ALLOW",
+  "digest_sha256": "0a244c386f0ece9463310a31075c6b84d5c71440edf02fab3852540e561a1925",
+  "verifier_pub_hex": "1f2420924a74739ba244ab012966945ee69bdbfe8549e03976e2046d1883fa09",
+  "signature_hex": "4e83bd4c540a3f7e053588e2c45b21e83c730f2b3aea07a70fd36861c52fa6c64e8daab9909dbc3a1bc6658d042b5d54c2c3a2f9cf690bcf73d8ef548d019809",
+  "expect_valid": true,
+  "expect_contract": "OK",
+  "note": "FT payment to the allowlisted vendor, inside its ttl. Agent TEST agent 1 unless stated; contract block timestamp 1700000100000 ms."
+}

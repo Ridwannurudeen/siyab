@@ -1,0 +1,23 @@
+{
+  "name": "06-ttl-too-long-unit",
+  "gate_account_id": "gate.testnet",
+  "agent_pk_hex": "29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a",
+  "kind": "ft",
+  "token_id": "token.gate.testnet",
+  "receiver_id": "vendor.testnet",
+  "amount": "1000000",
+  "memo": "invoice 1",
+  "issued_ms": 1700000000000,
+  "expires_ms": 1700000600000,
+  "verdict_id": "a162e7908e4da3f8adacdee750c2213d",
+  "evidence_sha256": "251b7a8b2ddaf0a7f5b02d9610346f1fdc30c2d412905f8e2822d06a9ced898e",
+  "key_id": "cur",
+  "literal": "ALLOW",
+  "message": "GATEv1|gate.testnet|29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a|ft|token.gate.testnet|vendor.testnet|1000000|55cd62f7f45dce42d37072c46dedc5ffbf761632fc8d0f04837adb65121bd1c5|1700000000000|1700000600000|a162e7908e4da3f8adacdee750c2213d|251b7a8b2ddaf0a7f5b02d9610346f1fdc30c2d412905f8e2822d06a9ced898e|cur|ALLOW",
+  "digest_sha256": "9af2ac3f0eb201ba13ae3f8b1eb3c87f3ce768fdfc8ae1a045ed6033c549d006",
+  "verifier_pub_hex": "1f2420924a74739ba244ab012966945ee69bdbfe8549e03976e2046d1883fa09",
+  "signature_hex": "6aa257acce485fbfa8c1b6d3d6c4aa7222b03f639a06d3bc212b29be91bb337b0e3caef5c67f4fc157c2f3c4eb243d7dbd0042ab13437ffce93d9d5b4ddc9401",
+  "expect_valid": true,
+  "expect_contract": "REFUSED:ttl_too_long",
+  "note": "As 04 with a ttl of 600000 ms, above the default max_ttl_ms of 300000. Agent TEST agent 1 unless stated; contract block timestamp 1700000100000 ms."
+}

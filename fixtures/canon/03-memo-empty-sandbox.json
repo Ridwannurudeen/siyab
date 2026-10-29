@@ -1,0 +1,23 @@
+{
+  "name": "03-memo-empty-sandbox",
+  "gate_account_id": "gate.test.near",
+  "agent_pk_hex": "29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a",
+  "kind": "ft",
+  "token_id": "token.gate.test.near",
+  "receiver_id": "vendor.test.near",
+  "amount": "1000000",
+  "memo": "",
+  "issued_ms": 4102444500000,
+  "expires_ms": 4102444800000,
+  "verdict_id": "71ba8957816204255d83949dc2830bcc",
+  "evidence_sha256": "86d85b346e0cf8aeac727d68d2e56e08931b19b3d6c484d917dc84e37a659c54",
+  "key_id": "cur",
+  "literal": "ALLOW",
+  "message": "GATEv1|gate.test.near|29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a|ft|token.gate.test.near|vendor.test.near|1000000|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855|4102444500000|4102444800000|71ba8957816204255d83949dc2830bcc|86d85b346e0cf8aeac727d68d2e56e08931b19b3d6c484d917dc84e37a659c54|cur|ALLOW",
+  "digest_sha256": "69d0584e444008df00cbcc76833639e64bdb164f29ce8228a6ac4d983184cb60",
+  "verifier_pub_hex": "1f2420924a74739ba244ab012966945ee69bdbfe8549e03976e2046d1883fa09",
+  "signature_hex": "f29fa9aa169db1e7c53d2a5caf516eb91f3673e4f419d22528a1c981c0fdfd336071f94a1a95a18b0d6455fac6a0336686a88d1e0c9180d017f0e4ab4eb6c802",
+  "expect_valid": true,
+  "expect_contract": "OK",
+  "note": "As 01 with the empty memo, which is hashed like any other memo. Agent TEST agent 1 unless stated. Sandbox root account id test.near: UNVERIFIED until docs/SPIKES.md S1 records the measured id; regenerate with python -m gate canon-vectors --write fixtures/canon --gate-root <id>."
+}

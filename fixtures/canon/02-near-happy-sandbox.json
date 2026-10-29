@@ -1,0 +1,23 @@
+{
+  "name": "02-near-happy-sandbox",
+  "gate_account_id": "gate.test.near",
+  "agent_pk_hex": "29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a",
+  "kind": "near",
+  "token_id": null,
+  "receiver_id": "vendor.test.near",
+  "amount": "1000000000000000000000000",
+  "memo": null,
+  "issued_ms": 4102444500000,
+  "expires_ms": 4102444800000,
+  "verdict_id": "5ce784f1bb161031d492f218057f2d95",
+  "evidence_sha256": "e7b237f619f57c6fff6039ec3daea0a4cdfa5078240cf9e6200958102a4c99fa",
+  "key_id": "cur",
+  "literal": "ALLOW",
+  "message": "GATEv1|gate.test.near|29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a|near|-|vendor.test.near|1000000000000000000000000|-|4102444500000|4102444800000|5ce784f1bb161031d492f218057f2d95|e7b237f619f57c6fff6039ec3daea0a4cdfa5078240cf9e6200958102a4c99fa|cur|ALLOW",
+  "digest_sha256": "a63be36131e83631a0e93e29af57410a27410b60a3262aa53cdf18b052abf747",
+  "verifier_pub_hex": "1f2420924a74739ba244ab012966945ee69bdbfe8549e03976e2046d1883fa09",
+  "signature_hex": "864d35bc4bedc79ea950dcab2629cc5466dedd43c1a766d8d2526c5c6681c697b6cac9e4686f11799b97e6ee3791452484e1ee1351c76307e08ea71111e22807",
+  "expect_valid": true,
+  "expect_contract": "OK",
+  "note": "Native NEAR payment of 1 NEAR to the allowlisted vendor, no token and no memo; timestamps as 01. Agent TEST agent 1 unless stated. Sandbox root account id test.near: UNVERIFIED until docs/SPIKES.md S1 records the measured id; regenerate with python -m gate canon-vectors --write fixtures/canon --gate-root <id>."
+}

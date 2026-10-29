@@ -1,0 +1,23 @@
+{
+  "name": "01-ft-happy-sandbox",
+  "gate_account_id": "gate.test.near",
+  "agent_pk_hex": "29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a",
+  "kind": "ft",
+  "token_id": "token.gate.test.near",
+  "receiver_id": "vendor.test.near",
+  "amount": "1000000",
+  "memo": "invoice 1",
+  "issued_ms": 4102444500000,
+  "expires_ms": 4102444800000,
+  "verdict_id": "cef5851b126ee2cb076465b007e4a1f4",
+  "evidence_sha256": "8963b926449c4177a65cec04ae97181e24f0676d043c9ac387be7009c5ca7f63",
+  "key_id": "cur",
+  "literal": "ALLOW",
+  "message": "GATEv1|gate.test.near|29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a|ft|token.gate.test.near|vendor.test.near|1000000|55cd62f7f45dce42d37072c46dedc5ffbf761632fc8d0f04837adb65121bd1c5|4102444500000|4102444800000|cef5851b126ee2cb076465b007e4a1f4|8963b926449c4177a65cec04ae97181e24f0676d043c9ac387be7009c5ca7f63|cur|ALLOW",
+  "digest_sha256": "7f030f07eee7b3cf7ff608d99ed57f8122a3cb0bc6c8c81efb3bbb256d77cc54",
+  "verifier_pub_hex": "1f2420924a74739ba244ab012966945ee69bdbfe8549e03976e2046d1883fa09",
+  "signature_hex": "7401b0aad2dc93da1a1c4a869d744f93f87df5cf528e08e63a06da99f1af33576ea6b898bc738e7b10677cc595ef6545638ea351e8f32ec8b161e219c2ebdc04",
+  "expect_valid": true,
+  "expect_contract": "OK",
+  "note": "FT payment to the allowlisted vendor. Agent TEST agent 1 unless stated. Sandbox root account id test.near: UNVERIFIED until docs/SPIKES.md S1 records the measured id; regenerate with python -m gate canon-vectors --write fixtures/canon --gate-root <id>."
+}

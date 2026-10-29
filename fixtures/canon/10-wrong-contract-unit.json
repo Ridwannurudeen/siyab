@@ -1,0 +1,23 @@
+{
+  "name": "10-wrong-contract-unit",
+  "gate_account_id": "other.testnet",
+  "agent_pk_hex": "29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a",
+  "kind": "ft",
+  "token_id": "token.gate.testnet",
+  "receiver_id": "vendor.testnet",
+  "amount": "1000000",
+  "memo": "invoice 1",
+  "issued_ms": 1700000000000,
+  "expires_ms": 1700000300000,
+  "verdict_id": "fee0e188916bb0bc0b20e842409fbfba",
+  "evidence_sha256": "3bd1eab94c49fd3f342d08dd8753fb49c2bb19f28a1de00d96a67c7a8a90052d",
+  "key_id": "cur",
+  "literal": "ALLOW",
+  "message": "GATEv1|other.testnet|29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a|ft|token.gate.testnet|vendor.testnet|1000000|55cd62f7f45dce42d37072c46dedc5ffbf761632fc8d0f04837adb65121bd1c5|1700000000000|1700000300000|fee0e188916bb0bc0b20e842409fbfba|3bd1eab94c49fd3f342d08dd8753fb49c2bb19f28a1de00d96a67c7a8a90052d|cur|ALLOW",
+  "digest_sha256": "b233157f9bcedb57ad45d2b0e703e84478747a89ce81300d57f3ddc03721fc7c",
+  "verifier_pub_hex": "1f2420924a74739ba244ab012966945ee69bdbfe8549e03976e2046d1883fa09",
+  "signature_hex": "e7607c22ae18a9ce41d0eb2af878d23fecee2a26f1fc08a6c17b2eddfbbdc2781f97581e764a07f9326e05d3b247b9bb785846f098d693b294ae0a4a3e199007",
+  "expect_valid": true,
+  "expect_contract": "REFUSED:bad_signature",
+  "note": "As 04 signed for gate other.testnet; refused as bad_signature when submitted to gate.testnet, because the contract rebuilds the message with its own account id. Agent TEST agent 1 unless stated; contract block timestamp 1700000100000 ms."
+}

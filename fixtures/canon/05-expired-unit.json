@@ -1,0 +1,23 @@
+{
+  "name": "05-expired-unit",
+  "gate_account_id": "gate.testnet",
+  "agent_pk_hex": "29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a",
+  "kind": "ft",
+  "token_id": "token.gate.testnet",
+  "receiver_id": "vendor.testnet",
+  "amount": "1000000",
+  "memo": "invoice 1",
+  "issued_ms": 1600000000000,
+  "expires_ms": 1600000300000,
+  "verdict_id": "20d658d14fc44fa07a6ace20e9d9d428",
+  "evidence_sha256": "156ccd972393c202c4b7d7b30e129e710805ad67c2e66bab991ae43fae25e950",
+  "key_id": "cur",
+  "literal": "ALLOW",
+  "message": "GATEv1|gate.testnet|29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a|ft|token.gate.testnet|vendor.testnet|1000000|55cd62f7f45dce42d37072c46dedc5ffbf761632fc8d0f04837adb65121bd1c5|1600000000000|1600000300000|20d658d14fc44fa07a6ace20e9d9d428|156ccd972393c202c4b7d7b30e129e710805ad67c2e66bab991ae43fae25e950|cur|ALLOW",
+  "digest_sha256": "4d3dbeca35a9cfe6e9cbf641a250c3b7dccb1ed7a45597962f458da61d574fa9",
+  "verifier_pub_hex": "1f2420924a74739ba244ab012966945ee69bdbfe8549e03976e2046d1883fa09",
+  "signature_hex": "077864df70f6c1ad83c501325f540f333a5ab61fd4bb78257fc226fefe527138d5aeabd7eee89bb7db4f2b811e7c578ae00662a31430cc0ef3a1f1f74620880b",
+  "expect_valid": true,
+  "expect_contract": "REFUSED:expired",
+  "note": "As 04 with an expiry before the block timestamp. Agent TEST agent 1 unless stated; contract block timestamp 1700000100000 ms."
+}
