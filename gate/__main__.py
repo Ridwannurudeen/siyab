@@ -12,6 +12,7 @@ from gate import (
     ed25519,
     incident,
     intents,
+    registry,
     rpc,
     signer,
     verdict,
@@ -119,6 +120,18 @@ def _verify(args):
     return 0 if ok else 1
 
 
+def _registry_args(args):
+    try:
+        batch, notes = registry.record_batch(args.verdicts, args.evidence_dir, args.observed_block)
+    except registry.RegistryError as error:
+        print(f"refused: {error}", file=sys.stderr)
+        return 2
+    for note in notes:
+        print(note, file=sys.stderr)
+    print(json.dumps(batch, indent=2))
+    return 0
+
+
 def _wasm_file(handler):
     """A wasm command: read the file, run handler on its bytes, exit 1 on a file that does not read or parse."""
     def run(args):
@@ -203,6 +216,15 @@ def main(argv=None):
     names = commands.add_parser("wasm-exports", help="the exported function names of a wasm file, sorted")
     names.add_argument("wasm", help="the wasm file, such as res/gate.wasm")
     names.set_defaults(handler=_wasm_file(wasm.exports))
+
+    batch = commands.add_parser("registry-args",
+                                help="print the registry record_batch arguments for verdict files")
+    batch.add_argument("verdicts", nargs="+", metavar="verdict.json", help="files python -m gate verdict wrote")
+    batch.add_argument("--observed-block", type=int, metavar="N",
+                       help="the block height to record instead of the evidence observed.block_height")
+    batch.add_argument("--evidence-dir", default=verdict.EVIDENCE_DIR,
+                       help="where the evidence documents are (default fixtures/evidence)")
+    batch.set_defaults(handler=_registry_args)
 
     args = parser.parse_args(argv)
     return args.handler(args)
