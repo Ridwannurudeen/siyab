@@ -63,7 +63,7 @@ pub fn verify(
     if verdict.literal != "ALLOW" {
         return Err("not_allow");
     }
-    if verdict.expires_ms < now_ms || verdict.expires_ms < verdict.issued_ms {
+    if verdict.expires_ms <= now_ms || verdict.expires_ms < verdict.issued_ms {
         return Err("expired");
     }
     if verdict.expires_ms.saturating_sub(verdict.issued_ms) > max_ttl_ms {
@@ -164,5 +164,56 @@ mod tests {
                 vector["name"].as_str().unwrap()
             );
         }
+    }
+
+    #[test]
+    fn expiry_at_current_time_is_refused() {
+        let vector: Value = serde_json::from_slice(
+            &fs::read(
+                PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                    .join("../../fixtures/canon/04-ft-happy-unit.json"),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let gate: AccountId = vector["gate_account_id"].as_str().unwrap().parse().unwrap();
+        let agent_pk: [u8; 32] = decode(vector["agent_pk_hex"].as_str().unwrap())
+            .try_into()
+            .unwrap();
+        let request = TransferRequest {
+            kind: vector["kind"].as_str().unwrap().to_owned(),
+            token_id: vector["token_id"]
+                .as_str()
+                .map(|value| value.parse().unwrap()),
+            receiver_id: vector["receiver_id"].as_str().unwrap().parse().unwrap(),
+            amount: U128(vector["amount"].as_str().unwrap().parse().unwrap()),
+            memo: vector["memo"].as_str().map(str::to_owned),
+        };
+        let verdict = Verdict {
+            literal: vector["literal"].as_str().unwrap().to_owned(),
+            issued_ms: vector["issued_ms"].as_u64().unwrap(),
+            expires_ms: vector["expires_ms"].as_u64().unwrap(),
+            verdict_id: vector["verdict_id"].as_str().unwrap().to_owned(),
+            evidence_hash: vector["evidence_sha256"].as_str().unwrap().to_owned(),
+            key_id: vector["key_id"].as_str().unwrap().to_owned(),
+            signature: vector["signature_hex"].as_str().unwrap().to_owned(),
+        };
+        let key: [u8; 32] = decode(vector["verifier_pub_hex"].as_str().unwrap())
+            .try_into()
+            .unwrap();
+
+        assert_eq!(
+            verify(
+                &gate,
+                &agent_pk,
+                &request,
+                &verdict,
+                &key,
+                None,
+                verdict.expires_ms,
+                300_000,
+            ),
+            Err("expired")
+        );
     }
 }

@@ -1,6 +1,6 @@
 use crate::{
     events,
-    types::{Agent, AgentView, Asset, AssetCap, AssetCapInput},
+    types::{Agent, AgentView, Asset, AssetCap, AssetCapInput, PendingView},
     Gate, GateExt,
 };
 use near_sdk::{
@@ -15,18 +15,16 @@ fn hex_encode(bytes: &[u8]) -> String {
 #[near]
 impl Gate {
     fn assert_owner(&self) {
-        assert_eq!(
-            env::predecessor_account_id(),
-            self.owner_id,
+        near_sdk::require!(
+            env::predecessor_account_id() == self.owner_id,
             "REFUSED:not_owner"
         );
         assert_one_yocto();
     }
 
     fn key_bytes(public_key: &PublicKey) -> [u8; 32] {
-        assert_eq!(
-            public_key.curve_type(),
-            CurveType::ED25519,
+        near_sdk::require!(
+            public_key.curve_type() == CurveType::ED25519,
             "REFUSED:bad_request"
         );
         let mut bytes = [0; 32];
@@ -44,7 +42,7 @@ impl Gate {
         allowance_yocto: U128,
     ) -> Promise {
         self.assert_owner();
-        assert!(
+        near_sdk::require!(
             !self.agents.contains_key(&public_key),
             "REFUSED:agent_exists"
         );
@@ -66,7 +64,8 @@ impl Gate {
         );
         Promise::new(env::current_account_id()).add_access_key_allowance(
             public_key,
-            Allowance::limited(NearToken::from_yoctonear(allowance_yocto.0)).expect("non zero"),
+            Allowance::limited(NearToken::from_yoctonear(allowance_yocto.0))
+                .unwrap_or_else(|| env::panic_str("REFUSED:zero_allowance")),
             env::current_account_id(),
             "request_transfer",
         )
@@ -90,7 +89,7 @@ impl Gate {
             .agents
             .get(&agent_pk)
             .cloned()
-            .expect("REFUSED:unknown_agent");
+            .unwrap_or_else(|| env::panic_str("REFUSED:unknown_agent"));
         agent.allowlist = accounts;
         self.agents.insert(agent_pk, agent);
     }
@@ -113,7 +112,7 @@ impl Gate {
             .agents
             .get(&agent_pk)
             .cloned()
-            .expect("REFUSED:unknown_agent");
+            .unwrap_or_else(|| env::panic_str("REFUSED:unknown_agent"));
         agent.enabled = enabled;
         self.agents.insert(agent_pk, agent);
     }
@@ -130,7 +129,7 @@ impl Gate {
             .agents
             .get(&agent_pk)
             .cloned()
-            .expect("REFUSED:unknown_agent");
+            .unwrap_or_else(|| env::panic_str("REFUSED:unknown_agent"));
         agent.caps = caps.into_iter().map(AssetCap::from).collect();
         agent.unknown_caps =
             unknown_caps.map(|caps| caps.into_iter().map(AssetCap::from).collect());
@@ -160,7 +159,7 @@ impl Gate {
     #[payable]
     pub fn set_max_ttl(&mut self, max_ttl_ms: u64) {
         self.assert_owner();
-        assert!(max_ttl_ms > 0, "REFUSED:bad_request");
+        near_sdk::require!(max_ttl_ms > 0, "REFUSED:bad_request");
         self.max_ttl_ms = max_ttl_ms;
     }
 
@@ -205,7 +204,10 @@ impl Gate {
         self.used_verdicts.contains_key(&verdict_id)
     }
 
-    pub fn get_pending(&self, request_id: u64) -> Option<crate::types::Pending> {
-        self.pending.get(&request_id).cloned()
+    pub fn get_pending(&self, request_id: u64) -> Option<PendingView> {
+        self.pending
+            .get(&request_id)
+            .cloned()
+            .map(PendingView::from)
     }
 }

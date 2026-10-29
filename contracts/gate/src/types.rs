@@ -57,6 +57,26 @@ pub struct Pending {
     pub agent_pk: PublicKey,
     pub asset: Asset,
     pub amount: u128,
+    pub unknown_payee: bool,
+}
+
+#[near(serializers = [json])]
+pub struct PendingView {
+    pub agent_pk: PublicKey,
+    pub asset: Asset,
+    pub amount: U128,
+    pub unknown_payee: bool,
+}
+
+impl From<Pending> for PendingView {
+    fn from(pending: Pending) -> Self {
+        Self {
+            agent_pk: pending.agent_pk,
+            asset: pending.asset,
+            amount: U128(pending.amount),
+            unknown_payee: pending.unknown_payee,
+        }
+    }
 }
 
 #[near(serializers = [json, borsh])]
