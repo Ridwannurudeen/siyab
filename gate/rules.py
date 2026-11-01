@@ -381,7 +381,8 @@ def _memo_check(memo, injection_scanner):
 def _archival_age(archival, receiver, now_ms, min_age_days, nearblocks_why):
     """(the account_age check, whether the receiver is younger than min_age_days) from an archival
     node: the receiver is read at a block at most CUTOFF_TOLERANCE_MS before the cutoff, now_ms less
-    min_age_days. A lookup that ends without such a block gives an unknown check and None."""
+    min_age_days. A lookup that ends without an answered read at such a block gives an unknown check
+    and None."""
     prefix = f"no creation time from NearBlocks ({nearblocks_why})"
     cutoff_ms = now_ms - min_age_days * DAY_MS
     head = archival.final_block()["header"]

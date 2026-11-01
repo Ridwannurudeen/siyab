@@ -516,8 +516,23 @@ class ArchivalAgeTest(RulesCase):
         with patch:
             judgement = self.judge(request("stranger.testnet"), archival=self.archival)
         self.assertEqual(calls, ["CutoffBlock"])
-        self.assertEqual(self.status(judgement, "account_age"), "unknown")
+        self.assertEqual(self.detail(judgement, "account_age"),
+                         "no creation time from NearBlocks (keys empty); archival could not run: HTTP 503")
         self.assertEqual(judgement.verdict, "UNKNOWN")
+
+    def test_a_missing_trie_value_then_absent_is_deny_as_young(self):
+        self.unaged()
+        self.fx.block_at(GUESS_HEIGHT, CUTOFF_NS - 10 * MINUTE_NS)
+        self.fx.block_at(GUESS_HEIGHT - 1, CUTOFF_NS - 10 * MINUTE_NS, "PreviousBlock")
+        self.fx.missing_at("stranger.testnet", "PreviousBlock")
+        patch, calls = self.flaky_reads(1)
+        with patch:
+            judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+        self.assertEqual(calls, ["CutoffBlock", "PreviousBlock"])
+        self.assertEqual(self.detail(judgement, "account_age"),
+                         "no creation time from NearBlocks (keys empty); did not exist at block 992002 "
+                         "(2026-10-22T11:50:00Z), younger than 7 days")
+        self.assertEqual(judgement.verdict, "DENY")
 
     def test_a_head_block_older_than_the_cutoff_reads_unknown(self):
         self.unaged()
