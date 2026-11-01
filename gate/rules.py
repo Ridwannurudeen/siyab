@@ -401,6 +401,9 @@ def _archival_age(archival, receiver, now_ms, min_age_days, nearblocks_why):
         block_ms = header["timestamp"] // 10**6
         if cutoff_ms - CUTOFF_TOLERANCE_MS <= block_ms <= cutoff_ms:
             break
+        if block_ms >= head_ms:
+            return evidence.check("account_age", "unknown", f"{prefix}; archival could not run: archival block "
+                                  "times do not increase", _source(archival)), None
         rate = (head_ms - block_ms) / (head["height"] - height)
         height += math.floor((cutoff_ms - block_ms) / rate)
     else:

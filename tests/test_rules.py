@@ -477,6 +477,16 @@ class ArchivalAgeTest(RulesCase):
                          "older than the cutoff")
         self.assertEqual(judgement.verdict, "UNKNOWN")
 
+    def test_block_times_that_do_not_increase_read_unknown(self):
+        self.unaged()
+        self.fx.block_at(GUESS_HEIGHT, HEAD_NS)
+        judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+        self.assertEqual(self.detail(judgement, "account_age"),
+                         "no creation time from NearBlocks (keys empty); archival could not run: archival "
+                         "block times do not increase")
+        self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
+        self.assertEqual(judgement.verdict, "UNKNOWN")
+
     def test_a_garbage_collected_block_reads_unknown(self):
         self.unaged()
         self.fx.block_at(GUESS_HEIGHT, CUTOFF_NS - 10 * MINUTE_NS)

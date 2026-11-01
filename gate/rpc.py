@@ -226,12 +226,20 @@ class Client:
         result = self.call("block", {"finality": "final"})
         if not isinstance(result, dict) or not isinstance(result.get("header"), dict):
             raise MalformedResponse("the block result has no header")
+        header = result["header"]
+        if not (isinstance(header.get("height"), int) and isinstance(header.get("timestamp"), int)
+                and isinstance(header.get("hash"), str)):
+            raise MalformedResponse("the block header has no int height, int timestamp or str hash")
         return result
 
     def block_at(self, height):
         result = self.call("block", {"block_id": height})
         if not isinstance(result, dict) or not isinstance(result.get("header"), dict):
             raise MalformedResponse("the block result has no header")
+        header = result["header"]
+        if not (isinstance(header.get("height"), int) and isinstance(header.get("timestamp"), int)
+                and isinstance(header.get("hash"), str)):
+            raise MalformedResponse("the block header has no int height, int timestamp or str hash")
         return result
 
     def _absolute(self, url):

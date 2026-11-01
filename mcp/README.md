@@ -21,9 +21,9 @@ Each answer is `{"content": [{"type": "text", "text": <JSON>}], "isError": false
 ## Environment
 
 - `GATE_FIXTURES_MODE`: `replay` (default), `record` or `off`.
-- `GATE_ACCOUNT_ID`: the Gate the payment verdict is bound to; default `gate.near`. A `.testnet` id selects the testnet RPC and NearBlocks endpoints.
+- `GATE_ACCOUNT_ID`: the Gate the payment verdict is bound to; default `gate.near`. A `.testnet` id selects the testnet RPC, NearBlocks and archival RPC endpoints.
 - `GATE_POLICY`: the agent policy as JSON in the `get_agent` shape; default `{"allowlist": [], "caps": []}`, so every receiver also gets the checks for a payee off the allowlist.
-- `NEAR_RPC_URL`, `NEAR_MAINNET_RPC_URL`, `NEARBLOCKS_API_URL`: endpoint overrides.
+- `NEAR_RPC_URL`, `NEAR_MAINNET_RPC_URL`, `NEARBLOCKS_API_URL`, `NEAR_ARCHIVAL_RPC_URL`: endpoint overrides.
 - `SHIELDBOT_API_URL`: the ShieldBot API for the memo and firewall checks; empty means off.
 
 The payment tool writes its evidence documents into a temporary directory that the server names on stderr when it starts.
