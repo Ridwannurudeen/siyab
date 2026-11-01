@@ -400,6 +400,20 @@ def _archival_age(archival, receiver, now_ms, min_age_days, nearblocks_why):
             continue
         block_ms = header["timestamp"] // 10**6
         if cutoff_ms - CUTOFF_TOLERANCE_MS <= block_ms <= cutoff_ms:
+            try:
+                archival.view_account_at(receiver, header["hash"])
+                exists = True
+            except RpcError as error:
+                if error.cause != "UNKNOWN_ACCOUNT":
+                    raise
+                exists = False
+            except HttpError as error:
+                # An archival node answers HTTP 500 MissingTrieValue for some accounts at some blocks; the
+                # block before usually answers (testnet, 1 Nov).
+                if error.status != 500:
+                    raise
+                height -= 1
+                continue
             break
         if block_ms >= head_ms:
             return evidence.check("account_age", "unknown", f"{prefix}; archival could not run: archival block "
@@ -408,14 +422,10 @@ def _archival_age(archival, receiver, now_ms, min_age_days, nearblocks_why):
         height += math.floor((cutoff_ms - block_ms) / rate)
     else:
         return evidence.check("account_age", "unknown", f"{prefix}; archival could not run: no archival block "
-                              f"within {_age_text(CUTOFF_TOLERANCE_MS)} before the cutoff after "
+                              f"within {_age_text(CUTOFF_TOLERANCE_MS)} before the cutoff answered after "
                               f"{MAX_BLOCK_LOOKUPS} lookups", _source(archival)), None
     block = f"block {height} ({datetime.fromtimestamp(block_ms / 1000, UTC).strftime('%Y-%m-%dT%H:%M:%SZ')})"
-    try:
-        archival.view_account_at(receiver, header["hash"])
-    except RpcError as error:
-        if error.cause != "UNKNOWN_ACCOUNT":
-            raise
+    if not exists:
         return evidence.check("account_age", "signal", f"{prefix}; did not exist at {block}, younger than "
                               f"{min_age_days} days", _source(archival)), True
     return evidence.check("account_age", "pass", f"{prefix}; existed at {block}, at least {min_age_days} d old",

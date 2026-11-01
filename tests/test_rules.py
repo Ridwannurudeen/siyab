@@ -464,8 +464,59 @@ class ArchivalAgeTest(RulesCase):
         judgement = self.judge(request("stranger.testnet"), archival=self.archival)
         self.assertEqual(self.detail(judgement, "account_age"),
                          "no creation time from NearBlocks (keys empty); archival could not run: no archival "
-                         "block within 1 h before the cutoff after 6 lookups")
+                         "block within 1 h before the cutoff answered after 6 lookups")
         self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
+        self.assertEqual(judgement.verdict, "UNKNOWN")
+
+    def flaky_reads(self, failures, status=500):
+        """view_account_at that answers HTTP status for the first failures calls, then reads the fixture."""
+        real, calls = self.archival.view_account_at, []
+
+        def read(account_id, block_hash):
+            calls.append(block_hash)
+            if len(calls) <= failures:
+                raise rpc.HttpError(status, ARCHIVAL_URL)
+            return real(account_id, block_hash)
+        return mock.patch.object(self.archival, "view_account_at", side_effect=read), calls
+
+    def test_a_missing_trie_value_steps_down_one_height(self):
+        # Archival nodes answer HTTP 500 MissingTrieValue for some accounts at some blocks (testnet, 1 Nov);
+        # the block before answers.
+        self.unaged()
+        self.fx.block_at(GUESS_HEIGHT, CUTOFF_NS - 10 * MINUTE_NS)
+        self.fx.block_at(GUESS_HEIGHT - 1, CUTOFF_NS - 10 * MINUTE_NS, "PreviousBlock")
+        self.fx.account_at("stranger.testnet", "PreviousBlock")
+        patch, calls = self.flaky_reads(1)
+        with patch:
+            judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+        self.assertEqual(calls, ["CutoffBlock", "PreviousBlock"])
+        self.assertEqual(self.detail(judgement, "account_age"),
+                         "no creation time from NearBlocks (keys empty); existed at block 992002 "
+                         "(2026-10-22T11:50:00Z), at least 7 d old")
+        self.assertEqual(judgement.verdict, "ALLOW")
+
+    def test_reads_that_keep_failing_read_unknown(self):
+        self.unaged()
+        for height in range(GUESS_HEIGHT - 5, GUESS_HEIGHT + 1):
+            self.fx.block_at(height, CUTOFF_NS - 10 * MINUTE_NS)
+        patch, calls = self.flaky_reads(6)
+        with patch:
+            judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+        self.assertEqual(len(calls), 6)
+        self.assertEqual(self.detail(judgement, "account_age"),
+                         "no creation time from NearBlocks (keys empty); archival could not run: no archival "
+                         "block within 1 h before the cutoff answered after 6 lookups")
+        self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
+        self.assertEqual(judgement.verdict, "UNKNOWN")
+
+    def test_a_read_failing_other_than_500_is_unknown_at_once(self):
+        self.unaged()
+        self.fx.block_at(GUESS_HEIGHT, CUTOFF_NS - 10 * MINUTE_NS)
+        patch, calls = self.flaky_reads(1, status=503)
+        with patch:
+            judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+        self.assertEqual(calls, ["CutoffBlock"])
+        self.assertEqual(self.status(judgement, "account_age"), "unknown")
         self.assertEqual(judgement.verdict, "UNKNOWN")
 
     def test_a_head_block_older_than_the_cutoff_reads_unknown(self):
