@@ -150,4 +150,10 @@ Notes from the help output:
 
 ## S8: NearBlocks testnet keys endpoint and account age
 
-Aged payee `lindenvale.testnet` created 29 Oct. The two NearBlocks calls about 30 s after creation returned `{"keys":[]}` and `{"txns":[]}`: indexer lag, not a result. Rerun on 2 Nov; the account age decision waits for that reply.
+Aged payee `lindenvale.testnet` created 29 Oct. The two NearBlocks calls about 30 s after creation returned `{"keys":[]}` and `{"txns":[]}`.
+
+Result, 29 Oct (later): not lag. The NearBlocks testnet indexer stopped at block 270419979 (27 Sep 2026, 03:10 UTC; the newest indexed transaction of `wrap.testnet`), while the chain head was past 275336143. Every account created after 27 Sep reads `{"keys":[]}`, so `account_age` and `dust_funded` were Unknown for it. NearBlocks mainnet was current (newest `wrap.near` transaction 29 Oct, 20:20 UTC).
+
+Decision: account age stays in the rules. When NearBlocks gives no creation time, the receiver is read on an archival node (`NEAR_ARCHIVAL_RPC_URL`, default `https://archival-rpc.testnet.fastnear.com` or the mainnet equivalent) at a block at most 1 h before the cutoff (now less 7 days): absent there is a signal, present is a pass. An unread creation deposit then passes for an aged receiver with no lookalike, because a deposit is a signal only with lookalike or account_age. Archival errors are Unknown, never a pass.
+
+Update, 1 Nov: both testnet archival providers answer `view_account` at some (account, block) pairs with HTTP 500 `MissingTrieValue`; the block before answers. The lookup steps down one block on an HTTP 500, inside the six lookup budget. Before that change 9 of 20 live verdicts for the aged payee read Unknown; after it 10 of 10 read DENY (younger than 7 days).

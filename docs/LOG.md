@@ -3,3 +3,5 @@
 29 Oct (handoff): lane A N1 and lane B N4 started in their worktrees; n2 worktree removed.
 29 Oct (later): lane A N1 and N3 and lane B N4 (items 2 to 6), N5 (items 1 to 6) and N6 merged after review; the dust and sibling lookalike rules changed by ruling; commit 9c57b18 is red on its own and green at cd26787; testnet items wait for the accounts.
 29 Oct (evening): Docker in WSL; testnet accounts created; S7 PASS; aged payee created; gate, registry and token deployed by setup_testnet.sh (storage deposit corrected to 0.00129 NEAR); code hashes match the main build.
+29 Oct (night): first payment; attack run, nine refused; py-near transport fixed (one account per send, rejections keep their reason); NearBlocks testnet found frozen at 27 Sep.
+1 Nov: archival age fallback and its HTTP 500 step down merged; second payment; three registry records verified; vendor latency p50 1843 ms over 20 runs.
