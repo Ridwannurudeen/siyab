@@ -12,7 +12,9 @@ on its own.
 
 import dataclasses
 import json
+import math
 import re
+from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 
 from gate import canon, evidence
@@ -30,6 +32,11 @@ MIN_AGE_DAYS = 7
 DAY_MS = 24 * 60 * 60 * 1000
 YOCTO_PER_NEAR = 10**24
 DUST_YOCTO = 10**23  # 0.1 NEAR
+# The archival age lookup: the block time it assumes, how far before the cutoff an accepted block
+# may lie, and how many blocks it reads before it gives up.
+AVG_BLOCK_MS = 600
+CUTOFF_TOLERANCE_MS = 3_600_000
+MAX_BLOCK_LOOKUPS = 6
 # Confusable normalisation, applied in this order to both names before any comparison.
 CONFUSABLES = (("rn", "m"), ("vv", "w"), ("0", "o"), ("1", "l"), ("i", "l"))
 NETWORK_SUFFIXES = (".near", ".testnet")
@@ -371,28 +378,87 @@ def _memo_check(memo, injection_scanner):
                           _source(injection_scanner))
 
 
-def _tier2(request, policy, store, account, account_source, rpc, nearblocks, now_ms, min_age_days):
+def _archival_age(archival, receiver, now_ms, min_age_days, nearblocks_why):
+    """(the account_age check, whether the receiver is younger than min_age_days) from an archival
+    node: the receiver is read at a block at most CUTOFF_TOLERANCE_MS before the cutoff, now_ms less
+    min_age_days. A lookup that ends without such a block gives an unknown check and None."""
+    prefix = f"no creation time from NearBlocks ({nearblocks_why})"
+    cutoff_ms = now_ms - min_age_days * DAY_MS
+    head = archival.final_block()["header"]
+    head_ms = head["timestamp"] // 10**6
+    if head_ms <= cutoff_ms:
+        return evidence.check("account_age", "unknown", f"{prefix}; archival could not run: head block older "
+                              "than the cutoff", _source(archival)), None
+    height = head["height"] - math.ceil((head_ms - cutoff_ms) / AVG_BLOCK_MS)
+    for _ in range(MAX_BLOCK_LOOKUPS):
+        try:
+            header = archival.block_at(height)["header"]
+        except RpcError as error:
+            if error.cause != "UNKNOWN_BLOCK":
+                raise
+            height -= 1
+            continue
+        block_ms = header["timestamp"] // 10**6
+        if cutoff_ms - CUTOFF_TOLERANCE_MS <= block_ms <= cutoff_ms:
+            break
+        if block_ms >= head_ms:
+            return evidence.check("account_age", "unknown", f"{prefix}; archival could not run: archival block "
+                                  "times do not increase", _source(archival)), None
+        rate = (head_ms - block_ms) / (head["height"] - height)
+        height += math.floor((cutoff_ms - block_ms) / rate)
+    else:
+        return evidence.check("account_age", "unknown", f"{prefix}; archival could not run: no archival block "
+                              f"within {_age_text(CUTOFF_TOLERANCE_MS)} before the cutoff after "
+                              f"{MAX_BLOCK_LOOKUPS} lookups", _source(archival)), None
+    block = f"block {height} ({datetime.fromtimestamp(block_ms / 1000, UTC).strftime('%Y-%m-%dT%H:%M:%SZ')})"
+    try:
+        archival.view_account_at(receiver, header["hash"])
+    except RpcError as error:
+        if error.cause != "UNKNOWN_ACCOUNT":
+            raise
+        return evidence.check("account_age", "signal", f"{prefix}; did not exist at {block}, younger than "
+                              f"{min_age_days} days", _source(archival)), True
+    return evidence.check("account_age", "pass", f"{prefix}; existed at {block}, at least {min_age_days} d old",
+                          _source(archival)), False
+
+
+def _tier2(request, policy, store, account, account_source, rpc, nearblocks, now_ms, min_age_days, archival):
     """Tier 2 checks; returns (checks, facts for the reasons, matched catalog assertion ids)."""
     receiver = request["receiver_id"]
     checks, facts, matched = [], {}, []
     creation_hash = None
+    # Why NearBlocks gave no creation time, and the archival age's answer when it was asked.
+    nearblocks_why, archival_young = None, None
     try:
-        oldest = _oldest_creation(nearblocks.get(f"/v1/account/{receiver}/keys"))
+        keys = nearblocks.get(f"/v1/account/{receiver}/keys")
+        oldest = _oldest_creation(keys)
         if oldest is None:
-            checks.append(evidence.check("account_age", "unknown", f"no key of {receiver} carries a "
-                                         "creation time", _source(nearblocks)))
+            nearblocks_why = "no key carries a creation time" if keys["keys"] else "keys empty"
+            age_check = evidence.check("account_age", "unknown", f"no key of {receiver} carries a "
+                                       "creation time", _source(nearblocks))
         else:
             created_ns, creation_hash = oldest
             age_ms = now_ms - created_ns // 1_000_000
             facts["age"] = _age_text(age_ms)
             young = age_ms < min_age_days * DAY_MS
-            checks.append(evidence.check("account_age", "signal" if young else "pass",
-                                         f"created {facts['age']} ago"
-                                         + (f", younger than {min_age_days} days" if young else ""),
-                                         _source(nearblocks)))
+            age_check = evidence.check("account_age", "signal" if young else "pass",
+                                       f"created {facts['age']} ago"
+                                       + (f", younger than {min_age_days} days" if young else ""),
+                                       _source(nearblocks))
     except UNAVAILABLE as error:
-        checks.append(evidence.check("account_age", "unknown", f"could not read the account keys: "
-                                     f"{_why(error)}", _source(nearblocks)))
+        nearblocks_why = _why(error)
+        age_check = evidence.check("account_age", "unknown", f"could not read the account keys: "
+                                   f"{_why(error)}", _source(nearblocks))
+    if nearblocks_why is not None and archival is not None and account is not None:
+        try:
+            age_check, archival_young = _archival_age(archival, receiver, now_ms, min_age_days, nearblocks_why)
+        except UNAVAILABLE as error:
+            age_check = evidence.check("account_age", "unknown", f"no creation time from NearBlocks "
+                                       f"({nearblocks_why}); archival could not run: {_why(error)}",
+                                       _source(archival))
+        if archival_young:
+            facts["age"] = f"less than {min_age_days} d"
+    checks.append(age_check)
 
     dust = None
     if creation_hash is None:
@@ -417,6 +483,13 @@ def _tier2(request, policy, store, account, account_source, rpc, nearblocks, now
         lookalike_check = evidence.check("lookalike", "pass", "no allowlisted name contained and no allowlisted "
                                          "or labelled NEAR account within the length scaled distance after "
                                          "confusable normalisation", source)
+
+    # When the archival age passed and nothing is a lookalike, no creation deposit can change the
+    # verdict, so the deposit NearBlocks could not give does not hold it at UNKNOWN.
+    if archival_young is False and not hit:
+        dust_check = evidence.check("dust_funded", "pass", f"creation deposit not read: NearBlocks has no creation "
+                                    f"transaction for {receiver}; a deposit is a signal only with lookalike or "
+                                    "account_age", _local("nearblocks"))
 
     # A dust creation deposit is the ordinary wallet pattern, so it is a signal only together with a
     # lookalike or a young account (DISPOSITION-dust option A).
@@ -493,11 +566,14 @@ def _reasons(verdict, checks, facts, request, tier2):
     return reasons
 
 
-def judge(request, policy, store, rpc, nearblocks, *, now_ms, injection_scanner, min_age_days=MIN_AGE_DAYS):
+def judge(request, policy, store, rpc, nearblocks, *, now_ms, injection_scanner, min_age_days=MIN_AGE_DAYS,
+          archival=None):
     """Judge one TransferRequest for the agent whose policy (allowlist and caps, in the get_agent
     shape) is given; store is the label store, rpc the NEAR JSON-RPC client, nearblocks the
-    NearBlocks client and injection_scanner the ShieldBot API client or None. A receiver that is
-    not a valid account id raises canon.CanonError, a ValueError, before any request."""
+    NearBlocks client, injection_scanner the ShieldBot API client or None and archival the archival
+    JSON-RPC client that dates the receiver when NearBlocks gives no creation time, or None. A
+    receiver that is not a valid account id raises canon.CanonError, a ValueError, before any
+    request."""
     canon.account_id(request["receiver_id"], "receiver_id")
     tier1_checks, account, account_source, labels = _tier1(request, policy, store, rpc, injection_scanner)
     block_height = account.get("block_height") if account else None
@@ -505,7 +581,7 @@ def judge(request, policy, store, rpc, nearblocks, *, now_ms, injection_scanner,
     checks, facts = list(tier1_checks), {}
     if tier2:
         tier2_checks, facts, matched = _tier2(request, policy, store, account, account_source, rpc,
-                                              nearblocks, now_ms, min_age_days)
+                                              nearblocks, now_ms, min_age_days, archival)
         checks += tier2_checks
         labels += [assertion_id for assertion_id in matched if assertion_id not in labels]
     statuses = {check["status"] for check in checks}

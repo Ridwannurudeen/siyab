@@ -210,7 +210,7 @@ class ModeTest(unittest.TestCase):
             self.client("off").call_function("a.near", "missing", {})
 
     def test_final_block(self):
-        body = {"result": {"header": {"height": 7, "timestamp": 1}}}
+        body = {"result": {"header": {"height": 7, "timestamp": 1, "hash": "h"}}}
         with mock.patch("urllib.request.urlopen", return_value=reply(body)) as opened:
             self.assertEqual(self.client("off").final_block()["header"]["height"], 7)
         self.assertEqual(json.loads(opened.call_args.args[0].data)["params"], {"finality": "final"})
@@ -243,6 +243,10 @@ class FailClosedClientTest(unittest.TestCase):
             ("call_function", ("t.near", "m", {}), {"result": {"result": list(b"{bad")}}),
             ("view_access_key_list", ("a.near",), {"result": {"nonce": 1}}),
             ("final_block", (), {"result": {"chunks": []}}),
+            ("final_block", (), {"result": {"header": {"height": 5}}}),
+            ("block_at", (5,), {"result": {"chunks": []}}),
+            ("block_at", (5,), {"result": {"header": {"height": 5}}}),
+            ("view_account_at", ("a.near", "h"), {"result": {"amount": "1"}}),
         ]
         for method, args, body in cases:
             with (self.subTest(method=method, body=body),

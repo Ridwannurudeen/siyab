@@ -90,13 +90,14 @@ def _check_near_payment(arguments, evidence_dir):
         policy = json.loads(os.environ.get("GATE_POLICY") or DEFAULT_POLICY)
     except ValueError as error:
         raise ToolError(f"GATE_POLICY is not JSON: {error}") from error
-    client, nearblocks, scanner = _clients(gate)
+    client, nearblocks, scanner, archival = _clients(gate)
     try:
         result = verdict.request(arguments.get("kind"), arguments.get("token"), arguments.get("receiver"),
                                  arguments.get("amount"), arguments.get("memo"), gate=gate,
                                  agent_pk_hex=ed25519.public_from_seed(ed25519.TEST_AGENT_SEED).hex(),
                                  policy=policy, store=labels.load(), rpc=client, nearblocks=nearblocks,
-                                 signer=signer.TestSigner(), injection_scanner=scanner, evidence_dir=evidence_dir)
+                                 signer=signer.TestSigner(), injection_scanner=scanner, archival=archival,
+                                 evidence_dir=evidence_dir)
     except canon.CanonError as error:
         raise ToolError(f"invalid request: {error}") from error
     return {**result, "gate": gate, "signer": TEST_KEY_NOTE}

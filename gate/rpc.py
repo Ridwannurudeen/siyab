@@ -40,6 +40,8 @@ TIMEOUT_S = 30
 MAX_AGE_S = 24 * 60 * 60
 MAINNET_RPC_URL = "https://free.rpc.fastnear.com"
 TESTNET_RPC_URL = "https://test.rpc.fastnear.com"
+ARCHIVAL_RPC_URL = "https://archival-rpc.mainnet.fastnear.com"
+ARCHIVAL_TESTNET_RPC_URL = "https://archival-rpc.testnet.fastnear.com"
 NEARBLOCKS_URL = "https://api.nearblocks.io"
 NEARBLOCKS_TESTNET_URL = "https://api-testnet.nearblocks.io"
 NEARBLOCKS_HOSTS = ("api.nearblocks.io", "api-testnet.nearblocks.io")
@@ -180,6 +182,13 @@ class Client:
             raise MalformedResponse("the view_account result has no code_hash")
         return result
 
+    def view_account_at(self, account_id, block_hash):
+        result = self.call("query", {"request_type": "view_account", "account_id": account_id,
+                                     "block_id": block_hash})
+        if not isinstance(result, dict) or not isinstance(result.get("code_hash"), str):
+            raise MalformedResponse("the view_account result has no code_hash")
+        return result
+
     def code_hash(self, account_id):
         """The account's code hash in base58; EMPTY_CODE_HASH when it has no contract."""
         return self.view_account(account_id)["code_hash"]
@@ -217,6 +226,20 @@ class Client:
         result = self.call("block", {"finality": "final"})
         if not isinstance(result, dict) or not isinstance(result.get("header"), dict):
             raise MalformedResponse("the block result has no header")
+        header = result["header"]
+        if not (isinstance(header.get("height"), int) and isinstance(header.get("timestamp"), int)
+                and isinstance(header.get("hash"), str)):
+            raise MalformedResponse("the block header has no int height, int timestamp or str hash")
+        return result
+
+    def block_at(self, height):
+        result = self.call("block", {"block_id": height})
+        if not isinstance(result, dict) or not isinstance(result.get("header"), dict):
+            raise MalformedResponse("the block result has no header")
+        header = result["header"]
+        if not (isinstance(header.get("height"), int) and isinstance(header.get("timestamp"), int)
+                and isinstance(header.get("hash"), str)):
+            raise MalformedResponse("the block header has no int height, int timestamp or str hash")
         return result
 
     def _absolute(self, url):

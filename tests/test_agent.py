@@ -75,7 +75,7 @@ class AgentCase(unittest.TestCase):
     def make(self, *outcomes, policy=POLICY, verifier=signer.TestSigner):
         self.transport, self.client = Transport(*outcomes), Client(policy)
         return agent.Agent(gate=GATE, public_hex=AGENT_PK.hex(), public_key=base58.encode_key(AGENT_PK),
-                           transport=self.transport, clients=(self.client, None, None), verifier=verifier,
+                           transport=self.transport, clients=(self.client, None, None, None), verifier=verifier,
                            out_dir=self.dir / "out", clock=lambda: NOW_S)
 
     def request(self, receiver="vendor-shop.testnet", amount="1000000"):
