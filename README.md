@@ -34,7 +34,7 @@ Latency: p50 1843 ms, p95 2300 ms over 20 verdict runs.
 
 <!-- counts:end -->
 
-The 52 receivers of the first line (`fixtures/receivers/set.json`, chosen by `intel/__main__.py`) are 27 counterparties of the two contracts `v2.ref-finance.near` and `wrap.near` (the last 15 distinct counterparties of each in the FastNEAR Transfers API, 3 of them shared), 15 further NEAR accounts named in the Rhea Lend incident page (it names 16; `intents.near` is already a counterparty), and 10 catalog tokens of the label store. Implicit accounts are left out of the counterparties, unless the label store holds them as a catalog token.
+The 52 receivers of the first line (`fixtures/receivers/set.json`, chosen by `intel/__main__.py`) are recent counterparties of the two contracts `v2.ref-finance.near` and `wrap.near` (the last distinct counterparties of each in the FastNEAR Transfers API), the further NEAR accounts named in the Rhea Lend incident page, and catalog tokens of the label store; `fixtures/receivers/set.json` gives each one with why it was chosen. Implicit accounts are left out of the counterparties, unless the label store holds them as a catalog token.
 
 Consumers today are the guard, the MCP server and the demo agent; none from a third party yet.
 
@@ -323,7 +323,7 @@ Copied from `docs/ATTACKS.md`. Each NEAR command is `python -m gate attack <name
 - No TEE. The rules are view call heuristics; a check that cannot run reads Unknown, and Unknown is refused. Unknown is expected whenever a data source is down or holds no data: NearBlocks testnet has indexed nothing since 27 Sep, so testnet account age comes from the oldest access key nonce and an archival block read (`docs/SPIKES.md` S8).
 - ALLOW is the absence of a known scam signal, not proof of identity; the unknown payee cap bounds what a patient attacker can take.
 - The measured line of the counts block is the replay of a recorded mainnet receiver set, not a rate over all NEAR payees.
-- The `code_without_metadata` check (contract code without `contract_source_metadata`) found a signal for 4 of the 52 receivers under `fixtures/receivers/judgements/`, and for 3 of them, all counterparties, it is the only signal behind the DENY. It reads DENY for some well known contracts in the set, so a DENY is a signal to look, not a finding of fault.
+- The `code_without_metadata` check (contract code without `contract_source_metadata`) is the only signal behind some of the DENY judgements under `fixtures/receivers/judgements/`, among them deployed protocol contracts that publish no `contract_source_metadata`, so a DENY is a signal to look, not a finding of fault.
 - The testnet Gate kept a full access key during the build.
 - A used verdict stays used when the transfer then fails; the agent needs a fresh ALLOW. A failed transfer restores the debited cap (`failed_transfer_restores_the_debited_cap`), except when the agent was revoked, the cap removed or the window rolled in between (the four `failed_transfer_after_*_is_not_restored` tests). If the completion callback itself fails, the budget stays debited.
 - Storage for used verdict ids, pending requests and agent keys is staked from the Gate's own balance; the registry pays storage for its records (`docs/REGISTRY.md`). `request_transfer` refuses a call whose gas cannot cover the transfer and its callback (`REFUSED:low_gas`).
