@@ -290,6 +290,9 @@ class CategoryAndRailTest(unittest.TestCase):
                     self.write(*rows)
                     with self.assertRaises(labels.LabelError):
                         labels.load(self.path)
+            with self.subTest(category=category, case="superseded inferred row"):
+                self.write(dict(row, superseded_by=watch["id"]), watch)
+                self.assertEqual(len(labels.load(self.path).assertions), 2)
         self.write(self.inferred("watch"))
         self.assertEqual(len(labels.load(self.path).assertions), 1)
 
