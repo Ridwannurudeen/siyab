@@ -27,6 +27,8 @@ First built with `cargo near build non-reproducible-wasm` from a clean export of
 
 Read back after setup: Gate and registry `version` `0.1.0`; Gate policy `max_ttl_ms` 300000, not paused, empty denylist; one verifier key, no previous key; the registry recorder is `recorder.kestrelridge-main.testnet`; token storage registered for the Gate, the vendor and the aged payee (0.00129 NEAR each). At that point the Gate held one full access key and no agent key; `register_agent` added the agent's `request_transfer` key on 29 Oct (the Gate scan of 2 Nov, `fixtures/scan/`, shows both).
 
+The agent registration, 29 Oct, transaction `HNVuBL2N...K2wmdu` (`fixtures/runs/register_agent-20261029T193356Z.txt`): label `demo agent`, key allowance 1 NEAR, caps on the token of 10 DMT per call and 50 DMT per 24 h window, unknown payee caps of 1 DMT per call and 1 DMT per 24 h window. `set_allowlist` then set its allowlist to the vendor (transaction `CtiKJbks...rW9Ecg`); the recorded `get_agent` answer (`fixtures/demo/policy.json`) shows the label, the caps and the allowlist `["kestrelridge-shop.testnet"]`.
+
 ## Payments
 
 | Payment | Verdict | Transaction |
