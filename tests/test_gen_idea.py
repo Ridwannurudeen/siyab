@@ -1,4 +1,5 @@
-"""scripts/gen_idea.py: the idea text from the claims table, its bounds, the drop order and the full name."""
+"""scripts/gen_idea.py: the idea text from the counts and the claims table, its bounds, the drop order and the full
+name."""
 
 import contextlib
 import importlib.util
@@ -36,12 +37,31 @@ def filler(characters):
 
 
 TOPIC_CLAIMS = {
-    "the feed": "The feed reports new events.",
-    "the trace": "The exit trace follows one flow.",
+    "the latency lines": "The verdict latency is measured.",
     "the scanner": "The key scanner lists access keys.",
     "the reproducible build": "The reproducible build matches the hash.",
     "lookalike names": "A lookalike name is refused.",
+    "the feed": "The feed reports new events.",
+    "the trace": "The exit trace follows one flow.",
 }
+COUNT_LINES = [
+    "On 52 recorded mainnet receivers the rules returned 32 ALLOW, 19 DENY, 1 Unknown.",
+    "Label store: 412 assertions over 262 subjects (onchain 40, official_source 350, third_party 18, inferred 4).",
+    "Incidents: 3 pages.",
+    ("Feed: since 2026-10-29, 300 blocks, 0 events (0 code_hash_matches_incident, 0 fresh_dust_funded_pays_labelled, "
+     "0 watch_account_key_added)."),
+    "Flows: 1 exit traces, 200 hops.",
+    "Latency: p50 1843 ms, p95 2300 ms over 20 verdict runs.",
+]
+COUNT_PROSE = [
+    ("The label store holds 412 assertions over 262 subjects: onchain 40, official_source 350, third_party 18, "
+     "inferred 4."),
+    "On 52 recorded mainnet receivers the rules return 32 ALLOW, 19 DENY, 1 Unknown.",
+    "Incident pages: 3.",
+    "The block feed has read 300 blocks since 2026-10-29 and raised 0 events.",
+    "The flow trace holds 1 exit trace over 200 hops.",
+    "Verdict latency: p50 1843 ms, p95 2300 ms over 20 recorded runs.",
+]
 
 
 class IdeaTextTest(unittest.TestCase):
@@ -62,13 +82,34 @@ class IdeaTextTest(unittest.TestCase):
         rows = gen_idea.idea_rows(table(["First `code` claim.", "Second claim."]) +
                                   "| Not for the idea. | x | y | offline | no |\n")
         self.assertEqual([row["claim"] for row in rows], ["First `code` claim.", "Second claim."])
-        text, dropped = gen_idea.build(rows)
+        text, dropped = gen_idea.build(gen_idea.count_rows(COUNT_LINES) + rows)
         self.assertEqual(dropped, [])
-        self.assertTrue(text.startswith(gen_idea.ONE_LINE + " " + gen_idea.HEADLINE + " " + gen_idea.PROBLEM))
-        self.assertIn(f"{gen_idea.BUILT} First code claim. Second claim. {gen_idea.HOW_NEAR} {gen_idea.OFFLINE}",
-                      text)
-        self.assertTrue(text.endswith(gen_idea.OFFLINE))
+        self.assertEqual(text.split("\n\n"), [
+            gen_idea.PROBLEM,
+            " ".join([gen_idea.BUILT] + COUNT_PROSE + ["First code claim.", "Second claim."]),
+            f"{gen_idea.HOW_NEAR} {gen_idea.OFFLINE}",
+        ])
+        self.assertEqual(len(re.findall(r"[.!?](?= |$)", gen_idea.PROBLEM)), 2)
         self.assertNotIn("Not for the idea.", text)
+
+    def test_the_counts_lines_become_prose_by_a_fixed_template(self):
+        self.assertEqual([row["claim"] for row in gen_idea.count_rows(COUNT_LINES)], COUNT_PROSE)
+        self.assertEqual([row["claim"] for row in gen_idea.count_rows(["Feed: not run.", "Latency: not measured.",
+                                                                       "Flows: 2 exit traces, 1 hops."])],
+                         ["The block feed has not run.", "The flow trace holds 2 exit traces over 1 hop.",
+                          "Verdict latency is not measured."])
+        with self.assertRaises(ValueError) as raised:
+            gen_idea.count_rows(["Receivers: a line in a format no template knows."])
+        self.assertIn("no prose template for the counts line", str(raised.exception))
+        self.assertEqual(len(gen_idea.count_rows(gen_idea.counts.lines())), 6)
+
+    def test_the_first_300_characters_name_the_label_store_and_the_guard(self):
+        code, stdout, _ = self.run_main([])
+        self.assertEqual(code, 0)
+        first = stdout[:300]
+        for word in ("label store", "provenance", "incident", "guard"):
+            with self.subTest(word=word):
+                self.assertIn(word, first)
 
     def test_the_length_bounds_are_20_to_2000_characters(self):
         self.assertIsNone(gen_idea.length_problem("x" * 20))
@@ -121,7 +162,7 @@ class IdeaTextTest(unittest.TestCase):
         kept = [row for row in rows if gen_idea.topic(row["claim"]) != "the scanner"]
         with mock.patch.object(gen_idea, "MAX_CHARS", len(gen_idea.assemble(kept))):
             text, dropped = gen_idea.build(rows)
-        self.assertEqual(dropped, ["the feed", "the trace", "the scanner"])
+        self.assertEqual(dropped, ["the latency lines", "the scanner"])
         self.assertIn(mcp_claim, text)
         self.assertNotIn(TOPIC_CLAIMS["the scanner"], text)
         self.assertNotIn("Run python -m gate scan on an account.", text)
@@ -131,8 +172,9 @@ class IdeaTextTest(unittest.TestCase):
         rows = gen_idea.idea_rows(table(["A lookalike name is refused.", long_feed, "The key scan lists keys."]))
         self.assertGreater(len(gen_idea.assemble(rows)), 2000)
         text, dropped = gen_idea.build(rows)
-        self.assertEqual(dropped, ["the feed"])
-        self.assertIn("A lookalike name is refused.", text)
+        self.assertEqual(dropped, ["the latency lines", "the scanner", "the reproducible build", "lookalike names",
+                                   "the feed"])
+        self.assertNotIn("A lookalike name is refused.", text)
         self.assertIn("The key scan lists keys.", text)
         self.assertIsNone(gen_idea.length_problem(text))
 
