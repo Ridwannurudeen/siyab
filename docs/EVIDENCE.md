@@ -6,6 +6,12 @@ The invoice 2 payment sent 10 DMT to `kestrelridge-shop.testnet` on 1 November. 
 
 The Gate emitted `EVENT_JSON` `transfer_scheduled` with request id 3, verdict id `1b29052381ecf3fc1937b36db2539678` and evidence hash `7e77187d...c88bb2cc`. The token receipt emitted `EVENT_JSON` `ft_transfer` from `kestrelridge-main.testnet` to `kestrelridge-shop.testnet`, amount `10000000`, memo `invoice 2`. The transaction also contains `transfer_completed`.
 
+## Verdict latency
+
+The committed latency fixture contains 20 runs for the allowlisted vendor `kestrelridge-shop.testnet`. All 20 returned ALLOW. These runs used tier 1 checks only. Tier 2 is skipped for an allowlisted receiver by design in `gate/rules.py`. The recorded p50 is 1843 ms and p95 is 2300 ms. The aged payee runs are not committed because they measured a superseded code path.
+
+The first payment, invoice 1, is transaction `9XVcMjuS...ekVsyK`; it has no stored evidence document.
+
 ## Refused receipt
 
 The lookalike payment without a verdict was refused as `REFUSED:no_verdict`. Its failed receipt is [recorded on testnet](https://testnet.nearblocks.io/txns/6kfxEFCR2uuoiM6cpj8CmGAfmRjKTYNtFq4igkv48qK7). The request targeted `kestrelridge-sh0p.testnet`; the stored record is `fixtures/rpc/attacks/01-no-verdict.json`.
