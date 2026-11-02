@@ -16,7 +16,7 @@ Each answer is `{"content": [{"type": "text", "text": <JSON>}], "isError": false
 | `check_intents_quote` | `origin_asset`, `destination_asset`, `amount`, `recipient`, `recipient_type` (default `DESTINATION_CHAIN`) | `verdict`, `checks`, `reasons`, `quote` (the dry quote), `evidence_hash`; unsigned, nothing is deposited |
 | `scan_near_account` | `account_id` | `findings` (the key lists, the verifier keys, the labels, and the reason for each read that could not run) and `lines` (the text `python -m gate scan` prints) |
 
-`check_near_payment` signs an ALLOW with the TEST verifier key. That key is derived from a published seed and is never registered on testnet, so no Gate pays on a verdict from this tool. Unknown is never a pass.
+`check_near_payment` signs an ALLOW with the TEST verifier key. That key is derived from a published seed and is never registered on testnet, so the testnet Gate does not pay on a verdict from this tool. Unknown is never a pass.
 
 ## Environment
 
