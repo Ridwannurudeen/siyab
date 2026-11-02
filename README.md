@@ -271,7 +271,7 @@ Copied from `docs/ATTACKS.md`. Each NEAR command is `python -m gate attack <name
 - Reproducing the hash from source needs Docker; checking it against testnet needs network.
 - The signature is pure Ed25519 over the sha256 digest, not Ed25519ph.
 - Dependencies: NEAR RPC, NearBlocks, the archival RPC, GoPlus, 1Click and the ShieldBot API; each check that needs one reads Unknown when it is down.
-- What waits: chain wide coverage, clustering, exchange labels, the SHIELD feed, alerts, search, numeric risk ratings, billing, chain signatures linking, any trace of an unlabelled account. The browser extension and the Telegram bot do not cover NEAR.
+- What waits: chain wide coverage, clustering, exchange labels, the NEAR Intents SHIELD feed, alerts, search, numeric risk ratings, billing, chain signatures linking, any trace of an unlabelled account. The browser extension and the Telegram bot do not cover NEAR.
 
 ## Relationship to other NEAR work
 
