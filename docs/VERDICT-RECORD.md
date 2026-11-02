@@ -114,7 +114,7 @@ Verdict records on NEAR hash with sha256 because `env::sha256` is on chain and t
 
 ## The registry record
 
-The registry contract keeps the latest record per subject (a receiver or a token account). The shape below is the one PLAN-v3 section 3b specifies; `docs/REGISTRY.md` does not exist on this branch yet, and the JSON forms of the verdict code and the hash are UNVERIFIED until the registry contract serialises them, which is why `verify` accepts each form listed.
+The registry contract keeps the latest record per subject (a receiver or a token account). The shape below is the one PLAN-v3 section 3b specifies, and `docs/REGISTRY.md` is the contract's interface. The testnet `latest` view writes the verdict by name (`Allow`, `Deny`) and the hash as 64 lowercase hex characters (`fixtures/registry/testnet-vendor.json`, `fixtures/registry/testnet-lookalike.json`); `verify` also accepts the other forms listed.
 
 | Field | Content |
 |---|---|
