@@ -1,0 +1,19 @@
+{
+  "mainnet": [
+    {
+      "token": "usdt.tether-token.near",
+      "method": "get_blacklist_status",
+      "args_key": "account_id",
+      "banned": "Banned",
+      "note": "the Tether USD contract on NEAR; get_blacklist_status answers \"Allowable\" or \"Banned\" for an account id"
+    },
+    {
+      "token": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+      "method": "is_blocklisted",
+      "args_key": "account_id",
+      "banned": true,
+      "note": "the native USDC contract on NEAR; is_blocklisted answers true or false; the argument name was read from the contract on 2 Nov 2026: a call with another argument name panics with \"missing field `account_id`\" and a call with account_id answers false"
+    }
+  ],
+  "testnet": []
+}

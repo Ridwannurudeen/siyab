@@ -137,7 +137,7 @@ def choose(store, transfers_client):
 
 def _judge(entry, store, client, nearblocks, now_ms):
     judgement = rules.judge(entry["request"], {"allowlist": [], "caps": []}, store, client, nearblocks,
-                            now_ms=now_ms, injection_scanner=None)
+                            now_ms=now_ms, injection_scanner=None, issuers=rules.issuers_for("mainnet"))
     return {"subject": entry["subject"], "as": entry["as"], "request": entry["request"],
             "verdict": judgement.verdict, "checks": judgement.checks, "reasons": judgement.reasons,
             "labels": judgement.labels, "observed": judgement.observed}

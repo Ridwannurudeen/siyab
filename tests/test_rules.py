@@ -1,4 +1,5 @@
 import base64
+import dataclasses
 import http.client
 import json
 import re
@@ -17,6 +18,7 @@ RPC_URL = "https://rpc.example"
 NEARBLOCKS_URL = "https://nearblocks.example"
 API_URL = "https://api.example"
 ARCHIVAL_URL = "https://archival.example"
+ROOT = Path(__file__).resolve().parent.parent
 NOW_MS = int(datetime(2026, 10, 29, 12, 0, tzinfo=UTC).timestamp() * 1000)
 MINUTE_NS = 60 * 10**9
 HOUR_NS = 3600 * 10**9
@@ -863,6 +865,22 @@ class TextTest(RulesCase):
         self.fx.missing("gone.testnet")
         judgements = [self.judge(request()), self.judge(request("vend0r.testnet")),
                       self.judge(request("gone.testnet")), self.judge(request("nobody.testnet"))]
+        issuers = [{"token": "usdt.issuer.near", "method": "get_blacklist_status", "args_key": "account_id",
+                    "banned": "Banned", "note": "n"},
+                   {"token": "usdc.issuer.near", "method": "is_blocklisted", "args_key": "account_id",
+                    "banned": True, "note": "n"},
+                   {"token": "gone.issuer.near", "method": "is_blocklisted", "args_key": "account_id",
+                    "banned": True, "note": "n"}]
+        for receiver, answer in ((VENDOR, "Banned"), ("vend0r.testnet", "Allowable")):
+            self.fx.function("usdt.issuer.near", "get_blacklist_status", {"account_id": receiver}, answer)
+            self.fx.function("usdc.issuer.near", "is_blocklisted", {"account_id": receiver}, False)
+            self.fx.method_missing("gone.issuer.near", "is_blocklisted", {"account_id": receiver})
+        issuer_judgements = [rules.judge(request(receiver), POLICY, self.store, self.rpc, self.nearblocks,
+                                         now_ms=NOW_MS, injection_scanner=None, issuers=issuers)
+                             for receiver in (VENDOR, "vend0r.testnet", "nobody.testnet")]
+        self.assertEqual([self.status(j, "issuer_blacklist") for j in issuer_judgements],
+                         ["signal", "pass", "unknown"])
+        judgements += issuer_judgements
         self.assertEqual({j.verdict for j in judgements}, {"ALLOW", "DENY", "UNKNOWN"})
         for judgement in judgements:
             for text in strings([judgement.verdict, judgement.checks, judgement.reasons]):
@@ -993,6 +1011,169 @@ class PopulatedStoreTest(RulesCase):
             with self.subTest(text=text):
                 self.assertNotIn("safe", re.sub(r'"[^"]*"', "", text).lower())
         self.assertIn('symbol "SAFE"', self.detail(judgement, "ft_metadata_sane"))
+
+
+class IssuerBlacklistTest(RulesCase):
+    """The issuer_blacklist tier 1 check: one row over every issuer the caller gives."""
+
+    USDT = "usdt.issuer.near"
+    USDC = "usdc.issuer.near"
+    ISSUERS = (
+        {"token": USDT, "method": "get_blacklist_status", "args_key": "account_id", "banned": "Banned", "note": "n"},
+        {"token": USDC, "method": "is_blocklisted", "args_key": "account_id", "banned": True, "note": "n"},
+    )
+
+    def setUp(self):
+        super().setUp()
+        self.fx.account(VENDOR)
+        self.token_ok()
+
+    def answers(self, receiver, usdt, usdc):
+        self.fx.function(self.USDT, "get_blacklist_status", {"account_id": receiver}, usdt)
+        self.fx.function(self.USDC, "is_blocklisted", {"account_id": receiver}, usdc)
+
+    def judge(self, req, policy=POLICY, scanner=None, archival=None, issuers=ISSUERS):
+        return rules.judge(req, policy, self.store, self.rpc, self.nearblocks, now_ms=NOW_MS,
+                           injection_scanner=scanner, archival=archival, issuers=issuers)
+
+    def test_the_issuer_table_loads_with_five_keys_per_entry_and_no_hex_in_source(self):
+        table = json.loads((ROOT / "intel" / "issuers.json").read_text(encoding="utf-8"))
+        self.assertEqual(sorted(table), ["mainnet", "testnet"])
+        self.assertEqual(table["testnet"], [])
+        self.assertEqual(rules.issuers_for("mainnet"), table["mainnet"])
+        self.assertEqual(rules.issuers_for("testnet"), [])
+        self.assertEqual([entry["method"] for entry in table["mainnet"]], ["get_blacklist_status", "is_blocklisted"])
+        for entry in table["mainnet"]:
+            with self.subTest(token=entry["token"]):
+                self.assertEqual(sorted(entry), ["args_key", "banned", "method", "note", "token"])
+                self.assertEqual(entry["args_key"], "account_id")
+                self.assertTrue(entry["note"])
+                self.assertNotIn("UNVERIFIED", entry["note"])
+        hex_tokens = [entry["token"] for entry in table["mainnet"] if re.fullmatch("[0-9a-f]{64}", entry["token"])]
+        self.assertEqual(len(hex_tokens), 1)
+        sources = [p for directory in ("gate", "intel", "mcp", "scripts") for p in (ROOT / directory).rglob("*.py")]
+        self.assertTrue(sources)
+        for source in sources:
+            text = source.read_text(encoding="utf-8")
+            with self.subTest(source=source.name):
+                self.assertIsNone(re.search("[0-9a-f]{64}", text))
+                for token in hex_tokens:
+                    self.assertNotIn(token, text)
+
+    def test_banned_answer_is_a_signal_with_the_quoted_value(self):
+        self.answers(VENDOR, "Banned", False)
+        judgement = self.judge(request())
+        self.assertEqual(judgement.verdict, "DENY")
+        self.assertEqual(self.status(judgement, "issuer_blacklist"), "signal")
+        detail = ('vendor.testnet is banned by the issuer of usdt.issuer.near: get_blacklist_status answers "Banned"; '
+                  "usdc.issuer.near is_blocklisted answers false")
+        self.assertEqual(self.detail(judgement, "issuer_blacklist"), detail)
+        self.assertEqual(judgement.reasons, [f"vendor.testnet is banned by a token issuer ({detail})."])
+        check = {c["id"]: c for c in judgement.checks}["issuer_blacklist"]
+        self.assertEqual(check["source"]["request_sha256"], rpc.fixture_key(
+            RPC_URL, "query", self.fx._function_params(self.USDT, "get_blacklist_status", {"account_id": VENDOR})))
+        self.answers(VENDOR, "Allowable", True)
+        judgement = self.judge(request())
+        self.assertEqual(self.status(judgement, "issuer_blacklist"), "signal")
+        self.assertEqual(self.detail(judgement, "issuer_blacklist"),
+                         'usdt.issuer.near get_blacklist_status answers "Allowable"; vendor.testnet is banned by the '
+                         "issuer of usdc.issuer.near: is_blocklisted answers true")
+
+    def test_allowable_answer_passes(self):
+        self.answers(VENDOR, "Allowable", False)
+        judgement = self.judge(request())
+        self.assertEqual(judgement.verdict, "ALLOW")
+        self.assertEqual([c["id"] for c in judgement.checks],
+                         ["receiver_exists", "label_denylist", "issuer_blacklist", "token_in_catalog",
+                          "ft_metadata_sane", "storage_registered", "memo_injection"])
+        self.assertEqual(self.detail(judgement, "issuer_blacklist"),
+                         'usdt.issuer.near get_blacklist_status answers "Allowable"; '
+                         "usdc.issuer.near is_blocklisted answers false")
+        self.assertEqual(judgement.reasons, ["Every check ran and none found a signal."])
+        self.answers(VENDOR, "something else", "true")
+        self.assertEqual(self.status(self.judge(request()), "issuer_blacklist"), "pass")
+
+    def test_missing_method_passes_with_the_detail(self):
+        params = {"account_id": VENDOR}
+        self.fx.method_missing(self.USDT, "get_blacklist_status", params)
+        self.fx.function_error(self.USDC, "is_blocklisted", params, cause="NO_CONTRACT_CODE")
+        judgement = self.judge(request())
+        self.assertEqual(self.status(judgement, "issuer_blacklist"), "pass")
+        self.assertEqual(self.detail(judgement, "issuer_blacklist"),
+                         "no issuer blacklist view on usdt.issuer.near; no issuer blacklist view on usdc.issuer.near")
+        self.assertEqual(judgement.verdict, "ALLOW")
+        self.fx.function_error(self.USDC, "is_blocklisted", params, cause="UNKNOWN_ACCOUNT")
+        self.assertEqual(self.status(self.judge(request()), "issuer_blacklist"), "pass")
+
+    def test_rpc_error_reads_unknown_never_a_pass(self):
+        params = {"account_id": VENDOR}
+        self.fx.function(self.USDT, "get_blacklist_status", params, "Allowable")
+        self.fx.function_error(self.USDC, "is_blocklisted", params)
+        judgement = self.judge(request())
+        self.assertEqual(self.status(judgement, "issuer_blacklist"), "unknown")
+        self.assertEqual(judgement.verdict, "UNKNOWN")
+        detail = ('usdt.issuer.near get_blacklist_status answers "Allowable"; could not read is_blocklisted on '
+                  "usdc.issuer.near: RPC error CONTRACT_EXECUTION_ERROR")
+        self.assertEqual(self.detail(judgement, "issuer_blacklist"), detail)
+        self.assertEqual(judgement.reasons, [f"issuer_blacklist could not run: {detail}."])
+        self.fx.function_error(self.USDC, "is_blocklisted", params, cause="TIMEOUT_ERROR")
+        self.assertEqual(self.status(self.judge(request()), "issuer_blacklist"), "unknown")
+        self.fx.account("nobody.testnet")
+        judgement = self.judge(request("nobody.testnet", kind="near", memo=None), {"allowlist": ["nobody.testnet"]})
+        self.assertEqual(self.status(judgement, "issuer_blacklist"), "unknown")
+        self.assertIn("no recorded response for the request", self.detail(judgement, "issuer_blacklist"))
+        self.assertEqual(judgement.verdict, "UNKNOWN")
+        self.fx.function(self.USDT, "get_blacklist_status", params, "Banned")
+        judgement = self.judge(request())
+        self.assertEqual(self.status(judgement, "issuer_blacklist"), "signal")
+        self.assertEqual(judgement.verdict, "DENY")
+
+    def test_no_issuers_means_no_check_row_and_unchanged_texts(self):
+        self.answers(VENDOR, "Banned", True)
+        reference = rules.judge(request(), POLICY, self.store, self.rpc, self.nearblocks, now_ms=NOW_MS,
+                                injection_scanner=None)
+        self.assertNotIn("issuer_blacklist", [c["id"] for c in reference.checks])
+        self.assertEqual(reference.verdict, "ALLOW")
+        for issuers in (None, [], rules.issuers_for("testnet")):
+            with self.subTest(issuers=issuers):
+                judgement = self.judge(request(), issuers=issuers)
+                self.assertEqual(json.dumps(dataclasses.asdict(judgement), sort_keys=True),
+                                 json.dumps(dataclasses.asdict(reference), sort_keys=True))
+
+    def test_an_implicit_receiver_gets_the_check_when_issuers_are_given(self):
+        implicit = "ab" * 32
+        self.fx.account(implicit)
+        self.answers(implicit, "Banned", False)
+        judgement = self.judge(request(implicit, kind="near", memo=None), {"allowlist": [implicit]})
+        self.assertEqual([c["id"] for c in judgement.checks],
+                         ["receiver_exists", "label_denylist", "issuer_blacklist", "memo_injection"])
+        self.assertEqual(self.status(judgement, "issuer_blacklist"), "signal")
+        self.assertTrue(self.detail(judgement, "issuer_blacklist").startswith(
+            f"{implicit} is banned by the issuer of usdt.issuer.near"))
+        self.assertEqual(judgement.verdict, "DENY")
+
+    def test_the_collector_is_refused_on_the_issuer_word_in_replay(self):
+        collector = RheaLabelsTest.COLLECTOR
+        recorded = json.loads((ROOT / "fixtures" / "receivers" / "judgements" / f"{collector}.json")
+                              .read_text(encoding="utf-8"))
+        statuses = {c["id"]: c["status"] for c in recorded["checks"]}
+        self.assertEqual((statuses["label_denylist"], statuses["issuer_blacklist"]), ("signal", "signal"))
+        self.assertEqual(recorded["verdict"], "DENY")
+        detail = {c["id"]: c["detail"] for c in recorded["checks"]}["issuer_blacklist"]
+        self.assertTrue(detail.startswith(f"{collector} is banned by the issuer of usdt.tether-token.near: "
+                                          'get_blacklist_status answers "Banned"; '))
+        self.assertIn(f"{collector} is banned by a token issuer ({detail}).", recorded["reasons"])
+        client = rpc.Client(rpc.MAINNET_RPC_URL, "replay", fixtures_dir=ROOT / "fixtures" / "receivers" / "rpc")
+        nearblocks = rpc.Client(rpc.NEARBLOCKS_URL, "replay", kind="http",
+                                fixtures_dir=ROOT / "fixtures" / "receivers" / "rpc")
+        set_document = json.loads((ROOT / "fixtures" / "receivers" / "set.json").read_text(encoding="utf-8"))
+        judgement = rules.judge(recorded["request"], {"allowlist": [], "caps": []}, labels.load(), client, nearblocks,
+                                now_ms=set_document["judged_at_ms"], injection_scanner=None,
+                                issuers=rules.issuers_for("mainnet"))
+        self.assertEqual(judgement.checks, recorded["checks"])
+        rhea = json.loads((ROOT / "intel" / "incidents" / "rhea.json").read_text(encoding="utf-8"))
+        [today] = [entry for entry in rhea["rules_today"] if entry["subject"] == collector]
+        self.assertEqual({c["id"]: c["status"] for c in today["checks"]}["issuer_blacklist"], "signal")
 
 
 if __name__ == "__main__":

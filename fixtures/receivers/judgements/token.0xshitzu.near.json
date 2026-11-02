@@ -31,6 +31,16 @@
       }
     },
     {
+      "id": "issuer_blacklist",
+      "status": "pass",
+      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "f56978676c2af89808d8412342e22ea6811aace65fced0a3438d3ac2d02c4f4b",
+        "fetched_at": "2026-11-02T17:35:56Z"
+      }
+    },
+    {
       "id": "token_in_catalog",
       "status": "pass",
       "detail": "token.0xshitzu.near is a catalog_token in the label store",

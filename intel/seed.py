@@ -540,7 +540,7 @@ def rhea_incident(mode=None, raw_dir=RAW_DIR, store_path=labels.STORE_PATH, clie
             request = {"kind": "near", "token_id": None, "receiver_id": subject,
                        "amount": str(rules.YOCTO_PER_NEAR), "memo": None}
         judgement = rules.judge(request, {"allowlist": [], "caps": []}, store, *replay, now_ms=now_ms,
-                                injection_scanner=None)
+                                injection_scanner=None, issuers=rules.issuers_for("mainnet"))
         rules_today.append({"subject": subject, "as": "token" if role == "token" else "receiver",
                             "request": request, "verdict": judgement.verdict, "checks": judgement.checks,
                             "reasons": judgement.reasons, "labels": judgement.labels})
@@ -697,7 +697,7 @@ def _rules_today(subject, store, now_ms):
     replay = (rpc.Client(rpc.MAINNET_RPC_URL, "replay"), rpc.Client(rpc.NEARBLOCKS_URL, "replay", kind="http"))
     request = {"kind": "ft", "token_id": subject, "receiver_id": "intents.near", "amount": "1000000", "memo": None}
     judgement = rules.judge(request, {"allowlist": [], "caps": []}, store, *replay, now_ms=now_ms,
-                            injection_scanner=None)
+                            injection_scanner=None, issuers=rules.issuers_for("mainnet"))
     return {"subject": subject, "as": "token", "request": request, "verdict": judgement.verdict,
             "checks": judgement.checks, "reasons": judgement.reasons, "labels": judgement.labels}
 

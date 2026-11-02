@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "call_function",
+      "finality": "final",
+      "account_id": "usdt.tether-token.near",
+      "method_name": "get_blacklist_status",
+      "args_base64": "eyJhY2NvdW50X2lkIjoiaGlkZW9uLm5lYXIifQ=="
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "3GZjM3EVdVmhH7UCQbxpfWPq4WELsN5i5SUU1s2ZFVqh",
+      "block_height": 222750714,
+      "logs": [],
+      "result": [
+        34,
+        65,
+        108,
+        108,
+        111,
+        119,
+        97,
+        98,
+        108,
+        101,
+        34
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-02T17:35:49Z"
+}

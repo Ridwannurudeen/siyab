@@ -31,6 +31,16 @@
       }
     },
     {
+      "id": "issuer_blacklist",
+      "status": "signal",
+      "detail": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 is banned by the issuer of usdt.tether-token.near: get_blacklist_status answers \"Banned\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "187d98c4177f2dfcdf9c3be8da6761975945ee19920d0d3b5cd69ec2e83428c1",
+        "fetched_at": "2026-11-02T17:36:39Z"
+      }
+    },
+    {
       "id": "memo_injection",
       "status": "pass",
       "detail": "no memo",
@@ -83,7 +93,8 @@
   ],
   "reasons": [
     "Not on the owner's allowlist.",
-    "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \"named in the rekt.news Rhea Finance report as the collector account, which the report also prints as the attacker NEAR wallet\" (assertion 664db39d7af57209306fd948412fe59353389d94aba4aafc6c3b2779f1767ee2); 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \"account exists with no contract code\" (assertion 2c7133b4d2c48237508311fab74b65053251d074a29b786471bed1f177cda275); 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \"created at block 194074444 by transaction 8ogy5xrbQG78Kw5Eo52iJnfNZQZzeh2iLMWeWXV1Wyuu with a deposit of 0.0000000000000000000001 NEAR\" (assertion 6ac99683a4192b79113c521dfde4a5e45ad506d353609438e48e48104f7010ad)."
+    "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \"named in the rekt.news Rhea Finance report as the collector account, which the report also prints as the attacker NEAR wallet\" (assertion 664db39d7af57209306fd948412fe59353389d94aba4aafc6c3b2779f1767ee2); 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \"account exists with no contract code\" (assertion 2c7133b4d2c48237508311fab74b65053251d074a29b786471bed1f177cda275); 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \"created at block 194074444 by transaction 8ogy5xrbQG78Kw5Eo52iJnfNZQZzeh2iLMWeWXV1Wyuu with a deposit of 0.0000000000000000000001 NEAR\" (assertion 6ac99683a4192b79113c521dfde4a5e45ad506d353609438e48e48104f7010ad).",
+    "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 is banned by a token issuer (31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 is banned by the issuer of usdt.tether-token.near: get_blacklist_status answers \"Banned\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false)."
   ],
   "labels": [
     "664db39d7af57209306fd948412fe59353389d94aba4aafc6c3b2779f1767ee2",

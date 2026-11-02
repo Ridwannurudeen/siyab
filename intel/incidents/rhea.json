@@ -626,6 +626,16 @@
           }
         },
         {
+          "id": "issuer_blacklist",
+          "status": "signal",
+          "detail": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 is banned by the issuer of usdt.tether-token.near: get_blacklist_status answers \"Banned\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "187d98c4177f2dfcdf9c3be8da6761975945ee19920d0d3b5cd69ec2e83428c1",
+            "fetched_at": "2026-11-02T17:36:39Z"
+          }
+        },
+        {
           "id": "memo_injection",
           "status": "pass",
           "detail": "no memo",
@@ -678,7 +688,8 @@
       ],
       "reasons": [
         "Not on the owner's allowlist.",
-        "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \"named in the rekt.news Rhea Finance report as the collector account, which the report also prints as the attacker NEAR wallet\" (assertion 664db39d7af57209306fd948412fe59353389d94aba4aafc6c3b2779f1767ee2); 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \"account exists with no contract code\" (assertion 2c7133b4d2c48237508311fab74b65053251d074a29b786471bed1f177cda275); 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \"created at block 194074444 by transaction 8ogy5xrbQG78Kw5Eo52iJnfNZQZzeh2iLMWeWXV1Wyuu with a deposit of 0.0000000000000000000001 NEAR\" (assertion 6ac99683a4192b79113c521dfde4a5e45ad506d353609438e48e48104f7010ad)."
+        "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \"named in the rekt.news Rhea Finance report as the collector account, which the report also prints as the attacker NEAR wallet\" (assertion 664db39d7af57209306fd948412fe59353389d94aba4aafc6c3b2779f1767ee2); 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \"account exists with no contract code\" (assertion 2c7133b4d2c48237508311fab74b65053251d074a29b786471bed1f177cda275); 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \"created at block 194074444 by transaction 8ogy5xrbQG78Kw5Eo52iJnfNZQZzeh2iLMWeWXV1Wyuu with a deposit of 0.0000000000000000000001 NEAR\" (assertion 6ac99683a4192b79113c521dfde4a5e45ad506d353609438e48e48104f7010ad).",
+        "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 is banned by a token issuer (31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 is banned by the issuer of usdt.tether-token.near: get_blacklist_status answers \"Banned\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false)."
       ],
       "labels": [
         "664db39d7af57209306fd948412fe59353389d94aba4aafc6c3b2779f1767ee2",
@@ -716,6 +727,16 @@
             "provider": "label store",
             "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",
             "fetched_at": null
+          }
+        },
+        {
+          "id": "issuer_blacklist",
+          "status": "pass",
+          "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "4db3d20eebcf863ea6bbf1eeeb94a64196368423ec39f7a75769228b8d090116",
+            "fetched_at": "2026-11-02T17:36:41Z"
           }
         },
         {
@@ -808,6 +829,16 @@
             "provider": "label store",
             "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",
             "fetched_at": null
+          }
+        },
+        {
+          "id": "issuer_blacklist",
+          "status": "pass",
+          "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "bb072f605cd61184555ef43f8b50d13d9be1fe55c894886e9fcf51a80d9adfaa",
+            "fetched_at": "2026-11-02T17:36:43Z"
           }
         },
         {
@@ -905,6 +936,16 @@
           }
         },
         {
+          "id": "issuer_blacklist",
+          "status": "pass",
+          "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "f3db47f4a50ab1b9c5e083b301d9c11bc0d88262932603de04b335eac10b11b6",
+            "fetched_at": "2026-11-02T17:36:46Z"
+          }
+        },
+        {
           "id": "memo_injection",
           "status": "pass",
           "detail": "no memo",
@@ -995,6 +1036,16 @@
             "provider": "label store",
             "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",
             "fetched_at": null
+          }
+        },
+        {
+          "id": "issuer_blacklist",
+          "status": "pass",
+          "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "5990bfd89528fff1956db5e03f549960bc7a133f7e27c544c02fa21ea2b13534",
+            "fetched_at": "2026-11-02T17:36:48Z"
           }
         },
         {
@@ -1092,6 +1143,16 @@
           }
         },
         {
+          "id": "issuer_blacklist",
+          "status": "pass",
+          "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "5ba8678b669003f98e8ebcd47b590114cc8a34f045fd2789eafb492b026e0bdf",
+            "fetched_at": "2026-11-02T17:36:50Z"
+          }
+        },
+        {
           "id": "memo_injection",
           "status": "pass",
           "detail": "no memo",
@@ -1186,6 +1247,16 @@
           }
         },
         {
+          "id": "issuer_blacklist",
+          "status": "pass",
+          "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "6b799269627ffc5ed1a3df46dd24a77216427277ea382a942e9c6723af2f8e31",
+            "fetched_at": "2026-11-02T17:36:53Z"
+          }
+        },
+        {
           "id": "memo_injection",
           "status": "pass",
           "detail": "no memo",
@@ -1277,6 +1348,16 @@
             "provider": "label store",
             "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",
             "fetched_at": null
+          }
+        },
+        {
+          "id": "issuer_blacklist",
+          "status": "pass",
+          "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "f56978676c2af89808d8412342e22ea6811aace65fced0a3438d3ac2d02c4f4b",
+            "fetched_at": "2026-11-02T17:35:56Z"
           }
         },
         {
@@ -1410,6 +1491,16 @@
           }
         },
         {
+          "id": "issuer_blacklist",
+          "status": "pass",
+          "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "f56978676c2af89808d8412342e22ea6811aace65fced0a3438d3ac2d02c4f4b",
+            "fetched_at": "2026-11-02T17:35:56Z"
+          }
+        },
+        {
           "id": "token_in_catalog",
           "status": "signal",
           "detail": "token_not_in_catalog: 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 is neither a cap asset nor a catalog_token",
@@ -1537,6 +1628,16 @@
             "provider": "label store",
             "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",
             "fetched_at": null
+          }
+        },
+        {
+          "id": "issuer_blacklist",
+          "status": "pass",
+          "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "f56978676c2af89808d8412342e22ea6811aace65fced0a3438d3ac2d02c4f4b",
+            "fetched_at": "2026-11-02T17:35:56Z"
           }
         },
         {
@@ -1670,6 +1771,16 @@
           }
         },
         {
+          "id": "issuer_blacklist",
+          "status": "pass",
+          "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "f56978676c2af89808d8412342e22ea6811aace65fced0a3438d3ac2d02c4f4b",
+            "fetched_at": "2026-11-02T17:35:56Z"
+          }
+        },
+        {
           "id": "token_in_catalog",
           "status": "signal",
           "detail": "token_not_in_catalog: 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705 is neither a cap asset nor a catalog_token",
@@ -1800,6 +1911,16 @@
           }
         },
         {
+          "id": "issuer_blacklist",
+          "status": "pass",
+          "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "930f16c10743e486acc69cf421b825988c71816aee4355a044869f48c1f408d9",
+            "fetched_at": "2026-11-02T17:36:55Z"
+          }
+        },
+        {
           "id": "memo_injection",
           "status": "pass",
           "detail": "no memo",
@@ -1889,6 +2010,16 @@
             "provider": "label store",
             "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",
             "fetched_at": null
+          }
+        },
+        {
+          "id": "issuer_blacklist",
+          "status": "pass",
+          "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "b4479690e2319631792a0d74cc8c21a4b9b809801a6c4cafe0e3e665c608d22a",
+            "fetched_at": "2026-11-02T17:36:57Z"
           }
         },
         {
@@ -1984,6 +2115,16 @@
           }
         },
         {
+          "id": "issuer_blacklist",
+          "status": "pass",
+          "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "5484e2370e60a899b6ac4cb021fd05866ed84f1b4faab341dcbc267bea5d85da",
+            "fetched_at": "2026-11-02T17:37:00Z"
+          }
+        },
+        {
           "id": "memo_injection",
           "status": "pass",
           "detail": "no memo",
@@ -2073,6 +2214,16 @@
             "provider": "label store",
             "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",
             "fetched_at": null
+          }
+        },
+        {
+          "id": "issuer_blacklist",
+          "status": "pass",
+          "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "f56978676c2af89808d8412342e22ea6811aace65fced0a3438d3ac2d02c4f4b",
+            "fetched_at": "2026-11-02T17:35:56Z"
           }
         },
         {
@@ -2167,6 +2318,16 @@
             "provider": "label store",
             "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",
             "fetched_at": null
+          }
+        },
+        {
+          "id": "issuer_blacklist",
+          "status": "pass",
+          "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+          "source": {
+            "provider": "free.rpc.fastnear.com",
+            "request_sha256": "088927c8560ad79c8969158734618d031bec214c85a916ae2e4201c6d44a188d",
+            "fetched_at": "2026-11-02T17:37:02Z"
           }
         },
         {

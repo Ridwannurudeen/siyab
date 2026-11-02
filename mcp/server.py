@@ -155,7 +155,8 @@ def _check_near_payment(arguments, evidence_dir):
                                  arguments.get("amount"), arguments.get("memo"), gate=gate,
                                  agent_pk_hex=agent_pk_hex, policy=policy, store=labels.load(), rpc=client,
                                  nearblocks=nearblocks, signer=verdict_signer, injection_scanner=scanner,
-                                 archival=archival, evidence_dir=evidence_dir)
+                                 archival=archival, evidence_dir=evidence_dir,
+                                 issuers=None if gate.endswith(".testnet") else rules.issuers_for("mainnet"))
     except canon.CanonError as error:
         raise ToolError(f"invalid request: {error}") from error
     public_key = base58.encode_key(bytes.fromhex(verdict_signer.public_key_hex))
