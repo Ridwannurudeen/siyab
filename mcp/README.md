@@ -27,7 +27,7 @@ The server has no caller authentication: whoever can start it and call its tools
 - `GATE_FIXTURES_MODE`: `replay` (default), `record` or `off`.
 - `GATE_ACCOUNT_ID`: the Gate the payment verdict is bound to; default `gate.near`. A `.testnet` id selects the testnet RPC, NearBlocks and archival RPC endpoints.
 - `GATE_POLICY`: the agent policy as JSON in the `get_agent` shape; default `{"allowlist": [], "caps": []}`, so every receiver also gets the checks for a payee off the allowlist. Must be unset for live signing.
-- `GATE_LIVE_SIGNING`: `1` turns on live signing, which then needs every condition above; any other value leaves the TEST key.
+- `GATE_LIVE_SIGNING`: `1` turns on live signing, which then needs every condition in the signing paragraph; any other value leaves the TEST key.
 - `VERIFIER_KEY_FILE`: the live verifier key file (near-cli shape), kept outside the repository; read only with `GATE_LIVE_SIGNING=1`.
 - `AGENT_PUB`: the agent's function call public key as `ed25519:<base58>`, the key the live verdict is bound to and `get_agent` is read for; the public key only, never the agent's secret.
 - `NEAR_RPC_URL`, `NEAR_MAINNET_RPC_URL`, `NEARBLOCKS_API_URL`, `NEAR_ARCHIVAL_RPC_URL`: endpoint overrides.
