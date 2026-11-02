@@ -50,7 +50,7 @@ Each emitted `transfer_scheduled`, the token's `ft_transfer` and `transfer_compl
 | service-down (no verifier key) | Gate, `REFUSED:no_verdict` | `CTm9yDGH...vt9wnk` |
 | one-yocto (1 yoctoNEAR attached) | protocol, `DepositWithFunctionCall` | none (rejected before execution) |
 
-The unknown payee attack waits until the aged payee is 7 days old: it was created 29 Oct, 18:20 UTC, so after 5 Nov, 18:20 UTC (by 19:20 at the latest, because the archival read accepts a block up to 1 h before the cutoff). The live verdict for the lookalike is DENY: a lookalike of the vendor, not on the allowlist, not registered on the token.
+The unknown payee attack waits until the aged payee is 7 days old: it was created 29 Oct, 18:20 UTC, and its key landed in block 275336351 (18:20:16 UTC), so the account age passes from 5 Nov, 18:20:16 UTC. The live verdict for the lookalike is DENY: a lookalike of the vendor, not on the allowlist, not registered on the token.
 
 ## Registry
 
