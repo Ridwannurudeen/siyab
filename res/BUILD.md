@@ -1,22 +1,33 @@
-non reproducible build; the hash is not source verifiable
+reproducible build
 
-## Build record
+## Source and build environment
 
-The reproducible build ladder reached the local Docker step. The configured container compiled Gate and printed a wasm digest, but cargo-near 0.22.0 could not materialize the artifact at the required external target path. An explicit `--out-dir` did not change that error. The next rung is the CI `reproducible` job, which was not run for this local commit. This record therefore uses the non reproducible fallback.
+Source commit: eb54c8e11c2916201af1d13ce7b92e1c8c8c473b
 
-The final artifacts were built in the WSL clone at `/home/gudman/n7-build`, commit `7bfd1de`, with `CARGO_TARGET_DIR=$HOME/target/shieldbot-near`.
+The source link embedded by NEP-330 is `https://github.com/Ridwannurudeen/shieldbot-near/tree/eb54c8e11c2916201af1d13ce7b92e1c8c8c473b`.
 
-- Toolchain: Rust 1.99.1 from `rust-toolchain.toml`.
 - cargo-near: 0.22.0.
-- Command for both crates: `cargo near build non-reproducible-wasm`.
-- Reproducible image attempted: `sourcescan/cargo-near:0.21.1-rust-1.96.0`, digest `sha256:ccb2...ee17`.
-- Compiler used by the attempted container build: Rust 1.96.0. It did not produce the committed artifacts.
-- Compiler used for the committed artifacts: Rust 1.99.1.
-- Gate: 238633 bytes; `python -m gate codehash res/gate.wasm` printed sha256 `d9ba...e9a5` and code_hash `FevViVVs...443rU4`.
-- Registry: 156443 bytes; `python -m gate codehash res/registry.wasm` printed sha256 `6f35...e8653` and code_hash `8V7syXZ...snGTC`.
+- Image: `sourcescan/cargo-near:0.21.1-rust-1.96.0`, digest `sha256:ccb2...ee17`.
+- The container compiles with Rust 1.96.0 from the image. `rust-toolchain.toml` pins Rust 1.99.1 for local builds, so a local non reproducible build produces a different hash.
+- Gate wasm: 241330 bytes; sha256 `f7a09b28...fd14a107`; code_hash `Hfdk3jGUFxQyP8wEEoejNUkZ81bE9gDmoUBfGRghR5iE`.
+- Registry wasm: 157180 bytes; sha256 `2a154191...f0ec0cfa`; code_hash `3qGvVjTHVyvYVGQjJhqQGJMzmkUHwEbTCfWqHhXnW4VX`.
+
+## Verification recipe
+
+Clone this repository, check out the source commit above, and build both crates with the same image:
+
+```sh
+git clone https://github.com/Ridwannurudeen/shieldbot-near shieldbot-near-repro
+cd shieldbot-near-repro
+git checkout eb54c8e11c2916201af1d13ce7b92e1c8c8c473b
+unset CARGO_TARGET_DIR
+(cd contracts/gate && cargo near build reproducible-wasm)
+(cd contracts/registry && cargo near build reproducible-wasm)
+sha256sum contracts/gate/target/near/gate.wasm contracts/registry/target/near/registry.wasm
+```
+
+Compare the two printed sha256 values with the first field in `res/gate.wasm.sha256` and `res/registry.wasm.sha256`. The checksum files name `res/gate.wasm` and `res/registry.wasm` for `sha256sum -c` from the repository root.
 
 reproducing the hash from source needs Docker; checking it against testnet needs network
 
 Testnet code_hash after redeploy: pending
-
-The orchestrator can replace the pending line after `scripts/redeploy.sh` reads both deployed code hashes. No testnet comparison was made during this build.
