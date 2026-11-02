@@ -13,18 +13,20 @@ The tools replay recorded fixtures unless GATE_FIXTURES_MODE says record or off:
     scan_near_account    gate.scan.scan, key hygiene, verifier keys and labels of an account
 
 check_near_payment binds the verdict to GATE_ACCOUNT_ID (default gate.near) and writes its evidence
-into a temporary directory. By default it binds the verdict to the TEST agent key, judges against
-GATE_POLICY (JSON in the get_agent shape; default no allowlist, so every receiver gets the off
-allowlist checks too) and signs an ALLOW with the TEST key. It signs with the live key in
-VERIFIER_KEY_FILE (PyNaCl) only when GATE_LIVE_SIGNING=1, GATE_FIXTURES_MODE=off, GATE_ACCOUNT_ID
-ends .testnet, GATE_POLICY is unset and AGENT_PUB holds the agent public key: the verdict is then
-bound to AGENT_PUB and judged against the Gate's get_agent for that key, read at every call. With
-the flag set, any other condition missing is a tool error and nothing is signed; there is no fall
-back to the TEST key. The result names the key that signed.
+into a temporary directory, removed when the server exits unless GATE_KEEP_EVIDENCE=1. By default it
+binds the verdict to the TEST agent key, judges against GATE_POLICY (JSON in the get_agent shape;
+default no allowlist, so every receiver gets the off allowlist checks too) and signs an ALLOW with
+the TEST key. It signs with the live key in VERIFIER_KEY_FILE (PyNaCl) only when
+GATE_LIVE_SIGNING=1, GATE_FIXTURES_MODE=off, GATE_ACCOUNT_ID ends .testnet, GATE_POLICY is unset and
+AGENT_PUB holds the agent public key: the verdict is then bound to AGENT_PUB and judged against the
+Gate's get_agent for that key, read at every call. With the flag set, any other condition missing is
+a tool error and nothing is signed; there is no fall back to the TEST key. The result names the key
+that signed.
 """
 
 import json
 import os
+import shutil
 import sys
 import tempfile
 
@@ -38,6 +40,7 @@ SERVER_INFO = {"name": "shieldbot-near", "version": "0.1.0"}
 DEFAULT_GATE = "gate.near"
 DEFAULT_POLICY = '{"allowlist": [], "caps": []}'
 LIVE_FLAG = "GATE_LIVE_SIGNING"
+KEEP_EVIDENCE = "GATE_KEEP_EVIDENCE"
 NOTHING_SIGNED = "; nothing was signed"
 TEST_KEY_NOTE = ("an ALLOW here is signed with the TEST verifier key, which is derived from a published seed "
                  "and is never registered on testnet, so no Gate pays on it")
@@ -270,21 +273,24 @@ def _messages(stream):
 
 def serve(stdin, stdout):
     evidence_dir = tempfile.mkdtemp(prefix="shieldbot-near-mcp-")
-    print(f"shieldbot-near MCP server on stdio; evidence documents go to {evidence_dir}", file=sys.stderr)
-    for framed, body in _messages(stdin):
-        try:
-            message = json.loads(body)
-        except ValueError as error:
-            reply = {"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": f"parse error: {error}"}}
-        else:
-            reply = handle(message, evidence_dir)
-        if reply is None:
-            continue
-        data = json.dumps(reply, ensure_ascii=False).encode("utf-8")
-        stdout.write(b"Content-Length: %d\r\n\r\n" % len(data) + data if framed else data + b"\n")
-        stdout.flush()
-    if not os.listdir(evidence_dir):
-        os.rmdir(evidence_dir)
+    print(f"shieldbot-near MCP server on stdio; evidence documents go to {evidence_dir}, removed at exit unless "
+          f"{KEEP_EVIDENCE}=1", file=sys.stderr)
+    try:
+        for framed, body in _messages(stdin):
+            try:
+                message = json.loads(body)
+            except ValueError as error:
+                reply = {"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": f"parse error: {error}"}}
+            else:
+                reply = handle(message, evidence_dir)
+            if reply is None:
+                continue
+            data = json.dumps(reply, ensure_ascii=False).encode("utf-8")
+            stdout.write(b"Content-Length: %d\r\n\r\n" % len(data) + data if framed else data + b"\n")
+            stdout.flush()
+    finally:
+        if os.environ.get(KEEP_EVIDENCE) != "1" or not os.listdir(evidence_dir):
+            shutil.rmtree(evidence_dir)
     return 0
 
 

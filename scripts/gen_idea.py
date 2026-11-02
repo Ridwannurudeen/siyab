@@ -1,20 +1,24 @@
-"""Write the idea text of the submission from docs/CLAIMS.md.
+"""Write the idea text of the submission from scripts/counts.py and docs/CLAIMS.md.
 
 Usage:
   python scripts/gen_idea.py                   print the idea text, then its length on stderr
   python scripts/gen_idea.py --check           check the idea rows and the length, print the length
   python scripts/gen_idea.py --claims PATH     read another claims table (either mode)
 
-The text is, in this order: the one line, the headline's sentence, the problem paragraph, "What we built:"
-followed by the claim of every row whose idea column is yes, in table order, the "How NEAR fits" sentence
-and the offline sentence. Only the rows come from the table; the other sentences are fixed below.
+The text is three paragraphs: the problem in two fixed sentences; "What exists:" with the fixed sentence
+naming the parts, then the counts lines of scripts/counts.py rewritten as prose by the fixed templates of
+COUNT_PROSE (the label store and its provenance split, the receiver line, the incident count, the feed
+line, the flows line, the latency line, in that order), then the claim of every row whose idea column is
+yes, in table order; and the fixed "How NEAR fits" and offline sentences. A counts line no template
+matches stops the run with ValueError.
 
-The text must hold 20 to 2,000 characters. While it is longer, the rows of each topic in DROP_ORDER are
-removed, one topic at a time in that order: the feed, the trace, the scanner, the reproducible build,
-lookalike names. A row belongs to a topic when its claim contains one of the topic's words; a claim that
-names the MCP server never belongs to the scanner topic, so the MCP sentence stays when the scanner drops.
-The exit code is 1 when the text is still out of bounds, and with --check also when an idea row names a
-file, a function or a test that does not exist, or names no test.
+The text must hold 20 to 2,000 characters. While it is longer, the sentences of each topic in DROP_ORDER
+are removed, one topic at a time in that order: the latency lines, the scanner, the reproducible build,
+lookalike names, the feed, the trace; the label store, receiver and incident sentences are never dropped.
+A sentence belongs to a topic when it contains one of the topic's words; a claim that names the MCP server
+never belongs to the scanner topic, so the MCP sentence stays when the scanner drops. The exit code is 1
+when the text is still out of bounds, and with --check also when an idea row names a file, a function or
+a test that does not exist, or names no test.
 """
 
 import argparse
@@ -24,25 +28,72 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "scripts"))
+
+import counts
+
 CLAIMS = ROOT / "docs" / "CLAIMS.md"
 HEADER = "| Claim | File:function |"
 MIN_CHARS, MAX_CHARS = 20, 2000
-ONE_LINE = "Who your agent pays gets a verdict with evidence. Unknown never passes."
-HEADLINE = "ShieldBot for NEAR is a security intelligence layer for AI agent money on NEAR."
-PROBLEM = ("Problem: a NEAR function call key cannot attach the 1 yoctoNEAR that ft_transfer requires, so an agent "
-           "that moves tokens holds a full access key, and the protocol does not check who the agent pays, on NEAR "
-           "or where NEAR Intents sends the money.")
-BUILT = "What we built:"
+PROBLEM = ("A NEAR function call key cannot attach the 1 yoctoNEAR ft_transfer requires, so an agent moving tokens "
+           "holds a full access key. Nothing on NEAR judges who the agent pays.")
+BUILT = ("What exists: ShieldBot for NEAR, a label store with a provenance class on every row, incident pages and "
+         "a guard.")
 HOW_NEAR = ("How NEAR fits: hints AGENT SECURITY and FUNCTION CALL KEYS; a function call key scoped to one method is "
             "the enforcement boundary, with NEP-141 transfers and NEP-297 events.")
-OFFLINE = "It runs offline with Python alone; the testnet transactions are linked in the README with their evidence."
+OFFLINE = "It runs offline with Python alone; the README links the testnet transactions and their evidence."
+
+
+def _count(number, noun):
+    return f"{number} {noun}" + ("" if number == "1" else "s")
+
+
+# One template per counts line format, in the order the prose states them.
+COUNT_PROSE = (
+    (re.compile(r"Label store: (?P<a>\d+) assertions over (?P<s>\d+) subjects \(onchain (?P<o>\d+), "
+                r"official_source (?P<f>\d+), third_party (?P<t>\d+), inferred (?P<i>\d+)\)\."),
+     lambda m: (f"The label store holds {_count(m['a'], 'assertion')} over {_count(m['s'], 'subject')}: onchain "
+                f"{m['o']}, official_source {m['f']}, third_party {m['t']}, inferred {m['i']}.")),
+    (re.compile(r"On (?P<n>\d+) recorded mainnet receivers the rules returned (?P<a>\d+) ALLOW, (?P<d>\d+) DENY, "
+                r"(?P<u>\d+) Unknown\."),
+     lambda m: (f"On {_count(m['n'], 'recorded mainnet receiver')} the rules return {m['a']} ALLOW, {m['d']} DENY, "
+                f"{m['u']} Unknown.")),
+    (re.compile(r"Incidents: (?P<n>\d+) pages\."),
+     lambda m: f"Incident pages: {m['n']}."),
+    (re.compile(r"Feed: since (?P<d>[0-9-]+), (?P<b>\d+) blocks, (?P<c>\d+) events \(.*\)\."),
+     lambda m: (f"The block feed has read {_count(m['b'], 'block')} since {m['d']} and raised "
+                f"{_count(m['c'], 'event')}.")),
+    (re.compile(r"Feed: not run\."),
+     lambda m: "The block feed has not run."),
+    (re.compile(r"Flows: (?P<t>\d+) exit traces, (?P<h>\d+) hops\."),
+     lambda m: f"The flow trace holds {_count(m['t'], 'exit trace')} over {_count(m['h'], 'hop')}."),
+    (re.compile(r"Latency: p50 (?P<p50>\d+) ms, p95 (?P<p95>\d+) ms over (?P<r>\d+) verdict runs\."),
+     lambda m: f"Verdict latency: p50 {m['p50']} ms, p95 {m['p95']} ms over {_count(m['r'], 'recorded run')}."),
+    (re.compile(r"Latency: not measured\."),
+     lambda m: "Verdict latency is not measured."),
+)
 DROP_ORDER = (
-    ("the feed", ("feed",)),
-    ("the trace", ("trace", "flow")),
+    ("the latency lines", ("latency",)),
     ("the scanner", ("scanner", "python -m gate scan")),
     ("the reproducible build", ("reproducible",)),
     ("lookalike names", ("lookalike",)),
+    ("the feed", ("feed",)),
+    ("the trace", ("trace", "flow")),
 )
+
+
+def count_rows(count_lines):
+    """The counts lines as prose rows ({"claim": sentence}), in COUNT_PROSE order."""
+    placed = []
+    for line in count_lines:
+        for index, (pattern, prose) in enumerate(COUNT_PROSE):
+            match = pattern.fullmatch(line)
+            if match:
+                placed.append((index, prose(match)))
+                break
+        else:
+            raise ValueError(f"no prose template for the counts line: {line}")
+    return [{"claim": sentence} for _, sentence in sorted(placed, key=lambda item: item[0])]
 
 
 def idea_rows(text):
@@ -80,8 +131,8 @@ def topic(claim):
 
 
 def assemble(rows):
-    sentences = " ".join(row["claim"].replace("`", "") for row in rows)
-    return " ".join([ONE_LINE, HEADLINE, PROBLEM, f"{BUILT} {sentences}", HOW_NEAR, OFFLINE])
+    exists = " ".join([BUILT] + [row["claim"].replace("`", "") for row in rows])
+    return "\n\n".join([PROBLEM, exists, f"{HOW_NEAR} {OFFLINE}"])
 
 
 def build(rows):
@@ -150,7 +201,7 @@ def main(argv=None):
     parser.add_argument("--claims", default=str(CLAIMS), help="the claims table to read")
     args = parser.parse_args(argv)
     rows = idea_rows(Path(args.claims).read_text(encoding="utf-8"))
-    text, dropped = build(rows)
+    text, dropped = build(count_rows(counts.lines()) + rows)
     failed = False
     if args.check:
         for row in rows:

@@ -10,13 +10,18 @@ that could not run), and the EVM leg over the recorded dry 1Click quote and GoPl
 unsigned). The demo clock is pinned inside the recording window so the 7 day checks replay as
 recorded.
 
+The evidence documents go into a temporary directory, named on the last line and removed when the process
+exits unless GATE_KEEP_EVIDENCE=1.
+
 --live runs the same four against testnet, NearBlocks testnet, the testnet archival RPC and a dry
 1Click quote on mainnet, reading the policy from get_agent. It reads only, writes no fixture and
 sends nothing; an ALLOW is signed with the TEST key, which the testnet Gate does not trust.
 """
 
+import atexit
 import json
 import os
+import shutil
 import tempfile
 import time
 from datetime import UTC, datetime
@@ -36,6 +41,7 @@ AGED = "lindenvale.testnet"
 AGENT_KEY = "ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2"
 AMOUNT = "1000000"
 MEMO = "invoice 1"
+KEEP_EVIDENCE = "GATE_KEEP_EVIDENCE"
 EVM_ORIGIN = "nep141:wrap.near"
 EVM_DESTINATION = "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near"
 EVM_AMOUNT = "1000000000000000000000000"
@@ -102,10 +108,18 @@ def _evm_run(mode, deadline, evidence_dir, clock, out):
             "evidence_hash": path.stem, "evidence_path": str(path), "latency_ms": latency_ms}
 
 
+def _remove(directory):
+    """Remove the evidence directory at exit; a caller that read the results may have removed it already."""
+    if directory.exists():
+        shutil.rmtree(directory)
+
+
 def run(out=print, live=False):
     """Run the four demo verdicts, replayed from fixtures/demo or, with live, read from the networks; returns
-    their results."""
+    their results. The evidence directory is removed when the process exits unless GATE_KEEP_EVIDENCE=1."""
     evidence_dir = Path(tempfile.mkdtemp(prefix="shieldbot-near-demo-"))
+    if os.environ.get(KEEP_EVIDENCE) != "1":
+        atexit.register(_remove, evidence_dir)
     store = labels.load()
     if live:
         out("ShieldBot for NEAR live demo v1: the same four over testnet RPC, NearBlocks testnet, the testnet")
@@ -130,7 +144,7 @@ def run(out=print, live=False):
     results = [_run(title, receiver, None if live else note, clients, policy, store, evidence_dir, clock, out)
                for title, receiver, note in RUNS]
     results.append(_evm_run(mode, deadline, evidence_dir, clock, out))
-    out(f"Evidence documents: {evidence_dir}")
+    out(f"Evidence documents, removed at exit unless {KEEP_EVIDENCE}=1: {evidence_dir}")
     return results
 
 

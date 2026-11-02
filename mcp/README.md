@@ -20,7 +20,7 @@ By default `check_near_payment` binds the verdict to the TEST agent key, judges 
 
 The tool signs with the live verifier key only when the operator sets all five conditions: `GATE_LIVE_SIGNING=1`, `VERIFIER_KEY_FILE` set, `GATE_FIXTURES_MODE=off`, `GATE_ACCOUNT_ID` ending `.testnet`, and `GATE_POLICY` unset. `AGENT_PUB` must then hold the agent's public key as `ed25519:<base58>`: the verdict is bound to that key and judged against the Gate's `get_agent` for it, read live at every call, so the request and the verdict are the two arguments `request_transfer` takes. With the flag set and any condition missing, or the agent key not registered, or `get_agent` unreadable, the tool answers `isError: true` with the reason, ending "nothing was signed"; it never falls back to the TEST key. Without the flag, a set `VERIFIER_KEY_FILE` changes nothing: the TEST key signs. On a live ALLOW the server prints one stderr line with the Gate, the agent public key and the verifier public key. The live signer needs PyNaCl, so launch the server with the interpreter that has it (`~/.venvs/near/bin/python -m mcp.server`).
 
-The server has no caller authentication: whoever can start it and call its tools can obtain verdicts for the configured agent, so the operator controls access to it. Each live ALLOW is bounded by the Gate's caps and the 5 minute expiry. The evidence document of a live verdict is written to the temporary directory the server names on stderr; the operator copies it before the server exits if the verdict is to be recorded in the registry.
+The server has no caller authentication: whoever can start it and call its tools can obtain verdicts for the configured agent, so the operator controls access to it. Each live ALLOW is bounded by the Gate's caps and the 5 minute expiry. The evidence document of a live verdict is written to the temporary directory the server names on stderr, which the server removes when it exits unless `GATE_KEEP_EVIDENCE=1`; to record the verdict in the registry, the operator sets `GATE_KEEP_EVIDENCE=1` or copies the document before the server exits.
 
 ## Environment
 
@@ -29,11 +29,12 @@ The server has no caller authentication: whoever can start it and call its tools
 - `GATE_POLICY`: the agent policy as JSON in the `get_agent` shape; default `{"allowlist": [], "caps": []}`, so every receiver also gets the checks for a payee off the allowlist. Must be unset for live signing.
 - `GATE_LIVE_SIGNING`: `1` turns on live signing, which then needs every condition in the signing paragraph; any other value leaves the TEST key.
 - `VERIFIER_KEY_FILE`: the live verifier key file (near-cli shape), kept outside the repository; read only with `GATE_LIVE_SIGNING=1`.
+- `GATE_KEEP_EVIDENCE`: `1` keeps the evidence directory when the server exits; any other value, or none, removes it.
 - `AGENT_PUB`: the agent's function call public key as `ed25519:<base58>`, the key the live verdict is bound to and `get_agent` is read for; the public key only, never the agent's secret.
 - `NEAR_RPC_URL`, `NEAR_MAINNET_RPC_URL`, `NEARBLOCKS_API_URL`, `NEAR_ARCHIVAL_RPC_URL`: endpoint overrides.
 - `SHIELDBOT_API_URL`: the ShieldBot API for the memo and firewall checks; empty means off.
 
-The payment tool writes its evidence documents into a temporary directory that the server names on stderr when it starts.
+The payment tool writes its evidence documents into a temporary directory that the server names on stderr when it starts and removes when it exits, unless `GATE_KEEP_EVIDENCE=1`.
 
 ## Connect a client
 
