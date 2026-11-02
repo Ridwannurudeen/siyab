@@ -1,3 +1,4 @@
+import base64
 import json
 import tempfile
 import unittest
@@ -13,6 +14,21 @@ class RegistriesTests(unittest.TestCase):
         self.by_registry = registries.rows()
         self.all_rows = [row for group in self.by_registry.values() for row in group]
 
+    def _call_function_fixture(self, contract, method):
+        args = {}
+        encoded = json.dumps(args, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        params = {
+            "request_type": "call_function",
+            "finality": "final",
+            "account_id": contract,
+            "method_name": method,
+            "args_base64": base64.b64encode(encoded).decode("ascii"),
+        }
+        key = rpc.fixture_key(rpc.MAINNET_RPC_URL, "query", params)
+        fixture = json.loads((registries.FIXTURES_DIR / f"{key}.json").read_text(encoding="utf-8"))
+        result = fixture["response"]["result"]
+        return json.loads(bytes(result["result"]))
+
     def test_every_dao_row_is_onchain_with_the_list_method_and_a_block(self):
         dao_rows = self.by_registry["sputnik_dao"]
         self.assertTrue(dao_rows)
@@ -27,7 +43,7 @@ class RegistriesTests(unittest.TestCase):
         self.assertTrue(validator_rows)
         for row in validator_rows:
             self.assertEqual(row["category"], "organisation")
-            self.assertIn("current validator at epoch ", row["label"])
+            self.assertEqual(row["label"], f"current validator at epoch {row['source']['block']}")
             self.assertGreater(row["source"]["block"], 0)
             self.assertEqual(row["source"]["method"], "validators")
 
@@ -65,22 +81,31 @@ class RegistriesTests(unittest.TestCase):
         self.assertEqual(organisation_subjects, members)
 
     def test_the_count_per_registry_matches_the_recorded_answer(self):
-        reads = registries.reads()
-        self.assertEqual(len(self.by_registry["sputnik_dao"]), reads["sputnik_dao"])
-        self.assertEqual(len(self.by_registry["validators"]), reads["validators"])
-        self.assertEqual(len(self.by_registry["ref_whitelist"]), reads["ref_whitelist"])
-        if "bridge_factory" in self.by_registry:
-            self.assertEqual(len(self.by_registry["bridge_factory"]), reads["bridge_factory"])
+        dao_count = self._call_function_fixture("sputnik-dao.near", "get_number_daos")
+        dao_accounts = self._call_function_fixture("sputnik-dao.near", "get_dao_list")
+        whitelist = self._call_function_fixture("v2.ref-finance.near", "get_whitelisted_tokens")
+        bridge_accounts = self._call_function_fixture("factory.bridge.near", "get_tokens_accounts")
+        validators_key = rpc.fixture_key(rpc.MAINNET_RPC_URL, "validators", [None])
+        validators_fixture = json.loads(
+            (registries.FIXTURES_DIR / f"{validators_key}.json").read_text(encoding="utf-8")
+        )
+        validators = validators_fixture["response"]["result"]["current_validators"]
+        self.assertEqual(len(self.by_registry["sputnik_dao"]), dao_count)
+        self.assertEqual(len(self.by_registry["sputnik_dao"]), len(dao_accounts))
+        self.assertEqual(len(self.by_registry["validators"]), len(validators))
+        self.assertEqual(len(self.by_registry["ref_whitelist"]), len(whitelist))
+        self.assertEqual(len(self.by_registry["bridge_factory"]), len(bridge_accounts))
 
     def test_a_missing_fixture_stops_and_writes_nothing(self):
         with tempfile.TemporaryDirectory() as temporary:
             fixture_dir = Path(temporary) / "fixtures"
             output_dir = Path(temporary) / "output"
-            with patch.object(registries, "FIXTURES_DIR", fixture_dir), \
+            client = rpc.Client(rpc.MAINNET_RPC_URL, "replay", fixtures_dir=fixture_dir)
+            with patch.object(registries, "_client", return_value=client), \
                     patch.object(registries, "ROWS_PATH", output_dir / "rows.jsonl"), \
                     patch.object(registries, "ENTITIES_PATH", output_dir / "entities.jsonl"), \
                     self.assertRaises(rpc.FixtureMiss):
-                registries.rows()
+                registries.record()
             self.assertFalse(output_dir.exists())
 
 

@@ -86,23 +86,18 @@ def _read(client):
     for account in bridge_accounts:
         rows["bridge_factory"].append(seed.make_row(
             entity="Rainbow Bridge token factory", subject=account, chain="near",
-            label="token deployed by the Rainbow Bridge token factory", category="bridge", provenance="onchain",
+            label="token account listed by the Rainbow Bridge token factory", category="bridge",
+            provenance="onchain",
             source={"rpc": rpc.MAINNET_RPC_URL, "method": BRIDGE_METHOD, "args": {},
                     "block": bridge_source["block"]}, observed_at=bridge_source["fetched_at"],
             note=f'listed by "factory.bridge.near" {BRIDGE_METHOD} at block {bridge_source["block"]}'))
 
-    return rows, {"sputnik_dao": dao_count, "validators": len(validators), "ref_whitelist": len(ref_accounts),
-                  "bridge_factory": len(bridge_accounts)}
+    return rows
 
 
 def rows():
     """Build registry rows from the recorded JSON-RPC reads."""
-    return _read(_client())[0]
-
-
-def reads():
-    """Return the counts carried by the recorded registry answers."""
-    return _read(_client())[1]
+    return _read(_client())
 
 
 def entities(by_registry=None):
@@ -148,7 +143,7 @@ def _write_jsonl(path, values):
 
 def record():
     """Fetch permitted registry views, then write the generated rows and entities."""
-    by_registry, _ = _read(_client("record"))
+    by_registry = _read(_client("record"))
     flat_rows = [row for name in REGISTRY_ORDER for row in by_registry[name]]
     _write_jsonl(ROWS_PATH, flat_rows)
     _write_jsonl(ENTITIES_PATH, entities(by_registry))
