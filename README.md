@@ -77,7 +77,7 @@ Why the guard verifies a signature and the registry is the record: NEAR cross co
 
 ## Try it offline
 
-Python 3.11 or later, from the repository root, plus a POSIX shell for steps 3, 5 and 6 (`sha256sum`, the `*` in the evidence path, `printf`, `cut`). The outputs below are pasted from runs on this machine; in this file 64 character hex values are shortened to their first and last eight characters, which the repository's hygiene rule requires.
+Python 3.11 or later, from the repository root. Steps 3, 5 and 6 show POSIX shell forms (`sha256sum`, the `*` in the evidence path, `printf`, `cut`), and each also says how to run it with Python alone; `python scripts/smoke.py` (step 9) runs all nine with Python alone. The outputs below are pasted from runs on this machine; in this file 64 character hex values are shortened to their first and last eight characters, which the repository's hygiene rule requires.
 
 1. `python -m gate demo --offline` replays the recorded testnet responses through the rules: the allowlisted vendor (ALLOW, signed with the TEST key and verified back), the lookalike (DENY), the aged payee whose archival block is left out of the fixtures (UNKNOWN, the checks that could not run named), and the EVM leg (DENY). It exits 0. The first lines:
 
@@ -111,7 +111,7 @@ Python 3.11 or later, from the repository root, plus a POSIX shell for steps 3, 
    Each verdict also prints its evidence sha256 and the time the checks took. These are replay timings from fixtures, not live latency; the verdict id is random, so the ALLOW's canonical message and evidence hash differ on every run.
 
 2. `python -m unittest discover -s tests` runs the Python suite: the rules, the canonical vectors, the evidence hashing, `gate/ed25519.py` against the RFC 8032 section 7.1 vectors, the label store, the incidents, the EVM leg, `scan`, the MCP server, the README counts and tables. It ends with a line `OK`, with a skip count: the PyNaCl and py-near cross checks skip when those packages are absent, the four py-near skips each print a `skipped:` line with the reason in the default output, and the three PyNaCl skips show their reason only with `-v`; the wasm checks run on the committed files under `res/`.
-3. `sha256sum -c res/gate.wasm.sha256 res/registry.wasm.sha256` checks the committed wasm files against their checksums, and `python -m gate codehash` prints the sha256 and the base58 `code_hash` to compare with the testnet `code_hash` in `docs/TESTNET.md`. The testnet `code_hash` equals base58 of the sha256 of the wasm. Reproducing the hash from source needs Docker; checking it against testnet needs network.
+3. `sha256sum -c res/gate.wasm.sha256 res/registry.wasm.sha256` checks the committed wasm files against their checksums, and `python -m gate codehash` prints the sha256 and the base58 `code_hash` to compare with the testnet `code_hash` in `docs/TESTNET.md`. The testnet `code_hash` equals base58 of the sha256 of the wasm. Without `sha256sum`, the `sha256:` line `python -m gate codehash` prints is compared with the `.sha256` file. Reproducing the hash from source needs Docker; checking it against testnet needs network.
 
    ```
    res/gate.wasm: OK
@@ -171,7 +171,7 @@ Python 3.11 or later, from the repository root, plus a POSIX shell for steps 3, 
    version
    ```
 
-5. `python -m gate verify fixtures/registry/testnet-vendor.json fixtures/evidence/7e77187d*.json` recomputes the evidence hash, compares it and the verdict with the registry view, and prints the NEP-297 fields to compare with the explorer:
+5. `python -m gate verify fixtures/registry/testnet-vendor.json fixtures/evidence/7e77187d*.json` recomputes the evidence hash, compares it and the verdict with the registry view, and prints the NEP-297 fields to compare with the explorer. The evidence file is named after the record's `evidence_hash`: `fixtures/evidence/7e77187d...c88bb2cc.json`, the only file there starting `7e77187d`; where the shell does not expand `*` (PowerShell, cmd), type its full name, which tab completion fills in:
 
    ```
    record shape: view
@@ -187,10 +187,14 @@ Python 3.11 or later, from the repository root, plus a POSIX shell for steps 3, 
    verified
    ```
 
-6. `python -m mcp.server` answers JSON-RPC on stdin. A scripted `initialize` and `tools/list`, cut to 150 characters a line:
+6. `python -m mcp.server` answers JSON-RPC on stdin. A scripted `initialize` and `tools/list`, cut to 150 characters a line, first in a POSIX shell, then with Python alone (any shell):
 
    ```
    printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"t","version":"0"}}}' '{"jsonrpc":"2.0","method":"notifications/initialized"}' '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' | python -m mcp.server 2>/dev/null | cut -c1-150
+   ```
+
+   ```
+   python -c "import json, subprocess, sys; msgs = [{'jsonrpc': '2.0', 'id': 1, 'method': 'initialize', 'params': {'protocolVersion': '2025-06-18', 'capabilities': {}, 'clientInfo': {'name': 't', 'version': '0'}}}, {'jsonrpc': '2.0', 'method': 'notifications/initialized'}, {'jsonrpc': '2.0', 'id': 2, 'method': 'tools/list'}]; out = subprocess.run([sys.executable, '-m', 'mcp.server'], input=''.join(json.dumps(m) + chr(10) for m in msgs), capture_output=True, text=True).stdout; [print(line[:150]) for line in out.splitlines()]"
    ```
 
    ```
@@ -219,6 +223,12 @@ Python 3.11 or later, from the repository root, plus a POSIX shell for steps 3, 
 
    ```
    On 52 recorded mainnet receivers the rules returned 32 ALLOW, 19 DENY, 1 Unknown.
+   ```
+
+   `python scripts/smoke.py` runs the nine steps above with Python alone and read only: each command in replay with the network refused, step 2 inside the smoke process without `tests/test_smoke.py` (which runs `smoke.py`), step 8's Python half (the Rust half needs crates.io), and step 9 into a temporary directory whose judgements it compares byte for byte with `fixtures/receivers/judgements/`. It prints PASS or FAIL with the reason for each step, then the summary, and exits 0 only on nine passes; every temporary file goes into one directory it removes at the end. Its last line:
+
+   ```
+   9 of 9 PASS
    ```
 
 Fixtures under `fixtures/rpc/`, `fixtures/demo/`, `fixtures/scan/`, `fixtures/intents/`, `fixtures/goplus/` and `fixtures/evm/` are recorded JSON-RPC, NearBlocks, 1Click, GoPlus and ShieldBot responses, keyed by the sha256 of the request. A request with no fixture reads Unknown, never a pass.
@@ -302,6 +312,7 @@ Copied from `docs/CLAIMS.md`; `tests/test_readme_claims.py` asserts the two tabl
 | A transfer over its per call cap is refused. | `contracts/gate/src/lib.rs:request_transfer` | `contracts/gate/src/lib.rs::tests::per_call_cap_is_enforced` | `fixtures/rpc/attacks/04-over-cap.json` | yes |
 | The NEAR Intents EVM leg is preflight before signing; no transaction on any chain. | `gate/intents.py:judge_quote` | `tests/test_intents.py::DemoRecipientTest.test_the_demo_recipient_is_deny_with_the_labels_and_the_fetch_time` | `fixtures/intents/`, `fixtures/goplus/` | yes |
 | The demo replays the recorded NEAR and EVM outcomes offline. | `gate/demo.py:run` | `tests/test_demo.py::DemoTest.test_four_outcomes` | `fixtures/demo/` | yes |
+| `scripts/smoke.py` runs the nine offline steps read only and reports PASS or FAIL per step. | `scripts/smoke.py:main` | `tests/test_smoke.py::SmokeTest.test_smoke_runs_nine_steps_read_only_and_leaves_the_tree_unchanged` | offline | no |
 | The MCP server exposes the guard, EVM quote and account scan tools. | `mcp/server.py:serve` | `tests/test_mcp.py::McpServerTest.test_a_scripted_session` | offline | yes |
 | The MCP server signs with the live key only when every live variable is set and refuses a partial configuration. | `mcp/server.py:_live_signing` | `tests/test_mcp.py::McpLiveSigningTest.test_every_partial_live_configuration_is_refused_and_nothing_is_signed` | offline | no |
 | Consumers today are the guard, the MCP server and the demo agent; none from a third party yet. | `mcp/server.py:serve` | `tests/test_mcp.py::McpServerTest.test_a_scripted_session` | offline | no |
@@ -376,10 +387,10 @@ License: Apache-2.0 (`LICENSE`). Reproducible build: `res/gate.wasm` and `res/re
 
 Business model: a metered verdict and label API for agent platforms; the approver seat in agent wallets; alerts later. No token.
 
-Static pages: `demo/site/`, written by `python -m intel render` from the committed files; the hosted copy is linked here on 13 Nov: `<hosted URL>`.
+Static pages: `demo/site/`, written by `python -m intel render` from the committed files. Hosted copy: linked here on 13 Nov.
 
 ## Environment and working agreements
 
 Every variable the code and the scripts read is in `env.example`, with a comment each; the agreements for working in this repository are in `AGENTS.md`.
 
-Data: NearBlocks
+Data sources: NearBlocks (testnet explorer and account data, free tier, personal use, attribution), FastNEAR (transfers, transactions, account views), mainnet.neardata.xyz (blocks), GoPlus, 1Click.
