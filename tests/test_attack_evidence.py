@@ -19,6 +19,7 @@ ATTACK_FIXTURES = (
     "06-token-direct.json",
     "07-service-down.json",
     "08-one-yocto.json",
+    "09-unknown-payee.json",
 )
 
 
@@ -67,8 +68,8 @@ class AttackEvidenceTest(unittest.TestCase):
     def test_every_attack_row_names_existing_fixtures_and_the_expected_result(self):
         document = ATTACKS.read_text(encoding="utf-8")
         rows = table_rows(document)
-        self.assertEqual(len(rows), 9)
-        for row in rows[:8]:
+        self.assertEqual(len(rows), 10)
+        for row in rows[:9]:
             with self.subTest(attack=row[1]):
                 self.assertIn("python -m gate attack ", row[1])
                 fixture_names = re.findall(r"`(fixtures/[^`]+\.json)`", row[5])
@@ -83,7 +84,7 @@ class AttackEvidenceTest(unittest.TestCase):
                     combined = " ".join(payloads)
                     self.assertTrue(all(value in combined for value in expected), row[1])
 
-        evm_row = rows[8]
+        evm_row = rows[9]
         self.assertEqual(evm_row[0], "preflight")
         self.assertIn("preflight, no transaction on any chain", evm_row[1])
         intent_files = list((ROOT / "fixtures" / "intents").glob("*.json"))
@@ -111,7 +112,7 @@ class AttackEvidenceTest(unittest.TestCase):
     def test_receipt_links_match_transaction_hashes_in_their_fixtures(self):
         rows = table_rows(ATTACKS.read_text(encoding="utf-8"))
         protocol_indexes = {4, 5, 7}
-        for index, row in enumerate(rows[:8]):
+        for index, row in enumerate(rows[:9]):
             if index in protocol_indexes:
                 continue
             fixture_names = re.findall(r"`(fixtures/[^`]+\.json)`", row[5])
