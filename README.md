@@ -257,7 +257,7 @@ fixtures/, tests/     recorded responses replayed offline; the Python tests
 
 ## Trust model
 
-- The live verifier key is held by the team's operator, outside the repository, in the file `VERIFIER_KEY_FILE` names. The TEST key is derived from the public seed `sha256(b"gate test verifier v1")`, signs the test vectors, the offline runs, `python -m gate demo --live` and the MCP server's ALLOWs, which no Gate trusts, and is not registered on testnet: `scan` above shows the on chain key differs from it. An ALLOW a Gate pays on is signed with the live key, by `python -m gate verdict --live` or `python -m gate pay`, both reading `VERIFIER_KEY_FILE`.
+- The live verifier key is held by the team's operator, outside the repository, in the file `VERIFIER_KEY_FILE` names. The TEST key is derived from the public seed `sha256(b"gate test verifier v1")`, signs the test vectors, the offline runs, `python -m gate demo --live` and the MCP server's ALLOWs, which no Gate trusts, and is not registered on testnet: `scan` above shows the on chain key differs from it. An ALLOW a Gate pays on is signed with the live key, by `python -m gate verdict --live` or `python -m gate pay` without `--verdict-file`, both reading `VERIFIER_KEY_FILE`.
 - The recorder key (`recorder.kestrelridge-main.testnet`), the agent function call key and the testnet Gate account key are held by the team's operator; the owner account key and every mainnet key are held by the owner. No private key is in the repository.
 - Without `--verdict-file`, `python -m gate pay` runs the verdict service and the agent in one process on one machine.
 - Verdict latency: the latency line of the counts block, live testnet verdicts for the allowlisted payee, tier 1 checks.
