@@ -1,0 +1,46 @@
+Console record of storage_deposit for examples.testnet on the test token, 2 Nov 2026. The record holds no transaction Signature line, so nothing was removed; every line is kept byte for byte.
+Migrating config.toml from V4 to V5...
+Note: `near` CLI configuration is stored in "/home/gudman/.config/near-cli/config.toml"
+├  Unsigned transaction:
+│    signer_id:    kestrelridge-main.testnet
+│    receiver_id:  token.kestrelridge-main.testnet
+│    actions:
+│       -- function call:      
+│                       method name:  storage_deposit
+│                       args:         {
+│                                       "account_id": "examples.testnet",
+│                                       "registration_only": false
+│                                     }
+│                       gas:          100.0 Tgas
+│                       deposit:      0.00129 NEAR
+│     
+├  Your transaction was signed successfully.
+│    Public key: ed25519:7gxqnnhZbSBFRnYmTg8T3UZ4WUULUNS97f4jnf1oygp8
+│     
+├  Transaction Execution Info:
+│    Gas burned: 0.312 Tgas
+│    Transaction fee: 0.000031158809491 NEAR
+│    Transaction ID: Bd62DYEpsDPe2vKgpuim18Z1p76CLxV2yM2pFm7gtz49
+│    To see the transaction in the transaction explorer, please open this url in your browser:
+│    https://explorer.testnet.near.org/transactions/Bd62DYEpsDPe2vKgpuim18Z1p76CLxV2yM2pFm7gtz49
+│     
+├  Function execution logs:
+│    Logs [token.kestrelridge-main.testnet]:   No logs
+│    Logs [kestrelridge-main.testnet]:   No logs
+│     
+
+Function execution return value (printed to stdout):
+{
+  "available": "0",
+  "total": "1290000000000000000000"
+}
+
+
+The "storage_deposit" call to <token.kestrelridge-main.testnet> on behalf of <kestrelridge-main.testnet> succeeded.
+
+
+
+
+Here is your console command if you need to script it or re-run:
+    near contract call-function as-transaction token.kestrelridge-main.testnet storage_deposit json-args '{"account_id":"examples.testnet","registration_only":false}' prepaid-gas '100.0 Tgas' attached-deposit '0.00129 NEAR' sign-as kestrelridge-main.testnet network-config testnet sign-with-access-key-file /home/gudman/.near-keys/shieldbot-near/kestrelridge-main.testnet.json send
+
