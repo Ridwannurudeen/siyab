@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "call_function",
+      "finality": "final",
+      "account_id": "sputnik-dao.near",
+      "method_name": "get_number_daos",
+      "args_base64": "e30="
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "4VcgLDiAC8EPv8Yv2HBE9XapQtgGDznKE5B6CPQ6Z9ic",
+      "block_height": 222756211,
+      "logs": [],
+      "result": [
+        50,
+        48,
+        54,
+        48
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-02T18:28:43Z"
+}
