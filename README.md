@@ -34,7 +34,7 @@ Latency: p50 1843 ms, p95 2300 ms over 20 verdict runs.
 
 <!-- counts:end -->
 
-The 52 receivers of the first line (`fixtures/receivers/set.json`, chosen by `intel/__main__.py`) are 27 counterparties of the two contracts `v2.ref-finance.near` and `wrap.near` (the last 15 distinct counterparties of each in the FastNEAR Transfers API, 3 of them shared), the 15 NEAR accounts named in the Rhea Lend incident page, and 10 catalog tokens of the label store. Implicit accounts are left out of the counterparties, unless the label store holds them as a catalog token.
+The 52 receivers of the first line (`fixtures/receivers/set.json`, chosen by `intel/__main__.py`) are 27 counterparties of the two contracts `v2.ref-finance.near` and `wrap.near` (the last 15 distinct counterparties of each in the FastNEAR Transfers API, 3 of them shared), 15 further NEAR accounts named in the Rhea Lend incident page (it names 16; `intents.near` is already a counterparty), and 10 catalog tokens of the label store. Implicit accounts are left out of the counterparties, unless the label store holds them as a catalog token.
 
 Consumers today are the guard, the MCP server and the demo agent; none from a third party yet.
 
