@@ -10,7 +10,8 @@ The result in `intel/clusters/rhea.json` contains the seed list, `edges`, `facts
 
 For each seed, the command reads `view_access_key_list`, keeps only `FullAccess` keys, and asks FastNEAR for the accounts listed for each key. It intersects that response with the seeds, then checks each candidate with `view_access_key`. The output contains an `onchain` edge only when both reads confirm the same FullAccess key. Function-call keys do not create edges. This records a key present on two accounts at the reported blocks. It does not identify who uses the key.
 
-Rhea precision: `shares_full_access_key: 0 of 21 seed pairs confirmed`.
+Rhea precision: `shares_full_access_key: 0 of 21 pairs among the 7 seeds that hold a full access key`.
+The denominator is every pair within the seeds that hold at least one FullAccess key, whether or not FastNEAR lists the same key for both.
 
 ### Sub account
 
@@ -20,7 +21,7 @@ NEAR's account documentation says: “Only the parent can create a sub-account s
 
 This edge records the account hierarchy and the two account reads. It does not establish who operates either account.
 
-Rhea precision: `sub_account_of: 3 of 3 seed pairs confirmed`.
+Rhea precision: `sub_account_of: 3 of 3 seeds with a parent`.
 
 ### Creation funder
 
@@ -28,13 +29,13 @@ The command reads each seed's key creation record from NearBlocks, then reads th
 
 The exclusion set covers account factories, wallet creators, and relayers. An excluded funder remains a fact and creates no edge. The Rhea run observed `team.herewallet.near` as the signer in the collector's first-key transaction; it was already listed in `FUNDER_EXCLUSIONS`. No new exclusion was added. The Rhea run found ten other seed accounts with the collector as their first-key transaction signer.
 
-Rhea precision: `created_by_funder: 45 of 45 seed pairs confirmed`.
+Rhea precision: `created_by_funder: 10 of 14 seeds with a creation record signed by one seed account (NearBlocks facts), 1 seed created through an excluded wallet creator, 3 seeds without a creation record; 45 inferred pairs at confidence 0.5`.
 
 ### Collector deposit count
 
 The command requests inbound transfers for the collector from the incident date, follows at most 20 pages, and counts distinct `other_account_id` values. The output names the collector and gives the total and implicit-account count. Depositor identifiers are not written to the cluster result.
 
-Rhea result since 2026-04-16: 140 distinct depositors, 130 implicit accounts. The count describes the returned pages up to the page limit; it does not establish a shared purpose among depositors.
+Rhea result since 2026-04-16: 140 distinct depositors, 130 implicit accounts. The transfer window was read to its end in 8 of 20 pages; the last page has no `resume_token`. The count does not establish a shared purpose among depositors.
 
 ## Evidence and privacy
 

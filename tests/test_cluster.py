@@ -1,6 +1,5 @@
-import contextlib
-import io
 import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -18,9 +17,10 @@ SEEDS = [row["subject"] for row in INCIDENT["accounts"] if row["chain"] == "near
 class FakeRPC:
     url = "https://free.rpc.fastnear.com"
 
-    def __init__(self, keys=None, account_blocks=None):
+    def __init__(self, keys=None, account_blocks=None, missing_keys=()):
         self.keys = keys or {}
         self.account_blocks = account_blocks or {}
+        self.missing_keys = set(missing_keys)
         self.calls = []
         self.last_source = {"fetched_at": "2026-11-02T00:00:00Z"}
         self.last_block_height = None
@@ -35,9 +35,11 @@ class FakeRPC:
             return {"keys": self.keys.get(account, []), "block_height": block}
         if request == "view_access_key":
             public_key = params["public_key"]
+            if account in self.missing_keys:
+                raise rpc.RpcError({"name": "HANDLER_ERROR", "cause": {"name": "UNKNOWN_ACCESS_KEY"}})
             found = next((key for key in self.keys.get(account, []) if key["public_key"] == public_key), None)
             if found is None:
-                raise rpc.RpcError({"name": "UNKNOWN_ACCESS_KEY", "cause": {"name": "UnknownAccessKey"}})
+                raise rpc.RpcError({"name": "HANDLER_ERROR", "cause": {"name": "UNKNOWN_ACCESS_KEY"}})
             return {"nonce": 1, "permission": found["access_key"]["permission"], "block_height": block}
         if request == "view_account":
             return {"code_hash": rpc.EMPTY_CODE_HASH, "block_height": block}
@@ -89,15 +91,28 @@ class ClusterTest(unittest.TestCase):
                                                             category="incident", superseded_by=None)
                                             for s in seeds])
         rpc_client = FakeRPC({s: [key] for s in seeds}, {seeds[0]: 21, seeds[1]: 22})
-        fastnear = FakeHTTP({("GET", f"/v0/public_key/{pk}/all"): {"accounts": seeds}})
+        fastnear = FakeHTTP({("GET", f"/v0/public_key/{pk}/all"): {"account_ids": seeds}})
         document = cluster.build_cluster(seeds, store, rpc_client, fastnear, FakeHTTP(), include_creation=False)
         edge = next(edge for edge in document["edges"] if edge["rule"] == "shares_full_access_key")
         self.assertEqual((edge["from"], edge["to"]), tuple(seeds))
         self.assertEqual(edge["provenance"], "onchain")
         self.assertEqual(edge["source"]["from"]["block"], 21)
         self.assertEqual(edge["source"]["to"]["block"], 22)
-        self.assertTrue(all(call[1]["request_type"] == "view_access_key" for call in rpc_client.calls
-                            if call[1]["request_type"] == "view_access_key"))
+        self.assertEqual({(call[1]["account_id"], call[1]["public_key"]) for call in rpc_client.calls
+                          if call[1]["request_type"] == "view_access_key"},
+                         {("alpha.near", pk), ("beta.near", pk)})
+
+    def test_unknown_access_key_from_one_account_skips_the_candidate_pair(self):
+        seeds = ["alpha.near", "beta.near"]
+        pk = "ed25519:public"
+        key = {"public_key": pk, "access_key": {"permission": "FullAccess"}}
+        store = SimpleNamespace(assertions=[SimpleNamespace(id=f"incident-{s}", subject=s, chain="near",
+                                                            category="incident", superseded_by=None)
+                                            for s in seeds])
+        rpc_client = FakeRPC({s: [key] for s in seeds}, missing_keys={"beta.near"})
+        fastnear = FakeHTTP({("GET", f"/v0/public_key/{pk}/all"): {"account_ids": seeds}})
+        document = cluster.build_cluster(seeds, store, rpc_client, fastnear, FakeHTTP(), include_creation=False)
+        self.assertFalse(document["edges"])
 
     def test_function_call_keys_never_make_an_edge(self):
         seeds = ["alpha.near", "beta.near"]
@@ -108,7 +123,7 @@ class ClusterTest(unittest.TestCase):
                                                             category="incident", superseded_by=None)
                                             for s in seeds])
         rpc_client = FakeRPC({s: [key] for s in seeds})
-        fastnear = FakeHTTP({("GET", f"/v0/public_key/{pk}/all"): {"accounts": seeds}})
+        fastnear = FakeHTTP({("GET", f"/v0/public_key/{pk}/all"): {"account_ids": seeds}})
         document = cluster.build_cluster(seeds, store, rpc_client, fastnear, FakeHTTP(), include_creation=False)
         self.assertFalse(document["edges"])
         self.assertFalse(any(call[1]["request_type"] == "view_access_key" for call in rpc_client.calls))
@@ -190,25 +205,45 @@ class ClusterTest(unittest.TestCase):
 
     def test_the_committed_rhea_cluster_rebuilds_from_the_fixtures(self):
         expected = json.loads((ROOT / "intel" / "clusters" / "rhea.json").read_text(encoding="utf-8"))
-        with mock.patch("urllib.request.urlopen", side_effect=AssertionError("network opened")):
-            actual = cluster.rebuild("rhea", record=False)
-        self.assertEqual(actual, expected)
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch("urllib.request.urlopen", side_effect=AssertionError("network opened")):
+                actual = cluster.rebuild("rhea", record=False, output_dir=Path(tmp), out=lambda _line: None)
+            self.assertEqual(actual, expected)
 
     def test_the_subject_form_writes_no_file(self):
         with tempfile.TemporaryDirectory() as tmp:
-            output = io.StringIO()
-            with contextlib.redirect_stdout(output), mock.patch.object(
-                    cluster, "build_cluster", return_value={"edges": [], "facts": []}):
-                code = cluster.main(["--subject", "caller.near"], output_dir=Path(tmp))
+            fixture_dir = Path(tmp) / "fixtures"
+            output_dir = Path(tmp) / "clusters"
+            created = []
+
+            def fake_client(url, mode, *, kind="rpc", fixtures_dir):
+                created.append((mode, Path(fixtures_dir)))
+                if kind == "rpc":
+                    return FakeRPC()
+                return FakeHTTP()
+
+            with mock.patch.object(cluster, "FIXTURES_DIR", fixture_dir), \
+                    mock.patch.object(rpc, "Client", side_effect=fake_client):
+                code = cluster.main(["--subject", "caller.near", "--record"], output_dir=output_dir,
+                                    out=lambda _line: None)
             self.assertEqual(code, 0)
-            self.assertEqual(list(Path(tmp).iterdir()), [])
+            self.assertEqual(created, [("off", fixture_dir)] * 4)
+            self.assertEqual(list(fixture_dir.iterdir()) if fixture_dir.exists() else [], [])
+            self.assertEqual(list(output_dir.iterdir()) if output_dir.exists() else [], [])
 
     def test_no_authored_word_claims_ownership(self):
-        forbidden = ("own" + "er", "own" + "s", "control" + "s", "same " + "person")
+        forbidden = ("own" + "er", "own" + "s", "control" + "s", "same " + "person", "attack" + "er")
         paths = [ROOT / "intel" / "cluster.py", ROOT / "docs" / "CLUSTER.md",
-                 ROOT / "intel" / "clusters" / "rhea.json"]
+                 ROOT / "intel" / "clusters" / "rhea.json", ROOT / "tests" / "test_cluster.py"]
         text = "\n".join(path.read_text(encoding="utf-8") for path in paths if path.exists()).lower()
-        self.assertFalse([word for word in forbidden if word in text])
+        pattern = re.compile(r"\b(" + "|".join(re.escape(word) for word in forbidden) + r")\b")
+        self.assertIsNone(pattern.search(text))
+
+    def test_precision_lines_in_the_cluster_document_appear_verbatim_in_docs(self):
+        document = json.loads((ROOT / "intel" / "clusters" / "rhea.json").read_text(encoding="utf-8"))
+        docs = (ROOT / "docs" / "CLUSTER.md").read_text(encoding="utf-8")
+        for line in document["precision"].values():
+            self.assertIn(line, docs)
 
 
 if __name__ == "__main__":

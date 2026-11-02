@@ -916,9 +916,9 @@
     }
   ],
   "precision": {
-    "shares_full_access_key": "shares_full_access_key: 0 of 21 seed pairs confirmed",
-    "sub_account_of": "sub_account_of: 3 of 3 seed pairs confirmed",
-    "created_by_funder": "created_by_funder: 45 of 45 seed pairs confirmed"
+    "shares_full_access_key": "shares_full_access_key: 0 of 21 pairs among the 7 seeds that hold a full access key",
+    "sub_account_of": "sub_account_of: 3 of 3 seeds with a parent",
+    "created_by_funder": "created_by_funder: 10 of 14 seeds with a creation record signed by one seed account (NearBlocks facts), 1 seed created through an excluded wallet creator, 3 seeds without a creation record; 45 inferred pairs at confidence 0.5"
   },
   "depositors": {
     "collector": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",

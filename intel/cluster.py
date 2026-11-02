@@ -93,7 +93,8 @@ def _full_access_edges(seeds, rpc_client, fastnear_client):
     seeds_with_full_access = {seed for seed in seeds if listed[seed]}
     edges, confirmed = [], set()
     for public_key in sorted(keys):
-        response = _retry_fastnear(lambda: fastnear_client.get(f"/v0/public_key/{public_key}/all"), fastnear_client)
+        response = _retry_fastnear(lambda key=public_key: fastnear_client.get(f"/v0/public_key/{key}/all"),
+                                   fastnear_client)
         fetched.append(fastnear_client.last_source["fetched_at"])
         reported = set(_public_key_accounts(response))
         possible = sorted(set(seeds).intersection(reported))
@@ -120,12 +121,11 @@ def _full_access_edges(seeds, rpc_client, fastnear_client):
                 edges.append(_edge("shares_full_access_key", left, right, "onchain",
                                    {"from": confirmations[0], "to": confirmations[1]}))
     eligible_pairs = len(list(combinations(seeds_with_full_access, 2)))
-    return edges, len(confirmed), eligible_pairs, fetched
+    return edges, len(confirmed), eligible_pairs, len(seeds_with_full_access), fetched
 
 
 def _unknown_access_key(error):
-    message = json.dumps(error.error, sort_keys=True).lower()
-    return "unknownaccesskey" in message or "unknown access key" in message
+    return error.cause == "UNKNOWN_ACCESS_KEY"
 
 
 def _retry_fastnear(request, client):
@@ -171,27 +171,15 @@ def _sub_account_edges(seeds, rpc_client):
     return edges, len(edges), possible, fetched
 
 
-def _nearblocks_get(client, path):
-    return _retry_nearblocks(lambda: client.get(path), client)
-
-
-def _retry_nearblocks(request, client):
-    try:
-        return request()
-    except rpc.HttpError:
-        raise
-
-
 def _fact_id(fact):
     body = json.dumps(fact, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return hashlib.sha256(body.encode("utf-8")).hexdigest()
 
 
-def _creation_facts(seeds, nearblocks, exclusions=None):
-    exclusions = set(FUNDER_EXCLUSIONS if exclusions is None else exclusions)
+def _creation_facts(seeds, nearblocks):
     facts, fetched = [], []
     for seed in seeds:
-        response = _nearblocks_get(nearblocks, f"/v1/account/{seed}/keys")
+        response = nearblocks.get(f"/v1/account/{seed}/keys")
         fetched.append(nearblocks.last_source["fetched_at"])
         keys = response.get("keys", []) if isinstance(response, dict) else []
         creations = [key["created"] for key in keys if isinstance(key, dict)
@@ -202,7 +190,7 @@ def _creation_facts(seeds, nearblocks, exclusions=None):
             continue
         creation = min(creations, key=lambda row: int(row["block_timestamp"]))
         transaction_hash = creation["transaction_hash"]
-        transaction_response = _nearblocks_get(nearblocks, f"/v1/txns/{transaction_hash}")
+        transaction_response = nearblocks.get(f"/v1/txns/{transaction_hash}")
         fetched.append(nearblocks.last_source["fetched_at"])
         transactions = transaction_response.get("txns", []) if isinstance(transaction_response, dict) else []
         if not transactions or not isinstance(transactions[0].get("signer_account_id"), str):
@@ -212,7 +200,7 @@ def _creation_facts(seeds, nearblocks, exclusions=None):
         block = transaction.get("block", {}).get("block_height")
         if not isinstance(block, int):
             continue
-        excluded = _excluded_funder(funder, exclusions)
+        excluded = _excluded_funder(funder, FUNDER_EXCLUSIONS)
         fact = {"kind": "created_by_funder", "subject": seed, "value": funder, "provenance": "onchain",
                 "source": {"provider": "api.nearblocks.io", "method": "GET /v1/txns/{transaction_hash}",
                            "args": {"transaction_hash": transaction_hash}, "block": block},
@@ -266,30 +254,23 @@ def deposit_pattern(collector, transfers_client, since, max_pages=MAX_TRANSFER_P
             "implicit_count": sum(bool(IMPLICIT.fullmatch(account)) for account in depositors), "since": since}
 
 
-def _precision(name, confirmed, total):
-    return f"{name}: {confirmed} of {total} seed pairs confirmed"
-
-
 def build_cluster(seeds, store, rpc_client, fastnear_client, nearblocks_client, transfers_client=None,
                   include_creation=True, since=None, require_incident=True):
     _validate_seeds(seeds, store, require_incident)
     fetched = []
-    edges, full_confirmed, full_total, times = _full_access_edges(seeds, rpc_client, fastnear_client)
+    edges, full_confirmed, full_total, full_seed_count, times = _full_access_edges(
+        seeds, rpc_client, fastnear_client)
     fetched.extend(times)
     sub_edges, sub_confirmed, sub_total, times = _sub_account_edges(seeds, rpc_client)
     edges.extend(sub_edges)
     fetched.extend(times)
     facts = []
-    funder_confirmed, funder_total = 0, 0
+    funder_edges = []
     if include_creation:
         facts, times = _creation_facts(seeds, nearblocks_client)
         fetched.extend(times)
-        before = len(edges)
         funder_edges = _funder_edges(facts)
         edges.extend(funder_edges)
-        funder_confirmed = len(funder_edges)
-        funder_total = len({tuple(sorted((left["subject"], right["subject"])))
-                            for left, right in combinations(facts, 2) if left["value"] == right["value"]})
     depositor_result = None
     if transfers_client is not None:
         collector = COLLECTOR if COLLECTOR in seeds else seeds[0]
@@ -299,10 +280,20 @@ def build_cluster(seeds, store, rpc_client, fastnear_client, nearblocks_client, 
         if transfers_client.last_source["fetched_at"]:
             fetched.append(transfers_client.last_source["fetched_at"])
     fetched_at = max((value for value in fetched if value), default=None)
+    funder_seed_facts = sum(not fact["excluded"] and fact["value"] in seeds for fact in facts)
+    excluded_facts = sum(fact["excluded"] for fact in facts)
+    missing_creation_records = len(seeds) - len(facts)
     return {"seeds": list(seeds), "edges": edges, "facts": facts,
-            "precision": {"shares_full_access_key": _precision("shares_full_access_key", full_confirmed, full_total),
-                          "sub_account_of": _precision("sub_account_of", sub_confirmed, sub_total),
-                          "created_by_funder": _precision("created_by_funder", funder_confirmed, funder_total)},
+            "precision": {
+                "shares_full_access_key": (
+                    f"shares_full_access_key: {full_confirmed} of {full_total} pairs among the "
+                    f"{full_seed_count} seeds that hold a full access key"),
+                "sub_account_of": f"sub_account_of: {sub_confirmed} of {sub_total} seeds with a parent",
+                "created_by_funder": (
+                    f"created_by_funder: {funder_seed_facts} of {len(seeds)} seeds with a creation record "
+                    f"signed by one seed account (NearBlocks facts), {excluded_facts} seed created through an "
+                    f"excluded wallet creator, {missing_creation_records} seeds without a creation record; "
+                    f"{len(funder_edges)} inferred pairs at confidence 0.5")},
             "depositors": depositor_result, "fetched_at": fetched_at, "standard": STANDARD}
 
 
@@ -324,18 +315,23 @@ def _client_set(mode):
             rpc.Client(TRANSFERS_URL, mode, kind="http", fixtures_dir=FIXTURES_DIR))
 
 
-def rebuild(name="rhea", record=False, subject=None, store=None, out=print, output_dir=CLUSTERS_DIR):
+def rebuild(name="rhea", record=False, subject=None, store=None, out=print, output_dir=CLUSTERS_DIR, seeds=None):
     store = store or labels.load()
-    seeds = [subject] if subject else _incident_seeds(store)
-    _validate_seeds(seeds, store, require_incident=subject is None)
-    mode = "record" if record else "replay"
+    seeds = [subject] if subject else seeds or _incident_seeds(store)
+    mode = "off" if subject else "record" if record else "replay"
     rpc_client, fastnear_client, nearblocks_client, transfers_client = _client_set(mode)
     document = build_cluster(seeds, store, rpc_client, fastnear_client, nearblocks_client,
-                             transfers_client, since="2026-04-16" if not subject else None,
+                             transfers_client if subject is None else None,
                              require_incident=subject is None)
     if subject is None:
         _write(Path(output_dir) / f"{name}.json", document)
         out(f"written to {name}.json")
+        for line in document["precision"].values():
+            out(line)
+        if document["depositors"] is not None:
+            out(f"deposit_pattern: {document['depositors']['count']} depositors, "
+                f"{document['depositors']['implicit_count']} implicit accounts since "
+                f"{document['depositors']['since']}")
     else:
         out(json.dumps({"edges": document["edges"], "facts": document["facts"]}, indent=2, ensure_ascii=False))
     return document
@@ -350,31 +346,16 @@ def main(argv=None, output_dir=CLUSTERS_DIR, out=print):
     args = parser.parse_args(argv)
     if args.subject and args.seeds:
         parser.error("--subject cannot be combined with seed arguments")
-    store = labels.load()
-    seeds = [args.subject] if args.subject else args.seeds or _incident_seeds(store)
     try:
-        _validate_seeds(seeds, store, require_incident=args.subject is None)
-        mode = "record" if args.record else "replay"
-        rpc_client, fastnear_client, nearblocks_client, transfers_client = _client_set(mode)
-        document = build_cluster(seeds, store, rpc_client, fastnear_client, nearblocks_client,
-                                 transfers_client if not args.subject else None,
-                                 require_incident=args.subject is None)
+        rebuild(args.name, args.record, args.subject,
+                store=labels.load(), out=out, output_dir=output_dir,
+                seeds=args.seeds or None)
     except Refused as error:
         out(str(error))
         return 2
     except (rpc.FixtureMiss, rpc.HttpError, rpc.TransportError, rpc.RpcError) as error:
         out(f"stopped: {error}")
         return 1
-    if args.subject:
-        out(json.dumps({"edges": document["edges"], "facts": document["facts"]}, indent=2, ensure_ascii=False))
-        return 0
-    _write(Path(output_dir) / f"{args.name}.json", document)
-    out(f"written to {args.name}.json")
-    for line in document["precision"].values():
-        out(line)
-    if document["depositors"] is not None:
-        out(f"deposit_pattern: {document['depositors']['count']} depositors, "
-            f"{document['depositors']['implicit_count']} implicit accounts since {document['depositors']['since']}")
     return 0
 
 
