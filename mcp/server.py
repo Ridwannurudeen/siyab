@@ -8,13 +8,19 @@ stdout: anything else the code prints goes to stderr.
 
 The tools replay recorded fixtures unless GATE_FIXTURES_MODE says record or off:
 
-    check_near_payment   gate.verdict.request for one transfer, signed with the TEST key on ALLOW
+    check_near_payment   gate.verdict.request for one transfer, signed on ALLOW with the TEST key or the live key
     check_intents_quote  gate.intents.judge_quote, the unsigned preflight on a 1Click quote
     scan_near_account    gate.scan.scan, key hygiene, verifier keys and labels of an account
 
-check_near_payment binds the verdict to GATE_ACCOUNT_ID (default gate.near) and the TEST agent key,
-judges against GATE_POLICY (JSON in the get_agent shape; default no allowlist, so every receiver
-gets the off allowlist checks too) and writes its evidence into a temporary directory.
+check_near_payment binds the verdict to GATE_ACCOUNT_ID (default gate.near) and writes its evidence
+into a temporary directory. By default it binds the verdict to the TEST agent key, judges against
+GATE_POLICY (JSON in the get_agent shape; default no allowlist, so every receiver gets the off
+allowlist checks too) and signs an ALLOW with the TEST key. It signs with the live key in
+VERIFIER_KEY_FILE (PyNaCl) only when GATE_LIVE_SIGNING=1, GATE_FIXTURES_MODE=off, GATE_ACCOUNT_ID
+ends .testnet, GATE_POLICY is unset and AGENT_PUB holds the agent public key: the verdict is then
+bound to AGENT_PUB and judged against the Gate's get_agent for that key, read at every call. With
+the flag set, any other condition missing is a tool error and nothing is signed; there is no fall
+back to the TEST key. The result names the key that signed.
 """
 
 import json
@@ -22,7 +28,7 @@ import os
 import sys
 import tempfile
 
-from gate import canon, ed25519, intents, rpc, scan, signer, verdict
+from gate import base58, canon, ed25519, intents, rpc, rules, scan, signer, verdict
 from gate.__main__ import _clients
 from intel import labels
 
@@ -31,6 +37,8 @@ FALLBACK_VERSION = "2024-11-05"
 SERVER_INFO = {"name": "shieldbot-near", "version": "0.1.0"}
 DEFAULT_GATE = "gate.near"
 DEFAULT_POLICY = '{"allowlist": [], "caps": []}'
+LIVE_FLAG = "GATE_LIVE_SIGNING"
+NOTHING_SIGNED = "; nothing was signed"
 TEST_KEY_NOTE = ("an ALLOW here is signed with the TEST verifier key, which is derived from a published seed "
                  "and is never registered on testnet, so no Gate pays on it")
 
@@ -84,23 +92,81 @@ class ToolError(Exception):
     """A tool call that ran and failed; answered as isError content."""
 
 
-def _check_near_payment(arguments, evidence_dir):
+def _live_signing():
+    """(the live signer, AGENT_PUB, its hex) when GATE_LIVE_SIGNING=1 and every live condition holds;
+    None without the flag. With the flag, a condition that does not hold is a ToolError."""
+    if os.environ.get(LIVE_FLAG) != "1":
+        return None
+    mode = os.environ.get("GATE_FIXTURES_MODE") or "replay"
+    if mode != "off":
+        raise ToolError(f"live signing needs GATE_FIXTURES_MODE=off, not {mode}: a live key never signs over "
+                        f"fixtures{NOTHING_SIGNED}")
     gate = os.environ.get("GATE_ACCOUNT_ID") or DEFAULT_GATE
+    if not gate.endswith(".testnet"):
+        raise ToolError(f"live signing is for a .testnet Gate only, not {gate}{NOTHING_SIGNED}")
+    if os.environ.get("GATE_POLICY"):
+        raise ToolError(f"live signing reads the policy from get_agent; unset GATE_POLICY{NOTHING_SIGNED}")
+    key_file = os.environ.get("VERIFIER_KEY_FILE")
+    if not key_file:
+        raise ToolError(f"live signing needs VERIFIER_KEY_FILE{NOTHING_SIGNED}")
+    agent_pub = os.environ.get("AGENT_PUB")
+    if not agent_pub:
+        raise ToolError(f"live signing needs AGENT_PUB, the agent public key as ed25519:<base58>{NOTHING_SIGNED}")
     try:
-        policy = json.loads(os.environ.get("GATE_POLICY") or DEFAULT_POLICY)
+        agent_raw = base58.decode_key(agent_pub)
+        if len(agent_raw) != 32:
+            raise ValueError(f"{len(agent_raw)} bytes")
     except ValueError as error:
-        raise ToolError(f"GATE_POLICY is not JSON: {error}") from error
+        raise ToolError(f"AGENT_PUB is not a 32 byte ed25519 key: {agent_pub}{NOTHING_SIGNED}") from error
+    try:
+        live_signer = signer.NaClSigner(key_file)
+    except signer.SignerError as error:
+        raise ToolError(f"no live signer: {error}{NOTHING_SIGNED}") from error
+    return live_signer, agent_pub, agent_raw.hex()
+
+
+def _live_policy(client, gate, public_key):
+    """The agent's policy from the Gate's get_agent view, read live at every call."""
+    try:
+        policy = client.call_function(gate, "get_agent", {"public_key": public_key})
+    except rules.UNAVAILABLE as error:
+        raise ToolError(f"cannot read get_agent on {gate}: {error}{NOTHING_SIGNED}") from error
+    if policy is None:
+        raise ToolError(f"the agent key {public_key} is not registered on {gate}{NOTHING_SIGNED}")
+    return policy
+
+
+def _check_near_payment(arguments, evidence_dir):
+    live = _live_signing()
+    gate = os.environ.get("GATE_ACCOUNT_ID") or DEFAULT_GATE
+    if live is None:
+        try:
+            policy = json.loads(os.environ.get("GATE_POLICY") or DEFAULT_POLICY)
+        except ValueError as error:
+            raise ToolError(f"GATE_POLICY is not JSON: {error}") from error
+        verdict_signer, policy_source = signer.TestSigner(), "GATE_POLICY"
+        agent_pk_hex = ed25519.public_from_seed(ed25519.TEST_AGENT_SEED).hex()
     client, nearblocks, scanner, archival = _clients(gate)
+    if live is not None:
+        verdict_signer, agent_pub, agent_pk_hex = live
+        policy, policy_source = _live_policy(client, gate, agent_pub), "get_agent"
     try:
         result = verdict.request(arguments.get("kind"), arguments.get("token"), arguments.get("receiver"),
                                  arguments.get("amount"), arguments.get("memo"), gate=gate,
-                                 agent_pk_hex=ed25519.public_from_seed(ed25519.TEST_AGENT_SEED).hex(),
-                                 policy=policy, store=labels.load(), rpc=client, nearblocks=nearblocks,
-                                 signer=signer.TestSigner(), injection_scanner=scanner, archival=archival,
-                                 evidence_dir=evidence_dir)
+                                 agent_pk_hex=agent_pk_hex, policy=policy, store=labels.load(), rpc=client,
+                                 nearblocks=nearblocks, signer=verdict_signer, injection_scanner=scanner,
+                                 archival=archival, evidence_dir=evidence_dir)
     except canon.CanonError as error:
         raise ToolError(f"invalid request: {error}") from error
-    return {**result, "gate": gate, "signer": TEST_KEY_NOTE}
+    public_key = base58.encode_key(bytes.fromhex(verdict_signer.public_key_hex))
+    signed_by = {"kind": "TEST" if live is None else "live", "key_id": verdict_signer.key_id,
+                 "public_key": public_key, "public_key_hex": verdict_signer.public_key_hex}
+    if live is None:
+        signed_by["note"] = TEST_KEY_NOTE
+    elif result["outcome"] == "ALLOW":
+        print(f"live ALLOW on {gate} for the agent key {agent_pub}, signed with the verifier key {public_key}",
+              file=sys.stderr)
+    return {**result, "gate": gate, "signer": signed_by, "agent_pk": agent_pk_hex, "policy_source": policy_source}
 
 
 def _check_intents_quote(arguments, evidence_dir):
