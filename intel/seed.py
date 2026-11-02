@@ -712,7 +712,8 @@ def sweat_hot_incident(mode=None, raw_dir=RAW_DIR, store_path=labels.STORE_PATH,
         # Record the view calls the rules make for the token; NearBlocks is not spent here.
         rules.judge({"kind": "ft", "token_id": token, "receiver_id": "intents.near", "amount": "1000000",
                      "memo": None}, {"allowlist": [], "caps": []}, labels.load(store_path), client,
-                    rpc.Client(rpc.NEARBLOCKS_URL, "replay", kind="http"), now_ms=0, injection_scanner=None)
+                    rpc.Client(rpc.NEARBLOCKS_URL, "replay", kind="http"), now_ms=0, injection_scanner=None,
+                    issuers=rules.issuers_for("mainnet"))
     now_ms = int(datetime.strptime(max(f[5] for f in facts), _TIME).replace(tzinfo=UTC).timestamp() * 1000)
     return {
         "id": "sweat-hot",
