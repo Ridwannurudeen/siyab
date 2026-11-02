@@ -1,0 +1,45 @@
+{
+  "attack": "service-down",
+  "gate": "kestrelridge-main.testnet",
+  "notes": [
+    "the verdict service could not start its signer (/mnt/c/Users/gudma/OneDrive/Desktop/GITHUB-FILES/shieldbot-handoff/near-hackathon-2026-11/testnet-runs/attacks/service-down/service-down/no-verifier-key.json: cannot read a key file), so the agent submits without a verdict"
+  ],
+  "refused": true,
+  "submissions": [
+    {
+      "sent": {
+        "receiver_id": "kestrelridge-main.testnet",
+        "method_name": "request_transfer",
+        "args": {
+          "request": {
+            "kind": "ft",
+            "token_id": "token.kestrelridge-main.testnet",
+            "receiver_id": "kestrelridge-shop.testnet",
+            "amount": "10000000",
+            "memo": "attack service-down"
+          },
+          "verdict": null
+        },
+        "gas": 30000000000000,
+        "deposit": 0
+      },
+      "outcome": {
+        "transaction_hash": "CTm9yDGHNiXD94jsF8QdeXWeEKz7qxiYbLT1zzvt9wnk",
+        "status": {
+          "Failure": {
+            "ActionError": {
+              "index": 0,
+              "kind": {
+                "FunctionCallError": {
+                  "ExecutionError": "Smart contract panicked: REFUSED:no_verdict"
+                }
+              }
+            }
+          }
+        },
+        "logs": [],
+        "rpc_error": null
+      }
+    }
+  ]
+}

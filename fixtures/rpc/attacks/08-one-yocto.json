@@ -1,0 +1,43 @@
+{
+  "attack": "one-yocto",
+  "gate": "kestrelridge-main.testnet",
+  "notes": [],
+  "refused": true,
+  "submissions": [
+    {
+      "sent": {
+        "receiver_id": "kestrelridge-main.testnet",
+        "method_name": "request_transfer",
+        "args": {
+          "request": {
+            "kind": "ft",
+            "token_id": "token.kestrelridge-main.testnet",
+            "receiver_id": "kestrelridge-shop.testnet",
+            "amount": "10000000",
+            "memo": "attack one-yocto"
+          },
+          "verdict": {
+            "literal": "ALLOW",
+            "issued_ms": 1793304437126,
+            "expires_ms": 1793304737126,
+            "verdict_id": "8bfc6523a2e9e96ee37e2900d61c3781",
+            "evidence_hash": "8e8018fcc3ba7c3779cdf82873b627a8fcdbd0b64d0bbd8afa2899e8bc6bbba7",
+            "key_id": "cur",
+            "signature": "6b8414a7...463f1208"
+          }
+        },
+        "gas": 30000000000000,
+        "deposit": 1
+      },
+      "outcome": {
+        "transaction_hash": "4NrMBYZqG8wG6wBHuEMr5HPjhZfDCtzTtFe8RKGP1noK",
+        "status": null,
+        "logs": [],
+        "rpc_error": {
+          "error": "InvalidTransactionError",
+          "message": "DepositWithFunctionCall"
+        }
+      }
+    }
+  ]
+}

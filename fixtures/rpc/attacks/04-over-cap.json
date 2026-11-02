@@ -1,0 +1,51 @@
+{
+  "attack": "over-cap",
+  "gate": "kestrelridge-main.testnet",
+  "notes": [],
+  "refused": true,
+  "submissions": [
+    {
+      "sent": {
+        "receiver_id": "kestrelridge-main.testnet",
+        "method_name": "request_transfer",
+        "args": {
+          "request": {
+            "kind": "ft",
+            "token_id": "token.kestrelridge-main.testnet",
+            "receiver_id": "kestrelridge-shop.testnet",
+            "amount": "11000000",
+            "memo": "attack over-cap"
+          },
+          "verdict": {
+            "literal": "ALLOW",
+            "issued_ms": 1793303901657,
+            "expires_ms": 1793304201657,
+            "verdict_id": "6f51441415a83177532930d42b075ae2",
+            "evidence_hash": "3780ce212504e5ff71cb9fdc3d1e636307fbc32604eccd95bed12e7a15639993",
+            "key_id": "cur",
+            "signature": "3d5c5c41...4fdcd40e"
+          }
+        },
+        "gas": 30000000000000,
+        "deposit": 0
+      },
+      "outcome": {
+        "transaction_hash": "2vsukFAzVFCUFAxSRSHd39ubi3xavfSB86gcRdr8nWgU",
+        "status": {
+          "Failure": {
+            "ActionError": {
+              "index": 0,
+              "kind": {
+                "FunctionCallError": {
+                  "ExecutionError": "Smart contract panicked: REFUSED:per_call_cap"
+                }
+              }
+            }
+          }
+        },
+        "logs": [],
+        "rpc_error": null
+      }
+    }
+  ]
+}
