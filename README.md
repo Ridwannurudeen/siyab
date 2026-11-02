@@ -148,7 +148,7 @@ Python 3.11 or later and nothing else, from the repository root. The outputs bel
    On 52 recorded mainnet receivers the rules returned 32 ALLOW, 19 DENY, 1 Unknown.
    ```
 
-Fixtures under `fixtures/rpc/`, `fixtures/demo/`, `fixtures/scan/`, `fixtures/intents/` and `fixtures/goplus/` are recorded JSON-RPC, NearBlocks, 1Click, GoPlus and ShieldBot responses, keyed by the sha256 of the request. A request with no fixture reads Unknown, never a pass.
+Fixtures under `fixtures/rpc/`, `fixtures/demo/`, `fixtures/scan/`, `fixtures/intents/`, `fixtures/goplus/` and `fixtures/evm/` are recorded JSON-RPC, NearBlocks, 1Click, GoPlus and ShieldBot responses, keyed by the sha256 of the request. A request with no fixture reads Unknown, never a pass.
 
 | Command | Needs | Label |
 |---|---|---|
