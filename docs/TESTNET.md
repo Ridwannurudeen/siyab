@@ -35,7 +35,7 @@ Read back after setup: Gate and registry `version` `0.1.0`; Gate policy `max_ttl
 | 10 DMT to the vendor, memo `invoice 2`, 1 Nov | ALLOW, 1794 ms | `7agsRsZg...Gpvdwn` |
 | 10 DMT to the vendor, memo `invoice 3`, 2 Nov, after the redeploy | ALLOW, 1754 ms | `DU55HxkN...zXNwGh` |
 
-Each emitted `transfer_scheduled`, the token's `ft_transfer` and `transfer_completed`. The evidence document of the first payment was lost with a scratch copy, so only the second is in the registry.
+Each emitted `transfer_scheduled`, the token's `ft_transfer` and `transfer_completed`. The evidence document of the first payment was lost with a scratch copy, so the second is the only payment recorded in the registry so far.
 
 ## Attack run, 29 Oct
 
