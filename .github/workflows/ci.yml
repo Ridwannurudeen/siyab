@@ -25,3 +25,99 @@ jobs:
           if [ -f gate/demo.py ]; then
             python -m gate demo --offline
           fi
+      - name: Gate code hash
+        run: |
+          if [ -f res/gate.wasm ]; then
+            python -m gate codehash res/gate.wasm
+          fi
+      - name: Gate wasm exports
+        run: |
+          if [ -f res/gate.wasm ]; then
+            python -m gate wasm-exports res/gate.wasm
+          fi
+      - name: Registry wasm exports
+        run: |
+          if [ -f res/gate.wasm ]; then
+            python -m gate wasm-exports res/registry.wasm
+          fi
+      - name: Verify registry fixtures
+        run: |
+          if [ -f res/gate.wasm ]; then
+            python -m gate verify fixtures/registry/sample-allow.json fixtures/evidence/sample-allow-evidence.json
+          fi
+
+  rust-unit:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        crate: [gate, test-token, registry]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.99.1
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contracts/${{ matrix.crate }} -> target
+      - name: Unit tests
+        working-directory: contracts/${{ matrix.crate }}
+        run: cargo test --lib
+
+  sandbox:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      matrix:
+        crate: [gate, registry]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.99.1
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contracts/${{ matrix.crate }} -> target
+      - name: Sandbox tests
+        working-directory: contracts/${{ matrix.crate }}
+        run: cargo test --test sandbox
+
+  reproducible:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.99.1
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contracts/gate -> target
+      - name: Install cargo-near
+        run: cargo install cargo-near --version 0.22.0 --locked
+      - name: Build gate reproducibly
+        working-directory: contracts/gate
+        run: cargo near build reproducible-wasm --out-dir ../../res
+      - name: Build registry reproducibly
+        working-directory: contracts/registry
+        run: cargo near build reproducible-wasm --out-dir ../../res
+      - name: Compare wasm hashes
+        run: sha256sum -c res/gate.wasm.sha256 res/registry.wasm.sha256
+
+  hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Repository hygiene
+        run: python scripts/check_hygiene.py --all
+      - name: Private key history scan
+        shell: bash
+        run: |
+          set -o pipefail
+          count=$(git log --all -p | grep -Eic 'ed25519:[1-9A-HJ-NP-Za-km-z]{80,}|"(secret_key|private_key)"[[:space:]]*:[[:space:]]*"[^"]+"|BEGIN [A-Z ]*PRIVATE KEY' || true)
+          printf '%s\n' "$count"
+          test "$count" -eq 0
