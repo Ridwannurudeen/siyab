@@ -25,7 +25,7 @@ Built with `cargo near build non-reproducible-wasm` from a clean export of `main
 | Registry | `registry.kestrelridge-main.testnet` | `64jBn2DD6PjypZKsWf7WhfvvxTaKWRCaug1izAjcmrLU` | `4bhQViAx...ifcJU3` |
 | Test token (DMT, 6 decimals, supply 1000000 DMT to the Gate) | `token.kestrelridge-main.testnet` | `5uXqAX8C8fTupiJYwZQz1fC5voSnQsaD9xhxQ4R28rZw` | `A1To88Pg...s9dMs7` |
 
-Read back after setup: Gate and registry `version` `0.1.0`; Gate policy `max_ttl_ms` 300000, not paused, empty denylist; one verifier key, no previous key; the registry recorder is `recorder.kestrelridge-main.testnet`; token storage registered for the Gate, the vendor and the aged payee (0.00129 NEAR each). The Gate holds one full access key and no agent key yet.
+Read back after setup: Gate and registry `version` `0.1.0`; Gate policy `max_ttl_ms` 300000, not paused, empty denylist; one verifier key, no previous key; the registry recorder is `recorder.kestrelridge-main.testnet`; token storage registered for the Gate, the vendor and the aged payee (0.00129 NEAR each). At that point the Gate held one full access key and no agent key; `register_agent` added the agent's `request_transfer` key on 29 Oct (the Gate scan of 2 Nov, `fixtures/scan/`, shows both).
 
 ## Payments
 
