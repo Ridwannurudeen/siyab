@@ -167,7 +167,7 @@ class IdeaTextTest(unittest.TestCase):
         self.assertNotIn(TOPIC_CLAIMS["the scanner"], text)
         self.assertNotIn("Run python -m gate scan on an account.", text)
 
-    def test_a_long_feed_row_is_the_first_dropped_at_2000_characters(self):
+    def test_a_long_feed_row_drops_every_topic_before_the_feed_at_2000_characters(self):
         long_feed = "The feed " + "reports one more event " * 80 + "."
         rows = gen_idea.idea_rows(table(["A lookalike name is refused.", long_feed, "The key scan lists keys."]))
         self.assertGreater(len(gen_idea.assemble(rows)), 2000)

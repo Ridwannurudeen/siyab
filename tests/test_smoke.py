@@ -71,6 +71,30 @@ class SmokeTest(unittest.TestCase):
         self.assertEqual(lines[-1], "8 of 9 PASS")
         self.assertEqual(tempfile.tempdir, tempdir)
 
+    def test_every_step_runs_in_replay_from_the_smoke_temporary_directory(self):
+        smoke = load_smoke()
+        seen = []
+
+        def record(work):
+            seen.append((os.environ["GATE_FIXTURES_MODE"], os.environ["TEMP"], os.environ["TMP"],
+                         os.environ["TMPDIR"], work))
+            return "recorded"
+
+        stdout = io.StringIO()
+        with mock.patch.dict(os.environ, {"GATE_FIXTURES_MODE": "record"}):
+            before = dict(os.environ)
+            with (mock.patch.object(smoke, "STEPS", [(f"step {number}", record) for number in range(1, 10)]),
+                  contextlib.redirect_stdout(stdout)):
+                code = smoke.main()
+            after = dict(os.environ)
+        self.assertEqual(code, 0, stdout.getvalue())
+        self.assertEqual(after, before)
+        self.assertEqual(len(seen), 9)
+        for mode, temp, tmp, tmpdir, work in seen:
+            self.assertEqual(mode, "replay")
+            self.assertTrue(work.name.startswith("shieldbot-near-smoke-"), work)
+            self.assertEqual({temp, tmp, tmpdir}, {str(work)})
+
 
 if __name__ == "__main__":
     unittest.main()

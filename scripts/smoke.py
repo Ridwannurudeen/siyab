@@ -7,8 +7,10 @@ Each step prints one line, "<n>. <step>: PASS (<what it saw>)" or "<n>. <step>: 
 last line is "<passed> of 9 PASS". The exit code is 0 only when all nine pass. It needs Python alone and
 runs the same on Windows and POSIX: no shell, no glob, no sha256sum.
 
-Read only: the network is refused inside this process (urllib.request.urlopen raises); every step that
-runs a command starts it as a subprocess with -I (isolated: no PYTHON* variables, no user site), -B (no
+Read only: the network is refused inside this process (urllib.request.urlopen raises), and while the
+steps run this process sets GATE_FIXTURES_MODE=replay and points TMPDIR, TEMP and TMP at its temporary
+directory, so the in process steps and the subprocesses they start replay too; every step that runs a
+command starts it as a subprocess with -I (isolated: no PYTHON* variables, no user site), -B (no
 bytecode written) and GATE_FIXTURES_MODE=replay, through a short boot that refuses the network the same
 way and puts the repository on sys.path; every temporary file, the evidence documents of steps 1 and 6
 and the judgements of step 9 included, goes into one temporary directory removed at the end.
@@ -225,7 +227,8 @@ def main():
     sys.dont_write_bytecode = True
     tempdir, passed = tempfile.tempdir, 0
     with (tempfile.TemporaryDirectory(prefix="shieldbot-near-smoke-") as tmp,
-          mock.patch("urllib.request.urlopen", side_effect=_refuse)):
+          mock.patch("urllib.request.urlopen", side_effect=_refuse),
+          mock.patch.dict(os.environ, {"GATE_FIXTURES_MODE": "replay", "TMPDIR": tmp, "TEMP": tmp, "TMP": tmp})):
         tempfile.tempdir = tmp
         try:
             for number, (title, step) in enumerate(STEPS, start=1):
