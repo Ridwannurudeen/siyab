@@ -51,7 +51,7 @@ res/                    built wasm files, their sha256 and the build record
 
 ## Environment variables
 
-`env.example` lists every variable with a comment. The code reads `NEAR_RPC_URL`, `NEAR_MAINNET_RPC_URL`, `NEAR_ARCHIVAL_RPC_URL`, `NEARBLOCKS_API_URL`, `SHIELDBOT_API_URL` (empty means off), `GATE_ACCOUNT_ID` (the MCP server defaults to `gate.near`), `GATE_POLICY` (the agent policy JSON the MCP server checks payments against), `VERIFIER_KEY_FILE` and `AGENT_KEY_FILE` (key file paths kept outside the repository), `GATE_FIXTURES_MODE` (`replay` by default, `record` or `off`) and `GATE_ALLOW_PURE_PYTHON_SIGNER`. The testnet scripts read the variables in the `scripts/README.md` table.
+`env.example` lists every variable with a comment. The code reads `NEAR_RPC_URL`, `NEAR_MAINNET_RPC_URL`, `NEAR_ARCHIVAL_RPC_URL`, `NEARBLOCKS_API_URL`, `SHIELDBOT_API_URL` (empty means off), `GATE_ACCOUNT_ID` (the MCP server defaults to `gate.near`), `GATE_POLICY` (the agent policy JSON the MCP server checks payments against), `VERIFIER_KEY_FILE` and `AGENT_KEY_FILE` (key file paths kept outside the repository), `GATE_FIXTURES_MODE` (`replay` by default, `record` or `off`), `GATE_ALLOW_PURE_PYTHON_SIGNER`, `GATE_LIVE_SIGNING` (`1` lets the MCP server sign with the live key) and `AGENT_PUB` (the agent public key the MCP server binds a live verdict to). The testnet scripts read the variables in the `scripts/README.md` table.
 
 ## Working agreements
 

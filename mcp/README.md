@@ -1,6 +1,6 @@
 # MCP server
 
-`python -m mcp.server`, run from the repository root, is a stdio MCP server with three tools. It uses the Python standard library only. Messages are JSON-RPC 2.0, one per line on stdin and stdout; a client that sends `Content-Length` framed messages gets framed answers. Only JSON-RPC frames go to stdout; the server's own lines go to stderr.
+`python -m mcp.server`, run from the repository root, is a stdio MCP server with three tools. It uses the Python standard library only, except live signing, which imports PyNaCl through `gate/signer.py`. Messages are JSON-RPC 2.0, one per line on stdin and stdout; a client that sends `Content-Length` framed messages gets framed answers. Only JSON-RPC frames go to stdout; the server's own lines go to stderr.
 
 The server replays recorded fixtures unless `GATE_FIXTURES_MODE` says otherwise (`record` or `off` opens the network for the read only calls the rules make).
 
@@ -12,17 +12,24 @@ Each answer is `{"content": [{"type": "text", "text": <JSON>}], "isError": false
 
 | Tool | Arguments | The JSON it returns |
 |---|---|---|
-| `check_near_payment` | `kind` (`near` or `ft`), `token` (for `ft`), `receiver`, `amount` (base units, decimal), `memo` | `outcome` (`ALLOW`, `DENY` or `UNKNOWN`), `verdict` (the signed Verdict object on ALLOW, else null), `request`, `checks` (each with `id`, `status`, `detail`, `source`), `reasons`, `evidence_hash`, `evidence_path`, `latency_ms`, `message` (the canonical message on ALLOW), `gate`, `signer` |
+| `check_near_payment` | `kind` (`near` or `ft`), `token` (for `ft`), `receiver`, `amount` (base units, decimal), `memo` | `outcome` (`ALLOW`, `DENY` or `UNKNOWN`), `verdict` (the signed Verdict object on ALLOW, else null), `request`, `checks` (each with `id`, `status`, `detail`, `source`), `reasons`, `evidence_hash`, `evidence_path`, `latency_ms`, `message` (the canonical message on ALLOW), `gate`, `signer` (`kind` `TEST` or `live`, `key_id`, `public_key` as `ed25519:<base58>`, `public_key_hex`, and `note` for TEST only), `agent_pk` (the agent key in the message, hex), `policy_source` (`GATE_POLICY` or `get_agent`) |
 | `check_intents_quote` | `origin_asset`, `destination_asset`, `amount`, `recipient`, `recipient_type` (default `DESTINATION_CHAIN`) | `verdict`, `checks`, `reasons`, `quote` (the dry quote), `evidence_hash`; unsigned, nothing is deposited |
 | `scan_near_account` | `account_id` | `findings` (the key lists, the verifier keys, the labels, and the reason for each read that could not run) and `lines` (the text `python -m gate scan` prints) |
 
-`check_near_payment` signs an ALLOW with the TEST verifier key. That key is derived from a published seed and is never registered on testnet, so the testnet Gate does not pay on a verdict from this tool. Unknown is never a pass.
+By default `check_near_payment` binds the verdict to the TEST agent key, judges against `GATE_POLICY` and signs an ALLOW with the TEST verifier key. That key is derived from a published seed and is never registered on testnet, so the testnet Gate does not pay on such a verdict. Unknown is never a pass.
+
+The tool signs with the live verifier key only when the operator sets all five conditions: `GATE_LIVE_SIGNING=1`, `VERIFIER_KEY_FILE` set, `GATE_FIXTURES_MODE=off`, `GATE_ACCOUNT_ID` ending `.testnet`, and `GATE_POLICY` unset. `AGENT_PUB` must then hold the agent's public key as `ed25519:<base58>`: the verdict is bound to that key and judged against the Gate's `get_agent` for it, read live at every call, so the request and the verdict are the two arguments `request_transfer` takes. With the flag set and any condition missing, or the agent key not registered, or `get_agent` unreadable, the tool answers `isError: true` with the reason, ending "nothing was signed"; it never falls back to the TEST key. Without the flag, a set `VERIFIER_KEY_FILE` changes nothing: the TEST key signs. On a live ALLOW the server prints one stderr line with the Gate, the agent public key and the verifier public key. The live signer needs PyNaCl, so launch the server with the interpreter that has it (`~/.venvs/near/bin/python -m mcp.server`).
+
+The server has no caller authentication: whoever can start it and call its tools can obtain verdicts for the configured agent, so the operator controls access to it. Each live ALLOW is bounded by the Gate's caps and the 5 minute expiry. The evidence document of a live verdict is written to the temporary directory the server names on stderr; the operator copies it before the server exits if the verdict is to be recorded in the registry.
 
 ## Environment
 
 - `GATE_FIXTURES_MODE`: `replay` (default), `record` or `off`.
 - `GATE_ACCOUNT_ID`: the Gate the payment verdict is bound to; default `gate.near`. A `.testnet` id selects the testnet RPC, NearBlocks and archival RPC endpoints.
-- `GATE_POLICY`: the agent policy as JSON in the `get_agent` shape; default `{"allowlist": [], "caps": []}`, so every receiver also gets the checks for a payee off the allowlist.
+- `GATE_POLICY`: the agent policy as JSON in the `get_agent` shape; default `{"allowlist": [], "caps": []}`, so every receiver also gets the checks for a payee off the allowlist. Must be unset for live signing.
+- `GATE_LIVE_SIGNING`: `1` turns on live signing, which then needs every condition above; any other value leaves the TEST key.
+- `VERIFIER_KEY_FILE`: the live verifier key file (near-cli shape), kept outside the repository; read only with `GATE_LIVE_SIGNING=1`.
+- `AGENT_PUB`: the agent's function call public key as `ed25519:<base58>`, the key the live verdict is bound to and `get_agent` is read for; the public key only, never the agent's secret.
 - `NEAR_RPC_URL`, `NEAR_MAINNET_RPC_URL`, `NEARBLOCKS_API_URL`, `NEAR_ARCHIVAL_RPC_URL`: endpoint overrides.
 - `SHIELDBOT_API_URL`: the ShieldBot API for the memo and firewall checks; empty means off.
 
