@@ -9,6 +9,9 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from gate import base58, canon, ed25519, rpc, signer
+from tests.test_verdict import nacl, no_network, write_key_file
+
 ROOT = Path(__file__).resolve().parent.parent
 EVIDENCE_DIR = ROOT / "fixtures" / "evidence"
 ALLOW_POLICY = {"allowlist": ["intents.near"], "caps": [{"asset": {"Ft": "wrap.near"}}]}
@@ -16,6 +19,11 @@ USDC_BASE_ASSET = "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.n
 DEMO_RECIPIENT = "0x1fcdb04d0c5364fbd92c73ca8af9baa72c269107"
 ONE_NEAR = "1000000000000000000000000"
 KEPT = ("PATH", "SYSTEMROOT", "HOME", "LANG")
+PAYMENT = {"kind": "ft", "token": "wrap.near", "receiver": "intents.near", "amount": "1000", "memo": "invoice 7"}
+LIVE_GATE = "gate.testnet"
+# Any read a refused live call makes by mistake fails on this machine instead of reaching testnet.
+UNREACHABLE = "http://127.0.0.1:9"
+NOTHING_SIGNED = "; nothing was signed"
 
 
 def initialize(version, number=1):
@@ -33,24 +41,30 @@ class McpSessionCase(unittest.TestCase):
         self.addCleanup(tmp.cleanup)
         self.tmp = tmp.name
 
-    def run_server(self, data):
-        """The raw stdout bytes and stderr text of one server process fed the bytes."""
+    def run_server(self, data, overrides=None):
+        """The raw stdout bytes and stderr text of one server process fed the bytes; overrides sets
+        environment variables over the replay environment, and a None value removes one."""
         env = {key: value for key, value in os.environ.items() if key in KEPT}
         env.update({"GATE_FIXTURES_MODE": "replay", "GATE_ACCOUNT_ID": "gate.near",
                     "GATE_POLICY": json.dumps(ALLOW_POLICY), "TMPDIR": self.tmp, "TEMP": self.tmp, "TMP": self.tmp})
+        for key, value in (overrides or {}).items():
+            if value is None:
+                env.pop(key, None)
+            else:
+                env[key] = value
         process = subprocess.run([sys.executable, "-m", "mcp.server"], input=data, capture_output=True, cwd=ROOT,
                                  env=env, timeout=120, check=False)
         self.assertEqual(process.returncode, 0, process.stderr.decode("utf-8", "replace"))
         return process.stdout, process.stderr.decode("utf-8", "replace")
 
-    def session(self, messages, framed=False):
+    def session(self, messages, framed=False, overrides=None):
         bodies = [json.dumps(message).encode("utf-8") for message in messages]
         if framed:
-            return self.run_server(b"".join(b"Content-Length: %d\r\n\r\n" % len(body) + body for body in bodies))
-        return self.run_server(b"".join(body + b"\n" for body in bodies))
+            return self.run_server(b"".join(b"Content-Length: %d\r\n\r\n" % len(body) + body for body in bodies), overrides)
+        return self.run_server(b"".join(body + b"\n" for body in bodies), overrides)
 
-    def replies(self, messages):
-        stdout, _ = self.session(messages)
+    def replies(self, messages, overrides=None):
+        stdout, _ = self.session(messages, overrides=overrides)
         lines = stdout.split(b"\n")
         self.assertEqual(lines[-1], b"")
         replies = [json.loads(line) for line in lines[:-1]]
@@ -95,7 +109,7 @@ class McpServerTest(McpSessionCase):
         self.assertEqual(verdict["verdict"]["evidence_hash"], verdict["evidence_hash"])
         self.assertTrue(verdict["message"].startswith("GATEv1|gate.near|"))
         self.assertTrue(Path(verdict["evidence_path"]).is_relative_to(self.tmp))
-        self.assertIn("TEST verifier key", verdict["signer"])
+        self.assertEqual(verdict["signer"]["kind"], "TEST")
 
         quote = json.loads(by_id[4]["result"]["content"][0]["text"])
         self.assertFalse(by_id[4]["result"]["isError"])
@@ -188,6 +202,152 @@ class McpHandlerTest(unittest.TestCase):
                                                                                  "full"}], "isError": True})
         self.assertIn("tool scan_near_account failed: RuntimeError: disk full", errors.getvalue())
         self.assertTrue(Path(server.__file__).is_relative_to(ROOT))
+
+
+class McpLiveSigningTest(McpSessionCase):
+    def setUp(self):
+        super().setUp()
+        keys = tempfile.TemporaryDirectory()
+        self.addCleanup(keys.cleanup)
+        self.seed = os.urandom(32)
+        self.public = ed25519.public_from_seed(self.seed)
+        self.key_file = Path(keys.name) / "throwaway-verifier.json"
+        write_key_file(self.key_file, self.seed)
+        self.agent = ed25519.public_from_seed(os.urandom(32))
+        self.agent_pub = base58.encode_key(self.agent)
+        self.live = {"GATE_LIVE_SIGNING": "1", "VERIFIER_KEY_FILE": str(self.key_file), "GATE_FIXTURES_MODE": "off",
+                     "GATE_ACCOUNT_ID": LIVE_GATE, "GATE_POLICY": None, "AGENT_PUB": self.agent_pub,
+                     "NEAR_RPC_URL": UNREACHABLE, "NEAR_MAINNET_RPC_URL": UNREACHABLE,
+                     "NEARBLOCKS_API_URL": UNREACHABLE, "NEAR_ARCHIVAL_RPC_URL": UNREACHABLE}
+
+    def payment(self, overrides):
+        by_id, _ = self.replies([call(1, "check_near_payment", PAYMENT)], overrides)
+        return by_id[1]["result"]
+
+    def refusal(self, overrides):
+        result = self.payment({**self.live, **overrides})
+        self.assertTrue(result["isError"])
+        self.assertEqual(os.listdir(self.tmp), [])
+        return result["content"][0]["text"]
+
+    def test_every_partial_live_configuration_is_refused_and_nothing_is_signed(self):
+        cases = (
+            ({"GATE_FIXTURES_MODE": "replay"}, ("live signing needs GATE_FIXTURES_MODE=off, not replay: a live key "
+                                                "never signs over fixtures")),
+            ({"GATE_FIXTURES_MODE": None}, ("live signing needs GATE_FIXTURES_MODE=off, not replay: a live key never "
+                                            "signs over fixtures")),
+            ({"GATE_FIXTURES_MODE": "record"}, ("live signing needs GATE_FIXTURES_MODE=off, not record: a live key "
+                                                "never signs over fixtures")),
+            ({"GATE_ACCOUNT_ID": "gate.near"}, "live signing is for a .testnet Gate only, not gate.near"),
+            ({"GATE_ACCOUNT_ID": None}, "live signing is for a .testnet Gate only, not gate.near"),
+            ({"GATE_POLICY": json.dumps(ALLOW_POLICY)}, ("live signing reads the policy from get_agent; unset "
+                                                         "GATE_POLICY")),
+            ({"VERIFIER_KEY_FILE": None}, "live signing needs VERIFIER_KEY_FILE"),
+            ({"AGENT_PUB": None}, "live signing needs AGENT_PUB, the agent public key as ed25519:<base58>"),
+            ({"AGENT_PUB": "ed25519:abc"}, "AGENT_PUB is not a 32 byte ed25519 key: ed25519:abc"),
+            ({"AGENT_PUB": self.agent.hex()}, f"AGENT_PUB is not a 32 byte ed25519 key: {self.agent.hex()}"),
+            ({"AGENT_PUB": "ed25519:0OIl"}, "AGENT_PUB is not a 32 byte ed25519 key: ed25519:0OIl"),
+        )
+        for overrides, expected in cases:
+            with self.subTest(overrides=overrides):
+                self.assertEqual(self.refusal(overrides), expected + NOTHING_SIGNED)
+
+    def test_a_key_file_the_signer_cannot_use_is_refused(self):
+        missing = str(self.key_file.with_name("missing.json"))
+        text = self.refusal({"VERIFIER_KEY_FILE": missing})
+        self.assertTrue(text.startswith("no live signer: "), text)
+        self.assertTrue(text.endswith(NOTHING_SIGNED), text)
+        self.assertTrue("PyNaCl is not installed" in text or f"{missing}: cannot read a key file" in text, text)
+
+    def test_without_the_flag_a_key_file_still_signs_with_the_test_key(self):
+        from mcp import server
+
+        for flag in (None, "0"):
+            with self.subTest(flag=flag):
+                result = self.payment({"GATE_LIVE_SIGNING": flag, "VERIFIER_KEY_FILE": str(self.key_file),
+                                       "AGENT_PUB": self.agent_pub})
+                self.assertFalse(result["isError"])
+                verdict = json.loads(result["content"][0]["text"])
+                self.assertEqual(verdict["outcome"], "ALLOW")
+                test_key = signer.TestSigner().public_key_hex
+                self.assertEqual(verdict["signer"], {
+                    "kind": "TEST", "key_id": "cur", "public_key": base58.encode_key(bytes.fromhex(test_key)),
+                    "public_key_hex": test_key, "note": server.TEST_KEY_NOTE})
+                self.assertEqual(verdict["agent_pk"], ed25519.public_from_seed(ed25519.TEST_AGENT_SEED).hex())
+                self.assertEqual(verdict["policy_source"], "GATE_POLICY")
+                self.assertNotIn(self.agent.hex(), verdict["message"])
+
+    @unittest.skipIf(nacl is None, "PyNaCl is not installed; run under ~/.venvs/near/bin/python")
+    def test_a_live_allow_is_signed_with_the_configured_key_for_the_configured_agent(self):
+        from mcp import server
+
+        clients = (rpc.Client(rpc.MAINNET_RPC_URL, mode="replay"),
+                   rpc.Client(rpc.NEARBLOCKS_URL, mode="replay", kind="http"), None,
+                   rpc.Client(rpc.ARCHIVAL_RPC_URL, mode="replay"))
+        env = {key: value for key, value in self.live.items() if value is not None}
+        errors = io.StringIO()
+        with (mock.patch.dict(os.environ, env), mock.patch("urllib.request.urlopen", side_effect=no_network),
+              mock.patch.object(server, "_clients", return_value=clients),
+              mock.patch.object(server, "_live_policy", return_value=ALLOW_POLICY) as live_policy,
+              contextlib.redirect_stderr(errors)):
+            os.environ.pop("GATE_POLICY", None)
+            result = server._check_near_payment(PAYMENT, self.tmp)
+        live_policy.assert_called_once_with(clients[0], LIVE_GATE, self.agent_pub)
+        self.assertEqual(result["outcome"], "ALLOW")
+        self.assertEqual(result["gate"], LIVE_GATE)
+        self.assertEqual(result["signer"], {"kind": "live", "key_id": "cur", "public_key": base58.encode_key(self.public),
+                                            "public_key_hex": self.public.hex()})
+        self.assertEqual(result["agent_pk"], self.agent.hex())
+        self.assertEqual(result["policy_source"], "get_agent")
+        self.assertTrue(result["message"].startswith(f"GATEv1|{LIVE_GATE}|{self.agent.hex()}|"))
+        self.assertTrue(ed25519.verify(self.public, canon.digest(result["message"].encode("utf-8")),
+                                       bytes.fromhex(result["verdict"]["signature"])))
+        logged = errors.getvalue()
+        self.assertEqual(len(logged.splitlines()), 1)
+        self.assertIn(self.agent_pub, logged)
+        self.assertIn(base58.encode_key(self.public), logged)
+        self.assertNotIn(self.seed.hex(), logged)
+        self.assertNotIn(base58.encode(self.seed), logged)
+
+    def test_a_live_signer_that_cannot_start_is_refused_before_any_read(self):
+        from mcp import server
+
+        env = {key: value for key, value in self.live.items() if value is not None}
+        missing = signer.SignerError("PyNaCl is not installed; the live signer runs from the venv ~/.venvs/near")
+        with (mock.patch.dict(os.environ, env), mock.patch.object(server.signer, "NaClSigner", side_effect=missing),
+              mock.patch.object(server, "_clients", side_effect=AssertionError("read before the signer started"))):
+            os.environ.pop("GATE_POLICY", None)
+            with self.assertRaises(server.ToolError) as raised:
+                server._check_near_payment(PAYMENT, self.tmp)
+        self.assertEqual(str(raised.exception), f"no live signer: {missing}" + NOTHING_SIGNED)
+
+    def test_the_policy_is_read_from_get_agent_and_an_unregistered_key_is_refused(self):
+        from mcp import server
+
+        class Client:
+            def __init__(self, answer):
+                self.answer, self.calls = answer, []
+
+            def call_function(self, contract, method, args):
+                self.calls.append((contract, method, args))
+                if isinstance(self.answer, Exception):
+                    raise self.answer
+                return self.answer
+
+        registered = Client(ALLOW_POLICY)
+        self.assertEqual(server._live_policy(registered, LIVE_GATE, self.agent_pub), ALLOW_POLICY)
+        self.assertEqual(registered.calls, [(LIVE_GATE, "get_agent", {"public_key": self.agent_pub})])
+        with self.assertRaises(server.ToolError) as raised:
+            server._live_policy(Client(None), LIVE_GATE, self.agent_pub)
+        self.assertEqual(str(raised.exception),
+                         f"the agent key {self.agent_pub} is not registered on {LIVE_GATE}" + NOTHING_SIGNED)
+        for error in (rpc.RpcError({"name": "HANDLER_ERROR"}), rpc.TransportError("timed out"),
+                      rpc.MalformedResponse("the call_function result holds no byte list")):
+            with self.subTest(error=type(error).__name__):
+                with self.assertRaises(server.ToolError) as raised:
+                    server._live_policy(Client(error), LIVE_GATE, self.agent_pub)
+                self.assertEqual(str(raised.exception),
+                                 f"cannot read get_agent on {LIVE_GATE}: {error}" + NOTHING_SIGNED)
 
 
 if __name__ == "__main__":
