@@ -85,7 +85,9 @@ jobs:
           path: |
             ~/.cargo
             /tmp/shieldbot-near-target
-          key: ${{ runner.os }}-cargo-${{ matrix.crate }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-sandbox-${{ matrix.crate }}-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install cargo-near
+        run: command -v cargo-near || cargo install cargo-near --version 0.22.0 --locked
       - name: Sandbox tests
         working-directory: contracts/${{ matrix.crate }}
         run: cargo test --test sandbox
