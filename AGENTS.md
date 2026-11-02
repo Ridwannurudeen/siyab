@@ -10,7 +10,7 @@ Who your agent pays gets a verdict with evidence. Unknown never passes. A verdic
 
 ## Test
 
-Run from the repository root. Set `CARGO_TARGET_DIR` to a directory outside the repository on every cargo command (for example `$HOME/target/shieldbot-near`); nothing builds into the tree.
+Run from the repository root. Set `CARGO_TARGET_DIR` to a directory outside the repository on every cargo command (for example `$HOME/target/shieldbot-near`), except `cargo near build reproducible-wasm`, which needs it unset: its container writes `target/near` inside the crate (`res/BUILD.md`).
 
 ```
 python -m unittest discover -s tests -v                       # offline
@@ -22,7 +22,7 @@ cd contracts/<crate> && cargo test --test sandbox             # network, Linux o
 cd contracts/<crate> && cargo near build reproducible-wasm    # network, Docker
 ```
 
-`<crate>` is `gate`, `registry` or `test-token` (`test-token` has no sandbox test). The reproducible build runs once a crate's `Cargo.toml` carries its reproducible build metadata, which lands with the wasm build. The PyNaCl and py-near cross checks run with `~/.venvs/near/bin/python` in place of `python` and skip with a printed reason without it.
+`<crate>` is `gate`, `registry` or `test-token` (`test-token` has no sandbox test). Both contract crates carry the reproducible build metadata; `res/BUILD.md` has the source commit and the recipe. The PyNaCl and py-near cross checks run with `~/.venvs/near/bin/python` in place of `python` and skip with a printed reason without it.
 
 ## Run
 
@@ -46,7 +46,7 @@ tests/                  Python tests
 scripts/                hygiene check, counts, idea text (gen_idea.py), testnet scripts
 demo/site/              static pages written by python -m intel render
 docs/                   records, claims, attacks, evidence, testnet, demo shot list (DEMO.md), spikes, log
-res/                    built wasm files, their sha256 and the build record (lands with the wasm build)
+res/                    built wasm files, their sha256 and the build record
 ```
 
 ## Environment variables

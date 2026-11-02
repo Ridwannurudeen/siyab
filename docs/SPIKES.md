@@ -15,7 +15,7 @@ Measured facts and spike results for the build. Every entry names its date, the 
 
 No shell startup file is edited. Each command sets its variables inline:
 
-- `CARGO_TARGET_DIR=$HOME/target/shieldbot-near` on every cargo command (the directory exists). Nothing builds into the repository tree.
+- `CARGO_TARGET_DIR=$HOME/target/shieldbot-near` on every cargo command (the directory exists), except `cargo near build reproducible-wasm`, which needs it unset (S4). Nothing else builds into the repository tree.
 - `NEAR_SANDBOX_BIN_PATH`: not needed so far. near-sandbox 0.3.16 downloads the binary into the cargo target directory, not `/tmp` (see S1); pass it inline only to pin a copied binary.
 
 ## S1: sandbox under WSL
@@ -72,7 +72,9 @@ From the crate sources (UNVERIFIED until the run prints them):
 
 Result, 29 Oct: the Docker half cannot run on this machine; the hash half is closed.
 
-Update, 29 Oct (later): Docker Engine 29.1.3 (the Ubuntu `docker.io` package) now runs in WSL under systemd, and containers run without sudo. Ladder step 1 is met without Docker Desktop. The `[package.metadata.near.reproducible_build]` section is still missing from every crate.
+Update, 29 Oct (later): Docker Engine 29.1.3 (the Ubuntu `docker.io` package) now runs in WSL under systemd, and containers run without sudo. Ladder step 1 is met without Docker Desktop.
+
+Result, 2 Nov: ladder step 1 PASS. Both crates carry cargo-near 0.22.0's `[package.metadata.near.reproducible_build]` block; `cargo near build reproducible-wasm` built byte identical wasm in two separate clean clones at source commit `eb54c8e` (`res/BUILD.md`; handoff record `testnet-runs/setup/reproducible-two-clones-20261102.txt`), and the CI `reproducible` job rebuilt both on a GitHub runner at that commit with the same sha256 (run 41438446168, handoff record `testnet-runs/setup/ci-reproducible-run-41438446168.txt`). It must run with `CARGO_TARGET_DIR` unset: with it set, the container still builds into `target/near` inside the mounted tree and cargo-near then fails with "assumed artifact result path for a rust crate docker build not found" at the path under `CARGO_TARGET_DIR` (handoff record `testnet-runs/setup/reproducible-failure-with-target-dir-20261102.txt`). The container compiles with Rust 1.96.0 from the image (`RUSTUP_TOOLCHAIN` in the image), not with `rust-toolchain.toml`'s 1.99.1, so the open point below is answered: the reproducible wasm is compiled by 1.96.0. The Gate and the registry on testnet were redeployed with it and their `code_hash` MATCH.
 
 - `docker --version` in WSL: `bash: line 1: docker: command not found` (exit 127).
 - `cargo near build reproducible-wasm --help` (cargo-near 0.22.0): "Requires `[reproducible_build]` section in Cargo.toml, and all changes committed to git (recommended for the production release)". Options: `--no-locked` (makes the build not reproducible), `--profile`, `--out-dir`, `--manifest-path`, `--color`, `--variant` (a named override under `[package.metadata.near.reproducible_build.variant.<name>]`). The contract is built inside a Docker container; the image, its digest, the passed environment variables and the build command come from `[package.metadata.near.reproducible_build]`; `--locked` is on by default, so the crate needs a committed `Cargo.lock` that is current.

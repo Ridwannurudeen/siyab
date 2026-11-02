@@ -7,7 +7,7 @@ Source commit: eb54c8e11c2916201af1d13ce7b92e1c8c8c473b
 The source link embedded by NEP-330 is `https://github.com/Ridwannurudeen/shieldbot-near/tree/eb54c8e11c2916201af1d13ce7b92e1c8c8c473b`.
 
 - cargo-near: 0.22.0.
-- Image: `sourcescan/cargo-near:0.21.1-rust-1.96.0`, digest `sha256:ccb2...ee17`.
+- Image: `sourcescan/cargo-near:0.21.1-rust-1.96.0`, digest `sha256:ccb22bb4e677ed022d8b9d1aa1b32f0af52dd0471ef1c32e48dedbf68ee6ee17`.
 - The container compiles with Rust 1.96.0 from the image. `rust-toolchain.toml` pins Rust 1.99.1 for local builds, so a local non reproducible build produces a different hash.
 - Gate wasm: 241330 bytes; sha256 `f7a09b28...fd14a107`; code_hash `Hfdk3jGUFxQyP8wEEoejNUkZ81bE9gDmoUBfGRghR5iE`.
 - Registry wasm: 157180 bytes; sha256 `2a154191...f0ec0cfa`; code_hash `3qGvVjTHVyvYVGQjJhqQGJMzmkUHwEbTCfWqHhXnW4VX`.
@@ -30,4 +30,4 @@ Compare the two printed sha256 values with the first field in `res/gate.wasm.sha
 
 reproducing the hash from source needs Docker; checking it against testnet needs network
 
-Testnet code_hash after redeploy: pending
+Testnet code_hash after redeploy (2 Nov, `scripts/redeploy.sh`, without an init call, state kept): Gate `kestrelridge-main.testnet` `Hfdk3jGUFxQyP8wEEoejNUkZ81bE9gDmoUBfGRghR5iE` MATCH (transaction `GTHR62ER...Wik5sW`); registry `registry.kestrelridge-main.testnet` `3qGvVjTHVyvYVGQjJhqQGJMzmkUHwEbTCfWqHhXnW4VX` MATCH (transaction `9GzMDrYe...UPBb66`). The Gate's `contract_source_metadata` view returns the NEP-330 link to the source commit above.
