@@ -15,6 +15,7 @@ from gate import (
     intents,
     registry,
     rpc,
+    rules,
     scan,
     signer,
     verdict,
@@ -65,11 +66,12 @@ def _verdict(args):
         print(f"no signer: {error}", file=sys.stderr)
         return 2
     client, nearblocks, scanner, archival = _clients(args.gate)
+    issuers = None if args.gate.endswith(".testnet") else rules.issuers_for("mainnet")
     try:
         result = verdict.request(args.kind, args.token, args.receiver, args.amount, args.memo, gate=args.gate,
                                  agent_pk_hex=args.agent_pk, policy=policy, store=labels.load(), rpc=client,
                                  nearblocks=nearblocks, signer=verdict_signer, injection_scanner=scanner,
-                                 archival=archival, evidence_dir=args.evidence_dir)
+                                 archival=archival, evidence_dir=args.evidence_dir, issuers=issuers)
     except canon.CanonError as error:
         print(f"invalid request: {error}", file=sys.stderr)
         return 2

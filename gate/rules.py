@@ -4,10 +4,11 @@ ALLOW means every check ran and none found a scam signal; DENY means a check fou
 signal wins over a check that could not run); UNKNOWN means a check could not run. ALLOW is the
 absence of a known scam signal, not proof of identity.
 
-Tier 1, every receiver: receiver_exists, label_denylist, token_in_catalog (ft), ft_metadata_sane
-(ft), storage_registered (ft), memo_injection. Tier 2, a receiver not on the agent's allowlist:
-account_age, dust_funded, lookalike, code_without_metadata. No contract code is never a signal
-on its own.
+Tier 1, every receiver: receiver_exists, label_denylist, issuer_blacklist (when the caller gives
+the issuer table of intel/issuers.json, which it does for a mainnet Gate), token_in_catalog (ft),
+ft_metadata_sane (ft), storage_registered (ft), memo_injection. Tier 2, a receiver not on the
+agent's allowlist: account_age, dust_funded, lookalike, code_without_metadata. No contract code is
+never a signal on its own.
 """
 
 import dataclasses
@@ -15,6 +16,7 @@ import json
 import re
 from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
+from pathlib import Path
 
 from gate import canon, evidence
 from gate.rpc import (
@@ -51,6 +53,9 @@ UNAVAILABLE = (FixtureMiss, HttpError, RateLimited, RpcError, TransportError, OS
 # outage. Any other contract execution error could not run, so it reads unknown.
 MISSING_CODE_CAUSES = ("UNKNOWN_ACCOUNT", "NO_CONTRACT_CODE")
 MISSING_METHOD_MARKERS = ("MethodNotFound", "CodeDoesNotExist")
+# Token issuers whose own view says whether an account is barred, per network; the callers choose
+# the network from the Gate, never from the receiver.
+ISSUERS_PATH = Path(__file__).resolve().parent.parent / "intel" / "issuers.json"
 
 _ZERO_WIDTH = "".join(chr(code) for code in (0x200B, 0x200C, 0x200D, 0x2060, 0xFEFF))
 INJECTION_PATTERNS = tuple((name, re.compile(pattern, re.IGNORECASE)) for name, pattern in (
@@ -104,6 +109,11 @@ def _local(provider, digest=None):
 def _quoted(text):
     """A third party string as quoted data, never as ShieldBot's own words."""
     return json.dumps(text, ensure_ascii=False)
+
+
+def issuers_for(network):
+    """The issuer entries of intel/issuers.json for the network, mainnet or testnet."""
+    return json.loads(ISSUERS_PATH.read_text(encoding="utf-8"))[network]
 
 
 def _missing_code(error):
@@ -272,7 +282,33 @@ def _why(error):
     return f"{type(error).__name__}: {error}"
 
 
-def _tier1(request, policy, store, rpc, injection_scanner):
+def _issuer_check(rpc, receiver, issuers):
+    """One issuer_blacklist row over every issuer: signal when an issuer's view answers its banned
+    value, else unknown when a read could not run, else pass. A token without the view passes."""
+    parts, sources = [], {}
+    for entry in issuers:
+        token, method = entry["token"], entry["method"]
+        try:
+            answer = rpc.call_function(token, method, {entry["args_key"]: receiver})
+            if answer == entry["banned"]:
+                status = "signal"
+                part = f"{receiver} is banned by the issuer of {token}: {method} answers {_quoted(answer)}"
+            else:
+                status, part = "pass", f"{token} {method} answers {_quoted(answer)}"
+        except RpcError as error:
+            if _missing_code(error):
+                status, part = "pass", f"no issuer blacklist view on {token}"
+            else:
+                status, part = "unknown", f"could not read {method} on {token}: {_why(error)}"
+        except UNAVAILABLE as error:
+            status, part = "unknown", f"could not read {method} on {token}: {_why(error)}"
+        parts.append(part)
+        sources.setdefault(status, _source(rpc))
+    status = next(s for s in ("signal", "unknown", "pass") if s in sources)
+    return evidence.check("issuer_blacklist", status, "; ".join(parts), sources[status])
+
+
+def _tier1(request, policy, store, rpc, injection_scanner, issuers):
     """Tier 1 checks; returns (checks, the receiver account or None, its source, label ids)."""
     kind, token, receiver, memo = (request["kind"], request["token_id"], request["receiver_id"],
                                    request["memo"])
@@ -302,6 +338,9 @@ def _tier1(request, policy, store, rpc, injection_scanner):
         checks.append(evidence.check("label_denylist", "pass", "no denylist or incident label on "
                                      + " or ".join([receiver] + ([token] if kind == "ft" else [])),
                                      store_source))
+
+    if issuers:
+        checks.append(_issuer_check(rpc, receiver, issuers))
 
     if kind == "ft":
         in_caps = token in _cap_tokens(policy)
@@ -536,6 +575,7 @@ def _code_check(rpc, receiver, account, account_source):
 _SIGNAL_REASONS = {
     "receiver_exists": "{receiver} does not exist.",
     "label_denylist": "{detail}.",
+    "issuer_blacklist": "{receiver} is banned by a token issuer ({detail}).",
     "token_in_catalog": "{token} is not a catalog token or a cap asset of the agent.",
     "ft_metadata_sane": "{token} has no valid ft_metadata.",
     "storage_registered": "Not registered on the token.",
@@ -570,15 +610,16 @@ def _reasons(verdict, checks, facts, request, tier2):
 
 
 def judge(request, policy, store, rpc, nearblocks, *, now_ms, injection_scanner, min_age_days=MIN_AGE_DAYS,
-          archival=None):
+          archival=None, issuers=None):
     """Judge one TransferRequest for the agent whose policy (allowlist and caps, in the get_agent
     shape) is given; store is the label store, rpc the NEAR JSON-RPC client, nearblocks the
     NearBlocks client, injection_scanner the ShieldBot API client or None and archival the archival
-    JSON-RPC client that dates the receiver when NearBlocks gives no creation time, or None. A
-    receiver that is not a valid account id raises canon.CanonError, a ValueError, before any
-    request."""
+    JSON-RPC client that dates the receiver when NearBlocks gives no creation time, or None.
+    issuers is the list of issuer entries (issuers_for) the issuer_blacklist check reads; None or an
+    empty list adds no check. A receiver that is not a valid account id raises canon.CanonError, a
+    ValueError, before any request."""
     canon.account_id(request["receiver_id"], "receiver_id")
-    tier1_checks, account, account_source, labels = _tier1(request, policy, store, rpc, injection_scanner)
+    tier1_checks, account, account_source, labels = _tier1(request, policy, store, rpc, injection_scanner, issuers)
     block_height = account.get("block_height") if account else None
     tier2 = request["receiver_id"] not in policy.get("allowlist", [])
     checks, facts = list(tier1_checks), {}
