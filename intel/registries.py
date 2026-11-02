@@ -110,12 +110,11 @@ def entities(by_registry=None):
     by_registry = by_registry if by_registry is not None else rows()
     result = []
     dao_rows = by_registry["sputnik_dao"]
-    dao_accounts = {row["subject"] for row in dao_rows}
     for row in dao_rows:
         account = row["subject"]
         members = [account]
         suffix = f".{account}"
-        members.extend(candidate for candidate in dao_accounts if candidate.endswith(suffix))
+        members.extend(candidate["subject"] for candidate in dao_rows if candidate["subject"].endswith(suffix))
         result.append({"id": f"dao-{account}", "name": row["entity"], "kind": "dao", "members": members,
                        "source": row["source"], "observed_at": row["observed_at"]})
 

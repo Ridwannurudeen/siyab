@@ -55,6 +55,10 @@ class RegistriesTests(unittest.TestCase):
 
     def test_entities_cover_every_organisation_row(self):
         entity_rows = registries.entities(self.by_registry)
+        recorded_entities = [
+            json.loads(line) for line in registries.ENTITIES_PATH.read_text(encoding="utf-8").splitlines()
+        ]
+        self.assertEqual(entity_rows, recorded_entities)
         members = {member for entity in entity_rows if entity["kind"] in ("dao", "validator")
                    for member in entity["members"]}
         organisation_subjects = {row["subject"] for row in self.all_rows if row["category"] == "organisation"}
