@@ -55,7 +55,7 @@ The unknown payee attack waits until the aged payee is 7 days old: it was create
 
 ## Registry
 
-`record_batch` by the recorder, 1 Nov, transaction `CW5TWeRy...JdPRhW`: three records (the second payment's ALLOW for the vendor, the lookalike's DENY, the aged payee's DENY as younger than 7 days). `total_records` reads 3, and `python -m gate verify` passes for each `latest` view against its evidence document, the ALLOW also against its signature with the live verifier key (handoff record `testnet-runs/registry/verify-20261101T210132Z.txt`).
+`record_batch` by the recorder, 1 Nov, transaction `CW5TWeRy...JdPRhW`: three records (the second payment's ALLOW for the vendor, the lookalike's DENY, the aged payee's DENY as younger than 7 days). `total_records` reads 3, and `python -m gate verify` passes for each `latest` view against its evidence document, the ALLOW also against its signature with the live verifier key (`fixtures/runs/verify-20261101T210132Z.txt`).
 
 ## Latency
 

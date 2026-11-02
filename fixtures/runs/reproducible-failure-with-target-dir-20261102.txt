@@ -1,0 +1,131 @@
+Excerpt of the 396 line console record of cargo near build reproducible-wasm run with CARGO_TARGET_DIR set, 2 Nov 2026: lines 1 to 102 and 370 to 396 are kept byte for byte; lines 103 to 369 (the cargo invocations and the compile output) are left out.
+Migrating config.toml from V1 to V2...
+Migrating config.toml from V2 to V3...
+Migrating config.toml from V3 to v4...
+Note: `near` CLI configuration is stored in "/home/gudman/.config/near-cli/config.toml"
+• Opening repo and determining HEAD and relative path of contract...
+current HEAD (/home/gudman/repro-test2/.git/): eb54c8e11c2916201af1d13ce7b92e1c8c8c473b
+• done
+
+• Checking if git is dirty...
+• done
+
+• Cloning project repo to a temporary build site, removing uncommitted changes...
+current HEAD (/tmp/.tmpOMwzzJ/.git/): eb54c8e11c2916201af1d13ce7b92e1c8c8c473b
+• Collecting cargo project metadata from temporary build site...
+• done
+
+• Parsing `[package.metadata.near.reproducible_build]` section of contract's `Cargo.toml` ...
+• done
+
+• Applying and validating `[package.metadata.near.reproducible_build]` section of contract's `Cargo.toml` ...
+
+applied reproducible build metadata: 
+    build variant: <DEFAULT>
+    image: sourcescan/cargo-near:0.21.1-rust-1.96.0
+    image digest: sha256:ccb22bb4e677ed022d8b9d1aa1b32f0af52dd0471ef1c32e48dedbf68ee6ee17
+    passed environment variables: []
+    container build command: ["cargo", "near", "build", "non-reproducible-wasm", "--locked"]
+    cloneable remote of git repository: https://github.com/Ridwannurudeen/shieldbot-near
+
+• done
+
+using `container_build_command` from `[package.metadata.near.reproducible_build]` in Cargo.toml
+• Performing `docker` sanity check...
+• done
+
+• Checking that specified image is available...
+docker image to be used: sourcescan/cargo-near:0.21.1-rust-1.96.0@sha256:ccb22bb4e677ed022d8b9d1aa1b32f0af52dd0471ef1c32e48dedbf68ee6ee17
+
+docker.io/sourcescan/cargo-near@sha256:ccb22bb4e677ed022d8b9d1aa1b32f0af52dd0471ef1c32e48dedbf68ee6ee17: Pulling from sourcescan/cargo-near
+Digest: sha256:ccb22bb4e677ed022d8b9d1aa1b32f0af52dd0471ef1c32e48dedbf68ee6ee17
+Status: Image is up to date for sourcescan/cargo-near@sha256:ccb22bb4e677ed022d8b9d1aa1b32f0af52dd0471ef1c32e48dedbf68ee6ee17
+docker.io/sourcescan/cargo-near:0.21.1-rust-1.96.0@sha256:ccb22bb4e677ed022d8b9d1aa1b32f0af52dd0471ef1c32e48dedbf68ee6ee17
+• done
+
+• Running build in docker command step...
+build command in container: cargo near build non-reproducible-wasm --locked
+
+Note: `near` CLI configuration is stored in "/home/near/.config/near-cli/config.toml"
+[INFO]-[container] cargo-near/src/commands/build/actions/non_reproducible_wasm/mod.rs:247 - Passed additional environment pairs:
+│    []
+[INFO]-[container] cargo-near-build/src/near/build/mod.rs:555 - Command execution:
+ |    Command {
+ |        program: "rustc",
+ |        args: [
+ |            "rustc",
+ |            "-vV",
+ |        ],
+ |        env: CommandEnv {
+ |            clear: false,
+ |            vars: {
+ |                "RUSTUP_TOOLCHAIN": Some(
+ |                    "1.96.0-x86_64-unknown-linux-gnu",
+ |                ),
+ |            },
+ |        },
+ |        create_pidfd: false,
+ |    }
+• Collecting cargo project metadata...
+[INFO]-[container] cargo-near-build/src/types/cargo/metadata.rs:268 - Fetching cargo metadata for /home/near/code/contracts/gate/Cargo.toml
+[INFO]-[container] cargo-near-build/src/types/cargo/metadata.rs:285 - Command execution:
+ |    Command {
+ |        program: "/home/near/.rustup/toolchains/1.96.0-x86_64-unknown-linux-gnu/bin/cargo",
+ |        args: [
+ |            "/home/near/.rustup/toolchains/1.96.0-x86_64-unknown-linux-gnu/bin/cargo",
+ |            "metadata",
+ |            "--format-version",
+ |            "1",
+ |            "--manifest-path",
+ |            "/home/near/code/contracts/gate/Cargo.toml",
+ |            "--locked",
+ |        ],
+ |        create_pidfd: false,
+ |    }
+INFO: contract's near-sdk targets protocol version 84; rustc 1.96.0 accepted (bulk-memory opcodes supported by nearcore VM)
+[INFO]-[container] cargo-near-build/src/cargo_native/target.rs:56 - Command execution:
+ |    `RUSTUP_TOOLCHAIN=1.96.0-x86_64-unknown-linux-gnu rustc --target wasm32-unknown-unknown --print target-libdir`
+• done
+
+• Checking rustc version...
+• done
+
+• Checking the host environment...
+[INFO]-[container] cargo-near-build/src/cargo_native/target.rs:15 - Found wasm32-unknown-unknown in "/home/near/.rustup/toolchains/1.96.0-x86_64-unknown-linux-gnu/lib/rustlib/wasm32-unknown-unknown/lib"
+[INFO]-[container] cargo-near-build/src/types/cargo/metadata.rs:94 - Resolved output directory: /home/near/code/contracts/gate/target/near
+[INFO]-[container] cargo-near-build/src/types/near/build/buildtime_env/command.rs:37 - NEP330_BUILD_INFO_BUILD_COMMAND=["cargo","near","build","non-reproducible-wasm","--locked"]
+[INFO]-[container] cargo-near-build/src/env_keys.rs:87 - Variables, relevant for reproducible builds:
+ |    {
+ |        "NEP330_BUILD_INFO_SOURCE_CODE_SNAPSHOT": "git+https://github.com/Ridwannurudeen/shieldbot-near?rev=eb54c8e11c2916201af1d13ce7b92e1c8c8c473b",
+ |        "NEP330_BUILD_INFO_CONTRACT_PATH": "contracts/gate",
+ |        "NEP330_LINK": "https://github.com/Ridwannurudeen/shieldbot-near/tree/eb54c8e11c2916201af1d13ce7b92e1c8c8c473b",
+ |        "NEP330_BUILD_INFO_BUILD_ENVIRONMENT": "sourcescan/cargo-near:0.21.1-rust-1.96.0@sha256:ccb22bb4e677ed022d8b9d1aa1b32f0af52dd0471ef1c32e48dedbf68ee6ee17",
+ |    }
+[lines 103 to 369 left out]
+ │    Compiling gate v0.1.0 (/home/near/code/contracts/gate)
+ │     Finished `release` profile [optimized] target(s) in 8.17s
+• Running an optimize for size post-step with wasm-opt --enable-nontrapping-float-to-int --enable-bulk-memory...
+
+• done
+
+    Finished wasm-opt -O in 335ms
+✓ Contract successfully built! (in CARGO_NEAR_BUILD_ENVIRONMENT=sourcescan/cargo-near:0.21.1-rust-1.96.0@sha256:ccb22bb4e677ed022d8b9d1aa1b32f0af52dd0471ef1c32e48dedbf68ee6ee17)
+     -                Binary: /home/near/code/contracts/gate/target/near/gate.wasm
+     - SHA-256 checksum hex : f7a09b28f4e5e18b3f70b097d1eb31218fa6cbab41c3e167771638f9fd14a107
+     - SHA-256 checksum bs58: Hfdk3jGUFxQyP8wEEoejNUkZ81bE9gDmoUBfGRghR5iE
+     -                   ABI: /home/near/code/contracts/gate/target/near/gate_abi.json
+     -          Embedded ABI: /home/near/code/contracts/gate/target/near/gate_abi.zst
+    Finished cargo near build in 36s
+Here is the console command if you ever need to re-run it again:
+cargo near build non-reproducible-wasm --locked
+
+cargo-near has a new update available 0.21.1 → 0.22.0
+To update run: /home/near/.cargo/bin/cargo-near near self-update
+Here is the console command if you ever need to re-run it again:
+cargo near build reproducible-wasm
+
+Error: 
+   0: [91massumed artifact result path for a rust crate docker build not found: `/home/gudman/target/repro-with-target-dir/near/gate.wasm`[0m
+
+Location:
+   [35m/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/near-verify-rs-0.3.3/src/logic/nep330_build/output.rs[0m:[35m109[0m

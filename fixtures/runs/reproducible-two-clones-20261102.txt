@@ -1,0 +1,6 @@
+clone /home/gudman/repro-test at eb54c8e11c2916201af1d13ce7b92e1c8c8c473b
+f7a09b28f4e5e18b3f70b097d1eb31218fa6cbab41c3e167771638f9fd14a107  contracts/gate/target/near/gate.wasm
+2a154191a996558216a955d04fdd87c9079ceae84907c8e95275b846f0ec0cfa  contracts/registry/target/near/registry.wasm
+clone /home/gudman/repro-test2 at eb54c8e11c2916201af1d13ce7b92e1c8c8c473b
+f7a09b28f4e5e18b3f70b097d1eb31218fa6cbab41c3e167771638f9fd14a107  contracts/gate/target/near/gate.wasm
+2a154191a996558216a955d04fdd87c9079ceae84907c8e95275b846f0ec0cfa  contracts/registry/target/near/registry.wasm
