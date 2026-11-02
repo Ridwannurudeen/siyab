@@ -49,17 +49,21 @@ jobs:
 
   rust-unit:
     runs-on: ubuntu-latest
+    env:
+      CARGO_TARGET_DIR: ${{ runner.temp }}/shieldbot-near-target
     strategy:
       matrix:
         crate: [gate, test-token, registry]
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.99.1
+      - name: Select repository toolchain
+        run: rustup show
+      - uses: actions/cache@v4
         with:
-          targets: wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: contracts/${{ matrix.crate }} -> target
+          path: |
+            ~/.cargo
+            ${{ runner.temp }}/shieldbot-near-target
+          key: ${{ runner.os }}-cargo-${{ matrix.crate }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Unit tests
         working-directory: contracts/${{ matrix.crate }}
         run: cargo test --lib
@@ -67,17 +71,21 @@ jobs:
   sandbox:
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    env:
+      CARGO_TARGET_DIR: ${{ runner.temp }}/shieldbot-near-target
     strategy:
       matrix:
         crate: [gate, registry]
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.99.1
+      - name: Select repository toolchain
+        run: rustup show
+      - uses: actions/cache@v4
         with:
-          targets: wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: contracts/${{ matrix.crate }} -> target
+          path: |
+            ~/.cargo
+            ${{ runner.temp }}/shieldbot-near-target
+          key: ${{ runner.os }}-cargo-${{ matrix.crate }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Sandbox tests
         working-directory: contracts/${{ matrix.crate }}
         run: cargo test --test sandbox
@@ -85,14 +93,18 @@ jobs:
   reproducible:
     runs-on: ubuntu-latest
     continue-on-error: true
+    env:
+      CARGO_TARGET_DIR: ${{ runner.temp }}/shieldbot-near-target
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.99.1
+      - name: Select repository toolchain
+        run: rustup show
+      - uses: actions/cache@v4
         with:
-          targets: wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: contracts/gate -> target
+          path: |
+            ~/.cargo
+            ${{ runner.temp }}/shieldbot-near-target
+          key: ${{ runner.os }}-cargo-reproducible-${{ hashFiles('**/Cargo.lock') }}
       - name: Install cargo-near
         run: cargo install cargo-near --version 0.22.0 --locked
       - name: Build gate reproducibly
