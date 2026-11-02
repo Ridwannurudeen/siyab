@@ -22,7 +22,7 @@ cd contracts/<crate> && cargo test --test sandbox             # network, Linux o
 cd contracts/<crate> && cargo near build reproducible-wasm    # network, Docker
 ```
 
-`<crate>` is `gate`, `registry` or `test-token` (`test-token` has no sandbox test). Both contract crates carry the reproducible build metadata; `res/BUILD.md` has the source commit and the recipe. The PyNaCl and py-near cross checks run with `~/.venvs/near/bin/python` in place of `python` and skip with a printed reason without it.
+`<crate>` is `gate`, `registry` or `test-token` (`test-token` has no sandbox test). Both contract crates carry the reproducible build metadata; `res/BUILD.md` has the source commit and the recipe. The PyNaCl and py-near cross checks run with `~/.venvs/near/bin/python` in place of `python` and skip without it: the py-near checks print a `skipped:` line, the PyNaCl checks show their reason with `-v`.
 
 ## Run
 

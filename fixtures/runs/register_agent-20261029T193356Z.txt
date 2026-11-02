@@ -1,0 +1,98 @@
+Console record of register_agent on the testnet Gate, 29 Oct 2026. The transaction Signature line is left out; every other line is kept byte for byte.
++ near contract call-function as-transaction kestrelridge-main.testnet register_agent json-args \{\"public_key\":\"ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2\"\,\"label\":\"demo\ agent\"\,\"caps\":\[\{\"asset\":\{\"Ft\":\"token.kestrelridge-main.testnet\"\}\,\"per_call\":\"10000000\"\,\"window_cap\":\"50000000\"\,\"window_ms\":86400000\,\"window_start_ms\":0\,\"spent\":\"0\"\}\]\,\"unknown_caps\":\[\{\"asset\":\{\"Ft\":\"token.kestrelridge-main.testnet\"\}\,\"per_call\":\"1000000\"\,\"window_cap\":\"1000000\"\,\"window_ms\":86400000\,\"window_start_ms\":0\,\"spent\":\"0\"\}\]\,\"allowance_yocto\":\"1000000000000000000000000\"\} prepaid-gas 100\ Tgas attached-deposit 1\ yoctoNEAR sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file /home/gudman/.near-keys/shieldbot-near/kestrelridge-owner.testnet.json send 
+├  Unsigned transaction:
+│    signer_id:    kestrelridge-owner.testnet
+│    receiver_id:  kestrelridge-main.testnet
+│    actions:
+│       -- function call:      
+│                       method name:  register_agent
+│                       args:         {
+│                                       "allowance_yocto": "1000000000000000000000000",
+│                                       "caps": [
+│                                         {
+│                                           "asset": {
+│                                             "Ft": "token.kestrelridge-main.testnet"
+│                                           },
+│                                           "per_call": "10000000",
+│                                           "spent": "0",
+│                                           "window_cap": "50000000",
+│                                           "window_ms": 86400000,
+│                                           "window_start_ms": 0
+│                                         }
+│                                       ],
+│                                       "label": "demo agent",
+│                                       "public_key": "ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2",
+│                                       "unknown_caps": [
+│                                         {
+│                                           "asset": {
+│                                             "Ft": "token.kestrelridge-main.testnet"
+│                                           },
+│                                           "per_call": "1000000",
+│                                           "spent": "0",
+│                                           "window_cap": "1000000",
+│                                           "window_ms": 86400000,
+│                                           "window_start_ms": 0
+│                                         }
+│                                       ]
+│                                     }
+│                       gas:          100.0 Tgas
+│                       deposit:      1 yoctoNEAR
+│     
+├  Your transaction was signed successfully.
+│    Public key: ed25519:6UAfYZGkZqfsJXzvT8vCd13V4mZ975pqr9h2aS1VuA96
+│     
+├  Transaction Execution Info:
+│    Gas burned: 0.331 Tgas
+│    Transaction fee: 0.000033066158091 NEAR
+│    Transaction ID: HNVuBL2N...K2wmdu
+│    To see the transaction in the transaction explorer, please open this url in your browser:
+│    https://explorer.testnet.near.org/transactions/HNVuBL2NZLVqgS3QafK41cvG2p8hzrkktZaUTUK2wmdu
+│     
+├  Function execution logs:
+│    Logs [kestrelridge-main.testnet]:
+│      EVENT_JSON:{"standard":"shieldbot-near","version":"1.0.0","event":"agent_registered","data":[{"agent_pk":"fc5b49a7e7d11222ec1f88aba4d8814b254286f45db917508049bbcf06e5bba9"}]}
+│    Logs [kestrelridge-main.testnet]:   No logs
+│    Logs [kestrelridge-owner.testnet]:   No logs
+│    Logs [kestrelridge-owner.testnet]:   No logs
+│     
+├  Function execution return value:
+│    Empty return value
+│     
+
+
+The "register_agent" call to <kestrelridge-main.testnet> on behalf of <kestrelridge-owner.testnet> succeeded.
+
+
+
+
+Here is your console command if you need to script it or re-run:
+    near contract call-function as-transaction kestrelridge-main.testnet register_agent json-args '{"public_key":"ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2","label":"demo agent","caps":[{"asset":{"Ft":"token.kestrelridge-main.testnet"},"per_call":"10000000","window_cap":"50000000","window_ms":86400000,"window_start_ms":0,"spent":"0"}],"unknown_caps":[{"asset":{"Ft":"token.kestrelridge-main.testnet"},"per_call":"1000000","window_cap":"1000000","window_ms":86400000,"window_start_ms":0,"spent":"0"}],"allowance_yocto":"1000000000000000000000000"}' prepaid-gas '100.0 Tgas' attached-deposit '1 yoctoNEAR' sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file /home/gudman/.near-keys/shieldbot-near/kestrelridge-owner.testnet.json send
+
+Summary
+  network: testnet
+  account: kestrelridge-main.testnet
++ near account view-account-summary kestrelridge-main.testnet network-config testnet now 
+
+---------------------------------------------------------------------------------------------------------
+ kestrelridge-main.testnet              At block #275343973 
+                                        (3MW7uq7G1RKh3UMLv2JBThyK9mFeMtJV6Qg3q3mPXLKf) 
+---------------------------------------------------------------------------------------------------------
+ NEAR Social profile unavailable        The profile can be edited at https://near.social 
+                                        or using the cli command: bos social-db manage-profile 
+                                        (https://github.com/bos-cli-rs/bos-cli-rs) 
+---------------------------------------------------------------------------------------------------------
+ Native account balance                 13.973190614988904200000001 NEAR 
+---------------------------------------------------------------------------------------------------------
+ Validator stake                        0 NEAR 
+---------------------------------------------------------------------------------------------------------
+ Storage used by the account            239.4 KB 
+---------------------------------------------------------------------------------------------------------
+ Local Contract (SHA-256 checksum hex)  5e936b671e54600e436dcc5318bc72412d4067f9fc99b50480de58e13708f0f5 
+---------------------------------------------------------------------------------------------------------
+ Access keys                            1 full access keys and 1 function-call-only access keys 
+---------------------------------------------------------------------------------------------------------
+
+
+Here is your console command if you need to script it or re-run:
+    near account view-account-summary kestrelridge-main.testnet network-config testnet now
+  transaction_hashes: HNVuBL2N...K2wmdu

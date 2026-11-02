@@ -34,6 +34,8 @@ Latency: p50 1843 ms, p95 2300 ms over 20 verdict runs.
 
 <!-- counts:end -->
 
+The 52 receivers of the first line (`fixtures/receivers/set.json`, chosen by `intel/__main__.py`) are recent counterparties of the two contracts `v2.ref-finance.near` and `wrap.near` (the last distinct counterparties of each in the FastNEAR Transfers API), the further NEAR accounts named in the Rhea Lend incident page, and catalog tokens of the label store; `fixtures/receivers/set.json` gives each one with why it was chosen. Implicit accounts are left out of the counterparties, unless the label store holds them as a catalog token.
+
 Consumers today are the guard, the MCP server and the demo agent; none from a third party yet.
 
 ## How NEAR is used
@@ -62,7 +64,7 @@ Why the guard verifies a signature and the registry is the record: NEAR cross co
 
 ## Try it offline
 
-Python 3.11 or later, from the repository root, plus a POSIX shell for steps 3 and 6 (`sha256sum`, `printf`, `cut`). The outputs below are pasted from runs on this machine; in this file 64 character hex values are shortened to their first and last eight characters, which the repository's hygiene rule requires.
+Python 3.11 or later, from the repository root, plus a POSIX shell for steps 3, 5 and 6 (`sha256sum`, the `*` in the evidence path, `printf`, `cut`). The outputs below are pasted from runs on this machine; in this file 64 character hex values are shortened to their first and last eight characters, which the repository's hygiene rule requires.
 
 1. `python -m gate demo --offline` replays the recorded testnet responses through the rules: the allowlisted vendor (ALLOW, signed with the TEST key and verified back), the lookalike (DENY), the aged payee whose archival block is left out of the fixtures (UNKNOWN, the checks that could not run named), and the EVM leg (DENY). It exits 0. The first lines:
 
@@ -95,7 +97,7 @@ Python 3.11 or later, from the repository root, plus a POSIX shell for steps 3 a
 
    Each verdict also prints its evidence sha256 and the time the checks took. These are replay timings from fixtures, not live latency; the verdict id is random, so the ALLOW's canonical message and evidence hash differ on every run.
 
-2. `python -m unittest discover -s tests` runs the Python suite: the rules, the canonical vectors, the evidence hashing, `gate/ed25519.py` against the RFC 8032 section 7.1 vectors, the label store, the incidents, the EVM leg, `scan`, the MCP server, the README counts and tables. It ends with a line `OK`, with a skip count: the PyNaCl and py-near cross checks skip with a printed reason when those packages are absent; the wasm checks run on the committed files under `res/`.
+2. `python -m unittest discover -s tests` runs the Python suite: the rules, the canonical vectors, the evidence hashing, `gate/ed25519.py` against the RFC 8032 section 7.1 vectors, the label store, the incidents, the EVM leg, `scan`, the MCP server, the README counts and tables. It ends with a line `OK`, with a skip count: the PyNaCl and py-near cross checks skip when those packages are absent, the four py-near skips each print a `skipped:` line with the reason in the default output, and the two PyNaCl skips show their reason only with `-v`; the wasm checks run on the committed files under `res/`.
 3. `sha256sum -c res/gate.wasm.sha256 res/registry.wasm.sha256` checks the committed wasm files against their checksums, and `python -m gate codehash` prints the sha256 and the base58 `code_hash` to compare with the testnet `code_hash` in `docs/TESTNET.md`. The testnet `code_hash` equals base58 of the sha256 of the wasm. Reproducing the hash from source needs Docker; checking it against testnet needs network.
 
    ```
@@ -200,7 +202,7 @@ Python 3.11 or later, from the repository root, plus a POSIX shell for steps 3 a
    ```
 
 8. `fixtures/canon/*.json` are read by both `python -m unittest tests.test_canon` and the Rust unit tests in `contracts/gate` (`cargo test --lib`, network once for crates.io), so the two implementations of the signed message are checked against the same bytes without a network.
-9. `python -m intel receivers` replays the rules over the recorded mainnet receiver set from `fixtures/receivers/` and prints the measured line:
+9. `python -m intel receivers` replays the rules over the recorded mainnet receiver set from `fixtures/receivers/`, rewrites the committed judgement files under `fixtures/receivers/judgements/` from the replay, and prints the measured line; `git status` shows no change afterwards:
 
    ```
    On 52 recorded mainnet receivers the rules returned 32 ALLOW, 19 DENY, 1 Unknown.
@@ -249,13 +251,13 @@ fixtures/, tests/     recorded responses replayed offline; the Python tests
 
 1. In Python: `gate.verdict.request(kind, token, receiver, amount, memo, gate=..., agent_pk_hex=..., policy=..., store=..., rpc=..., nearblocks=..., signer=...)` returns a dict with `outcome`, `verdict` (the signed Verdict object on ALLOW, else None), `request`, `checks` and `evidence_hash`.
 2. On the command line: `python -m gate verdict --kind ft --token <token> --receiver <account> --amount <base units> --memo <memo> --gate <gate account>`.
-3. As MCP tools (`check_near_payment`, `check_intents_quote`, `scan_near_account`), in Claude Code from the repository root: `claude mcp add shieldbot-near -- python -m mcp.server`.
+3. As MCP tools (`check_near_payment`, `check_intents_quote`, `scan_near_account`), in Claude Code from the repository root: `claude mcp add shieldbot-near -- python -m mcp.server`. `check_near_payment` signs an ALLOW with the TEST key, which the testnet Gate does not trust (its verifier key is the live one), so it is for trying the rules.
 4. Other clients, the Codex configuration and the environment for live reads: `mcp/README.md`.
-5. The agent calls one of these before `request_transfer(request, verdict)` and passes the `request` and `verdict` objects through unchanged.
+5. A verdict a Gate pays on comes from the operator's verdict service holding the live key: `python -m gate verdict --live` with `VERIFIER_KEY_FILE` set, or `python -m gate pay`. The agent passes its `request` and `verdict` objects through unchanged to `request_transfer(request, verdict)`.
 
 ## Trust model
 
-- The live verifier key is held by the team's operator, outside the repository, in the file `VERIFIER_KEY_FILE` names. The TEST key is derived from the public seed `sha256(b"gate test verifier v1")`, signs the test vectors, the offline runs, `python -m gate demo --live` and the MCP server's ALLOWs, which no Gate trusts, and is not registered on testnet: `scan` above shows the on chain key differs from it.
+- The live verifier key is held by the team's operator, outside the repository, in the file `VERIFIER_KEY_FILE` names. The TEST key is derived from the public seed `sha256(b"gate test verifier v1")`, signs the test vectors, the offline runs, `python -m gate demo --live` and the MCP server's ALLOWs, and is not registered on testnet, so the testnet Gate does not trust them: `scan` above shows the on chain key differs from it. An ALLOW a Gate pays on is signed with the live key, by `python -m gate verdict --live` or `python -m gate pay` without `--verdict-file`, both reading `VERIFIER_KEY_FILE`.
 - The recorder key (`recorder.kestrelridge-main.testnet`), the agent function call key and the testnet Gate account key are held by the team's operator; the owner account key and every mainnet key are held by the owner. No private key is in the repository.
 - Without `--verdict-file`, `python -m gate pay` runs the verdict service and the agent in one process on one machine.
 - Verdict latency: the latency line of the counts block, live testnet verdicts for the allowlisted payee, tier 1 checks.
@@ -321,6 +323,7 @@ Copied from `docs/ATTACKS.md`. Each NEAR command is `python -m gate attack <name
 - No TEE. The rules are view call heuristics; a check that cannot run reads Unknown, and Unknown is refused. Unknown is expected whenever a data source is down or holds no data: NearBlocks testnet has indexed nothing since 27 Sep, so testnet account age comes from the oldest access key nonce and an archival block read (`docs/SPIKES.md` S8).
 - ALLOW is the absence of a known scam signal, not proof of identity; the unknown payee cap bounds what a patient attacker can take.
 - The measured line of the counts block is the replay of a recorded mainnet receiver set, not a rate over all NEAR payees.
+- The `code_without_metadata` check (contract code without `contract_source_metadata`) is the only signal behind some of the DENY judgements under `fixtures/receivers/judgements/`, among them deployed protocol contracts that publish no `contract_source_metadata`, so a DENY is a signal to look, not a finding of fault.
 - The testnet Gate kept a full access key during the build.
 - A used verdict stays used when the transfer then fails; the agent needs a fresh ALLOW. A failed transfer restores the debited cap (`failed_transfer_restores_the_debited_cap`), except when the agent was revoked, the cap removed or the window rolled in between (the four `failed_transfer_after_*_is_not_restored` tests). If the completion callback itself fails, the budget stays debited.
 - Storage for used verdict ids, pending requests and agent keys is staked from the Gate's own balance; the registry pays storage for its records (`docs/REGISTRY.md`). `request_transfer` refuses a call whose gas cannot cover the transfer and its callback (`REFUSED:low_gas`).

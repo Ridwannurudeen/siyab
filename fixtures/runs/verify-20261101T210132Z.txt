@@ -1,0 +1,16 @@
+total_records 3
+== kestrelridge-shop
+ok   verdict evidence_hash equals the evidence sha256
+ok   verdict verdict_id equals the record's verdict_id
+ok   signature verifies with ed25519:9SVNJQqQjSKFo6LXpSJJXWKEjV65V93mHUsXGhmokyb5
+verified
+== kestrelridge-sh0p
+  observed_block 275347643, verdict_id c5d021520dda5e6f1aa29894e00be7d3
+ok   evidence sha256 equals the record's evidence_hash
+ok   evidence verdict equals the record's verdict
+verified
+== lindenvale
+  observed_block 275799255, verdict_id ff5a89a257fcecb9e63c9a01179f5a68
+ok   evidence sha256 equals the record's evidence_hash
+ok   evidence verdict equals the record's verdict
+verified

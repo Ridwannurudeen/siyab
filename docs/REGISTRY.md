@@ -20,7 +20,7 @@ Verdict events use NEP-297 with `standard` equal to `shieldbot-near` and `versio
 
 Registry evidence hashes use sha256. The EVM registry uses keccak256; the two hash functions are distinct and records from the EVM leg are not written to this NEAR registry.
 
-To verify a record and its evidence file after RUN-N4 implements the verifier, run `python -m gate verify <record.json> <evidence.json>`. It recomputes the evidence hash, checks the verdict signature against the named key and prints the event fields for comparison.
+To verify a record against its evidence file offline, run `python -m gate verify <record.json> <evidence.json>`. Without flags it recomputes the sha256 of the evidence file's bytes and compares it with the record's `evidence_hash`, checks that the evidence's verdict is the record's, and prints the NEP-297 event fields to compare with the explorer; it checks no signature. With `--verdict <verdict.json> --key ed25519:<base58>`, which go together, it also checks that the Verdict's literal is ALLOW, that its evidence hash equals the recomputed sha256 and its verdict id the record's, rebuilds the canonical message from the evidence and the Verdict, and checks the signature against that key with `gate.ed25519.verify` (`docs/VERDICT-RECORD.md`).
 
 A stranger can read a record without a key with:
 
