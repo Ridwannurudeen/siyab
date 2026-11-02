@@ -551,6 +551,20 @@ class NonceAgeTest(RulesCase):
                          "MalformedResponse: block 275336351 came back as block 275336352")
         self.assertEqual(judgement.verdict, "UNKNOWN")
 
+    def test_a_block_time_out_of_range_reads_unknown(self):
+        for timestamp_ns in (10**30, 10**27, 10**24):
+            with self.subTest(timestamp_ns=timestamp_ns):
+                self.unaged()
+                self.fx.access_keys("stranger.testnet", KEY_NONCE)
+                header = {"height": KEY_HEIGHT, "timestamp": timestamp_ns, "hash": "FarBlock"}
+                self.fx.write(ARCHIVAL_URL, "block", {"block_id": KEY_HEIGHT},
+                              {"jsonrpc": "2.0", "id": "gate", "result": {"header": header}})
+                judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+                self.assertEqual(self.detail(judgement, "account_age"),
+                                 "no creation time from NearBlocks (keys empty); archival block_at could not run: "
+                                 f"MalformedResponse: block 275336351 has a time out of range: {timestamp_ns}")
+                self.assertEqual(judgement.verdict, "UNKNOWN")
+
     def test_no_archival_fixture_reads_unknown_never_a_pass(self):
         self.unaged()
         self.fx.access_keys("stranger.testnet", KEY_NONCE)

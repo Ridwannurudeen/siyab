@@ -413,13 +413,16 @@ def _nonce_age(rpc, archival, receiver, now_ms, min_age_days, nearblocks_why):
         header = archival.block_at(height)["header"]
         if header["height"] != height:
             raise MalformedResponse(f"block {height} came back as block {header['height']}")
+        block_ms = header["timestamp"] // 10**6
+        try:
+            iso = datetime.fromtimestamp(block_ms / 1000, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+        except (OverflowError, OSError, ValueError) as error:
+            raise MalformedResponse(f"block {height} has a time out of range: {header['timestamp']}") from error
     except UNAVAILABLE as error:
         return evidence.check("account_age", "unknown", f"{prefix}; archival block_at could not run: "
                               f"{_why(error)}", _source(archival)), None
-    block_ms = header["timestamp"] // 10**6
     archival_source = _source(archival)
-    block = (f"block {height} ({datetime.fromtimestamp(block_ms / 1000, UTC).strftime('%Y-%m-%dT%H:%M:%SZ')}) "
-             f"from {archival_source['provider']}")
+    block = f"block {height} ({iso}) from {archival_source['provider']}"
     if now_ms - block_ms < min_age_days * DAY_MS:
         return evidence.check("account_age", "signal", f"{oldest}: existed by {block}, younger than "
                               f"{min_age_days} days", archival_source), True

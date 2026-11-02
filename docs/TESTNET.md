@@ -58,4 +58,4 @@ The unknown payee attack waits until the aged payee is 7 days old: it was create
 
 ## Latency
 
-Live verdicts on 1 Nov: 20 for the vendor (allowlisted, all ALLOW), p50 1843 ms, p95 2300 ms; 10 for the aged payee after the archival step down (all DENY), p50 6639 ms, p95 15486 ms; the extra time is the NearBlocks calls and the archival reads. Before the step down, 9 of 20 aged payee runs read Unknown (see `docs/SPIKES.md` S8).
+Live verdicts on 1 Nov: 20 for the vendor (allowlisted, all ALLOW), p50 1843 ms, p95 2300 ms; 10 for the aged payee on the superseded archival account read with the step down (all DENY), p50 6639 ms, p95 15486 ms; the extra time is the NearBlocks calls and the archival reads. The account age now comes from the oldest access key nonce (one key list read and one archival block read); its latency is not measured yet. Before the step down, 9 of 20 aged payee runs read Unknown (see `docs/SPIKES.md` S8).
