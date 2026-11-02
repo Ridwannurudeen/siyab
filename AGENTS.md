@@ -43,7 +43,7 @@ intel/                  label store, seeds, incidents, feed, flow trace, static 
 mcp/                    stdio MCP server
 fixtures/               recorded responses, replayed offline
 tests/                  Python tests
-scripts/                hygiene check, counts, idea text (gen_idea.py), testnet scripts
+scripts/                hygiene check, counts, idea text (gen_idea.py), offline smoke (smoke.py), testnet scripts
 demo/site/              static pages written by python -m intel render
 docs/                   records, claims, attacks, evidence, testnet, demo shot list (DEMO.md), spikes, log
 res/                    built wasm files, their sha256 and the build record
@@ -51,7 +51,7 @@ res/                    built wasm files, their sha256 and the build record
 
 ## Environment variables
 
-`env.example` lists every variable with a comment. The code reads `NEAR_RPC_URL`, `NEAR_MAINNET_RPC_URL`, `NEAR_ARCHIVAL_RPC_URL`, `NEARBLOCKS_API_URL`, `SHIELDBOT_API_URL` (empty means off), `GATE_ACCOUNT_ID` (the MCP server defaults to `gate.near`), `GATE_POLICY` (the agent policy JSON the MCP server checks payments against), `VERIFIER_KEY_FILE` and `AGENT_KEY_FILE` (key file paths kept outside the repository), `GATE_FIXTURES_MODE` (`replay` by default, `record` or `off`), `GATE_ALLOW_PURE_PYTHON_SIGNER`, `GATE_LIVE_SIGNING` (`1` lets the MCP server sign with the live key) and `AGENT_PUB` (the agent public key the MCP server binds a live verdict to). The testnet scripts read the variables in the `scripts/README.md` table.
+`env.example` lists every variable with a comment. The code reads `NEAR_RPC_URL`, `NEAR_MAINNET_RPC_URL`, `NEAR_ARCHIVAL_RPC_URL`, `NEARBLOCKS_API_URL`, `SHIELDBOT_API_URL` (empty means off), `GATE_ACCOUNT_ID` (the MCP server defaults to `gate.near`), `GATE_POLICY` (the agent policy JSON the MCP server checks payments against), `VERIFIER_KEY_FILE` and `AGENT_KEY_FILE` (key file paths kept outside the repository), `GATE_FIXTURES_MODE` (`replay` by default, `record` or `off`), `GATE_ALLOW_PURE_PYTHON_SIGNER`, `GATE_LIVE_SIGNING` (`1` lets the MCP server sign with the live key), `GATE_KEEP_EVIDENCE` (`1` keeps the evidence directory `python -m gate demo` and the MCP server write at exit) and `AGENT_PUB` (the agent public key the MCP server binds a live verdict to). The testnet scripts read the variables in the `scripts/README.md` table.
 
 ## Working agreements
 
