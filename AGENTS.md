@@ -43,9 +43,9 @@ intel/                  label store, seeds, incidents, feed, flow trace, static 
 mcp/                    stdio MCP server
 fixtures/               recorded responses, replayed offline
 tests/                  Python tests
-scripts/                hygiene check, counts, testnet scripts
+scripts/                hygiene check, counts, idea text (gen_idea.py), testnet scripts
 demo/site/              static pages written by python -m intel render
-docs/                   records, claims, attacks, evidence, testnet, spikes, log
+docs/                   records, claims, attacks, evidence, testnet, demo shot list (DEMO.md), spikes, log
 res/                    built wasm files, their sha256 and the build record (lands with the wasm build)
 ```
 

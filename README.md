@@ -62,7 +62,7 @@ Why the guard verifies a signature and the registry is the record: NEAR cross co
 
 ## Try it offline
 
-Python 3.11 or later and nothing else, from the repository root. The outputs below are pasted from runs on this machine; in this file 64 character hex values are shortened to their first and last eight characters, which the repository's hygiene rule requires.
+Python 3.11 or later, from the repository root, plus a POSIX shell for steps 3 and 6 (`sha256sum`, `printf`, `cut`). The outputs below are pasted from runs on this machine; in this file 64 character hex values are shortened to their first and last eight characters, which the repository's hygiene rule requires.
 
 1. `python -m gate demo --offline` replays the recorded testnet responses through the rules: the allowlisted vendor (ALLOW, signed with the TEST key and verified back), the lookalike (DENY), the aged payee whose archival block is left out of the fixtures (UNKNOWN, the checks that could not run named), and the EVM leg (DENY). It exits 0. The first lines:
 
@@ -195,7 +195,7 @@ fixtures/, tests/     recorded responses replayed offline; the Python tests
 
 ## Trust model
 
-- The live verifier key is held by the team's operator, outside the repository, in the file `VERIFIER_KEY_FILE` names. The TEST key is derived from the public seed `sha256(b"gate test verifier v1")`, signs only test vectors and offline runs, and is not registered on testnet: `scan` above shows the on chain key differs from it.
+- The live verifier key is held by the team's operator, outside the repository, in the file `VERIFIER_KEY_FILE` names. The TEST key is derived from the public seed `sha256(b"gate test verifier v1")`, signs the test vectors, the offline runs, `python -m gate demo --live` and the MCP server's ALLOWs, which no Gate trusts, and is not registered on testnet: `scan` above shows the on chain key differs from it.
 - The recorder key (`recorder.kestrelridge-main.testnet`), the agent function call key and the testnet Gate account key are held by the team's operator; the owner account key and every mainnet key are held by the owner. No private key is in the repository.
 - Without `--verdict-file`, `python -m gate pay` runs the verdict service and the agent in one process on one machine.
 - Verdict latency: the latency line of the counts block, live testnet verdicts for the allowlisted payee, tier 1 checks.
