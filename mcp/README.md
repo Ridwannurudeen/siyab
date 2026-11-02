@@ -30,7 +30,7 @@ The payment tool writes its evidence documents into a temporary directory that t
 
 ## Connect a client
 
-Both forms below were run on 2 Nov 2026 against the testnet Gate: each client called the three tools once and got `isError: false` from each.
+The Claude Code command and the Codex config below were run on 2 Nov 2026 against the testnet Gate, each with `GATE_FIXTURES_MODE=off`, `GATE_ACCOUNT_ID=<gate>.testnet` and `GATE_POLICY=<get_agent JSON>` in the server's environment: each client called the three tools once and got `isError: false` from each. The `.mcp.json` file is the same server declared in a file; it was not part of that run.
 
 Claude Code, from the repository root (add `-e GATE_FIXTURES_MODE=off -e GATE_ACCOUNT_ID=<gate>.testnet -e GATE_POLICY=<get_agent JSON>` before `--` for live reads):
 
@@ -60,6 +60,10 @@ args = ["-m", "mcp.server"]
 
 [mcp_servers.shieldbot_near.env]
 PYTHONPATH = "/path/to/shieldbot-near"
+# for live reads, as in the 2 Nov run:
+GATE_FIXTURES_MODE = "off"
+GATE_ACCOUNT_ID = "<gate>.testnet"
+GATE_POLICY = '<get_agent JSON>'
 
 [mcp_servers.shieldbot_near.tools.check_near_payment]
 approval_mode = "approve"
