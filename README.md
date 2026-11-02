@@ -1,9 +1,304 @@
 # ShieldBot for NEAR: security intelligence for agent money, enforced on chain.
 
-Who your agent pays gets a verdict with evidence. Unknown never passes.
+ShieldBot for NEAR is a security intelligence layer for AI agent money on NEAR: a label and verdict store with a provenance class on every assertion, a verdict service that judges the receiver, the token, the amount and the memo of an agent payment, and the destination when the payment leaves NEAR through NEAR Intents, a NEAR guard contract that holds the agent's funds and pays out only on a signed ALLOW, and a NEAR registry where every verdict is recorded with its evidence hash. The agent holds a function call key to the guard and nothing else, and a verdict of Unknown is refused. It is unrelated to NEAR Intents SHIELD. Built for NEAR HACKATHON track 06; hints used: AGENT SECURITY, FUNCTION CALL KEYS. ShieldBot's EVM engine, its registries on Robinhood Chain and BOT Chain, and its SDKs are pre existing baseline; everything under `contracts/`, `gate/`, `intel/` and `mcp/` was built in the hackathon window; the diff is linked in New in this hackathon vs reused.
 
-Build in progress. The full README lands on 10 Nov.
+**Who your agent pays gets a verdict with evidence. Unknown never passes.**
+
+## The problem
+
+A NEAR function call key cannot attach NEAR to a call ([access keys](https://docs.near.org/protocol/accounts-contracts/access-keys)), and a NEP-141 `ft_transfer` requires a deposit of 1 yoctoNEAR ([NEP-141](https://github.com/near/NEPs/blob/master/neps/nep-0141.md)), so an agent that moves tokens with its own key holds a full access key. The protocol does not check who the agent pays. Money that leaves NEAR through NEAR Intents lands on EVM chains where the recipient may already carry a theft label.
+
+## What it does
+
+Three layers on one data model:
+
+- **Intelligence** (`intel/`, `gate/rules.py`, `gate/intents.py`): a label store with a provenance class and a source on every assertion (`docs/LABEL-RECORD.md`), incident pages, NEAR rules over read only view calls, and the EVM leg: a `dry: true` 1Click quote exposes the destination chain and recipient before anything is signed, and the recipient is checked against GoPlus `address_security` labels.
+- **Protocol** (`docs/VERDICT-RECORD.md`, `docs/REGISTRY.md`, `contracts/registry/`): an open verdict and label record format with an on chain NEAR registry, and the offline verifier `python -m gate verify`.
+- **Security** (`contracts/gate/`, `mcp/`, `gate/scan.py`): the guard contract, a stdio MCP server with three tools, and the key hygiene scanner `python -m gate scan`.
+
+Every line below is written by `python scripts/counts.py --readme README.md` from committed files. The latency line covers live testnet verdicts for the allowlisted payee, tier 1 checks only (`docs/EVIDENCE.md`).
+
+<!-- counts:start -->
+
+On 52 recorded mainnet receivers the rules returned 32 ALLOW, 19 DENY, 1 Unknown.
+
+Label store: 412 assertions over 262 subjects (onchain 40, official_source 350, third_party 18, inferred 4).
+
+Incidents: 3 pages.
+
+Feed: since 2026-10-29, 300 blocks, 0 events (0 code_hash_matches_incident, 0 fresh_dust_funded_pays_labelled, 0 watch_account_key_added).
+
+Flows: 1 exit traces, 200 hops.
+
+Latency: p50 1843 ms, p95 2300 ms over 20 verdict runs.
+
+<!-- counts:end -->
+
+Consumers today are the guard, the MCP server and the demo agent; none from a third party yet.
+
+## How NEAR is used
+
+- FUNCTION CALL KEYS: the agent's only credential is a function call key the Gate adds to its own account in `register_agent`, with `receiver_id` the Gate, `method_names` `["request_transfer"]` and a non zero gas allowance. Its receiver is the Gate and it can attach no deposit, so it cannot call `ft_transfer` on the token, move NEAR, add keys or deploy code; the attack table shows the protocol rejecting the `on_transfer`, `ft_transfer` and 1 yoctoNEAR attempts.
+- AGENT SECURITY: a signed ALLOW bound to the exact transfer, refusal of anything else, replay and expiry rules, the owner's allowlist, denylist and unknown payee caps in the contract, NEP-297 events, `python -m gate scan`.
+- NEP-141 with the 1 yoctoNEAR rule (the Gate attaches it to `ft_transfer`), NEP-297 events (`standard` `shieldbot-near`), named sub accounts for the token, the registry and the recorder.
+
+The testnet Gate's access keys, replayed offline from the recording of 2 Nov (`python -m gate scan kestrelridge-main.testnet`):
+
+```
+account: kestrelridge-main.testnet on https://test.rpc.fastnear.com, read at block 275865306
+access keys: 2
+full access keys: 1
+  ed25519:7gxqnnhZbSBFRnYmTg8T3UZ4WUULUNS97f4jnf1oygp8
+empty method_names: 0, these may call any method on their receiver
+dead keys: 0, allowance "0"
+unlimited allowance: 0, allowance null
+agent keys: 1 scoped to kestrelridge-main.testnet, 0 with method_names other than exactly ["request_transfer"]
+verifier keys: the TEST key is ed25519:36ZbCswnc8QBvUxFF1pEwKwj6PZwgRWGe4nqcdy9HCzL
+  on chain current: ed25519:9SVNJQqQjSKFo6LXpSJJXWKEjV65V93mHUsXGhmokyb5, different from the TEST key
+labels: 0
+```
+
+Why the guard verifies a signature and the registry is the record: NEAR cross contract calls are asynchronous, and a callback runs in a later block. A guard that consulted the registry would pay a promise plus a private callback, two receipts and one or two blocks, and would hold its own state across them. So the guard checks a signed verdict passed in its arguments, in one receipt, and the registry is the public record: each verdict the service issued for the demo is recorded there with its evidence hash by the recorder account, any reader calls `latest` or `is_allowed` over RPC without a key, and any contract can read it through a promise. Records on NEAR hash with sha256 (`env::sha256`); the EVM registries hash with keccak256.
+
+## Try it offline
+
+Python 3.11 or later and nothing else, from the repository root. The outputs below are pasted from runs on this machine; in this file 64 character hex values are shortened to their first and last eight characters, which the repository's hygiene rule requires.
+
+1. `python -m gate demo --offline` replays the recorded testnet responses through the rules: the allowlisted vendor (ALLOW, signed with the TEST key and verified back), the lookalike (DENY), the aged payee whose archival block is left out of the fixtures (UNKNOWN, the checks that could not run named), and the EVM leg (DENY). It exits 0. The first lines:
+
+   ```
+   ShieldBot for NEAR offline demo v1: testnet responses recorded on 1 and 2 Nov 2026, replayed from
+   fixtures/demo with the TEST verifier key and no network. The TEST key is derived from a published
+   seed and is never registered on testnet. The demo clock is pinned to 2026-11-02T07:00:00Z, inside
+   the recording window, so the 7 day checks replay as recorded.
+
+   The allowlisted vendor: 1000000 of token.kestrelridge-main.testnet to kestrelridge-shop.testnet, memo "invoice 1"
+     pass    receiver_exists: kestrelridge-shop.testnet exists
+     pass    label_denylist: no denylist or incident label on kestrelridge-shop.testnet or token.kestrelridge-main.testnet
+     pass    token_in_catalog: token.kestrelridge-main.testnet is a cap asset of the agent
+     pass    ft_metadata_sane: symbol "DMT", 6 decimals
+     pass    storage_registered: kestrelridge-shop.testnet is registered on token.kestrelridge-main.testnet
+     pass    memo_injection: local patterns: no match
+     ALLOW, signed with the TEST key (key id cur); signature verified with gate.ed25519: True
+   ```
+
+   The lookalike's verdict line, and the EVM leg's last lines:
+
+   ```
+     DENIED. kestrelridge-sh0p.testnet is a lookalike of kestrelridge-shop.testnet. Created less than 7 d ago. Not on the owner's allowlist. Not registered on the token.
+   ```
+
+   ```
+     DENIED. The recipient 0x1fcdb04d0c5364fbd92c73ca8af9baa72c269107 carries the GoPlus theft labels stealing_attack (GoPlus data_source "SlowMist,BlockSec", fetched 2026-10-29T11:48:40Z).
+     Nothing was signed, nothing was deposited.
+   ```
+
+   Each verdict also prints its evidence sha256 and the time the checks took. These are replay timings from fixtures, not live latency; the verdict id is random, so the ALLOW's canonical message and evidence hash differ on every run.
+
+2. `python -m unittest discover -s tests` runs the Python suite: the rules, the canonical vectors, the evidence hashing, `gate/ed25519.py` against the RFC 8032 section 7.1 vectors, the label store, the incidents, the EVM leg, `scan`, the MCP server, the README counts and tables. It ends with a line `OK`, with a skip count: the PyNaCl and py-near cross checks skip with a printed reason when those packages are absent, and the wasm checks skip until `res/` holds the built files.
+3. `sha256sum res/gate.wasm res/registry.wasm` against `res/*.wasm.sha256`, and `python -m gate codehash res/gate.wasm` for the hex and base58 forms to compare with the testnet `code_hash`. The build record lands with the wasm files under `res/`. Reproducing the hash from source needs Docker; checking it against testnet needs network.
+4. `python -m gate wasm-exports res/gate.wasm` (and `res/registry.wasm`) parses the wasm export section and prints the exported function names, which equal the contract method tables. It runs once the wasm files land under `res/`.
+5. `python -m gate verify fixtures/registry/testnet-vendor.json fixtures/evidence/7e77187d*.json` recomputes the evidence hash, compares it and the verdict with the registry view, and prints the NEP-297 fields to compare with the explorer:
+
+   ```
+   record shape: view
+   evidence sha256: 7e77187d...c88bb2cc
+   record evidence_hash: 7e77187d...c88bb2cc
+   NEP-297 fields to compare with the explorer:
+     standard shieldbot-near, version 1.0.0, event verdict_recorded
+     subject kestrelridge-shop.testnet (from the evidence; the view shape has none)
+     verdict ALLOW, evidence_hash 7e77187d...c88bb2cc
+     observed_block 275799179, verdict_id 1b29052381ecf3fc1937b36db2539678
+   ok   evidence sha256 equals the record's evidence_hash
+   ok   evidence verdict equals the record's verdict
+   verified
+   ```
+
+6. `python -m mcp.server` answers JSON-RPC on stdin. A scripted `initialize` and `tools/list`, cut to 150 characters a line:
+
+   ```
+   printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"t","version":"0"}}}' '{"jsonrpc":"2.0","method":"notifications/initialized"}' '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' | python -m mcp.server 2>/dev/null | cut -c1-150
+   ```
+
+   ```
+   {"jsonrpc": "2.0", "id": 1, "result": {"protocolVersion": "2025-06-18", "capabilities": {"tools": {}}, "serverInfo": {"name": "shieldbot-near", "versi
+   {"jsonrpc": "2.0", "id": 2, "result": {"tools": [{"name": "check_near_payment", "description": "Judge one NEAR agent payment (receiver, token, amount,
+   ```
+
+7. `python -m intel counts` and `python -m gate incident rhea` print the label counts and the Rhea Lend incident page from committed files:
+
+   ```
+   412 assertions over 262 subjects: onchain 40, official_source 350, third_party 18, inferred 4, unknown 0
+   ```
+
+   ```
+   Rhea Lend margin trading route exploit (2026-04-16)
+   Chains: near, eth
+
+   Sources
+     [rekt-rhea] rekt.news, https://rekt.news/rhea-finance-rekt
+       sha256 1743d141...eb0e6c1f
+       fetched 2026-10-29T11:26:35Z
+   ```
+
+8. `fixtures/canon/*.json` are read by both `python -m unittest tests.test_canon` and the Rust unit tests in `contracts/gate` (`cargo test --lib`, network once for crates.io), so the two implementations of the signed message are checked against the same bytes without a network.
+9. `python -m intel receivers` replays the rules over the recorded mainnet receiver set from `fixtures/receivers/` and prints the measured line:
+
+   ```
+   On 52 recorded mainnet receivers the rules returned 32 ALLOW, 19 DENY, 1 Unknown.
+   ```
+
+Fixtures under `fixtures/rpc/`, `fixtures/demo/`, `fixtures/scan/`, `fixtures/intents/` and `fixtures/goplus/` are recorded JSON-RPC, NearBlocks, 1Click, GoPlus and ShieldBot responses, keyed by the sha256 of the request. A request with no fixture reads Unknown, never a pass.
+
+| Command | Needs | Label |
+|---|---|---|
+| `python -m gate demo --offline`, `python -m unittest discover -s tests`, `python -m gate codehash`, `python -m gate wasm-exports`, `python -m gate verify`, `python -m mcp.server`, `python -m intel counts` | Python 3.11 or later | offline |
+| `cargo test --lib` (in `contracts/gate`, `contracts/registry`, `contracts/test-token`) | Rust per `rust-toolchain.toml`, crates.io once | network once |
+| `cargo test --test sandbox` | Linux or macOS, sandbox download | network, WSL |
+| `cargo near build reproducible-wasm` | Docker, image pull | network, Docker |
+| `python -m gate demo --live`, `python -m gate pay`, `python -m gate attack`, `python -m gate scan <account>` with `GATE_FIXTURES_MODE=off`, `python -m intel feed`, `python -m intel seed` | testnet or mainnet RPC, the live venv | network |
+
+## Try it live (network)
+
+Testnet accounts and deployments are listed in `docs/TESTNET.md`; the evidence documents in `docs/EVIDENCE.md`.
+
+- The allowed payment, invoice 2, 10 DMT to `kestrelridge-shop.testnet`: [transaction](https://testnet.nearblocks.io/txns/7agsRsZgeRm2vhK1LXug2qRQ2qudbAMjsLncuxGpvdwn), with `transfer_scheduled`, the token's `ft_transfer` and `transfer_completed` in its logs.
+- The refused lookalike `kestrelridge-sh0p.testnet`, sent through `python -m gate attack no-verdict`: [failed receipt `REFUSED:no_verdict`](https://testnet.nearblocks.io/txns/6kfxEFCR2uuoiM6cpj8CmGAfmRjKTYNtFq4igkv48qK7).
+- The registry records for the vendor, the lookalike and the aged payee: [`record_batch`](https://testnet.nearblocks.io/txns/CW5TWeRyvLngggXiBY5Y7xSZTD3BPWerFtsXczJdPRhW); read one without a key with `near contract call-function as-read-only registry.kestrelridge-main.testnet latest json-args '{"subject":"kestrelridge-shop.testnet"}' network-config testnet now`.
+- The refused unknown payee (`REFUSED:unknown_payee_cap`) lands after 5 Nov, when the aged payee is 7 days old.
+- The EVM leg: preflight, no transaction on any chain; the recorded dry quote and GoPlus answer are under `fixtures/intents/` and `fixtures/goplus/`.
+
+To reproduce with your own testnet accounts, set the variables of `env.example` and run `scripts/setup_testnet.sh`, `scripts/register_agent.sh` and `scripts/set_allowlist.sh`; `DRY_RUN=1` prints every command line without reading a key or sending a transaction (`scripts/README.md`).
+
+## Architecture
+
+```
+contracts/gate/       guard: holds the funds, verifies the signed ALLOW (lib.rs, verdict.rs), allowlist, denylist, caps (policy.rs)
+contracts/registry/   registry: record, record_batch, latest, is_allowed, record_label, NEP-297 events
+contracts/test-token/ NEP-141 test token (DMT) for the sandbox and testnet runs
+gate/rules.py         tiered NEAR rules over view calls and the label store; ALLOW, DENY or UNKNOWN
+gate/verdict.py       the verdict service: rules, evidence document (evidence.py), canonical message (canon.py), signature
+gate/intents.py       the EVM leg: 1Click dry quote, GoPlus address labels, ShieldBot firewall for contracts
+gate/agent.py         pay and attack over py-near; gate/scan.py key hygiene; gate/verify.py offline record check
+intel/                label store (labels.py, labels.jsonl), seeds, incidents, feed, flow trace, static pages
+mcp/server.py         stdio MCP server: check_near_payment, check_intents_quote, scan_near_account
+fixtures/, tests/     recorded responses replayed offline; the Python tests
+```
+
+## Integrate
+
+1. In Python: `gate.verdict.request(kind, token, receiver, amount, memo, gate=..., agent_pk_hex=..., policy=..., store=..., rpc=..., nearblocks=..., signer=...)` returns a dict with `outcome`, `verdict` (the signed Verdict object on ALLOW, else None), `request`, `checks` and `evidence_hash`.
+2. On the command line: `python -m gate verdict --kind ft --token <token> --receiver <account> --amount <base units> --memo <memo> --gate <gate account>`.
+3. As MCP tools (`check_near_payment`, `check_intents_quote`, `scan_near_account`), in Claude Code from the repository root: `claude mcp add shieldbot-near -- python -m mcp.server`.
+4. Other clients, the Codex configuration and the environment for live reads: `mcp/README.md`.
+5. The agent calls one of these before `request_transfer(request, verdict)` and passes the `request` and `verdict` objects through unchanged.
+
+## Trust model
+
+- The live verifier key is held by the team's operator, outside the repository, in the file `VERIFIER_KEY_FILE` names. The TEST key is derived from the public seed `sha256(b"gate test verifier v1")`, signs only test vectors and offline runs, and is not registered on testnet: `scan` above shows the on chain key differs from it.
+- The recorder key (`recorder.kestrelridge-main.testnet`), the agent function call key and the testnet Gate account key are held by the team's operator; the owner account key and every mainnet key are held by the owner. No private key is in the repository.
+- Without `--verdict-file`, `python -m gate pay` runs the verdict service and the agent in one process on one machine.
+- Verdict latency: the latency line of the counts block, live testnet verdicts for the allowlisted payee, tier 1 checks.
+- A wrong ALLOW costs at most the per call cap, then the window cap; for a payee off the allowlist, the separate unknown payee caps (`per_call_cap_is_enforced`, `window_cap_is_enforced`, `unknown_payee_cap_is_enforced` in `contracts/gate/src/lib.rs`).
+- The testnet Gate kept a full access key during the build (`scan` above).
+
+## Claims to code
+
+Copied from `docs/CLAIMS.md`; `tests/test_readme_claims.py` asserts the two tables are identical and that every file, function and test named exists.
+
+| Claim | File:function | Test | Evidence | idea |
+|---|---|---|---|---|
+| The receiver rules check available evidence and return Unknown when a required check cannot run. | `gate/rules.py:judge` | `tests/test_rules.py::OutputsTest.test_missing_fixture_is_unknown_never_a_pass` | offline | yes |
+| The Gate requires a verdict and rejects a missing verdict. | `contracts/gate/src/lib.rs:request_transfer` | `contracts/gate/src/lib.rs::tests::missing_verdict_is_refused` | offline | yes |
+| The Gate refuses a verdict with a forged signature. | `contracts/gate/src/lib.rs:request_transfer` | `contracts/gate/src/lib.rs::tests::flipped_signature_is_refused` | `fixtures/rpc/attacks/02-forged-signature.json` | yes |
+| A non ALLOW verdict is refused by the Gate. | `contracts/gate/src/lib.rs:request_transfer` | `contracts/gate/src/lib.rs::tests::non_allow_literal_is_refused` | offline | yes |
+| A valid ALLOW schedules a bounded transfer and emits the transfer event. | `contracts/gate/src/lib.rs:request_transfer` | `contracts/gate/src/lib.rs::tests::happy_path_debits_cap_and_emits_events` | offline | yes |
+| The `pay` command always uses the verdict path and has no bypass. | `gate/agent.py:pay` | `tests/test_agent.py::NoBypassTest.test_the_source_has_no_bypass_word_and_pay_has_no_bypass_option` | offline | yes |
+| The registry records verdicts and its latest view returns the evidence hash. | `contracts/registry/src/lib.rs:record_batch` | `contracts/registry/tests/sandbox.rs::registry_records_over_rpc_and_rotates_recorder` | offline | yes |
+| The agent function call key is scoped to request_transfer. | `contracts/gate/tests/sandbox.rs:sandbox_transfer_policy_and_protocol_boundary` | `contracts/gate/tests/sandbox.rs::sandbox_transfer_policy_and_protocol_boundary` | offline | yes |
+| The agent key calling `on_transfer` is refused by the protocol (transaction rejected), not by the contract. | `contracts/gate/tests/sandbox.rs:sandbox_transfer_policy_and_protocol_boundary` | `contracts/gate/tests/sandbox.rs::sandbox_transfer_policy_and_protocol_boundary` | `fixtures/rpc/attacks/05-callback.json` | yes |
+| The agent key calling token `ft_transfer` is refused by the protocol (transaction rejected), not by the contract. | `contracts/gate/tests/sandbox.rs:sandbox_transfer_policy_and_protocol_boundary` | `contracts/gate/tests/sandbox.rs::sandbox_transfer_policy_and_protocol_boundary` | `fixtures/rpc/attacks/06-token-direct.json` | yes |
+| The agent key attaching 1 yoctoNEAR is refused by the protocol (transaction rejected), not by the contract. | `contracts/gate/tests/sandbox.rs:sandbox_transfer_policy_and_protocol_boundary` | `contracts/gate/tests/sandbox.rs::sandbox_transfer_policy_and_protocol_boundary` | `fixtures/rpc/attacks/08-one-yocto.json` | yes |
+| Reusing a verdict is refused with `REFUSED:verdict_used`. | `contracts/gate/src/lib.rs:request_transfer` | `contracts/gate/src/lib.rs::tests::repeated_verdict_id_is_refused` | `fixtures/rpc/attacks/03-replay.json` | yes |
+| An expired ALLOW is refused with `REFUSED:expired`. | `contracts/gate/src/lib.rs:request_transfer` | `contracts/gate/src/lib.rs::tests::expired_vector_is_refused` | `fixtures/rpc/attacks/03-expired.json` | yes |
+| A transfer over its per call cap is refused. | `contracts/gate/src/lib.rs:request_transfer` | `contracts/gate/src/lib.rs::tests::per_call_cap_is_enforced` | `fixtures/rpc/attacks/04-over-cap.json` | yes |
+| The NEAR Intents EVM leg is preflight before signing; no transaction on any chain. | `gate/intents.py:judge_quote` | `tests/test_intents.py::DemoRecipientTest.test_the_demo_recipient_is_deny_with_the_labels_and_the_fetch_time` | `fixtures/intents/`, `fixtures/goplus/` | yes |
+| The demo replays the recorded NEAR and EVM outcomes offline. | `gate/demo.py:run` | `tests/test_demo.py::DemoTest.test_four_outcomes` | `fixtures/demo/` | yes |
+| The MCP server exposes the guard, EVM quote and account scan tools. | `mcp/server.py:serve` | `tests/test_mcp.py::McpServerTest.test_a_scripted_session` | offline | yes |
+| Consumers today are the guard, the MCP server and the demo agent; none from a third party yet. | `mcp/server.py:serve` | `tests/test_mcp.py::McpServerTest.test_a_scripted_session` | offline | yes |
+| The mainnet receiver outcome line is generated from recorded receiver judgements. | `scripts/counts.py:receivers_line` | `tests/test_receivers.py::ReceiverSetTest.test_a_replay_rejudges_every_subject_to_the_committed_files_and_the_counts_line` | `fixtures/receivers/` | yes |
+| The label store count is generated from committed assertions and provenance. | `scripts/counts.py:labels_line` | `tests/test_counts.py::CountsTest.test_the_label_and_incident_lines_equal_a_recount` | `intel/labels.jsonl` | yes |
+| Incident page totals are generated from committed incident files. | `scripts/counts.py:incidents_line` | `tests/test_counts.py::CountsTest.test_the_label_and_incident_lines_equal_a_recount` | `intel/incidents/` | yes |
+| Feed and flow totals are generated from committed state, events and traces. | `scripts/counts.py:feed_line` | `tests/test_counts.py::CountsTest.test_the_feed_and_flows_lines_equal_a_recount` | `intel/feed/`, `intel/flows/` | yes |
+| Verdict latency percentiles are generated from the recorded run fixtures. | `scripts/counts.py:latency_line` | `tests/test_counts.py::CountsTest.test_latency_is_not_measured_without_files_and_nearest_rank_with_them` | `fixtures/latency/` | yes |
+| README count lines are generated by `scripts/counts.py` from committed files. | `scripts/counts.py:lines` | `tests/test_counts.py::CountsTest.test_the_lines_follow_the_fixed_format_in_order` | offline | yes |
+| A TEE is not built. | `tests/test_attack_evidence.py:unbuilt_limit_rows` | `tests/test_attack_evidence.py::AttackEvidenceTest.test_unbuilt_surfaces_are_stated_as_limits` | offline | no |
+| An OutLayer approver is not built. | `tests/test_attack_evidence.py:unbuilt_limit_rows` | `tests/test_attack_evidence.py::AttackEvidenceTest.test_unbuilt_surfaces_are_stated_as_limits` | offline | no |
+| A browser extension for NEAR is not built. | `tests/test_attack_evidence.py:unbuilt_limit_rows` | `tests/test_attack_evidence.py::AttackEvidenceTest.test_unbuilt_surfaces_are_stated_as_limits` | offline | no |
+| A Telegram bot for NEAR is not built. | `tests/test_attack_evidence.py:unbuilt_limit_rows` | `tests/test_attack_evidence.py::AttackEvidenceTest.test_unbuilt_surfaces_are_stated_as_limits` | offline | no |
+
+## Adversarial table
+
+Copied from `docs/ATTACKS.md`. Each NEAR command is `python -m gate attack <name>`, the simulation switch; `python -m gate pay` always requires a verdict and has no way to skip it.
+
+| # | Attack and command | What the agent sends | Where it is refused | Expected string | Fixture | Explorer link | Test for the same refusal |
+|---:|---|---|---|---|---|---|---|
+| 1 | no-verdict, `python -m gate attack no-verdict` | `request_transfer` to lookalike `kestrelridge-sh0p.testnet`, with no verdict | Gate contract | `REFUSED:no_verdict` | `fixtures/rpc/attacks/01-no-verdict.json` | [refused transaction](https://testnet.nearblocks.io/txns/6kfxEFCR2uuoiM6cpj8CmGAfmRjKTYNtFq4igkv48qK7) | `contracts/gate/src/lib.rs::tests::missing_verdict_is_refused` |
+| 2 | forged-signature, `python -m gate attack forged-signature` | `request_transfer` with a signature from the TEST key, which the Gate does not trust | Gate contract | `REFUSED:bad_signature` | `fixtures/rpc/attacks/02-forged-signature.json` | [refused transaction](https://testnet.nearblocks.io/txns/Gv9P2py5B2B6KjGP2g25TYPFJVnzyU2tqnYgp7rhb9A9) | `contracts/gate/src/lib.rs::tests::flipped_signature_is_refused` |
+| 3 | replay and expired, `python -m gate attack replay` and `python -m gate attack expired` | The first replay submission is the authorized use; submitting that verdict again within five minutes, and submitting a day old ALLOW | Gate contract | Second submission: `REFUSED:verdict_used`; day old ALLOW: `REFUSED:expired` | `fixtures/rpc/attacks/03-replay.json`, `fixtures/rpc/attacks/03-expired.json` | [refused replay](https://testnet.nearblocks.io/txns/2FFnYUrXYLLgAHA2vsNud2mawU1xttkCQaNXg2yZG6Pn), [expired verdict](https://testnet.nearblocks.io/txns/5KG3sPSqdvUP6y6a5iR1APzcHxb8pSsVxKiffWbNvQ7H) | `contracts/gate/src/lib.rs::tests::repeated_verdict_id_is_refused`, `contracts/gate/src/lib.rs::tests::expired_vector_is_refused` |
+| 4 | over-cap, `python -m gate attack over-cap` | `request_transfer` for 11 DMT with a 10 DMT per call cap | Gate contract | `REFUSED:per_call_cap` | `fixtures/rpc/attacks/04-over-cap.json` | [refused transaction](https://testnet.nearblocks.io/txns/2vsukFAzVFCUFAxSRSHd39ubi3xavfSB86gcRdr8nWgU) | `contracts/gate/src/lib.rs::tests::per_call_cap_is_enforced` |
+| 5 | callback, `python -m gate attack callback` | The agent function call key calls `on_transfer` | NEAR protocol boundary: refused by the protocol (transaction rejected), not by the contract | `MethodNameMismatch` | `fixtures/rpc/attacks/05-callback.json` | No receipt, no explorer link | `contracts/gate/tests/sandbox.rs::sandbox_transfer_policy_and_protocol_boundary` |
+| 6 | token-direct, `python -m gate attack token-direct` | The agent function call key calls `ft_transfer` on the token | NEAR protocol boundary: refused by the protocol (transaction rejected), not by the contract | `ReceiverMismatch` | `fixtures/rpc/attacks/06-token-direct.json` | No receipt, no explorer link | `contracts/gate/tests/sandbox.rs::sandbox_transfer_policy_and_protocol_boundary` |
+| 7 | service-down, `python -m gate attack service-down` | With the verdict signer unavailable, the agent submits `request_transfer` without a verdict | Gate contract | `REFUSED:no_verdict` | `fixtures/rpc/attacks/07-service-down.json` | [refused transaction](https://testnet.nearblocks.io/txns/CTm9yDGHNiXD94jsF8QdeXWeEKz7qxiYbLT1zzvt9wnk) | `contracts/gate/src/lib.rs::tests::missing_verdict_is_refused` |
+| 8 | one-yocto, `python -m gate attack one-yocto` | The agent function call key attaches 1 yoctoNEAR to `request_transfer` | NEAR protocol boundary: refused by the protocol (transaction rejected), not by the contract | `DepositWithFunctionCall` | `fixtures/rpc/attacks/08-one-yocto.json` | No receipt, no explorer link | `contracts/gate/tests/sandbox.rs::sandbox_transfer_policy_and_protocol_boundary` |
+| preflight | EVM leg, `preflight, no transaction on any chain` | Recorded 1Click dry quote and GoPlus answer for the destination | Preflight verdict, before signing | `DENY: stealing_attack` from the recorded GoPlus answer | `fixtures/intents/`, `fixtures/goplus/` | No transaction on any chain | `tests/test_intents.py::DemoRecipientTest.test_the_demo_recipient_is_deny_with_the_labels_and_the_fetch_time` |
+
+9 attempts, 9 refusals, 0 bypasses. The replay record contains two submissions: its first, authorized use succeeds, and only the second submission is the replay attempt counted above. The expired submission is a separate refused case. The three protocol refusals have stored RPC error JSON and no receipt, so they have no explorer links.
 
 ## Limits
 
-- NearBlocks: the free tier allows 6 calls a minute and 333 a day. `gate/rpc.py` spaces NearBlocks fetches at least 10 s apart and stops at 300 a day per process; a check that cannot read NearBlocks reads Unknown. Fixtures are reused for 24 hours. Data: NearBlocks.
+- No TEE. The rules are view call heuristics; a check that cannot run reads Unknown, and Unknown is refused. Unknown is expected whenever a data source is down or holds no data: NearBlocks testnet has indexed nothing since 27 Sep, so testnet account age comes from the oldest access key nonce and an archival block read (`docs/SPIKES.md` S8).
+- ALLOW is the absence of a known scam signal, not proof of identity; the unknown payee cap bounds what a patient attacker can take.
+- The measured line of the counts block is the replay of a recorded mainnet receiver set, not a rate over all NEAR payees.
+- The testnet Gate kept a full access key during the build.
+- A used verdict stays used when the transfer then fails; the agent needs a fresh ALLOW. A failed transfer restores the debited cap (`failed_transfer_restores_the_debited_cap`), except when the agent was revoked, the cap removed or the window rolled in between (the four `failed_transfer_after_*_is_not_restored` tests). If the completion callback itself fails, the budget stays debited.
+- Storage for used verdict ids, pending requests and agent keys is staked from the Gate's own balance; the registry pays storage for its records (`docs/REGISTRY.md`). `request_transfer` refuses a call whose gas cannot cover the transfer and its callback (`REFUSED:low_gas`).
+- The agent key's allowance is a gas budget, charged at the gas buy price and credited back on refund, so size it at prepaid gas times expected calls; `register_agent` refuses an allowance of 0 (`REFUSED:zero_allowance`), which the host would read as unlimited.
+- `register_agent` refuses a key that already has an entry (`REFUSED:agent_exists`); an `AddKey` failure for any other reason can leave an agent entry, which the owner removes with `revoke_agent`.
+- NearBlocks free tier: 6 calls a minute and 333 a day, personal use, with attribution. `gate/rpc.py` spaces NearBlocks fetches at least 10 s apart and stops at 300 a day per process, and record mode reuses a fixture for 24 hours; a 429 or a missing fixture reads Unknown.
+- The production engine checks contracts and approval spenders; recipient labels on a bare transfer come from the label provider through the NEAR rule (`gate/intents.py` calls the firewall only for a recipient with contract code).
+- No mainnet deployment. The EVM leg is a preflight: nothing is signed and nothing is deposited, and its verdicts are not written to the NEAR registry.
+- Reproducing the hash from source needs Docker; checking it against testnet needs network.
+- The signature is pure Ed25519 over the sha256 digest, not Ed25519ph.
+- Dependencies: NEAR RPC, NearBlocks, the archival RPC, GoPlus, 1Click and the ShieldBot API; each check that needs one reads Unknown when it is down.
+- What waits: chain wide coverage, clustering, exchange labels, the SHIELD feed, alerts, search, numeric risk ratings, billing, chain signatures linking, any trace of an unlabelled account. The browser extension and the Telegram bot do not cover NEAR.
+
+## Relationship to other NEAR work
+
+This project is not related to NEAR Intents SHIELD, the security policy layer behind NEAR Intents and 1Click (https://docs.near-intents.org/security-compliance/proactive-intents-security.md). SHIELD protects the protocol at settlement; this layer protects the agent before it signs, with evidence its owner can audit; and nothing screens a direct NEAR transfer at all.
+
+OutLayer owns custody and static policy; this layer supplies the judgement. An OutLayer approver is not built. IronClaw reaches MCP servers over HTTPS through IronHub; this server is stdio and is not integrated with it.
+
+Prior art, not claimed for NEAR: the ShieldBot verdict guard and registries on Robinhood Chain (4663) and BOT Chain (677), in the baseline repository below.
+
+## New in this hackathon vs reused
+
+- Baseline: the public repository [Ridwannurudeen/shieldbot](https://github.com/Ridwannurudeen/shieldbot/tree/9e2a6ac) at commit `9e2a6ac`: ShieldBot's EVM engine, its registries on Robinhood Chain and BOT Chain, its SDKs and its production MCP server are pre existing.
+- Called over HTTPS, each optional and Unknown when `SHIELDBOT_API_URL` is empty or the call fails: `POST /api/firewall` (the EVM leg, contracts only), `POST /api/scan/injection` (the memo check) and `GET /api/health`. GoPlus `address_security` is called directly by the NEAR layer.
+- Copied: the `THEFT_LABELS` constant from `services/counterparty_service.py:27-41`, kept in `gate/intents.py` with its origin in a comment. Designs ported as new code with their origin named: the verdict vocabulary, coverage and failed sources, canonical bytes plus hash evidence, the registry record shape, the verify without the API recipe, the rotatable recorder.
+- Published code and packages: the public domain Ed25519 reference implementation (ported to Python 3 in `gate/ed25519.py`, origin and changes in its header), PyNaCl (the live signer), py-near (the live agent path), near-sdk and near-contract-standards 5.29.1, near-workspaces 0.23.0, cargo-near 0.22.0, and ed25519-dalek, sha2, tokio and serde_json as Rust dev dependencies only.
+- New in the window: both contracts, the test token, the rules, the label store, the incidents, the EVM leg, the MCP server, `scan`, the fixtures, the agent script, the tests, the scripts and the docs.
+
+AI coding tools wrote most of the code under the authors' direction; every test was run by the authors.
+
+License: Apache-2.0 (`LICENSE`). Reproducible build: `cargo near build reproducible-wasm` in each contract directory with Docker; the build record lands with the wasm files under `res/`.
+
+Business model: a metered verdict and label API for agent platforms; the approver seat in agent wallets; alerts later. No token.
+
+Static pages: `demo/site/`, written by `python -m intel render` from the committed files; the hosted copy is linked here on 13 Nov: `<hosted URL>`.
+
+## Environment and working agreements
+
+Every variable the code and the scripts read is in `env.example`, with a comment each; the agreements for working in this repository are in `AGENTS.md`.
+
+Data: NearBlocks
