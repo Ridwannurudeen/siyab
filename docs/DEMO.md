@@ -77,7 +77,7 @@ Account age stayed in the rules (`docs/SPIKES.md` S8): NearBlocks testnet has in
 - Expected first line of the reply: the tool's JSON text, starting `{"outcome": ` for `check_near_payment`.
 - Caption: "Who your agent pays gets a verdict with evidence. Unknown never passes."
 - Narration, the one sentence of pitch voice: "security intelligence, the way the best EVM products do it, with the evidence on chain".
-- Explorer: none.
+- Explorer: none for the call itself. Recorded on 2 Nov: with `GATE_LIVE_SIGNING=1` and the live conditions of `mcp/README.md` set, `check_near_payment` signed an ALLOW for invoice 4 that `python -m gate pay --verdict-file` paid, https://testnet.nearblocks.io/txns/AADLzYbqhEm6D83osYfQQ5SMED86chiS77XGsA8d7rTJ
 
 ## Recording order
 

@@ -36,6 +36,7 @@ The agent registration, 29 Oct, transaction `HNVuBL2N...K2wmdu` (`fixtures/runs/
 | 10 DMT to the vendor, memo `invoice 1`, 29 Oct | ALLOW | `9XVcMjuS...ekVsyK` |
 | 10 DMT to the vendor, memo `invoice 2`, 1 Nov | ALLOW, 1794 ms | `7agsRsZg...Gpvdwn` |
 | 10 DMT to the vendor, memo `invoice 3`, 2 Nov, after the redeploy | ALLOW, 1754 ms | `DU55HxkN...zXNwGh` |
+| 10 DMT to the vendor, memo `invoice 4`, 2 Nov, request id 5, paid with `python -m gate pay --verdict-file` | ALLOW signed with the live key by the MCP server (`GATE_LIVE_SIGNING=1`) | `AADLzYbq...8d7rTJ` |
 
 Each emitted `transfer_scheduled`, the token's `ft_transfer` and `transfer_completed`. The evidence document of the first payment was lost with a scratch copy, so the second is the only payment recorded in the registry so far.
 
