@@ -58,7 +58,7 @@ verifier keys: the TEST key is ed25519:36ZbCswnc8QBvUxFF1pEwKwj6PZwgRWGe4nqcdy9H
 labels: 0
 ```
 
-Why the guard verifies a signature and the registry is the record: NEAR cross contract calls are asynchronous, and a callback runs in a later block. A guard that consulted the registry would pay a promise plus a private callback, two receipts and one or two blocks, and would hold its own state across them. So the guard checks a signed verdict passed in its arguments, in one receipt, and the registry is the public record: each verdict the service issued for the demo is recorded there with its evidence hash by the recorder account, any reader calls `latest` or `is_allowed` over RPC without a key, and any contract can read it through a promise. Records on NEAR hash with sha256 (`env::sha256`); the EVM registries hash with keccak256.
+Why the guard verifies a signature and the registry is the record: NEAR cross contract calls are asynchronous, and a callback runs in a later block. A guard that consulted the registry would pay a promise plus a private callback, two receipts and one or two blocks, and would hold its own state across them. So the guard checks a signed verdict passed in its arguments, in one receipt, and the registry is the public record: the three verdicts of the 1 Nov run (the vendor's ALLOW, the lookalike's DENY, the aged payee's DENY) are recorded there with their evidence hashes by the recorder account, any reader calls `latest` or `is_allowed` over RPC without a key, and any contract can read it through a promise. Records on NEAR hash with sha256 (`env::sha256`); the EVM registries hash with keccak256.
 
 ## Try it offline
 
