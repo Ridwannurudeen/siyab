@@ -29,7 +29,7 @@ IMAGE_DIGEST_LINE = re.compile(r'image_digest = "sha256:[0-9a-f]{64}"')
 # A recorded RPC fixture never holds a 128 hex string: that is the length of a hex secret key or
 # signature, and the canonical vectors that carry signatures live under fixtures/canon/.
 HEX128 = re.compile(r"[0-9a-fA-F]{128}")
-RPC_FIXTURES = "fixtures/rpc/"
+RPC_FIXTURES = ("fixtures/rpc/", "fixtures/demo/", "fixtures/scan/")
 # ShieldBot's own text never uses this word. Third party strings that carry it (a token symbol)
 # live only in data: seeds, raw snapshots, fixtures and the label store.
 AUTHORED_WORD = re.compile(r"safe", re.IGNORECASE)

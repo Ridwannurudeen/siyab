@@ -331,6 +331,8 @@ class HygieneRuleTest(unittest.TestCase):
         spec.loader.exec_module(hygiene)
         secret = "ab" * 64
         self.assertTrue(hygiene.check_text("fixtures/rpc/x.json", f'{{"memo": "{secret}"}}'))
+        self.assertTrue(hygiene.check_text("fixtures/demo/x.json", f'{{"memo": "{secret}"}}'))
+        self.assertTrue(hygiene.check_text("fixtures/scan/x.json", f'{{"memo": "{secret}"}}'))
         self.assertFalse(hygiene.check_text("fixtures/canon/x.json", f'{{"signature_hex": "{secret}"}}'))
         self.assertFalse(hygiene.check_text("fixtures/rpc/x.json", '{"hash": "' + "ab" * 32 + '"}'))
 
