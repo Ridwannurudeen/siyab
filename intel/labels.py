@@ -14,7 +14,8 @@ from pathlib import Path
 STORE_PATH = Path(__file__).resolve().parent / "labels.jsonl"
 FIELDS = ("id", "entity", "subject", "chain", "label", "category", "provenance", "source",
           "observed_at", "confidence", "rule_id", "superseded_by", "note")
-CATEGORIES = ("treasury", "bridge", "catalog_token", "infrastructure", "incident", "denylist", "watch")
+CATEGORIES = ("treasury", "bridge", "catalog_token", "infrastructure", "incident", "denylist", "watch",
+              "organisation")
 PROVENANCES = ("onchain", "official_source", "third_party", "inferred", "unknown")
 SOURCE_KEYS = {
     "document": ("content_sha256", "fetched_at", "url"),
@@ -155,7 +156,9 @@ class Store:
 
 
 def load(path=STORE_PATH):
-    """Read and validate a labels.jsonl file; a duplicate id or a dangling superseded_by raises."""
+    """Read and validate a labels.jsonl file; a duplicate id, a dangling superseded_by, or a current
+    inferred denylist or incident row on a subject that carries no current third_party or onchain
+    incident row on the same chain raises."""
     data = Path(path).read_bytes()
     assertions, seen = [], set()
     for number, line in enumerate(data.decode("utf-8").splitlines(), start=1):
@@ -172,6 +175,15 @@ def load(path=STORE_PATH):
     for assertion in assertions:
         if assertion.superseded_by is not None and assertion.superseded_by not in seen:
             raise LabelError(f"{assertion.id}: superseded_by names no assertion in the store")
+    # An inferred row never adds a subject to the refusal set: it may only repeat a refusal category a
+    # cited report or a chain read already gives the subject.
+    cited = {(a.subject, a.chain) for a in assertions
+             if a.category == "incident" and a.provenance in ("third_party", "onchain") and a.superseded_by is None}
+    for assertion in assertions:
+        if (assertion.provenance == "inferred" and assertion.category in ("denylist", "incident")
+                and assertion.superseded_by is None and (assertion.subject, assertion.chain) not in cited):
+            raise LabelError(f"{assertion.id}: an inferred row may not add {assertion.category} to a subject no "
+                             "cited source or chain read names")
     return Store(assertions, hashlib.sha256(data).hexdigest())
 
 

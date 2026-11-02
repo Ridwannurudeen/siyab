@@ -239,6 +239,71 @@ class StoreFileTest(unittest.TestCase):
         self.assertEqual(len(labels.load(self.path).assertions), 2)
 
 
+class CategoryAndRailTest(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.path = Path(tmp.name) / "labels.jsonl"
+        self.input = seed.make_row(**base_fields(provenance="onchain", source=ONCHAIN, category="incident"))
+
+    def write(self, *rows):
+        self.path.write_text("".join(labels.row_line(r) + "\n" for r in rows), encoding="utf-8")
+
+    def inferred(self, category="denylist"):
+        source = {"rule_id": "fake_token_shared_hash", "inputs": [self.input["id"]]}
+        return seed.make_row(**base_fields(category=category, provenance="inferred", source=source,
+                                           rule_id="fake_token_shared_hash", confidence=0.9))
+
+    def incident(self, provenance, **changes):
+        return seed.make_row(**base_fields(provenance=provenance, source=SOURCES[provenance], category="incident",
+                                           label=provenance, **changes))
+
+    def test_organisation_is_a_category_outside_the_reference_set(self):
+        self.assertIn("organisation", labels.CATEGORIES)
+        self.assertNotIn("organisation", rules.REFERENCE_CATEGORIES)
+        self.assertNotIn("organisation", rules.DENY_CATEGORIES)
+        self.write(seed.make_row(**base_fields(category="organisation")))
+        self.assertEqual(labels.load(self.path).counts()["category"]["organisation"], 1)
+
+    def test_an_inferred_deny_row_needs_a_cited_incident_row_on_the_subject(self):
+        watch = seed.make_row(**base_fields(provenance="onchain", source=ONCHAIN, category="watch"))
+        for category in ("denylist", "incident"):
+            row = self.inferred(category)
+            with self.subTest(category=category):
+                self.write(row)
+                with self.assertRaises(labels.LabelError) as caught:
+                    labels.load(self.path)
+                self.assertIn(f"{row['id']}: an inferred row may not add {category} to a subject no cited source "
+                              "or chain read names", str(caught.exception))
+                for provenance in ("third_party", "onchain"):
+                    self.write(self.incident(provenance), row)
+                    self.assertEqual(len(labels.load(self.path).assertions), 2)
+            refused = {
+                "official source": [self.incident("official_source"), row],
+                "another category": [watch, row],
+                "another subject": [self.incident("third_party", subject="y.near"), row],
+                "another chain": [self.incident("third_party", chain="eth"), row],
+                "superseded": [dict(self.incident("third_party"), superseded_by=watch["id"]), watch, row],
+            }
+            for case, rows in refused.items():
+                with self.subTest(category=category, case=case):
+                    self.write(*rows)
+                    with self.assertRaises(labels.LabelError):
+                        labels.load(self.path)
+        self.write(self.inferred("watch"))
+        self.assertEqual(len(labels.load(self.path).assertions), 1)
+
+    def test_the_committed_store_passes_the_rail(self):
+        store = labels.load()
+        inferred = [a for a in store.assertions if a.provenance == "inferred" and a.category in rules.DENY_CATEGORIES]
+        self.assertEqual(len(inferred), 4)
+        for assertion in inferred:
+            with self.subTest(subject=assertion.subject):
+                self.assertTrue(any(a.category == "incident" and a.provenance in ("third_party", "onchain")
+                                    and a.superseded_by is None
+                                    for a in store.by_subject(assertion.subject, assertion.chain)))
+
+
 class SeedTest(unittest.TestCase):
     def setUp(self):
         tmp = tempfile.TemporaryDirectory()

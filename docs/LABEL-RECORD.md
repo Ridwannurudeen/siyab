@@ -24,11 +24,11 @@ A chain code that is not a 1Click code says so in the note: `aurora` (a chain th
 
 ## Source strings are data
 
-A label or note repeats strings from its source (token symbols, page names, contract metadata) inside double quotes, as data with the row's source, never as ShieldBot's own words. ShieldBot's own text (verdict literals, check outcomes, reason and detail templates, the labels it writes) keeps to the word rules `scripts/check_hygiene.py` enforces over `gate/`, `intel/*.py`, `docs/`, `mcp/`, `scripts/`, `README.md`, `AGENTS.md` and `intel/seeds/README.md`; the check script itself, which has to name the word, is the one file in those paths outside the rule. In the files the rule covers, the barred word never appears, quoted or not. Source strings that carry it stay in the snapshots, fixtures and the label store, which hold source data. A row that repeats a report's sentence writes it in `note` as `quote "<sentence>"`, with the row's source as the citation, optionally followed by `; ` and a clause in ShieldBot's own words (such as which existing row the category comes from); a renderer that shows the note shows the quoted part as a quote.
+A label or note repeats strings from its source (token symbols, page names, contract metadata) inside double quotes, as data with the row's source, never as ShieldBot's own words. ShieldBot's own text (verdict literals, check outcomes, reason and detail templates, the labels it writes) keeps to the word rules `scripts/check_hygiene.py` enforces over `gate/`, `intel/*.py`, `docs/`, `mcp/`, `scripts/`, `README.md`, `AGENTS.md` and `intel/seeds/README.md`; the check script itself, which has to name the word, is the one file in those paths outside the rule. In the files the rule covers, the barred word never appears, quoted or not. Source strings that carry it stay in the snapshots, fixtures and the label store, which hold source data. A row that repeats a report's sentence writes it in `note` as `quote "<sentence>"`, with the row's source as the citation, optionally followed by `; ` and a clause in ShieldBot's own words (such as which existing row the category comes from); a renderer that shows the note shows the quoted part as a quote. A source's own risk words appear only inside those quotes, because they are the source's judgement, not a finding ShieldBot made: ShieldBot's own words state what a chain read answered or what a rule matched.
 
 ## Categories
 
-`treasury`, `bridge`, `catalog_token`, `infrastructure`, `incident`, `denylist`, `watch`. The verdict service treats a current `denylist` or `incident` assertion on the receiver or the token as a signal and copies its id into the evidence. The subjects on chain `near` of current `catalog_token`, `bridge`, `treasury` and `infrastructure` assertions join the allowlist as the account ids a receiver is compared with for lookalikes; token symbols are never compared with a receiver.
+`treasury`, `bridge`, `catalog_token`, `infrastructure`, `incident`, `denylist`, `watch`, `organisation`. `organisation` holds DAOs, validators and other named organisations read from on chain registries; it is not a lookalike reference, not a refusal category and not a trace terminal. The verdict service treats a current `denylist` or `incident` assertion on the receiver or the token as a signal and copies its id into the evidence. The subjects on chain `near` of current `catalog_token`, `bridge`, `treasury` and `infrastructure` assertions join the allowlist as the account ids a receiver is compared with for lookalikes; token symbols are never compared with a receiver.
 
 ## Provenance classes and source shapes
 
@@ -49,6 +49,8 @@ Every row names a source; `intel/labels.py` refuses a row without one, a row who
 ## The supersession rule
 
 A row is never edited or deleted. When a fact changes, a new row is appended, and the old row's `superseded_by` is set to the new row's id; that is the only field that changes after a row is written, which is why the id leaves it out. `superseded_by` must name an assertion in the store. Readers use only rows whose `superseded_by` is null; the verdict service ignores superseded rows.
+
+An `inferred` row never adds a subject to the refusal set. `intel/labels.py` loads a current `inferred` row in `denylist` or `incident` only when the same subject on the same chain carries a current `incident` row with `third_party` or `onchain` provenance, and refuses the whole store otherwise; every other `inferred` row takes a category outside the refusal categories.
 
 ## Seeds
 
