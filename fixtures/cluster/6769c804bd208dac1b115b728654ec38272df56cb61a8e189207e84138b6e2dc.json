@@ -1,0 +1,14 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "public_key": "ed25519:FF6PSVUZfddySzCnLfg8qrdjCU3bd6gZmWJG6ATdfvbU",
+    "account_ids": [
+      "d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473"
+    ]
+  },
+  "url": "https://api.fastnear.com/v0/public_key/ed25519:FF6PSVUZfddySzCnLfg8qrdjCU3bd6gZmWJG6ATdfvbU/all",
+  "fetched_at": "2026-11-02T17:31:33Z"
+}

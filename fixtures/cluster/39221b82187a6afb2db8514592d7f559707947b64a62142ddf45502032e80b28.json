@@ -1,0 +1,21 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "rhea000453.multica.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "9MtHDvjuwyAoHoQWufzRn9aPgdQBe8k55V2AM7rg4eaA",
+      "block_height": 222749623,
+      "keys": []
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-02T17:25:35Z"
+}
