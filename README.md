@@ -227,7 +227,7 @@ Testnet accounts and deployments are listed in `docs/TESTNET.md`; the evidence d
 - The 2 Nov redeploy with the reproducible wasm: Gate `GTHR62ER...Wik5sW`, registry `9GzMDrYe...UPBb66`, each `code_hash` MATCH (`docs/TESTNET.md`, `res/BUILD.md`).
 - The refused lookalike `kestrelridge-sh0p.testnet`, sent through `python -m gate attack no-verdict`: [failed receipt `REFUSED:no_verdict`](https://testnet.nearblocks.io/txns/6kfxEFCR2uuoiM6cpj8CmGAfmRjKTYNtFq4igkv48qK7).
 - The registry records for the vendor, the lookalike and the aged payee: [`record_batch`](https://testnet.nearblocks.io/txns/CW5TWeRyvLngggXiBY5Y7xSZTD3BPWerFtsXczJdPRhW); read one without a key with `near contract call-function as-read-only registry.kestrelridge-main.testnet latest json-args '{"subject":"kestrelridge-shop.testnet"}' network-config testnet now`.
-- The refused unknown payee (`REFUSED:unknown_payee_cap`) lands after 5 Nov, when the aged payee is 7 days old.
+- The refused unknown payee `examples.testnet`, an aged account not on the allowlist, 2 DMT through `python -m gate attack unknown-payee` with the ALLOW the service returned: [failed receipt `REFUSED:unknown_payee_cap`](https://testnet.nearblocks.io/txns/H6WqJYSbwBPECSVqADRHAGA1qV1a2ictujUiBqaLe416).
 - The EVM leg: preflight, no transaction on any chain; the recorded dry quote and GoPlus answer are under `fixtures/intents/` and `fixtures/goplus/`.
 
 To reproduce with your own testnet accounts, set the variables of `env.example` and run `scripts/setup_testnet.sh`, `scripts/register_agent.sh` and `scripts/set_allowlist.sh`; `DRY_RUN=1` prints every command line without reading a key or sending a transaction (`scripts/README.md`).
