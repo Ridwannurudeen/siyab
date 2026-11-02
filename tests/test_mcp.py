@@ -180,12 +180,18 @@ class McpServerTest(McpSessionCase):
         self.assertEqual(json.loads(rest), {"jsonrpc": "2.0", "id": 5, "result": {}})
         self.assertEqual(stderr.count("skipped a header that does not parse"), 2)
 
-    def test_the_empty_evidence_directory_is_removed_at_exit(self):
+    def test_the_evidence_directory_is_removed_unless_kept(self):
         self.replies([initialize("2025-06-18"), call(2, "scan_near_account", {"account_id": "near"})])
         self.assertEqual(os.listdir(self.tmp), [])
-        self.replies([call(1, "check_near_payment", {"kind": "ft", "token": "wrap.near", "receiver": "intents.near",
-                                                     "amount": "1000"})])
-        self.assertEqual(len(os.listdir(self.tmp)), 1)
+        payment = call(1, "check_near_payment", {"kind": "ft", "token": "wrap.near", "receiver": "intents.near",
+                                                 "amount": "1000"})
+        by_id, _ = self.replies([payment])
+        self.assertEqual(json.loads(by_id[1]["result"]["content"][0]["text"])["outcome"], "ALLOW")
+        self.assertEqual(os.listdir(self.tmp), [])
+        _, stderr = self.session([payment], overrides={"GATE_KEEP_EVIDENCE": "1"})
+        self.assertIn("removed at exit unless GATE_KEEP_EVIDENCE=1", stderr)
+        [kept] = os.listdir(self.tmp)
+        self.assertEqual(len([name for name in os.listdir(Path(self.tmp) / kept) if name.endswith(".json")]), 1)
 
 
 class McpHandlerTest(unittest.TestCase):

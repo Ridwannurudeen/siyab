@@ -1,7 +1,11 @@
 import contextlib
 import io
 import json
+import os
 import shutil
+import subprocess
+import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -14,6 +18,7 @@ DENIED = ("DENIED. kestrelridge-sh0p.testnet is a lookalike of kestrelridge-shop
 EVM_DENIED = ("  DENIED. The recipient 0x1fcdb04d0c5364fbd92c73ca8af9baa72c269107 carries the GoPlus theft labels "
               "stealing_attack")
 RECORDED_URLS = (rpc.TESTNET_RPC_URL, rpc.ARCHIVAL_TESTNET_RPC_URL, rpc.NEARBLOCKS_TESTNET_URL)
+ROOT = Path(__file__).resolve().parent.parent
 
 
 def no_network(*args, **kwargs):
@@ -92,6 +97,27 @@ class DemoTest(unittest.TestCase):
         with (mock.patch("gate.verdict.request", side_effect=RuntimeError("broken")),
               contextlib.redirect_stdout(io.StringIO()), self.assertRaises(RuntimeError)):
             demo.main(offline=True)
+
+    def test_the_evidence_directory_is_removed_unless_kept(self):
+        for keep in (None, "1"):
+            with self.subTest(keep=keep), tempfile.TemporaryDirectory() as tmp:
+                env = {key: value for key, value in os.environ.items() if key != "GATE_KEEP_EVIDENCE"}
+                env.update({"GATE_FIXTURES_MODE": "replay", "TMPDIR": tmp, "TEMP": tmp, "TMP": tmp})
+                if keep:
+                    env["GATE_KEEP_EVIDENCE"] = keep
+                process = subprocess.run([sys.executable, "-m", "gate", "demo", "--offline"], capture_output=True,
+                                         cwd=ROOT, env=env, timeout=120, check=False)
+                self.assertEqual(process.returncode, 0, process.stderr.decode("utf-8", "replace"))
+                last = process.stdout.decode("utf-8").splitlines()[-1]
+                self.assertTrue(last.startswith("Evidence documents, removed at exit unless GATE_KEEP_EVIDENCE=1: "),
+                                last)
+                directory = Path(last.split(": ", 1)[1])
+                self.assertEqual(directory.parent, Path(tmp).resolve())
+                if keep:
+                    self.assertEqual(os.listdir(tmp), [directory.name])
+                    self.assertEqual(len(list(directory.glob("*.json"))), 4)
+                else:
+                    self.assertEqual(os.listdir(tmp), [])
 
     def test_live_reads_testnet_and_a_dry_quote_and_writes_no_fixture(self):
         policy = json.loads((demo.DEMO_DIR / "policy.json").read_text(encoding="utf-8"))
