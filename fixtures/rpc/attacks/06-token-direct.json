@@ -1,0 +1,47 @@
+{
+  "attack": "token-direct",
+  "gate": "kestrelridge-main.testnet",
+  "notes": [],
+  "refused": true,
+  "submissions": [
+    {
+      "sent": {
+        "receiver_id": "token.kestrelridge-main.testnet",
+        "method_name": "ft_transfer",
+        "args": {
+          "receiver_id": "kestrelridge-shop.testnet",
+          "amount": "10000000",
+          "memo": "attack token-direct"
+        },
+        "gas": 30000000000000,
+        "deposit": 0
+      },
+      "outcome": {
+        "transaction_hash": "DAQoL1Q3Rz7drnmjwNMypzw4cHSTwk1prhVX1f4T8WJe",
+        "status": null,
+        "logs": [],
+        "rpc_error": {
+          "name": "HANDLER_ERROR",
+          "cause": {
+            "info": {},
+            "name": "INVALID_TRANSACTION"
+          },
+          "code": -32000,
+          "message": "Server error",
+          "data": {
+            "TxExecutionError": {
+              "InvalidTxError": {
+                "InvalidAccessKeyError": {
+                  "ReceiverMismatch": {
+                    "ak_receiver": "kestrelridge-main.testnet",
+                    "tx_receiver": "token.kestrelridge-main.testnet"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "attack": "callback",
+  "gate": "kestrelridge-main.testnet",
+  "notes": [],
+  "refused": true,
+  "submissions": [
+    {
+      "sent": {
+        "receiver_id": "kestrelridge-main.testnet",
+        "method_name": "on_transfer",
+        "args": {
+          "request_id": 0
+        },
+        "gas": 30000000000000,
+        "deposit": 0
+      },
+      "outcome": {
+        "transaction_hash": "9EnwmzkgZmBavmnB9wc4iWQbxAKgdad3ChitfURxmhEW",
+        "status": null,
+        "logs": [],
+        "rpc_error": {
+          "name": "HANDLER_ERROR",
+          "cause": {
+            "info": {},
+            "name": "INVALID_TRANSACTION"
+          },
+          "code": -32000,
+          "message": "Server error",
+          "data": {
+            "TxExecutionError": {
+              "InvalidTxError": {
+                "InvalidAccessKeyError": {
+                  "MethodNameMismatch": {
+                    "method_name": "on_transfer"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

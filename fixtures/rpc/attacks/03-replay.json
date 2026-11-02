@@ -1,0 +1,91 @@
+{
+  "attack": "replay",
+  "gate": "kestrelridge-main.testnet",
+  "notes": [
+    "one ALLOW sent twice; the first send is a real payment, the second must be refused"
+  ],
+  "refused": true,
+  "submissions": [
+    {
+      "sent": {
+        "receiver_id": "kestrelridge-main.testnet",
+        "method_name": "request_transfer",
+        "args": {
+          "request": {
+            "kind": "ft",
+            "token_id": "token.kestrelridge-main.testnet",
+            "receiver_id": "kestrelridge-shop.testnet",
+            "amount": "10000000",
+            "memo": "attack replay"
+          },
+          "verdict": {
+            "literal": "ALLOW",
+            "issued_ms": 1793304422881,
+            "expires_ms": 1793304722881,
+            "verdict_id": "ff2be203224e3a9296917c2d124775dc",
+            "evidence_hash": "d1a21ed7fea4bb44e64cfc5e8bc75bfb6c0ba89a5791983bbabe9c555b810fc4",
+            "key_id": "cur",
+            "signature": "20ec083a...a27cc104"
+          }
+        },
+        "gas": 30000000000000,
+        "deposit": 0
+      },
+      "outcome": {
+        "transaction_hash": "HWXiWZKcvyEh1gUPS9uBRe72PhHSNJibFVFRexd8jiRu",
+        "status": {
+          "SuccessValue": ""
+        },
+        "logs": [
+          "EVENT_JSON:{\"standard\":\"shieldbot-near\",\"version\":\"1.0.0\",\"event\":\"transfer_scheduled\",\"data\":[{\"request_id\":2,\"agent_pk\":\"fc5b49a7e7d11222ec1f88aba4d8814b254286f45db917508049bbcf06e5bba9\",\"kind\":\"ft\",\"token\":\"token.kestrelridge-main.testnet\",\"receiver\":\"kestrelridge-shop.testnet\",\"amount\":\"10000000\",\"verdict_id\":\"ff2be203224e3a9296917c2d124775dc\",\"evidence_hash\":\"d1a21ed7fea4bb44e64cfc5e8bc75bfb6c0ba89a5791983bbabe9c555b810fc4\"}]}",
+          "EVENT_JSON:{\"standard\":\"nep141\",\"version\":\"1.0.0\",\"event\":\"ft_transfer\",\"data\":[{\"old_owner_id\":\"kestrelridge-main.testnet\",\"new_owner_id\":\"kestrelridge-shop.testnet\",\"amount\":\"10000000\",\"memo\":\"attack replay\"}]}",
+          "EVENT_JSON:{\"standard\":\"shieldbot-near\",\"version\":\"1.0.0\",\"event\":\"transfer_completed\",\"data\":[{\"request_id\":2}]}"
+        ],
+        "rpc_error": null
+      }
+    },
+    {
+      "sent": {
+        "receiver_id": "kestrelridge-main.testnet",
+        "method_name": "request_transfer",
+        "args": {
+          "request": {
+            "kind": "ft",
+            "token_id": "token.kestrelridge-main.testnet",
+            "receiver_id": "kestrelridge-shop.testnet",
+            "amount": "10000000",
+            "memo": "attack replay"
+          },
+          "verdict": {
+            "literal": "ALLOW",
+            "issued_ms": 1793304422881,
+            "expires_ms": 1793304722881,
+            "verdict_id": "ff2be203224e3a9296917c2d124775dc",
+            "evidence_hash": "d1a21ed7fea4bb44e64cfc5e8bc75bfb6c0ba89a5791983bbabe9c555b810fc4",
+            "key_id": "cur",
+            "signature": "20ec083a...a27cc104"
+          }
+        },
+        "gas": 30000000000000,
+        "deposit": 0
+      },
+      "outcome": {
+        "transaction_hash": "2FFnYUrXYLLgAHA2vsNud2mawU1xttkCQaNXg2yZG6Pn",
+        "status": {
+          "Failure": {
+            "ActionError": {
+              "index": 0,
+              "kind": {
+                "FunctionCallError": {
+                  "ExecutionError": "Smart contract panicked: REFUSED:verdict_used"
+                }
+              }
+            }
+          }
+        },
+        "logs": [],
+        "rpc_error": null
+      }
+    }
+  ]
+}

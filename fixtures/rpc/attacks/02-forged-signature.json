@@ -1,0 +1,53 @@
+{
+  "attack": "forged-signature",
+  "gate": "kestrelridge-main.testnet",
+  "notes": [
+    "signed with the TEST key, which the Gate does not trust"
+  ],
+  "refused": true,
+  "submissions": [
+    {
+      "sent": {
+        "receiver_id": "kestrelridge-main.testnet",
+        "method_name": "request_transfer",
+        "args": {
+          "request": {
+            "kind": "ft",
+            "token_id": "token.kestrelridge-main.testnet",
+            "receiver_id": "kestrelridge-shop.testnet",
+            "amount": "10000000",
+            "memo": "attack forged-signature"
+          },
+          "verdict": {
+            "literal": "ALLOW",
+            "issued_ms": 1793303880585,
+            "expires_ms": 1793304180585,
+            "verdict_id": "6aae7d5cf8e60a98e00b169eb145860b",
+            "evidence_hash": "513630dcf7b57732bbad4c800bac21ac349910eefe563275d28eb7dae4087ef7",
+            "key_id": "cur",
+            "signature": "0ce94236...6e909907"
+          }
+        },
+        "gas": 30000000000000,
+        "deposit": 0
+      },
+      "outcome": {
+        "transaction_hash": "Gv9P2py5B2B6KjGP2g25TYPFJVnzyU2tqnYgp7rhb9A9",
+        "status": {
+          "Failure": {
+            "ActionError": {
+              "index": 0,
+              "kind": {
+                "FunctionCallError": {
+                  "ExecutionError": "Smart contract panicked: REFUSED:bad_signature"
+                }
+              }
+            }
+          }
+        },
+        "logs": [],
+        "rpc_error": null
+      }
+    }
+  ]
+}
