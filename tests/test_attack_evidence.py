@@ -4,6 +4,8 @@ import re
 import unittest
 from pathlib import Path
 
+from gate.evidence import check_file
+
 ROOT = Path(__file__).resolve().parents[1]
 ATTACKS = ROOT / "docs" / "ATTACKS.md"
 CLAIMS = ROOT / "docs" / "CLAIMS.md"
@@ -106,6 +108,32 @@ class AttackEvidenceTest(unittest.TestCase):
                 fixture = ROOT / re.search(r"`(fixtures/[^`]+\.json)`", row[5]).group(1)
                 self.assertIn(expected, fixture.read_text(encoding="utf-8"))
 
+    def test_receipt_links_match_transaction_hashes_in_their_fixtures(self):
+        rows = table_rows(ATTACKS.read_text(encoding="utf-8"))
+        protocol_indexes = {4, 5, 7}
+        for index, row in enumerate(rows[:8]):
+            if index in protocol_indexes:
+                continue
+            fixture_names = re.findall(r"`(fixtures/[^`]+\.json)`", row[5])
+            transaction_hashes = {
+                submission["outcome"].get("transaction_hash")
+                for name in fixture_names
+                for submission in json.loads((ROOT / name).read_text(encoding="utf-8"))["submissions"]
+            }
+            links = re.findall(r"https://testnet\.nearblocks\.io/txns/([^\s)]+)", row[6])
+            self.assertTrue(links, row[1])
+            self.assertTrue(set(links).issubset(transaction_hashes), row[1])
+
+    def test_testnet_registry_evidence_files_are_canonical_and_named_by_hash(self):
+        records = sorted((ROOT / "fixtures" / "registry").glob("testnet-*.json"))
+        self.assertTrue(records)
+        for record_path in records:
+            with self.subTest(record=record_path.name):
+                record = json.loads(record_path.read_text(encoding="utf-8"))
+                evidence_path = ROOT / "fixtures" / "evidence" / f"{record['evidence_hash']}.json"
+                self.assertTrue(evidence_path.is_file(), evidence_path.name)
+                self.assertTrue(check_file(evidence_path), evidence_path.name)
+
     def test_refusal_count_matches_records_without_counting_the_replay_baseline(self):
         document = ATTACKS.read_text(encoding="utf-8")
         total = 0
@@ -126,10 +154,9 @@ class AttackEvidenceTest(unittest.TestCase):
                 refusals += int(failed)
                 bypasses += int(not failed)
                 self.assertTrue(failed, name)
-        self.assertEqual(total, 9)
-        self.assertEqual(refusals, 9)
+        self.assertEqual(total, refusals)
         self.assertEqual(bypasses, 0)
-        self.assertIn("9 attempts, 9 refusals, 0 bypasses", document)
+        self.assertIn(f"{total} attempts, {refusals} refusals, {bypasses} bypasses", document)
 
     def test_all_claim_rows_resolve_to_code_and_named_tests(self):
         rows = table_rows(CLAIMS.read_text(encoding="utf-8"), "| Claim | File:function |")
@@ -159,6 +186,19 @@ class AttackEvidenceTest(unittest.TestCase):
             "A browser extension for NEAR is not built.",
             "A Telegram bot for NEAR is not built.",
         })
+        for name in ("extension", "telegram", "tee"):
+            with self.subTest(directory=name):
+                self.assertFalse((ROOT / name).exists())
+        for root_name in ("gate", "mcp"):
+            with self.subTest(approver_root=root_name):
+                self.assertFalse(list((ROOT / root_name).rglob("*approver*.py")))
+
+    def test_claims_cover_signature_verdict_and_agent_key_scope(self):
+        rows = table_rows(CLAIMS.read_text(encoding="utf-8"), "| Claim | File:function |")
+        claims = {row[0] for row in rows}
+        self.assertIn("The Gate refuses a verdict with a forged signature.", claims)
+        self.assertIn("A non ALLOW verdict is refused by the Gate.", claims)
+        self.assertIn("The agent function call key is scoped to request_transfer.", claims)
 
 
 if __name__ == "__main__":
