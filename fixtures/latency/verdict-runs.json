@@ -1,0 +1,122 @@
+[
+  {
+    "receiver": "kestrelridge-shop.testnet",
+    "run": 1,
+    "verdict": "ALLOW",
+    "latency_ms": 2057
+  },
+  {
+    "receiver": "kestrelridge-shop.testnet",
+    "run": 2,
+    "verdict": "ALLOW",
+    "latency_ms": 2300
+  },
+  {
+    "receiver": "kestrelridge-shop.testnet",
+    "run": 3,
+    "verdict": "ALLOW",
+    "latency_ms": 1727
+  },
+  {
+    "receiver": "kestrelridge-shop.testnet",
+    "run": 4,
+    "verdict": "ALLOW",
+    "latency_ms": 1701
+  },
+  {
+    "receiver": "kestrelridge-shop.testnet",
+    "run": 5,
+    "verdict": "ALLOW",
+    "latency_ms": 1848
+  },
+  {
+    "receiver": "kestrelridge-shop.testnet",
+    "run": 6,
+    "verdict": "ALLOW",
+    "latency_ms": 2492
+  },
+  {
+    "receiver": "kestrelridge-shop.testnet",
+    "run": 7,
+    "verdict": "ALLOW",
+    "latency_ms": 1919
+  },
+  {
+    "receiver": "kestrelridge-shop.testnet",
+    "run": 8,
+    "verdict": "ALLOW",
+    "latency_ms": 1843
+  },
+  {
+    "receiver": "kestrelridge-shop.testnet",
+    "run": 9,
+    "verdict": "ALLOW",
+    "latency_ms": 1918
+  },
+  {
+    "receiver": "kestrelridge-shop.testnet",
+    "run": 10,
+    "verdict": "ALLOW",
+    "latency_ms": 1803
+  },
+  {
+    "receiver": "kestrelridge-shop.testnet",
+    "run": 11,
+    "verdict": "ALLOW",
+    "latency_ms": 1929
+  },
+  {
+    "receiver": "kestrelridge-shop.testnet",
+    "run": 12,
+    "verdict": "ALLOW",
+    "latency_ms": 2029
+  },
+  {
+    "receiver": "kestrelridge-shop.testnet",
+    "run": 13,
+    "verdict": "ALLOW",
+    "latency_ms": 1897
+  },
+  {
+    "receiver": "kestrelridge-shop.testnet",
+    "run": 14,
+    "verdict": "ALLOW",
+    "latency_ms": 1773
+  },
+  {
+    "receiver": "kestrelridge-shop.testnet",
+    "run": 15,
+    "verdict": "ALLOW",
+    "latency_ms": 1721
+  },
+  {
+    "receiver": "kestrelridge-shop.testnet",
+    "run": 16,
+    "verdict": "ALLOW",
+    "latency_ms": 1856
+  },
+  {
+    "receiver": "kestrelridge-shop.testnet",
+    "run": 17,
+    "verdict": "ALLOW",
+    "latency_ms": 1758
+  },
+  {
+    "receiver": "kestrelridge-shop.testnet",
+    "run": 18,
+    "verdict": "ALLOW",
+    "latency_ms": 1720
+  },
+  {
+    "receiver": "kestrelridge-shop.testnet",
+    "run": 19,
+    "verdict": "ALLOW",
+    "latency_ms": 1703
+  },
+  {
+    "receiver": "kestrelridge-shop.testnet",
+    "run": 20,
+    "verdict": "ALLOW",
+    "latency_ms": 1745
+  }
+]
