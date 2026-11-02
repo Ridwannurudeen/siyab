@@ -38,7 +38,7 @@ def filler(characters):
 TOPIC_CLAIMS = {
     "the feed": "The feed reports new events.",
     "the trace": "The exit trace follows one flow.",
-    "the scanner": "The key scan lists access keys.",
+    "the scanner": "The key scanner lists access keys.",
     "the reproducible build": "The reproducible build matches the hash.",
     "lookalike names": "A lookalike name is refused.",
 }
@@ -110,6 +110,21 @@ class IdeaTextTest(unittest.TestCase):
                     self.assertNotIn(claim, text)
                 for claim in topics[count:]:
                     self.assertIn(claim, text)
+
+    def test_dropping_the_scanner_keeps_the_mcp_sentence(self):
+        mcp_claim = "The MCP server exposes the guard, EVM quote and account scan tools, and a scanner tool."
+        rows = gen_idea.idea_rows(table(filler(300) + [mcp_claim, TOPIC_CLAIMS["the scanner"],
+                                                        "Run python -m gate scan on an account."]))
+        self.assertIsNone(gen_idea.topic(mcp_claim))
+        self.assertIsNone(gen_idea.topic("The MCP server exposes the guard, EVM quote and account scan tools."))
+        self.assertEqual(gen_idea.topic("Run python -m gate scan on an account."), "the scanner")
+        kept = [row for row in rows if gen_idea.topic(row["claim"]) != "the scanner"]
+        with mock.patch.object(gen_idea, "MAX_CHARS", len(gen_idea.assemble(kept))):
+            text, dropped = gen_idea.build(rows)
+        self.assertEqual(dropped, ["the feed", "the trace", "the scanner"])
+        self.assertIn(mcp_claim, text)
+        self.assertNotIn(TOPIC_CLAIMS["the scanner"], text)
+        self.assertNotIn("Run python -m gate scan on an account.", text)
 
     def test_a_long_feed_row_is_the_first_dropped_at_2000_characters(self):
         long_feed = "The feed " + "reports one more event " * 80 + "."

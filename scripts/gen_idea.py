@@ -11,9 +11,10 @@ and the offline sentence. Only the rows come from the table; the other sentences
 
 The text must hold 20 to 2,000 characters. While it is longer, the rows of each topic in DROP_ORDER are
 removed, one topic at a time in that order: the feed, the trace, the scanner, the reproducible build,
-lookalike names. A row belongs to a topic when its claim contains one of the topic's words. The exit code
-is 1 when the text is still out of bounds, and with --check also when an idea row names a file, a
-function or a test that does not exist, or names no test.
+lookalike names. A row belongs to a topic when its claim contains one of the topic's words; a claim that
+names the MCP server never belongs to the scanner topic, so the MCP sentence stays when the scanner drops.
+The exit code is 1 when the text is still out of bounds, and with --check also when an idea row names a
+file, a function or a test that does not exist, or names no test.
 """
 
 import argparse
@@ -38,7 +39,7 @@ OFFLINE = "It runs offline with Python alone; the testnet transactions are linke
 DROP_ORDER = (
     ("the feed", ("feed",)),
     ("the trace", ("trace", "flow")),
-    ("the scanner", ("scan",)),
+    ("the scanner", ("scanner", "python -m gate scan")),
     ("the reproducible build", ("reproducible",)),
     ("lookalike names", ("lookalike",)),
 )
@@ -71,6 +72,8 @@ def topic(claim):
     """The DROP_ORDER topic the claim belongs to, or None."""
     lowered = claim.lower()
     for name, words in DROP_ORDER:
+        if name == "the scanner" and "MCP" in claim:
+            continue
         if any(word in lowered for word in words):
             return name
     return None
