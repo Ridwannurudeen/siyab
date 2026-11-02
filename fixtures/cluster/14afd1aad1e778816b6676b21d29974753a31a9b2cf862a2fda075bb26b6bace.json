@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "keys": [
+      {
+        "public_key": "ed25519:AiPEULjYaWrtRRBD68XTD34gCZcET5Gfmub5tqZjJhau",
+        "account_id": "9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "7EWXTEPaVM2iFgthFBgMPA4hT1VeDAQGFy7vfcEYpEcM",
+          "block_timestamp": 1776327801852464600
+        },
+        "deleted": {
+          "transaction_hash": "A1Ns7jWJL9Jj8mjUGTq46pkMa1pkJBYu8Uo4BE5bb9Pb",
+          "block_timestamp": 1776333299161769000
+        }
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/account/9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616/keys",
+  "fetched_at": "2026-11-02T17:27:19Z"
+}

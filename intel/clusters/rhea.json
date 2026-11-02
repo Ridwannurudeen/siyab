@@ -1,0 +1,931 @@
+{
+  "seeds": [
+    "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+    "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5",
+    "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03",
+    "d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473",
+    "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2",
+    "9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616",
+    "5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040",
+    "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163",
+    "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640",
+    "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee",
+    "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705",
+    "rhea000453.multica.near",
+    "rhea000462.multica.near",
+    "rhea000505.multica.near"
+  ],
+  "edges": [
+    {
+      "rule": "sub_account_of",
+      "from": "rhea000453.multica.near",
+      "to": "multica.near",
+      "provenance": "onchain",
+      "source": {
+        "from": {
+          "rpc": "https://free.rpc.fastnear.com",
+          "method": "view_account",
+          "args": {
+            "account_id": "rhea000453.multica.near"
+          },
+          "block": 222749627
+        },
+        "to": {
+          "rpc": "https://free.rpc.fastnear.com",
+          "method": "view_account",
+          "args": {
+            "account_id": "multica.near"
+          },
+          "block": 222749628
+        }
+      },
+      "confidence": 1.0,
+      "inputs": []
+    },
+    {
+      "rule": "sub_account_of",
+      "from": "rhea000462.multica.near",
+      "to": "multica.near",
+      "provenance": "onchain",
+      "source": {
+        "from": {
+          "rpc": "https://free.rpc.fastnear.com",
+          "method": "view_account",
+          "args": {
+            "account_id": "rhea000462.multica.near"
+          },
+          "block": 222749629
+        },
+        "to": {
+          "rpc": "https://free.rpc.fastnear.com",
+          "method": "view_account",
+          "args": {
+            "account_id": "multica.near"
+          },
+          "block": 222749628
+        }
+      },
+      "confidence": 1.0,
+      "inputs": []
+    },
+    {
+      "rule": "sub_account_of",
+      "from": "rhea000505.multica.near",
+      "to": "multica.near",
+      "provenance": "onchain",
+      "source": {
+        "from": {
+          "rpc": "https://free.rpc.fastnear.com",
+          "method": "view_account",
+          "args": {
+            "account_id": "rhea000505.multica.near"
+          },
+          "block": 222749630
+        },
+        "to": {
+          "rpc": "https://free.rpc.fastnear.com",
+          "method": "view_account",
+          "args": {
+            "account_id": "multica.near"
+          },
+          "block": 222749628
+        }
+      },
+      "confidence": 1.0,
+      "inputs": []
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040",
+      "to": "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "06aba3023407ed397a601dd1abc8cc9f507d45e78e02532bc9cd68ac1cb31b33",
+        "65b6ee32743ec48566f9eb714c9c2377591534a957bf28bbd36c7732a1069ecf"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040",
+      "to": "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "06aba3023407ed397a601dd1abc8cc9f507d45e78e02532bc9cd68ac1cb31b33",
+        "1b0ac2b74ce510522126e032bc4ac4057408fa3ec6755859786a9f6b4089b6d4"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040",
+      "to": "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "06aba3023407ed397a601dd1abc8cc9f507d45e78e02532bc9cd68ac1cb31b33",
+        "803774fc5268f5ad418bbd6fd2b540e9f859eb81d9321d2aebc3129cf7ff125b"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040",
+      "to": "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "06aba3023407ed397a601dd1abc8cc9f507d45e78e02532bc9cd68ac1cb31b33",
+        "df38478ccd5e8ebd81f962ce7493cdf77450d2f63eae0a65194691d441b73d77"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040",
+      "to": "9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "06aba3023407ed397a601dd1abc8cc9f507d45e78e02532bc9cd68ac1cb31b33",
+        "05d0aab9e34078d4cb321c3b702f44cb4719c855f3dc396a4ca2df6fbf7f1719"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040",
+      "to": "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "06aba3023407ed397a601dd1abc8cc9f507d45e78e02532bc9cd68ac1cb31b33",
+        "e888e0481472c4a69aa052dff3fab85c01087af3cb2156e6904fc9d83f5c7e2c"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040",
+      "to": "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "06aba3023407ed397a601dd1abc8cc9f507d45e78e02532bc9cd68ac1cb31b33",
+        "5bb2339403fceeaf021d757f87486572ced654f4261e737c6a46aa06d12a50a0"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040",
+      "to": "d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "06aba3023407ed397a601dd1abc8cc9f507d45e78e02532bc9cd68ac1cb31b33",
+        "c70d2972b878149da51a2c2ab43f4bdd6379a198df43781d3c78eea7b255cc49"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040",
+      "to": "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "06aba3023407ed397a601dd1abc8cc9f507d45e78e02532bc9cd68ac1cb31b33",
+        "29d5a146629ff398b839eb207c6ecf21b57cd404c579f19b11c93527e646a7a7"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5",
+      "to": "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "65b6ee32743ec48566f9eb714c9c2377591534a957bf28bbd36c7732a1069ecf",
+        "1b0ac2b74ce510522126e032bc4ac4057408fa3ec6755859786a9f6b4089b6d4"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5",
+      "to": "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "65b6ee32743ec48566f9eb714c9c2377591534a957bf28bbd36c7732a1069ecf",
+        "803774fc5268f5ad418bbd6fd2b540e9f859eb81d9321d2aebc3129cf7ff125b"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5",
+      "to": "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "65b6ee32743ec48566f9eb714c9c2377591534a957bf28bbd36c7732a1069ecf",
+        "df38478ccd5e8ebd81f962ce7493cdf77450d2f63eae0a65194691d441b73d77"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5",
+      "to": "9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "65b6ee32743ec48566f9eb714c9c2377591534a957bf28bbd36c7732a1069ecf",
+        "05d0aab9e34078d4cb321c3b702f44cb4719c855f3dc396a4ca2df6fbf7f1719"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5",
+      "to": "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "65b6ee32743ec48566f9eb714c9c2377591534a957bf28bbd36c7732a1069ecf",
+        "e888e0481472c4a69aa052dff3fab85c01087af3cb2156e6904fc9d83f5c7e2c"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5",
+      "to": "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "65b6ee32743ec48566f9eb714c9c2377591534a957bf28bbd36c7732a1069ecf",
+        "5bb2339403fceeaf021d757f87486572ced654f4261e737c6a46aa06d12a50a0"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5",
+      "to": "d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "65b6ee32743ec48566f9eb714c9c2377591534a957bf28bbd36c7732a1069ecf",
+        "c70d2972b878149da51a2c2ab43f4bdd6379a198df43781d3c78eea7b255cc49"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5",
+      "to": "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "65b6ee32743ec48566f9eb714c9c2377591534a957bf28bbd36c7732a1069ecf",
+        "29d5a146629ff398b839eb207c6ecf21b57cd404c579f19b11c93527e646a7a7"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640",
+      "to": "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "1b0ac2b74ce510522126e032bc4ac4057408fa3ec6755859786a9f6b4089b6d4",
+        "803774fc5268f5ad418bbd6fd2b540e9f859eb81d9321d2aebc3129cf7ff125b"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640",
+      "to": "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "1b0ac2b74ce510522126e032bc4ac4057408fa3ec6755859786a9f6b4089b6d4",
+        "df38478ccd5e8ebd81f962ce7493cdf77450d2f63eae0a65194691d441b73d77"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640",
+      "to": "9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "1b0ac2b74ce510522126e032bc4ac4057408fa3ec6755859786a9f6b4089b6d4",
+        "05d0aab9e34078d4cb321c3b702f44cb4719c855f3dc396a4ca2df6fbf7f1719"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640",
+      "to": "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "1b0ac2b74ce510522126e032bc4ac4057408fa3ec6755859786a9f6b4089b6d4",
+        "e888e0481472c4a69aa052dff3fab85c01087af3cb2156e6904fc9d83f5c7e2c"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640",
+      "to": "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "1b0ac2b74ce510522126e032bc4ac4057408fa3ec6755859786a9f6b4089b6d4",
+        "5bb2339403fceeaf021d757f87486572ced654f4261e737c6a46aa06d12a50a0"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640",
+      "to": "d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "1b0ac2b74ce510522126e032bc4ac4057408fa3ec6755859786a9f6b4089b6d4",
+        "c70d2972b878149da51a2c2ab43f4bdd6379a198df43781d3c78eea7b255cc49"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640",
+      "to": "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "1b0ac2b74ce510522126e032bc4ac4057408fa3ec6755859786a9f6b4089b6d4",
+        "29d5a146629ff398b839eb207c6ecf21b57cd404c579f19b11c93527e646a7a7"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705",
+      "to": "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "803774fc5268f5ad418bbd6fd2b540e9f859eb81d9321d2aebc3129cf7ff125b",
+        "df38478ccd5e8ebd81f962ce7493cdf77450d2f63eae0a65194691d441b73d77"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705",
+      "to": "9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "803774fc5268f5ad418bbd6fd2b540e9f859eb81d9321d2aebc3129cf7ff125b",
+        "05d0aab9e34078d4cb321c3b702f44cb4719c855f3dc396a4ca2df6fbf7f1719"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705",
+      "to": "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "803774fc5268f5ad418bbd6fd2b540e9f859eb81d9321d2aebc3129cf7ff125b",
+        "e888e0481472c4a69aa052dff3fab85c01087af3cb2156e6904fc9d83f5c7e2c"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705",
+      "to": "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "803774fc5268f5ad418bbd6fd2b540e9f859eb81d9321d2aebc3129cf7ff125b",
+        "5bb2339403fceeaf021d757f87486572ced654f4261e737c6a46aa06d12a50a0"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705",
+      "to": "d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "803774fc5268f5ad418bbd6fd2b540e9f859eb81d9321d2aebc3129cf7ff125b",
+        "c70d2972b878149da51a2c2ab43f4bdd6379a198df43781d3c78eea7b255cc49"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705",
+      "to": "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "803774fc5268f5ad418bbd6fd2b540e9f859eb81d9321d2aebc3129cf7ff125b",
+        "29d5a146629ff398b839eb207c6ecf21b57cd404c579f19b11c93527e646a7a7"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2",
+      "to": "9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "df38478ccd5e8ebd81f962ce7493cdf77450d2f63eae0a65194691d441b73d77",
+        "05d0aab9e34078d4cb321c3b702f44cb4719c855f3dc396a4ca2df6fbf7f1719"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2",
+      "to": "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "df38478ccd5e8ebd81f962ce7493cdf77450d2f63eae0a65194691d441b73d77",
+        "e888e0481472c4a69aa052dff3fab85c01087af3cb2156e6904fc9d83f5c7e2c"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2",
+      "to": "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "df38478ccd5e8ebd81f962ce7493cdf77450d2f63eae0a65194691d441b73d77",
+        "5bb2339403fceeaf021d757f87486572ced654f4261e737c6a46aa06d12a50a0"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2",
+      "to": "d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "df38478ccd5e8ebd81f962ce7493cdf77450d2f63eae0a65194691d441b73d77",
+        "c70d2972b878149da51a2c2ab43f4bdd6379a198df43781d3c78eea7b255cc49"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2",
+      "to": "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "df38478ccd5e8ebd81f962ce7493cdf77450d2f63eae0a65194691d441b73d77",
+        "29d5a146629ff398b839eb207c6ecf21b57cd404c579f19b11c93527e646a7a7"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616",
+      "to": "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "05d0aab9e34078d4cb321c3b702f44cb4719c855f3dc396a4ca2df6fbf7f1719",
+        "e888e0481472c4a69aa052dff3fab85c01087af3cb2156e6904fc9d83f5c7e2c"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616",
+      "to": "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "05d0aab9e34078d4cb321c3b702f44cb4719c855f3dc396a4ca2df6fbf7f1719",
+        "5bb2339403fceeaf021d757f87486572ced654f4261e737c6a46aa06d12a50a0"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616",
+      "to": "d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "05d0aab9e34078d4cb321c3b702f44cb4719c855f3dc396a4ca2df6fbf7f1719",
+        "c70d2972b878149da51a2c2ab43f4bdd6379a198df43781d3c78eea7b255cc49"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616",
+      "to": "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "05d0aab9e34078d4cb321c3b702f44cb4719c855f3dc396a4ca2df6fbf7f1719",
+        "29d5a146629ff398b839eb207c6ecf21b57cd404c579f19b11c93527e646a7a7"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee",
+      "to": "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "e888e0481472c4a69aa052dff3fab85c01087af3cb2156e6904fc9d83f5c7e2c",
+        "5bb2339403fceeaf021d757f87486572ced654f4261e737c6a46aa06d12a50a0"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee",
+      "to": "d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "e888e0481472c4a69aa052dff3fab85c01087af3cb2156e6904fc9d83f5c7e2c",
+        "c70d2972b878149da51a2c2ab43f4bdd6379a198df43781d3c78eea7b255cc49"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee",
+      "to": "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "e888e0481472c4a69aa052dff3fab85c01087af3cb2156e6904fc9d83f5c7e2c",
+        "29d5a146629ff398b839eb207c6ecf21b57cd404c579f19b11c93527e646a7a7"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163",
+      "to": "d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "5bb2339403fceeaf021d757f87486572ced654f4261e737c6a46aa06d12a50a0",
+        "c70d2972b878149da51a2c2ab43f4bdd6379a198df43781d3c78eea7b255cc49"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163",
+      "to": "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "5bb2339403fceeaf021d757f87486572ced654f4261e737c6a46aa06d12a50a0",
+        "29d5a146629ff398b839eb207c6ecf21b57cd404c579f19b11c93527e646a7a7"
+      ]
+    },
+    {
+      "rule": "created_by_funder",
+      "from": "d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473",
+      "to": "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03",
+      "provenance": "inferred",
+      "source": {
+        "funder": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      },
+      "confidence": 0.5,
+      "inputs": [
+        "c70d2972b878149da51a2c2ab43f4bdd6379a198df43781d3c78eea7b255cc49",
+        "29d5a146629ff398b839eb207c6ecf21b57cd404c579f19b11c93527e646a7a7"
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "kind": "created_by_funder",
+      "subject": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+      "value": "team.herewallet.near",
+      "provenance": "onchain",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "method": "GET /v1/txns/{transaction_hash}",
+        "args": {
+          "transaction_hash": "8ogy5xrbQG78Kw5Eo52iJnfNZQZzeh2iLMWeWXV1Wyuu"
+        },
+        "block": 194074444
+      },
+      "confidence": 1.0,
+      "excluded": true,
+      "note": "created by team.herewallet.near, excluded as a wallet creator or relayer",
+      "id": "187409a36a860babf1dc9289a1bd318c3e5be904e0ec02c325d8e5b11c78bc56"
+    },
+    {
+      "kind": "created_by_funder",
+      "subject": "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5",
+      "value": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+      "provenance": "onchain",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "method": "GET /v1/txns/{transaction_hash}",
+        "args": {
+          "transaction_hash": "8nXEeB5k4nDEEVpob1iqY8ANS3NhHKYRkMVtiGtxhAae"
+        },
+        "block": 194226465
+      },
+      "confidence": 1.0,
+      "excluded": false,
+      "id": "65b6ee32743ec48566f9eb714c9c2377591534a957bf28bbd36c7732a1069ecf"
+    },
+    {
+      "kind": "created_by_funder",
+      "subject": "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03",
+      "value": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+      "provenance": "onchain",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "method": "GET /v1/txns/{transaction_hash}",
+        "args": {
+          "transaction_hash": "CXVsn1nNZ9Rv4c7X5Hg1FEtcRZSAG5QwmhyyfsgahWj7"
+        },
+        "block": 194226546
+      },
+      "confidence": 1.0,
+      "excluded": false,
+      "id": "29d5a146629ff398b839eb207c6ecf21b57cd404c579f19b11c93527e646a7a7"
+    },
+    {
+      "kind": "created_by_funder",
+      "subject": "d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473",
+      "value": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+      "provenance": "onchain",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "method": "GET /v1/txns/{transaction_hash}",
+        "args": {
+          "transaction_hash": "8LU8TZjjw87By1mcWvarrjTESgGy2aTKvNmDADNSsa3t"
+        },
+        "block": 194226560
+      },
+      "confidence": 1.0,
+      "excluded": false,
+      "id": "c70d2972b878149da51a2c2ab43f4bdd6379a198df43781d3c78eea7b255cc49"
+    },
+    {
+      "kind": "created_by_funder",
+      "subject": "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2",
+      "value": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+      "provenance": "onchain",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "method": "GET /v1/txns/{transaction_hash}",
+        "args": {
+          "transaction_hash": "BUkhCry3v7WihKw35sNy7nKzf6CVUf9AdyM37CTXru4R"
+        },
+        "block": 194226550
+      },
+      "confidence": 1.0,
+      "excluded": false,
+      "id": "df38478ccd5e8ebd81f962ce7493cdf77450d2f63eae0a65194691d441b73d77"
+    },
+    {
+      "kind": "created_by_funder",
+      "subject": "9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616",
+      "value": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+      "provenance": "onchain",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "method": "GET /v1/txns/{transaction_hash}",
+        "args": {
+          "transaction_hash": "7EWXTEPaVM2iFgthFBgMPA4hT1VeDAQGFy7vfcEYpEcM"
+        },
+        "block": 194226555
+      },
+      "confidence": 1.0,
+      "excluded": false,
+      "id": "05d0aab9e34078d4cb321c3b702f44cb4719c855f3dc396a4ca2df6fbf7f1719"
+    },
+    {
+      "kind": "created_by_funder",
+      "subject": "5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040",
+      "value": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+      "provenance": "onchain",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "method": "GET /v1/txns/{transaction_hash}",
+        "args": {
+          "transaction_hash": "4wrLZQmMcxNGe7hEpzc91UHJT8r6AE4W1SvT2gZirb9"
+        },
+        "block": 194226542
+      },
+      "confidence": 1.0,
+      "excluded": false,
+      "id": "06aba3023407ed397a601dd1abc8cc9f507d45e78e02532bc9cd68ac1cb31b33"
+    },
+    {
+      "kind": "created_by_funder",
+      "subject": "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163",
+      "value": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+      "provenance": "onchain",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "method": "GET /v1/txns/{transaction_hash}",
+        "args": {
+          "transaction_hash": "3DQC3vrDXZVcEba2CahChNRtCwAnELhHugpPpFNWPLjS"
+        },
+        "block": 194226799
+      },
+      "confidence": 1.0,
+      "excluded": false,
+      "id": "5bb2339403fceeaf021d757f87486572ced654f4261e737c6a46aa06d12a50a0"
+    },
+    {
+      "kind": "created_by_funder",
+      "subject": "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640",
+      "value": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+      "provenance": "onchain",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "method": "GET /v1/txns/{transaction_hash}",
+        "args": {
+          "transaction_hash": "Hir7h12pCaeTmuz4PAwSo2552muP6syrQLY31dg3xJxN"
+        },
+        "block": 194226803
+      },
+      "confidence": 1.0,
+      "excluded": false,
+      "id": "1b0ac2b74ce510522126e032bc4ac4057408fa3ec6755859786a9f6b4089b6d4"
+    },
+    {
+      "kind": "created_by_funder",
+      "subject": "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee",
+      "value": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+      "provenance": "onchain",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "method": "GET /v1/txns/{transaction_hash}",
+        "args": {
+          "transaction_hash": "6qGHdvBReYxLadApqT3MN1vMB2JTrFDPaPPgYRAJeC2m"
+        },
+        "block": 194226823
+      },
+      "confidence": 1.0,
+      "excluded": false,
+      "id": "e888e0481472c4a69aa052dff3fab85c01087af3cb2156e6904fc9d83f5c7e2c"
+    },
+    {
+      "kind": "created_by_funder",
+      "subject": "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705",
+      "value": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+      "provenance": "onchain",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "method": "GET /v1/txns/{transaction_hash}",
+        "args": {
+          "transaction_hash": "42v2LFuETVnEkRisFbz7ND2dG9bg87aEJ7QpYKCDUUfB"
+        },
+        "block": 194226833
+      },
+      "confidence": 1.0,
+      "excluded": false,
+      "id": "803774fc5268f5ad418bbd6fd2b540e9f859eb81d9321d2aebc3129cf7ff125b"
+    }
+  ],
+  "precision": {
+    "shares_full_access_key": "shares_full_access_key: 0 of 21 pairs among the 7 seeds that hold a full access key",
+    "sub_account_of": "sub_account_of: 3 of 3 seeds with a parent",
+    "created_by_funder": "created_by_funder: 10 of 14 seeds with a creation record signed by one seed account (NearBlocks facts), 1 seed created through an excluded wallet creator, 3 seeds without a creation record; 45 inferred pairs at confidence 0.5"
+  },
+  "depositors": {
+    "collector": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+    "count": 140,
+    "implicit_count": 130,
+    "since": "2026-04-16"
+  },
+  "fetched_at": "2026-11-02T17:31:33Z",
+  "standard": "Edges use recorded chain reads or name their inference inputs; depositors are counted and not listed."
+}
