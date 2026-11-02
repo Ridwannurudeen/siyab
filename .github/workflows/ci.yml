@@ -74,6 +74,7 @@ jobs:
     env:
       CARGO_TARGET_DIR: /tmp/shieldbot-near-target
     strategy:
+      fail-fast: false
       matrix:
         crate: [gate, registry]
     steps:
@@ -87,7 +88,11 @@ jobs:
             /tmp/shieldbot-near-target
           key: ${{ runner.os }}-cargo-sandbox-${{ matrix.crate }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Install cargo-near
-        run: command -v cargo-near || cargo install cargo-near --version 0.22.0 --locked
+        run: |
+          if ! command -v cargo-near; then
+            sudo apt-get update && sudo apt-get install -y libudev-dev pkg-config
+            cargo install cargo-near --version 0.22.0 --locked
+          fi
       - name: Sandbox tests
         working-directory: contracts/${{ matrix.crate }}
         run: cargo test --test sandbox
@@ -108,7 +113,9 @@ jobs:
             /tmp/shieldbot-near-target
           key: ${{ runner.os }}-cargo-reproducible-${{ hashFiles('**/Cargo.lock') }}
       - name: Install cargo-near
-        run: cargo install cargo-near --version 0.22.0 --locked
+        run: |
+          sudo apt-get update && sudo apt-get install -y libudev-dev pkg-config
+          cargo install cargo-near --version 0.22.0 --locked
       - name: Build gate reproducibly
         working-directory: contracts/gate
         run: cargo near build reproducible-wasm --out-dir ../../res
