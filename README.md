@@ -64,7 +64,7 @@ Why the guard verifies a signature and the registry is the record: NEAR cross co
 
 ## Try it offline
 
-Python 3.11 or later, from the repository root, plus a POSIX shell for steps 3 and 6 (`sha256sum`, `printf`, `cut`). The outputs below are pasted from runs on this machine; in this file 64 character hex values are shortened to their first and last eight characters, which the repository's hygiene rule requires.
+Python 3.11 or later, from the repository root, plus a POSIX shell for steps 3, 5 and 6 (`sha256sum`, the `*` in the evidence path, `printf`, `cut`). The outputs below are pasted from runs on this machine; in this file 64 character hex values are shortened to their first and last eight characters, which the repository's hygiene rule requires.
 
 1. `python -m gate demo --offline` replays the recorded testnet responses through the rules: the allowlisted vendor (ALLOW, signed with the TEST key and verified back), the lookalike (DENY), the aged payee whose archival block is left out of the fixtures (UNKNOWN, the checks that could not run named), and the EVM leg (DENY). It exits 0. The first lines:
 
@@ -97,7 +97,7 @@ Python 3.11 or later, from the repository root, plus a POSIX shell for steps 3 a
 
    Each verdict also prints its evidence sha256 and the time the checks took. These are replay timings from fixtures, not live latency; the verdict id is random, so the ALLOW's canonical message and evidence hash differ on every run.
 
-2. `python -m unittest discover -s tests` runs the Python suite: the rules, the canonical vectors, the evidence hashing, `gate/ed25519.py` against the RFC 8032 section 7.1 vectors, the label store, the incidents, the EVM leg, `scan`, the MCP server, the README counts and tables. It ends with a line `OK`, with a skip count: the PyNaCl and py-near cross checks skip with a printed reason when those packages are absent; the wasm checks run on the committed files under `res/`.
+2. `python -m unittest discover -s tests` runs the Python suite: the rules, the canonical vectors, the evidence hashing, `gate/ed25519.py` against the RFC 8032 section 7.1 vectors, the label store, the incidents, the EVM leg, `scan`, the MCP server, the README counts and tables. It ends with a line `OK`, with a skip count: the PyNaCl and py-near cross checks skip when those packages are absent, the four py-near skips each print a `skipped:` line with the reason in the default output, and the two PyNaCl skips show their reason only with `-v`; the wasm checks run on the committed files under `res/`.
 3. `sha256sum -c res/gate.wasm.sha256 res/registry.wasm.sha256` checks the committed wasm files against their checksums, and `python -m gate codehash` prints the sha256 and the base58 `code_hash` to compare with the testnet `code_hash` in `docs/TESTNET.md`. The testnet `code_hash` equals base58 of the sha256 of the wasm. Reproducing the hash from source needs Docker; checking it against testnet needs network.
 
    ```
@@ -202,7 +202,7 @@ Python 3.11 or later, from the repository root, plus a POSIX shell for steps 3 a
    ```
 
 8. `fixtures/canon/*.json` are read by both `python -m unittest tests.test_canon` and the Rust unit tests in `contracts/gate` (`cargo test --lib`, network once for crates.io), so the two implementations of the signed message are checked against the same bytes without a network.
-9. `python -m intel receivers` replays the rules over the recorded mainnet receiver set from `fixtures/receivers/` and prints the measured line:
+9. `python -m intel receivers` replays the rules over the recorded mainnet receiver set from `fixtures/receivers/`, rewrites the committed judgement files under `fixtures/receivers/judgements/` from the replay, and prints the measured line; `git status` shows no change afterwards:
 
    ```
    On 52 recorded mainnet receivers the rules returned 32 ALLOW, 19 DENY, 1 Unknown.
