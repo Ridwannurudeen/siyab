@@ -118,7 +118,15 @@ jobs:
       - name: Private key history scan
         shell: bash
         run: |
-          set -o pipefail
-          count=$(git log --all -p | grep -Eic 'ed25519:[1-9A-HJ-NP-Za-km-z]{80,}|"(secret_key|private_key)"[[:space:]]*:[[:space:]]*"[^"]+"|BEGIN [A-Z ]*PRIVATE KEY' || true)
+          set -euo pipefail
+          log_file="$RUNNER_TEMP/history.patch"
+          git log --all -p > "$log_file"
+          test -s "$log_file"
+          if count=$(grep -Eic 'ed25519:[1-9A-HJ-NP-Za-km-z]{80,}|"(secret_key|private_key)"[[:space:]]*:[[:space:]]*"[^"]+"|BEGIN [A-Z ]*PRIVATE KEY' "$log_file"); then
+            :
+          else
+            status=$?
+            test "$status" -eq 1
+          fi
           printf '%s\n' "$count"
           test "$count" -eq 0
