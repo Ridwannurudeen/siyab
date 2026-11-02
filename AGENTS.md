@@ -10,7 +10,7 @@ Who your agent pays gets a verdict with evidence. Unknown never passes. A verdic
 
 ## Test
 
-Run from the repository root. Set `CARGO_TARGET_DIR` to a directory outside the repository on every cargo command (for example `$HOME/target/shieldbot-near`); nothing builds into the tree.
+Run from the repository root. Set `CARGO_TARGET_DIR` to a directory outside the repository on every cargo command (for example `$HOME/target/shieldbot-near`), except `cargo near build reproducible-wasm`, which needs it unset: its container writes `target/near` inside the crate (`res/BUILD.md`).
 
 ```
 python -m unittest discover -s tests -v                       # offline
