@@ -30,9 +30,9 @@ The payment tool writes its evidence documents into a temporary directory that t
 
 ## Connect a client
 
-UNVERIFIED: the two client configurations below are the documented forms; they have not yet been run against the clients.
+Both forms below were run on 2 Nov 2026 against the testnet Gate: each client called the three tools once and got `isError: false` from each.
 
-Claude Code, from the repository root:
+Claude Code, from the repository root (add `-e GATE_FIXTURES_MODE=off -e GATE_ACCOUNT_ID=<gate>.testnet -e GATE_POLICY=<get_agent JSON>` before `--` for live reads):
 
 ```
 claude mcp add shieldbot-near -- python -m mcp.server
@@ -51,13 +51,24 @@ or a `.mcp.json` file in the repository root:
 }
 ```
 
-Codex, in `~/.codex/config.toml` (set `cwd` to the repository root):
+Codex, in `~/.codex/config.toml`. `codex mcp add` has no working directory option, so `PYTHONPATH` names the repository root and `python -m mcp.server` finds this package from any directory. With `approval_policy = "never"` a tool call fails with "MCP tool call requires approval" unless the tool is approved in the config:
 
 ```toml
 [mcp_servers.shieldbot_near]
 command = "python"
 args = ["-m", "mcp.server"]
-cwd = "/path/to/shieldbot-near"
+
+[mcp_servers.shieldbot_near.env]
+PYTHONPATH = "/path/to/shieldbot-near"
+
+[mcp_servers.shieldbot_near.tools.check_near_payment]
+approval_mode = "approve"
+
+[mcp_servers.shieldbot_near.tools.check_intents_quote]
+approval_mode = "approve"
+
+[mcp_servers.shieldbot_near.tools.scan_near_account]
+approval_mode = "approve"
 ```
 
 ## Check it by hand
