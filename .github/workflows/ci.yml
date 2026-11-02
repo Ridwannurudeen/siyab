@@ -37,13 +37,14 @@ jobs:
           fi
       - name: Registry wasm exports
         run: |
-          if [ -f res/gate.wasm ]; then
+          if [ -f res/registry.wasm ]; then
             python -m gate wasm-exports res/registry.wasm
           fi
       - name: Verify registry fixtures
         run: |
           if [ -f res/gate.wasm ]; then
-            python -m gate verify fixtures/registry/sample-allow.json fixtures/evidence/sample-allow-evidence.json
+            python -m gate verify fixtures/registry/sample-allow.json fixtures/registry/sample-allow-evidence.json
+            python -m gate verify fixtures/registry/testnet-vendor.json fixtures/evidence/7e77187d*.json
           fi
 
   rust-unit:
