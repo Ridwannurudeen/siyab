@@ -4,7 +4,7 @@
     "params": {
       "request_type": "call_function",
       "finality": "final",
-      "account_id": "token.gate.testnet",
+      "account_id": "token.kestrelridge-main.testnet",
       "method_name": "ft_metadata",
       "args_base64": "e30="
     }
@@ -13,9 +13,7 @@
     "jsonrpc": "2.0",
     "id": "gate",
     "result": {
-      "block_hash": "8ZbCAs1aHZTDQjeL3K4SAnpPpvhHL1q7SGxS3gyRdNqC",
-      "block_height": 230000000,
-      "logs": [],
+      "block_height": 275802536,
       "result": [
         123,
         34,
@@ -44,10 +42,15 @@
         34,
         58,
         34,
-        71,
-        97,
-        116,
+        83,
+        104,
+        105,
         101,
+        108,
+        100,
+        66,
+        111,
+        116,
         32,
         116,
         101,
@@ -71,8 +74,8 @@
         34,
         58,
         34,
-        71,
-        84,
+        68,
+        77,
         84,
         34,
         44,
@@ -144,5 +147,5 @@
     }
   },
   "url": "https://test.rpc.fastnear.com",
-  "fetched_at": "2026-11-01T12:00:00Z"
+  "fetched_at": "2026-11-01T21:04:30Z"
 }

@@ -1,0 +1,28 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "lindenvale.testnet"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": "gate",
+    "result": {
+      "block_height": 275865238,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 275336350000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:C5LjriDNy1ZJpiJgzm9Gxh2pbn1hd7CDrTviZbMSwy3R"
+        }
+      ]
+    }
+  },
+  "url": "https://test.rpc.fastnear.com",
+  "fetched_at": "2026-11-02T07:04:42Z"
+}

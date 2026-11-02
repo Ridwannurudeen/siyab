@@ -1,0 +1,31 @@
+{
+  "label": "demo agent",
+  "enabled": true,
+  "allowlist": [
+    "kestrelridge-shop.testnet"
+  ],
+  "caps": [
+    {
+      "asset": {
+        "Ft": "token.kestrelridge-main.testnet"
+      },
+      "per_call": "10000000",
+      "window_cap": "50000000",
+      "window_ms": 86400000,
+      "window_start_ms": 1793565125377,
+      "spent": "10000000"
+    }
+  ],
+  "unknown_caps": [
+    {
+      "asset": {
+        "Ft": "token.kestrelridge-main.testnet"
+      },
+      "per_call": "1000000",
+      "window_cap": "1000000",
+      "window_ms": 86400000,
+      "window_start_ms": 0,
+      "spent": "0"
+    }
+  ]
+}

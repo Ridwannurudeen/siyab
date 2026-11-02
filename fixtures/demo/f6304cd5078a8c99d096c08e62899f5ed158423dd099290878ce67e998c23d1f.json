@@ -1,0 +1,27 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "call_function",
+      "finality": "final",
+      "account_id": "token.kestrelridge-main.testnet",
+      "method_name": "storage_balance_of",
+      "args_base64": "eyJhY2NvdW50X2lkIjoia2VzdHJlbHJpZGdlLXNoMHAudGVzdG5ldCJ9"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": "gate",
+    "result": {
+      "block_height": 275865301,
+      "result": [
+        110,
+        117,
+        108,
+        108
+      ]
+    }
+  },
+  "url": "https://test.rpc.fastnear.com",
+  "fetched_at": "2026-11-02T07:05:17Z"
+}
