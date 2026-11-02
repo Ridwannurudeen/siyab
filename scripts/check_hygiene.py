@@ -26,10 +26,14 @@ HEX64 = re.compile(r"[0-9a-fA-F]{64}")
 # cargo near reads from [package.metadata.near.reproducible_build]. Only this exact line, lower case, in a
 # file named Cargo.toml, passes; any other 64 hex literal in a manifest is still rejected.
 IMAGE_DIGEST_LINE = re.compile(r'image_digest = "sha256:[0-9a-f]{64}"')
-# A recorded RPC fixture never holds a 128 hex string: that is the length of a hex secret key or
-# signature, and the canonical vectors that carry signatures live under fixtures/canon/.
+# A recorded network fixture never holds a 128 hex string: that is the length of a hex secret key
+# or signature. The directories that legitimately carry one stay out: fixtures/canon/ (signature
+# vectors), fixtures/registry/ (the sample verdict's signature) and fixtures/evm/ (contract
+# bytecode from eth_getCode).
 HEX128 = re.compile(r"[0-9a-fA-F]{128}")
-RPC_FIXTURES = ("fixtures/rpc/", "fixtures/demo/", "fixtures/scan/")
+RPC_FIXTURES = ("fixtures/rpc/", "fixtures/demo/", "fixtures/scan/", "fixtures/cluster/", "fixtures/fastnear/",
+                "fixtures/feed/", "fixtures/goplus/", "fixtures/intents/", "fixtures/receivers/",
+                "fixtures/registries/", "fixtures/runs/")
 # ShieldBot's own text never uses this word. Third party strings that carry it (a token symbol)
 # live only in data: seeds, raw snapshots, fixtures and the label store.
 AUTHORED_WORD = re.compile(r"safe", re.IGNORECASE)
@@ -82,7 +86,7 @@ def check_text(path, text):
             if match:
                 hits.append((number, f"forbidden phrase {match.group(0)!r}"))
         if hex128_rule and HEX128.search(line):
-            hits.append((number, "128 hex string in a recorded RPC fixture"))
+            hits.append((number, "128 hex string in a recorded network fixture"))
         if word_rule and AUTHORED_WORD.search(line):
             hits.append((number, "a word ShieldBot never uses in its own text"))
     return hits

@@ -333,6 +333,8 @@ class HygieneRuleTest(unittest.TestCase):
         self.assertTrue(hygiene.check_text("fixtures/rpc/x.json", f'{{"memo": "{secret}"}}'))
         self.assertTrue(hygiene.check_text("fixtures/demo/x.json", f'{{"memo": "{secret}"}}'))
         self.assertTrue(hygiene.check_text("fixtures/scan/x.json", f'{{"memo": "{secret}"}}'))
+        for directory in ("cluster", "fastnear", "feed", "goplus", "intents", "receivers", "registries", "runs"):
+            self.assertTrue(hygiene.check_text(f"fixtures/{directory}/x.json", f'{{"memo": "{secret}"}}'))
         self.assertFalse(hygiene.check_text("fixtures/canon/x.json", f'{{"signature_hex": "{secret}"}}'))
         self.assertFalse(hygiene.check_text("fixtures/rpc/x.json", '{"hash": "' + "ab" * 32 + '"}'))
 
