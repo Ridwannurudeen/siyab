@@ -3,6 +3,7 @@ import contextlib
 import hashlib
 import io
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -146,6 +147,43 @@ class ScanTest(unittest.TestCase):
                                      "full access keys: unknown"])
         self.assertEqual(lines[3:7], ["empty method_names: unknown", "dead keys: unknown",
                                       "unlimited allowance: unknown", "agent keys: unknown"])
+
+    def test_the_recorded_testnet_gate(self):
+        output = io.StringIO()
+        with mock.patch.dict(os.environ, {"NEAR_RPC_URL": ""}), contextlib.redirect_stdout(output):
+            self.assertEqual(gate_main.main(["scan", "kestrelridge-main.testnet"]), 0)
+        lines = output.getvalue().splitlines()
+        self.assert_heading_order(lines)
+        self.assertEqual(lines, [
+            f"account: kestrelridge-main.testnet on {rpc.TESTNET_RPC_URL}, read at block 275865306",
+            "access keys: 2",
+            "full access keys: 1",
+            "  ed25519:7gxqnnhZbSBFRnYmTg8T3UZ4WUULUNS97f4jnf1oygp8",
+            "empty method_names: 0, these may call any method on their receiver",
+            'dead keys: 0, allowance "0"',
+            "unlimited allowance: 0, allowance null",
+            ('agent keys: 1 scoped to kestrelridge-main.testnet, 0 with method_names other than exactly '
+             '["request_transfer"]'),
+            f"verifier keys: the TEST key is {TEST_KEY_TEXT}",
+            "  on chain current: ed25519:9SVNJQqQjSKFo6LXpSJJXWKEjV65V93mHUsXGhmokyb5, different from the TEST key",
+            "labels: 0",
+        ])
+        self.assertNotIn("SAME", output.getvalue())
+
+    def test_the_recorded_testnet_gate_fixtures_are_reduced(self):
+        for method_params in ({"request_type": "view_access_key_list"},
+                              {"request_type": "call_function", "method_name": "get_verifier_keys",
+                               "args_base64": base64.b64encode(b"{}").decode()}):
+            params = {**method_params, "finality": "final", "account_id": "kestrelridge-main.testnet"}
+            path = scan.FIXTURES_DIR / f"{rpc.fixture_key(rpc.TESTNET_RPC_URL, 'query', params)}.json"
+            with self.subTest(path=path.name):
+                text = path.read_text(encoding="utf-8")
+                fixture = json.loads(text)
+                self.assertEqual(sorted(fixture), ["fetched_at", "request", "response", "url"])
+                self.assertEqual(fixture["fetched_at"][:10], "2026-11-02")
+                self.assertNotIn("block_hash", fixture["response"]["result"])
+                self.assertNotIn("secret", text.lower())
+                self.assertNotIn("private", text.lower())
 
     def test_labels_from_the_store(self):
         lines = self.scan("intents.near")["lines"]
