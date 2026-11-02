@@ -1,0 +1,20 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "kestrelridge-shop.testnet"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": "gate",
+    "result": {
+      "block_height": 275802535,
+      "code_hash": "11111111111111111111111111111111"
+    }
+  },
+  "url": "https://test.rpc.fastnear.com",
+  "fetched_at": "2026-11-01T21:04:30Z"
+}

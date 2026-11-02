@@ -225,9 +225,11 @@ def main(argv=None):
                             "<evidence hash>.verdict.json otherwise (default the current directory)")
     judge.set_defaults(handler=_verdict)
 
-    show = commands.add_parser("demo", help="three verdicts over recorded fixtures")
+    show = commands.add_parser("demo", help="four verdicts over recorded testnet data, or the same four live")
     mode = show.add_mutually_exclusive_group(required=True)
     mode.add_argument("--offline", action="store_true", help="replay the fixtures under fixtures/demo")
+    mode.add_argument("--live", action="store_true",
+                      help="read testnet and a dry 1Click quote on mainnet; sends nothing, writes no fixture")
     show.set_defaults(handler=lambda args: demo.main(args.offline))
 
     leg = commands.add_parser("intents", help="judge where a 1Click quote sends NEAR money (dry quote, unsigned)")

@@ -1,0 +1,43 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "kestrelridge-main.testnet"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": "gate",
+    "result": {
+      "block_height": 275865306,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 275335998000009,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:7gxqnnhZbSBFRnYmTg8T3UZ4WUULUNS97f4jnf1oygp8"
+        },
+        {
+          "access_key": {
+            "nonce": 275343969000010,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "995764306260347400000000",
+                "method_names": [
+                  "request_transfer"
+                ],
+                "receiver_id": "kestrelridge-main.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2"
+        }
+      ]
+    }
+  },
+  "url": "https://test.rpc.fastnear.com",
+  "fetched_at": "2026-11-02T07:05:20Z"
+}

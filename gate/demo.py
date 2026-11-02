@@ -1,49 +1,63 @@
-"""python -m gate demo --offline: three verdicts over synthetic fixtures, no network.
+"""python -m gate demo: four verdicts, replayed from recorded testnet data with --offline.
 
-The fixtures under fixtures/demo/ are synthetic (each file is named synthetic-*.json) and hold
-responses in the exact JSON-RPC and NearBlocks shapes; no testnet account exists before 1 Nov.
-The three runs: the allowlisted vendor (ALLOW, signed with the TEST key and verified back), a
-lookalike of the vendor created 3 h before the demo clock by a dust deposit (DENY), and a
-receiver whose account age record is missing (UNKNOWN, naming the check that could not run).
+The fixtures under fixtures/demo/ are the testnet responses recorded on 1 and 2 Nov 2026 with
+GATE_FIXTURES_MODE=record, reduced to the fields the code reads (a block keeps its header hash,
+height and timestamp) and stored under their replay keys; policy.json is the agent policy the Gate's
+get_agent returned. The four runs: the allowlisted vendor (ALLOW, signed with the TEST key and
+verified back), a lookalike of the vendor dated by its oldest access key (DENY), the aged payee with
+the archival block its oldest access key names left out of the fixtures (UNKNOWN, naming the checks
+that could not run), and the EVM leg over the recorded dry 1Click quote and GoPlus answer (DENY,
+unsigned). The demo clock is pinned inside the recording window so the 7 day checks replay as
+recorded.
+
+--live runs the same four against testnet, NearBlocks testnet, the testnet archival RPC and a dry
+1Click quote on mainnet, reading the policy from get_agent. It reads only, writes no fixture and
+sends nothing; an ALLOW is signed with the TEST key, which the testnet Gate does not trust.
 """
 
 import json
-import shutil
+import os
 import tempfile
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 
-from gate import canon, ed25519, rpc, signer, verdict
+from gate import base58, canon, ed25519, evidence, intents, rpc, signer, verdict
 from intel import labels
 
 DEMO_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "demo"
-DEMO_NOW_S = datetime(2026, 11, 1, 12, 0, tzinfo=UTC).timestamp()
-GATE = "gate.testnet"
-TOKEN = "token.gate.testnet"
-VENDOR = "vendor.testnet"
-POLICY = {"allowlist": [VENDOR], "caps": [{"asset": {"Ft": TOKEN}}]}
+DEMO_NOW_S = datetime(2026, 11, 2, 7, 0, tzinfo=UTC).timestamp()
+GATE = "kestrelridge-main.testnet"
+TOKEN = "token.kestrelridge-main.testnet"
+VENDOR = "kestrelridge-shop.testnet"
+LOOKALIKE = "kestrelridge-sh0p.testnet"
+AGED = "lindenvale.testnet"
+# The agent's function call key on the Gate, from the recorded view_access_key_list of the Gate.
+AGENT_KEY = "ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2"
+AMOUNT = "1000000"
+MEMO = "invoice 1"
+EVM_ORIGIN = "nep141:wrap.near"
+EVM_DESTINATION = "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near"
+EVM_AMOUNT = "1000000000000000000000000"
+EVM_RECIPIENT = "0x1fcdb04d0c5364fbd92c73ca8af9baa72c269107"
 RUNS = (
-    ("The allowlisted vendor", VENDOR),
-    ("A lookalike of the vendor, off the allowlist", "vendor-pay.testnet"),
-    ("A receiver off the allowlist whose account age record is missing", "supplier.testnet"),
+    ("The allowlisted vendor", VENDOR, None),
+    ("A lookalike of the vendor, off the allowlist", LOOKALIKE, None),
+    ("The aged payee, off the allowlist", AGED,
+     ("the archival block its oldest access key names is left out of fixtures/demo, so its account age cannot "
+      "be read")),
 )
 
 
-def _replay_dir(directory):
-    """Copy each synthetic fixture to <key>.json so the replay client finds it."""
-    for path in sorted(DEMO_DIR.glob("synthetic-*.json")):
-        fixture = json.loads(path.read_text(encoding="utf-8"))
-        key = rpc.fixture_key(fixture["url"], fixture["request"]["method"], fixture["request"]["params"])
-        shutil.copyfile(path, Path(directory) / f"{key}.json")
-
-
-def _run(title, receiver, clients, store, evidence_dir, out):
-    client, nearblocks = clients
-    result = verdict.request("ft", TOKEN, receiver, "1000000", "invoice 1", gate=GATE,
-                             agent_pk_hex=ed25519.public_from_seed(ed25519.TEST_AGENT_SEED).hex(),
-                             policy=POLICY, store=store, rpc=client, nearblocks=nearblocks,
-                             signer=signer.TestSigner(), evidence_dir=evidence_dir, clock=lambda: DEMO_NOW_S)
-    out(f"{title}: 1000000 of {TOKEN} to {receiver}, memo \"invoice 1\"")
+def _run(title, receiver, note, clients, policy, store, evidence_dir, clock, out):
+    client, nearblocks, archival = clients
+    result = verdict.request("ft", TOKEN, receiver, AMOUNT, MEMO, gate=GATE,
+                             agent_pk_hex=base58.decode_key(AGENT_KEY).hex(), policy=policy, store=store,
+                             rpc=client, nearblocks=nearblocks, archival=archival, signer=signer.TestSigner(),
+                             evidence_dir=evidence_dir, clock=clock)
+    out(f'{title}: {AMOUNT} of {TOKEN} to {receiver}, memo "{MEMO}"')
+    if note:
+        out(f"  offline, {note}")
     for check in result["checks"]:
         out(f"  {check['status']:<7} {check['id']}: {check['detail']}")
     if result["outcome"] == "ALLOW":
@@ -66,26 +80,61 @@ def _run(title, receiver, clients, store, evidence_dir, out):
     return result
 
 
-def run(out=print):
-    """Run the three demo verdicts; returns their results."""
-    out("ShieldBot for NEAR offline demo v0: synthetic fixtures from fixtures/demo, the TEST verifier key,")
-    out("no network. The TEST key is derived from a published seed and is never registered on testnet.")
+def _evm_run(mode, deadline, evidence_dir, clock, out):
+    started = time.perf_counter()
+    result = intents.judge_quote(EVM_ORIGIN, EVM_DESTINATION, EVM_AMOUNT, EVM_RECIPIENT, mode=mode,
+                                 firewall_url=os.environ.get("SHIELDBOT_API_URL"), clock=clock, deadline=deadline)
+    latency_ms = int((time.perf_counter() - started) * 1000)
+    path = evidence.write(result["document"], evidence_dir)
+    out(f"The EVM leg: a dry 1Click quote of {EVM_AMOUNT} of {EVM_ORIGIN} to {EVM_DESTINATION}, recipient "
+        f"{EVM_RECIPIENT}")
+    for check in result["checks"]:
+        out(f"  {check['status']:<7} {check['id']}: {check['detail']}")
+    if result["verdict"] == "DENY":
+        out("  " + " ".join(["DENIED."] + result["reasons"]))
+    else:
+        out("  " + " ".join([f"{result['verdict']}, unsigned preflight."] + result["reasons"]))
+    out("  Nothing was signed, nothing was deposited.")
+    out(f"  evidence sha256: {path.stem}")
+    out(f"  latency: {latency_ms} ms")
     out("")
-    with tempfile.TemporaryDirectory() as replay:
-        _replay_dir(replay)
-        clients = (rpc.Client(rpc.TESTNET_RPC_URL, "replay", fixtures_dir=replay),
-                   rpc.Client(rpc.NEARBLOCKS_TESTNET_URL, "replay", kind="http", fixtures_dir=replay))
-        evidence_dir = Path(tempfile.mkdtemp(prefix="shieldbot-near-demo-"))
-        store = labels.load()
-        results = [_run(title, receiver, clients, store, evidence_dir, out) for title, receiver in RUNS]
+    return {"outcome": result["verdict"], "verdict": None, "checks": result["checks"], "reasons": result["reasons"],
+            "evidence_hash": path.stem, "evidence_path": str(path), "latency_ms": latency_ms}
+
+
+def run(out=print, live=False):
+    """Run the four demo verdicts, replayed from fixtures/demo or, with live, read from the networks; returns
+    their results."""
+    evidence_dir = Path(tempfile.mkdtemp(prefix="shieldbot-near-demo-"))
+    store = labels.load()
+    if live:
+        out("ShieldBot for NEAR live demo v1: the same four over testnet RPC, NearBlocks testnet, the testnet")
+        out("archival RPC and a dry 1Click quote on mainnet. It reads only: nothing is sent and no fixture is")
+        out("written. An ALLOW is signed with the TEST key, which the testnet Gate does not trust.")
+        clients = (rpc.Client(rpc.TESTNET_RPC_URL, "off"),
+                   rpc.Client(rpc.NEARBLOCKS_TESTNET_URL, "off", kind="http"),
+                   rpc.Client(rpc.ARCHIVAL_TESTNET_RPC_URL, "off"))
+        policy = clients[0].call_function(GATE, "get_agent", {"public_key": AGENT_KEY})
+        clock, mode, deadline = time.time, "off", intents.live_deadline()
+    else:
+        out("ShieldBot for NEAR offline demo v1: testnet responses recorded on 1 and 2 Nov 2026, replayed from")
+        out("fixtures/demo with the TEST verifier key and no network. The TEST key is derived from a published")
+        out("seed and is never registered on testnet. The demo clock is pinned to 2026-11-02T07:00:00Z, inside")
+        out("the recording window, so the 7 day checks replay as recorded.")
+        clients = (rpc.Client(rpc.TESTNET_RPC_URL, "replay", fixtures_dir=DEMO_DIR),
+                   rpc.Client(rpc.NEARBLOCKS_TESTNET_URL, "replay", kind="http", fixtures_dir=DEMO_DIR),
+                   rpc.Client(rpc.ARCHIVAL_TESTNET_RPC_URL, "replay", fixtures_dir=DEMO_DIR))
+        policy = json.loads((DEMO_DIR / "policy.json").read_text(encoding="utf-8"))
+        clock, mode, deadline = (lambda: DEMO_NOW_S), "replay", intents.RECORDED_DEADLINE
+    out("")
+    results = [_run(title, receiver, None if live else note, clients, policy, store, evidence_dir, clock, out)
+               for title, receiver, note in RUNS]
+    results.append(_evm_run(mode, deadline, evidence_dir, clock, out))
     out(f"Evidence documents: {evidence_dir}")
     return results
 
 
 def main(offline):
     """The demo command; returns 0. Any exception propagates, so python -m gate exits 1."""
-    if not offline:
-        print("demo v0 runs offline only: python -m gate demo --offline")
-        return 2
-    run()
+    run(live=not offline)
     return 0
