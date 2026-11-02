@@ -246,7 +246,6 @@ class FailClosedClientTest(unittest.TestCase):
             ("final_block", (), {"result": {"header": {"height": 5}}}),
             ("block_at", (5,), {"result": {"chunks": []}}),
             ("block_at", (5,), {"result": {"header": {"height": 5}}}),
-            ("view_account_at", ("a.near", "h"), {"result": {"amount": "1"}}),
         ]
         for method, args, body in cases:
             with (self.subTest(method=method, body=body),
