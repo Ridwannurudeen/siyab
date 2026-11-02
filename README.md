@@ -95,9 +95,67 @@ Python 3.11 or later, from the repository root, plus a POSIX shell for steps 3 a
 
    Each verdict also prints its evidence sha256 and the time the checks took. These are replay timings from fixtures, not live latency; the verdict id is random, so the ALLOW's canonical message and evidence hash differ on every run.
 
-2. `python -m unittest discover -s tests` runs the Python suite: the rules, the canonical vectors, the evidence hashing, `gate/ed25519.py` against the RFC 8032 section 7.1 vectors, the label store, the incidents, the EVM leg, `scan`, the MCP server, the README counts and tables. It ends with a line `OK`, with a skip count: the PyNaCl and py-near cross checks skip with a printed reason when those packages are absent, and the wasm checks skip until `res/` holds the built files.
-3. `sha256sum res/gate.wasm res/registry.wasm` against `res/*.wasm.sha256`, and `python -m gate codehash res/gate.wasm` for the hex and base58 forms to compare with the testnet `code_hash`. The build record lands with the wasm files under `res/`. Reproducing the hash from source needs Docker; checking it against testnet needs network.
-4. `python -m gate wasm-exports res/gate.wasm` (and `res/registry.wasm`) parses the wasm export section and prints the exported function names, which equal the contract method tables. It runs once the wasm files land under `res/`.
+2. `python -m unittest discover -s tests` runs the Python suite: the rules, the canonical vectors, the evidence hashing, `gate/ed25519.py` against the RFC 8032 section 7.1 vectors, the label store, the incidents, the EVM leg, `scan`, the MCP server, the README counts and tables. It ends with a line `OK`, with a skip count: the PyNaCl and py-near cross checks skip with a printed reason when those packages are absent; the wasm checks run on the committed files under `res/`.
+3. `sha256sum -c res/gate.wasm.sha256 res/registry.wasm.sha256` checks the committed wasm files against their checksums, and `python -m gate codehash` prints the sha256 and the base58 `code_hash` to compare with the testnet `code_hash` in `docs/TESTNET.md`. The testnet `code_hash` equals base58 of the sha256 of the wasm. Reproducing the hash from source needs Docker; checking it against testnet needs network.
+
+   ```
+   res/gate.wasm: OK
+   res/registry.wasm: OK
+   ```
+
+   `python -m gate codehash res/gate.wasm`, then `python -m gate codehash res/registry.wasm`:
+
+   ```
+   sha256: f7a09b28...fd14a107
+   code_hash: Hfdk3jGUFxQyP8wEEoejNUkZ81bE9gDmoUBfGRghR5iE
+   sha256: 2a154191...f0ec0cfa
+   code_hash: 3qGvVjTHVyvYVGQjJhqQGJMzmkUHwEbTCfWqHhXnW4VX
+   ```
+
+4. `python -m gate wasm-exports res/gate.wasm` and `python -m gate wasm-exports res/registry.wasm` parse the wasm export section and print the exported function names, sorted: each contract's methods plus `__contract_abi`.
+
+   ```
+   __contract_abi
+   contract_source_metadata
+   get_agent
+   get_pending
+   get_policy
+   get_verifier_keys
+   is_verdict_used
+   new
+   on_transfer
+   register_agent
+   request_transfer
+   revoke_agent
+   set_agent_enabled
+   set_allowlist
+   set_caps
+   set_denylist
+   set_max_ttl
+   set_paused
+   set_verifier_keys
+   version
+   withdraw
+   ```
+
+   ```
+   __contract_abi
+   contract_source_metadata
+   get_label
+   get_recorder
+   is_allowed
+   latest
+   new
+   record
+   record_batch
+   record_label
+   set_recorder
+   total_labels
+   total_records
+   total_subjects
+   version
+   ```
+
 5. `python -m gate verify fixtures/registry/testnet-vendor.json fixtures/evidence/7e77187d*.json` recomputes the evidence hash, compares it and the verdict with the registry view, and prints the NEP-297 fields to compare with the explorer:
 
    ```
@@ -163,6 +221,8 @@ Fixtures under `fixtures/rpc/`, `fixtures/demo/`, `fixtures/scan/`, `fixtures/in
 Testnet accounts and deployments are listed in `docs/TESTNET.md`; the evidence documents in `docs/EVIDENCE.md`.
 
 - The allowed payment, invoice 2, 10 DMT to `kestrelridge-shop.testnet`: [transaction](https://testnet.nearblocks.io/txns/7agsRsZgeRm2vhK1LXug2qRQ2qudbAMjsLncuxGpvdwn), with `transfer_scheduled`, the token's `ft_transfer` and `transfer_completed` in its logs.
+- Invoice 3, 10 DMT to the vendor on 2 Nov after the redeploy, ALLOW: transaction `DU55HxkN...zXNwGh` (`docs/TESTNET.md`).
+- The 2 Nov redeploy with the reproducible wasm: Gate `GTHR62ER...Wik5sW`, registry `9GzMDrYe...UPBb66`, each `code_hash` MATCH (`docs/TESTNET.md`, `res/BUILD.md`).
 - The refused lookalike `kestrelridge-sh0p.testnet`, sent through `python -m gate attack no-verdict`: [failed receipt `REFUSED:no_verdict`](https://testnet.nearblocks.io/txns/6kfxEFCR2uuoiM6cpj8CmGAfmRjKTYNtFq4igkv48qK7).
 - The registry records for the vendor, the lookalike and the aged payee: [`record_batch`](https://testnet.nearblocks.io/txns/CW5TWeRyvLngggXiBY5Y7xSZTD3BPWerFtsXczJdPRhW); read one without a key with `near contract call-function as-read-only registry.kestrelridge-main.testnet latest json-args '{"subject":"kestrelridge-shop.testnet"}' network-config testnet now`.
 - The refused unknown payee (`REFUSED:unknown_payee_cap`) lands after 5 Nov, when the aged payee is 7 days old.
@@ -201,6 +261,7 @@ fixtures/, tests/     recorded responses replayed offline; the Python tests
 - Verdict latency: the latency line of the counts block, live testnet verdicts for the allowlisted payee, tier 1 checks.
 - A wrong ALLOW costs at most the per call cap, then the window cap; for a payee off the allowlist, the separate unknown payee caps (`per_call_cap_is_enforced`, `window_cap_is_enforced`, `unknown_payee_cap_is_enforced` in `contracts/gate/src/lib.rs`).
 - The testnet Gate kept a full access key during the build (`scan` above).
+- The testnet Gate and registry run the reproducible wasm of `res/`: on 2 Nov `scripts/redeploy.sh` deployed it without an init call, state kept, and each `code_hash` read back equals base58 of the sha256 of the wasm (MATCH, `docs/TESTNET.md`). The Gate's `contract_source_metadata` view returns the NEP-330 link to source commit `eb54c8e` (`res/BUILD.md`).
 
 ## Claims to code
 
@@ -291,7 +352,7 @@ Prior art, not claimed for NEAR: the ShieldBot verdict guard and registries on R
 
 AI coding tools wrote most of the code under the authors' direction; every test was run by the authors.
 
-License: Apache-2.0 (`LICENSE`). Reproducible build: `cargo near build reproducible-wasm` in each contract directory with Docker; the build record lands with the wasm files under `res/`.
+License: Apache-2.0 (`LICENSE`). Reproducible build: `res/gate.wasm` and `res/registry.wasm` were built with `cargo near build reproducible-wasm` from source commit `eb54c8e`, in the image `sourcescan/cargo-near:0.21.1-rust-1.96.0`, which compiles with Rust 1.96.0 (`rust-toolchain.toml` pins 1.99.1 for local builds, so a local non reproducible build produces a different hash). The recipe to rebuild them is in `res/BUILD.md`.
 
 Business model: a metered verdict and label API for agent platforms; the approver seat in agent wallets; alerts later. No token.
 
