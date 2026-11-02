@@ -16,6 +16,8 @@ The first payment, invoice 1, is transaction `9XVcMjuS...ekVsyK`; it has no stor
 
 The lookalike payment without a verdict was refused as `REFUSED:no_verdict`. Its failed receipt is [recorded on testnet](https://testnet.nearblocks.io/txns/6kfxEFCR2uuoiM6cpj8CmGAfmRjKTYNtFq4igkv48qK7). The request targeted `kestrelridge-sh0p.testnet`; the stored record is `fixtures/rpc/attacks/01-no-verdict.json`.
 
+The unknown payee payment was refused as `REFUSED:unknown_payee_cap` on 2 November. Its failed receipt is [recorded on testnet](https://testnet.nearblocks.io/txns/H6WqJYSbwBPECSVqADRHAGA1qV1a2ictujUiBqaLe416). The request was for 2 DMT to `examples.testnet`, which is not on the allowlist, against an unknown payee cap of 1 DMT per call; the stored record is `fixtures/rpc/attacks/09-unknown-payee.json`. The service had answered ALLOW in 13477 ms, every check run and none with a signal, and its evidence document is `fixtures/evidence/9471fea5*.json` (evidence hash `9471fea5...66112f27`, verdict id `946f0003a1996939f1c81eb879d59a09`).
+
 ## Registry records and verification
 
 The registry recorded three verdicts in transaction [`CW5TWeRyvLngggXiBY5Y7xSZTD3BPWerFtsXczJdPRhW`](https://testnet.nearblocks.io/txns/CW5TWeRyvLngggXiBY5Y7xSZTD3BPWerFtsXczJdPRhW). Its `verdict_recorded` events contain each subject, verdict, evidence hash, observed block and verdict id. The corresponding read views and unchanged evidence documents are committed locally.

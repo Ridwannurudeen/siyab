@@ -48,7 +48,7 @@ Account age stayed in the rules (`docs/SPIKES.md` S8): NearBlocks testnet has in
 - Caption: "DENY from the service. Submitted anyway: refused by the guard."
 - Explorer: https://testnet.nearblocks.io/txns/6kfxEFCR2uuoiM6cpj8CmGAfmRjKTYNtFq4igkv48qK7
 - Replay cut: `python -m gate attack replay ...`, expected first line `attack replay: a simulation the Gate or the protocol must refuse`; the second submission fails `REFUSED:verdict_used` (recorded: https://testnet.nearblocks.io/txns/2FFnYUrXYLLgAHA2vsNud2mawU1xttkCQaNXg2yZG6Pn). A one second caption: "A day old ALLOW: `REFUSED:expired`" (recorded: https://testnet.nearblocks.io/txns/5KG3sPSqdvUP6y6a5iR1APzcHxb8pSsVxKiffWbNvQ7H).
-- Unknown payee: `python -m gate attack unknown-payee --kind ft --token token.kestrelridge-main.testnet --receiver lindenvale.testnet --amount <above the unknown payee cap> --memo "attack unknown-payee" --out <dir>`, expected first line `attack unknown-payee: a simulation the Gate or the protocol must refuse`; the service answers ALLOW and the guard refuses `REFUSED:unknown_payee_cap`. Then the owner runs `bash scripts/set_allowlist.sh <agent pub> kestrelridge-shop.testnet,lindenvale.testnet` and the same `python -m gate pay` to `lindenvale.testnet` goes through. This attack runs after 5 Nov, 18:20 UTC, when the aged payee is 7 days old; its explorer links land in `docs/ATTACKS.md` then.
+- Unknown payee: `python -m gate attack unknown-payee --kind ft --token token.kestrelridge-main.testnet --receiver examples.testnet --amount 2000000 --memo "attack unknown-payee" --out <dir>`, expected first line `attack unknown-payee: a simulation the Gate or the protocol must refuse`; `examples.testnet` is an aged account not on the allowlist, the service answers ALLOW and the guard refuses the 2 DMT, above the 1 DMT unknown payee cap, with `REFUSED:unknown_payee_cap` (recorded 2 Nov: https://testnet.nearblocks.io/txns/H6WqJYSbwBPECSVqADRHAGA1qV1a2ictujUiBqaLe416). `examples.testnet` is not a team account and is never paid, so the allowlist change on camera allows the team's own payee instead: the owner runs `bash scripts/set_allowlist.sh <agent pub> kestrelridge-shop.testnet,lindenvale.testnet`, and `python -m gate pay` with the same token, amount 2000000 and receiver `lindenvale.testnet` is expected to go through (not yet recorded; no transaction in the repository); a caption names `lindenvale.testnet` as the allowlisted account.
 - Narration: "A clean looking account is not enough. Payees the owner has not approved are capped."
 
 ### 5. 50 to 85 s: beat 2, the money leaves NEAR
@@ -77,12 +77,12 @@ Account age stayed in the rules (`docs/SPIKES.md` S8): NearBlocks testnet has in
 - Expected first line of the reply: the tool's JSON text, starting `{"outcome": ` for `check_near_payment`.
 - Caption: "Who your agent pays gets a verdict with evidence. Unknown never passes."
 - Narration, the one sentence of pitch voice: "security intelligence, the way the best EVM products do it, with the evidence on chain".
-- Explorer: none.
+- Explorer: none for the call itself. Recorded on 2 Nov: with `GATE_LIVE_SIGNING=1` and the live conditions of `mcp/README.md` set, `check_near_payment` signed an ALLOW for invoice 4 that `python -m gate pay --verdict-file` paid, https://testnet.nearblocks.io/txns/AADLzYbqhEm6D83osYfQQ5SMED86chiS77XGsA8d7rTJ
 
 ## Recording order
 
 1. At least three hours before recording: `bash scripts/make_attack_receiver.sh <a second lookalike name>`.
-2. Beat 1: the staged vendor reply, the DENIED line, `attack no-verdict`, the failed receipt; `pay` to the vendor with the ALLOW, the event and the receipt; the replay cut; the unknown payee refusal, then the owner runs `scripts/set_allowlist.sh` on camera and the payment goes through.
+2. Beat 1: the staged vendor reply, the DENIED line, `attack no-verdict`, the failed receipt; `pay` to the vendor with the ALLOW, the event and the receipt; the replay cut; the unknown payee refusal on `examples.testnet`, then the owner runs `scripts/set_allowlist.sh` on camera to allow `lindenvale.testnet` and a 2 DMT payment to it is expected to go through (not yet recorded; no transaction in the repository).
 3. Beat 2: `python -m gate intents ...` with the dry quote on screen and the DENIED line; `python -m gate incident rhea`; the flow page.
 4. The close: `scan`, the registry record next to `verify`, `sha256sum res/gate.wasm` next to the testnet `code_hash`, the MCP call, the repository URL.
 

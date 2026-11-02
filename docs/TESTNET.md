@@ -36,10 +36,11 @@ The agent registration, 29 Oct, transaction `HNVuBL2N...K2wmdu` (`fixtures/runs/
 | 10 DMT to the vendor, memo `invoice 1`, 29 Oct | ALLOW | `9XVcMjuS...ekVsyK` |
 | 10 DMT to the vendor, memo `invoice 2`, 1 Nov | ALLOW, 1794 ms | `7agsRsZg...Gpvdwn` |
 | 10 DMT to the vendor, memo `invoice 3`, 2 Nov, after the redeploy | ALLOW, 1754 ms | `DU55HxkN...zXNwGh` |
+| 10 DMT to the vendor, memo `invoice 4`, 2 Nov, request id 5, paid with `python -m gate pay --verdict-file` | ALLOW signed with the live key by the MCP server (`GATE_LIVE_SIGNING=1`) | `AADLzYbq...8d7rTJ` |
 
 Each emitted `transfer_scheduled`, the token's `ft_transfer` and `transfer_completed`. The evidence document of the first payment was lost with a scratch copy, so the second is the only payment recorded in the registry so far.
 
-## Attack run, 29 Oct
+## Attack runs, 29 Oct and 2 Nov
 
 | Attack | Refused by | Transaction |
 |---|---|---|
@@ -52,8 +53,9 @@ Each emitted `transfer_scheduled`, the token's `ft_transfer` and `transfer_compl
 | token-direct (`ft_transfer` on the token with the agent key) | protocol, `ReceiverMismatch` | none (rejected before execution) |
 | service-down (no verifier key) | Gate, `REFUSED:no_verdict` | `CTm9yDGH...vt9wnk` |
 | one-yocto (1 yoctoNEAR attached) | protocol, `DepositWithFunctionCall` | none (rejected before execution) |
+| unknown-payee, 2 Nov (2 DMT to `examples.testnet`, not on the allowlist, ALLOW from the service, unknown payee cap 1 DMT per call) | Gate, `REFUSED:unknown_payee_cap` | `H6WqJYSb...aLe416` |
 
-The unknown payee attack waits until the aged payee is 7 days old: it was created 29 Oct, 18:20 UTC, and its key landed in block 275336351 (18:20:16 UTC), so the account age passes from 5 Nov, 18:20:16 UTC. The live verdict for the lookalike is DENY: a lookalike of the vendor, not on the allowlist, not registered on the token.
+The unknown payee attack ran on 2 Nov against `examples.testnet`, an account with no contract code created 1825 days before the run, because the accounts the team controls, `lindenvale.testnet` among them, were created 29 Oct and were under 7 days old. Its verdict was ALLOW in 13477 ms, every check run and none with a signal (evidence `9471fea5...66112f27`); nothing was sent to it. Before the attack the Gate registered `examples.testnet` on the token with `storage_deposit`, 0.00129 NEAR from the Gate's balance, as setup did for the vendor and the aged payee (transaction `Bd62DYEp...7gtz49`, `fixtures/runs/storage_deposit-examples-20261102T134415Z.txt`). The live verdict for the lookalike is DENY: a lookalike of the vendor, not on the allowlist, not registered on the token.
 
 ## Registry
 

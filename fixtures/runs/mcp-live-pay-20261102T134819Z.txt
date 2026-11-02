@@ -1,0 +1,11 @@
+# excerpt of the gate pay console for the MCP live verdict: the 128 hex signature shortened to first and last 8; the record holds no Signature line, every other line kept byte for byte
+verdict file /mnt/c/Users/gudma/OneDrive/Desktop/GITHUB-FILES/shieldbot-handoff/near-hackathon-2026-11/testnet-runs/mcp-live/verdict-20261102T134819Z.json: ALLOW, evidence 4b99f7ed713b21bdac5c39b6312bf815fa01f6bd4c6f37a4b140c038fc84bf29
+sent: request_transfer to kestrelridge-main.testnet as kestrelridge-main.testnet, deposit 0 yoctoNEAR, gas 30 Tgas
+args: {"request": {"kind": "ft", "token_id": "token.kestrelridge-main.testnet", "receiver_id": "kestrelridge-shop.testnet", "amount": "10000000", "memo": "invoice 4"}, "verdict": {"literal": "ALLOW", "issued_ms": 1793627303425, "expires_ms": 1793627603425, "verdict_id": "652c1e0ebd165a413dd0489dea6a75ea", "evidence_hash": "4b99f7ed713b21bdac5c39b6312bf815fa01f6bd4c6f37a4b140c038fc84bf29", "key_id": "cur", "signature": "7231c2b4...103bd30d"}}
+transaction: AADLzYbqhEm6D83osYfQQ5SMED86chiS77XGsA8d7rTJ
+explorer: https://testnet.nearblocks.io/txns/AADLzYbqhEm6D83osYfQQ5SMED86chiS77XGsA8d7rTJ
+log: EVENT_JSON:{"standard":"shieldbot-near","version":"1.0.0","event":"transfer_scheduled","data":[{"request_id":5,"agent_pk":"fc5b49a7e7d11222ec1f88aba4d8814b254286f45db917508049bbcf06e5bba9","kind":"ft","token":"token.kestrelridge-main.testnet","receiver":"kestrelridge-shop.testnet","amount":"10000000","verdict_id":"652c1e0ebd165a413dd0489dea6a75ea","evidence_hash":"4b99f7ed713b21bdac5c39b6312bf815fa01f6bd4c6f37a4b140c038fc84bf29"}]}
+log: EVENT_JSON:{"standard":"nep141","version":"1.0.0","event":"ft_transfer","data":[{"old_owner_id":"kestrelridge-main.testnet","new_owner_id":"kestrelridge-shop.testnet","amount":"10000000","memo":"invoice 4"}]}
+log: EVENT_JSON:{"standard":"shieldbot-near","version":"1.0.0","event":"transfer_completed","data":[{"request_id":5}]}
+status: {"SuccessValue": ""}
+wrote /mnt/c/Users/gudma/OneDrive/Desktop/GITHUB-FILES/shieldbot-handoff/near-hackathon-2026-11/testnet-runs/mcp-live/pay-652c1e0ebd165a413dd0489dea6a75ea.json
