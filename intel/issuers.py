@@ -114,18 +114,19 @@ def _history_subjects(fixtures_dir):
 
 
 def record_history_accounts(subjects_to_record=None, sleep=time.sleep, progress=print):
-    client = rpc.Client(RPC_URL, "off", fixtures_dir=FIXTURE_DIR, sleep=sleep)
-    result = client.call("block", {"finality": "final"})
+    block_client = rpc.Client(RPC_URL, "off", fixtures_dir=FIXTURE_DIR, sleep=sleep)
+    result = block_client.call("block", {"finality": "final"})
     block = result["header"]["height"]
     params = {"finality": "final"}
     key = rpc.fixture_key(RPC_URL, "block", params)
     fixture = {"request": {"method": "block", "params": params},
                "response": _drop_block_signatures({"jsonrpc": "2.0", "result": result, "id": "gate"}),
-               "url": RPC_URL, "fetched_at": client.last_source["fetched_at"],
+               "url": RPC_URL, "fetched_at": block_client.last_source["fetched_at"],
                "reduced": "every signature field and header approval signature dropped at record time; "
                           "no other response field changed"}
     FIXTURE_DIR.mkdir(parents=True, exist_ok=True)
     (FIXTURE_DIR / f"{key}.json").write_text(json.dumps(fixture, indent=2) + "\n", encoding="utf-8")
+    client = rpc.Client(RPC_URL, "record", fixtures_dir=FIXTURE_DIR, sleep=sleep)
     subjects_to_read = (_history_subjects(FIXTURE_DIR) if subjects_to_record is None
                         else list(dict.fromkeys(subjects_to_record)))
     for index, subject in enumerate(subjects_to_read):
