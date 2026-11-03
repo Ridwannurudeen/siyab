@@ -12,13 +12,16 @@ the state lists it as skipped.
 python -m intel feed --follow [--from <height>] [--max-blocks <n>] reads the final height from
 /v0/last_block/final and walks every height from the state's last height + 1 (with no state:
 --from, else the final height) to it in order, never skipping one; once caught up it sleeps 1 s
-and reads the final height again. It stops on SIGINT or after --max-blocks heights. It has no
-request budget: it leaves FOLLOW_INTERVAL_S (0.4 s) between one request and the next, so at most
-150 a minute, and backs off 10 s on a 429 as above. No reduced block is written per height: a
-block that raised an event is written as <state dir>/event-blocks/<height>.json, the block_fixture
-its events' source names. A finalized height neardata answers with null stops the follower with
-an error. The state is written after every block; on SIGINT the loop stops after the block in hand
-and the command exits 0.
+and reads the final height again. It stops on SIGINT or after --max-blocks heights, a skipped
+height included. It has no request budget: it leaves FOLLOW_INTERVAL_S (0.4 s) between one request
+and the next, so at most 150 a minute, and backs off 10 s on a 429 as above. No reduced block is
+written per height: a block that raised an event is written as
+<state dir>/event-blocks/<height>.json, the block_fixture its events' source names. A finalized
+height neardata answers with null or a 404 holds no block, as in record mode: the follower adds
+it to skipped_heights, writes the state and goes on to the next height. NEAR skips a height
+whenever its producer misses the slot, so skipped_heights can grow by a few hundred heights a
+day; a list that size is fine for the weeks this hackathon build runs. The state is written after
+every height; on SIGINT the loop stops after the height in hand and the command exits 0.
 
 The reduced form keeps, for each executed action receipt, its receipt id, transaction hash,
 predecessor, receiver, whether it succeeded, and the actions the signals read: DeployContract
@@ -349,21 +352,28 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
             if last_request is not None:
                 sleep(max(0, FOLLOW_INTERVAL_S - (clock() - last_request)))
             requests_before = fetcher.requests
-            raw = fetcher.get(f"/v0/block/{next_height}")
+            try:
+                raw = fetcher.get(f"/v0/block/{next_height}")
+            except rpc.HttpError as error:
+                if error.status != 404:
+                    raise
+                raw = None
             state["requests"] += fetcher.requests - requests_before
             last_request = clock()
             if raw is None:
-                raise FeedError(f"neardata returned no block at finalized height {next_height}")
-            block = reduce_block(raw)
-            event_paths = apply(block, state, context,
-                                {"url": f"{NEARDATA_URL}/v0/block/{next_height}",
-                                 "block_fixture": f"{next_height}.json",
-                                 "block_fixture_sha256": hashlib.sha256(
-                                     (json.dumps(block, separators=(",", ":"), ensure_ascii=False) + "\n")
-                                     .encode("utf-8")
-                                 ).hexdigest()}, events_dir)
-            if event_paths:
-                _write_json(Path(event_blocks_dir) / f"{next_height}.json", block)
+                if next_height not in state["skipped_heights"]:
+                    state["skipped_heights"].append(next_height)
+            else:
+                block = reduce_block(raw)
+                event_paths = apply(block, state, context,
+                                    {"url": f"{NEARDATA_URL}/v0/block/{next_height}",
+                                     "block_fixture": f"{next_height}.json",
+                                     "block_fixture_sha256": hashlib.sha256(
+                                         (json.dumps(block, separators=(",", ":"), ensure_ascii=False) + "\n")
+                                         .encode("utf-8")
+                                     ).hexdigest()}, events_dir)
+                if event_paths:
+                    _write_json(Path(event_blocks_dir) / f"{next_height}.json", block)
             walked += 1
             state["mode"] = "follow"
             state["lag_blocks"] = max(0, final_height - (state["last_height"] or final_height))

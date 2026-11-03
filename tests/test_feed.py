@@ -290,6 +290,26 @@ class FollowModeTest(unittest.TestCase):
             self.assertEqual(state["mode"], "follow")
             self.assertEqual(state["requests"], 4)
 
+    def test_follow_records_a_null_or_404_height_as_skipped_and_goes_on(self):
+        class NotFound(FakeFetcher):
+            def get(self, path):
+                if path == "/v0/block/2":
+                    raise rpc.HttpError(404, path)
+                return super().get(path)
+
+        for fake in (FakeFetcher({1: raw_block(1, []), 2: None, 3: raw_block(3, [])}, 3), NotFound(self.blocks(3), 3)):
+            with self.subTest(fetcher=type(fake).__name__), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                state, walked = feed.follow(start=1, fetcher=fake.inner, state_path=root / "state.json",
+                                            events_dir=root / "events", event_blocks_dir=root / "event-blocks",
+                                            max_blocks=3, sleep=lambda _: None)
+                self.assertEqual((walked, state["last_height"], state["blocks"], state["skipped_heights"]),
+                                 (3, 3, 2, [2]))
+                self.assertEqual(state["requests"], 4)
+                self.assertEqual(json.loads((root / "state.json").read_text(encoding="utf-8")), state)
+                self.assertFalse((root / "events").exists())
+                self.assertFalse((root / "event-blocks").exists())
+
     def test_follow_writes_the_event_block_and_points_the_event_source_at_it(self):
         raw = raw_block(9, [])
         synthetic = json.loads((BLOCKS / "synthetic-code-hash.json").read_text(encoding="utf-8"))
