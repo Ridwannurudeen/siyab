@@ -26,7 +26,7 @@
       "detail": "no denylist or incident label on intents.near or mpdao-token.near",
       "source": {
         "provider": "label store",
-        "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",
+        "request_sha256": "f98e1f12498535262e413c38dfa6e994861b78bfad33ebf347cda2f3a8596427",
         "fetched_at": null
       }
     },
@@ -46,7 +46,7 @@
       "detail": "mpdao-token.near is a catalog_token in the label store",
       "source": {
         "provider": "label store",
-        "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",
+        "request_sha256": "f98e1f12498535262e413c38dfa6e994861b78bfad33ebf347cda2f3a8596427",
         "fetched_at": null
       }
     },
@@ -106,7 +106,7 @@
       "detail": "intents.near is itself a labelled reference account (assertion 522c8a621dbd41266cdf8a2d5020f4b27a608037e06ec4d3a50d2d9bb0681402, a4620b716e67ab13490ba33b67297ca168d93d4461c229e30dfa8a36b5396ebc, 17ef934e0652d8aa8cd4795e1b1f1f7259124fc1422601906c0272e5f9d71062, c55b108c502a3834f1acf605aed7284991956078fe345a72d5025a54e6b5c4a2)",
       "source": {
         "provider": "allowlist and label store",
-        "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",
+        "request_sha256": "f98e1f12498535262e413c38dfa6e994861b78bfad33ebf347cda2f3a8596427",
         "fetched_at": null
       }
     },
@@ -130,7 +130,8 @@
     "a4620b716e67ab13490ba33b67297ca168d93d4461c229e30dfa8a36b5396ebc",
     "17ef934e0652d8aa8cd4795e1b1f1f7259124fc1422601906c0272e5f9d71062",
     "c55b108c502a3834f1acf605aed7284991956078fe345a72d5025a54e6b5c4a2",
-    "481ee8c2385e2372ea3e49fe72eb662746583e143ab22705c7ee1c491a5bccdf"
+    "481ee8c2385e2372ea3e49fe72eb662746583e143ab22705c7ee1c491a5bccdf",
+    "f765d56fe74c17015b662d706bb1002527b4bff1f89df99837fe8f77162aa657"
   ],
   "observed": {
     "block_height": 222105553,

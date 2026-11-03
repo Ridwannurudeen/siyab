@@ -11,7 +11,7 @@ from unittest import mock
 
 from gate import rpc, rules
 from intel import __main__ as intel_main
-from intel import labels, seed
+from intel import labels, registries, seed
 
 RAW_DIR = seed.RAW_DIR
 ROOT = Path(__file__).resolve().parent.parent
@@ -102,8 +102,10 @@ class CommittedStoreTest(unittest.TestCase):
 
     def test_seeds_rebuild_the_committed_rows_offline(self):
         with mock.patch("urllib.request.urlopen", side_effect=no_network):
+            by_registry = registries.rows()
             rows = (seed.treasuries("replay") + seed.catalog("replay") + seed.infrastructure("replay")
-                    + seed.rhea("replay") + seed.sweat_hot("replay"))
+                    + seed.rhea("replay") + seed.sweat_hot("replay")
+                    + [row for name in registries.REGISTRY_ORDER for row in by_registry[name]])
         self.assertEqual([r["id"] for r in rows], [r["id"] for r in self.rows])
         self.assertEqual([labels.row_line(r) for r in rows], labels.STORE_PATH.read_text(encoding="utf-8").splitlines())
 

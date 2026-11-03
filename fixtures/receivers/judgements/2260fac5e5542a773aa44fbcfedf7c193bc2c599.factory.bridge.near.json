@@ -26,7 +26,7 @@
       "detail": "no denylist or incident label on intents.near or 2260fac5e5542a773aa44fbcfedf7c193bc2c599.factory.bridge.near",
       "source": {
         "provider": "label store",
-        "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",
+        "request_sha256": "f98e1f12498535262e413c38dfa6e994861b78bfad33ebf347cda2f3a8596427",
         "fetched_at": null
       }
     },
@@ -46,7 +46,7 @@
       "detail": "2260fac5e5542a773aa44fbcfedf7c193bc2c599.factory.bridge.near is a catalog_token in the label store",
       "source": {
         "provider": "label store",
-        "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",
+        "request_sha256": "f98e1f12498535262e413c38dfa6e994861b78bfad33ebf347cda2f3a8596427",
         "fetched_at": null
       }
     },
@@ -106,7 +106,7 @@
       "detail": "intents.near is itself a labelled reference account (assertion 522c8a621dbd41266cdf8a2d5020f4b27a608037e06ec4d3a50d2d9bb0681402, a4620b716e67ab13490ba33b67297ca168d93d4461c229e30dfa8a36b5396ebc, 17ef934e0652d8aa8cd4795e1b1f1f7259124fc1422601906c0272e5f9d71062, c55b108c502a3834f1acf605aed7284991956078fe345a72d5025a54e6b5c4a2)",
       "source": {
         "provider": "allowlist and label store",
-        "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",
+        "request_sha256": "f98e1f12498535262e413c38dfa6e994861b78bfad33ebf347cda2f3a8596427",
         "fetched_at": null
       }
     },
@@ -130,7 +130,9 @@
     "a4620b716e67ab13490ba33b67297ca168d93d4461c229e30dfa8a36b5396ebc",
     "17ef934e0652d8aa8cd4795e1b1f1f7259124fc1422601906c0272e5f9d71062",
     "c55b108c502a3834f1acf605aed7284991956078fe345a72d5025a54e6b5c4a2",
-    "e3643ebc9de9a66baeb2794bcbe1048bdd71814904e7d871df97240fe7b19e4d"
+    "e3643ebc9de9a66baeb2794bcbe1048bdd71814904e7d871df97240fe7b19e4d",
+    "1b3faf7e2c03b05ec2f79463fbe82729326e95450fc257247a428e01dc9e9e78",
+    "1aa371961ccdf130ec819a2fb4c6984f62ea961f6f1ea3da2a6b763b52feb23c"
   ],
   "observed": {
     "block_height": 222105553,
