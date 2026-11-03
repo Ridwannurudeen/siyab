@@ -1423,7 +1423,7 @@
         {
           "id": "lookalike",
           "status": "pass",
-          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+          "detail": "intents.near is itself a labelled reference account (assertion 522c8a621dbd41266cdf8a2d5020f4b27a608037e06ec4d3a50d2d9bb0681402, a4620b716e67ab13490ba33b67297ca168d93d4461c229e30dfa8a36b5396ebc, 17ef934e0652d8aa8cd4795e1b1f1f7259124fc1422601906c0272e5f9d71062, c55b108c502a3834f1acf605aed7284991956078fe345a72d5025a54e6b5c4a2)",
           "source": {
             "provider": "allowlist and label store",
             "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",
@@ -1563,7 +1563,7 @@
         {
           "id": "lookalike",
           "status": "pass",
-          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+          "detail": "intents.near is itself a labelled reference account (assertion 522c8a621dbd41266cdf8a2d5020f4b27a608037e06ec4d3a50d2d9bb0681402, a4620b716e67ab13490ba33b67297ca168d93d4461c229e30dfa8a36b5396ebc, 17ef934e0652d8aa8cd4795e1b1f1f7259124fc1422601906c0272e5f9d71062, c55b108c502a3834f1acf605aed7284991956078fe345a72d5025a54e6b5c4a2)",
           "source": {
             "provider": "allowlist and label store",
             "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",
@@ -1703,7 +1703,7 @@
         {
           "id": "lookalike",
           "status": "pass",
-          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+          "detail": "intents.near is itself a labelled reference account (assertion 522c8a621dbd41266cdf8a2d5020f4b27a608037e06ec4d3a50d2d9bb0681402, a4620b716e67ab13490ba33b67297ca168d93d4461c229e30dfa8a36b5396ebc, 17ef934e0652d8aa8cd4795e1b1f1f7259124fc1422601906c0272e5f9d71062, c55b108c502a3834f1acf605aed7284991956078fe345a72d5025a54e6b5c4a2)",
           "source": {
             "provider": "allowlist and label store",
             "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",
@@ -1843,7 +1843,7 @@
         {
           "id": "lookalike",
           "status": "pass",
-          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+          "detail": "intents.near is itself a labelled reference account (assertion 522c8a621dbd41266cdf8a2d5020f4b27a608037e06ec4d3a50d2d9bb0681402, a4620b716e67ab13490ba33b67297ca168d93d4461c229e30dfa8a36b5396ebc, 17ef934e0652d8aa8cd4795e1b1f1f7259124fc1422601906c0272e5f9d71062, c55b108c502a3834f1acf605aed7284991956078fe345a72d5025a54e6b5c4a2)",
           "source": {
             "provider": "allowlist and label store",
             "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",
@@ -2259,7 +2259,7 @@
         {
           "id": "lookalike",
           "status": "pass",
-          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+          "detail": "intents.near is itself a labelled reference account (assertion 522c8a621dbd41266cdf8a2d5020f4b27a608037e06ec4d3a50d2d9bb0681402, a4620b716e67ab13490ba33b67297ca168d93d4461c229e30dfa8a36b5396ebc, 17ef934e0652d8aa8cd4795e1b1f1f7259124fc1422601906c0272e5f9d71062, c55b108c502a3834f1acf605aed7284991956078fe345a72d5025a54e6b5c4a2)",
           "source": {
             "provider": "allowlist and label store",
             "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",
@@ -2363,7 +2363,7 @@
         {
           "id": "lookalike",
           "status": "pass",
-          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+          "detail": "zec.omft.near is itself a labelled reference account (assertion 38e8cd2adc1909e5c41e8358fa1313c729f68f4539b09c826430fab9cb6847fa, 2ab38db9712e6322db7ab2b714bf07c024ed17bb6a2b10bf0690d2f08dff4ded, 5d1508825a495b13088d67dedc3f53c8bf4f0676bd2ad22103c383ff29fef4d2, b5074f903cb6cdd1cb218810a37c27b701dda475457b6f0d52ede8c5bd09d403, da38379cf462153d06021fb513d5658dd277192230978f2295e826a61c2cdc90)",
           "source": {
             "provider": "allowlist and label store",
             "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",

@@ -308,6 +308,18 @@ class TierTwoTest(RulesCase):
                 self.stranger(name)
                 self.assertEqual(self.status(self.judge(request(name)), "lookalike"), "pass")
 
+    def test_a_labelled_reference_account_is_not_a_lookalike_of_another_reference(self):
+        self.store = Store(assertion("a" * 64, "token.example.near", "catalog_token", "symbol \"TKN\""),
+                           assertion("b" * 64, "xtoken.example.near", "catalog_token", "symbol \"XTKN\""))
+        self.stranger("xtoken.example.near")
+        judgement = self.judge(request("xtoken.example.near"))
+        self.assertEqual(self.status(judgement, "lookalike"), "pass")
+        self.assertEqual(self.detail(judgement, "lookalike"),
+                         f"xtoken.example.near is itself a labelled reference account (assertion {'b' * 64})")
+        self.stranger("ytoken.example.near")
+        self.assertEqual(self.status(self.judge(request("ytoken.example.near")), "lookalike"), "signal")
+        self.assertIsNone(rules.lookalike_detail("qtc.omft.near", "zec.omft.near"))
+
     def test_young_account_and_dust(self):
         self.stranger("fresh.testnet", age_ns=2 * DAY_NS, deposit=1e23)
         judgement = self.judge(request("fresh.testnet"))
@@ -989,8 +1001,13 @@ class PopulatedStoreTest(RulesCase):
                            and a.category in rules.REFERENCE_CATEGORIES and a.superseded_by is None})
         self.assertGreater(len(accounts), 100)
         pairs = [(a, b) for a in accounts for b in accounts
-                 if a < b and (rules.lookalike_detail(a, b) or rules.lookalike_detail(b, a))]
+                 if a < b and a.partition(".")[2] != b.partition(".")[2]
+                 and (rules.lookalike_detail(a, b) or rules.lookalike_detail(b, a))]
         self.assertEqual(pairs, [])
+        for account in accounts:
+            with self.subTest(account=account):
+                judgement = self.judge(request(account), {"allowlist": [], "caps": []})
+                self.assertEqual(self.status(judgement, "lookalike"), "pass")
 
     def test_omft_siblings_pass_and_their_imitations_are_caught(self):
         self.assertEqual(self.lookalike("zec.omft.near"), "pass")
