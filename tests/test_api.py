@@ -217,7 +217,7 @@ class HostedSiteTest(unittest.TestCase):
     def test_an_unknown_path_answers_the_html_404_and_an_api_miss_stays_json(self):
         page = (Path(self.site.name) / "404.html").read_bytes()
 
-        self.assertIn(b'href="index.html"', page)
+        self.assertIn(b'href="/index.html"', page)
         for path in ("/nonexistent", "/accounts/x", "/incidents", "/incidents/none-such.html", "/labels/x.html",
                      "/flows/missing.html", "/../README.md"):
             with self.subTest(path=path):
@@ -230,6 +230,18 @@ class HostedSiteTest(unittest.TestCase):
                 status, content_type, cache, body = get(self.server, path)
                 self.assertEqual((content_type, cache), (JSON_TYPE, "no-store"))
                 self.assertEqual((status, json.loads(body)), expected)
+
+    def test_a_miss_one_level_down_links_back_to_pages_that_answer_200(self):
+        status, content_type, _, body = get(self.server, "/incidents/nope.html")
+        self.assertEqual((status, content_type), (404, "text/html"))
+        links = LINK.findall(body.decode("utf-8"))
+        self.assertIn("/index.html", links)
+        for link in links:
+            with self.subTest(link=link):
+                self.assertTrue(link.startswith("/") and not link.startswith("//"))
+                status, content_type, _, page = get(self.server, link)
+                self.assertEqual((status, content_type), (200, "text/html"))
+                self.assertTrue(page.startswith(b"<!doctype html>"))
 
 
 if __name__ == "__main__":

@@ -17,7 +17,7 @@ transfer value, the subject's balance and issuer status at a block, then one car
 by depth), verify.html (a form that reads a registry record from https://test.rpc.fastnear.com in the
 browser, never the ShieldBot API, and shows it next to the evidence hash the reader pastes; its inputs
 show the vendor's committed record as examples) and 404.html (the page the API serves for a path that
-is neither a route nor a file; its links are relative to the site root). Every
+is neither a route nor a file at any depth, so its links are root absolute). Every
 page carries a robots noindex meta, which render --indexable leaves out, and the footer "Data: NearBlocks".
 
 Text from a source (a report's sentence, a token symbol, a quoted string in a label row) is shown
@@ -96,9 +96,10 @@ def quote_block(quote, sources):
             f'<br><span class="muted">quoted from [{esc(quote["source"])}]</span></blockquote>')
 
 
-def page(title, body, depth=0):
-    """A whole HTML page; depth is how many directories below the site root it sits."""
-    up = "../" * depth
+def page(title, body, depth=0, rooted=False):
+    """A whole HTML page; depth is how many directories below the site root it sits, and a rooted page
+    links root absolute because it is served at any path."""
+    up = "/" if rooted else "../" * depth
     nav = "".join(f'<a href="{up}{href}">{label}</a>' for href, label in (
         ("index.html", "Home"), ("feed.html", "Feed"), ("verify.html", "Verify")))
     return ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"
@@ -458,8 +459,8 @@ def verify_page():
 
 def not_found_page():
     body = ("<h1>Not found</h1><p>No page of this site and no route of the read only API answers this path.</p>"
-            '<p><a href="index.html">Back to the index</a></p>')
-    return page("Not found", body)
+            '<p><a href="/index.html">Back to the index</a></p>')
+    return page("Not found", body, rooted=True)
 
 
 def render(out_dir, store=None, incidents_dir=INCIDENTS_DIR, flows_dir=trace.FLOWS_DIR,

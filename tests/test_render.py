@@ -131,7 +131,10 @@ class RenderTest(unittest.TestCase):
                 if link.startswith("https://"):
                     continue
                 with self.subTest(page=name, link=link):
-                    target = ((self.out / name).parent / html.unescape(link)).resolve()
+                    # A root absolute href resolves against the site root, any other against the page's directory.
+                    rooted = link.startswith("/") and not link.startswith("//")
+                    base = self.out if rooted else (self.out / name).parent
+                    target = (base / html.unescape(link[1:] if rooted else link)).resolve()
                     self.assertIn(root, target.parents)
                     self.assertTrue(target.is_file())
 
