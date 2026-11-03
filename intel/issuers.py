@@ -1,8 +1,4 @@
-"""Issuer blacklist status rows built from recorded NEAR view calls.
-
-Transaction detail response fixtures are reduced at record time: every signature field is dropped,
-and no other response field is changed.
-"""
+"""Issuer blacklist status rows built from recorded NEAR view calls."""
 
 import argparse
 import base64
