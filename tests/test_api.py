@@ -305,6 +305,55 @@ class HostedSiteTest(unittest.TestCase):
         self.assertEqual(heights, list(range(1011, 1061)))
         self.assertEqual([int(height) for height in re.findall(r"at block (\d+)</p>", page)], heights)
         self.assertNotIn("<p>event 1010</p>", page)
+        self.assertNotIn("could not be read", page)
+
+    def test_feed_page_skips_and_counts_a_torn_a_non_json_and_a_keyless_event_file(self):
+        good = json.dumps({"signal": "new receiver", "observed": {"block_height": 1001}, "detail": "readable event",
+                           "receipt_id": "receipt", "tx_hash": "transaction"})
+        cases = {"torn": good[:30], "not json": "not json", "missing keys": json.dumps({"signal": "new receiver"})}
+        for case, text in cases.items():
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as tmp:
+                write_follow_state(Path(tmp), [good, text])
+                with mock.patch.dict(os.environ, {"FEED_STATE_DIR": tmp}):
+                    status, content_type, _, body = get(self.server, "/feed.html")
+                page = body.decode("utf-8")
+                self.assertEqual((status, content_type), (200, "text/html"))
+                self.assertIn("following since 2026-11-03T12:00:00Z", page)
+                self.assertIn("<p>1 event in total.</p>\n<p>1 event file could not be read.</p>", page)
+                self.assertEqual(page.count('<div class="card">'), 1)
+                self.assertIn("readable event", page)
+                self.assertNotIn(hashlib.sha256(text.encode("utf-8")).hexdigest(), page)
+                self.assertNotIn(html.escape(text), page)
+
+    def test_feed_page_and_feed_route_answer_over_every_kind_of_bad_event_file(self):
+        good = json.dumps({"signal": "labelled_account_large_transfer", "observed": {"block_height": 1002},
+                           "detail": "transfer event", "receipt_id": "receipt", "transaction_id": "transaction",
+                           "usd_amount": "1500", "direction": "outbound", "other_account_id": "other.near",
+                           "asset_id": "nep141:wrap.near", "block_height": 1002})
+        bad = ["", '{"signal": "new rec', "not json", "[1, 2]", json.dumps({"signal": "new receiver"}),
+               json.dumps({"observed": "1001"}), json.dumps({"observed": {"block_height": "1001"}})]
+        with tempfile.TemporaryDirectory() as tmp:
+            write_follow_state(Path(tmp), [good] + bad)
+            with mock.patch.dict(os.environ, {"FEED_STATE_DIR": tmp}):
+                status, content_type, _, body = get(self.server, "/feed.html")
+                route_status, _, _, route_body = get(self.server, "/feed")
+        page = body.decode("utf-8")
+        self.assertEqual((status, content_type), (200, "text/html"))
+        self.assertIn("<p>1 event in total.</p>\n<p>7 event files could not be read.</p>", page)
+        self.assertIn("transfer event", page)
+        self.assertIn("transaction unknown", page)
+        self.assertEqual(route_status, 200)
+        self.assertEqual([event["detail"] for event in json.loads(route_body)["events"]], ["transfer event"])
+
+    def test_feed_page_with_only_unreadable_event_files_does_not_say_no_signal_fired(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            write_follow_state(Path(tmp), ["not json"])
+            with mock.patch.dict(os.environ, {"FEED_STATE_DIR": tmp}):
+                status, _, _, body = get(self.server, "/feed.html")
+        page = body.decode("utf-8")
+        self.assertEqual(status, 200)
+        self.assertIn("<p>0 events in total.</p>\n<p>1 event file could not be read.</p>", page)
+        self.assertNotIn("No signal fired", page)
 
     def test_the_incident_json_route_still_answers(self):
         status, content_type, _, body = get(self.server, "/incidents/rhea")

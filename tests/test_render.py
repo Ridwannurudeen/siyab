@@ -257,6 +257,32 @@ class RenderTest(unittest.TestCase):
                       render.feed_page(state=state, event_rows=rows, total=7))
         self.assertNotIn("in total", render.feed_page(state=state, event_rows=rows))
 
+    def test_an_event_card_renders_each_field_its_document_lacks_as_unknown(self):
+        state = dict(json.loads(feed.STATE_PATH.read_text(encoding="utf-8")), mode="follow",
+                     started_at="2026-11-03T12:00:00Z", lag_blocks=0)
+        transfer = {"signal": "labelled_account_large_transfer", "observed": {"block_height": 77},
+                    "detail": "transfer event", "receipt_id": "receipt", "transaction_id": "transaction",
+                    "usd_amount": "1500", "direction": "outbound", "subject": "subject.near",
+                    "other_account_id": "other.near", "asset_id": "nep141:wrap.near", "block_height": 77}
+        page = render.feed_page(state=state, event_rows=[(transfer, "event-77"), ({"tx_hash": None}, "event-empty")],
+                                total=2)
+        self.assertIn("<strong>labelled_account_large_transfer</strong> at block 77</p><p>transfer event</p>"
+                      '<p class="mono">receipt receipt<br>transaction unknown<br>evidence event-77</p>', page)
+        self.assertIn("<strong>unknown</strong> at block unknown</p><p>unknown</p>"
+                      '<p class="mono">receipt unknown<br>transaction unknown<br>evidence event-empty</p>', page)
+
+    def test_the_static_feed_page_skips_and_counts_an_unreadable_event_file(self):
+        state = json.loads(feed.STATE_PATH.read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as tmp:
+            path, events_dir = Path(tmp) / "state.json", Path(tmp) / "events"
+            path.write_text(json.dumps(state), encoding="utf-8")
+            events_dir.mkdir()
+            (events_dir / "torn.json").write_text('{"signal": "new rec', encoding="utf-8")
+            page = render.feed_page(path, events_dir)
+        self.assertIn("<p>1 event file could not be read.</p>", page)
+        self.assertNotIn("torn", page)
+        self.assertNotIn("No signal fired", page)
+
     def test_the_verify_page_inputs_carry_placeholders_from_committed_records(self):
         record = json.loads((ROOT / "fixtures" / "registry" / "testnet-vendor.json").read_text(encoding="utf-8"))
         evidence_path = ROOT / "fixtures" / "evidence" / f"{record['evidence_hash']}.json"
