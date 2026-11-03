@@ -5,6 +5,7 @@ import io
 import json
 import tempfile
 import unittest
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest import mock
 
@@ -307,6 +308,32 @@ class FollowModeTest(unittest.TestCase):
                 self.assertEqual(json.loads((root / "state.json").read_text(encoding="utf-8")), state)
                 self.assertFalse((root / "events").exists())
                 self.assertFalse((root / "event-blocks").exists())
+
+    def test_follow_counts_requests_on_the_utc_date_they_are_made_across_midnight(self):
+        midnight = datetime(2026, 11, 4, tzinfo=UTC).timestamp()
+        now = [midnight - 1.0]
+        made = []
+
+        class Timed(FakeFetcher):
+            def get(self, path):
+                made.append(now[0])
+                now[0] += 0.3
+                return super().get(path)
+
+        def sleep(seconds):
+            now[0] += seconds
+
+        fake = Timed(self.blocks(4), 4)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state, walked = feed.follow(start=1, fetcher=fake.inner, state_path=root / "state.json",
+                                        events_dir=root / "events", event_blocks_dir=root / "event-blocks",
+                                        max_blocks=4, sleep=sleep, clock=lambda: now[0])
+        after = [moment for moment in made if moment >= midnight]
+        self.assertEqual(walked, 4)
+        self.assertEqual(state["request_day"], "2026-11-04")
+        self.assertEqual(state["requests"], len(after))
+        self.assertLess(len(after), len(made))
 
     def test_follow_writes_the_event_block_and_points_the_event_source_at_it(self):
         raw = raw_block(9, [])

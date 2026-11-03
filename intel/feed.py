@@ -33,8 +33,9 @@ height and time, the last height and time, the block count, the skipped heights,
 accounts with their funding deposit and time, and the event count per signal; a follower adds
 mode ("follow"), started_at (when the first follow run began), lag_blocks (the final height at the
 last read minus the last height), requests (the neardata requests made on request_day) and
-request_day (the UTC date the requests count is for; a new date resets the count). A block at or
-below the last height is never counted twice, so a run that stops can be started again.
+request_day (the UTC date the requests count is for, checked before every request; a new date
+resets the count). A block at or below the last height is never counted twice, so a run that stops
+can be started again.
 
 The signals, each written as an evidence document under <state dir>/events/<sha256>.json:
 
@@ -353,6 +354,9 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
         while next_height <= final_height and not stopped() and (max_blocks is None or walked < max_blocks):
             if last_request is not None:
                 sleep(max(0, FOLLOW_INTERVAL_S - (clock() - last_request)))
+            request_day = datetime.fromtimestamp(clock(), UTC).strftime("%Y-%m-%d")
+            if state["request_day"] != request_day:
+                state["request_day"], state["requests"] = request_day, 0
             requests_before = fetcher.requests
             try:
                 raw = fetcher.get(f"/v0/block/{next_height}")
