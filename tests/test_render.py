@@ -223,6 +223,13 @@ class RenderTest(unittest.TestCase):
         self.assertNotIn("not running", page)
         for line in feed.stats_lines(following):
             self.assertIn(f"<li>{html.escape(line)}</li>", page)
+        event = {"signal": "new receiver", "observed": {"block_height": 123}, "detail": "follow event",
+                 "receipt_id": "receipt", "tx_hash": "transaction"}
+        supplied = render.feed_page(state=following, event_rows=[(event, "event-id")])
+        for line in feed.stats_lines(following):
+            self.assertIn(f"<li>{html.escape(line)}</li>", supplied)
+        self.assertIn("follow event", supplied)
+        self.assertIn("at block 123", supplied)
 
     def test_the_verify_page_inputs_carry_placeholders_from_committed_records(self):
         record = json.loads((ROOT / "fixtures" / "registry" / "testnet-vendor.json").read_text(encoding="utf-8"))

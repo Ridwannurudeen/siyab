@@ -1,6 +1,7 @@
 import html
 import http.client
 import json
+import os
 import re
 import tempfile
 import threading
@@ -9,7 +10,7 @@ import urllib.parse
 from pathlib import Path
 from unittest import mock
 
-from intel import api, issuers, labels, render
+from intel import api, feed, issuers, labels, render
 
 ROOT = Path(__file__).resolve().parent.parent
 EVIDENCE = min((ROOT / "fixtures" / "evidence").glob("*.json"))
@@ -235,6 +236,43 @@ class HostedSiteTest(unittest.TestCase):
                 status, content_type, _, body = get(self.server, "/" + entry["url"])
                 self.assertEqual((status, content_type), (200, "text/html"))
                 self.assertTrue(body.startswith(b"<!doctype html>"))
+
+    def test_feed_page_uses_the_follow_state_and_events_from_feed_state_dir(self):
+        state = json.loads(feed.STATE_PATH.read_text(encoding="utf-8"))
+        state.update(mode="follow", started_at="2026-11-03T12:00:00Z", last_height=987,
+                     last_time="2026-11-03T12:05:00Z", lag_blocks=4)
+        event = {"signal": "new receiver", "observed": {"block_height": 987}, "detail": "recorded event",
+                 "receipt_id": "receipt", "tx_hash": "transaction"}
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            (state_dir / "state.json").write_text(json.dumps(state), encoding="utf-8")
+            events_dir = state_dir / "events"
+            events_dir.mkdir()
+            (events_dir / ("ab" * 32 + ".json")).write_text(json.dumps(event), encoding="utf-8")
+            with mock.patch.dict(os.environ, {"FEED_STATE_DIR": str(state_dir)}):
+                status, content_type, cache, body = get(self.server, "/feed.html")
+        page = body.decode("utf-8")
+        self.assertEqual((status, content_type, cache), (200, "text/html", "no-store"))
+        self.assertIn("following since 2026-11-03T12:00:00Z", page)
+        self.assertIn("last block 987 at 2026-11-03T12:05:00Z", page)
+        self.assertIn("lag 4 blocks", page)
+        self.assertIn("recorded event", page)
+        self.assertIn('<meta name="robots" content="noindex">', page)
+        self.assertIn('rel="stylesheet" href="/style.css"', page)
+
+    def test_feed_page_falls_back_to_static_without_a_follow_state(self):
+        static_page = (Path(self.site.name) / "feed.html").read_bytes()
+        recorded_state = json.dumps(json.loads(feed.STATE_PATH.read_text(encoding="utf-8")))
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(get(self.server, "/feed.html")[3], static_page)
+        for state_text in (None, "not json", recorded_state):
+            with self.subTest(state=state_text), tempfile.TemporaryDirectory() as tmp:
+                if state_text is not None:
+                    (Path(tmp) / "state.json").write_text(state_text, encoding="utf-8")
+                with mock.patch.dict(os.environ, {"FEED_STATE_DIR": tmp}):
+                    status, content_type, cache, body = get(self.server, "/feed.html")
+                self.assertEqual((status, content_type, cache, body),
+                                 (200, "text/html", "no-store", static_page))
 
     def test_the_incident_json_route_still_answers(self):
         status, content_type, _, body = get(self.server, "/incidents/rhea")

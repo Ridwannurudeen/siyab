@@ -234,20 +234,22 @@ def search_index(store, pages, entities, entity_paths):
                           "url": entity_paths[entity["id"]]} for entity in entities]}
 
 
-def feed_page(state_path=feed.STATE_PATH, events_dir=feed.EVENTS_DIR):
-    if not Path(state_path).is_file():
-        return page("Feed", "<h1>Feed</h1><p>The feed has not run.</p>")
-    state = json.loads(Path(state_path).read_text(encoding="utf-8"))
+def feed_page(state_path=feed.STATE_PATH, events_dir=feed.EVENTS_DIR, *, state=None, event_rows=None):
+    if state is None:
+        if not Path(state_path).is_file():
+            return page("Feed", "<h1>Feed</h1><p>The feed has not run.</p>")
+        state = json.loads(Path(state_path).read_text(encoding="utf-8"))
     window = "" if state.get("mode") == "follow" else (
         f"<p>Recorded window: blocks {state['start_height']} to {state['last_height']}, read on "
         f"{esc(state['start_time'][:10])} UTC. Live following is not running yet.</p>\n")
     stats = "".join(f"<li>{esc(line)}</li>" for line in feed.stats_lines(state))
-    events = sorted((json.loads(p.read_bytes()), p.stem) for p in Path(events_dir).glob("*.json"))
+    if event_rows is None:
+        event_rows = [(json.loads(p.read_bytes()), p.stem) for p in Path(events_dir).glob("*.json")]
     cards = "".join(
         f'<div class="card"><p><strong>{esc(e["signal"])}</strong> at block {e["observed"]["block_height"]}</p>'
         f'<p>{esc(e["detail"])}</p><p class="mono">receipt {esc(e["receipt_id"])}<br>transaction {esc(e["tx_hash"])}'
         f'<br>evidence {esc(stem)}</p></div>'
-        for e, stem in sorted(events, key=lambda item: (item[0]["observed"]["block_height"], item[1])))
+        for e, stem in sorted(event_rows, key=lambda item: (item[0]["observed"]["block_height"], item[1])))
     body = (f"<h1>Feed over finalized mainnet blocks</h1>\n{window}<ul>{stats}</ul>\n<h2>Events</h2>\n"
             + (cards or "<p>No signal fired over the recorded blocks.</p>")
             + "\n<p class=\"muted\">The signals: " + ", ".join(feed.SIGNALS) + ".</p>")
