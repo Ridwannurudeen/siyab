@@ -401,6 +401,31 @@ class FollowModeTest(unittest.TestCase):
         self.assertEqual(snapshot, state)
         self.assertEqual(snapshot["mode"], "follow")
 
+    def test_the_state_write_replaces_the_file_whole_and_leaves_no_temporary_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "state.json"
+            feed._write_json(path, {"blocks": 1}, indent=2)
+            feed._write_json(path, {"blocks": 2}, indent=2)
+            self.assertEqual([p.name for p in Path(tmp).iterdir()], ["state.json"])
+            self.assertEqual(json.loads(path.read_text(encoding="utf-8")), {"blocks": 2})
+            write_bytes = Path.write_bytes
+
+            def torn(self, data):
+                write_bytes(self, data[:5])
+                raise OSError("disk full")
+
+            with mock.patch.object(Path, "write_bytes", torn), self.assertRaises(OSError):
+                feed._write_json(path, {"blocks": 3}, indent=2)
+            self.assertEqual(json.loads(path.read_text(encoding="utf-8")), {"blocks": 2})
+
+    def test_the_api_answers_503_while_the_state_file_does_not_parse(self):
+        import os
+
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "state.json").write_text('{"blocks": 1', encoding="utf-8")
+            with mock.patch.dict(os.environ, {"FEED_STATE_DIR": tmp}):
+                self.assertEqual(api.route("/feed", labels.load()), (503, {"error": "feed state unreadable"}))
+
 
 if __name__ == "__main__":
     unittest.main()

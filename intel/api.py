@@ -65,12 +65,15 @@ def _evidence(evidence_hash):
 
 def _feed():
     """The state file without its fresh accounts and the last FEED_LIMIT events ordered by observed
-    block height, then hash."""
+    block height, then hash; a 503 while the state file does not parse."""
     import os
 
     state_dir = Path(os.environ.get("FEED_STATE_DIR", FEED_STATE.parent))
     state_path, events_dir = state_dir / "state.json", state_dir / "events"
-    stats = _read_json(state_path) if state_path.is_file() else None
+    try:
+        stats = _read_json(state_path) if state_path.is_file() else None
+    except ValueError:
+        return 503, {"error": "feed state unreadable"}
     if stats is not None:
         stats.pop("fresh_accounts", None)
     events = []

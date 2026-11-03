@@ -141,7 +141,9 @@ def reduce_block(block):
 def _write_json(path, value, indent=None):
     path.parent.mkdir(parents=True, exist_ok=True)
     text = json.dumps(value, indent=indent, ensure_ascii=False, separators=None if indent else (",", ":"))
-    path.write_bytes((text + "\n").encode("utf-8"))
+    temporary = path.with_name(path.name + ".tmp")
+    temporary.write_bytes((text + "\n").encode("utf-8"))
+    os.replace(temporary, path)
 
 
 def new_state():
