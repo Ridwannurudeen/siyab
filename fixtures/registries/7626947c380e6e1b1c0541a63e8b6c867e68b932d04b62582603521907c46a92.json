@@ -1,0 +1,30 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "account_id": "okx.near",
+    "pools": [],
+    "tokens": [
+      {
+        "contract_id": "token.sweat",
+        "last_update_block_height": null,
+        "balance": "880000000000000000"
+      },
+      {
+        "contract_id": "t.tkn.near",
+        "last_update_block_height": null,
+        "balance": "400000000000000000"
+      }
+    ],
+    "nfts": [],
+    "state": {
+      "balance": "39958035075000000000000",
+      "locked": "0",
+      "storage_bytes": 264
+    }
+  },
+  "url": "https://api.fastnear.com/v1/account/okx.near/full",
+  "fetched_at": "2026-11-03T10:59:33Z"
+}

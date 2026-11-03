@@ -1,0 +1,413 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "token_id": "usdt.tether-token.near",
+    "accounts": [
+      {
+        "account_id": "tether-treasury.near",
+        "balance": "489044182148150"
+      },
+      {
+        "account_id": "binancecold3.near",
+        "balance": "8798710719611"
+      },
+      {
+        "account_id": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+        "balance": "3291946547460"
+      },
+      {
+        "account_id": "965c8b57b7f36fe9a40ce6188d444ca78708e4d83843b108f7f53d0fe5332076",
+        "balance": "2920803217764"
+      },
+      {
+        "account_id": "06a957fcc56b3e9187237bf0c53c0c3e98b4a4d56c96a4fde695898bfd97fcd0",
+        "balance": "2000003000000"
+      },
+      {
+        "account_id": "contract.main.burrow.near",
+        "balance": "1952786713436"
+      },
+      {
+        "account_id": "7b865db190b966fe6ea30d0e7cc44ce42c4ea4f159a4b0b937122f166fc3ae28",
+        "balance": "1560826500000"
+      },
+      {
+        "account_id": "423df0a6640e9467769c55a573f15b9ee999dc8970048959c72890abf5cc3a8e",
+        "balance": "943898344624"
+      },
+      {
+        "account_id": "8cc2cf0026d1b402e5655910844e2b4828baf7d2ef3eb206d3a71782d60a75c2",
+        "balance": "864784324335"
+      },
+      {
+        "account_id": "nfendowment02.near",
+        "balance": "614443390000"
+      },
+      {
+        "account_id": "v2.ref-finance.near",
+        "balance": "601972554695"
+      },
+      {
+        "account_id": "f9dee2d117188ca70fb97355a3f7abb1bdc830853c40f707a82f739658a9c0d0",
+        "balance": "584012300000"
+      },
+      {
+        "account_id": "tm10.near",
+        "balance": "554340189375"
+      },
+      {
+        "account_id": "amecs.near",
+        "balance": "547349913718"
+      },
+      {
+        "account_id": "intents.near",
+        "balance": "527587744257"
+      },
+      {
+        "account_id": "403c128749a4cec73405adff535426c783ee65b1a2e4eac4965d0ae81ce51413",
+        "balance": "446237485168"
+      },
+      {
+        "account_id": "b3af2d70543432cb43f835770dceffcd7cb67888f07f7177168c47ca226476d3",
+        "balance": "424673777173"
+      },
+      {
+        "account_id": "gitee.near",
+        "balance": "338239105155"
+      },
+      {
+        "account_id": "ef81fcec185d066b431b1e4f6c23064470a9fae99f013f85042e2465e4db1f40",
+        "balance": "291740400000"
+      },
+      {
+        "account_id": "5755e2586c8b0433049a1140315396d83a895103a45d32f97001454e95a20b59",
+        "balance": "288364990343"
+      },
+      {
+        "account_id": "lockyerkim.near",
+        "balance": "262671275481"
+      },
+      {
+        "account_id": "fe83cd4eb41cc6ec6665047b4edf97559011b5f943956329eb92484335302eb8",
+        "balance": "246718767400"
+      },
+      {
+        "account_id": "8051c4519518045154ff08eee2cf607aed5748e90c8bdde166f790b9366fb2f5",
+        "balance": "234953000000"
+      },
+      {
+        "account_id": "fgl.multisignature.near",
+        "balance": "232165092177"
+      },
+      {
+        "account_id": "0d584a4cbbfd9a4878d816512894e65918e54fae13df39a6f520fc90caea2fb0",
+        "balance": "204941803150"
+      },
+      {
+        "account_id": "dc466ca8a78f4e550d91f47bb24c5aa4d0d239cefbc889bbb934d15518eb6242",
+        "balance": "186931390000"
+      },
+      {
+        "account_id": "clvtrading.multisignature.near",
+        "balance": "179887393209"
+      },
+      {
+        "account_id": "6266b75c0371183865d11c3bd3d23aefef6f5897af682396cc7d2cfd892841d4",
+        "balance": "167007350619"
+      },
+      {
+        "account_id": "fd9c1ebaa6ece384adcd2bb45ebb9347b325c785949a68f50b56302938202ce6",
+        "balance": "151825000000"
+      },
+      {
+        "account_id": "25374ae84376e5584b31fbf8114b72aabcc5667a46a8058b4e681269cebe97c0",
+        "balance": "151124248844"
+      },
+      {
+        "account_id": "cuziasd.near",
+        "balance": "150120000000"
+      },
+      {
+        "account_id": "f9a18c86fb0082baa205961e7e2786e1c2b8ffc7b7b6e8590213aad268c35a2a",
+        "balance": "132686927065"
+      },
+      {
+        "account_id": "mpc-multichain.near",
+        "balance": "124960135509"
+      },
+      {
+        "account_id": "a9406475d7bcbe197aa1abe83d01567e9b631c934a61605bc3f839df47e8268f",
+        "balance": "101563473105"
+      },
+      {
+        "account_id": "0ad4bad37bee1ddbbfb997d9d52696555c8534225feeb034e26d5d42256838fc",
+        "balance": "100799383735"
+      },
+      {
+        "account_id": "p2edoc.near",
+        "balance": "100000000000"
+      },
+      {
+        "account_id": "newhomevip.near",
+        "balance": "93900000000"
+      },
+      {
+        "account_id": "a79528330f66a9e9bda7163522d74ee0ec0ed9b7c8b184f715b11d7d669bd894",
+        "balance": "92970345442"
+      },
+      {
+        "account_id": "31505869f20cf0a8911721acee59b5923b4a529a7ed6a39dd2a4bd9d53e807b4",
+        "balance": "92513281865"
+      },
+      {
+        "account_id": "352b51ad4730de1999d040825cbcc08910aa0b94cec421772012357b61b3c0b3",
+        "balance": "84639507618"
+      },
+      {
+        "account_id": "1486b5c249edc74ad518810dfeded4d38c6a53e8853406496b5547ae993c5bfb",
+        "balance": "80222444343"
+      },
+      {
+        "account_id": "fba3588033623711cdcdb57e0ed70a9d1cec2652e9ff3081ef7033d87dacc33f",
+        "balance": "79931728928"
+      },
+      {
+        "account_id": "1413b786783bec26701479aec2087e130b08480aa72e4b53b9cf0601d5a7aef4",
+        "balance": "77810770000"
+      },
+      {
+        "account_id": "f69d33a076ea5b8426697747ba879451871d2f94e11e088da651fc1a04b1ba71",
+        "balance": "69437804718"
+      },
+      {
+        "account_id": "tm10-hot.near",
+        "balance": "63220989861"
+      },
+      {
+        "account_id": "5cac7398901c9dd831aa2c6bb108ebf761e117a69f7182ecb839594fccb3c6dd",
+        "balance": "61709400000"
+      },
+      {
+        "account_id": "7bc00163b844feb9b395a56e0fc65e53d1544fcb005da07bf29cc93a997b11dc",
+        "balance": "60413600228"
+      },
+      {
+        "account_id": "e2e96e51c0d71a939faeab1712f91722c88a43024cd5f52e64ebd56511eed8d5",
+        "balance": "59947246936"
+      },
+      {
+        "account_id": "422c9fc87a6474b723f2945cb65a09ce8946113f56578796a6996c971c6ae444",
+        "balance": "59783547661"
+      },
+      {
+        "account_id": "luciotato.near",
+        "balance": "54792531746"
+      },
+      {
+        "account_id": "terra1lgdpa7xl7n5k9wg65chldpkc06j2p5kg2cgf8w",
+        "balance": "53114923568"
+      },
+      {
+        "account_id": "139ddae9fa6da42339138d54e78abb49a491071614f31e2520213c7099e12555",
+        "balance": "52585917749"
+      },
+      {
+        "account_id": "ec288f41ae6949c8a0979ca437c2986c",
+        "balance": "52507268164"
+      },
+      {
+        "account_id": "lulu_la_crapule.near",
+        "balance": "52013213853"
+      },
+      {
+        "account_id": "1018a0eb694fcbbc3503426a8425e59e6b679a08f86abd71b711d1efd05085ba",
+        "balance": "51143800000"
+      },
+      {
+        "account_id": "0x67d1e3bef772d1546045769e8bc5c34e11300722",
+        "balance": "50634351944"
+      },
+      {
+        "account_id": "olpl.near",
+        "balance": "50577820644"
+      },
+      {
+        "account_id": "71374fbd8093de2bb3fab609011942f66e04ea7c80dc2744f310ca40c5ef2bda",
+        "balance": "50192846013"
+      },
+      {
+        "account_id": "971a059c4fa8859d2b154eb1f7b542f1fbc33b8d11dee1d49bf0de2966a722ed",
+        "balance": "47000000000"
+      },
+      {
+        "account_id": "contract.dollaaa.near",
+        "balance": "46455587422"
+      },
+      {
+        "account_id": "2c2aa0cd20c2b3d3850037ad485773ccc04fe4c7ac9b4cae520784eb5d7ba346",
+        "balance": "45999500000"
+      },
+      {
+        "account_id": "0x2013233e780fdda0c46a406fff47f9b54ac4f0df",
+        "balance": "45586956398"
+      },
+      {
+        "account_id": "lady_luck.near",
+        "balance": "45216020039"
+      },
+      {
+        "account_id": "huyenanh.near",
+        "balance": "43738524938"
+      },
+      {
+        "account_id": "0x4ad0aaaee18a66b12caff45df515c0047a8dac0c",
+        "balance": "43481000000"
+      },
+      {
+        "account_id": "d6b77389d5d0a14f5516dc022a0c7fbf39109af066c8b22dca2ce027efed47c3",
+        "balance": "42278413828"
+      },
+      {
+        "account_id": "raystinger.near",
+        "balance": "39692988800"
+      },
+      {
+        "account_id": "c1392ae149af329e4d382d77b384b55d34f352ba3b0ccf4f49f4620e1cf44a02",
+        "balance": "39096881680"
+      },
+      {
+        "account_id": "fakerman.crowdforces.near",
+        "balance": "36320002426"
+      },
+      {
+        "account_id": "6a73041169b6a64334fb5f96003264060d5c2532ca5023ceac49e28fd9c809b9",
+        "balance": "36120347452"
+      },
+      {
+        "account_id": "7933d2265644780d67c8cec78c0ac09e174b4f67f6a3d306d4016b3702a2f928",
+        "balance": "35199200005"
+      },
+      {
+        "account_id": "aeraksin.tg",
+        "balance": "32333304401"
+      },
+      {
+        "account_id": "494649",
+        "balance": "30001000000"
+      },
+      {
+        "account_id": "e1c9a0b20b3176c73c6daf6211a06ea28a2809a830cdfe7802b1a8ea091d2639",
+        "balance": "30000000000"
+      },
+      {
+        "account_id": "13027112297",
+        "balance": "29999500000"
+      },
+      {
+        "account_id": "e292f41cccbf8500ccc64e9a767333d73b0e7360abba6c9008f280f9b3995982",
+        "balance": "28239754323"
+      },
+      {
+        "account_id": "hanami.near",
+        "balance": "27425512704"
+      },
+      {
+        "account_id": "asset-manager.orderly-network.near",
+        "balance": "27337685187"
+      },
+      {
+        "account_id": "coldy.near",
+        "balance": "25005069574"
+      },
+      {
+        "account_id": "6206dd6fdb1e8b2bd0ca752c4cd024c59f7d3b8559109a731ac4d277c43f4b75",
+        "balance": "23999800000"
+      },
+      {
+        "account_id": "83530ac9ed5d26d0d3bb0f89226d4c44877b4642265bcb250d36c01d0a56b94c",
+        "balance": "23934889006"
+      },
+      {
+        "account_id": "terra1frh79vmtur5fmrghz6gfjvfhpa3u2c0uemv4af",
+        "balance": "22962537062"
+      },
+      {
+        "account_id": "yuyan.near",
+        "balance": "21907543706"
+      },
+      {
+        "account_id": "18d9fdecd7fe3e7228ab4190c5db2464ac15ed6c061f30991075c2cafd8d807a",
+        "balance": "21650009549"
+      },
+      {
+        "account_id": "10b659805d127087c4dab3a31de9627d5a4790e0e9192f7b1339da08b7403250",
+        "balance": "21263515830"
+      },
+      {
+        "account_id": "bd60b42f28163077e0ec0a52f8c8a843e40bf904627c299161f20bac2373c3d4",
+        "balance": "20761800000"
+      },
+      {
+        "account_id": "personal-ft.near",
+        "balance": "20443785195"
+      },
+      {
+        "account_id": "trc20",
+        "balance": "20041844162"
+      },
+      {
+        "account_id": "namnear2023.near",
+        "balance": "20000411537"
+      },
+      {
+        "account_id": "ef144b6dc8b802942b423a7f67b67ca852f7359f9d4d38c1793379fc6c56f0c6",
+        "balance": "19999000000"
+      },
+      {
+        "account_id": "7d4b0696153d0843651bc181eccff28fa1409ec89b421779f98f3a50b9492756",
+        "balance": "19991800000"
+      },
+      {
+        "account_id": "lele.near",
+        "balance": "19899874346"
+      },
+      {
+        "account_id": "5af16cf751e3f45e733d25cde210c54b8cb369c05151fa80e13cb83c5a96be8a",
+        "balance": "19158265131"
+      },
+      {
+        "account_id": "c409f94145ac6f8b2a8e916cc8218d800b6a438c21e640ab6774c16a7a7e64f3",
+        "balance": "19129318323"
+      },
+      {
+        "account_id": "18000",
+        "balance": "17999500000"
+      },
+      {
+        "account_id": "c634fdc524486bf710400903d0bde433c515070147556966b0fec8e0a14b2b96",
+        "balance": "0"
+      },
+      {
+        "account_id": "7e840ba08dd9b60a3ffa8c83e30f4ed68290ba31933590e5cbb72f3ee397b774",
+        "balance": "0"
+      },
+      {
+        "account_id": "5a8ecdf01d471024594fa67a221f6e2ae824548068a47456dcc46d7c18742f7d",
+        "balance": "0"
+      },
+      {
+        "account_id": "1b3149cee46cfd620f49d934a30d32bcd480ab60750fcbf00511508215bb3f1a",
+        "balance": "0"
+      },
+      {
+        "account_id": "04dd41c81d2476809d7e2a1617dacfed2e43e468787e71958b82e94c4799cfbc",
+        "balance": "0"
+      }
+    ]
+  },
+  "url": "https://api.fastnear.com/v1/ft/usdt.tether-token.near/top",
+  "fetched_at": "2026-11-03T10:58:15Z"
+}

@@ -1,0 +1,35 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "account_id": "okex.near",
+    "pools": [],
+    "tokens": [
+      {
+        "contract_id": "neat.nrc-20.near",
+        "last_update_block_height": null,
+        "balance": "0"
+      },
+      {
+        "contract_id": "wrap.near",
+        "last_update_block_height": 134379825,
+        "balance": "807248642606118395904782"
+      },
+      {
+        "contract_id": "rin.tkn.near",
+        "last_update_block_height": 134943229,
+        "balance": "0"
+      }
+    ],
+    "nfts": [],
+    "state": {
+      "balance": "17742190274499306150579",
+      "locked": "0",
+      "storage_bytes": 1751
+    }
+  },
+  "url": "https://api.fastnear.com/v1/account/okex.near/full",
+  "fetched_at": "2026-11-03T10:59:35Z"
+}

@@ -1,0 +1,35 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "account_id": "coinbase.near",
+    "pools": [
+      {
+        "pool_id": "astro-stakers.poolv1.near",
+        "last_update_block_height": null
+      }
+    ],
+    "tokens": [
+      {
+        "contract_id": "token.sweat",
+        "last_update_block_height": null,
+        "balance": "1100000000000000000"
+      }
+    ],
+    "nfts": [
+      {
+        "contract_id": "event-near.near",
+        "last_update_block_height": 172809342
+      }
+    ],
+    "state": {
+      "balance": "6969014976906444500000000",
+      "locked": "0",
+      "storage_bytes": 1048
+    }
+  },
+  "url": "https://api.fastnear.com/v1/account/coinbase.near/full",
+  "fetched_at": "2026-11-03T10:59:38Z"
+}

@@ -1,4 +1,6 @@
 import base64
+import contextlib
+import io
 import json
 import tempfile
 import unittest
@@ -115,6 +117,83 @@ class RegistriesTests(unittest.TestCase):
                     self.assertRaises(rpc.FixtureMiss):
                 registries.record()
             self.assertFalse(output_dir.exists())
+
+    def test_hypotheses_are_inferred_with_inputs_and_a_confidence_at_most_0_6(self):
+        rows = registries.hypotheses()
+        recorded = [json.loads(line) for line in registries.HYPOTHESES_PATH.read_text(encoding="utf-8").splitlines()]
+        facts = [row for row in rows if row["provenance"] != "inferred"]
+        hypotheses = [row for row in rows if row["provenance"] == "inferred"]
+
+        self.assertTrue(hypotheses)
+        self.assertEqual(rows, recorded)
+        self.assertEqual(rows, facts + hypotheses)
+        self.assertEqual([row["subject"] for row in facts if row["provenance"] == "onchain"],
+                         list(registries.EXCHANGE_ACCOUNTS))
+        self.assertEqual({row["provenance"] for row in facts}, {"onchain", "third_party"})
+        for row in facts:
+            self.assertEqual(row["category"], "organisation")
+            labels.validate(row)
+        facts_by_id = {row["id"]: row for row in facts}
+        for row in hypotheses:
+            for value in row["source"]["inputs"]:
+                self.assertIn(value, facts_by_id)
+                self.assertEqual(facts_by_id[value]["subject"], row["subject"])
+
+        with tempfile.TemporaryDirectory() as temporary:
+            written = Path(temporary) / "hypotheses.jsonl"
+            with patch.object(registries, "HYPOTHESES_PATH", written), contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(registries.main(["hypotheses"]), 0)
+            self.assertEqual(written.read_text(encoding="utf-8"),
+                             registries.HYPOTHESES_PATH.read_text(encoding="utf-8"))
+
+        for row in hypotheses:
+            self.assertEqual(row["provenance"], "inferred")
+            self.assertEqual(row["category"], "organisation")
+            self.assertEqual(row["rule_id"], "exchange_name_pattern")
+            self.assertLessEqual(row["confidence"], 0.6)
+            self.assertIn("attribution hypothesis", row["label"])
+            self.assertIn("attribution hypothesis", row["note"])
+            self.assertIn("no official exchange address list for NEAR was found", row["note"])
+            self.assertTrue(row["source"]["inputs"])
+            self.assertTrue(all(len(value) == 64 and all(char in "0123456789abcdef" for char in value)
+                                for value in row["source"]["inputs"]))
+            labels.validate(row)
+
+    def test_hypothesis_sources_come_from_the_reads_the_clients_made(self):
+        fixtures_dir = registries.FIXTURES_DIR
+
+        def served(url, body):
+            method, params = ("GET", None) if body is None else (body["method"], body["params"])
+            fixture = fixtures_dir / f"{rpc.fixture_key(url, method, params)}.json"
+            return json.loads(fixture.read_text(encoding="utf-8"))["response"]
+
+        recorded = registries.hypotheses()
+        with tempfile.TemporaryDirectory() as temporary, patch.object(rpc, "_fetch", side_effect=served):
+            with patch.object(registries, "FIXTURES_DIR", Path(temporary)):
+                fetched = registries.hypotheses(mode="off")
+            self.assertEqual(list(Path(temporary).iterdir()), [])
+
+        self.assertEqual([(row["subject"], row["provenance"]) for row in fetched],
+                         [(row["subject"], row["provenance"]) for row in recorded])
+        support = [(new, old) for new, old in zip(fetched, recorded) if new["provenance"] == "third_party"]
+        self.assertTrue(support)
+        for new, old in support:
+            self.assertEqual(new["source"]["url"], old["source"]["url"])
+            self.assertEqual(new["source"]["content_sha256"], old["source"]["content_sha256"])
+            self.assertEqual(new["source"]["fetched_at"], new["observed_at"])
+
+    def test_no_hypothesis_without_a_recorded_fact(self):
+        self.assertEqual(registries.hypotheses(facts=[]), [])
+
+        rows = [row for row in registries.hypotheses() if row["subject"] == "binancecold3.near"]
+        onchain = [row for row in rows if row["provenance"] == "onchain"]
+        support = [row for row in rows if row["provenance"] == "third_party"]
+        self.assertEqual(len(onchain), 1)
+        self.assertTrue(support)
+        self.assertEqual(registries.hypotheses(facts=onchain), onchain)
+        self.assertEqual(registries.hypotheses(facts=support), support)
+        self.assertEqual([row["provenance"] for row in registries.hypotheses(facts=onchain + support)],
+                         ["onchain"] + ["third_party"] * len(support) + ["inferred"])
 
 
 if __name__ == "__main__":

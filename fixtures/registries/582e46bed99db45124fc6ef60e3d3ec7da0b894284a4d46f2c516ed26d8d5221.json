@@ -1,0 +1,62 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "account_id": "bybit.near",
+    "pools": [],
+    "tokens": [
+      {
+        "contract_id": "wrap.near",
+        "last_update_block_height": null,
+        "balance": "0"
+      },
+      {
+        "contract_id": "token.sweat",
+        "last_update_block_height": 126779345,
+        "balance": "167443485874106609204"
+      },
+      {
+        "contract_id": "dac17f958d2ee523a2206206994597c13d831ec7.factory.bridge.near",
+        "last_update_block_height": null,
+        "balance": "0"
+      },
+      {
+        "contract_id": "berryclub.ek.near",
+        "last_update_block_height": null,
+        "balance": "0"
+      },
+      {
+        "contract_id": "usdt.tether-token.near",
+        "last_update_block_height": 131111679,
+        "balance": "10145200"
+      }
+    ],
+    "nfts": [
+      {
+        "contract_id": "near-rewards.near",
+        "last_update_block_height": 168416467
+      },
+      {
+        "contract_id": "claim-rewards.near",
+        "last_update_block_height": 169151812
+      },
+      {
+        "contract_id": "event-drop.near",
+        "last_update_block_height": 169261539
+      },
+      {
+        "contract_id": "event-drops.near",
+        "last_update_block_height": 169584273
+      }
+    ],
+    "state": {
+      "balance": "7815138717883056869436453",
+      "locked": "0",
+      "storage_bytes": 881
+    }
+  },
+  "url": "https://api.fastnear.com/v1/account/bybit.near/full",
+  "fetched_at": "2026-11-03T10:59:36Z"
+}

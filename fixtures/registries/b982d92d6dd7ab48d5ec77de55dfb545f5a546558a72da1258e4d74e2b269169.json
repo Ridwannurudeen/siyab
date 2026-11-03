@@ -1,0 +1,164 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "account_id": "binancecold3.near",
+    "pools": [
+      {
+        "pool_id": "binancestaking.poolv1.near",
+        "last_update_block_height": 142758489
+      },
+      {
+        "pool_id": "future_is_near.poolv1.near",
+        "last_update_block_height": 168405374
+      },
+      {
+        "pool_id": "synclub.poolv1.near",
+        "last_update_block_height": 142758508
+      },
+      {
+        "pool_id": "binancenode1.poolv1.near",
+        "last_update_block_height": 168405327
+      },
+      {
+        "pool_id": "near-fans.poolv1.near",
+        "last_update_block_height": 168405352
+      }
+    ],
+    "tokens": [
+      {
+        "contract_id": "youwon500neartoclaimyourgainwwwnearl.laboratory.jumpfinance.near",
+        "last_update_block_height": null,
+        "balance": "1000000000000000000"
+      },
+      {
+        "contract_id": "congrats.laboratory.jumpfinance.near",
+        "last_update_block_height": null,
+        "balance": "10"
+      },
+      {
+        "contract_id": "kusama-airdrop.near",
+        "last_update_block_height": null,
+        "balance": "363288"
+      },
+      {
+        "contract_id": "dac17f958d2ee523a2206206994597c13d831ec7.factory.bridge.near",
+        "last_update_block_height": 222188863,
+        "balance": "11399000000"
+      },
+      {
+        "contract_id": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+        "last_update_block_height": 222202791,
+        "balance": "39711624810419"
+      },
+      {
+        "contract_id": "nearrewards.near",
+        "last_update_block_height": 118691738,
+        "balance": "20000000000000000000"
+      },
+      {
+        "contract_id": "ad.0xshitzu.near",
+        "last_update_block_height": 119945003,
+        "balance": "1000000"
+      },
+      {
+        "contract_id": "token.0xshitzu.near",
+        "last_update_block_height": 119945431,
+        "balance": "50000000000000000000"
+      },
+      {
+        "contract_id": "lonkrewards.near",
+        "last_update_block_height": 120336719,
+        "balance": "100000000000000000000000000"
+      },
+      {
+        "contract_id": "ad.doubleon.near",
+        "last_update_block_height": 125111919,
+        "balance": "1000000000000000000000000000000000000"
+      },
+      {
+        "contract_id": "walc.near",
+        "last_update_block_height": 127049950,
+        "balance": "1100000000000000000000000000"
+      },
+      {
+        "contract_id": "nearreward.near",
+        "last_update_block_height": 127796947,
+        "balance": "1000000000"
+      },
+      {
+        "contract_id": "usdt.tether-token.near",
+        "last_update_block_height": 222199878,
+        "balance": "8798710719611"
+      },
+      {
+        "contract_id": "token.sweat",
+        "last_update_block_height": 222196896,
+        "balance": "140480000000000000000"
+      }
+    ],
+    "nfts": [
+      {
+        "contract_id": "nearvoucherstore.mintbase1.near",
+        "last_update_block_height": 118840229
+      },
+      {
+        "contract_id": "nearreward.mintbase1.near",
+        "last_update_block_height": 183942755
+      },
+      {
+        "contract_id": "neardaorewards.mintbase1.near",
+        "last_update_block_height": 145890641
+      },
+      {
+        "contract_id": "nearrewardvoucher2.mintbase1.near",
+        "last_update_block_height": 163672309
+      },
+      {
+        "contract_id": "nft-rewards.near",
+        "last_update_block_height": 166443980
+      },
+      {
+        "contract_id": "near-rewards.near",
+        "last_update_block_height": 168311455
+      },
+      {
+        "contract_id": "claim-rewards.near",
+        "last_update_block_height": 169146894
+      },
+      {
+        "contract_id": "event-drop.near",
+        "last_update_block_height": 169255535
+      },
+      {
+        "contract_id": "event-drops.near",
+        "last_update_block_height": 169579454
+      },
+      {
+        "contract_id": "neargifts.near",
+        "last_update_block_height": 172068128
+      },
+      {
+        "contract_id": "event-special.near",
+        "last_update_block_height": 174694643
+      },
+      {
+        "contract_id": "casino-bonus.near",
+        "last_update_block_height": 174694655
+      },
+      {
+        "contract_id": "near-bonus.near",
+        "last_update_block_height": 183520446
+      }
+    ],
+    "state": {
+      "balance": "105636360988748851496018292633572",
+      "locked": "0",
+      "storage_bytes": 1788
+    }
+  },
+  "url": "https://api.fastnear.com/v1/account/binancecold3.near/full",
+  "fetched_at": "2026-11-03T10:58:20Z"
+}

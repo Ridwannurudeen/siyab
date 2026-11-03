@@ -11,9 +11,15 @@ from intel import seed
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURES_DIR = ROOT / "fixtures" / "registries"
 ROWS_PATH = Path(__file__).resolve().parent / "registries" / "rows.jsonl"
+HYPOTHESES_PATH = Path(__file__).resolve().parent / "registries" / "hypotheses.jsonl"
 ENTITIES_PATH = Path(__file__).resolve().parent / "entities.jsonl"
 BRIDGE_METHOD = "get_tokens_accounts"
 REGISTRY_ORDER = ("sputnik_dao", "validators", "ref_whitelist", "bridge_factory")
+EXCHANGE_ACCOUNTS = (
+    "binancecold3.near", "binance.near", "binancecold1.near", "binancecold2.near",
+    "okx.near", "okex.near", "bybit.near", "kraken.near", "coinbase.near", "kucoin.near",
+    "gate.near", "gateio.near",
+)
 
 
 class RegistryError(ValueError):
@@ -155,12 +161,96 @@ def append():
     return seed.append([row for group in rows().values() for row in group])
 
 
+def hypotheses(facts=None, mode="replay"):
+    """The exchange named account facts from recorded account and FastNEAR reads, then the cautious
+    exchange name hypotheses those facts support."""
+    if facts is None:
+        client = rpc.Client(rpc.MAINNET_RPC_URL, mode, fixtures_dir=FIXTURES_DIR)
+        http = rpc.Client("https://api.fastnear.com", mode, fixtures_dir=FIXTURES_DIR, kind="http")
+        top_url = "https://api.fastnear.com/v1/ft/usdt.tether-token.near/top"
+        top = http.get(top_url)
+        if not isinstance(top, dict) or not isinstance(top.get("accounts"), list):
+            raise RegistryError("FastNEAR top holders returned an unexpected shape")
+        top_source = seed._document_source(
+            top_url, json.dumps(top, ensure_ascii=False, separators=(",", ":")).encode("utf-8"),
+            http.last_source["fetched_at"])
+        top_accounts = {entry.get("account_id") for entry in top["accounts"] if isinstance(entry, dict)}
+        facts = []
+        for account in EXCHANGE_ACCOUNTS:
+            view = client.view_account(account)
+            block = client.last_block_height
+            observed_at = client.last_source["fetched_at"]
+            if not isinstance(block, int) or not isinstance(observed_at, str):
+                raise RegistryError(f"view_account has no block or fetch time for {account}")
+            balance = int(view["amount"]) + int(view["locked"])
+            # 8 NEAR: the 2 Nov 2026 read only check (CRITIQUE2 section 0) found every exchange named account but binancecold3.near under 8 NEAR.
+            balance_class = "zero" if balance == 0 else "under 8 NEAR" if balance < 8 * 10**24 else "8 NEAR or more"
+            has_code = view["code_hash"] != rpc.EMPTY_CODE_HASH
+            facts.append(seed.make_row(
+                entity=f"NEAR account named {seed._quoted(account)}", subject=account, chain="near",
+                label=f"account exists; {'contract code present' if has_code else 'no contract code'}; "
+                      f"balance class {balance_class}", category="organisation", provenance="onchain",
+                source={"rpc": rpc.MAINNET_RPC_URL, "method": "view_account",
+                        "args": {"account_id": account}, "block": block}, observed_at=observed_at,
+                note=f'view_account for {seed._quoted(account)} at block {block}'))
+
+            full_url = f"https://api.fastnear.com/v1/account/{account}/full"
+            full = http.get(full_url)
+            if not isinstance(full, dict) or full.get("account_id") != account or not isinstance(full.get("pools"), list):
+                raise RegistryError(f"FastNEAR full account returned an unexpected shape for {account}")
+            full_source = seed._document_source(
+                full_url, json.dumps(full, ensure_ascii=False, separators=(",", ":")).encode("utf-8"),
+                http.last_source["fetched_at"])
+            evidence = []
+            if account in top_accounts:
+                evidence.append(seed.make_row(
+                    entity=f"FastNEAR top holder data for {seed._quoted(account)}", subject=account, chain="near",
+                    label='listed in FastNEAR top holders for "usdt.tether-token.near"', category="organisation",
+                    provenance="third_party", source=top_source, observed_at=top_source["fetched_at"],
+                    note="FastNEAR top holder response"))
+            account_name = account.split(".", 1)[0]
+            brand = account_name.removesuffix("cold1").removesuffix("cold2").removesuffix("cold3")
+            matching_pools = [pool["pool_id"] for pool in full["pools"]
+                              if isinstance(pool, dict) and isinstance(pool.get("pool_id"), str)
+                              and pool["pool_id"].split(".", 1)[0].startswith(brand)]
+            if matching_pools:
+                evidence.append(seed.make_row(
+                    entity=f"FastNEAR pool data for {seed._quoted(account)}", subject=account, chain="near",
+                    label="staking pool name repeats the named account pattern", category="organisation",
+                    provenance="third_party", source=full_source, observed_at=full_source["fetched_at"],
+                    note=f"FastNEAR lists pool account names {seed._quoted(', '.join(matching_pools))}"))
+            facts.extend(evidence)
+
+    by_subject = {}
+    for fact in facts:
+        if fact["subject"] in EXCHANGE_ACCOUNTS:
+            by_subject.setdefault(fact["subject"], []).append(fact)
+
+    result = []
+    for account, account_facts in by_subject.items():
+        chain_facts = [fact for fact in account_facts if fact["provenance"] == "onchain"]
+        support = [fact for fact in account_facts if fact["provenance"] == "third_party"]
+        if not chain_facts or not support:
+            continue
+        inputs = [fact["id"] for fact in chain_facts + support]
+        evidence_text = "; ".join(fact["label"] for fact in support)
+        result.append(seed.make_row(
+            entity=f"exchange named account hypothesis for {seed._quoted(account)}", subject=account, chain="near",
+            label=f"attribution hypothesis: exchange name pattern; {evidence_text}", category="organisation",
+            provenance="inferred", source={"rule_id": "exchange_name_pattern", "inputs": inputs},
+            observed_at=max(fact["observed_at"] for fact in account_facts), confidence=0.6,
+            rule_id="exchange_name_pattern",
+            note="attribution hypothesis; no official exchange address list for NEAR was found"))
+    return facts + result
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="python -m intel.registries")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("record", help="record registry reads and write rows and entities")
     commands.add_parser("rows", help="print row counts by registry from fixtures")
     commands.add_parser("append", help="append registry rows that are not in the label store")
+    commands.add_parser("hypotheses", help="write the exchange account facts and hypotheses from fixtures")
     args = parser.parse_args(argv)
     if args.command == "record":
         result = record()
@@ -171,6 +261,12 @@ def main(argv=None):
         result = rows()
         for name in REGISTRY_ORDER:
             print(f"{name}: {len(result[name])}")
+        return 0
+    if args.command == "hypotheses":
+        result = hypotheses()
+        _write_jsonl(HYPOTHESES_PATH, result)
+        for provenance in ("onchain", "third_party", "inferred"):
+            print(f"{provenance}: {sum(row['provenance'] == provenance for row in result)}")
         return 0
     added = append()
     print(f"{added} new registry assertions")

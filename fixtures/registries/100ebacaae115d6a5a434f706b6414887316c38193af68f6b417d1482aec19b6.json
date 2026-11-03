@@ -1,0 +1,92 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "account_id": "kucoin.near",
+    "pools": [
+      {
+        "pool_id": "zavodil.poolv1.near",
+        "last_update_block_height": null
+      }
+    ],
+    "tokens": [
+      {
+        "contract_id": "token.sweat",
+        "last_update_block_height": 202837309,
+        "balance": "5252955000000000000"
+      },
+      {
+        "contract_id": "claimneardrop.reftoken.near",
+        "last_update_block_height": null,
+        "balance": "2023000000000000000000"
+      },
+      {
+        "contract_id": "kusama-airdrop.near",
+        "last_update_block_height": null,
+        "balance": "332849"
+      },
+      {
+        "contract_id": "wrap.near",
+        "last_update_block_height": 201496838,
+        "balance": "0"
+      },
+      {
+        "contract_id": "usn",
+        "last_update_block_height": null,
+        "balance": "0"
+      },
+      {
+        "contract_id": "ftv2.nekotoken.near",
+        "last_update_block_height": 142001353,
+        "balance": "0"
+      },
+      {
+        "contract_id": "token.paras.near",
+        "last_update_block_height": null,
+        "balance": "6587248195188737650"
+      },
+      {
+        "contract_id": "token.burrow.near",
+        "last_update_block_height": null,
+        "balance": "0"
+      },
+      {
+        "contract_id": "burrowfinancedao.near",
+        "last_update_block_height": 119102983,
+        "balance": "100000000000000000000000000"
+      },
+      {
+        "contract_id": "purge-558.meme-cooking.near",
+        "last_update_block_height": 142001448,
+        "balance": "0"
+      }
+    ],
+    "nfts": [
+      {
+        "contract_id": "nearkingdoms.near",
+        "last_update_block_height": null
+      },
+      {
+        "contract_id": "near-punks.near",
+        "last_update_block_height": 158334686
+      },
+      {
+        "contract_id": "zavodil.node.staking.near",
+        "last_update_block_height": null
+      },
+      {
+        "contract_id": "burrowfinancereward.mintbase1.near",
+        "last_update_block_height": 120699754
+      }
+    ],
+    "state": {
+      "balance": "6904321783431547048676514",
+      "locked": "0",
+      "storage_bytes": 350
+    }
+  },
+  "url": "https://api.fastnear.com/v1/account/kucoin.near/full",
+  "fetched_at": "2026-11-03T10:59:39Z"
+}

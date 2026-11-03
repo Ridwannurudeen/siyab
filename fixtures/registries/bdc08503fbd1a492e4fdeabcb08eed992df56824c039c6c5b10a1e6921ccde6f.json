@@ -1,0 +1,21 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "account_id": "gateio.near",
+    "pools": [],
+    "tokens": [
+      {
+        "contract_id": "wrap.near",
+        "last_update_block_height": null,
+        "balance": "5900213490630695891706"
+      }
+    ],
+    "nfts": [],
+    "state": null
+  },
+  "url": "https://api.fastnear.com/v1/account/gateio.near/full",
+  "fetched_at": "2026-11-03T10:59:41Z"
+}
