@@ -8,7 +8,7 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "DENY",
+  "verdict": "ALLOW",
   "checks": [
     {
       "id": "receiver_exists",
@@ -82,8 +82,8 @@
     },
     {
       "id": "code_without_metadata",
-      "status": "signal",
-      "detail": "code_without_metadata: contract code without contract_source_metadata",
+      "status": "pass",
+      "detail": "contract code without contract_source_metadata; not a signal on its own",
       "source": {
         "provider": "free.rpc.fastnear.com",
         "request_sha256": "3e3b4923a4b33244c402df1c0a3a883a2a4cc3d7281bc83746122b8f38a5bf28",
@@ -92,8 +92,8 @@
     }
   ],
   "reasons": [
-    "Not on the owner's allowlist.",
-    "aggregatedex.near has contract code without contract_source_metadata."
+    "Every check ran and none found a signal.",
+    "Not on the owner's allowlist."
   ],
   "labels": [],
   "observed": {

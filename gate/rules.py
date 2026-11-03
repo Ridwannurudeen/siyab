@@ -8,7 +8,8 @@ Tier 1, every receiver: receiver_exists, label_denylist, issuer_blacklist (when 
 the issuer table of intel/issuers.json, which it does for a mainnet Gate), token_in_catalog (ft),
 ft_metadata_sane (ft), storage_registered (ft), memo_injection. Tier 2, a receiver not on the
 agent's allowlist: account_age, dust_funded, lookalike, code_without_metadata. No contract code is
-never a signal on its own.
+never a signal on its own. Contract code without contract_source_metadata is a signal only together
+with another tier 2 signal (account_age, dust_funded or lookalike); alone it is a pass that says so.
 """
 
 import dataclasses
@@ -557,11 +558,14 @@ def _tier2(request, policy, store, account, account_source, rpc, nearblocks, now
                                         dust_source)
     checks += [dust_check, lookalike_check]
 
-    checks.append(_code_check(rpc, receiver, account, account_source))
+    # Deployed protocol contracts also publish no contract_source_metadata, so code without it is a signal
+    # only together with another tier 2 signal (PLAN-v4 B6).
+    checks.append(_code_check(rpc, receiver, account, account_source,
+                              any(check["status"] == "signal" for check in checks)))
     return checks, facts, matched
 
 
-def _code_check(rpc, receiver, account, account_source):
+def _code_check(rpc, receiver, account, account_source, other_signal):
     if account is None:
         return evidence.check("code_without_metadata", "unknown", "the receiver account could not be read",
                               account_source)
@@ -572,9 +576,12 @@ def _code_check(rpc, receiver, account, account_source):
         return evidence.check("code_without_metadata", "pass", "contract code with contract_source_metadata",
                               _source(rpc))
     except RpcError as error:
-        status = "signal" if _missing_code(error) else "unknown"
-        detail = ("code_without_metadata: contract code without contract_source_metadata" if status == "signal"
-                  else f"could not read contract_source_metadata: {_why(error)}")
+        if not _missing_code(error):
+            status, detail = "unknown", f"could not read contract_source_metadata: {_why(error)}"
+        elif other_signal:
+            status, detail = "signal", "code_without_metadata: contract code without contract_source_metadata"
+        else:
+            status, detail = "pass", "contract code without contract_source_metadata; not a signal on its own"
         return evidence.check("code_without_metadata", status, detail, _source(rpc))
     except UNAVAILABLE as error:
         return evidence.check("code_without_metadata", "unknown",

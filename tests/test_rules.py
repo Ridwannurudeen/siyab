@@ -260,7 +260,7 @@ class TierTwoTest(RulesCase):
         self.stranger("stranger.testnet", code_hash="SomeCodeHash")
         self.fx.method_missing("stranger.testnet", "contract_source_metadata", {})
         self.assertEqual(self.status(self.judge(request("stranger.testnet")), "code_without_metadata"),
-                         "signal")
+                         "pass")
         self.fx.function_error("stranger.testnet", "contract_source_metadata", {})
         self.assertEqual(self.status(self.judge(request("stranger.testnet")), "code_without_metadata"),
                          "unknown")
@@ -268,6 +268,29 @@ class TierTwoTest(RulesCase):
         judgement = self.judge(request("stranger.testnet"))
         self.assertEqual(self.status(judgement, "code_without_metadata"), "pass")
         self.assertEqual(judgement.verdict, "ALLOW")
+
+    def test_code_without_metadata_alone_passes_with_the_detail(self):
+        self.stranger("protocol.testnet", code_hash="SomeCodeHash")
+        self.fx.method_missing("protocol.testnet", "contract_source_metadata", {})
+        judgement = self.judge(request("protocol.testnet"))
+        self.assertEqual(self.status(judgement, "code_without_metadata"), "pass")
+        self.assertEqual(self.detail(judgement, "code_without_metadata"),
+                         "contract code without contract_source_metadata; not a signal on its own")
+        self.assertEqual(judgement.verdict, "ALLOW")
+        self.assertEqual(judgement.reasons, ["Every check ran and none found a signal.",
+                                             "Not on the owner's allowlist."])
+
+    def test_code_without_metadata_with_a_young_account_is_deny(self):
+        self.stranger("fresh.testnet", age_ns=2 * DAY_NS, code_hash="SomeCodeHash")
+        self.fx.method_missing("fresh.testnet", "contract_source_metadata", {})
+        judgement = self.judge(request("fresh.testnet"))
+        self.assertEqual(self.status(judgement, "account_age"), "signal")
+        self.assertEqual(self.status(judgement, "code_without_metadata"), "signal")
+        self.assertEqual(self.detail(judgement, "code_without_metadata"),
+                         "code_without_metadata: contract code without contract_source_metadata")
+        self.assertEqual(judgement.verdict, "DENY")
+        self.assertEqual(judgement.reasons, ["Created 2 d ago.", "Not on the owner's allowlist.",
+                                             "fresh.testnet has contract code without contract_source_metadata."])
 
     def test_lookalike_young_dust_funded_gives_the_denied_line(self):
         self.stranger("vendor-pay.testnet", age_ns=3 * HOUR_NS, deposit=1e22)
