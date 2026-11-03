@@ -80,8 +80,8 @@ def read_status(mode="replay", store=None, fixture_dir=FIXTURE_DIR, sleep=time.s
         for index, (subject, issuer) in enumerate(pairs, start=1):
             args = {issuer["args_key"]: subject}
             while True:
-                network_request = mode != "replay" and not _fixture_is_fresh(
-                    issuer["token"], issuer["method"], args, fixture_dir)
+                network_request = mode == "off" or (mode == "record" and not _fixture_is_fresh(
+                    issuer["token"], issuer["method"], args, fixture_dir))
                 if network_request:
                     if last_request_started is not None:
                         delay = RPC_INTERVAL_S - (clock() - last_request_started)
@@ -117,8 +117,9 @@ def read_status(mode="replay", store=None, fixture_dir=FIXTURE_DIR, sleep=time.s
                 break
     finally:
         elapsed = clock() - started
-        progress(f"recording summary: requests={total_requests}, 429s={total_429}, "
-                 f"wall_seconds={elapsed:.1f}, status_reads={len(observed)}")
+        if mode == "record":
+            progress(f"recording summary: requests={total_requests}, 429s={total_429}, "
+                     f"wall_seconds={elapsed:.1f}, status_reads={len(observed)}")
     return observed
 
 
@@ -184,16 +185,22 @@ def record(sleep=time.sleep, clock=time.monotonic, progress=print):
     return len(observed), count
 
 
+def append_rows():
+    return seed.append(rows())
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="python -m intel.issuers")
-    parser.add_argument("command", choices=("record", "rows"))
+    parser.add_argument("command", choices=("record", "rows", "append"))
     args = parser.parse_args(argv)
     try:
         if args.command == "record":
             reads_count, row_count = record()
             print(f"{reads_count} issuer status reads, {row_count} watch rows")
-        else:
+        elif args.command == "rows":
             print(f"{write_rows()} issuer status rows")
+        else:
+            print(f"{append_rows()} issuer status rows appended")
     except (rpc.FixtureMiss, rpc.HttpError, rpc.TransportError, rpc.RpcError, rpc.MalformedResponse) as error:
         print(f"stopped: {error}", file=sys.stderr)
         return 1

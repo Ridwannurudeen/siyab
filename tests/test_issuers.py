@@ -1,5 +1,8 @@
+import contextlib
+import io
 import json
 import unittest
+from unittest.mock import patch
 
 from intel import issuers, labels
 
@@ -30,6 +33,16 @@ class IssuerRowsTest(unittest.TestCase):
 
     def test_rows_rebuild_from_the_fixtures(self):
         self.assertEqual(issuers.STATUS_PATH.read_text(encoding="utf-8"), issuers.rows_jsonl())
+
+    def test_append_command_delegates_to_seed_append(self):
+        rows = [{"id": "fixture row"}]
+        output = io.StringIO()
+        with patch.object(issuers, "rows", return_value=rows), \
+                patch.object(issuers.seed, "append", return_value=1) as append, \
+                contextlib.redirect_stdout(output):
+            self.assertEqual(issuers.main(["append"]), 0)
+        append.assert_called_once_with(rows)
+        self.assertIn("1 issuer status rows appended", output.getvalue())
 
 
 if __name__ == "__main__":
