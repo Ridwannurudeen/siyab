@@ -628,6 +628,47 @@ class FollowModeTest(unittest.TestCase):
                       feed.stats_lines(state))
         client.assert_not_called()
 
+    def test_a_usable_key_goes_to_neardata_as_a_bearer_header_and_into_no_file(self):
+        import os
+
+        synthetic = json.loads((BLOCKS / "synthetic-code-hash.json").read_text(encoding="utf-8"))
+        fixtures = sorted(path.name for path in BLOCKS.glob("*.json"))
+        requests = []
+
+        def answer(request, timeout):
+            requests.append(request)
+            if request.full_url.startswith(feed.TRANSFERS_URL):
+                return http_reply(b'{"transfers": [], "resume_token": null}')
+            return http_reply(json.dumps(raw_block(1, [])).encode("utf-8"))
+
+        for keyed in (True, False):
+            requests.clear()
+            with self.subTest(keyed=keyed), tempfile.TemporaryDirectory() as tmp, \
+                    mock.patch("urllib.request.urlopen", side_effect=answer), \
+                    mock.patch("intel.feed.reduce_block", return_value=synthetic):
+                root = Path(tmp)
+                key_file = root / "fastnear.key"
+                key_file.write_text("literal-test-key\n", encoding="utf-8")
+                if keyed:
+                    os.environ["FASTNEAR_API_KEY_FILE"] = str(key_file)
+                else:
+                    os.environ.pop("FASTNEAR_API_KEY_FILE", None)
+                state, walked = feed.follow(start=1, state_path=root / "state.json", events_dir=root / "events",
+                                            event_blocks_dir=root / "event-blocks", max_blocks=1,
+                                            sleep=lambda _: None, clock=lambda: T0)
+                neardata = [r for r in requests if r.full_url.startswith(feed.NEARDATA_URL)]
+                self.assertEqual([r.full_url for r in neardata],
+                                 [feed.NEARDATA_URL + "/v0/last_block/final", feed.NEARDATA_URL + "/v0/block/1"])
+                self.assertEqual({r.get_header("Authorization") for r in neardata},
+                                 {"Bearer literal-test-key" if keyed else None})
+                self.assertEqual((walked, state["events"]["code_hash_matches_incident"]), (1, 1))
+                written = [path for path in root.rglob("*") if path.is_file() and path != key_file]
+                self.assertTrue(any(path.parent.name == "event-blocks" for path in written))
+                for path in written:
+                    self.assertNotIn(b"literal-test-key", path.read_bytes())
+                    self.assertNotIn(b"Bearer", path.read_bytes())
+        self.assertEqual(sorted(path.name for path in BLOCKS.glob("*.json")), fixtures)
+
     def test_large_transfer_signal_is_disabled_when_the_key_file_is_missing_unreadable_or_empty(self):
         import os
 

@@ -14,7 +14,10 @@ python -m intel feed --follow [--from <height>] [--max-blocks <n>] reads the fin
 --from, else the final height) to it in order, never skipping one; once caught up it sleeps 1 s
 and reads the final height again. It stops on SIGINT or after --max-blocks heights, a skipped
 height included. It has no request budget: it leaves FOLLOW_INTERVAL_S (0.4 s) between one request
-and the next, so at most 150 a minute, and backs off 10 s on a 429 as above. No reduced block is
+and the next, so at most 150 a minute, and backs off 10 s on a 429 as above. When
+FASTNEAR_API_KEY_FILE names a usable key, its neardata requests (the final height and the blocks)
+carry that key as an Authorization Bearer header, read once at start and kept in memory; without
+one they are keyless, and record mode never sends it. No reduced block is
 written per height: a block that raised an event is written as
 <state dir>/event-blocks/<height>.json, the block_fixture its events' source names. A finalized
 height neardata answers with null or a 404 holds no block, as in record mode: the follower adds
@@ -417,7 +420,20 @@ def run(start, count, record, store=None, blocks_dir=BLOCKS_DIR, state_path=STAT
 def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=None, event_blocks_dir=None,
            max_blocks=None, sleep=time.sleep, clock=time.time, stopped=lambda: False):
     """Follow finalized heights, retaining only event blocks and the moving state."""
-    fetcher = fetcher or Fetcher(max_requests=None)
+    key_file = os.environ.get("FASTNEAR_API_KEY_FILE")
+    headers, disabled_reason = {}, "FASTNEAR_API_KEY_FILE is not set"
+    if key_file:
+        try:
+            api_key = Path(key_file).read_text(encoding="utf-8").strip()
+        except (OSError, UnicodeDecodeError):
+            api_key = None
+        if api_key is None:
+            disabled_reason = "the file FASTNEAR_API_KEY_FILE names cannot be read"
+        elif not api_key:
+            disabled_reason = "the file FASTNEAR_API_KEY_FILE names is empty"
+        else:
+            headers, disabled_reason = {"Authorization": f"Bearer {api_key}"}, None
+    fetcher = fetcher or Fetcher(rpc.Client(NEARDATA_URL, "off", kind="http", headers=headers), max_requests=None)
     state_dir = Path(os.environ.get("FEED_STATE_DIR", FEED_DIR))
     state_path = Path(state_path) if state_path is not None else state_dir / "state.json"
     events_dir = Path(events_dir) if events_dir is not None else state_dir / "events"
@@ -432,22 +448,12 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
         state["events"].setdefault(signal, 0)
     context = Context(store or labels.load())
     disabled = state.setdefault("disabled_signals", {})
-    transfers_client, key_file = None, os.environ.get("FASTNEAR_API_KEY_FILE")
-    if not key_file:
-        disabled[SIGNALS[3]] = "FASTNEAR_API_KEY_FILE is not set"
+    transfers_client = None
+    if disabled_reason is None:
+        transfers_client = rpc.Client(TRANSFERS_URL, "off", kind="http", headers=headers)
+        disabled.pop(SIGNALS[3], None)
     else:
-        try:
-            api_key = Path(key_file).read_text(encoding="utf-8").strip()
-        except (OSError, UnicodeDecodeError):
-            api_key = None
-        if api_key is None:
-            disabled[SIGNALS[3]] = "the file FASTNEAR_API_KEY_FILE names cannot be read"
-        elif not api_key:
-            disabled[SIGNALS[3]] = "the file FASTNEAR_API_KEY_FILE names is empty"
-        else:
-            transfers_client = rpc.Client(TRANSFERS_URL, "off", kind="http",
-                                          headers={"Authorization": f"Bearer {api_key}"})
-            disabled.pop(SIGNALS[3], None)
+        disabled[SIGNALS[3]] = disabled_reason
     walked = 0
     last_request = None
     while not stopped() and (max_blocks is None or walked < max_blocks):
