@@ -17,7 +17,8 @@ ROOT = Path(__file__).resolve().parent.parent
 BLOCKS = ROOT / "fixtures" / "feed" / "blocks"
 SYNTHETIC = {"synthetic-code-hash.json": "code_hash_matches_incident",
              "synthetic-fresh-dust-incident.json": "fresh_dust_funded_pays_labelled",
-             "synthetic-watch-addkey.json": "watch_account_key_added"}
+             "synthetic-watch-addkey.json": "watch_account_key_added",
+             "synthetic-deploy-labelled.json": "deploy_on_labelled_contract"}
 MAX_BYTES = 64 * 1024
 
 
@@ -140,6 +141,25 @@ class SignalTest(unittest.TestCase):
         block = json.loads((BLOCKS / "synthetic-code-hash.json").read_text(encoding="utf-8"))
         block["receipts"][0]["ok"] = False
         self.assertEqual(self.events(block), [])
+
+    def test_deploy_on_a_labelled_contract_fires_with_the_code_hash_and_is_quiet_elsewhere(self):
+        block = json.loads((BLOCKS / "synthetic-deploy-labelled.json").read_text(encoding="utf-8"))
+        [event] = self.events(block)
+        self.assertEqual(event["signal"], "deploy_on_labelled_contract")
+        self.assertIn(block["receipts"][0]["actions"][0]["code_hash"], event["detail"])
+        self.assertTrue(event["labels"])
+        elsewhere = json.loads(json.dumps(block))
+        elsewhere["receipts"][0]["receiver_id"] = "unlabelled-account.near"
+        self.assertEqual(self.events(elsewhere), [])
+
+    def test_signal_order_and_stats_lines_include_the_new_feed_signals(self):
+        self.assertEqual(feed.SIGNALS, ("code_hash_matches_incident", "fresh_dust_funded_pays_labelled",
+                                       "watch_account_key_added", "labelled_account_large_transfer",
+                                       "deploy_on_labelled_contract"))
+        state = feed.new_state()
+        state.update(mode="follow", started_at="2026-11-03T00:00:00Z", last_height=1,
+                     last_time="2026-11-03T00:00:01Z", lag_blocks=0)
+        self.assertEqual(feed.stats_lines(state)[3:], [f"{name} 0" for name in feed.SIGNALS])
 
 
 class ReducerTest(unittest.TestCase):
@@ -362,6 +382,89 @@ class FollowModeTest(unittest.TestCase):
             block_path = root / "event-blocks" / "9.json"
             self.assertTrue(block_path.is_file())
             self.assertEqual(event["source"]["block_fixture_sha256"], hashlib.sha256(block_path.read_bytes()).hexdigest())
+
+    def test_large_transfer_signal_polls_each_labelled_subject_once_per_window_with_the_filters(self):
+        import os
+
+        subjects = sorted(feed.Context(labels.load()).deny_receivers)
+        now = [datetime(2026, 11, 3, 12, 0, tzinfo=UTC).timestamp()]
+        calls = []
+
+        class Transfers:
+            def __init__(self):
+                self.last_source = {"provider": "transfers.main.fastnear.com", "request_sha256": "request",
+                                    "fetched_at": "2026-11-03T12:00:00Z"}
+
+            def post(self, path, body):
+                calls.append((path, body))
+                return {"transfers": [{"other_account_id": "recipient.near", "asset_id": "native:near",
+                                        "usd_amount": "1200", "transaction_id": f"tx-{len(calls)}",
+                                        "receipt_id": f"receipt-{len(calls)}",
+                                        "block_height": 7, "block_timestamp": "1793707200000000000"}]}
+
+        transfers = Transfers()
+        original_read_text = Path.read_text
+        key_file = Path("C:/private/fastnear-test-key")
+        read_count = []
+
+        def read_text(path, *args, **kwargs):
+            if path == key_file:
+                read_count.append(path)
+                return "literal-test-key"
+            return original_read_text(path, *args, **kwargs)
+
+        class Timed(FakeFetcher):
+            def get(self, path):
+                answer = super().get(path)
+                if path == "/v0/block/1":
+                    now[0] += feed.POLL_S
+                return answer
+
+        fake = Timed(self.blocks(2), 2)
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(
+                os.environ, {"FASTNEAR_API_KEY_FILE": str(key_file)}), \
+                mock.patch.object(Path, "read_text", read_text), \
+                mock.patch("intel.feed.rpc.Client", return_value=transfers) as client:
+            root = Path(tmp)
+            state, _ = feed.follow(start=1, fetcher=fake.inner, state_path=root / "state.json",
+                                   events_dir=root / "events", event_blocks_dir=root / "event-blocks",
+                                   max_blocks=2, sleep=lambda _: None, clock=lambda: now[0])
+            events = [json.loads(path.read_text(encoding="utf-8")) for path in (root / "events").glob("*.json")]
+        self.assertEqual(len(read_count), 1)
+        self.assertEqual(client.call_args.args[:2], (feed.TRANSFERS_URL, "off"))
+        self.assertEqual(client.call_args.kwargs["headers"], {"Authorization": "Bearer literal-test-key"})
+        self.assertEqual([body["account_id"] for _, body in calls], subjects * 2)
+        self.assertEqual(len(calls), len(subjects) * 2)
+        for index, (path, body) in enumerate(calls):
+            self.assertEqual(path, "/v0/transfers")
+            self.assertEqual({key: body[key] for key in ("direction", "from_timestamp_ms", "min_usd_amount",
+                                                         "ignore_system")},
+                             {"direction": "sender", "from_timestamp_ms": int(
+                                 (now[0] - (2 - index // len(subjects)) * feed.POLL_S) * 1000),
+                              "min_usd_amount": 1000, "ignore_system": True})
+        self.assertEqual(len(events), len(subjects) * 2)
+        self.assertTrue(all(event["signal"] == "labelled_account_large_transfer" for event in events))
+        self.assertEqual(events[0]["other_account_id"], "recipient.near")
+        self.assertEqual(events[0]["tx_hash"], events[0]["transaction_id"])
+        self.assertIn('"recipient.near"', events[0]["detail"])
+        self.assertEqual(events[0]["labels"], feed.Context(labels.load()).labelled[events[0]["subject"]])
+        self.assertNotIn("literal-test-key", json.dumps(state))
+
+    def test_large_transfer_signal_is_disabled_without_the_key_file_and_the_state_says_so(self):
+        import os
+
+        fake = FakeFetcher(self.blocks(1), 1)
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {}, clear=True), \
+                mock.patch("intel.feed.rpc.Client") as client:
+            root = Path(tmp)
+            state, _ = feed.follow(start=1, fetcher=fake.inner, state_path=root / "state.json",
+                                   events_dir=root / "events", event_blocks_dir=root / "event-blocks",
+                                   max_blocks=1, sleep=lambda _: None, clock=lambda: 1793707200)
+        self.assertEqual(state["disabled_signals"], {"labelled_account_large_transfer":
+                                                      "FASTNEAR_API_KEY_FILE is not set"})
+        self.assertIn("labelled_account_large_transfer disabled: FASTNEAR_API_KEY_FILE is not set",
+                      feed.stats_lines(state))
+        client.assert_not_called()
 
     def test_follow_paces_and_backs_off(self):
         fake = FakeFetcher(self.blocks(1), 1, throttled=1)

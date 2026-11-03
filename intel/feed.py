@@ -1,4 +1,4 @@
-"""A block feed over finalized NEAR mainnet blocks, with three signals.
+"""A block feed over finalized NEAR mainnet blocks, with five signals.
 
 python -m intel feed [--from <height>] --blocks <n> [--record] walks n block heights from --from
 (default: the height after the state's last block; with --record and no state, the height
@@ -47,6 +47,9 @@ The signals, each written as an evidence document under <state dir>/events/<sha2
   watch_account_key_added          an AddKey with full access, or a function call key with an empty
                                    method_names list, on a NEAR account labelled infrastructure,
                                    treasury or watch
+  labelled_account_large_transfer  a Transfers API row of at least 1000 USD sent by an incident or
+                                   denylist account
+  deploy_on_labelled_contract      a successful DeployContract on a currently labelled account
 """
 
 import base64
@@ -70,9 +73,13 @@ EVENTS_DIR = FEED_DIR / "events"
 EVENT_BLOCKS_DIR = FEED_DIR / "event-blocks"
 INCIDENTS_DIR = Path(__file__).resolve().parent / "incidents"
 SNAPSHOT_PATH = Path(__file__).resolve().parent / "feed" / "follow-snapshot.json"
-SIGNALS = ("code_hash_matches_incident", "fresh_dust_funded_pays_labelled", "watch_account_key_added")
+SIGNALS = ("code_hash_matches_incident", "fresh_dust_funded_pays_labelled", "watch_account_key_added",
+           "labelled_account_large_transfer", "deploy_on_labelled_contract")
 WATCH_CATEGORIES = ("infrastructure", "treasury", "watch")
+DEPLOY_CATEGORIES = ("catalog_token", "infrastructure", "bridge", "treasury", "organisation", "watch")
+TRANSFERS_URL = "https://transfers.main.fastnear.com"
 FRESH_WINDOW_MS = 24 * 60 * 60 * 1000
+POLL_S = 600
 MAX_REQUESTS = 600
 BACKOFF_S = 10
 FOLLOW_INTERVAL_S = 0.4
@@ -149,7 +156,7 @@ def _write_json(path, value, indent=None):
 
 def new_state():
     return {"start_height": None, "start_time": None, "last_height": None, "last_time": None, "blocks": 0,
-            "skipped_heights": [], "fresh_accounts": {}, "events": {name: 0 for name in SIGNALS}}
+            "skipped_heights": [], "fresh_accounts": {}, "events": {name: 0 for name in SIGNALS[:3]}}
 
 
 def load_state(path=STATE_PATH):
@@ -167,11 +174,13 @@ class Context:
             reported = document.get("code_hash_as_reported")
             if reported:
                 self.code_hashes[reported["value"]] = document["id"]
-        self.labelled, self.watched, self.watch_categories, self.deny_receivers = {}, {}, {}, set()
+        self.labelled, self.watched, self.watch_categories, self.deployable, self.deny_receivers = {}, {}, {}, {}, set()
         for assertion in store.assertions:
             if assertion.chain != "near" or assertion.superseded_by is not None:
                 continue
             self.labelled.setdefault(assertion.subject, []).append(assertion.id)
+            if assertion.category in DEPLOY_CATEGORIES:
+                self.deployable.setdefault(assertion.subject, []).append(assertion.id)
             if assertion.category in ("incident", "denylist"):
                 self.deny_receivers.add(assertion.subject)
             if assertion.category in WATCH_CATEGORIES:
@@ -210,6 +219,10 @@ def signals(block, state, context, source):
                 incident_id = context.code_hashes[action["code_hash"]]
                 events.append(_event(SIGNALS[0], receiver, f"{receiver} deployed code hash {action['code_hash']}, the "
                                      f"code hash the incident page {incident_id} reports", block, receipt, [], source))
+            if action["type"] == "DeployContract" and receiver in context.deployable:
+                events.append(_event(SIGNALS[4], receiver,
+                                     f"{receiver} deployed code hash {action['code_hash']}", block, receipt,
+                                     context.deployable[receiver], source))
             if action["type"] == "AddKey" and receiver in context.watched:
                 permission = action["permission"]
                 if permission == "FullAccess" or (isinstance(permission, dict) and "method_names" in permission
@@ -240,6 +253,7 @@ def apply(block, state, context, source, events_dir=EVENTS_DIR):
         return []
     paths = []
     for event in signals(block, state, context, source):
+        state["events"].setdefault(event["signal"], 0)
         state["events"][event["signal"]] += 1
         paths.append(evidence.write(event, events_dir))
     stamp = datetime.fromtimestamp(int(block["timestamp_ns"]) // 10**9, UTC).strftime(_TIME)
@@ -329,7 +343,19 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
     state.setdefault("lag_blocks", 0)
     state.setdefault("requests", 0)
     state.setdefault("request_day", datetime.fromtimestamp(clock(), UTC).strftime("%Y-%m-%d"))
+    for signal in SIGNALS:
+        state["events"].setdefault(signal, 0)
     context = Context(store or labels.load())
+    key_file = os.environ.get("FASTNEAR_API_KEY_FILE")
+    if key_file:
+        api_key = Path(key_file).read_text(encoding="utf-8").strip()
+        transfers_client = rpc.Client(TRANSFERS_URL, "off", kind="http",
+                                      headers={"Authorization": f"Bearer {api_key}"})
+        state.setdefault("disabled_signals", {}).pop("labelled_account_large_transfer", None)
+    else:
+        transfers_client = None
+        state.setdefault("disabled_signals", {})["labelled_account_large_transfer"] = (
+            "FASTNEAR_API_KEY_FILE is not set")
     walked = 0
     last_request = None
     while not stopped() and (max_blocks is None or walked < max_blocks):
@@ -354,6 +380,37 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
         while next_height <= final_height and not stopped() and (max_blocks is None or walked < max_blocks):
             if last_request is not None:
                 sleep(max(0, FOLLOW_INTERVAL_S - (clock() - last_request)))
+            if transfers_client is not None:
+                poll_started_ms = int(clock() * 1000)
+                last_poll_ms = state.get("last_large_transfer_poll_ms", poll_started_ms - POLL_S * 1000)
+                if poll_started_ms - last_poll_ms >= POLL_S * 1000:
+                    for subject in sorted(context.deny_receivers):
+                        body = {"account_id": subject, "direction": "sender", "from_timestamp_ms": last_poll_ms,
+                                "min_usd_amount": 1000, "ignore_system": True, "limit": 100}
+                        response = transfers_client.post("/v0/transfers", body)
+                        if not isinstance(response, dict) or not isinstance(response.get("transfers"), list):
+                            raise rpc.MalformedResponse("the transfers response has no transfers list")
+                        for transfer in response["transfers"]:
+                            if not isinstance(transfer, dict):
+                                raise rpc.MalformedResponse("a transfer row is not an object")
+                            block_timestamp = int(transfer["block_timestamp"])
+                            event = {"version": "1", "kind": "feed_event",
+                                     "signal": SIGNALS[3], "subject": subject,
+                                     "detail": f"FastNEAR reported a transfer of {transfer['usd_amount']} USD "
+                                               f"from {subject} to \"{transfer['other_account_id']}\"",
+                                     "labels": context.labelled[subject],
+                                     "other_account_id": transfer["other_account_id"],
+                                     "asset_id": transfer["asset_id"], "usd_amount": str(transfer["usd_amount"]),
+                                     "transaction_id": transfer["transaction_id"],
+                                     "tx_hash": transfer["transaction_id"],
+                                     "receipt_id": transfer["receipt_id"],
+                                     "observed": {"block_height": transfer["block_height"],
+                                                  "timestamp_ms": block_timestamp // 1_000_000},
+                                     "source": dict(transfers_client.last_source)}
+                            evidence.write(event, events_dir)
+                            state["events"][SIGNALS[3]] += 1
+                    state["last_large_transfer_poll_ms"] = poll_started_ms
+                    _write_json(Path(state_path), state, indent=2)
             request_day = datetime.fromtimestamp(clock(), UTC).strftime("%Y-%m-%d")
             if state["request_day"] != request_day:
                 state["request_day"], state["requests"] = request_day, 0
@@ -391,10 +448,15 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
 def stats_lines(state):
     """The feed-stats output: the start date, the block count and the event count per signal."""
     if state.get("mode") == "follow":
-        return [f"following since {state['started_at']}",
-                f"last block {state['last_height']} at {state['last_time']}",
-                f"lag {state['lag_blocks']} blocks"] + [f"{name} {count}" for name, count in state["events"].items()]
-    lines = [f"start {state['start_time']} at block {state['start_height']}",
-             f"last {state['last_time']} at block {state['last_height']}",
-             f"blocks {state['blocks']}, skipped heights {len(state['skipped_heights'])}"]
-    return lines + [f"{name} {count}" for name, count in state["events"].items()]
+        lines = [f"following since {state['started_at']}",
+                 f"last block {state['last_height']} at {state['last_time']}",
+                 f"lag {state['lag_blocks']} blocks"]
+        events = [f"{name} {state['events'].get(name, 0)}" for name in SIGNALS]
+    else:
+        lines = [f"start {state['start_time']} at block {state['start_height']}",
+                 f"last {state['last_time']} at block {state['last_height']}",
+                 f"blocks {state['blocks']}, skipped heights {len(state['skipped_heights'])}"]
+        events = [f"{name} {count}" for name, count in state['events'].items()]
+    lines += events
+    lines += [f"{name} disabled: {reason}" for name, reason in state.get("disabled_signals", {}).items()]
+    return lines
