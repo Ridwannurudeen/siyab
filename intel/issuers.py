@@ -1,4 +1,9 @@
-"""Issuer blacklist status rows built from recorded NEAR view calls."""
+"""Issuer blacklist status and history rows built from recorded NEAR calls.
+
+Transaction details and the pinned block response are reduced at record time: every signature
+field is dropped, and no other response field is changed. The block response also drops header
+approval signatures. Each fixture carries the reduction note.
+"""
 
 import argparse
 import base64
@@ -16,18 +21,217 @@ ISSUERS_PATH = ROOT / "intel" / "issuers.json"
 FIXTURE_DIR = ROOT / "fixtures" / "issuers"
 DATA_DIR = ROOT / "intel" / "issuers"
 STATUS_PATH = DATA_DIR / "status.jsonl"
+HISTORY_PATH = DATA_DIR / "history.jsonl"
 READS_PATH = DATA_DIR / "reads.json"
 RECEIVERS_PATH = ROOT / "fixtures" / "receivers" / "set.json"
 RPC_URL = rpc.MAINNET_RPC_URL
+FASTNEAR_TX_URL = "https://tx.main.fastnear.com"
+TRANSACTION_REDUCED = "every signature field dropped at record time; nothing else changed"
 STATUS_CATEGORIES = ("incident", "denylist", "watch", "treasury", "infrastructure", "bridge")
 RPC_INTERVAL_S = 1
 BACKOFF_S = 10
+TX_BACKOFF_S = 10
+TX_MAX_CONSECUTIVE_429 = 3
 LONG_BACKOFF_S = 120
 MAX_CONSECUTIVE_429 = 5
+HISTORY_METHODS = {
+    "add_to_blacklist": "added to the issuer blacklist of",
+    "remove_from_blacklist": "removed from the issuer blacklist of",
+    "destroy_black_funds": "black funds destroyed by the issuer of",
+}
 
 
 def issuer_entries():
     return json.loads(ISSUERS_PATH.read_text(encoding="utf-8"))["mainnet"]
+
+
+def _drop_signatures(value):
+    if isinstance(value, dict):
+        return {key: _drop_signatures(item) for key, item in value.items() if key != "signature"}
+    if isinstance(value, list):
+        return [_drop_signatures(item) for item in value]
+    return value
+
+
+def _drop_block_signatures(value):
+    response = _drop_signatures(value)
+    response["result"]["header"].pop("approvals", None)
+    return response
+
+
+def record_transaction_request(path, body, fixtures_dir=FIXTURE_DIR, sleep=time.sleep, progress=print):
+    client = rpc.Client(FASTNEAR_TX_URL, "off", kind="http", fixtures_dir=fixtures_dir)
+    consecutive_429 = 0
+    while True:
+        try:
+            response = client.post(path, body)
+            break
+        except rpc.HttpError as error:
+            if error.status != 429:
+                raise
+            consecutive_429 += 1
+            progress(f"Transactions API POST {path}: HTTP 429, consecutive {consecutive_429}")
+            if consecutive_429 >= TX_MAX_CONSECUTIVE_429:
+                raise
+            sleep(TX_BACKOFF_S)
+    url = FASTNEAR_TX_URL + path
+    params = rpc.body_params(body)
+    key = rpc.fixture_key(url, "POST", params)
+    fixture = {"request": {"method": "POST", "params": params}, "response": _drop_signatures(response),
+               "url": url, "fetched_at": client.last_source["fetched_at"], "reduced": TRANSACTION_REDUCED}
+    fixture_path = Path(fixtures_dir) / f"{key}.json"
+    fixture_path.parent.mkdir(parents=True, exist_ok=True)
+    fixture_path.write_bytes((json.dumps(fixture, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
+    progress(f"Transactions API POST {path}: HTTP 200, recorded {key[:12]}")
+    return fixture["response"]
+
+
+def _history_subjects(fixtures_dir):
+    owner = _owner(fixtures_dir)
+    subjects_found = []
+    seen = set()
+    for path in Path(fixtures_dir).glob("*.json"):
+        fixture = json.loads(path.read_text(encoding="utf-8"))
+        if (fixture.get("request", {}).get("method") != "POST"
+                or fixture.get("reduced") != TRANSACTION_REDUCED):
+            continue
+        for transaction in fixture["response"].get("transactions", []):
+            for outer in transaction.get("receipts", []):
+                receipt = outer.get("receipt", {})
+                status = outer.get("execution_outcome", {}).get("outcome", {}).get("status")
+                if (receipt.get("receiver_id") != "usdt.tether-token.near"
+                        or receipt.get("predecessor_id") != owner or status != {"SuccessValue": ""}):
+                    continue
+                actions = receipt.get("receipt", {}).get("Action", {}).get("actions", [])
+                for action in actions:
+                    call = action.get("FunctionCall") if isinstance(action, dict) else None
+                    if call and call.get("method_name") in HISTORY_METHODS:
+                        subject = json.loads(base64.b64decode(call["args"]))["account_id"]
+                        if subject not in seen:
+                            seen.add(subject)
+                            subjects_found.append(subject)
+    return subjects_found
+
+
+def record_history_accounts(subjects_to_record=None, sleep=time.sleep, progress=print):
+    client = rpc.Client(RPC_URL, "off", fixtures_dir=FIXTURE_DIR, sleep=sleep)
+    result = client.call("block", {"finality": "final"})
+    block = result["header"]["height"]
+    params = {"finality": "final"}
+    key = rpc.fixture_key(RPC_URL, "block", params)
+    fixture = {"request": {"method": "block", "params": params},
+               "response": _drop_block_signatures({"jsonrpc": "2.0", "result": result, "id": "gate"}),
+               "url": RPC_URL, "fetched_at": client.last_source["fetched_at"],
+               "reduced": "every signature field and header approval signature dropped at record time; "
+                          "no other response field changed"}
+    FIXTURE_DIR.mkdir(parents=True, exist_ok=True)
+    (FIXTURE_DIR / f"{key}.json").write_text(json.dumps(fixture, indent=2) + "\n", encoding="utf-8")
+    subjects_to_read = (_history_subjects(FIXTURE_DIR) if subjects_to_record is None
+                        else list(dict.fromkeys(subjects_to_record)))
+    for index, subject in enumerate(subjects_to_read):
+        if index:
+            sleep(RPC_INTERVAL_S)
+        try:
+            client.call("query", {"request_type": "view_account", "block_id": block,
+                                   "account_id": subject})
+            progress(f"view_account recorded at block {block}: {json.dumps(subject)} exists")
+        except rpc.RpcError as error:
+            progress(f"view_account recorded at block {block}: {json.dumps(subject)} {error.cause}")
+    return block, len(subjects_to_read)
+
+
+def _owner(fixtures_dir):
+    for path in Path(fixtures_dir).glob("*.json"):
+        fixture = json.loads(path.read_text(encoding="utf-8"))
+        params = fixture.get("request", {}).get("params", {})
+        if params.get("request_type") == "call_function" and params.get("method_name") == "owner":
+            response = fixture["response"]["result"]
+            return json.loads(bytes(response["result"]))
+    raise FileNotFoundError("the recorded token owner view is missing")
+
+
+def _account_observations(fixtures_dir):
+    observations = {}
+    for path in Path(fixtures_dir).glob("*.json"):
+        fixture = json.loads(path.read_text(encoding="utf-8"))
+        params = fixture.get("request", {}).get("params", {})
+        if params.get("request_type") != "view_account" or "block_id" not in params:
+            continue
+        response = fixture["response"]
+        error = response.get("error")
+        if error:
+            observations[params["account_id"]] = {
+                "block": params["block_id"], "exists": False,
+                "cause": error.get("cause", {}).get("name", "UNKNOWN"),
+            }
+        else:
+            observations[params["account_id"]] = {
+                "block": response["result"]["block_height"], "exists": True, "cause": None,
+            }
+    return observations
+
+
+def history_rows(fixtures_dir=FIXTURE_DIR):
+    owner = _owner(fixtures_dir)
+    observations = _account_observations(fixtures_dir)
+    rows = []
+    seen = set()
+    for path in sorted(Path(fixtures_dir).glob("*.json")):
+        fixture = json.loads(path.read_text(encoding="utf-8"))
+        request = fixture.get("request", {})
+        if (request.get("method") != "POST" or not request.get("params", {}).get("body_sha256")
+                or fixture.get("reduced") != TRANSACTION_REDUCED):
+            continue
+        for transaction in fixture["response"].get("transactions", []):
+            tx_hash = transaction.get("transaction", {}).get("hash")
+            for outer in transaction.get("receipts", []):
+                receipt = outer.get("receipt", {})
+                status = outer.get("execution_outcome", {}).get("outcome", {}).get("status")
+                if (receipt.get("receiver_id") != "usdt.tether-token.near"
+                        or receipt.get("predecessor_id") != owner or status != {"SuccessValue": ""}):
+                    continue
+                actions = receipt.get("receipt", {}).get("Action", {}).get("actions", [])
+                for index, action in enumerate(actions):
+                    call = action.get("FunctionCall") if isinstance(action, dict) else None
+                    if not call or call.get("method_name") not in HISTORY_METHODS:
+                        continue
+                    args = json.loads(base64.b64decode(call["args"]))
+                    subject = args["account_id"]
+                    key = (tx_hash, receipt["receipt_id"], index)
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    observation = observations[subject]
+                    account_note = (f'view_account returned {observation["cause"]} at block '
+                                    f'{observation["block"]}; no further inference is made.'
+                                    if not observation["exists"] else
+                                    f'view_account returned an account record at block {observation["block"]}.')
+                    method = call["method_name"]
+                    block = receipt["block_height"]
+                    token = receipt["receiver_id"]
+                    rows.append(seed.make_row(
+                        entity=f"{token} issuer action", subject=subject, chain="near",
+                        label=(f'{HISTORY_METHODS[method]} {token} in transaction {tx_hash} '
+                               f'at block {block}'), category="watch", provenance="onchain",
+                        source={"rpc": FASTNEAR_TX_URL, "method": "POST /v0/transactions",
+                                "args": {"tx_hashes": [tx_hash]}, "block": block},
+                        observed_at=fixture["fetched_at"],
+                        note=(f'The issuer action method {method} names the account id '
+                              f'{json.dumps(subject, ensure_ascii=False)}. {account_note}')))
+    return sorted(rows, key=lambda row: row["source"]["block"], reverse=True)
+
+
+def history_rows_jsonl():
+    return "".join(labels.row_line(row) + "\n" for row in history_rows())
+
+
+def write_history_rows(rows_to_write=None, path=HISTORY_PATH):
+    rows_to_write = history_rows() if rows_to_write is None else rows_to_write
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("".join(labels.row_line(row) + "\n" for row in rows_to_write),
+                    encoding="utf-8", newline="\n")
+    return len(rows_to_write)
 
 
 def subjects(store=None):
