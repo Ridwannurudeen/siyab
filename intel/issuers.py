@@ -124,10 +124,10 @@ def read_status(mode="replay", store=None, fixture_dir=FIXTURE_DIR, sleep=time.s
 
 
 def build_rows(reads):
-    entries = {entry["method"]: entry for entry in issuer_entries()}
+    entries = {entry["token"]: entry for entry in issuer_entries()}
     rows = []
     for read in reads:
-        issuer = entries[read["method"]]
+        issuer = entries[read["issuer"]]
         if read["answer"] != issuer["banned"]:
             continue
         answer = json.dumps(read["answer"], ensure_ascii=False)
