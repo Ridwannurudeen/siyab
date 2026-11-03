@@ -13,7 +13,7 @@ under the heading "Attribution hypothesis" with its rule id, inputs and confiden
 entities/<name>.html (one registry entity of intel/entities.jsonl: its kind, name, members and the
 registry read that produced it), accounts/<name>.html (one subject with a current row: its rows from
 sources and chain reads with chain, provenance and source, its inferred rows under "Attribution
-hypothesis" with their inputs and confidence, the incident pages naming it, the trace and cluster
+hypothesis" with their rule id, inputs and confidence, the incident pages naming it, the trace and cluster
 edges touching it and the feed events on it), clusters/<name>.html (the seeds, one card per edge:
 the two chain reads of an onchain edge, the
 input facts and confidence of an inferred edge under "Attribution hypothesis", then the precision
@@ -33,7 +33,8 @@ that has an account page to it.
 
 Text from a source (a report's sentence, a token symbol, a quoted string in a label row) is shown
 as quoted data: a quote object as <blockquote class="data">, a double quoted string inside a label
-or note as <q class="data">, so a reader and a test can tell it from ShieldBot's own words.
+or note as <q class="data">, and so is a value a label row stores (its source, its rule id), so a reader and
+a test can tell it from ShieldBot's own words.
 """
 
 import html
@@ -309,7 +310,8 @@ def entity_page(title, categories, store):
              f"<th>Provenance</th><th>Note</th></tr></thead><tbody>{body}</tbody></table></div>")
     if inferred:
         body = "".join(f'<tr><td class="mono">{_subject_cell(a.subject, accounts)}</td><td>{esc(a.chain)}</td>'
-                       f'<td>{data_text(a.label)}</td><td>{esc(a.category)}</td><td class="mono">{esc(a.rule_id)}</td>'
+                       f'<td>{data_text(a.label)}</td><td>{esc(a.category)}</td>'
+                       f'<td class="mono"><q class="data">{esc(a.rule_id)}</q></td>'
                        f'<td class="mono">{_inputs(a, by_id, accounts)}</td><td>{a.confidence}</td>'
                        f'<td>{data_text(a.note)}</td></tr>' for a in inferred)
         table += ("<h2>Attribution hypothesis</h2><p>Each row below is inferred: it names the rule that inferred "
@@ -334,11 +336,13 @@ def account_page(subject, store, accounts, incidents, flows, clusters, events_di
     if inferred:
         by_id = {a.id: a for a in store.assertions}
         rows = "".join(f'<tr><td>{esc(a.chain)}</td><td>{data_text(a.label)}</td><td>{esc(a.category)}</td>'
+                       f'<td class="mono"><q class="data">{esc(a.rule_id)}</q></td>'
                        f'<td class="mono">{_inputs(a, by_id, accounts)}</td><td>{a.confidence}</td>'
                        f'<td>{data_text(a.note)}</td></tr>' for a in inferred)
-        body += ('<h2>Attribution hypothesis</h2><p>Each row below is inferred: it lists the assertions its rule '
-                 'read as inputs and its confidence.</p><div class="table"><table><thead><tr><th>Chain</th>'
-                 '<th>Label</th><th>Category</th><th>Inputs</th><th>Confidence</th><th>Note</th></tr></thead>'
+        body += ('<h2>Attribution hypothesis</h2><p>Each row below is inferred: it names the rule that inferred '
+                 'it, the assertions the rule read as its inputs and its confidence.</p><div class="table"><table>'
+                 '<thead><tr><th>Chain</th><th>Label</th><th>Category</th><th>Rule</th><th>Inputs</th>'
+                 '<th>Confidence</th><th>Note</th></tr></thead>'
                  f'<tbody>{rows}</tbody></table></div>')
     named = [(document["id"], document["title"]) for document in incidents
              if any(account["subject"] == subject for account in document.get("accounts", []))]

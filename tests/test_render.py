@@ -439,7 +439,7 @@ class RenderTest(unittest.TestCase):
         store = labels.load()
         by_id = {a.id: a for a in store.assertions}
         inferred = [a for a in store.assertions if a.provenance == "inferred" and a.superseded_by is None]
-        self.assertTrue(inferred)
+        self.assertIn("fake_token_shared_hash", {row.rule_id for row in inferred})
         for row in inferred:
             with self.subTest(row=row.id):
                 page = self.pages[f"accounts/{page_name(row.subject)}.html"]
@@ -451,9 +451,20 @@ class RenderTest(unittest.TestCase):
                 self.assertNotIn("<td>inferred</td>", plain)
                 self.assertIn(render.data_text(row.label), hypothesis)
                 self.assertIn(f"<td>{row.confidence}</td>", hypothesis)
+                self.assertIn(f'<td class="mono"><q class="data">{row.rule_id}</q></td>', hypothesis)
+                self.assertNotIn(row.rule_id, plain)
                 for input_id in row.source["inputs"]:
                     self.assertIn(f'<a href="../accounts/{page_name(by_id[input_id].subject)}.html">{input_id}</a>',
                                   hypothesis)
+
+    def test_the_entity_page_quotes_the_rule_id_of_an_inferred_row(self):
+        fact = make_row()
+        row = make_row(subject="treasury.example.near", category="treasury", provenance="inferred",
+                       source={"rule_id": "a_test_rule", "inputs": [fact.id]}, rule_id="a_test_rule", confidence=0.9)
+        page = render.entity_page("Treasuries", ("treasury",), labels.Store([fact, row], "0" * 64))
+        heading = page.index("<h2>Attribution hypothesis</h2>")
+        self.assertIn('<td class="mono"><q class="data">a_test_rule</q></td>', page[heading:])
+        self.assertNotIn("a_test_rule", own_text(page))
 
     def test_the_account_page_shows_the_chain_of_every_row(self):
         chains = {}
