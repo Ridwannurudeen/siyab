@@ -4,14 +4,19 @@ No framework and no external script; one stylesheet inline in each page. The pag
 (the headline, what the counts are of, the counts block of scripts/counts.py, the links), feed.html
 (the recorded window or, in follow mode, the follower's lines, then the events),
 incidents/<id>.html (sources, accounts, on chain facts, rules today, what is not
-public), entities/<set>.html (treasuries, catalog, infrastructure: one page per seed set),
-flows/<name>.html (an exit trace: the summary line, the shares of the subject's gross outbound
+public), entities/<set>.html (treasuries, catalog, infrastructure, organisations: one page per set,
+each subject shown as quoted data, since a third party chose the account id, and every inferred row
+under the heading "Attribution hypothesis" with its rule id, inputs and confidence),
+clusters/<name>.html (the seeds, one card per edge: the two chain reads of an onchain edge, the
+input facts and confidence of an inferred edge under "Attribution hypothesis", then the precision
+lines as the JSON states them and the depositor count), flows/<name>.html (an exit trace: the
+summary line, the shares of the subject's gross outbound
 transfer value, the subject's balance and issuer status at a block, then one card per hop grouped
 by depth), verify.html (a form that reads a registry record from https://test.rpc.fastnear.com in the
 browser, never the ShieldBot API, and shows it next to the evidence hash the reader pastes; its inputs
 show the vendor's committed record as examples) and 404.html (the page the API serves for a path that
 is neither a route nor a file; its links are relative to the site root). Every
-page carries a robots noindex meta and the footer "Data: NearBlocks".
+page carries a robots noindex meta, which render --indexable leaves out, and the footer "Data: NearBlocks".
 
 Text from a source (a report's sentence, a token symbol, a quoted string in a label row) is shown
 as quoted data: a quote object as <blockquote class="data">, a double quoted string inside a label
@@ -24,7 +29,7 @@ import json
 import re
 from pathlib import Path
 
-from intel import feed, labels, trace
+from intel import cluster, feed, labels, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 INCIDENTS_DIR = Path(__file__).resolve().parent / "incidents"
@@ -38,7 +43,9 @@ COUNTS_OF = ("The counts below are of the recorded mainnet receivers the rules j
              "traces and their hops, and the verdict latency runs.")
 ENTITY_SETS = (("treasuries", "Treasuries", ("treasury",)),
                ("catalog", "Catalog tokens", ("catalog_token",)),
-               ("infrastructure", "Infrastructure and bridge accounts", ("infrastructure", "bridge")))
+               ("infrastructure", "Infrastructure and bridge accounts", ("infrastructure", "bridge")),
+               ("organisations", "Organisations from on chain registries", ("organisation",)))
+ROBOTS = "<meta name=\"robots\" content=\"noindex\">\n"
 STYLE = """
 :root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#dcd8cf;--card:#ffffff;--accent:#2f5d50;--deny:#8a2b1f}
 @media (prefers-color-scheme:dark){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3934;
@@ -91,8 +98,7 @@ def page(title, body, depth=0):
     nav = "".join(f'<a href="{up}{href}">{label}</a>' for href, label in (
         ("index.html", "Home"), ("feed.html", "Feed"), ("verify.html", "Verify")))
     return ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"
-            "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
-            "<meta name=\"robots\" content=\"noindex\">\n"
+            f"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n{ROBOTS}"
             f"<title>{esc(title)}</title>\n<style>{STYLE}</style>\n</head>\n<body>\n"
             f"<header><nav>{nav}</nav></header>\n<main>\n{body}\n</main>\n"
             "<footer><p>Data: NearBlocks. Blocks: mainnet.neardata.xyz. Transfers: FastNEAR.</p></footer>\n"
@@ -114,7 +120,16 @@ def _flows(flows_dir=trace.FLOWS_DIR):
     return [(path.stem, json.loads(path.read_text(encoding="utf-8"))) for path in sorted(Path(flows_dir).glob("*.json"))]
 
 
-def index_page(incidents, flows):
+def _clusters(clusters_dir=cluster.CLUSTERS_DIR):
+    return [(path.stem, json.loads(path.read_text(encoding="utf-8")))
+            for path in sorted(Path(clusters_dir).glob("*.json"))]
+
+
+def _inferred(edges):
+    return [edge for edge in edges if edge["provenance"] == "inferred"]
+
+
+def index_page(incidents, flows, clusters):
     counts = "".join(f"<p>{esc(line)}</p>" for line in _counts_lines())
     links = ["<li><a href=\"feed.html\">The block feed and its events</a></li>"]
     links += [f'<li><a href="incidents/{esc(d["id"])}.html">{esc(d["title"])} ({esc(d["date"])})</a></li>'
@@ -123,6 +138,9 @@ def index_page(incidents, flows):
     links += [f'<li><a href="flows/{esc(name)}.html">Exit trace from <span class="mono">{esc(f["subject"])}</span>: '
               f'depth {f["depth_reached"]} of {f["depth"]}, {esc(trace.stop_state(f["completeness"]))}, with the shares '
               'of its gross outbound transfer value</a></li>' for name, f in flows]
+    links += [f'<li><a href="clusters/{esc(name)}.html">Account relationship edges over the {len(c["seeds"])} seeds '
+              f'of {esc(name)}: {len(c["edges"]) - len(_inferred(c["edges"]))} from chain reads, '
+              f'{len(_inferred(c["edges"]))} attribution hypotheses</a></li>' for name, c in clusters]
     links.append("<li><a href=\"verify.html\">Read a registry record and compare its evidence hash</a></li>")
     body = (f"<h1>{esc(HEADLINE)}</h1>\n<p>{esc(COUNTS_OF)}</p>\n<h2>Counts</h2>\n<div class=\"card\">{counts}</div>\n"
             "<p class=\"muted\">Every number above is printed by <code>scripts/counts.py</code> from the committed "
@@ -194,13 +212,67 @@ def incident_page(document):
 
 def entity_page(title, categories, store):
     rows = [a for a in store.assertions if a.category in categories and a.superseded_by is None]
-    body = "".join(f'<tr><td class="mono">{esc(a.subject)}</td><td>{esc(a.chain)}</td><td>{data_text(a.label)}</td>'
-                   f'<td>{esc(a.category)}</td><td>{esc(a.provenance)}</td><td>{data_text(a.note)}</td></tr>'
-                   for a in rows)
+    stated = [a for a in rows if a.provenance != "inferred"]
+    inferred = [a for a in rows if a.provenance == "inferred"]
+    body = "".join(f'<tr><td class="mono"><q class="data">{esc(a.subject)}</q></td><td>{esc(a.chain)}</td>'
+                   f'<td>{data_text(a.label)}</td><td>{esc(a.category)}</td><td>{esc(a.provenance)}</td>'
+                   f'<td>{data_text(a.note)}</td></tr>' for a in stated)
     table = ("<div class=\"table\"><table><thead><tr><th>Subject</th><th>Chain</th><th>Label</th><th>Category</th>"
              f"<th>Provenance</th><th>Note</th></tr></thead><tbody>{body}</tbody></table></div>")
+    if inferred:
+        body = "".join(f'<tr><td class="mono"><q class="data">{esc(a.subject)}</q></td><td>{esc(a.chain)}</td>'
+                       f'<td>{data_text(a.label)}</td><td>{esc(a.category)}</td><td class="mono">{esc(a.rule_id)}</td>'
+                       f'<td class="mono">{"<br>".join(esc(i) for i in a.source["inputs"])}</td><td>{a.confidence}</td>'
+                       f'<td>{data_text(a.note)}</td></tr>' for a in inferred)
+        table += ("<h2>Attribution hypothesis</h2><p>Each row below is inferred: it names the rule that inferred "
+                  "it, the assertions the rule read as its inputs and its confidence.</p><div class=\"table\"><table>"
+                  "<thead><tr><th>Subject</th><th>Chain</th><th>Label</th><th>Category</th><th>Rule</th>"
+                  f"<th>Inputs</th><th>Confidence</th><th>Note</th></tr></thead><tbody>{body}</tbody></table></div>")
     return page(title, f"<h1>{esc(title)}</h1><p>{len(rows)} current assertions from the label store.</p>{table}",
                 depth=1)
+
+
+def _edge_card(edge, facts):
+    head = (f'<div class="card edge"><p><strong>{esc(edge["rule"])}</strong>, provenance {esc(edge["provenance"])}'
+            + (f', confidence {edge["confidence"]}' if edge["provenance"] == "inferred" else "")
+            + f'</p><p class="mono">{esc(edge["from"])} to {esc(edge["to"])}</p>')
+    if edge["provenance"] != "inferred":
+        reads = "<br>".join(f'{esc(read["method"])} {esc(json.dumps(read["args"], ensure_ascii=False))} at block '
+                            f'{read["block"]} from {esc(read["rpc"])}'
+                            for read in (edge["source"]["from"], edge["source"]["to"]))
+        return head + f'<p class="mono muted">{reads}</p></div>'
+    shared = ", ".join(f"{esc(key)} {esc(value)}" for key, value in edge["source"].items())
+    inputs = "".join(
+        f'<li class="mono">fact {esc(fact["id"])}: {esc(fact["subject"])} {esc(fact["kind"])} {esc(fact["value"])}, '
+        f'read from {esc(fact["source"]["provider"])} {esc(fact["source"]["method"])} '
+        f'{esc(json.dumps(fact["source"]["args"], ensure_ascii=False))} at block {fact["source"]["block"]}</li>'
+        for fact in (facts[fact_id] for fact_id in edge["inputs"]))
+    return head + f'<p>shared: <span class="mono">{shared}</span></p><p>inputs</p><ul>{inputs}</ul></div>'
+
+
+def cluster_page(name, document):
+    facts = {fact["id"]: fact for fact in document["facts"]}
+    inferred = _inferred(document["edges"])
+    chain = [edge for edge in document["edges"] if edge["provenance"] != "inferred"]
+    seeds = "".join(f'<li class="mono">{esc(seed)}</li>' for seed in document["seeds"])
+    precision = "".join(f"<li>{esc(line)}</li>" for line in document["precision"].values())
+    depositors = document["depositors"]
+    counted = ("<p>No deposit count in this run.</p>" if depositors is None else
+               f'<p>{depositors["count"]} distinct depositors of <span class="mono">{esc(depositors["collector"])}</span> '
+               f'since {esc(depositors["since"])}, {depositors["implicit_count"]} of them implicit accounts; the '
+               "cluster file counts them and lists none.</p>")
+    body = (f"<h1>Account relationship edges: {esc(name)}</h1><p>{esc(document['standard'])}</p>"
+            f"<h2>Seeds</h2><p>{len(document['seeds'])} seeds, each with a current incident label in the label "
+            f"store.</p><ul>{seeds}</ul>"
+            "<h2>Edges from chain reads</h2>" + ("".join(_edge_card(edge, facts) for edge in chain)
+                                                 or "<p>No edge from chain reads.</p>") +
+            "<h2>Attribution hypothesis</h2><p>Each edge below is inferred from the facts named as its inputs, at "
+            "the confidence shown; it is a hypothesis, not a chain read, and no verdict reads it.</p>"
+            + ("".join(_edge_card(edge, facts) for edge in inferred) or "<p>No inferred edge.</p>") +
+            f"<h2>Precision</h2><ul>{precision}</ul><h2>Depositors</h2>{counted}"
+            f"<p class=\"muted\">Read {esc(document['fetched_at'])}. docs/CLUSTER.md states the heuristics and their "
+            "limits.</p>")
+    return page(f"Account relationship edges: {name}", body, depth=1)
 
 
 def _hop_card(hop):
@@ -323,21 +395,25 @@ def not_found_page():
     return page("Not found", body)
 
 
-def render(out_dir, store=None, incidents_dir=INCIDENTS_DIR, flows_dir=trace.FLOWS_DIR):
-    """Write every page under out_dir; returns the written paths relative to it."""
+def render(out_dir, store=None, incidents_dir=INCIDENTS_DIR, flows_dir=trace.FLOWS_DIR,
+           clusters_dir=cluster.CLUSTERS_DIR, indexable=False):
+    """Write every page under out_dir, without the robots noindex meta when indexable; returns the written
+    paths relative to it."""
     store = store or labels.load()
     out = Path(out_dir)
-    incidents, flows = _incidents(incidents_dir), _flows(flows_dir)
-    pages = {"index.html": index_page(incidents, flows), "feed.html": feed_page(), "verify.html": verify_page(),
-             "404.html": not_found_page()}
+    incidents, flows, clusters = _incidents(incidents_dir), _flows(flows_dir), _clusters(clusters_dir)
+    pages = {"index.html": index_page(incidents, flows, clusters), "feed.html": feed_page(),
+             "verify.html": verify_page(), "404.html": not_found_page()}
     for document in incidents:
         pages[f"incidents/{document['id']}.html"] = incident_page(document)
     for name, title, categories in ENTITY_SETS:
         pages[f"entities/{name}.html"] = entity_page(title, categories, store)
     for name, document in flows:
         pages[f"flows/{name}.html"] = flow_page(document)
+    for name, document in clusters:
+        pages[f"clusters/{name}.html"] = cluster_page(name, document)
     for relative, text in pages.items():
         path = out / relative
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(text.encode("utf-8"))
+        path.write_bytes((text.replace(ROBOTS, "") if indexable else text).encode("utf-8"))
     return sorted(pages)

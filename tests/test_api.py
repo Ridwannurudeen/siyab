@@ -135,6 +135,22 @@ class ApiTest(unittest.TestCase):
             (Path(tmp) / f"{subject}.json").write_text('{"hops": []}', encoding="utf-8")
             self.assertEqual(self.get_json(f"/flow/{subject}"), (200, {"hops": []}))
 
+    def test_the_api_refuses_a_cluster_for_a_subject_without_an_incident_label(self):
+        subject = "intents.near"
+        self.assertTrue(self.store.by_subject(subject, "near"))
+        self.assertNotIn("incident", {a.category for a in self.store.by_subject(subject, "near")})
+        self.assertEqual(self.get_json(f"/cluster/{subject}"), (403, {"error": "subject carries no incident label"}))
+        self.assertEqual(self.get_json("/cluster/nobody-here.near"), (403, {"error": "subject carries no incident label"}))
+
+    def test_the_api_serves_the_cluster_of_a_seed_and_404_without_a_file(self):
+        document = json.loads((ROOT / "intel" / "clusters" / "rhea.json").read_bytes())
+        for seed in (document["seeds"][0], document["seeds"][-1]):
+            with self.subTest(seed=seed):
+                self.assertEqual(self.get_json(f"/cluster/{seed}"), (200, document))
+        subject = self.incident_subject()
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(api, "CLUSTERS_DIR", Path(tmp)):
+            self.assertEqual(self.get_json(f"/cluster/{subject}"), (404, {"error": f"no cluster for {subject}"}))
+
     def test_static_files_stay_under_the_site(self):
         status, content_type, cache, body = self.request("/")
         self.assertEqual((status, content_type, cache), (200, "text/html", "no-store"))

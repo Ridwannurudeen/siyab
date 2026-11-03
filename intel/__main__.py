@@ -26,7 +26,7 @@ import time
 from pathlib import Path
 
 from gate import rpc, rules
-from intel import api, feed, labels, render, seed, trace
+from intel import api, cluster, feed, labels, render, seed, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 RECEIVERS_DIR = ROOT / "fixtures" / "receivers"
@@ -227,7 +227,7 @@ def _flow(args):
 
 
 def _render(args):
-    pages = render.render(args.out)
+    pages = render.render(args.out, indexable=args.indexable)
     print(f"{len(pages)} pages written under {args.out}")
     return 0
 
@@ -239,7 +239,7 @@ def main(argv=None):
     seeding = commands.add_parser("seed", help="seed the label store from one source")
     seeding.add_argument("source", choices=seed.SOURCES)
     seeding.set_defaults(handler=_seed)
-    server = commands.add_parser("serve", help="serve the read only labels, incidents, evidence and flow API")
+    server = commands.add_parser("serve", help="serve the read only labels, incidents, evidence, flow and cluster API")
     server.add_argument("--host", default="127.0.0.1")
     server.add_argument("--port", type=int, default=8787)
     server.add_argument("--site", help="a directory of static files to serve too, such as demo/site")
@@ -259,8 +259,15 @@ def main(argv=None):
     flow.add_argument("--name", help="the trace file name under intel/flows/ (default: the existing one, else the subject)")
     flow.add_argument("--record", action="store_true", help="fetch the transfer pages not recorded yet")
     flow.set_defaults(handler=_flow)
+    # Every argument after the command goes to the module's own parser, options included: this parser
+    # reads no option of its own (its prefix is "+", which no argument of that module starts with).
+    clustering = commands.add_parser("cluster", help="account relationship edges over incident labelled seeds, "
+                                     "as python -m intel.cluster", add_help=False, prefix_chars="+")
+    clustering.add_argument("args", nargs=argparse.REMAINDER)
+    clustering.set_defaults(handler=lambda args: cluster.main(args.args))
     rendering = commands.add_parser("render", help="write the static hosted pages from the committed files")
     rendering.add_argument("--out", required=True, help="the directory to write, such as demo/site")
+    rendering.add_argument("--indexable", action="store_true", help="leave the robots noindex meta out")
     rendering.set_defaults(handler=_render)
     commands.add_parser("feed-stats", help="print the feed state").set_defaults(handler=_feed_stats)
     args = parser.parse_args(argv)

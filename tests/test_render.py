@@ -11,10 +11,11 @@ from pathlib import Path
 from unittest import mock
 
 from intel import __main__ as intel_main
-from intel import feed, labels, render, trace
+from intel import cluster, feed, labels, render, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "demo" / "site"
+ROBOTS = '<meta name="robots" content="noindex">\n'
 # COMMON rule 3: the hygiene phrases plus the words ShieldBot never writes in its own text.
 EXTRA_WORDS = re.compile(r"go to|guarantee|secure|safe|\bshield\b", re.IGNORECASE)
 BARRED = re.compile(r"scam|clone|fake|drainer", re.IGNORECASE)
@@ -41,6 +42,19 @@ def no_network(*args, **kwargs):
     raise AssertionError("the test opened the network")
 
 
+def make_row(**fields):
+    """A valid label store row: an onchain infrastructure row unless fields say otherwise."""
+    row = {"entity": "test entity", "subject": "relay.example.near", "chain": "near", "label": "a relayer contract",
+           "category": "infrastructure", "provenance": "onchain",
+           "source": {"rpc": "https://free.rpc.fastnear.com", "method": "view_account",
+                      "args": {"account_id": "relay.example.near"}, "block": 1},
+           "observed_at": "2026-11-03T00:00:00Z", "confidence": 1, "rule_id": None, "superseded_by": None,
+           "note": "a test row"}
+    row.update(fields)
+    row["id"] = labels.assertion_id(row)
+    return labels.validate(row)
+
+
 def own_text(page):
     """The visible text of a page with every quoted source string removed."""
     text = QUOTED.sub(" ", page)
@@ -64,8 +78,10 @@ class RenderTest(unittest.TestCase):
     def test_every_page_is_written(self):
         incidents = [p.stem for p in (ROOT / "intel" / "incidents").glob("*.json")]
         flows = [p.stem for p in (ROOT / "intel" / "flows").glob("*.json")]
+        clusters = [p.stem for p in (ROOT / "intel" / "clusters").glob("*.json")]
         expected = (["index.html", "feed.html", "verify.html", "404.html"] + [f"incidents/{i}.html" for i in incidents]
-                    + [f"entities/{name}.html" for name, _, _ in render.ENTITY_SETS] + [f"flows/{f}.html" for f in flows])
+                    + [f"entities/{name}.html" for name, _, _ in render.ENTITY_SETS] + [f"flows/{f}.html" for f in flows]
+                    + [f"clusters/{c}.html" for c in clusters])
         self.assertEqual(sorted(self.written), sorted(expected))
 
     def test_every_page_is_noindex_with_the_footer_and_no_external_script(self):
@@ -204,6 +220,88 @@ class RenderTest(unittest.TestCase):
             self.assertIn(f"block {hop['block']}", page)
         self.assertIn(f"depth {document['depth_reached']} of {document['depth']}, "
                       f"{trace.stop_state(document['completeness'])}", self.pages["index.html"])
+
+    def test_the_cluster_page_shows_every_edge_with_its_provenance_and_the_hypothesis_heading_for_inferred_edges(self):
+        paths = sorted((ROOT / "intel" / "clusters").glob("*.json"))
+        self.assertTrue(paths)
+        for path in paths:
+            document = json.loads(path.read_text(encoding="utf-8"))
+            page = self.pages[f"clusters/{path.stem}.html"]
+            facts = {fact["id"]: fact for fact in document["facts"]}
+            chain = [edge for edge in document["edges"] if edge["provenance"] != "inferred"]
+            inferred = [edge for edge in document["edges"] if edge["provenance"] == "inferred"]
+            with self.subTest(cluster=path.stem):
+                self.assertTrue(chain and inferred)
+                heading = page.index("<h2>Attribution hypothesis</h2>")
+                self.assertEqual(page[:heading].count('<div class="card edge">'), len(chain))
+                self.assertEqual(page[heading:].count('<div class="card edge">'), len(inferred))
+                cards = page.split('<div class="card edge">')[1:]
+                for edge, card in zip(chain + inferred, cards):
+                    self.assertIn(f"<strong>{edge['rule']}</strong>, provenance {edge['provenance']}", card)
+                    self.assertIn(f'<p class="mono">{html.escape(edge["from"])} to {html.escape(edge["to"])}</p>', card)
+                for edge, card in zip(chain, cards):
+                    for side in ("from", "to"):
+                        read = edge["source"][side]
+                        args = html.escape(json.dumps(read["args"], ensure_ascii=False))
+                        self.assertIn(f"{read['method']} {args} at block {read['block']} from {read['rpc']}", card)
+                for edge, card in zip(inferred, cards[len(chain):]):
+                    self.assertIn(f"confidence {edge['confidence']}", card)
+                    for fact_id in edge["inputs"]:
+                        self.assertIn(f"fact {fact_id}", card)
+                        self.assertIn(f"at block {facts[fact_id]['source']['block']}", card)
+                precision = page.index("<h2>Precision</h2>")
+                self.assertLess(heading, precision)
+                for line in document["precision"].values():
+                    self.assertIn(f"<li>{html.escape(line)}</li>", page[precision:])
+                self.assertLess(page.index("<h2>Seeds</h2>"), page.index('<div class="card edge">'))
+                for seed in document["seeds"]:
+                    self.assertIn(f'<li class="mono">{html.escape(seed)}</li>', page)
+                depositors = document["depositors"]
+                self.assertIn(f"{depositors['count']} distinct depositors of", page)
+                self.assertIn(f"{depositors['implicit_count']} of them implicit accounts", page)
+                self.assertIn(f'href="clusters/{path.stem}.html"', self.pages["index.html"])
+
+    def test_the_cluster_command_hands_every_argument_to_the_module_main(self):
+        with mock.patch.object(cluster, "main", return_value=2) as module_main:
+            self.assertEqual(intel_main.main(["cluster", "--subject", "x.near"]), 2)
+            self.assertEqual(intel_main.main(["cluster", "a.near", "b.near", "--name", "pair", "--record"]), 2)
+            self.assertEqual(intel_main.main(["cluster"]), 2)
+        self.assertEqual(module_main.call_args_list, [mock.call(["--subject", "x.near"]),
+                                                      mock.call(["a.near", "b.near", "--name", "pair", "--record"]),
+                                                      mock.call([])])
+
+    def test_indexable_drops_the_robots_meta_and_the_default_keeps_it(self):
+        with tempfile.TemporaryDirectory() as tmp, contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(intel_main.main(["render", "--out", tmp, "--indexable"]), 0)
+            indexable = {name: (Path(tmp) / name).read_text(encoding="utf-8") for name in self.written}
+        for name in self.written:
+            with self.subTest(page=name):
+                self.assertIn(ROBOTS, self.pages[name])
+                self.assertIn(ROBOTS, (SITE / name).read_text(encoding="utf-8"))
+                self.assertNotIn('name="robots"', indexable[name])
+                self.assertEqual(indexable[name], self.pages[name].replace(ROBOTS, ""))
+
+    def test_inferred_rows_render_as_hypotheses_on_the_entity_pages(self):
+        stated = make_row()
+        hypothesis = make_row(subject="relay2.example.near", label="a relayer contract by the same operator",
+                              provenance="inferred", rule_id="shared_operator_test", confidence=0.6,
+                              source={"rule_id": "shared_operator_test", "inputs": [stated.id]},
+                              note="derived from the onchain assertion in source.inputs")
+        page = render.entity_page("Infrastructure", ("infrastructure",), labels.Store([hypothesis, stated], "0" * 64))
+        heading = page.index("<h2>Attribution hypothesis</h2>")
+        self.assertEqual(page.count("<tr><td"), 2)
+        self.assertLess(page.index(stated.subject), heading)
+        hypothesis_part = page[heading:]
+        self.assertNotIn(stated.subject + "<", hypothesis_part)
+        row = hypothesis_part[hypothesis_part.index("relay2.example.near"):]
+        for value in ("shared_operator_test", stated.id, "0.6", "a relayer contract by the same operator"):
+            self.assertIn(value, row)
+        store = labels.load()
+        for name, _, categories in render.ENTITY_SETS:
+            with self.subTest(set=name):
+                inferred = [a for a in store.assertions if a.category in categories and a.superseded_by is None
+                            and a.provenance == "inferred"]
+                self.assertEqual("<h2>Attribution hypothesis</h2>" in self.pages[f"entities/{name}.html"], bool(inferred))
 
     def test_the_entity_pages_list_every_current_row_of_their_set(self):
         store = labels.load()

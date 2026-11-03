@@ -11,6 +11,8 @@ Routes (GET only; no route writes anything and no route opens the network):
     /flow/<subject>       the exit trace intel/flows/<subject>.json, else the trace file under
                           intel/flows/ whose subject it is (such as rhea-collector.json); 403 for a
                           subject that carries no incident label, 404 when no trace was written
+    /cluster/<subject>    the cluster file under intel/clusters/ whose seeds hold the subject; 403
+                          for a subject that carries no incident label, 404 when no cluster holds it
     anything else         a static file under --site when one is given; a path whose last segment
                           ends in .html is never an API route, so /incidents/<id>.html is the page
                           and /incidents/<id> the JSON; a path that is neither answers 404 with the
@@ -35,6 +37,7 @@ EVIDENCE_DIRS = (ROOT / "fixtures" / "evidence", ROOT / "intel" / "feed" / "even
 FEED_STATE = ROOT / "intel" / "feed" / "state.json"
 FEED_EVENTS = ROOT / "intel" / "feed" / "events"
 FLOWS_DIR = ROOT / "intel" / "flows"
+CLUSTERS_DIR = ROOT / "intel" / "clusters"
 FEED_LIMIT = 50
 JSON_TYPE = "application/json; charset=utf-8"
 _HEX64 = re.compile(r"[0-9a-f]{64}")
@@ -93,6 +96,16 @@ def _flow(store, subject):
     return 200, _read_json(path)
 
 
+def _cluster(store, subject):
+    if not any(a.subject == subject and a.category == "incident" for a in store.assertions):
+        return 403, {"error": "subject carries no incident label"}
+    for path in sorted(CLUSTERS_DIR.glob("*.json")):
+        document = _read_json(path)
+        if subject in document["seeds"]:
+            return 200, document
+    return 404, {"error": f"no cluster for {subject}"}
+
+
 def route(path, store):
     """(status, JSON body) for an API path, or None when the path is not an API route."""
     parts = [urllib.parse.unquote(part) for part in urllib.parse.urlsplit(path).path.split("/")[1:]]
@@ -112,6 +125,8 @@ def route(path, store):
             return _evidence(value)
         if name == "flow":
             return _flow(store, value)
+        if name == "cluster":
+            return _cluster(store, value)
     return None
 
 
