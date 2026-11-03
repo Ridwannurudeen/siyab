@@ -1,0 +1,30 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "call_function",
+      "finality": "final",
+      "account_id": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+      "method_name": "is_blocklisted",
+      "args_base64": "eyJhY2NvdW50X2lkIjoiNGNkOTg4YWZiYWQzNzI4OWJhYWY1M2MxM2U5OGUyYmQ0NmFhZWE4Yy5mYWN0b3J5LmJyaWRnZS5uZWFyIn0="
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "HAKVjhV15MuxMBUg9GWpENWDr398mczh19kU1Y2MztW4",
+      "block_height": 222839642,
+      "logs": [],
+      "result": [
+        102,
+        97,
+        108,
+        115,
+        101
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-03T07:38:33Z"
+}
