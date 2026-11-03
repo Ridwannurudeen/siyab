@@ -16,8 +16,12 @@ The six lines, in this order (every number is counted from the files named):
   Z watch_account_key_added).
       intel/feed/state.json: its start date, block count and event count per signal, in the file's
       order; "Feed: not run." while that file does not exist
-  Flows: T exit traces, H hops.
-      intel/flows/*.json, the hops of every trace
+  Flows: T exit traces, H hops, depth D of B, S.
+      intel/flows/*.json, the hops of every trace; D (depth_reached) and B (depth) of the trace with
+      the least progress (the smallest depth_reached, a stopped one first among equals); S is
+      "complete" when every trace is complete, else the stop of that trace (or of the first stopped
+      one): "stopped while reading the subject" or "stopped while reading an account N hop(s) from
+      the subject"; "Flows: 0 exit traces, 0 hops, depth 0 of 0, complete." without a trace
   Latency: p50 X ms, p95 Y ms over R verdict runs.
       fixtures/latency/*.json, each a JSON list of integers or of objects with an integer latency_ms;
       the percentiles are nearest rank; "Latency: not measured." while no such file exists
@@ -36,7 +40,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from intel import labels
+from intel import labels, trace
 
 JUDGEMENTS_DIR = ROOT / "fixtures" / "receivers" / "judgements"
 INCIDENTS_DIR = ROOT / "intel" / "incidents"
@@ -76,7 +80,13 @@ def feed_line(state_path=FEED_STATE):
 
 def flows_line(directory=FLOWS_DIR):
     traces = [json.loads(path.read_text(encoding="utf-8")) for path in sorted(Path(directory).glob("*.json"))]
-    return f"Flows: {len(traces)} exit traces, {sum(len(t['hops']) for t in traces)} hops."
+    if not traces:
+        return "Flows: 0 exit traces, 0 hops, depth 0 of 0, complete."
+    least = min(traces, key=lambda t: (t["depth_reached"], t["completeness"] == "complete"))
+    stopped = [t for t in traces if t["completeness"] != "complete"]
+    state = "complete" if not stopped else trace.stop_state((least if least in stopped else stopped[0])["completeness"])
+    return (f"Flows: {len(traces)} exit traces, {sum(len(t['hops']) for t in traces)} hops, depth "
+            f"{least['depth_reached']} of {least['depth']}, {state}.")
 
 
 def _latencies(path):

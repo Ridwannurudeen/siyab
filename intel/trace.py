@@ -111,14 +111,45 @@ def human(amount, decimals):
     return f"{(Decimal(int(amount)) / (Decimal(10) ** decimals)).normalize():,f}"
 
 
-def _usd(text):
+def usd_text(text):
+    """A USD sum to the cent, with thousands separators."""
     return f"{Decimal(text).quantize(Decimal('0.01')):,f} USD"
+
+
+def _hops_away(steps):
+    return f"{steps} hop{'' if steps == 1 else 's'} from the subject"
+
+
+def stop_state(completeness):
+    """complete, stopped while reading the subject, or stopped while reading an account S hops from it."""
+    if completeness == "complete":
+        return "complete"
+    if completeness["depth"] == 0:
+        return "stopped while reading the subject"
+    return f"stopped while reading an account {_hops_away(completeness['depth'])}"
 
 
 def _stop_text(completeness):
     if completeness == "complete":
         return "complete"
-    return f"stopped at depth {completeness['depth']} reading {completeness['account']}: {completeness['reason']}"
+    if completeness["depth"] == 0:
+        return f"stopped while reading the subject: {completeness['reason']}"
+    return (f"stopped while reading {completeness['account']} ({_hops_away(completeness['depth'])}): "
+            f"{completeness['reason']}")
+
+
+def utc_minute(block_timestamp):
+    """A block timestamp in nanoseconds as a UTC time to the minute."""
+    return datetime.fromtimestamp(block_timestamp // 1000000000, UTC).strftime("%Y-%m-%d %H:%M UTC")
+
+
+def read_extent(document):
+    """Whether the subject's outbound rows in the window were read in full, else to which time."""
+    completeness = document["completeness"]
+    if completeness == "complete" or completeness["depth"] > 0:
+        return ", read in full"
+    last = [h["block_timestamp"] for h in document["hops"] if h["from"] == document["subject"]][-1]
+    return f" read in part, to {utc_minute(last)}"
 
 
 def _state_text(reads):
@@ -140,9 +171,10 @@ def summary(document):
     ends = ", ".join(f"{bucket['to']} {bucket['percent']} percent" for bucket in shares["buckets"]) or "none"
     return (f"{len(document['hops'])} hops over {len(accounts)} accounts; depth {document['depth_reached']} of "
             f"{document['depth']}, {_stop_text(document['completeness'])}; direct outbound after "
-            f"{document['window']['from'][:10]} 00:00 UTC: {_usd(shares['direct_outbound_usd'])} across "
-            f"{shares['rows']} rows ({shares['without_usd']['count']} rows without a USD amount, "
-            f"{shares['below_min_usd']['count']} below {MIN_USD} USD); terminals: {ends}; subject: "
+            f"{document['window']['from'][:10]} 00:00 UTC{read_extent(document)}: "
+            f"{usd_text(shares['direct_outbound_usd'])} across {shares['rows']} rows ({shares['without_usd']['count']} "
+            f"rows without a USD amount, {shares['below_min_usd']['count']} below {MIN_USD} USD); shares of the "
+            f"direct outbound value: {ends}; subject: "
             f"{_state_text(document['state_at_block']) or 'no issuer read'}")
 
 

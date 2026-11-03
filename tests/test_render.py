@@ -10,7 +10,7 @@ from pathlib import Path
 from unittest import mock
 
 from intel import __main__ as intel_main
-from intel import labels, render
+from intel import labels, render, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "demo" / "site"
@@ -135,16 +135,35 @@ class RenderTest(unittest.TestCase):
             self.assertIn(f"{entry['subject']} as {entry['as']}", page)
         self.assertIn(document["code_hash_as_reported"]["value"], page)
 
-    def test_the_flow_page_has_one_card_per_hop(self):
+    def test_the_flow_page_has_the_summary_the_shares_and_one_card_per_hop(self):
         document = json.loads((ROOT / "intel" / "flows" / "rhea-collector.json").read_text(encoding="utf-8"))
         page = self.pages["flows/rhea-collector.html"]
         self.assertEqual(page.count('<div class="card">'), len(document["hops"]))
-        self.assertIn(f"depth 2 of 3, stopped at depth 1 reading {document['completeness']['account']}: the page "
+        summary = page.index('<div class="card summary">')
+        self.assertLess(summary, page.index("<table>"))
+        self.assertLess(page.index("<table>"), page.index('<div class="card state">'))
+        self.assertLess(page.index('<div class="card state">'), page.index('<div class="card">'))
+        self.assertIn(render.data_text(trace.summary(document)), page)
+        self.assertIn(f"stopped while reading {document['completeness']['account']} (1 hop from the subject): the page "
                       "budget of 150 requests", page)
+        self.assertIn("Shares are of the subject's direct outbound value; deeper hops are shown and not re summed.",
+                      page)
+        self.assertIn("older outbound rows are outside it", page)
+        for bucket in document["shares"]["buckets"]:
+            self.assertIn(f'<td class="mono">{html.escape(bucket["to"])}</td><td>{html.escape(bucket["kind"])}</td>'
+                          f'<td>{trace.usd_text(bucket["usd"])}</td><td>{bucket["count"]}</td><td>{bucket["percent"]}</td>', page)
+        self.assertIn('banned by the issuer, get_blacklist_status answers <q class="data">Banned</q>', page)
+        for read in document["state_at_block"]:
+            self.assertIn(f"{read['method']} at block {read['block']}", page)
+        depths = trace.hop_depths(document)
+        for depth in sorted(set(depths)):
+            self.assertIn(f"<h2>Depth {depth}: {depths.count(depth)} hops</h2>", page)
         self.assertNotIn("hops to depth", page)
         for hop in document["hops"]:
             self.assertIn(hop["transaction_hash"], page)
             self.assertIn(f"block {hop['block']}", page)
+        self.assertIn(f"depth {document['depth_reached']} of {document['depth']}, "
+                      f"{trace.stop_state(document['completeness'])}", self.pages["index.html"])
 
     def test_the_entity_pages_list_every_current_row_of_their_set(self):
         store = labels.load()

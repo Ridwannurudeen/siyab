@@ -50,7 +50,7 @@ COUNT_LINES = [
     "Incidents: 3 pages.",
     ("Feed: since 2026-10-29, 300 blocks, 0 events (0 code_hash_matches_incident, 0 fresh_dust_funded_pays_labelled, "
      "0 watch_account_key_added)."),
-    "Flows: 1 exit traces, 200 hops.",
+    "Flows: 1 exit traces, 200 hops, depth 1 of 3, stopped while reading the subject.",
     "Latency: p50 1843 ms, p95 2300 ms over 20 verdict runs.",
 ]
 COUNT_PROSE = [
@@ -59,7 +59,7 @@ COUNT_PROSE = [
     "On 52 recorded mainnet receivers the rules return 32 ALLOW, 19 DENY, 1 Unknown.",
     "Incident pages: 3.",
     "The block feed has read 300 blocks since 2026-10-29 and raised 0 events.",
-    "The flow trace holds 1 exit trace over 200 hops.",
+    "The flow trace holds 1 exit trace over 200 hops, depth 1 of 3, stopped while reading the subject.",
     "Verdict latency: p50 1843 ms, p95 2300 ms over 20 recorded runs.",
 ]
 
@@ -95,8 +95,8 @@ class IdeaTextTest(unittest.TestCase):
     def test_the_counts_lines_become_prose_by_a_fixed_template(self):
         self.assertEqual([row["claim"] for row in gen_idea.count_rows(COUNT_LINES)], COUNT_PROSE)
         self.assertEqual([row["claim"] for row in gen_idea.count_rows(["Feed: not run.", "Latency: not measured.",
-                                                                       "Flows: 2 exit traces, 1 hops."])],
-                         ["The block feed has not run.", "The flow trace holds 2 exit traces over 1 hop.",
+                                                                       "Flows: 2 exit traces, 1 hops, depth 1 of 3, complete."])],
+                         ["The block feed has not run.", "The flow trace holds 2 exit traces over 1 hop, depth 1 of 3, complete.",
                           "Verdict latency is not measured."])
         with self.assertRaises(ValueError) as raised:
             gen_idea.count_rows(["Receivers: a line in a format no template knows."])

@@ -241,9 +241,10 @@ class WalkTest(unittest.TestCase):
         direct = {h["to"] for h in document["hops"] if h["from"] == "start.near"}
         self.assertEqual(direct.intersection(("intents.near", "zec.omft.near")),
                          {b["to"] for b in shares["buckets"] if b["kind"] == "terminal"})
-        self.assertIn("terminals: intents.near 60.25 percent, zec.omft.near 20.0 percent, worker.near 10.0 percent, "
+        self.assertIn("shares of the direct outbound value: intents.near 60.25 percent, zec.omft.near 20.0 percent, worker.near 10.0 percent, "
                       f"{trace.NOT_NAMED} 9.75 percent;", trace.summary(document))
-        self.assertIn("direct outbound after 2026-04-15 00:00 UTC: 100.00 USD across 5 rows", trace.summary(document))
+        self.assertIn("direct outbound after 2026-04-15 00:00 UTC, read in full: 100.00 USD across 5 rows",
+                      trace.summary(document))
 
     def test_completeness_names_the_account_and_depth_where_the_walk_stopped(self):
         complete, _, _ = walk({"start.near": [[row("start.near", "a.near", 1)]]})
@@ -254,13 +255,21 @@ class WalkTest(unittest.TestCase):
         self.assertEqual(capped["completeness"], {"account": "a.near", "depth": 1,
                                                   "reason": "the transfer cap of 4 hops"})
         self.assertTrue(capped["truncated"])
-        self.assertIn("depth 2 of 3, stopped at depth 1 reading a.near: the transfer cap of 4 hops;",
+        self.assertIn("depth 2 of 3, stopped while reading a.near (1 hop from the subject): the transfer cap of 4 hops;",
                       trace.summary(capped))
+        self.assertIn("direct outbound after 2026-04-15 00:00 UTC, read in full: ", trace.summary(capped))
+        self.assertEqual(trace.stop_state(capped["completeness"]), "stopped while reading an account 1 hop from the subject")
+        self.assertEqual(trace.stop_state({"account": "b.near", "depth": 2, "reason": "r"}),
+                         "stopped while reading an account 2 hops from the subject")
+        self.assertEqual(trace.stop_state("complete"), "complete")
         many = {"start.near": [[row("start.near", f"x{i}.near", i)] for i in range(trace.MAX_REQUESTS + 5)]}
         budget, client, _ = walk(many, cap=10000)
         self.assertEqual(len(client.calls), trace.MAX_REQUESTS)
         self.assertEqual(budget["completeness"], {"account": "start.near", "depth": 0,
                                                   "reason": "the page budget of 150 requests"})
+        self.assertEqual(trace.stop_state(budget["completeness"]), "stopped while reading the subject")
+        self.assertIn("depth 1 of 3, stopped while reading the subject: the page budget of 150 requests; direct "
+                      "outbound after 2026-04-15 00:00 UTC read in part, to 2026-04-15 00:00 UTC: ", trace.summary(budget))
 
     def test_state_at_block_reads_each_issuer_once_with_a_block(self):
         document, _, views = walk({"start.near": [[row("start.near", "intents.near", 1)]]})
@@ -336,7 +345,9 @@ class CommittedTraceTest(unittest.TestCase):
         self.assertTrue(direct)
         for hop in direct:
             self.assertGreaterEqual(hop["block_timestamp"], start_ns)
-        self.assertIn("depth 2 of 3, stopped at depth 1 reading", trace.summary(self.document))
+        self.assertIn(f"depth 2 of 3, stopped while reading {self.document['completeness']['account']} (1 hop from the "
+                      "subject): the page budget of 150 requests; direct outbound after 2026-04-15 00:00 UTC, read in "
+                      "full: ", trace.summary(self.document))
 
     def test_the_committed_state_at_block_reads_the_collector_banned_by_the_usdt_issuer(self):
         reads = {(r["token"], r["method"]): r for r in self.document["state_at_block"]}
