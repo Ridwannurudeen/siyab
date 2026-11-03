@@ -1,0 +1,1 @@
+{"height":900001,"hash":"synthetic-deploy-labelled","timestamp_ns":"1793707200000000000","receipts":[{"receipt_id":"receipt-deploy-labelled","tx_hash":"transaction-deploy-labelled","predecessor_id":"deployer.near","receiver_id":"intents.near","ok":true,"actions":[{"type":"DeployContract","code_hash":"7hX7QXcF4kM3Fz5pV2Gf9JcQ"}]}]}

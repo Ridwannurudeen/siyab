@@ -1,4 +1,4 @@
-"""A block feed over finalized NEAR mainnet blocks, with three signals.
+"""A block feed over finalized NEAR mainnet blocks, with five signals.
 
 python -m intel feed [--from <height>] --blocks <n> [--record] walks n block heights from --from
 (default: the height after the state's last block; with --record and no state, the height
@@ -14,7 +14,10 @@ python -m intel feed --follow [--from <height>] [--max-blocks <n>] reads the fin
 --from, else the final height) to it in order, never skipping one; once caught up it sleeps 1 s
 and reads the final height again. It stops on SIGINT or after --max-blocks heights, a skipped
 height included. It has no request budget: it leaves FOLLOW_INTERVAL_S (0.4 s) between one request
-and the next, so at most 150 a minute, and backs off 10 s on a 429 as above. No reduced block is
+and the next, so at most 150 a minute, and backs off 10 s on a 429 as above. When
+FASTNEAR_API_KEY_FILE names a usable key, its neardata requests (the final height and the blocks)
+carry that key as an Authorization Bearer header, read once at start and kept in memory; without
+one they are keyless, and record mode never sends it. No reduced block is
 written per height: a block that raised an event is written as
 <state dir>/event-blocks/<height>.json, the block_fixture its events' source names. A finalized
 height neardata answers with null or a 404 holds no block, as in record mode: the follower adds
@@ -32,10 +35,18 @@ recorded window), so a follower on a host writes no tracked file. Its state.json
 height and time, the last height and time, the block count, the skipped heights, the fresh
 accounts with their funding deposit and time, and the event count per signal; a follower adds
 mode ("follow"), started_at (when the first follow run began), lag_blocks (the final height at the
-last read minus the last height), requests (the neardata requests made on request_day) and
-request_day (the UTC date the requests count is for, checked before every request; a new date
-resets the count). A block at or below the last height is never counted twice, so a run that stops
-can be started again.
+last read minus the last height), requests (the neardata requests made on request_day),
+transfer_requests (the Transfers API requests made on request_day), request_day (the UTC date both
+counts are for, checked before every neardata request; a new date resets them) and
+disabled_signals (a signal that is off and why: the transfer signal when FASTNEAR_API_KEY_FILE is
+unset or names a file that cannot be read or is empty; never the path or the key). The transfer
+poll adds last_large_transfer_poll_ms (the start of the last complete poll, or POLL_S before the
+first one: the next window's from_timestamp_ms), large_transfer_next_poll_ms (the earliest start
+of the next poll), last_large_transfer_error (the UTC time, the HTTP status or null, and the error
+type of the last failed poll; never the key or a header), large_transfer_page_caps (each subject
+and window that still had rows after MAX_TRANSFER_PAGES pages) and skipped_rows (Transfers API rows
+the poll could not read: not an object, a field missing, or a null or missing usd_amount). A block
+at or below the last height is never counted twice, so a run that stops can be started again.
 
 The signals, each written as an evidence document under <state dir>/events/<sha256>.json:
 
@@ -47,6 +58,30 @@ The signals, each written as an evidence document under <state dir>/events/<sha2
   watch_account_key_added          an AddKey with full access, or a function call key with an empty
                                    method_names list, on a NEAR account labelled infrastructure,
                                    treasury or watch
+  labelled_account_large_transfer  a Transfers API row of at least 1000 USD (the magnitude of its
+                                   usd_amount) sent by a NEAR account with a current incident or
+                                   denylist row (follow mode only)
+  deploy_on_labelled_contract      a successful DeployContract on a NEAR account with a current
+                                   catalog_token, infrastructure, bridge, treasury, organisation or
+                                   watch row
+
+The transfer poll runs in follow mode only, from the follower's loop both while it walks heights
+and while it waits at the final height, every POLL_S (600 s), sooner after a 429 as below. It
+reads the key once at start from the file FASTNEAR_API_KEY_FILE names and sends it only as the
+Authorization Bearer header of clients that write no fixture. Each poll asks POST
+https://transfers.main.fastnear.com/v0/transfers for each subject, FOLLOW_INTERVAL_S apart
+(direction sender, min_usd_amount 1000, ignore_system true, limit 100, from_timestamp_ms the last
+complete poll's start, to_timestamp_ms this poll's start, which the API treats as exclusive, so no
+row is in two windows), following resume_token up to MAX_TRANSFER_PAGES (20) pages. The API gives
+an outbound row a negative usd_amount, so a row becomes an event when the magnitude of its
+usd_amount is at least LARGE_TRANSFER_USD (1000), whatever the server filter did, and the event
+holds that magnitude with direction "outbound". A row the poll cannot read is counted in
+skipped_rows and never fails the poll; only a response without a transfers list does. Events are
+written and the window moves on only when every request of the poll succeeded. A 429 moves the
+next poll to Retry-After seconds later, at most POLL_S (TRANSFER_BACKOFF_S, 60 s, when the header
+is absent or not a number of seconds), and keeps the window; any other HTTP, transport or parse
+error is recorded in last_large_transfer_error and the window is asked again at the next poll.
+Neither stops the block walk. feed-stats and the feed page show the last failed poll.
 """
 
 import base64
@@ -70,9 +105,16 @@ EVENTS_DIR = FEED_DIR / "events"
 EVENT_BLOCKS_DIR = FEED_DIR / "event-blocks"
 INCIDENTS_DIR = Path(__file__).resolve().parent / "incidents"
 SNAPSHOT_PATH = Path(__file__).resolve().parent / "feed" / "follow-snapshot.json"
-SIGNALS = ("code_hash_matches_incident", "fresh_dust_funded_pays_labelled", "watch_account_key_added")
+SIGNALS = ("code_hash_matches_incident", "fresh_dust_funded_pays_labelled", "watch_account_key_added",
+           "labelled_account_large_transfer", "deploy_on_labelled_contract")
 WATCH_CATEGORIES = ("infrastructure", "treasury", "watch")
+DEPLOY_CATEGORIES = ("catalog_token", "infrastructure", "bridge", "treasury", "organisation", "watch")
+TRANSFERS_URL = "https://transfers.main.fastnear.com"
 FRESH_WINDOW_MS = 24 * 60 * 60 * 1000
+POLL_S = 600
+TRANSFER_BACKOFF_S = 60
+LARGE_TRANSFER_USD = 1000
+MAX_TRANSFER_PAGES = 20
 MAX_REQUESTS = 600
 BACKOFF_S = 10
 FOLLOW_INTERVAL_S = 0.4
@@ -167,11 +209,13 @@ class Context:
             reported = document.get("code_hash_as_reported")
             if reported:
                 self.code_hashes[reported["value"]] = document["id"]
-        self.labelled, self.watched, self.watch_categories, self.deny_receivers = {}, {}, {}, set()
+        self.labelled, self.watched, self.watch_categories, self.deployable, self.deny_receivers = {}, {}, {}, {}, set()
         for assertion in store.assertions:
             if assertion.chain != "near" or assertion.superseded_by is not None:
                 continue
             self.labelled.setdefault(assertion.subject, []).append(assertion.id)
+            if assertion.category in DEPLOY_CATEGORIES:
+                self.deployable.setdefault(assertion.subject, []).append(assertion.id)
             if assertion.category in ("incident", "denylist"):
                 self.deny_receivers.add(assertion.subject)
             if assertion.category in WATCH_CATEGORIES:
@@ -210,6 +254,10 @@ def signals(block, state, context, source):
                 incident_id = context.code_hashes[action["code_hash"]]
                 events.append(_event(SIGNALS[0], receiver, f"{receiver} deployed code hash {action['code_hash']}, the "
                                      f"code hash the incident page {incident_id} reports", block, receipt, [], source))
+            if action["type"] == "DeployContract" and receiver in context.deployable:
+                events.append(_event(SIGNALS[4], receiver,
+                                     f"{receiver} deployed code hash {action['code_hash']}", block, receipt,
+                                     context.deployable[receiver], source))
             if action["type"] == "AddKey" and receiver in context.watched:
                 permission = action["permission"]
                 if permission == "FullAccess" or (isinstance(permission, dict) and "method_names" in permission
@@ -240,6 +288,7 @@ def apply(block, state, context, source, events_dir=EVENTS_DIR):
         return []
     paths = []
     for event in signals(block, state, context, source):
+        state["events"].setdefault(event["signal"], 0)
         state["events"][event["signal"]] += 1
         paths.append(evidence.write(event, events_dir))
     stamp = datetime.fromtimestamp(int(block["timestamp_ns"]) // 10**9, UTC).strftime(_TIME)
@@ -283,6 +332,75 @@ class Fetcher:
         return answer["block"]["header"]["height"]
 
 
+def poll_transfers(client, state, state_path, context, events_dir, clock, sleep):
+    """The large transfer poll when it is due: every subject's rows of the window since the last
+    complete poll, asked FOLLOW_INTERVAL_S apart and written as events only when every request
+    succeeded."""
+    now_ms = int(clock() * 1000)
+    if now_ms < state.get("large_transfer_next_poll_ms", now_ms):
+        return
+    from_ms = state.setdefault("last_large_transfer_poll_ms", now_ms - POLL_S * 1000)
+    rows, caps, skipped, last_request = [], [], 0, None
+    try:
+        for subject in sorted(context.deny_receivers):
+            body = {"account_id": subject, "direction": "sender", "from_timestamp_ms": from_ms,
+                    "to_timestamp_ms": now_ms, "min_usd_amount": LARGE_TRANSFER_USD, "ignore_system": True,
+                    "limit": 100}
+            for _ in range(MAX_TRANSFER_PAGES):
+                if last_request is not None:
+                    sleep(max(0, FOLLOW_INTERVAL_S - (clock() - last_request)))
+                state["transfer_requests"] += 1
+                response = client.post("/v0/transfers", body)
+                last_request = clock()
+                if not isinstance(response, dict) or not isinstance(response.get("transfers"), list):
+                    raise rpc.MalformedResponse("the transfers response has no transfers list")
+                for transfer in response["transfers"]:
+                    if not (isinstance(transfer, dict)
+                            and all(isinstance(transfer.get(name), str)
+                                    for name in ("other_account_id", "asset_id", "transaction_id", "receipt_id"))
+                            and str(transfer.get("block_height")).isdecimal()
+                            and str(transfer.get("block_timestamp")).isdecimal()
+                            and isinstance(transfer.get("usd_amount"), (int, float))):
+                        skipped += 1
+                    elif abs(transfer["usd_amount"]) >= LARGE_TRANSFER_USD:
+                        rows.append((subject, transfer, dict(client.last_source)))
+                if not response.get("resume_token"):
+                    break
+                body = {**body, "resume_token": response["resume_token"]}
+            else:
+                caps.append({"subject": subject, "from_timestamp_ms": from_ms, "to_timestamp_ms": now_ms})
+    except (rpc.HttpError, rpc.TransportError, OSError, ValueError) as error:
+        status = error.status if isinstance(error, rpc.HttpError) else None
+        state["last_large_transfer_error"] = {"at": datetime.fromtimestamp(now_ms / 1000, UTC).strftime(_TIME),
+                                              "status": status, "error": type(error).__name__}
+        wait_s = POLL_S
+        if status == 429:
+            retry_after = (error.retry_after or "").strip()
+            wait_s = min(int(retry_after), POLL_S) if retry_after.isdecimal() else TRANSFER_BACKOFF_S
+        state["large_transfer_next_poll_ms"] = now_ms + wait_s * 1000
+        _write_json(Path(state_path), state, indent=2)
+        return
+    for subject, transfer, source in rows:
+        height, usd_amount = int(transfer["block_height"]), abs(transfer["usd_amount"])
+        event = {"version": "1", "kind": "feed_event", "signal": SIGNALS[3], "subject": subject,
+                 "detail": f"FastNEAR reported a transfer of {usd_amount} USD from {subject} to "
+                           f"\"{transfer['other_account_id']}\"",
+                 "labels": context.labelled[subject], "other_account_id": transfer["other_account_id"],
+                 "asset_id": transfer["asset_id"], "direction": "outbound", "usd_amount": str(usd_amount),
+                 "transaction_id": transfer["transaction_id"], "tx_hash": transfer["transaction_id"],
+                 "receipt_id": transfer["receipt_id"], "block_height": height,
+                 "observed": {"block_height": height, "timestamp_ms": int(transfer["block_timestamp"]) // 1_000_000},
+                 "source": source}
+        evidence.write(event, events_dir)
+        state["events"][SIGNALS[3]] += 1
+    if caps:
+        state.setdefault("large_transfer_page_caps", []).extend(caps)
+    state["skipped_rows"] = state.get("skipped_rows", 0) + skipped
+    state["last_large_transfer_poll_ms"] = now_ms
+    state["large_transfer_next_poll_ms"] = now_ms + POLL_S * 1000
+    _write_json(Path(state_path), state, indent=2)
+
+
 def run(start, count, record, store=None, blocks_dir=BLOCKS_DIR, state_path=STATE_PATH, events_dir=EVENTS_DIR,
         fetcher=None, incidents_dir=INCIDENTS_DIR):
     """Walk count heights from start (None: after the state's last height); returns (state, events)."""
@@ -318,7 +436,20 @@ def run(start, count, record, store=None, blocks_dir=BLOCKS_DIR, state_path=STAT
 def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=None, event_blocks_dir=None,
            max_blocks=None, sleep=time.sleep, clock=time.time, stopped=lambda: False):
     """Follow finalized heights, retaining only event blocks and the moving state."""
-    fetcher = fetcher or Fetcher(max_requests=None)
+    key_file = os.environ.get("FASTNEAR_API_KEY_FILE")
+    headers, disabled_reason = {}, "FASTNEAR_API_KEY_FILE is not set"
+    if key_file:
+        try:
+            api_key = Path(key_file).read_text(encoding="utf-8").strip()
+        except (OSError, UnicodeDecodeError):
+            api_key = None
+        if api_key is None:
+            disabled_reason = "the file FASTNEAR_API_KEY_FILE names cannot be read"
+        elif not api_key:
+            disabled_reason = "the file FASTNEAR_API_KEY_FILE names is empty"
+        else:
+            headers, disabled_reason = {"Authorization": f"Bearer {api_key}"}, None
+    fetcher = fetcher or Fetcher(rpc.Client(NEARDATA_URL, "off", kind="http", headers=headers), max_requests=None)
     state_dir = Path(os.environ.get("FEED_STATE_DIR", FEED_DIR))
     state_path = Path(state_path) if state_path is not None else state_dir / "state.json"
     events_dir = Path(events_dir) if events_dir is not None else state_dir / "events"
@@ -328,8 +459,18 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
     state.setdefault("started_at", datetime.fromtimestamp(clock(), UTC).strftime(_TIME))
     state.setdefault("lag_blocks", 0)
     state.setdefault("requests", 0)
+    state.setdefault("transfer_requests", 0)
     state.setdefault("request_day", datetime.fromtimestamp(clock(), UTC).strftime("%Y-%m-%d"))
+    for signal in SIGNALS:
+        state["events"].setdefault(signal, 0)
     context = Context(store or labels.load())
+    disabled = state.setdefault("disabled_signals", {})
+    transfers_client = None
+    if disabled_reason is None:
+        transfers_client = rpc.Client(TRANSFERS_URL, "off", kind="http", headers=headers)
+        disabled.pop(SIGNALS[3], None)
+    else:
+        disabled[SIGNALS[3]] = disabled_reason
     walked = 0
     last_request = None
     while not stopped() and (max_blocks is None or walked < max_blocks):
@@ -337,7 +478,9 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
             sleep(max(0, FOLLOW_INTERVAL_S - (clock() - last_request)))
         request_day = datetime.fromtimestamp(clock(), UTC).strftime("%Y-%m-%d")
         if state["request_day"] != request_day:
-            state["request_day"], state["requests"] = request_day, 0
+            state["request_day"], state["requests"], state["transfer_requests"] = request_day, 0, 0
+        if transfers_client is not None:
+            poll_transfers(transfers_client, state, state_path, context, events_dir, clock, sleep)
         requests_before = fetcher.requests
         final_height = fetcher.final_height()
         state["requests"] += fetcher.requests - requests_before
@@ -356,7 +499,9 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
                 sleep(max(0, FOLLOW_INTERVAL_S - (clock() - last_request)))
             request_day = datetime.fromtimestamp(clock(), UTC).strftime("%Y-%m-%d")
             if state["request_day"] != request_day:
-                state["request_day"], state["requests"] = request_day, 0
+                state["request_day"], state["requests"], state["transfer_requests"] = request_day, 0, 0
+            if transfers_client is not None:
+                poll_transfers(transfers_client, state, state_path, context, events_dir, clock, sleep)
             requests_before = fetcher.requests
             try:
                 raw = fetcher.get(f"/v0/block/{next_height}")
@@ -391,10 +536,19 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
 def stats_lines(state):
     """The feed-stats output: the start date, the block count and the event count per signal."""
     if state.get("mode") == "follow":
-        return [f"following since {state['started_at']}",
-                f"last block {state['last_height']} at {state['last_time']}",
-                f"lag {state['lag_blocks']} blocks"] + [f"{name} {count}" for name, count in state["events"].items()]
-    lines = [f"start {state['start_time']} at block {state['start_height']}",
-             f"last {state['last_time']} at block {state['last_height']}",
-             f"blocks {state['blocks']}, skipped heights {len(state['skipped_heights'])}"]
-    return lines + [f"{name} {count}" for name, count in state["events"].items()]
+        lines = [f"following since {state['started_at']}",
+                 f"last block {state['last_height']} at {state['last_time']}",
+                 f"lag {state['lag_blocks']} blocks"]
+        events = [f"{name} {state['events'].get(name, 0)}" for name in SIGNALS]
+    else:
+        lines = [f"start {state['start_time']} at block {state['start_height']}",
+                 f"last {state['last_time']} at block {state['last_height']}",
+                 f"blocks {state['blocks']}, skipped heights {len(state['skipped_heights'])}"]
+        events = [f"{name} {count}" for name, count in state['events'].items()]
+    lines += events
+    lines += [f"{name} disabled: {reason}" for name, reason in state.get("disabled_signals", {}).items()]
+    error = state.get("last_large_transfer_error")
+    if error:
+        status = "no HTTP status" if error["status"] is None else f"HTTP {error['status']}"
+        lines.append(f"{SIGNALS[3]} last failed poll at {error['at']}: {error['error']}, {status}")
+    return lines

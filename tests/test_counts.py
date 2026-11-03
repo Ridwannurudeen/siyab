@@ -15,9 +15,10 @@ FORMATS = (
      r"inferred \d+\)\."),
     r"Incidents: \d+ pages\.",
     (r"Feed: (not run|since \d{4}-\d{2}-\d{2}, \d+ blocks, \d+ events \(\d+ code_hash_matches_incident, \d+ "
-     r"fresh_dust_funded_pays_labelled, \d+ watch_account_key_added\)|following since \d{4}-\d{2}-\d{2}, \d+ "
+     r"fresh_dust_funded_pays_labelled, \d+ watch_account_key_added, \d+ labelled_account_large_transfer, \d+ "
+     r"deploy_on_labelled_contract\)|following since \d{4}-\d{2}-\d{2}, \d+ "
      r"blocks, \d+ events \(\d+ code_hash_matches_incident, \d+ fresh_dust_funded_pays_labelled, "
-     r"\d+ watch_account_key_added\))\."),
+     r"\d+ watch_account_key_added, \d+ labelled_account_large_transfer, \d+ deploy_on_labelled_contract\))\."),
     r"Flows: \d+ exit traces, \d+ hops, depth \d+ of \d+, (complete|stopped while reading (the subject|an account \d+ hops? from the subject))\.",
     r"Latency: (not measured|p50 \d+ ms, p95 \d+ ms over \d+ verdict runs)\.",
 )

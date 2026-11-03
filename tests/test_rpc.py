@@ -184,7 +184,16 @@ class ModeTest(unittest.TestCase):
                 self.assertRaises(rpc.HttpError) as caught:
             self.client("record", kind="http").get("/x")
         self.assertEqual(caught.exception.status, 429)
+        self.assertIsNone(caught.exception.retry_after)
         self.assertEqual(list(Path(self.tmp.name).iterdir()), [])
+
+    def test_a_429_carries_its_retry_after_header(self):
+        error = urllib.error.HTTPError("https://rpc.example/x", 429, "Too Many Requests", {"Retry-After": "120"},
+                                       None)
+        with mock.patch("urllib.request.urlopen", side_effect=error), \
+                self.assertRaises(rpc.HttpError) as caught:
+            self.client("off", kind="http").get("/x")
+        self.assertEqual((caught.exception.status, caught.exception.retry_after), (429, "120"))
 
     def test_http_get_and_post(self):
         with mock.patch("urllib.request.urlopen", return_value=reply({"ok": True})) as opened:
@@ -196,6 +205,24 @@ class ModeTest(unittest.TestCase):
         posted = opened.call_args_list[1].args[0]
         self.assertEqual((posted.get_method(), json.loads(posted.data)), ("POST", {"content": "m"}))
         self.assertEqual(len(list(Path(self.tmp.name).iterdir())), 2)
+
+    def test_headers_are_sent_and_never_written(self):
+        header = "Bearer test-fastnear-header"
+        client = rpc.Client("https://transfers.main.fastnear.com", "record", kind="http",
+                            fixtures_dir=self.tmp.name, headers={"Authorization": header}, clock=lambda: T0)
+        with mock.patch("urllib.request.urlopen", return_value=reply({"transfers": []})) as opened:
+            self.assertEqual(client.post("/v0/transfers", {"account_id": "incident.near"}), {"transfers": []})
+        request = opened.call_args.args[0]
+        self.assertEqual(request.get_header("Authorization"), header)
+        self.assertEqual(client.last_source, {"provider": "transfers.main.fastnear.com",
+                                              "request_sha256": rpc.fixture_key(
+                                                  "https://transfers.main.fastnear.com/v0/transfers", "POST",
+                                                  rpc.body_params({"account_id": "incident.near"})),
+                                              "fetched_at": "2026-10-29T08:00:00Z"})
+        [path] = Path(self.tmp.name).iterdir()
+        fixture = json.loads(path.read_text(encoding="utf-8"))
+        self.assertNotIn("Authorization", fixture)
+        self.assertNotIn("test-fastnear-header", path.read_text(encoding="utf-8"))
 
     def test_kind_mismatch(self):
         with self.assertRaises(ValueError):
