@@ -58,6 +58,54 @@ class IssuerRowsTest(unittest.TestCase):
             [tx_hash] = row["source"]["args"]["tx_hashes"]
             self.assertIn(f"transaction {tx_hash}", row["label"])
 
+    def test_every_multisig_transaction_on_the_page_has_recorded_details(self):
+        page_path = next(issuers.FIXTURE_DIR.glob("bf0b*.json"))
+        page = json.loads(page_path.read_text(encoding="utf-8"))["response"]
+        page_hashes = {row["transaction_hash"] for row in page["account_txs"]}
+        detail_hashes = set()
+        for path in issuers.FIXTURE_DIR.glob("*.json"):
+            fixture = json.loads(path.read_text(encoding="utf-8"))
+            if (fixture.get("reduced") == issuers.TRANSACTION_REDUCED
+                    and "transactions" in fixture["response"]):
+                detail_hashes.update(txn["transaction"]["hash"]
+                                     for txn in fixture["response"]["transactions"])
+
+        self.assertEqual(page["txs_count"], len(page["account_txs"]))
+        self.assertNotIn("resume_token", page)
+        self.assertEqual(page_hashes, detail_hashes)
+        self.assertEqual(issuers.history_coverage(), {
+            "transactions": 83, "txs_count": 83, "tx_block_min": 73185391,
+            "tx_block_max": 202996702,
+            "actions": {"add_to_blacklist": 11, "destroy_black_funds": 9,
+                        "remove_from_blacklist": 0},
+        })
+
+    def test_rows_command_rewrites_both_files(self):
+        status_rows = [issuers.seed.make_row(
+            entity="issuer", subject="status.test", chain="near", label="status row",
+            category="watch", provenance="onchain",
+            source={"rpc": issuers.RPC_URL, "method": "status", "args": {}, "block": 1},
+            observed_at="2026-11-03T00:00:00Z", note="status row")]
+        history_rows = [issuers.seed.make_row(
+            entity="issuer", subject="history.test", chain="near", label="history row",
+            category="watch", provenance="onchain",
+            source={"rpc": issuers.RPC_URL, "method": "history", "args": {}, "block": 2},
+            observed_at="2026-11-03T00:00:00Z", note="history row")]
+        output = io.StringIO()
+        with tempfile.TemporaryDirectory() as tmp:
+            status_path = Path(tmp) / "status.jsonl"
+            history_path = Path(tmp) / "history.jsonl"
+            with patch.object(issuers, "STATUS_PATH", status_path), \
+                    patch.object(issuers, "HISTORY_PATH", history_path), \
+                    patch.object(issuers, "rows", return_value=status_rows), \
+                    patch.object(issuers, "history_rows", return_value=history_rows), \
+                    contextlib.redirect_stdout(output):
+                self.assertEqual(issuers.main(["rows"]), 0)
+
+            self.assertEqual(status_path.read_text(encoding="utf-8"), labels.row_line(status_rows[0]) + "\n")
+            self.assertEqual(history_path.read_text(encoding="utf-8"), labels.row_line(history_rows[0]) + "\n")
+        self.assertIn("1 issuer status rows, 1 issuer history rows", output.getvalue())
+
     def test_a_non_existent_account_id_is_recorded_as_such_with_no_inference(self):
         subject = "missing.test"
         block = 500
@@ -96,7 +144,7 @@ class IssuerRowsTest(unittest.TestCase):
         [row] = rows
         self.assertIn("UNKNOWN_ACCOUNT", row["note"])
         self.assertIn(f"at block {block}", row["note"])
-        self.assertIn("no further inference is made", row["note"])
+        self.assertIn("nothing further is inferred", row["note"])
         self.assertEqual(row["category"], "watch")
         self.assertEqual(row["provenance"], "onchain")
 
@@ -156,13 +204,15 @@ class IssuerRowsTest(unittest.TestCase):
         self.assertEqual(issuers.STATUS_PATH.read_text(encoding="utf-8"), issuers.rows_jsonl())
 
     def test_append_command_delegates_to_seed_append(self):
-        rows = [{"id": "fixture row"}]
+        status_rows = [{"id": "status row"}]
+        history_rows = [{"id": "history row"}]
         output = io.StringIO()
-        with patch.object(issuers, "rows", return_value=rows), \
+        with patch.object(issuers, "rows", return_value=status_rows), \
+                patch.object(issuers, "history_rows", return_value=history_rows), \
                 patch.object(issuers.seed, "append", return_value=1) as append, \
                 contextlib.redirect_stdout(output):
             self.assertEqual(issuers.main(["append"]), 0)
-        append.assert_called_once_with(rows)
+        append.assert_called_once_with(status_rows + history_rows)
         self.assertIn("1 issuer status rows appended", output.getvalue())
 
 

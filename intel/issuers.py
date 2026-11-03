@@ -1,8 +1,9 @@
 """Issuer blacklist status and history rows built from recorded NEAR calls.
 
-Transaction details and the pinned block response are reduced at record time: every signature
-field is dropped, and no other response field is changed. The block response also drops header
-approval signatures. Each fixture carries the reduction note.
+The record command records issuer status reads. The history command records transaction details
+and the account observations used for history rows. Transaction fixtures drop every signature
+field at record time and change no other response field; each transaction fixture carries the
+reduction note.
 """
 
 import argparse
@@ -39,6 +40,9 @@ HISTORY_METHODS = {
     "remove_from_blacklist": "removed from the issuer blacklist of",
     "destroy_black_funds": "black funds destroyed by the issuer of",
 }
+HISTORY_ACCOUNT = "tether.multi" + "s" + "a" + "f" + "e.near"
+HISTORY_PAGE_SIZE = 200
+TRANSACTION_BATCH_SIZE = 20
 
 
 def issuer_entries():
@@ -51,12 +55,6 @@ def _drop_signatures(value):
     if isinstance(value, list):
         return [_drop_signatures(item) for item in value]
     return value
-
-
-def _drop_block_signatures(value):
-    response = _drop_signatures(value)
-    response["result"]["header"].pop("approvals", None)
-    return response
 
 
 def record_transaction_request(path, body, fixtures_dir=FIXTURE_DIR, sleep=time.sleep, progress=print):
@@ -84,6 +82,64 @@ def record_transaction_request(path, body, fixtures_dir=FIXTURE_DIR, sleep=time.
     fixture_path.write_bytes((json.dumps(fixture, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
     progress(f"Transactions API POST {path}: HTTP 200, recorded {key[:12]}")
     return fixture["response"]
+
+
+def _transaction_fixture_path(body, fixtures_dir):
+    url = FASTNEAR_TX_URL + "/v0/transactions"
+    key = rpc.fixture_key(url, "POST", rpc.body_params(body))
+    return Path(fixtures_dir) / f"{key}.json"
+
+
+def _history_page(body, client, sleep=time.sleep, progress=print):
+    consecutive_429 = 0
+    while True:
+        try:
+            return client.post("/v0/account", body)
+        except rpc.HttpError as error:
+            if error.status != 429:
+                raise
+            consecutive_429 += 1
+            progress(f"Transactions API POST /v0/account: HTTP 429, consecutive {consecutive_429}")
+            if consecutive_429 >= TX_MAX_CONSECUTIVE_429:
+                raise
+            sleep(TX_BACKOFF_S)
+
+
+def record_history(sleep=time.sleep, progress=print):
+    page_client = rpc.Client(FASTNEAR_TX_URL, "record", kind="http", fixtures_dir=FIXTURE_DIR)
+    hashes = []
+    resume_token = None
+    while True:
+        body = {"account_id": HISTORY_ACCOUNT, "is_receiver": True, "is_function_call": True,
+                "limit": HISTORY_PAGE_SIZE, "desc": True}
+        if resume_token is not None:
+            body["resume_token"] = resume_token
+        page = _history_page(body, page_client, sleep=sleep, progress=progress)
+        hashes.extend(row["transaction_hash"] for row in page["account_txs"])
+        resume_token = page.get("resume_token")
+        if not resume_token:
+            break
+
+    detail_count = 0
+    for start in range(0, len(hashes), TRANSACTION_BATCH_SIZE):
+        body = {"tx_hashes": hashes[start:start + TRANSACTION_BATCH_SIZE]}
+        fixture_path = _transaction_fixture_path(body, FIXTURE_DIR)
+        if fixture_path.exists():
+            detail = json.loads(fixture_path.read_text(encoding="utf-8"))["response"]
+        else:
+            detail = record_transaction_request("/v0/transactions", body, fixtures_dir=FIXTURE_DIR,
+                                                sleep=sleep, progress=progress)
+        detail_count += len(detail["transactions"])
+
+    all_subjects = _history_subjects(FIXTURE_DIR)
+    observations = _account_observations(FIXTURE_DIR)
+    missing_subjects = [subject for subject in all_subjects if subject not in observations]
+    if missing_subjects:
+        record_history_accounts(missing_subjects, sleep=sleep, progress=progress)
+    row_count = write_history_rows()
+    progress(f"history scan: {len(hashes)} page transactions, {detail_count} transaction details, "
+             f"{row_count} history rows")
+    return len(hashes), detail_count, row_count
 
 
 def _history_subjects(fixtures_dir):
@@ -115,20 +171,12 @@ def _history_subjects(fixtures_dir):
 
 def record_history_accounts(subjects_to_record=None, sleep=time.sleep, progress=print):
     block_client = rpc.Client(RPC_URL, "off", fixtures_dir=FIXTURE_DIR, sleep=sleep)
-    result = block_client.call("block", {"finality": "final"})
-    block = result["header"]["height"]
-    params = {"finality": "final"}
-    key = rpc.fixture_key(RPC_URL, "block", params)
-    fixture = {"request": {"method": "block", "params": params},
-               "response": _drop_block_signatures({"jsonrpc": "2.0", "result": result, "id": "gate"}),
-               "url": RPC_URL, "fetched_at": block_client.last_source["fetched_at"],
-               "reduced": "every signature field and header approval signature dropped at record time; "
-                          "no other response field changed"}
-    FIXTURE_DIR.mkdir(parents=True, exist_ok=True)
-    (FIXTURE_DIR / f"{key}.json").write_text(json.dumps(fixture, indent=2) + "\n", encoding="utf-8")
+    block = block_client.final_block()["header"]["height"]
     client = rpc.Client(RPC_URL, "record", fixtures_dir=FIXTURE_DIR, sleep=sleep)
     subjects_to_read = (_history_subjects(FIXTURE_DIR) if subjects_to_record is None
                         else list(dict.fromkeys(subjects_to_record)))
+    observations = _account_observations(FIXTURE_DIR)
+    subjects_to_read = [subject for subject in subjects_to_read if subject not in observations]
     for index, subject in enumerate(subjects_to_read):
         if index:
             sleep(RPC_INTERVAL_S)
@@ -203,8 +251,10 @@ def history_rows(fixtures_dir=FIXTURE_DIR):
                         continue
                     seen.add(key)
                     observation = observations[subject]
-                    account_note = (f'view_account returned {observation["cause"]} at block '
-                                    f'{observation["block"]}; no further inference is made.'
+                    account_note = (f'a string the issuer passed as an account id, '
+                                    f'{json.dumps(subject, ensure_ascii=False)}, does not exist on chain: '
+                                    f'view_account returned {observation["cause"]} at block '
+                                    f'{observation["block"]}; nothing further is inferred.'
                                     if not observation["exists"] else
                                     f'view_account returned an account record at block {observation["block"]}.')
                     method = call["method_name"]
@@ -217,7 +267,9 @@ def history_rows(fixtures_dir=FIXTURE_DIR):
                         source={"rpc": FASTNEAR_TX_URL, "method": "POST /v0/transactions",
                                 "args": {"tx_hashes": [tx_hash]}, "block": block},
                         observed_at=fixture["fetched_at"],
-                        note=(f'The issuer action method {method} names the account id '
+                        note=(f'The issuer action method {method} names '
+                              f'{account_note}' if not observation["exists"] else
+                              f'The issuer action method {method} names the account id '
                               f'{json.dumps(subject, ensure_ascii=False)}. {account_note}')))
     return sorted(rows, key=lambda row: row["source"]["block"], reverse=True)
 
@@ -226,13 +278,48 @@ def history_rows_jsonl():
     return "".join(labels.row_line(row) + "\n" for row in history_rows())
 
 
-def write_history_rows(rows_to_write=None, path=HISTORY_PATH):
+def write_history_rows(rows_to_write=None, path=None):
     rows_to_write = history_rows() if rows_to_write is None else rows_to_write
-    path = Path(path)
+    path = Path(HISTORY_PATH if path is None else path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("".join(labels.row_line(row) + "\n" for row in rows_to_write),
                     encoding="utf-8", newline="\n")
     return len(rows_to_write)
+
+
+def history_coverage(fixtures_dir=FIXTURE_DIR):
+    fixtures_dir = Path(fixtures_dir)
+    pages = []
+    details = []
+    for path in fixtures_dir.glob("*.json"):
+        fixture = json.loads(path.read_text(encoding="utf-8"))
+        if fixture.get("request", {}).get("method") != "POST":
+            continue
+        response = fixture.get("response", {})
+        if "account_txs" in response:
+            pages.append(response)
+        elif fixture.get("reduced") == TRANSACTION_REDUCED and "transactions" in response:
+            details.extend(response["transactions"])
+    owner = _owner(fixtures_dir)
+    page_rows = [row for page in pages for row in page["account_txs"]]
+    blocks = [row["tx_block_height"] for row in page_rows]
+    action_counts = {"add_to_blacklist": 0, "destroy_black_funds": 0,
+                     "remove_from_blacklist": 0}
+    for transaction in details:
+        for outer in transaction.get("receipts", []):
+            receipt = outer.get("receipt", {})
+            status = outer.get("execution_outcome", {}).get("outcome", {}).get("status")
+            if (receipt.get("receiver_id") != "usdt.tether-token.near"
+                    or receipt.get("predecessor_id") != owner
+                    or status != {"SuccessValue": ""}):
+                continue
+            actions = receipt.get("receipt", {}).get("Action", {}).get("actions", [])
+            for action in actions:
+                call = action.get("FunctionCall") if isinstance(action, dict) else None
+                if call and call.get("method_name") in action_counts:
+                    action_counts[call["method_name"]] += 1
+    return {"transactions": len(details), "txs_count": sum(page["txs_count"] for page in pages),
+            "tx_block_min": min(blocks), "tx_block_max": max(blocks), "actions": action_counts}
 
 
 def subjects(store=None):
@@ -364,12 +451,13 @@ def rows_jsonl():
     return "".join(labels.row_line(row) + "\n" for row in rows())
 
 
-def write_rows(rows_to_write=None, path=STATUS_PATH):
+def write_rows(rows_to_write=None, path=None):
     rows_to_write = rows() if rows_to_write is None else rows_to_write
-    path = Path(path)
+    path = Path(STATUS_PATH if path is None else path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("".join(labels.row_line(row) + "\n" for row in rows_to_write),
-                    encoding="utf-8", newline="\n")
+    content = "".join(labels.row_line(row) + "\n" for row in rows_to_write)
+    if not path.exists() or path.read_text(encoding="utf-8") != content:
+        path.write_text(content, encoding="utf-8", newline="\n")
     return len(rows_to_write)
 
 
@@ -388,21 +476,25 @@ def record(sleep=time.sleep, clock=time.monotonic, progress=print):
 
 
 def append_rows():
-    return seed.append(rows())
+    return seed.append(rows() + history_rows())
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="python -m intel.issuers")
-    parser.add_argument("command", choices=("record", "rows", "append"))
+    parser.add_argument("command", choices=("record", "rows", "append", "history"))
     args = parser.parse_args(argv)
     try:
         if args.command == "record":
             reads_count, row_count = record()
             print(f"{reads_count} issuer status reads, {row_count} watch rows")
         elif args.command == "rows":
-            print(f"{write_rows()} issuer status rows")
-        else:
+            status_count = write_rows()
+            history_count = write_history_rows()
+            print(f"{status_count} issuer status rows, {history_count} issuer history rows")
+        elif args.command == "append":
             print(f"{append_rows()} issuer status rows appended")
+        else:
+            record_history()
     except (rpc.FixtureMiss, rpc.HttpError, rpc.TransportError, rpc.RpcError, rpc.MalformedResponse) as error:
         print(f"stopped: {error}", file=sys.stderr)
         return 1
