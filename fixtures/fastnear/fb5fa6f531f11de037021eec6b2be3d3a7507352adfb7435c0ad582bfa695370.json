@@ -1,0 +1,38 @@
+{
+  "request": {
+    "method": "POST",
+    "params": {
+      "body_sha256": "0a7a51db343bc7c10490b343b190e5bff623677485bf20defd72788f1bef1346"
+    }
+  },
+  "response": {
+    "transfers": [
+      {
+        "block_height": "194080692",
+        "block_timestamp": "1776239810477322712",
+        "transaction_id": "3p8qKBbrCs6KhLCe1aS5mdNciJZyBmjpkzUjgH6JGSXw",
+        "receipt_id": "98NNkwmTerkG2iyBEvFZ34HFYuuHc7pkJW2hY51tLLxR",
+        "action_index": 0,
+        "log_index": null,
+        "transfer_index": 159999,
+        "signer_id": "27f32b0e188a0a33f1e70bea2dc1037c516e1c7bb4b6211eda79df6f501dca6f",
+        "predecessor_id": "27f32b0e188a0a33f1e70bea2dc1037c516e1c7bb4b6211eda79df6f501dca6f",
+        "receipt_account_id": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+        "account_id": "27f32b0e188a0a33f1e70bea2dc1037c516e1c7bb4b6211eda79df6f501dca6f",
+        "other_account_id": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+        "asset_id": "native:near",
+        "asset_type": "Near",
+        "amount": "-11950000000000000000000000",
+        "method_name": null,
+        "transfer_type": "NativeTransfer",
+        "human_amount": -11.95,
+        "usd_amount": -16.013,
+        "start_of_block_balance": "49165010462500000000000",
+        "end_of_block_balance": "49165010462500000000000"
+      }
+    ],
+    "resume_token": null
+  },
+  "url": "https://transfers.main.fastnear.com/v0/transfers",
+  "fetched_at": "2026-11-03T08:03:43Z"
+}

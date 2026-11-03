@@ -1,0 +1,84 @@
+{
+  "request": {
+    "method": "POST",
+    "params": {
+      "body_sha256": "715ff6e4f15981d25c8688e52969395d4f5624b4f0699f9f07611f0a8add0e87"
+    }
+  },
+  "response": {
+    "transfers": [
+      {
+        "block_height": "194165248",
+        "block_timestamp": "1776291425519288590",
+        "transaction_id": "BVDyuwYCxAnK5mwBX8HwHngNjNcAPkkq6MJadVM45t17",
+        "receipt_id": "9hAs3isjek8bqMK3D8TTMyXaHxSjDJhWkumNxaAm5VoQ",
+        "action_index": 0,
+        "log_index": null,
+        "transfer_index": 289999,
+        "signer_id": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+        "predecessor_id": "ae5a196e95115d3a97ca5b895b6efff4a25a2429107b56244f7d4259413846cf",
+        "receipt_account_id": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+        "account_id": "ae5a196e95115d3a97ca5b895b6efff4a25a2429107b56244f7d4259413846cf",
+        "other_account_id": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+        "asset_id": "native:near",
+        "asset_type": "Near",
+        "amount": "-98750000000000000000000",
+        "method_name": null,
+        "transfer_type": "NativeTransfer",
+        "human_amount": -0.09875,
+        "usd_amount": -0.1392375,
+        "start_of_block_balance": "2999372135619269500000000",
+        "end_of_block_balance": "2999372135619269500000000"
+      },
+      {
+        "block_height": "194165252",
+        "block_timestamp": "1776291428012236741",
+        "transaction_id": "FHEbMwfjNEjBR57YpFfCCfHAhCFwAXaJfLWgg5t1spiL",
+        "receipt_id": "4quAQpV6cAu1HUm4uxvfVAdQVsb9Np48Q9YJ3JCBbWgD",
+        "action_index": 0,
+        "log_index": null,
+        "transfer_index": 329999,
+        "signer_id": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+        "predecessor_id": "ae5a196e95115d3a97ca5b895b6efff4a25a2429107b56244f7d4259413846cf",
+        "receipt_account_id": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+        "account_id": "ae5a196e95115d3a97ca5b895b6efff4a25a2429107b56244f7d4259413846cf",
+        "other_account_id": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+        "asset_id": "native:near",
+        "asset_type": "Near",
+        "amount": "-98750000000000000000000",
+        "method_name": null,
+        "transfer_type": "NativeTransfer",
+        "human_amount": -0.09875,
+        "usd_amount": -0.1392375,
+        "start_of_block_balance": "3000770734473467400000000",
+        "end_of_block_balance": "3000770734473467400000000"
+      },
+      {
+        "block_height": "194165859",
+        "block_timestamp": "1776291783874974807",
+        "transaction_id": "7VqBNtdkVNpn5QMx7eyfUgokVB6Eb1SdGLGR3uLFTBif",
+        "receipt_id": "7Y1459AHoGLmCV2yiyMvb8gaepUggywWhWmhKLDJWw5i",
+        "action_index": 0,
+        "log_index": null,
+        "transfer_index": 219999,
+        "signer_id": "bba2251b209be76ac82999a0056770368c2fcba359cae40b2f20e71275b3cd91",
+        "predecessor_id": "ae5a196e95115d3a97ca5b895b6efff4a25a2429107b56244f7d4259413846cf",
+        "receipt_account_id": "bba2251b209be76ac82999a0056770368c2fcba359cae40b2f20e71275b3cd91",
+        "account_id": "ae5a196e95115d3a97ca5b895b6efff4a25a2429107b56244f7d4259413846cf",
+        "other_account_id": "bba2251b209be76ac82999a0056770368c2fcba359cae40b2f20e71275b3cd91",
+        "asset_id": "native:near",
+        "asset_type": "Near",
+        "amount": "-100000000000000000000000",
+        "method_name": null,
+        "transfer_type": "NativeTransfer",
+        "human_amount": -0.09999999999999999,
+        "usd_amount": -0.141,
+        "start_of_block_balance": "3000917047167920400000000",
+        "end_of_block_balance": "3000917047167920400000000"
+      }
+    ],
+    "resume_token": null
+  },
+  "url": "https://transfers.main.fastnear.com/v0/transfers",
+  "fetched_at": "2026-11-03T08:15:49Z"
+}

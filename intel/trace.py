@@ -1,6 +1,6 @@
 """A bounded exit trace from an account that carries an incident label, and only from one.
 
-python -m intel flow <subject> [--depth 3] [--max 600] [--name <file name>] [--record] refuses at
+python -m intel flow <subject> [--depth 3] [--max 15000] [--name <file name>] [--record] refuses at
 once, with the reason "subject carries no incident label", unless intel/labels.jsonl holds an
 incident assertion on the subject, and with "no incident page names the subject" unless a page of
 intel/incidents/ lists it among its accounts. Otherwise it reads the transfers the subject sent from
@@ -61,7 +61,7 @@ MAX_REQUESTS = 150
 BACKOFF_S = 10
 MAX_429_IN_A_ROW = 3
 DEFAULT_DEPTH = 3
-DEFAULT_MAX = 600
+DEFAULT_MAX = MAX_REQUESTS * PAGE_LIMIT
 MIN_USD = 1.0
 
 

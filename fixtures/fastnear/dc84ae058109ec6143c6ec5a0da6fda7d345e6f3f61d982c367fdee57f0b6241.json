@@ -1,0 +1,14 @@
+{
+  "request": {
+    "method": "POST",
+    "params": {
+      "body_sha256": "246426085e8763f4449d1b8c870d722e2c1e0a5347ca6fae3a614f84621edcad"
+    }
+  },
+  "response": {
+    "transfers": [],
+    "resume_token": null
+  },
+  "url": "https://transfers.main.fastnear.com/v0/transfers",
+  "fetched_at": "2026-11-03T08:02:56Z"
+}

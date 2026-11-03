@@ -1,0 +1,61 @@
+{
+  "request": {
+    "method": "POST",
+    "params": {
+      "body_sha256": "f1381db9875c9fe32973a3851f2910b9f6aaf6f0946feee6a85c88c2c8bb54d4"
+    }
+  },
+  "response": {
+    "transfers": [
+      {
+        "block_height": "194076677",
+        "block_timestamp": "1776237347884207904",
+        "transaction_id": "AkqJcuD4Yk2v113q3YhBSqphDVyaDtSzPdFqTAXYbV7s",
+        "receipt_id": "EDaJDoBcaTez5LHXRfo6ucexBKPXngWuHvHzopH956xE",
+        "action_index": null,
+        "log_index": 5,
+        "transfer_index": 290004,
+        "signer_id": "intents.near",
+        "predecessor_id": "intents.near",
+        "receipt_account_id": "intents.near",
+        "account_id": "3e8e3bc1e46d917796a54e5b56822b4ab8305f58faa4a9e7d3013afa9b60efb1",
+        "other_account_id": "solver-priv-liq-2.near",
+        "asset_id": "nep245:intents.near:nep141:zec.omft.near",
+        "asset_type": "Mt",
+        "amount": "-479",
+        "method_name": "execute_intents",
+        "transfer_type": "MtTransfer",
+        "human_amount": -4.79e-06,
+        "usd_amount": -0.0016973844,
+        "start_of_block_balance": "200000000",
+        "end_of_block_balance": "0"
+      },
+      {
+        "block_height": "194076677",
+        "block_timestamp": "1776237347884207904",
+        "transaction_id": "AkqJcuD4Yk2v113q3YhBSqphDVyaDtSzPdFqTAXYbV7s",
+        "receipt_id": "EDaJDoBcaTez5LHXRfo6ucexBKPXngWuHvHzopH956xE",
+        "action_index": null,
+        "log_index": 5,
+        "transfer_index": 290005,
+        "signer_id": "intents.near",
+        "predecessor_id": "intents.near",
+        "receipt_account_id": "intents.near",
+        "account_id": "3e8e3bc1e46d917796a54e5b56822b4ab8305f58faa4a9e7d3013afa9b60efb1",
+        "other_account_id": "7066024d3f20f94de601c003163367873cca78507eeca4df66d9be645f197f05",
+        "asset_id": "nep245:intents.near:nep141:zec.omft.near",
+        "asset_type": "Mt",
+        "amount": "-1",
+        "method_name": "execute_intents",
+        "transfer_type": "MtTransfer",
+        "human_amount": -1e-08,
+        "usd_amount": -3.5436000000000003e-06,
+        "start_of_block_balance": "200000000",
+        "end_of_block_balance": "0"
+      }
+    ],
+    "resume_token": null
+  },
+  "url": "https://transfers.main.fastnear.com/v0/transfers",
+  "fetched_at": "2026-11-03T08:02:55Z"
+}

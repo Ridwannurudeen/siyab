@@ -199,7 +199,7 @@ class WalkTest(unittest.TestCase):
         self.assertEqual(document["window"], {"from": "2026-04-15T00:00:00Z", "from_timestamp_ms": start_ms,
                                               "incident_date": "2026-04-16",
                                               "rule": "00:00 UTC on the day before the incident date"})
-        self.assertEqual((trace.DEFAULT_MAX, trace.MAX_REQUESTS, trace.MIN_USD), (600, 150, 1.0))
+        self.assertEqual((trace.DEFAULT_MAX, trace.MAX_REQUESTS, trace.MIN_USD), (15000, 150, 1.0))
         hop = document["hops"][0]
         self.assertEqual((hop["usd_amount"], hop["human_amount"], hop["block_timestamp"]),
                          (10.0, 0.1, 1776211200000000001))
@@ -325,14 +325,18 @@ class CommittedTraceTest(unittest.TestCase):
         self.assertEqual(set(self.document["assertion_ids"]), ids)
         self.assertEqual(self.document["window"], trace.window(RHEA["date"]))
 
-    def test_the_committed_trace_says_the_cap_stopped_it_at_depth_1(self):
+    def test_the_committed_trace_reads_the_subject_in_full_and_the_budget_stops_it_at_depth_1(self):
         self.assertTrue(self.document["truncated"])
-        self.assertEqual(trace.reached_depth(self.document), 1)
-        self.assertEqual(self.document["depth_reached"], 1)
-        self.assertEqual(self.document["completeness"], {"account": COLLECTOR, "depth": 0,
-                                                         "reason": "the transfer cap of 600 hops"})
-        self.assertIn(f"depth 1 of 3, stopped at depth 0 reading {COLLECTOR}: the transfer cap of 600 hops",
-                      trace.summary(self.document))
+        self.assertEqual(trace.reached_depth(self.document), 2)
+        self.assertEqual(self.document["depth_reached"], 2)
+        self.assertEqual(self.document["completeness"]["depth"], 1)
+        self.assertEqual(self.document["completeness"]["reason"], "the page budget of 150 requests")
+        start_ns = self.document["window"]["from_timestamp_ms"] * 1000000
+        direct = [h for h in self.document["hops"] if h["from"] == COLLECTOR]
+        self.assertTrue(direct)
+        for hop in direct:
+            self.assertGreaterEqual(hop["block_timestamp"], start_ns)
+        self.assertIn("depth 2 of 3, stopped at depth 1 reading", trace.summary(self.document))
 
     def test_the_committed_state_at_block_reads_the_collector_banned_by_the_usdt_issuer(self):
         reads = {(r["token"], r["method"]): r for r in self.document["state_at_block"]}
