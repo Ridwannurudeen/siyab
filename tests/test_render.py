@@ -231,6 +231,32 @@ class RenderTest(unittest.TestCase):
         self.assertIn("follow event", supplied)
         self.assertIn("at block 123", supplied)
 
+    def test_the_feed_page_renders_several_events_from_disk_by_block_height_then_hash(self):
+        state = json.loads(feed.STATE_PATH.read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as tmp:
+            path, events_dir = Path(tmp) / "state.json", Path(tmp) / "events"
+            path.write_text(json.dumps(state), encoding="utf-8")
+            events_dir.mkdir()
+            for stem, height in (("d", 20), ("b", 20), ("a", 30), ("c", 10)):
+                event = {"signal": "new receiver", "observed": {"block_height": height}, "detail": f"event {stem}",
+                         "receipt_id": "receipt", "tx_hash": "transaction"}
+                (events_dir / f"{stem}.json").write_text(json.dumps(event), encoding="utf-8")
+            page = render.feed_page(path, events_dir)
+        self.assertEqual(page.count('<div class="card">'), 4)
+        positions = [page.index(f"<p>event {stem}</p>") for stem in "cbda"]
+        self.assertEqual(positions, sorted(positions))
+
+    def test_the_feed_page_states_the_total_the_events_were_selected_from(self):
+        state = dict(json.loads(feed.STATE_PATH.read_text(encoding="utf-8")), mode="follow",
+                     started_at="2026-11-03T12:00:00Z", lag_blocks=0)
+        rows = [({"signal": "new receiver", "observed": {"block_height": height}, "detail": "event",
+                  "receipt_id": "receipt", "tx_hash": "transaction"}, f"event-{height}") for height in (1, 2, 3)]
+        self.assertIn("<p>3 events in total.</p>", render.feed_page(state=state, event_rows=rows, total=3))
+        self.assertIn("<p>1 event in total.</p>", render.feed_page(state=state, event_rows=rows[2:], total=1))
+        self.assertIn("<p>7 events in total; the 3 most recent by block height are shown.</p>",
+                      render.feed_page(state=state, event_rows=rows, total=7))
+        self.assertNotIn("in total", render.feed_page(state=state, event_rows=rows))
+
     def test_the_verify_page_inputs_carry_placeholders_from_committed_records(self):
         record = json.loads((ROOT / "fixtures" / "registry" / "testnet-vendor.json").read_text(encoding="utf-8"))
         evidence_path = ROOT / "fixtures" / "evidence" / f"{record['evidence_hash']}.json"

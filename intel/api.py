@@ -88,13 +88,7 @@ def _feed():
         return 503, {"error": "feed state unreadable"}
     if stats is not None:
         stats.pop("fresh_accounts", None)
-    events = []
-    if events_dir.is_dir():
-        for path in events_dir.glob("*.json"):
-            document = _read_json(path)
-            height = (document.get("observed") or {}).get("block_height") or 0
-            events.append((height, path.stem, document))
-    events.sort(key=lambda item: (item[0], item[1]))
+    events = render.feed_events(events_dir)
     return 200, {"stats": stats, "events": [document for _, _, document in events[-FEED_LIMIT:]]}
 
 
@@ -108,11 +102,11 @@ def _live_feed_page():
         state = _read_json(state_path)
         if not isinstance(state, dict) or state.get("mode") != "follow":
             return None
-        event_rows = [(json.loads(path.read_text(encoding="utf-8")), path.stem)
-                      for path in events_dir.glob("*.json")]
+        events = render.feed_events(events_dir)
     except (OSError, UnicodeError, ValueError):
         return None
-    return render.feed_page(state=state, event_rows=event_rows).encode("utf-8")
+    event_rows = [(document, stem) for _, stem, document in events[-FEED_LIMIT:]]
+    return render.feed_page(state=state, event_rows=event_rows, total=len(events)).encode("utf-8")
 
 
 def _flow(store, subject):

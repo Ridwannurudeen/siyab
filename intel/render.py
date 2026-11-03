@@ -234,7 +234,19 @@ def search_index(store, pages, entities, entity_paths):
                           "url": entity_paths[entity["id"]]} for entity in entities]}
 
 
-def feed_page(state_path=feed.STATE_PATH, events_dir=feed.EVENTS_DIR, *, state=None, event_rows=None):
+def feed_events(events_dir):
+    """The (block height, hash, document) of every event file under events_dir, ordered by observed block
+    height, then hash: the order of the /feed route and of the feed page."""
+    events = []
+    for path in Path(events_dir).glob("*.json"):
+        document = json.loads(path.read_text(encoding="utf-8"))
+        events.append(((document.get("observed") or {}).get("block_height") or 0, path.stem, document))
+    return sorted(events, key=lambda item: (item[0], item[1]))
+
+
+def feed_page(state_path=feed.STATE_PATH, events_dir=feed.EVENTS_DIR, *, state=None, event_rows=None, total=None):
+    """The feed page; event_rows, (document, hash) in the order to show, and total, the number of events they
+    were selected from, come from a caller that selected them, else every event under events_dir is shown."""
     if state is None:
         if not Path(state_path).is_file():
             return page("Feed", "<h1>Feed</h1><p>The feed has not run.</p>")
@@ -244,13 +256,15 @@ def feed_page(state_path=feed.STATE_PATH, events_dir=feed.EVENTS_DIR, *, state=N
         f"{esc(state['start_time'][:10])} UTC. Live following is not running yet.</p>\n")
     stats = "".join(f"<li>{esc(line)}</li>" for line in feed.stats_lines(state))
     if event_rows is None:
-        event_rows = [(json.loads(p.read_bytes()), p.stem) for p in Path(events_dir).glob("*.json")]
+        event_rows = [(document, stem) for _, stem, document in feed_events(events_dir)]
     cards = "".join(
         f'<div class="card"><p><strong>{esc(e["signal"])}</strong> at block {e["observed"]["block_height"]}</p>'
         f'<p>{esc(e["detail"])}</p><p class="mono">receipt {esc(e["receipt_id"])}<br>transaction {esc(e["tx_hash"])}'
         f'<br>evidence {esc(stem)}</p></div>'
-        for e, stem in sorted(event_rows, key=lambda item: (item[0]["observed"]["block_height"], item[1])))
-    body = (f"<h1>Feed over finalized mainnet blocks</h1>\n{window}<ul>{stats}</ul>\n<h2>Events</h2>\n"
+        for e, stem in event_rows)
+    shown = "" if total == len(event_rows) else f"; the {len(event_rows)} most recent by block height are shown"
+    count = "" if total is None else f"<p>{total} event{'' if total == 1 else 's'} in total{shown}.</p>\n"
+    body = (f"<h1>Feed over finalized mainnet blocks</h1>\n{window}<ul>{stats}</ul>\n<h2>Events</h2>\n{count}"
             + (cards or "<p>No signal fired over the recorded blocks.</p>")
             + "\n<p class=\"muted\">The signals: " + ", ".join(feed.SIGNALS) + ".</p>")
     return page("Feed", body)

@@ -1,3 +1,4 @@
+import hashlib
 import html
 import http.client
 import json
@@ -28,6 +29,19 @@ def get(server, path):
         return reply.status, reply.getheader("Content-Type"), reply.getheader("Cache-Control"), reply.read()
     finally:
         connection.close()
+
+
+def write_follow_state(state_dir, texts):
+    """A follow state under state_dir and one event file per text, named by the sha256 of its bytes as the
+    follower names them."""
+    state = json.loads(feed.STATE_PATH.read_text(encoding="utf-8"))
+    state.update(mode="follow", started_at="2026-11-03T12:00:00Z", last_height=1060,
+                 last_time="2026-11-03T12:05:00Z", lag_blocks=0)
+    (state_dir / "state.json").write_text(json.dumps(state), encoding="utf-8")
+    (state_dir / "events").mkdir()
+    for text in texts:
+        name = hashlib.sha256(text.encode("utf-8")).hexdigest() + ".json"
+        (state_dir / "events" / name).write_text(text, encoding="utf-8")
 
 
 class ApiTest(unittest.TestCase):
@@ -273,6 +287,24 @@ class HostedSiteTest(unittest.TestCase):
                     status, content_type, cache, body = get(self.server, "/feed.html")
                 self.assertEqual((status, content_type, cache, body),
                                  (200, "text/html", "no-store", static_page))
+
+    def test_feed_page_shows_the_50_events_the_feed_route_answers_and_the_total(self):
+        events = [{"signal": "new receiver", "observed": {"block_height": height}, "detail": f"event {height}",
+                   "receipt_id": f"receipt {height}", "tx_hash": f"transaction {height}"}
+                  for height in range(1001, 1061)]
+        with tempfile.TemporaryDirectory() as tmp:
+            write_follow_state(Path(tmp), [json.dumps(event) for event in events])
+            with mock.patch.dict(os.environ, {"FEED_STATE_DIR": tmp}):
+                status, content_type, _, body = get(self.server, "/feed.html")
+                route_events = json.loads(get(self.server, "/feed")[3])["events"]
+        page = body.decode("utf-8")
+        self.assertEqual((status, content_type), (200, "text/html"))
+        self.assertEqual(page.count('<div class="card">'), 50)
+        self.assertIn("<p>60 events in total; the 50 most recent by block height are shown.</p>", page)
+        heights = [event["observed"]["block_height"] for event in route_events]
+        self.assertEqual(heights, list(range(1011, 1061)))
+        self.assertEqual([int(height) for height in re.findall(r"at block (\d+)</p>", page)], heights)
+        self.assertNotIn("<p>event 1010</p>", page)
 
     def test_the_incident_json_route_still_answers(self):
         status, content_type, _, body = get(self.server, "/incidents/rhea")
