@@ -5,7 +5,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
 from intel import issuers, labels
 
@@ -206,14 +206,25 @@ class IssuerRowsTest(unittest.TestCase):
     def test_append_command_delegates_to_seed_append(self):
         status_rows = [{"id": "status row"}]
         history_rows = [{"id": "history row"}]
+        events = []
+
+        def status():
+            events.append("status rows built")
+            return status_rows
+
+        def append_rows(rows):
+            events.append(("appended", rows))
+            return 1
+
         output = io.StringIO()
-        with patch.object(issuers, "rows", return_value=status_rows), \
+        with patch.object(issuers, "rows", side_effect=status), \
                 patch.object(issuers, "history_rows", return_value=history_rows), \
-                patch.object(issuers.seed, "append", return_value=1) as append, \
+                patch.object(issuers.seed, "append", side_effect=append_rows) as append, \
                 contextlib.redirect_stdout(output):
             self.assertEqual(issuers.main(["append"]), 0)
-        append.assert_called_once_with(status_rows + history_rows)
-        self.assertIn("1 issuer status rows appended", output.getvalue())
+        self.assertEqual(append.call_args_list, [call(history_rows), call(status_rows)])
+        self.assertEqual(events, [("appended", history_rows), "status rows built", ("appended", status_rows)])
+        self.assertIn("2 issuer rows appended", output.getvalue())
 
 
 if __name__ == "__main__":

@@ -476,7 +476,9 @@ def record(sleep=time.sleep, clock=time.monotonic, progress=print):
 
 
 def append_rows():
-    return seed.append(rows() + history_rows())
+    """Append the history rows first: a status row exists only for a subject the store already holds."""
+    added = seed.append(history_rows())
+    return added + seed.append(rows())
 
 
 def main(argv=None):
@@ -492,7 +494,7 @@ def main(argv=None):
             history_count = write_history_rows()
             print(f"{status_count} issuer status rows, {history_count} issuer history rows")
         elif args.command == "append":
-            print(f"{append_rows()} issuer status rows appended")
+            print(f"{append_rows()} issuer rows appended")
         else:
             record_history()
     except (rpc.FixtureMiss, rpc.HttpError, rpc.TransportError, rpc.RpcError, rpc.MalformedResponse) as error:
