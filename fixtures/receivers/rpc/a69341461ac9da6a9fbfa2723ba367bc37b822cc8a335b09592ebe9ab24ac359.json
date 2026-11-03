@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "marmaj.sputnik-dao.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "30108810828504251286672623",
+      "block_hash": "8ki5Kr8LjdTqC6b9RYkuTZnZVRnhFgd8LyLEU7yu7ccC",
+      "block_height": 222910063,
+      "code_hash": "2Zof1Tyy4pMeJM48mDSi5ww2QQhTz97b9S8h6W6r4HnK",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 1314889
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-03T18:50:43Z"
+}

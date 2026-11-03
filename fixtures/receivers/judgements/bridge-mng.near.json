@@ -53,7 +53,7 @@
     {
       "id": "account_age",
       "status": "pass",
-      "detail": "created 722 d ago",
+      "detail": "created 728 d ago",
       "source": {
         "provider": "api.nearblocks.io",
         "request_sha256": "e9ca6d1fafedd63547545ab1c0e291aeadbc487b9ddf23afba7bdeeec8087a0a",
@@ -98,6 +98,6 @@
   "labels": [],
   "observed": {
     "block_height": 222137816,
-    "timestamp_ms": 1793284573923
+    "timestamp_ms": 1793731688201
   }
 }

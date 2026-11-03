@@ -1,0 +1,105 @@
+{
+  "subject": "svrn.pool.near",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "svrn.pool.near",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "UNKNOWN",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "pass",
+      "detail": "svrn.pool.near exists",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "faae8c13f68902bd61aca721ff4064816e82546bd4eac4382a1c92dbea16b09c",
+        "fetched_at": "2026-11-03T18:58:33Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "pass",
+      "detail": "no denylist or incident label on svrn.pool.near",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "74c235c6aefd1daae4c8028fc7e6461bbd9d8baa401caaa018ae29c001c1133d",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "issuer_blacklist",
+      "status": "pass",
+      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "4042fc7e1f07153443ace663ac7ca1cae8dac373f6189a8ba8c18f9868fc3521",
+        "fetched_at": "2026-11-03T18:58:34Z"
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "unknown",
+      "detail": "locked contract: no access key and no creation record",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "ffbff89194f54b5bbc3b28d5d8c522c2904bc5673ffe886f15b8fe733e242e65",
+        "fetched_at": "2026-11-03T18:58:41Z"
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "unknown",
+      "detail": "the creation transaction is not known",
+      "source": {
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "74c235c6aefd1daae4c8028fc7e6461bbd9d8baa401caaa018ae29c001c1133d",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "pass",
+      "detail": "contract code without contract_source_metadata; not a signal on its own",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "4119d1b9055274d80e0914d0ef0f5ccce5f14321894234483e3bef28053cd4a9",
+        "fetched_at": "2026-11-03T18:58:43Z"
+      }
+    }
+  ],
+  "reasons": [
+    "account_age could not run: locked contract: no access key and no creation record.",
+    "dust_funded could not run: the creation transaction is not known."
+  ],
+  "labels": [
+    "1c3ce53692ac9f2292eae9900fe508e088dd996c876a4eeb4cc54888f8175e6d"
+  ],
+  "observed": {
+    "block_height": 222910900,
+    "timestamp_ms": 1793731688201
+  }
+}

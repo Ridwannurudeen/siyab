@@ -1,0 +1,73 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "txns": [
+      {
+        "transaction_hash": "GDdbiNFCikV51hMKGUyCkCKGqgfKuqd4Kh9nhf1s8gHE",
+        "included_in_block_hash": "GmkK1vR3jVwKLH7dimDTMmKf6QZA8oXxt4THMFrT3bHX",
+        "block_timestamp": "1627506319038356975",
+        "signer_account_id": "hfq.near",
+        "receiver_account_id": "sputnik-dao.near",
+        "receipt_conversion_gas_burnt": "2428408433612",
+        "receipt_conversion_tokens_burnt": "242840843361200000000",
+        "shard_id": "0",
+        "block": {
+          "block_height": 43811178
+        },
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "create",
+            "args": "{\"args\": \"eyJjb25maWciOnsibmFtZSI6ImhmcSIsInB1cnBvc2UiOiJGb3IgYSBkZW1vbnN0cmF0aW9uICIsIm1ldGFkYXRhIjoiIn0sInBvbGljeSI6WyJoZnEubmVhciJdfQ==\", \"name\": \"hfq\", \"public_key\": \"2gtDEwdLuUBawzFLAnCS9gUso3Ph76bRzMpVrtb66f3J\"}"
+          }
+        ],
+        "actions_agg": {
+          "deposit": 5e+24,
+          "gas_attached": 150000000000000
+        },
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": 6.8635717317127e+21,
+          "gas_used": 68635717317127
+        },
+        "receipts": [
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          }
+        ]
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/txns/GDdbiNFCikV51hMKGUyCkCKGqgfKuqd4Kh9nhf1s8gHE",
+  "fetched_at": "2026-11-03T18:53:31Z"
+}

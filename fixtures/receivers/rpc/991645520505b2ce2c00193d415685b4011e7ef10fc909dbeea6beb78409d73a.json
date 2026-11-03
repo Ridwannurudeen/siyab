@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "bitwise_1.poolv1.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "962348100906215008744606519",
+      "block_hash": "7T8jJL5SPiDZUSKxaCKLgrUDPJtUcKBCQ3KeUiN8qTwR",
+      "block_height": 222910723,
+      "code_hash": "J1arLz48fgXcGyCPVckFwLnewNH6j1uw79thsvwqGYTY",
+      "locked": "19943140704942240992389987117569",
+      "storage_paid_at": 0,
+      "storage_usage": 323446
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-03T18:56:53Z"
+}

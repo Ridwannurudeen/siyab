@@ -419,6 +419,18 @@ class TierTwoTest(RulesCase):
         self.assertEqual(self.detail(judgement, "dust_funded"), "the creation transaction is not known")
         self.assertEqual(judgement.verdict, "UNKNOWN")
 
+    def test_a_locked_contract_reads_unknown_with_the_locked_contract_detail(self):
+        self.fx.account("pool.testnet", code_hash="SomeCodeHash")
+        self.token_ok("pool.testnet")
+        self.fx.keys("pool.testnet")
+        self.fx.method_missing("pool.testnet", "contract_source_metadata", {})
+        judgement = self.judge(request("pool.testnet"))
+        self.assertEqual(self.status(judgement, "account_age"), "unknown")
+        self.assertEqual(self.detail(judgement, "account_age"), "locked contract: no access key and no creation record")
+        self.assertEqual(self.detail(judgement, "dust_funded"), "the creation transaction is not known")
+        self.assertEqual(self.status(judgement, "code_without_metadata"), "pass")
+        self.assertEqual(judgement.verdict, "UNKNOWN")
+
     def test_oldest_key_decides_the_age(self):
         self.stranger("stranger.testnet")
         self.fx.keys("stranger.testnet", NOW_MS * 10**6 - HOUR_NS, NOW_MS * 10**6 - 40 * DAY_NS)

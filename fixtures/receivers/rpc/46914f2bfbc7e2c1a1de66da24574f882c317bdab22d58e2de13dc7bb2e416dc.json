@@ -1,0 +1,73 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "txns": [
+      {
+        "transaction_hash": "HddMPPr3tN7c3bBAqCm1fkUkfMfQeNvjzwiqibyszShi",
+        "included_in_block_hash": "J69rndbRi78XnNaeo9qsPPgsZqEh34fWJcukjjbPq6cz",
+        "block_timestamp": "1627506322371210766",
+        "signer_account_id": "nihilismfulltime.near",
+        "receiver_account_id": "sputnik-dao.near",
+        "receipt_conversion_gas_burnt": "2428529174048",
+        "receipt_conversion_tokens_burnt": "242852917404800000000",
+        "shard_id": "0",
+        "block": {
+          "block_height": 43811181
+        },
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "create",
+            "args": "{\"args\": \"eyJjb25maWciOnsibmFtZSI6Im5paGlsaXNtX2Z1bGx0aW1lIiwicHVycG9zZSI6IkRlY2VudHJhbGl6ZSBhcnQgZmluYW5jZSIsIm1ldGFkYXRhIjoiIn0sInBvbGljeSI6WyJuaWhpbGlzbWZ1bGx0aW1lLm5lYXIiXX0=\", \"name\": \"nihilism_fulltime\", \"public_key\": \"2gtDEwdLuUBawzFLAnCS9gUso3Ph76bRzMpVrtb66f3J\"}"
+          }
+        ],
+        "actions_agg": {
+          "deposit": 5e+24,
+          "gas_attached": 150000000000000
+        },
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": 6.8688406293015e+21,
+          "gas_used": 68688406293015
+        },
+        "receipts": [
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          }
+        ]
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/txns/HddMPPr3tN7c3bBAqCm1fkUkfMfQeNvjzwiqibyszShi",
+  "fetched_at": "2026-11-03T18:53:49Z"
+}

@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "zavodil.poolv1.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "244791735837292602120767333966",
+      "block_hash": "DuHsSeBSPfpfTLHtxrCPf1KkRxKshC6XgeZWwo9Cuvo1",
+      "block_height": 222910762,
+      "code_hash": "J1arLz48fgXcGyCPVckFwLnewNH6j1uw79thsvwqGYTY",
+      "locked": "17967768445366888089603616749086",
+      "storage_paid_at": 0,
+      "storage_usage": 2589404
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-03T18:57:15Z"
+}

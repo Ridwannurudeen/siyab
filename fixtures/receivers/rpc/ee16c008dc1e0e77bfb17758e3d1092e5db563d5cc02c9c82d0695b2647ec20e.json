@@ -1,0 +1,73 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "txns": [
+      {
+        "transaction_hash": "BP8YUo8aWn3RpLGPLrhLGfnmiXMrCbWaMbCstzvZsYev",
+        "included_in_block_hash": "G1ivpfotZdUsPSJE3NLipzjj5XmX4QDz2iNv35DLvvin",
+        "block_timestamp": "1627506475370004317",
+        "signer_account_id": "mattmilanoart.near",
+        "receiver_account_id": "sputnik-dao.near",
+        "receipt_conversion_gas_burnt": "2428564948992",
+        "receipt_conversion_tokens_burnt": "242856494899200000000",
+        "shard_id": "0",
+        "block": {
+          "block_height": 43811321
+        },
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "create",
+            "args": "{\"args\": \"eyJjb25maWciOnsibmFtZSI6Inlhd2F5IiwicHVycG9zZSI6IkNvbm5lY3RpbmcgYXJ0aXN0aWMgcmVwcmVzZW50YXRpb24gb2YgY3VsdHVyZSBhbmQgY29tbXVuaXR5ICIsIm1ldGFkYXRhIjoiIn0sInBvbGljeSI6WyJtYXR0bWlsYW5vYXJ0Lm5lYXIiXX0=\", \"name\": \"yaway\", \"public_key\": \"2gtDEwdLuUBawzFLAnCS9gUso3Ph76bRzMpVrtb66f3J\"}"
+          }
+        ],
+        "actions_agg": {
+          "deposit": 5e+24,
+          "gas_attached": 150000000000000
+        },
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": 6.8319526252088e+21,
+          "gas_used": 68319526252088
+        },
+        "receipts": [
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          }
+        ]
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/txns/BP8YUo8aWn3RpLGPLrhLGfnmiXMrCbWaMbCstzvZsYev",
+  "fetched_at": "2026-11-03T18:55:11Z"
+}

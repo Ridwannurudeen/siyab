@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "keys": [
+      {
+        "public_key": "ed25519:2gtDEwdLuUBawzFLAnCS9gUso3Ph76bRzMpVrtb66f3J",
+        "account_id": "codame.sputnik-dao.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "BmG2CaFa1Vn8LsYaWwmLpeUsg3fttXAwbgDSEvRG99Pc",
+          "block_timestamp": 1622745281923986400
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/account/codame.sputnik-dao.near/keys",
+  "fetched_at": "2026-11-03T18:48:12Z"
+}

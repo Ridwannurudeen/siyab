@@ -1,0 +1,73 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "txns": [
+      {
+        "transaction_hash": "AqzDPXU5edmnt3EB8NEtvzaoSEGtfWnsxbZWsab57pGc",
+        "included_in_block_hash": "2yYwP3atULMttws12gWSrEyGqXRs3tzhz3UKKxQnjJSh",
+        "block_timestamp": "1625626421435263764",
+        "signer_account_id": "mike.near",
+        "receiver_account_id": "sputnik-dao.near",
+        "receipt_conversion_gas_burnt": "2428502342840",
+        "receipt_conversion_tokens_burnt": "242850234284000000000",
+        "shard_id": "0",
+        "block": {
+          "block_height": 41942702
+        },
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "create",
+            "args": "{\"args\": \"eyJjb25maWciOnsibmFtZSI6Im1vY2hpIiwicHVycG9zZSI6IkJpdGUtc2l6ZWQgYm91bnRpZXMgdG8gaGVscCB0aGUgZWNvc3lzdGVtIGdyb3cuIiwibWV0YWRhdGEiOiIifSwicG9saWN5IjpbIm1pa2UubmVhciJdfQ==\", \"name\": \"mochi\", \"public_key\": \"2gtDEwdLuUBawzFLAnCS9gUso3Ph76bRzMpVrtb66f3J\"}"
+          }
+        ],
+        "actions_agg": {
+          "deposit": 6e+24,
+          "gas_attached": 150000000000000
+        },
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": 6.8746525507822e+21,
+          "gas_used": 68746525507822
+        },
+        "receipts": [
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          }
+        ]
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/txns/AqzDPXU5edmnt3EB8NEtvzaoSEGtfWnsxbZWsab57pGc",
+  "fetched_at": "2026-11-03T18:50:41Z"
+}

@@ -1,7 +1,8 @@
 {
-  "chosen_at": "2026-10-29T14:36:13Z",
-  "judged_at_ms": 1793284573923,
-  "rule": "receivers [--record] judges the recorded mainnet receiver set with gate.rules.judge in replay (an empty allowlist and the committed label store) and writes one fixtures/receivers/judgements/<subject>.json per subject of fixtures/receivers/set.json. The set is the last COUNTERPARTIES distinct counterparties of each account in RECEIVER_SOURCES (the FastNEAR Transfers API, newest first; implicit accounts are left out as the likeliest personal wallets, unless the label store holds them as a catalog token), then the NEAR accounts of intel/incidents/rhea.json, then the first CATALOG_SUBJECTS catalog_token NEAR accounts of the label store that are not in the set yet. A token subject is judged as the token of a transfer to TOKEN_RECEIVER, as intel/incidents/rhea.json judges its token contracts, and every other subject as the receiver of a NEAR transfer. --record chooses the set and fetches what is missing: the transfers pages, the view calls the rules make, and the NearBlocks keys and creation transaction for the first AGE_SUBJECTS receivers only (at most two NearBlocks calls each), so every later receiver without an earlier recording reads unknown on age. The view calls and NearBlocks answers live under fixtures/receivers/rpc/. Without --record nothing touches the network.",
+  "chosen_at": "2026-11-03T18:48:08Z",
+  "judged_at_ms": 1793731688201,
+  "rule": "receivers [--record] judges the recorded mainnet receiver set with gate.rules.judge in replay (an empty allowlist and the committed label store) and writes one fixtures/receivers/judgements/<subject>.json per subject of fixtures/receivers/set.json. Each subject has a cohort. The set is the last COUNTERPARTIES distinct counterparties of each account in RECEIVER_SOURCES (the FastNEAR Transfers API, newest first; implicit accounts are left out as the likeliest personal wallets, unless the label store holds them as a catalog token), less the ids the exclusion file names (cohort counterparty); then the first ORGANISATION_SUBJECTS Sputnik DAO accounts and the first ORGANISATION_SUBJECTS validator pool accounts among the organisation rows of the label store, in store order (cohort organisation); then the NEAR accounts of intel/incidents/rhea.json (cohort incident); then the first CATALOG_SUBJECTS catalog_token NEAR accounts of the label store that are not in the set yet (cohort catalog). A token subject is judged as the token of a transfer to TOKEN_RECEIVER, as intel/incidents/rhea.json judges its token contracts, and every other subject as the receiver of a NEAR transfer. --record chooses the set and fetches what is missing for the subjects new to it. The counterparties come from the transfers pages recorded under fixtures/fastnear/, read in replay, and the ids of --exclude-file (a file kept outside the repository, one account id per line) are left out after they are chosen, so no other account takes their place. A subject of the committed set is judged on its earlier recording; a new subject gets the view calls the rules make and, while fewer than AGE_SUBJECTS receivers have their age recorded, the NearBlocks keys and creation transaction (at most two NearBlocks calls each), so every later receiver without an earlier recording reads unknown on age. The view calls and NearBlocks answers live under fixtures/receivers/rpc/. Without --record nothing touches the network.",
+  "exclusion": "Named accounts whose id reads as a person's name or handle were left out by hand before publication (18 accounts); the set lists no account id for them.",
   "sources": [
     {
       "account": "v2.ref-finance.near",
@@ -25,6 +26,7 @@
       "subject": "mmt-arb.near",
       "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
       "as": "receiver",
+      "cohort": "counterparty",
       "request": {
         "kind": "near",
         "token_id": null,
@@ -35,61 +37,10 @@
       "age_recorded": true
     },
     {
-      "subject": "ayoublaf.near",
-      "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
-      "as": "receiver",
-      "request": {
-        "kind": "near",
-        "token_id": null,
-        "receiver_id": "ayoublaf.near",
-        "amount": "1000000000000000000000000",
-        "memo": null
-      },
-      "age_recorded": true
-    },
-    {
-      "subject": "closemeat6237.near",
-      "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
-      "as": "receiver",
-      "request": {
-        "kind": "near",
-        "token_id": null,
-        "receiver_id": "closemeat6237.near",
-        "amount": "1000000000000000000000000",
-        "memo": null
-      },
-      "age_recorded": true
-    },
-    {
-      "subject": "hideon.near",
-      "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
-      "as": "receiver",
-      "request": {
-        "kind": "near",
-        "token_id": null,
-        "receiver_id": "hideon.near",
-        "amount": "1000000000000000000000000",
-        "memo": null
-      },
-      "age_recorded": true
-    },
-    {
-      "subject": "whatdoyoumean.near",
-      "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
-      "as": "receiver",
-      "request": {
-        "kind": "near",
-        "token_id": null,
-        "receiver_id": "whatdoyoumean.near",
-        "amount": "1000000000000000000000000",
-        "memo": null
-      },
-      "age_recorded": true
-    },
-    {
       "subject": "via-trading.near",
       "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
       "as": "receiver",
+      "cohort": "counterparty",
       "request": {
         "kind": "near",
         "token_id": null,
@@ -103,6 +54,7 @@
       "subject": "intents.near",
       "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
       "as": "receiver",
+      "cohort": "counterparty",
       "request": {
         "kind": "near",
         "token_id": null,
@@ -116,6 +68,7 @@
       "subject": "aggregatedex.near",
       "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
       "as": "receiver",
+      "cohort": "counterparty",
       "request": {
         "kind": "near",
         "token_id": null,
@@ -129,6 +82,7 @@
       "subject": "tx-bench.near",
       "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
       "as": "receiver",
+      "cohort": "counterparty",
       "request": {
         "kind": "near",
         "token_id": null,
@@ -139,22 +93,10 @@
       "age_recorded": true
     },
     {
-      "subject": "cryptovulcanedge.near",
-      "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
-      "as": "receiver",
-      "request": {
-        "kind": "near",
-        "token_id": null,
-        "receiver_id": "cryptovulcanedge.near",
-        "amount": "1000000000000000000000000",
-        "memo": null
-      },
-      "age_recorded": true
-    },
-    {
       "subject": "wrap.near",
       "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
       "as": "token",
+      "cohort": "counterparty",
       "request": {
         "kind": "ft",
         "token_id": "wrap.near",
@@ -165,61 +107,10 @@
       "age_recorded": true
     },
     {
-      "subject": "davin2525.near",
-      "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
-      "as": "receiver",
-      "request": {
-        "kind": "near",
-        "token_id": null,
-        "receiver_id": "davin2525.near",
-        "amount": "1000000000000000000000000",
-        "memo": null
-      },
-      "age_recorded": true
-    },
-    {
-      "subject": "grefdegen-53f63595b9.near",
-      "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
-      "as": "receiver",
-      "request": {
-        "kind": "near",
-        "token_id": null,
-        "receiver_id": "grefdegen-53f63595b9.near",
-        "amount": "1000000000000000000000000",
-        "memo": null
-      },
-      "age_recorded": true
-    },
-    {
-      "subject": "frosty_santa3.user.intear.near",
-      "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
-      "as": "receiver",
-      "request": {
-        "kind": "near",
-        "token_id": null,
-        "receiver_id": "frosty_santa3.user.intear.near",
-        "amount": "1000000000000000000000000",
-        "memo": null
-      },
-      "age_recorded": true
-    },
-    {
-      "subject": "keepsilence.near",
-      "why": "one of the last 15 distinct counterparties of v2.ref-finance.near in the FastNEAR Transfers API",
-      "as": "receiver",
-      "request": {
-        "kind": "near",
-        "token_id": null,
-        "receiver_id": "keepsilence.near",
-        "amount": "1000000000000000000000000",
-        "memo": null
-      },
-      "age_recorded": true
-    },
-    {
       "subject": "bridge-mng.near",
       "why": "one of the last 15 distinct counterparties of wrap.near in the FastNEAR Transfers API",
       "as": "receiver",
+      "cohort": "counterparty",
       "request": {
         "kind": "near",
         "token_id": null,
@@ -233,6 +124,7 @@
       "subject": "dclv2.ref-labs.near",
       "why": "one of the last 15 distinct counterparties of wrap.near in the FastNEAR Transfers API",
       "as": "receiver",
+      "cohort": "counterparty",
       "request": {
         "kind": "near",
         "token_id": null,
@@ -243,126 +135,10 @@
       "age_recorded": true
     },
     {
-      "subject": "freshgarden2689.near",
-      "why": "one of the last 15 distinct counterparties of wrap.near in the FastNEAR Transfers API",
-      "as": "receiver",
-      "request": {
-        "kind": "near",
-        "token_id": null,
-        "receiver_id": "freshgarden2689.near",
-        "amount": "1000000000000000000000000",
-        "memo": null
-      },
-      "age_recorded": true
-    },
-    {
-      "subject": "holderspot.near",
-      "why": "one of the last 15 distinct counterparties of wrap.near in the FastNEAR Transfers API",
-      "as": "receiver",
-      "request": {
-        "kind": "near",
-        "token_id": null,
-        "receiver_id": "holderspot.near",
-        "amount": "1000000000000000000000000",
-        "memo": null
-      },
-      "age_recorded": true
-    },
-    {
-      "subject": "kirillsokolovsky.tg",
-      "why": "one of the last 15 distinct counterparties of wrap.near in the FastNEAR Transfers API",
-      "as": "receiver",
-      "request": {
-        "kind": "near",
-        "token_id": null,
-        "receiver_id": "kirillsokolovsky.tg",
-        "amount": "1000000000000000000000000",
-        "memo": null
-      },
-      "age_recorded": true
-    },
-    {
-      "subject": "mrnicevery.near",
-      "why": "one of the last 15 distinct counterparties of wrap.near in the FastNEAR Transfers API",
-      "as": "receiver",
-      "request": {
-        "kind": "near",
-        "token_id": null,
-        "receiver_id": "mrnicevery.near",
-        "amount": "1000000000000000000000000",
-        "memo": null
-      },
-      "age_recorded": true
-    },
-    {
-      "subject": "safenode8556.near",
-      "why": "one of the last 15 distinct counterparties of wrap.near in the FastNEAR Transfers API",
-      "as": "receiver",
-      "request": {
-        "kind": "near",
-        "token_id": null,
-        "receiver_id": "safenode8556.near",
-        "amount": "1000000000000000000000000",
-        "memo": null
-      },
-      "age_recorded": true
-    },
-    {
-      "subject": "thecoins.near",
-      "why": "one of the last 15 distinct counterparties of wrap.near in the FastNEAR Transfers API",
-      "as": "receiver",
-      "request": {
-        "kind": "near",
-        "token_id": null,
-        "receiver_id": "thecoins.near",
-        "amount": "1000000000000000000000000",
-        "memo": null
-      },
-      "age_recorded": true
-    },
-    {
-      "subject": "irisout.near",
-      "why": "one of the last 15 distinct counterparties of wrap.near in the FastNEAR Transfers API",
-      "as": "receiver",
-      "request": {
-        "kind": "near",
-        "token_id": null,
-        "receiver_id": "irisout.near",
-        "amount": "1000000000000000000000000",
-        "memo": null
-      },
-      "age_recorded": true
-    },
-    {
-      "subject": "frigid_polar1.user.intear.near",
-      "why": "one of the last 15 distinct counterparties of wrap.near in the FastNEAR Transfers API",
-      "as": "receiver",
-      "request": {
-        "kind": "near",
-        "token_id": null,
-        "receiver_id": "frigid_polar1.user.intear.near",
-        "amount": "1000000000000000000000000",
-        "memo": null
-      },
-      "age_recorded": true
-    },
-    {
-      "subject": "protacioo.near",
-      "why": "one of the last 15 distinct counterparties of wrap.near in the FastNEAR Transfers API",
-      "as": "receiver",
-      "request": {
-        "kind": "near",
-        "token_id": null,
-        "receiver_id": "protacioo.near",
-        "amount": "1000000000000000000000000",
-        "memo": null
-      },
-      "age_recorded": true
-    },
-    {
       "subject": "grid.deltatrade.near",
       "why": "one of the last 15 distinct counterparties of wrap.near in the FastNEAR Transfers API",
       "as": "receiver",
+      "cohort": "counterparty",
       "request": {
         "kind": "near",
         "token_id": null,
@@ -373,9 +149,710 @@
       "age_recorded": true
     },
     {
+      "subject": "genesis.sputnik-dao.near",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; DAO accounts were expected to be locked contracts, but NearBlocks lists a full access key with its creation for the first of them, so a DAO account's age reads like any account's",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "genesis.sputnik-dao.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "codame.sputnik-dao.near",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; DAO accounts were expected to be locked contracts, but NearBlocks lists a full access key with its creation for the first of them, so a DAO account's age reads like any account's",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "codame.sputnik-dao.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "pulse.sputnik-dao.near",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; DAO accounts were expected to be locked contracts, but NearBlocks lists a full access key with its creation for the first of them, so a DAO account's age reads like any account's",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "pulse.sputnik-dao.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "peter.sputnik-dao.near",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; DAO accounts were expected to be locked contracts, but NearBlocks lists a full access key with its creation for the first of them, so a DAO account's age reads like any account's",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "peter.sputnik-dao.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "jascha.sputnik-dao.near",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; DAO accounts were expected to be locked contracts, but NearBlocks lists a full access key with its creation for the first of them, so a DAO account's age reads like any account's",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "jascha.sputnik-dao.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "hak.sputnik-dao.near",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; DAO accounts were expected to be locked contracts, but NearBlocks lists a full access key with its creation for the first of them, so a DAO account's age reads like any account's",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "hak.sputnik-dao.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "maximum-viable-potential.sputnik-dao.near",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; DAO accounts were expected to be locked contracts, but NearBlocks lists a full access key with its creation for the first of them, so a DAO account's age reads like any account's",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "maximum-viable-potential.sputnik-dao.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "ref-finance.sputnik-dao.near",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; DAO accounts were expected to be locked contracts, but NearBlocks lists a full access key with its creation for the first of them, so a DAO account's age reads like any account's",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "ref-finance.sputnik-dao.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "mochi.sputnik-dao.near",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; DAO accounts were expected to be locked contracts, but NearBlocks lists a full access key with its creation for the first of them, so a DAO account's age reads like any account's",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "mochi.sputnik-dao.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "marmaj.sputnik-dao.near",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; DAO accounts were expected to be locked contracts, but NearBlocks lists a full access key with its creation for the first of them, so a DAO account's age reads like any account's",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "marmaj.sputnik-dao.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "hype.sputnik-dao.near",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; DAO accounts were expected to be locked contracts, but NearBlocks lists a full access key with its creation for the first of them, so a DAO account's age reads like any account's",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "hype.sputnik-dao.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "nft.sputnik-dao.near",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; DAO accounts were expected to be locked contracts, but NearBlocks lists a full access key with its creation for the first of them, so a DAO account's age reads like any account's",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "nft.sputnik-dao.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "abra.sputnik-dao.near",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; DAO accounts were expected to be locked contracts, but NearBlocks lists a full access key with its creation for the first of them, so a DAO account's age reads like any account's",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "abra.sputnik-dao.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "flymoon.sputnik-dao.near",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; DAO accounts were expected to be locked contracts, but NearBlocks lists a full access key with its creation for the first of them, so a DAO account's age reads like any account's",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "flymoon.sputnik-dao.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "blackvirtualmap.sputnik-dao.near",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; DAO accounts were expected to be locked contracts, but NearBlocks lists a full access key with its creation for the first of them, so a DAO account's age reads like any account's",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "blackvirtualmap.sputnik-dao.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "nearweek.sputnik-dao.near",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; DAO accounts were expected to be locked contracts, but NearBlocks lists a full access key with its creation for the first of them, so a DAO account's age reads like any account's",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "nearweek.sputnik-dao.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "hfq.sputnik-dao.near",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; DAO accounts were expected to be locked contracts, but NearBlocks lists a full access key with its creation for the first of them, so a DAO account's age reads like any account's",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "hfq.sputnik-dao.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "nihilism_fulltime.sputnik-dao.near",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; DAO accounts were expected to be locked contracts, but NearBlocks lists a full access key with its creation for the first of them, so a DAO account's age reads like any account's",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "nihilism_fulltime.sputnik-dao.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "catalygraphy.sputnik-dao.near",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; DAO accounts were expected to be locked contracts, but NearBlocks lists a full access key with its creation for the first of them, so a DAO account's age reads like any account's",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "catalygraphy.sputnik-dao.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "famjam.sputnik-dao.near",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; DAO accounts were expected to be locked contracts, but NearBlocks lists a full access key with its creation for the first of them, so a DAO account's age reads like any account's",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "famjam.sputnik-dao.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "devco.sputnik-dao.near",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; DAO accounts were expected to be locked contracts, but NearBlocks lists a full access key with its creation for the first of them, so a DAO account's age reads like any account's",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "devco.sputnik-dao.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "yaway.sputnik-dao.near",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; DAO accounts were expected to be locked contracts, but NearBlocks lists a full access key with its creation for the first of them, so a DAO account's age reads like any account's",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "yaway.sputnik-dao.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "kindessgrocerycoop.sputnik-dao.near",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; DAO accounts were expected to be locked contracts, but NearBlocks lists a full access key with its creation for the first of them, so a DAO account's age reads like any account's",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "kindessgrocerycoop.sputnik-dao.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "localmakermart.sputnik-dao.near",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; DAO accounts were expected to be locked contracts, but NearBlocks lists a full access key with its creation for the first of them, so a DAO account's age reads like any account's",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "localmakermart.sputnik-dao.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "nftbuzz.sputnik-dao.near",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; DAO accounts were expected to be locked contracts, but NearBlocks lists a full access key with its creation for the first of them, so a DAO account's age reads like any account's",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "nftbuzz.sputnik-dao.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "astro-stakers.poolv1.near",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; staking pools are locked contracts with no access key (NearBlocks lists no key for the first of them), so their age reads unknown without an explorer creation record",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "astro-stakers.poolv1.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "figment.poolv1.near",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; staking pools are locked contracts with no access key (NearBlocks lists no key for the first of them), so their age reads unknown without an explorer creation record",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "figment.poolv1.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "ledgerbyfigment.poolv1.near",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; staking pools are locked contracts with no access key (NearBlocks lists no key for the first of them), so their age reads unknown without an explorer creation record",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "ledgerbyfigment.poolv1.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "staked.poolv1.near",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; staking pools are locked contracts with no access key (NearBlocks lists no key for the first of them), so their age reads unknown without an explorer creation record",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "staked.poolv1.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "binancenode1.poolv1.near",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; staking pools are locked contracts with no access key (NearBlocks lists no key for the first of them), so their age reads unknown without an explorer creation record",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "binancenode1.poolv1.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "bitwise_1.poolv1.near",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; staking pools are locked contracts with no access key (NearBlocks lists no key for the first of them), so their age reads unknown without an explorer creation record",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "bitwise_1.poolv1.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "sumerian.poolv1.near",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; staking pools are locked contracts with no access key (NearBlocks lists no key for the first of them), so their age reads unknown without an explorer creation record",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "sumerian.poolv1.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "zavodil.poolv1.near",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; staking pools are locked contracts with no access key (NearBlocks lists no key for the first of them), so their age reads unknown without an explorer creation record",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "zavodil.poolv1.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "bitwise_2.poolv1.near",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; staking pools are locked contracts with no access key (NearBlocks lists no key for the first of them), so their age reads unknown without an explorer creation record",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "bitwise_2.poolv1.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "liver.pool.near",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; staking pools are locked contracts with no access key (NearBlocks lists no key for the first of them), so their age reads unknown without an explorer creation record",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "liver.pool.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "cnear-1.poolv1.near",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; staking pools are locked contracts with no access key (NearBlocks lists no key for the first of them), so their age reads unknown without an explorer creation record",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "cnear-1.poolv1.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "cnear-3.poolv1.near",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; staking pools are locked contracts with no access key (NearBlocks lists no key for the first of them), so their age reads unknown without an explorer creation record",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "cnear-3.poolv1.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "cnear-2.poolv1.near",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; staking pools are locked contracts with no access key (NearBlocks lists no key for the first of them), so their age reads unknown without an explorer creation record",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "cnear-2.poolv1.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "kiln-1.poolv1.near",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; staking pools are locked contracts with no access key (NearBlocks lists no key for the first of them), so their age reads unknown without an explorer creation record",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "kiln-1.poolv1.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "svrn-ai.poolv1.near",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; staking pools are locked contracts with no access key (NearBlocks lists no key for the first of them), so their age reads unknown without an explorer creation record",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "svrn-ai.poolv1.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "svrn.pool.near",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; staking pools are locked contracts with no access key (NearBlocks lists no key for the first of them), so their age reads unknown without an explorer creation record",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "svrn.pool.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "epic.poolv1.near",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; staking pools are locked contracts with no access key (NearBlocks lists no key for the first of them), so their age reads unknown without an explorer creation record",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "epic.poolv1.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "svrn-luganodes.pool.near",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; staking pools are locked contracts with no access key (NearBlocks lists no key for the first of them), so their age reads unknown without an explorer creation record",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "svrn-luganodes.pool.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "nearvana.poolv1.near",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; staking pools are locked contracts with no access key (NearBlocks lists no key for the first of them), so their age reads unknown without an explorer creation record",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "nearvana.poolv1.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "stake1.poolv1.near",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; staking pools are locked contracts with no access key (NearBlocks lists no key for the first of them), so their age reads unknown without an explorer creation record",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "stake1.poolv1.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "svrn_bitwise.poolv1.near",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; staking pools are locked contracts with no access key (NearBlocks lists no key for the first of them), so their age reads unknown without an explorer creation record",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "svrn_bitwise.poolv1.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "metapool01.pool.near",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; staking pools are locked contracts with no access key (NearBlocks lists no key for the first of them), so their age reads unknown without an explorer creation record",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "metapool01.pool.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "p2p-org.poolv1.near",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; staking pools are locked contracts with no access key (NearBlocks lists no key for the first of them), so their age reads unknown without an explorer creation record",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "p2p-org.poolv1.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "dragonfly.poolv1.near",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; staking pools are locked contracts with no access key (NearBlocks lists no key for the first of them), so their age reads unknown without an explorer creation record",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "dragonfly.poolv1.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
+      "subject": "allnodes.poolv1.near",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; staking pools are locked contracts with no access key (NearBlocks lists no key for the first of them), so their age reads unknown without an explorer creation record",
+      "as": "receiver",
+      "cohort": "organisation",
+      "request": {
+        "kind": "near",
+        "token_id": null,
+        "receiver_id": "allnodes.poolv1.near",
+        "amount": "1000000000000000000000000",
+        "memo": null
+      },
+      "age_recorded": true
+    },
+    {
       "subject": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
       "why": "named in the incident page rhea as the collector account, which the report also prints as the attacker NEAR wallet",
       "as": "receiver",
+      "cohort": "incident",
       "request": {
         "kind": "near",
         "token_id": null,
@@ -389,6 +866,7 @@
       "subject": "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5",
       "why": "named in the incident page rhea as the master account",
       "as": "receiver",
+      "cohort": "incident",
       "request": {
         "kind": "near",
         "token_id": null,
@@ -402,6 +880,7 @@
       "subject": "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03",
       "why": "named in the incident page rhea as one of the five worker accounts",
       "as": "receiver",
+      "cohort": "incident",
       "request": {
         "kind": "near",
         "token_id": null,
@@ -415,6 +894,7 @@
       "subject": "d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473",
       "why": "named in the incident page rhea as one of the five worker accounts",
       "as": "receiver",
+      "cohort": "incident",
       "request": {
         "kind": "near",
         "token_id": null,
@@ -428,6 +908,7 @@
       "subject": "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2",
       "why": "named in the incident page rhea as one of the five worker accounts",
       "as": "receiver",
+      "cohort": "incident",
       "request": {
         "kind": "near",
         "token_id": null,
@@ -441,6 +922,7 @@
       "subject": "9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616",
       "why": "named in the incident page rhea as one of the five worker accounts",
       "as": "receiver",
+      "cohort": "incident",
       "request": {
         "kind": "near",
         "token_id": null,
@@ -454,6 +936,7 @@
       "subject": "5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040",
       "why": "named in the incident page rhea as one of the five worker accounts",
       "as": "receiver",
+      "cohort": "incident",
       "request": {
         "kind": "near",
         "token_id": null,
@@ -467,6 +950,7 @@
       "subject": "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163",
       "why": "named in the incident page rhea as one of the four token contracts that shared the code hash it names",
       "as": "token",
+      "cohort": "incident",
       "request": {
         "kind": "ft",
         "token_id": "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163",
@@ -480,6 +964,7 @@
       "subject": "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640",
       "why": "named in the incident page rhea as one of the four token contracts that shared the code hash it names",
       "as": "token",
+      "cohort": "incident",
       "request": {
         "kind": "ft",
         "token_id": "7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640",
@@ -493,6 +978,7 @@
       "subject": "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee",
       "why": "named in the incident page rhea as one of the four token contracts that shared the code hash it names",
       "as": "token",
+      "cohort": "incident",
       "request": {
         "kind": "ft",
         "token_id": "9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee",
@@ -506,6 +992,7 @@
       "subject": "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705",
       "why": "named in the incident page rhea as one of the four token contracts that shared the code hash it names",
       "as": "token",
+      "cohort": "incident",
       "request": {
         "kind": "ft",
         "token_id": "80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705",
@@ -519,6 +1006,7 @@
       "subject": "rhea000453.multica.near",
       "why": "named in the incident page rhea as an account within Rhea's own Multichain Account system that became active and later received funds traceable to the subject wallet",
       "as": "receiver",
+      "cohort": "incident",
       "request": {
         "kind": "near",
         "token_id": null,
@@ -532,6 +1020,7 @@
       "subject": "rhea000462.multica.near",
       "why": "named in the incident page rhea as an account within Rhea's own Multichain Account system that became active and later received funds traceable to the subject wallet",
       "as": "receiver",
+      "cohort": "incident",
       "request": {
         "kind": "near",
         "token_id": null,
@@ -545,6 +1034,7 @@
       "subject": "rhea000505.multica.near",
       "why": "named in the incident page rhea as an account within Rhea's own Multichain Account system that became active and later received funds traceable to the subject wallet",
       "as": "receiver",
+      "cohort": "incident",
       "request": {
         "kind": "near",
         "token_id": null,
@@ -558,6 +1048,7 @@
       "subject": "zec.omft.near",
       "why": "named in the incident page rhea as the account whose ft_withdraw routed ZEC directly into Zcash Unified Addresses",
       "as": "receiver",
+      "cohort": "incident",
       "request": {
         "kind": "near",
         "token_id": null,
@@ -571,6 +1062,7 @@
       "subject": "eth.bridge.near",
       "why": "a catalog_token NEAR account of the label store, in store order",
       "as": "token",
+      "cohort": "catalog",
       "request": {
         "kind": "ft",
         "token_id": "eth.bridge.near",
@@ -584,6 +1076,7 @@
       "subject": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
       "why": "a catalog_token NEAR account of the label store, in store order",
       "as": "token",
+      "cohort": "catalog",
       "request": {
         "kind": "ft",
         "token_id": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
@@ -597,6 +1090,7 @@
       "subject": "853d955acef822db058eb8505911ed77f175b99e.factory.bridge.near",
       "why": "a catalog_token NEAR account of the label store, in store order",
       "as": "token",
+      "cohort": "catalog",
       "request": {
         "kind": "ft",
         "token_id": "853d955acef822db058eb8505911ed77f175b99e.factory.bridge.near",
@@ -610,6 +1104,7 @@
       "subject": "aaaaaa20d9e0e2461697782ef11675f668207961.factory.bridge.near",
       "why": "a catalog_token NEAR account of the label store, in store order",
       "as": "token",
+      "cohort": "catalog",
       "request": {
         "kind": "ft",
         "token_id": "aaaaaa20d9e0e2461697782ef11675f668207961.factory.bridge.near",
@@ -623,6 +1118,7 @@
       "subject": "2260fac5e5542a773aa44fbcfedf7c193bc2c599.factory.bridge.near",
       "why": "a catalog_token NEAR account of the label store, in store order",
       "as": "token",
+      "cohort": "catalog",
       "request": {
         "kind": "ft",
         "token_id": "2260fac5e5542a773aa44fbcfedf7c193bc2c599.factory.bridge.near",
@@ -636,6 +1132,7 @@
       "subject": "blackdragon.tkn.near",
       "why": "a catalog_token NEAR account of the label store, in store order",
       "as": "token",
+      "cohort": "catalog",
       "request": {
         "kind": "ft",
         "token_id": "blackdragon.tkn.near",
@@ -649,6 +1146,7 @@
       "subject": "token.0xshitzu.near",
       "why": "a catalog_token NEAR account of the label store, in store order",
       "as": "token",
+      "cohort": "catalog",
       "request": {
         "kind": "ft",
         "token_id": "token.0xshitzu.near",
@@ -662,6 +1160,7 @@
       "subject": "abg-966.meme-cooking.near",
       "why": "a catalog_token NEAR account of the label store, in store order",
       "as": "token",
+      "cohort": "catalog",
       "request": {
         "kind": "ft",
         "token_id": "abg-966.meme-cooking.near",
@@ -675,6 +1174,7 @@
       "subject": "noear-324.meme-cooking.near",
       "why": "a catalog_token NEAR account of the label store, in store order",
       "as": "token",
+      "cohort": "catalog",
       "request": {
         "kind": "ft",
         "token_id": "noear-324.meme-cooking.near",
@@ -688,6 +1188,7 @@
       "subject": "mpdao-token.near",
       "why": "a catalog_token NEAR account of the label store, in store order",
       "as": "token",
+      "cohort": "catalog",
       "request": {
         "kind": "ft",
         "token_id": "mpdao-token.near",

@@ -1,0 +1,105 @@
+{
+  "subject": "blackvirtualmap.sputnik-dao.near",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "blackvirtualmap.sputnik-dao.near",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "ALLOW",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "pass",
+      "detail": "blackvirtualmap.sputnik-dao.near exists",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "12eaf335459777d5b7a59f7b0291a419ea1c859b0ac277ac699e653f8807c83e",
+        "fetched_at": "2026-11-03T18:52:34Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "pass",
+      "detail": "no denylist or incident label on blackvirtualmap.sputnik-dao.near",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "74c235c6aefd1daae4c8028fc7e6461bbd9d8baa401caaa018ae29c001c1133d",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "issuer_blacklist",
+      "status": "pass",
+      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "e8004059208e7a5800dd51a19554120d5aa26fa589e12444804c65b45e7f722c",
+        "fetched_at": "2026-11-03T18:52:35Z"
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "pass",
+      "detail": "created 1925 d ago",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "6d3ceac080ca365548967c0b65de62cd764580e49d445b0dd3de523e2d056a22",
+        "fetched_at": "2026-11-03T18:52:41Z"
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "pass",
+      "detail": "created by a 5 NEAR deposit",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "3719d1b6d46b23134a377a59ed57fb8d3611c85cb846cc75b80d48f81b140143",
+        "fetched_at": "2026-11-03T18:52:50Z"
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "74c235c6aefd1daae4c8028fc7e6461bbd9d8baa401caaa018ae29c001c1133d",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "pass",
+      "detail": "contract code without contract_source_metadata; not a signal on its own",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "7a80bcc9ad9da9a06ff3a7722286311fc5fe3d51d0fbb0247b8ec2945aace0be",
+        "fetched_at": "2026-11-03T18:52:51Z"
+      }
+    }
+  ],
+  "reasons": [
+    "Every check ran and none found a signal.",
+    "Not on the owner's allowlist."
+  ],
+  "labels": [
+    "482ad92b96f2aa5ece1bc56bfff5edf3e8e571e793678358008425f8adf27b11"
+  ],
+  "observed": {
+    "block_height": 222910262,
+    "timestamp_ms": 1793731688201
+  }
+}

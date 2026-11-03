@@ -1,0 +1,73 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "txns": [
+      {
+        "transaction_hash": "CHQQmqNqTKcAvG4o8gpKYbMYCrQcY6DXLt5X3NFntsU6",
+        "included_in_block_hash": "BDBLVFDaTHGdMxE4u9LYV2czLhkhXsaE4BEzqTzrKpdg",
+        "block_timestamp": "1623834739379306576",
+        "signer_account_id": "jusdao.near",
+        "receiver_account_id": "sputnik-dao.near",
+        "receipt_conversion_gas_burnt": "2428462096028",
+        "receipt_conversion_tokens_burnt": "242846209602800000000",
+        "shard_id": "0",
+        "block": {
+          "block_height": 40151009
+        },
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "create",
+            "args": "{\"args\": \"eyJjb25maWciOnsibmFtZSI6ImhhayIsInB1cnBvc2UiOiJUaGlzIGlzIHRoZSBIQUsgREFPIGZvciAkSEFLIHRva2VuLiIsIm1ldGFkYXRhIjoiIn0sInBvbGljeSI6WyJqdXNkYW8ubmVhciJdfQ==\", \"name\": \"hak\", \"public_key\": \"2gtDEwdLuUBawzFLAnCS9gUso3Ph76bRzMpVrtb66f3J\"}"
+          }
+        ],
+        "actions_agg": {
+          "deposit": 5e+24,
+          "gas_attached": 150000000000000
+        },
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": 6.8767434645772e+21,
+          "gas_used": 68767434645772
+        },
+        "receipts": [
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          }
+        ]
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/txns/CHQQmqNqTKcAvG4o8gpKYbMYCrQcY6DXLt5X3NFntsU6",
+  "fetched_at": "2026-11-03T18:49:54Z"
+}

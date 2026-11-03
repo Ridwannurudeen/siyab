@@ -1,0 +1,73 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "txns": [
+      {
+        "transaction_hash": "FM258t5SYPtsdYaMMYQzLRDQ6nFWKWahC9ergy2wLdzK",
+        "included_in_block_hash": "3sCeXKNkVAv8Hn7JsAawiuQSaPaNvaU7aZVtp9NiPScH",
+        "block_timestamp": "1625627079501662191",
+        "signer_account_id": "marmaj.near",
+        "receiver_account_id": "sputnik-dao.near",
+        "receipt_conversion_gas_burnt": "2428450916358",
+        "receipt_conversion_tokens_burnt": "242845091635800000000",
+        "shard_id": "0",
+        "block": {
+          "block_height": 41943357
+        },
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "create",
+            "args": "{\"args\": \"eyJjb25maWciOnsibmFtZSI6Im1hcm1haiIsInB1cnBvc2UiOiJtYW5hZ2VtZW50IG9mIG1hcm1haiBhc3NldHMiLCJtZXRhZGF0YSI6IiJ9LCJwb2xpY3kiOlsibWFybWFqLm5lYXIiXX0=\", \"name\": \"marmaj\", \"public_key\": \"2gtDEwdLuUBawzFLAnCS9gUso3Ph76bRzMpVrtb66f3J\"}"
+          }
+        ],
+        "actions_agg": {
+          "deposit": 5e+24,
+          "gas_attached": 150000000000000
+        },
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": 6.9087597412823e+21,
+          "gas_used": 69087597412823
+        },
+        "receipts": [
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          }
+        ]
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/txns/FM258t5SYPtsdYaMMYQzLRDQ6nFWKWahC9ergy2wLdzK",
+  "fetched_at": "2026-11-03T18:51:02Z"
+}

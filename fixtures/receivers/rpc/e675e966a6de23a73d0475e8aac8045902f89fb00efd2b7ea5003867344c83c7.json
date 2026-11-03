@@ -1,0 +1,24 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "call_function",
+      "finality": "final",
+      "account_id": "svrn-luganodes.pool.near",
+      "method_name": "contract_source_metadata",
+      "args_base64": "e30="
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "BAfnVSm6KqaceVNVAMUyCoH85r2rSMVCkf2a5JXAMZSz",
+      "block_height": 222910948,
+      "error": "wasm execution failed with error: MethodResolveError(MethodNotFound)",
+      "logs": []
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-03T18:59:00Z"
+}

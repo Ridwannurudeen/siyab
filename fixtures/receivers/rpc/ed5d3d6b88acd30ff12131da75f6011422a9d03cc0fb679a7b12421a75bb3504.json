@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "dragonfly.poolv1.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "121136528606742253856941095804",
+      "block_hash": "DL2XcbeBznt5y9V9J9tJ9jk9sBH8HkuCyuKjCG6zpa9Z",
+      "block_height": 222911039,
+      "code_hash": "J1arLz48fgXcGyCPVckFwLnewNH6j1uw79thsvwqGYTY",
+      "locked": "7906161760736211511272904652981",
+      "storage_paid_at": 0,
+      "storage_usage": 417516
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-03T18:59:53Z"
+}

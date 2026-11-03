@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "maximum-viable-potential.sputnik-dao.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "6004178354831052099999995",
+      "block_hash": "3x2DVHS37X2fGRanseMAs9QX6mQRTSWVMMK5PUC2q2nS",
+      "block_height": 222909984,
+      "code_hash": "8RMeZ5cXDap6TENxaJKtigRYf3n139iHmTRe8ZUNey6N",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 473448
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-03T18:49:58Z"
+}
