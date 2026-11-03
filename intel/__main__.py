@@ -204,11 +204,53 @@ def _receivers(args):
 
 def _feed(args):
     try:
+        if args.follow:
+            if args.blocks is not None or args.record:
+                print("stopped: --follow takes neither --blocks nor --record", file=sys.stderr)
+                return 2
+            interrupted = False
+
+            def stop(signum, frame):
+                nonlocal interrupted
+                interrupted = True
+
+            import signal
+
+            previous = signal.signal(signal.SIGINT, stop)
+            try:
+                state, walked = feed.follow(args.start, max_blocks=args.max_blocks,
+                                            stopped=lambda: interrupted)
+            finally:
+                signal.signal(signal.SIGINT, previous)
+            print(f"followed {walked} heights to height {state['last_height']}, lag {state['lag_blocks']} blocks")
+            return 0
+        if args.blocks is None:
+            print("stopped: --blocks is required unless --follow is set", file=sys.stderr)
+            return 2
         state, events = feed.run(args.start, args.blocks, args.record)
     except (feed.FeedError, rpc.HttpError, rpc.TransportError) as error:
         print(f"stopped: {error}", file=sys.stderr)
         return 1
     print(f"{state['blocks']} blocks to height {state['last_height']}, {len(events)} new events")
+    return 0
+
+
+def write_feed_snapshot(source, destination):
+    source = Path(source)
+    state = json.loads((source / "state.json").read_text(encoding="utf-8"))
+    state.pop("fresh_accounts", None)
+    events = [json.loads(path.read_text(encoding="utf-8")) for path in sorted((source / "events").glob("*.json"))]
+    blocks = {path.name: json.loads(path.read_text(encoding="utf-8"))
+              for path in sorted((source / "event-blocks").glob("*.json"))}
+    state["event_documents"] = events
+    state["event_blocks"] = blocks
+    feed._write_json(Path(destination), state, indent=2)
+    return len(events), len(blocks)
+
+
+def _feed_snapshot(args):
+    events, blocks = write_feed_snapshot(args.source, feed.SNAPSHOT_PATH)
+    print(f"snapshot written with {events} events and {blocks} event blocks")
     return 0
 
 
@@ -250,9 +292,14 @@ def main(argv=None):
     receivers.set_defaults(handler=_receivers)
     feeding = commands.add_parser("feed", help="run the three signals over finalized mainnet blocks")
     feeding.add_argument("--from", dest="start", type=int, help="the first height (default: after the state)")
-    feeding.add_argument("--blocks", type=int, required=True, help="how many heights to walk")
+    feeding.add_argument("--blocks", type=int, help="how many recorded heights to walk")
+    feeding.add_argument("--follow", action="store_true", help="follow finalized heights continuously")
+    feeding.add_argument("--max-blocks", type=int, help="stop after this many heights, for bounded runs")
     feeding.add_argument("--record", action="store_true", help="fetch and reduce the blocks not recorded yet")
     feeding.set_defaults(handler=_feed)
+    snapshot = commands.add_parser("feed-snapshot", help="copy a follower state into the committed snapshot")
+    snapshot.add_argument("--from", dest="source", required=True, help="the follower state directory")
+    snapshot.set_defaults(handler=_feed_snapshot)
     flow = commands.add_parser("flow", help="the bounded exit trace of an account with an incident label")
     flow.add_argument("subject")
     flow.add_argument("--depth", type=int, default=trace.DEFAULT_DEPTH)

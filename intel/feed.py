@@ -9,22 +9,41 @@ the raw block is never written. Without --record the reduced fixtures are read a
 touches the network. A height neardata answers with null holds no block: its fixture says so and
 the state lists it as skipped.
 
+python -m intel feed --follow [--from <height>] [--max-blocks <n>] reads the final height from
+/v0/last_block/final and walks every height from the state's last height + 1 (with no state:
+--from, else the final height) to it in order, never skipping one; once caught up it sleeps 1 s
+and reads the final height again. It stops on SIGINT or after --max-blocks heights, a skipped
+height included. It has no request budget: it leaves FOLLOW_INTERVAL_S (0.4 s) between one request
+and the next, so at most 150 a minute, and backs off 10 s on a 429 as above. No reduced block is
+written per height: a block that raised an event is written as
+<state dir>/event-blocks/<height>.json, the block_fixture its events' source names. A finalized
+height neardata answers with null or a 404 holds no block, as in record mode: the follower adds
+it to skipped_heights, writes the state and goes on to the next height. NEAR skips a height
+whenever its producer misses the slot, so skipped_heights can grow by a few hundred heights a
+day; a list that size is fine for the weeks this hackathon build runs. The state is written after
+every height; on SIGINT the loop stops after the height in hand and the command exits 0.
+
 The reduced form keeps, for each executed action receipt, its receipt id, transaction hash,
 predecessor, receiver, whether it succeeded, and the actions the signals read: DeployContract
 (the base58 sha256 of the code, never the code), CreateAccount, Transfer (the deposit),
 FunctionCall (the method name and deposit, never the args) and AddKey (the public key and the
-permission). intel/feed/state.json holds the start height and time, the last height and time, the
-block count, the skipped heights, the fresh accounts with their funding deposit and time, and the
-event count per signal; a block at or below the last height is never counted twice, so a run that
-stops can be started again.
+permission). The state directory is the one FEED_STATE_DIR names (default intel/feed/, the
+recorded window), so a follower on a host writes no tracked file. Its state.json holds the start
+height and time, the last height and time, the block count, the skipped heights, the fresh
+accounts with their funding deposit and time, and the event count per signal; a follower adds
+mode ("follow"), started_at (when the first follow run began), lag_blocks (the final height at the
+last read minus the last height), requests (the neardata requests made on request_day) and
+request_day (the UTC date the requests count is for, checked before every request; a new date
+resets the count). A block at or below the last height is never counted twice, so a run that stops
+can be started again.
 
-The signals, each written as an evidence document under intel/feed/events/<sha256>.json:
+The signals, each written as an evidence document under <state dir>/events/<sha256>.json:
 
   code_hash_matches_incident       a DeployContract whose code hash is the code hash an incident page
                                    reports (intel/incidents/*.json, code_hash_as_reported)
   fresh_dust_funded_pays_labelled  an account created with a deposit below 0.1 NEAR that, within 24 h,
-                                   sends a FunctionCall or a Transfer to a NEAR account the label
-                                   store labels
+                                   sends a FunctionCall or a Transfer to a NEAR account with a current
+                                   incident or denylist row
   watch_account_key_added          an AddKey with full access, or a function call key with an empty
                                    method_names list, on a NEAR account labelled infrastructure,
                                    treasury or watch
@@ -33,6 +52,7 @@ The signals, each written as an evidence document under intel/feed/events/<sha25
 import base64
 import hashlib
 import json
+import os
 import time
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -44,15 +64,18 @@ from intel import labels
 ROOT = Path(__file__).resolve().parent.parent
 NEARDATA_URL = "https://mainnet.neardata.xyz"
 BLOCKS_DIR = ROOT / "fixtures" / "feed" / "blocks"
-FEED_DIR = Path(__file__).resolve().parent / "feed"
+FEED_DIR = Path(os.environ.get("FEED_STATE_DIR", Path(__file__).resolve().parent / "feed"))
 STATE_PATH = FEED_DIR / "state.json"
 EVENTS_DIR = FEED_DIR / "events"
+EVENT_BLOCKS_DIR = FEED_DIR / "event-blocks"
 INCIDENTS_DIR = Path(__file__).resolve().parent / "incidents"
+SNAPSHOT_PATH = Path(__file__).resolve().parent / "feed" / "follow-snapshot.json"
 SIGNALS = ("code_hash_matches_incident", "fresh_dust_funded_pays_labelled", "watch_account_key_added")
 WATCH_CATEGORIES = ("infrastructure", "treasury", "watch")
 FRESH_WINDOW_MS = 24 * 60 * 60 * 1000
 MAX_REQUESTS = 600
 BACKOFF_S = 10
+FOLLOW_INTERVAL_S = 0.4
 _TIME = "%Y-%m-%dT%H:%M:%SZ"
 
 
@@ -119,7 +142,9 @@ def reduce_block(block):
 def _write_json(path, value, indent=None):
     path.parent.mkdir(parents=True, exist_ok=True)
     text = json.dumps(value, indent=indent, ensure_ascii=False, separators=None if indent else (",", ":"))
-    path.write_bytes((text + "\n").encode("utf-8"))
+    temporary = path.with_name(path.name + ".tmp")
+    temporary.write_bytes((text + "\n").encode("utf-8"))
+    os.replace(temporary, path)
 
 
 def new_state():
@@ -142,11 +167,13 @@ class Context:
             reported = document.get("code_hash_as_reported")
             if reported:
                 self.code_hashes[reported["value"]] = document["id"]
-        self.labelled, self.watched, self.watch_categories = {}, {}, {}
+        self.labelled, self.watched, self.watch_categories, self.deny_receivers = {}, {}, {}, set()
         for assertion in store.assertions:
             if assertion.chain != "near" or assertion.superseded_by is not None:
                 continue
             self.labelled.setdefault(assertion.subject, []).append(assertion.id)
+            if assertion.category in ("incident", "denylist"):
+                self.deny_receivers.add(assertion.subject)
             if assertion.category in WATCH_CATEGORIES:
                 self.watched.setdefault(assertion.subject, []).append(assertion.id)
                 categories = self.watch_categories.setdefault(assertion.subject, [])
@@ -196,7 +223,8 @@ def signals(block, state, context, source):
             deposit = sum(int(a["deposit"]) for a in receipt["actions"] if a["type"] == "Transfer")
             if deposit < rules.DUST_YOCTO:
                 fresh[receiver] = {"deposit": str(deposit), "created_ms": now_ms, "height": block["height"]}
-        elif predecessor in fresh and receiver in context.labelled and ({"FunctionCall", "Transfer"} & set(types)):
+        elif (predecessor in fresh and receiver in context.labelled and receiver in context.deny_receivers
+              and ({"FunctionCall", "Transfer"} & set(types))):
             info = fresh[predecessor]
             age_minutes = (now_ms - info["created_ms"]) // 60000
             events.append(_event(SIGNALS[1], predecessor, f"{predecessor}, created at block {info['height']} with a "
@@ -232,15 +260,16 @@ def block_source(path):
 class Fetcher:
     """neardata blocks with the request budget and the 429 back off."""
 
-    def __init__(self, client=None, sleep=time.sleep):
+    def __init__(self, client=None, sleep=time.sleep, max_requests=MAX_REQUESTS):
         self.client = client or rpc.Client(NEARDATA_URL, "off", kind="http")
         self.sleep = sleep
         self.requests = 0
+        self.max_requests = max_requests
 
     def get(self, path):
         while True:
-            if self.requests >= MAX_REQUESTS:
-                raise FeedError(f"the neardata budget of {MAX_REQUESTS} requests is used up")
+            if self.max_requests is not None and self.requests >= self.max_requests:
+                raise FeedError(f"the neardata budget of {self.max_requests} requests is used up")
             self.requests += 1
             try:
                 return self.client.get(path)
@@ -286,8 +315,85 @@ def run(start, count, record, store=None, blocks_dir=BLOCKS_DIR, state_path=STAT
     return state, paths
 
 
+def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=None, event_blocks_dir=None,
+           max_blocks=None, sleep=time.sleep, clock=time.time, stopped=lambda: False):
+    """Follow finalized heights, retaining only event blocks and the moving state."""
+    fetcher = fetcher or Fetcher(max_requests=None)
+    state_dir = Path(os.environ.get("FEED_STATE_DIR", FEED_DIR))
+    state_path = Path(state_path) if state_path is not None else state_dir / "state.json"
+    events_dir = Path(events_dir) if events_dir is not None else state_dir / "events"
+    event_blocks_dir = Path(event_blocks_dir) if event_blocks_dir is not None else state_dir / "event-blocks"
+    state = load_state(state_path)
+    state.setdefault("mode", "follow")
+    state.setdefault("started_at", datetime.fromtimestamp(clock(), UTC).strftime(_TIME))
+    state.setdefault("lag_blocks", 0)
+    state.setdefault("requests", 0)
+    state.setdefault("request_day", datetime.fromtimestamp(clock(), UTC).strftime("%Y-%m-%d"))
+    context = Context(store or labels.load())
+    walked = 0
+    last_request = None
+    while not stopped() and (max_blocks is None or walked < max_blocks):
+        if last_request is not None:
+            sleep(max(0, FOLLOW_INTERVAL_S - (clock() - last_request)))
+        request_day = datetime.fromtimestamp(clock(), UTC).strftime("%Y-%m-%d")
+        if state["request_day"] != request_day:
+            state["request_day"], state["requests"] = request_day, 0
+        requests_before = fetcher.requests
+        final_height = fetcher.final_height()
+        state["requests"] += fetcher.requests - requests_before
+        last_request = clock()
+        next_height = state["last_height"] + 1 if state["last_height"] is not None else (
+            start if start is not None else final_height)
+        start = None
+        if next_height > final_height:
+            state["lag_blocks"] = 0
+            state["mode"] = "follow"
+            _write_json(Path(state_path), state, indent=2)
+            sleep(1)
+            continue
+        while next_height <= final_height and not stopped() and (max_blocks is None or walked < max_blocks):
+            if last_request is not None:
+                sleep(max(0, FOLLOW_INTERVAL_S - (clock() - last_request)))
+            request_day = datetime.fromtimestamp(clock(), UTC).strftime("%Y-%m-%d")
+            if state["request_day"] != request_day:
+                state["request_day"], state["requests"] = request_day, 0
+            requests_before = fetcher.requests
+            try:
+                raw = fetcher.get(f"/v0/block/{next_height}")
+            except rpc.HttpError as error:
+                if error.status != 404:
+                    raise
+                raw = None
+            state["requests"] += fetcher.requests - requests_before
+            last_request = clock()
+            if raw is None:
+                if next_height not in state["skipped_heights"]:
+                    state["skipped_heights"].append(next_height)
+            else:
+                block = reduce_block(raw)
+                event_paths = apply(block, state, context,
+                                    {"url": f"{NEARDATA_URL}/v0/block/{next_height}",
+                                     "block_fixture": f"{next_height}.json",
+                                     "block_fixture_sha256": hashlib.sha256(
+                                         (json.dumps(block, separators=(",", ":"), ensure_ascii=False) + "\n")
+                                         .encode("utf-8")
+                                     ).hexdigest()}, events_dir)
+                if event_paths:
+                    _write_json(Path(event_blocks_dir) / f"{next_height}.json", block)
+            walked += 1
+            state["mode"] = "follow"
+            state["lag_blocks"] = max(0, final_height - (state["last_height"] or final_height))
+            _write_json(Path(state_path), state, indent=2)
+            next_height += 1
+    return state, walked
+
+
 def stats_lines(state):
     """The feed-stats output: the start date, the block count and the event count per signal."""
+    if state.get("mode") == "follow":
+        return [f"following since {state['started_at']}",
+                f"last block {state['last_height']} at {state['last_time']}",
+                f"lag {state['lag_blocks']} blocks"] + [f"{name} {count}" for name, count in state["events"].items()]
     lines = [f"start {state['start_time']} at block {state['start_height']}",
              f"last {state['last_time']} at block {state['last_height']}",
              f"blocks {state['blocks']}, skipped heights {len(state['skipped_heights'])}"]

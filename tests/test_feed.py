@@ -1,9 +1,11 @@
 import base64
 import contextlib
+import hashlib
 import io
 import json
 import tempfile
 import unittest
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest import mock
 
@@ -14,7 +16,7 @@ from intel import api, feed, labels
 ROOT = Path(__file__).resolve().parent.parent
 BLOCKS = ROOT / "fixtures" / "feed" / "blocks"
 SYNTHETIC = {"synthetic-code-hash.json": "code_hash_matches_incident",
-             "synthetic-fresh-dust.json": "fresh_dust_funded_pays_labelled",
+             "synthetic-fresh-dust-incident.json": "fresh_dust_funded_pays_labelled",
              "synthetic-watch-addkey.json": "watch_account_key_added"}
 MAX_BYTES = 64 * 1024
 
@@ -116,7 +118,7 @@ class SignalTest(unittest.TestCase):
         self.assertEqual(self.events(elsewhere), [])
 
     def test_a_fresh_account_older_than_24_hours_is_dropped(self):
-        block = json.loads((BLOCKS / "synthetic-fresh-dust.json").read_text(encoding="utf-8"))
+        block = json.loads((BLOCKS / "synthetic-fresh-dust-incident.json").read_text(encoding="utf-8"))
         creation, payment = block["receipts"]
         state = feed.new_state()
         self.assertEqual(self.events(dict(block, receipts=[creation]), state), [])
@@ -124,6 +126,15 @@ class SignalTest(unittest.TestCase):
         later = dict(block, receipts=[payment], timestamp_ns=str(int(block["timestamp_ns"]) + 25 * 3600 * 10**9))
         self.assertEqual(self.events(later, state), [])
         self.assertEqual(state["fresh_accounts"], {})
+
+    def test_dust_signal_needs_an_incident_or_denylist_receiver(self):
+        labelled = json.loads((BLOCKS / "synthetic-fresh-dust.json").read_text(encoding="utf-8"))
+        self.assertIn(labelled["receipts"][1]["receiver_id"], self.context.labelled)
+        self.assertNotIn(labelled["receipts"][1]["receiver_id"], self.context.deny_receivers)
+        self.assertEqual(self.events(labelled), [])
+        incident = json.loads((BLOCKS / "synthetic-fresh-dust-incident.json").read_text(encoding="utf-8"))
+        self.assertIn(incident["receipts"][1]["receiver_id"], self.context.deny_receivers)
+        self.assertEqual([event["signal"] for event in self.events(incident)], ["fresh_dust_funded_pays_labelled"])
 
     def test_a_failed_receipt_raises_nothing(self):
         block = json.loads((BLOCKS / "synthetic-code-hash.json").read_text(encoding="utf-8"))
@@ -260,6 +271,197 @@ class RecordModeTest(unittest.TestCase):
         fetcher = feed.Fetcher(client=Refusing(), sleep=lambda s: self.fail("slept"))
         with self.assertRaises(rpc.HttpError):
             fetcher.get("/v0/block/1")
+
+
+class FollowModeTest(unittest.TestCase):
+    def blocks(self, end):
+        return {height: raw_block(height, []) for height in range(1, end + 1)}
+
+    def test_follow_walks_to_the_final_height_without_writing_block_fixtures(self):
+        fake = FakeFetcher(self.blocks(3), 3)
+        fixtures = len(list(BLOCKS.glob("*.json")))
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state, walked = feed.follow(start=1, fetcher=fake.inner, state_path=root / "state.json",
+                                        events_dir=root / "events", event_blocks_dir=root / "event-blocks",
+                                        max_blocks=3, sleep=lambda _: None)
+            self.assertEqual((walked, state["last_height"], state["blocks"]), (3, 3, 3))
+            self.assertEqual(list(root.glob("*.json")), [root / "state.json"])
+            self.assertEqual(state["mode"], "follow")
+            self.assertEqual(state["requests"], 4)
+        self.assertEqual(len(list(BLOCKS.glob("*.json"))), fixtures)
+
+    def test_follow_records_a_null_or_404_height_as_skipped_and_goes_on(self):
+        class NotFound(FakeFetcher):
+            def get(self, path):
+                if path == "/v0/block/2":
+                    raise rpc.HttpError(404, path)
+                return super().get(path)
+
+        for fake in (FakeFetcher({1: raw_block(1, []), 2: None, 3: raw_block(3, [])}, 3), NotFound(self.blocks(3), 3)):
+            with self.subTest(fetcher=type(fake).__name__), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                state, walked = feed.follow(start=1, fetcher=fake.inner, state_path=root / "state.json",
+                                            events_dir=root / "events", event_blocks_dir=root / "event-blocks",
+                                            max_blocks=3, sleep=lambda _: None)
+                self.assertEqual((walked, state["last_height"], state["blocks"], state["skipped_heights"]),
+                                 (3, 3, 2, [2]))
+                self.assertEqual(state["requests"], 4)
+                self.assertEqual(json.loads((root / "state.json").read_text(encoding="utf-8")), state)
+                self.assertFalse((root / "events").exists())
+                self.assertFalse((root / "event-blocks").exists())
+
+    def test_follow_counts_requests_on_the_utc_date_they_are_made_across_midnight(self):
+        midnight = datetime(2026, 11, 4, tzinfo=UTC).timestamp()
+        now = [midnight - 1.0]
+        made = []
+
+        class Timed(FakeFetcher):
+            def get(self, path):
+                made.append(now[0])
+                now[0] += 0.3
+                return super().get(path)
+
+        def sleep(seconds):
+            now[0] += seconds
+
+        fake = Timed(self.blocks(4), 4)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state, walked = feed.follow(start=1, fetcher=fake.inner, state_path=root / "state.json",
+                                        events_dir=root / "events", event_blocks_dir=root / "event-blocks",
+                                        max_blocks=4, sleep=sleep, clock=lambda: now[0])
+        after = [moment for moment in made if moment >= midnight]
+        self.assertEqual(walked, 4)
+        self.assertEqual(state["request_day"], "2026-11-04")
+        self.assertEqual(state["requests"], len(after))
+        self.assertLess(len(after), len(made))
+
+    def test_follow_with_blocks_or_record_stops_with_one_line(self):
+        for extra in (["--blocks", "3"], ["--record"]):
+            with self.subTest(extra=extra):
+                errors = io.StringIO()
+                with mock.patch("urllib.request.urlopen", side_effect=no_network), \
+                        contextlib.redirect_stderr(errors), contextlib.redirect_stdout(io.StringIO()):
+                    code = intel_main.main(["feed", "--follow", *extra])
+                self.assertEqual(code, 2)
+                self.assertEqual(errors.getvalue().strip(), "stopped: --follow takes neither --blocks nor --record")
+
+    def test_follow_writes_the_event_block_and_points_the_event_source_at_it(self):
+        raw = raw_block(9, [])
+        synthetic = json.loads((BLOCKS / "synthetic-code-hash.json").read_text(encoding="utf-8"))
+        fake = FakeFetcher({9: raw}, 9)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            with mock.patch("intel.feed.reduce_block", return_value=synthetic):
+                feed.follow(fetcher=fake.inner, state_path=root / "state.json", events_dir=root / "events",
+                            event_blocks_dir=root / "event-blocks", max_blocks=1, sleep=lambda _: None)
+            event_path = next((root / "events").glob("*.json"))
+            event = json.loads(event_path.read_text(encoding="utf-8"))
+            self.assertEqual(event["source"]["block_fixture"], "9.json")
+            block_path = root / "event-blocks" / "9.json"
+            self.assertTrue(block_path.is_file())
+            self.assertEqual(event["source"]["block_fixture_sha256"], hashlib.sha256(block_path.read_bytes()).hexdigest())
+
+    def test_follow_paces_and_backs_off(self):
+        fake = FakeFetcher(self.blocks(1), 1, throttled=1)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            feed.follow(fetcher=fake.inner, state_path=root / "state.json", events_dir=root / "events",
+                        event_blocks_dir=root / "event-blocks", max_blocks=1, sleep=fake.sleeps.append,
+                        clock=lambda: 1793284740.0)
+        self.assertIn(feed.BACKOFF_S, fake.sleeps)
+        self.assertIn(feed.FOLLOW_INTERVAL_S, fake.sleeps)
+
+    def test_a_restart_resumes_after_the_last_height(self):
+        heights = self.blocks(4)
+        fake = FakeFetcher(heights, 4)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_path = root / "state.json"
+            state, _ = feed.follow(start=1, fetcher=fake.inner, state_path=state_path, events_dir=root / "events",
+                                   event_blocks_dir=root / "event-blocks", max_blocks=2, sleep=lambda _: None)
+            state, walked = feed.follow(fetcher=fake.inner, state_path=state_path, events_dir=root / "events",
+                                        event_blocks_dir=root / "event-blocks", max_blocks=2, sleep=lambda _: None)
+            self.assertEqual((walked, state["last_height"], state["blocks"]), (2, 4, 4))
+
+    def test_the_state_dir_variable_moves_the_state_and_the_api_reads_it(self):
+        import os
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "feed-state"
+            fake = FakeFetcher(self.blocks(1), 1)
+            with mock.patch.dict(os.environ, {"FEED_STATE_DIR": str(state_dir)}):
+                state, _ = feed.follow(start=1, fetcher=fake.inner, max_blocks=1, sleep=lambda _: None)
+                status, body = api.route("/feed", labels.load())
+            self.assertEqual(status, 200)
+            self.assertEqual(state["last_height"], 1)
+            self.assertEqual(body["stats"]["mode"], "follow")
+            self.assertNotIn("fresh_accounts", body["stats"])
+
+    def test_the_snapshot_never_changes_the_recorded_window_state(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "source"
+            (source / "events").mkdir(parents=True)
+            (source / "event-blocks").mkdir()
+            recorded_state = feed.load_state()
+            feed._write_json(source / "state.json", recorded_state, indent=2)
+            before = (source / "state.json").read_bytes()
+            destination = root / "follow-snapshot.json"
+            intel_main.write_feed_snapshot(source, destination)
+            self.assertEqual((source / "state.json").read_bytes(), before)
+            self.assertNotIn("fresh_accounts", json.loads(destination.read_text(encoding="utf-8")))
+
+    def test_the_feed_snapshot_command_writes_the_snapshot_from_a_state_dir(self):
+        synthetic = json.loads((BLOCKS / "synthetic-code-hash.json").read_text(encoding="utf-8"))
+        fake = FakeFetcher({9: raw_block(9, [])}, 9)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "follower"
+            with mock.patch("intel.feed.reduce_block", return_value=synthetic):
+                feed.follow(fetcher=fake.inner, state_path=state_dir / "state.json", events_dir=state_dir / "events",
+                            event_blocks_dir=state_dir / "event-blocks", max_blocks=1, sleep=lambda _: None)
+            destination = root / "follow-snapshot.json"
+            output = io.StringIO()
+            with mock.patch.object(feed, "SNAPSHOT_PATH", destination), contextlib.redirect_stdout(output):
+                code = intel_main.main(["feed-snapshot", "--from", str(state_dir)])
+            self.assertEqual(code, 0)
+            self.assertEqual(output.getvalue(), "snapshot written with 1 events and 1 event blocks\n")
+            state = json.loads((state_dir / "state.json").read_text(encoding="utf-8"))
+            event = json.loads(next((state_dir / "events").glob("*.json")).read_text(encoding="utf-8"))
+            snapshot = json.loads(destination.read_text(encoding="utf-8"))
+        self.assertEqual(snapshot.pop("event_documents"), [event])
+        self.assertEqual(snapshot.pop("event_blocks"), {"9.json": synthetic})
+        del state["fresh_accounts"]
+        self.assertEqual(snapshot, state)
+        self.assertEqual(snapshot["mode"], "follow")
+
+    def test_the_state_write_replaces_the_file_whole_and_leaves_no_temporary_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "state.json"
+            feed._write_json(path, {"blocks": 1}, indent=2)
+            feed._write_json(path, {"blocks": 2}, indent=2)
+            self.assertEqual([p.name for p in Path(tmp).iterdir()], ["state.json"])
+            self.assertEqual(json.loads(path.read_text(encoding="utf-8")), {"blocks": 2})
+            write_bytes = Path.write_bytes
+
+            def torn(self, data):
+                write_bytes(self, data[:5])
+                raise OSError("disk full")
+
+            with mock.patch.object(Path, "write_bytes", torn), self.assertRaises(OSError):
+                feed._write_json(path, {"blocks": 3}, indent=2)
+            self.assertEqual(json.loads(path.read_text(encoding="utf-8")), {"blocks": 2})
+
+    def test_the_api_answers_503_while_the_state_file_does_not_parse(self):
+        import os
+
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "state.json").write_text('{"blocks": 1', encoding="utf-8")
+            with mock.patch.dict(os.environ, {"FEED_STATE_DIR": tmp}):
+                self.assertEqual(api.route("/feed", labels.load()), (503, {"error": "feed state unreadable"}))
 
 
 if __name__ == "__main__":
