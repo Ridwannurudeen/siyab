@@ -162,6 +162,16 @@ class RegistriesTests(unittest.TestCase):
     def test_no_hypothesis_without_a_recorded_fact(self):
         self.assertEqual(registries.hypotheses(facts=[]), [])
 
+        rows = [row for row in registries.hypotheses() if row["subject"] == "binancecold3.near"]
+        onchain = [row for row in rows if row["provenance"] == "onchain"]
+        support = [row for row in rows if row["provenance"] == "third_party"]
+        self.assertEqual(len(onchain), 1)
+        self.assertTrue(support)
+        self.assertEqual(registries.hypotheses(facts=onchain), onchain)
+        self.assertEqual(registries.hypotheses(facts=support), support)
+        self.assertEqual([row["provenance"] for row in registries.hypotheses(facts=onchain + support)],
+                         ["onchain"] + ["third_party"] * len(support) + ["inferred"])
+
 
 if __name__ == "__main__":
     unittest.main()
