@@ -1,7 +1,6 @@
 """Build label rows and entity groups from recorded NEAR registry reads."""
 
 import argparse
-import hashlib
 import json
 import sys
 from pathlib import Path
@@ -169,10 +168,12 @@ def hypotheses(facts=None, mode="replay"):
         client = rpc.Client(rpc.MAINNET_RPC_URL, mode, fixtures_dir=FIXTURES_DIR)
         http = rpc.Client("https://api.fastnear.com", mode, fixtures_dir=FIXTURES_DIR, kind="http")
         top_url = "https://api.fastnear.com/v1/ft/usdt.tether-token.near/top"
-        top_key = rpc.fixture_key(top_url, "GET", None)
         top = http.get(top_url)
         if not isinstance(top, dict) or not isinstance(top.get("accounts"), list):
             raise RegistryError("FastNEAR top holders returned an unexpected shape")
+        top_source = seed._document_source(
+            top_url, json.dumps(top, ensure_ascii=False, separators=(",", ":")).encode("utf-8"),
+            http.last_source["fetched_at"])
         top_accounts = {entry.get("account_id") for entry in top["accounts"] if isinstance(entry, dict)}
         facts = []
         for account in EXCHANGE_ACCOUNTS:
@@ -193,40 +194,29 @@ def hypotheses(facts=None, mode="replay"):
                 note=f'view_account for {seed._quoted(account)} at block {block}'))
 
             full_url = f"https://api.fastnear.com/v1/account/{account}/full"
-            full_key = rpc.fixture_key(full_url, "GET", None)
             full = http.get(full_url)
             if not isinstance(full, dict) or full.get("account_id") != account or not isinstance(full.get("pools"), list):
                 raise RegistryError(f"FastNEAR full account returned an unexpected shape for {account}")
+            full_source = seed._document_source(
+                full_url, json.dumps(full, ensure_ascii=False, separators=(",", ":")).encode("utf-8"),
+                http.last_source["fetched_at"])
             evidence = []
             if account in top_accounts:
-                path = FIXTURES_DIR / f"{top_key}.json"
-                fixture = json.loads(path.read_text(encoding="utf-8"))
-                response_data = json.dumps(fixture["response"], ensure_ascii=False,
-                                           separators=(",", ":")).encode("utf-8")
-                response_hash = hashlib.sha256(response_data).hexdigest()
                 evidence.append(seed.make_row(
                     entity=f"FastNEAR top holder data for {seed._quoted(account)}", subject=account, chain="near",
                     label='listed in FastNEAR top holders for "usdt.tether-token.near"', category="organisation",
-                    provenance="third_party",
-                    source={"url": top_url, "content_sha256": response_hash, "fetched_at": fixture["fetched_at"]},
-                    observed_at=fixture["fetched_at"], note="FastNEAR top holder response"))
+                    provenance="third_party", source=top_source, observed_at=top_source["fetched_at"],
+                    note="FastNEAR top holder response"))
             account_name = account.split(".", 1)[0]
             brand = account_name.removesuffix("cold1").removesuffix("cold2").removesuffix("cold3")
             matching_pools = [pool["pool_id"] for pool in full["pools"]
                               if isinstance(pool, dict) and isinstance(pool.get("pool_id"), str)
                               and pool["pool_id"].split(".", 1)[0].startswith(brand)]
             if matching_pools:
-                path = FIXTURES_DIR / f"{full_key}.json"
-                fixture = json.loads(path.read_text(encoding="utf-8"))
-                response_data = json.dumps(fixture["response"], ensure_ascii=False,
-                                           separators=(",", ":")).encode("utf-8")
-                response_hash = hashlib.sha256(response_data).hexdigest()
                 evidence.append(seed.make_row(
                     entity=f"FastNEAR pool data for {seed._quoted(account)}", subject=account, chain="near",
                     label="staking pool name repeats the named account pattern", category="organisation",
-                    provenance="third_party",
-                    source={"url": full_url, "content_sha256": response_hash, "fetched_at": fixture["fetched_at"]},
-                    observed_at=fixture["fetched_at"],
+                    provenance="third_party", source=full_source, observed_at=full_source["fetched_at"],
                     note=f"FastNEAR lists pool account names {seed._quoted(', '.join(matching_pools))}"))
             facts.extend(evidence)
 

@@ -159,6 +159,29 @@ class RegistriesTests(unittest.TestCase):
                                 for value in row["source"]["inputs"]))
             labels.validate(row)
 
+    def test_hypothesis_sources_come_from_the_reads_the_clients_made(self):
+        fixtures_dir = registries.FIXTURES_DIR
+
+        def served(url, body):
+            method, params = ("GET", None) if body is None else (body["method"], body["params"])
+            fixture = fixtures_dir / f"{rpc.fixture_key(url, method, params)}.json"
+            return json.loads(fixture.read_text(encoding="utf-8"))["response"]
+
+        recorded = registries.hypotheses()
+        with tempfile.TemporaryDirectory() as temporary, patch.object(rpc, "_fetch", side_effect=served):
+            with patch.object(registries, "FIXTURES_DIR", Path(temporary)):
+                fetched = registries.hypotheses(mode="off")
+            self.assertEqual(list(Path(temporary).iterdir()), [])
+
+        self.assertEqual([(row["subject"], row["provenance"]) for row in fetched],
+                         [(row["subject"], row["provenance"]) for row in recorded])
+        support = [(new, old) for new, old in zip(fetched, recorded) if new["provenance"] == "third_party"]
+        self.assertTrue(support)
+        for new, old in support:
+            self.assertEqual(new["source"]["url"], old["source"]["url"])
+            self.assertEqual(new["source"]["content_sha256"], old["source"]["content_sha256"])
+            self.assertEqual(new["source"]["fetched_at"], new["observed_at"])
+
     def test_no_hypothesis_without_a_recorded_fact(self):
         self.assertEqual(registries.hypotheses(facts=[]), [])
 
