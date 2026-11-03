@@ -134,7 +134,7 @@ class Client:
     """
 
     def __init__(self, url, mode=None, *, kind="rpc", fixtures_dir=FIXTURES_DIR, clock=time.time,
-                 sleep=time.sleep):
+                 sleep=time.sleep, headers=None):
         mode = mode or os.environ.get("GATE_FIXTURES_MODE") or "replay"
         if mode not in MODES:
             raise ValueError(f"GATE_FIXTURES_MODE must be one of {MODES}, not {mode!r}")
@@ -146,6 +146,7 @@ class Client:
         self.fixtures_dir = Path(fixtures_dir)
         self.clock = clock
         self.sleep = sleep
+        self.headers = dict(headers or {})
         self.last_source = None
         self.last_block_height = None
 
@@ -270,7 +271,7 @@ class Client:
             raise FixtureMiss(key, url, method, params)
         if host in NEARBLOCKS_HOSTS:
             self._respect_nearblocks(host)
-        response = _fetch(url, body)
+        response = _fetch(url, body, self.headers)
         fetched_at = _timestamp(self.clock())
         self.last_source["fetched_at"] = fetched_at
         if self.mode == "record":
@@ -281,12 +282,13 @@ class Client:
         return response
 
 
-def _fetch(url, body):
+def _fetch(url, body, extra_headers=None):
     headers = {"Accept": "application/json", "User-Agent": "shieldbot-near"}
     data = None
     if body is not None:
         data = json.dumps(body).encode("utf-8")
         headers["Content-Type"] = "application/json"
+    headers.update(extra_headers or {})
     request = urllib.request.Request(url, data=data, headers=headers,
                                      method="GET" if data is None else "POST")
     try:
