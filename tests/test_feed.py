@@ -279,6 +279,7 @@ class FollowModeTest(unittest.TestCase):
 
     def test_follow_walks_to_the_final_height_without_writing_block_fixtures(self):
         fake = FakeFetcher(self.blocks(3), 3)
+        fixtures = len(list(BLOCKS.glob("*.json")))
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             state, walked = feed.follow(start=1, fetcher=fake.inner, state_path=root / "state.json",
@@ -288,6 +289,7 @@ class FollowModeTest(unittest.TestCase):
             self.assertEqual(list(root.glob("*.json")), [root / "state.json"])
             self.assertEqual(state["mode"], "follow")
             self.assertEqual(state["requests"], 4)
+        self.assertEqual(len(list(BLOCKS.glob("*.json"))), fixtures)
 
     def test_follow_records_a_null_or_404_height_as_skipped_and_goes_on(self):
         class NotFound(FakeFetcher):
