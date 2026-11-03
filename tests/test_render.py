@@ -466,6 +466,26 @@ class RenderTest(unittest.TestCase):
         self.assertIn("<th>Chain</th>", page)
         self.assertEqual(sorted(re.findall(r"<tr><td>([a-z0-9]+)</td>", page)), sorted(chains[subject]))
 
+    def test_the_account_page_lists_each_trace_edge_once_with_its_count(self):
+        subject, counts = "intents.near", {}
+        for path in sorted((ROOT / "intel" / "flows").glob("*.json")):
+            for hop in json.loads(path.read_text(encoding="utf-8"))["hops"]:
+                if subject in (hop["from"], hop["to"]):
+                    key = (path.stem, hop["from"], hop["to"])
+                    counts[key] = counts.get(key, 0) + 1
+        self.assertTrue(any(count > 1 for count in counts.values()))
+        trace_edges = re.compile(r"<h2>Trace edges</h2>(.*?)<h2>", re.DOTALL)
+        items = re.findall(r"<li>.*?</li>", trace_edges.search(self.pages[f"accounts/{page_name(subject)}.html"]).group(1))
+        expected = [f'<li><a href="/flows/{name}.html">Committed trace edge{"s" if count > 1 else ""}: '
+                    f'<q class="data">{html.escape(source)}</q> to <q class="data">{html.escape(target)}</q>'
+                    f'{f", {count} edges" if count > 1 else ""}</a></li>' for (name, source, target), count in counts.items()]
+        self.assertEqual(items, expected)
+        for name, page in self.pages.items():
+            if name.startswith("accounts/"):
+                with self.subTest(page=name):
+                    items = re.findall(r"<li>.*?</li>", trace_edges.search(page).group(1))
+                    self.assertEqual(len(items), len(set(items)))
+
     def test_the_entity_page_lists_its_members_with_the_registry_read(self):
         entity = json.loads((ROOT / "intel" / "entities.jsonl").read_text(encoding="utf-8").splitlines()[0])
         page = self.pages[f"entities/{entity['id']}.html"]

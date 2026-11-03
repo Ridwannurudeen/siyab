@@ -40,6 +40,7 @@ import html
 import importlib.util
 import json
 import re
+from collections import Counter
 from pathlib import Path
 
 from intel import cluster, feed, issuers, labels, trace
@@ -344,15 +345,17 @@ def account_page(subject, store, accounts, incidents, flows, clusters, events_di
     body += "<h2>Incident pages naming this account</h2>" + ("<ul>" + "".join(
         f'<li><a href="/incidents/{esc(incident_id)}.html">{esc(title)}</a></li>' for incident_id, title in named)
         + "</ul>" if named else "<p>No incident page names this account.</p>")
-    flow_edges = [(name, hop) for name, document in flows for hop in document.get("hops", [])
-                  if subject in (hop.get("from"), hop.get("to"))]
+    # One line per flow and ordered pair of accounts, with the number of hops between them when above one.
+    flow_edges = Counter((name, hop["from"], hop["to"]) for name, document in flows for hop in document.get("hops", [])
+                         if subject in (hop.get("from"), hop.get("to")))
     flow_roots = [(name, document) for name, document in flows if document.get("subject") == subject]
     body += "<h2>Trace edges</h2>" + ("<ul>" + "".join(
-        f'<li><a href="/flows/{esc(name)}.html">Committed trace edge: '
-        f'<q class="data">{esc(hop["from"])}</q> to <q class="data">{esc(hop["to"])}</q></a></li>'
-        for name, hop in flow_edges) + "".join(
+        f'<li><a href="/flows/{esc(name)}.html">Committed trace edge{"s" if count > 1 else ""}: '
+        f'<q class="data">{esc(source)}</q> to <q class="data">{esc(target)}</q>'
+        f'{f", {count} edges" if count > 1 else ""}</a></li>'
+        for (name, source, target), count in flow_edges.items()) + "".join(
         f'<li><a href="/flows/{esc(name)}.html">Committed trace root with {len(document.get("hops", []))} edges</a></li>'
-        for name, document in flow_roots if not any(edge_name == name for edge_name, _ in flow_edges))
+        for name, document in flow_roots if not any(edge_name == name for edge_name, _, _ in flow_edges))
         + "</ul>" if flow_edges or flow_roots else "<p>No committed trace edge touches this account.</p>")
     cluster_edges = [(name, edge) for name, document in clusters for edge in document.get("edges", [])
                      if subject in (edge.get("from"), edge.get("to"))]
