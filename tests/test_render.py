@@ -159,7 +159,8 @@ class RenderTest(unittest.TestCase):
                       f"{state['start_time'][:10]} UTC. Live following is not running yet.</p>", self.pages["feed.html"])
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "state.json"
-            following = dict(state, mode="follow")
+            following = dict(state, mode="follow", started_at=state["start_time"], lag_blocks=0, requests=0,
+                             request_day=state["start_time"][:10])
             path.write_text(json.dumps(following), encoding="utf-8")
             page = render.feed_page(path, Path(tmp) / "events")
         self.assertNotIn("Recorded window", page)
