@@ -1,0 +1,87 @@
+python -m gate verify for the registry records of 3 Nov 2026, offline, Python 3.12.3, from a git archive export.
+PREP is the folder that holds the Verdict files, outside the repository; the key is the live verifier key.
+== kestrelridge-shop latest (invoice 4)
+$ python3 -m gate verify fixtures/registry/testnet-latest-kestrelridge-shop.json fixtures/evidence/4b99f7ed713b21bdac5c39b6312bf815fa01f6bd4c6f37a4b140c038fc84bf29.json --verdict $PREP/verdicts/652c1e0ebd165a413dd0489dea6a75ea.verdict.json --key ed25519:9SVNJQqQjSKFo6LXpSJJXWKEjV65V93mHUsXGhmokyb5
+record shape: view
+evidence sha256: 4b99f7ed713b21bdac5c39b6312bf815fa01f6bd4c6f37a4b140c038fc84bf29
+record evidence_hash: 4b99f7ed713b21bdac5c39b6312bf815fa01f6bd4c6f37a4b140c038fc84bf29
+canonical message: GATEv1|kestrelridge-main.testnet|fc5b49a7e7d11222ec1f88aba4d8814b254286f45db917508049bbcf06e5bba9|ft|token.kestrelridge-main.testnet|kestrelridge-shop.testnet|10000000|040ed37ccd37ffe4ab42c9bea12f46c4b16acba569d0bc7660788abcca267acd|1793627303425|1793627603425|652c1e0ebd165a413dd0489dea6a75ea|4b99f7ed713b21bdac5c39b6312bf815fa01f6bd4c6f37a4b140c038fc84bf29|cur|ALLOW
+NEP-297 fields to compare with the explorer:
+  standard shieldbot-near, version 1.0.0, event verdict_recorded
+  subject kestrelridge-shop.testnet (from the evidence; the view shape has none)
+  verdict ALLOW, evidence_hash 4b99f7ed713b21bdac5c39b6312bf815fa01f6bd4c6f37a4b140c038fc84bf29
+  observed_block 275907012, verdict_id 652c1e0ebd165a413dd0489dea6a75ea
+ok   evidence sha256 equals the record's evidence_hash
+ok   evidence verdict equals the record's verdict
+ok   verdict literal is ALLOW
+ok   verdict evidence_hash equals the evidence sha256
+ok   verdict verdict_id equals the record's verdict_id
+ok   signature verifies with ed25519:9SVNJQqQjSKFo6LXpSJJXWKEjV65V93mHUsXGhmokyb5
+verified
+exit 0
+== examples latest (unknown payee ALLOW)
+$ python3 -m gate verify fixtures/registry/testnet-latest-examples.json fixtures/evidence/9471fea5ef8986cb12fe0ceac3505c04f0bcfb8a2ad4f49f8005fe2e66112f27.json --verdict $PREP/verdicts/946f0003a1996939f1c81eb879d59a09.verdict.json --key ed25519:9SVNJQqQjSKFo6LXpSJJXWKEjV65V93mHUsXGhmokyb5
+record shape: view
+evidence sha256: 9471fea5ef8986cb12fe0ceac3505c04f0bcfb8a2ad4f49f8005fe2e66112f27
+record evidence_hash: 9471fea5ef8986cb12fe0ceac3505c04f0bcfb8a2ad4f49f8005fe2e66112f27
+canonical message: GATEv1|kestrelridge-main.testnet|fc5b49a7e7d11222ec1f88aba4d8814b254286f45db917508049bbcf06e5bba9|ft|token.kestrelridge-main.testnet|examples.testnet|2000000|a790e2e4c70c14cd96b7debee419dffa4357d37d4f681554befcff99379cf9d5|1793627084083|1793627384083|946f0003a1996939f1c81eb879d59a09|9471fea5ef8986cb12fe0ceac3505c04f0bcfb8a2ad4f49f8005fe2e66112f27|cur|ALLOW
+NEP-297 fields to compare with the explorer:
+  standard shieldbot-near, version 1.0.0, event verdict_recorded
+  subject examples.testnet (from the evidence; the view shape has none)
+  verdict ALLOW, evidence_hash 9471fea5ef8986cb12fe0ceac3505c04f0bcfb8a2ad4f49f8005fe2e66112f27
+  observed_block 275906573, verdict_id 946f0003a1996939f1c81eb879d59a09
+ok   evidence sha256 equals the record's evidence_hash
+ok   evidence verdict equals the record's verdict
+ok   verdict literal is ALLOW
+ok   verdict evidence_hash equals the evidence sha256
+ok   verdict verdict_id equals the record's verdict_id
+ok   signature verifies with ed25519:9SVNJQqQjSKFo6LXpSJJXWKEjV65V93mHUsXGhmokyb5
+verified
+exit 0
+== kestrelridge-shop event (invoice 3)
+$ python3 -m gate verify fixtures/registry/event-087cff-20261103.json fixtures/evidence/cfca1a636eb17e6830fc37e7c46938b2c38c1c9d19298daae8b41ec544a13ed6.json --verdict $PREP/verdicts/087cff197261af77b7630515cb103653.verdict.json --key ed25519:9SVNJQqQjSKFo6LXpSJJXWKEjV65V93mHUsXGhmokyb5
+record shape: event
+evidence sha256: cfca1a636eb17e6830fc37e7c46938b2c38c1c9d19298daae8b41ec544a13ed6
+record evidence_hash: cfca1a636eb17e6830fc37e7c46938b2c38c1c9d19298daae8b41ec544a13ed6
+canonical message: GATEv1|kestrelridge-main.testnet|fc5b49a7e7d11222ec1f88aba4d8814b254286f45db917508049bbcf06e5bba9|ft|token.kestrelridge-main.testnet|kestrelridge-shop.testnet|10000000|7231239fb2a686a8880beaa85f7002e0956a81f4f3319e67ddfd2360d6aff9a3|1793620987715|1793621287715|087cff197261af77b7630515cb103653|cfca1a636eb17e6830fc37e7c46938b2c38c1c9d19298daae8b41ec544a13ed6|cur|ALLOW
+NEP-297 fields to compare with the explorer:
+  standard shieldbot-near, version 1.0.0, event verdict_recorded
+  subject kestrelridge-shop.testnet
+  verdict ALLOW, evidence_hash cfca1a636eb17e6830fc37e7c46938b2c38c1c9d19298daae8b41ec544a13ed6
+  observed_block 275896053, verdict_id 087cff197261af77b7630515cb103653
+ok   evidence sha256 equals the record's evidence_hash
+ok   evidence verdict equals the record's verdict
+ok   verdict literal is ALLOW
+ok   verdict evidence_hash equals the evidence sha256
+ok   verdict verdict_id equals the record's verdict_id
+ok   signature verifies with ed25519:9SVNJQqQjSKFo6LXpSJJXWKEjV65V93mHUsXGhmokyb5
+verified
+exit 0
+== kestrelridge-sh0p latest
+$ python3 -m gate verify fixtures/registry/testnet-latest-kestrelridge-sh0p.json fixtures/evidence/c5d021520dda5e6f1aa29894e00be7d38bce298e0f5d3ce8604ca13bc94297b7.json
+record shape: view
+evidence sha256: c5d021520dda5e6f1aa29894e00be7d38bce298e0f5d3ce8604ca13bc94297b7
+record evidence_hash: c5d021520dda5e6f1aa29894e00be7d38bce298e0f5d3ce8604ca13bc94297b7
+NEP-297 fields to compare with the explorer:
+  standard shieldbot-near, version 1.0.0, event verdict_recorded
+  subject kestrelridge-sh0p.testnet (from the evidence; the view shape has none)
+  verdict DENY, evidence_hash c5d021520dda5e6f1aa29894e00be7d38bce298e0f5d3ce8604ca13bc94297b7
+  observed_block 275347643, verdict_id c5d021520dda5e6f1aa29894e00be7d3
+ok   evidence sha256 equals the record's evidence_hash
+ok   evidence verdict equals the record's verdict
+verified
+exit 0
+== lindenvale latest
+$ python3 -m gate verify fixtures/registry/testnet-latest-lindenvale.json fixtures/evidence/ff5a89a257fcecb9e63c9a01179f5a68ebc3abba5cc4b2b54c74ac420db727c3.json
+record shape: view
+evidence sha256: ff5a89a257fcecb9e63c9a01179f5a68ebc3abba5cc4b2b54c74ac420db727c3
+record evidence_hash: ff5a89a257fcecb9e63c9a01179f5a68ebc3abba5cc4b2b54c74ac420db727c3
+NEP-297 fields to compare with the explorer:
+  standard shieldbot-near, version 1.0.0, event verdict_recorded
+  subject lindenvale.testnet (from the evidence; the view shape has none)
+  verdict DENY, evidence_hash ff5a89a257fcecb9e63c9a01179f5a68ebc3abba5cc4b2b54c74ac420db727c3
+  observed_block 275799255, verdict_id ff5a89a257fcecb9e63c9a01179f5a68
+ok   evidence sha256 equals the record's evidence_hash
+ok   evidence verdict equals the record's verdict
+verified
+exit 0
