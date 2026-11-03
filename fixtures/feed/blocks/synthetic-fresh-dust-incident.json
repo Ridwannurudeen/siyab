@@ -1,0 +1,36 @@
+{
+  "height": 1,
+  "hash": "synthetic",
+  "timestamp_ns": "1793284740730787531",
+  "receipts": [
+    {
+      "receipt_id": "synthetic-receipt-1",
+      "tx_hash": "synthetic-tx",
+      "predecessor_id": "synthetic-funder.near",
+      "receiver_id": "synthetic-fresh.near",
+      "ok": true,
+      "actions": [
+        {
+          "type": "CreateAccount"
+        },
+        {
+          "type": "Transfer",
+          "deposit": "10000000000000000000000"
+        }
+      ]
+    },
+    {
+      "receipt_id": "synthetic-receipt-2",
+      "tx_hash": "synthetic-tx",
+      "predecessor_id": "synthetic-fresh.near",
+      "receiver_id": "rhea000453.multica.near",
+      "ok": true,
+      "actions": [
+        {
+          "type": "Transfer",
+          "deposit": "1000000000000000000000"
+        }
+      ]
+    }
+  ]
+}
