@@ -81,7 +81,10 @@ class SignalTest(unittest.TestCase):
         for name, signal in SYNTHETIC.items():
             with self.subTest(block=name):
                 block = json.loads((BLOCKS / name).read_text(encoding="utf-8"))
-                events = self.events(block)
+                context = self.context
+                if signal == "fresh_dust_funded_pays_labelled":
+                    block["receipts"][1]["receiver_id"] = next(iter(context.deny_receivers))
+                events = feed.signals(block, feed.new_state(), context, {"url": "test"})
                 self.assertEqual([event["signal"] for event in events], [signal])
                 self.assertTrue(events[0]["detail"])
                 for assertion_id in events[0]["labels"]:
@@ -124,6 +127,14 @@ class SignalTest(unittest.TestCase):
         later = dict(block, receipts=[payment], timestamp_ns=str(int(block["timestamp_ns"]) + 25 * 3600 * 10**9))
         self.assertEqual(self.events(later, state), [])
         self.assertEqual(state["fresh_accounts"], {})
+
+    def test_dust_signal_needs_an_incident_or_denylist_receiver(self):
+        block = json.loads((BLOCKS / "synthetic-fresh-dust.json").read_text(encoding="utf-8"))
+        context = feed.Context(self.store)
+        self.assertEqual(feed.signals(block, feed.new_state(), context, {"url": "test"}), [])
+        block["receipts"][1]["receiver_id"] = next(iter(context.deny_receivers))
+        self.assertEqual([event["signal"] for event in feed.signals(
+            block, feed.new_state(), context, {"url": "test"})], ["fresh_dust_funded_pays_labelled"])
 
     def test_a_failed_receipt_raises_nothing(self):
         block = json.loads((BLOCKS / "synthetic-code-hash.json").read_text(encoding="utf-8"))

@@ -23,8 +23,8 @@ The signals, each written as an evidence document under intel/feed/events/<sha25
   code_hash_matches_incident       a DeployContract whose code hash is the code hash an incident page
                                    reports (intel/incidents/*.json, code_hash_as_reported)
   fresh_dust_funded_pays_labelled  an account created with a deposit below 0.1 NEAR that, within 24 h,
-                                   sends a FunctionCall or a Transfer to a NEAR account the label
-                                   store labels
+                                   sends a FunctionCall or a Transfer to a NEAR account with a current
+                                   incident or denylist row
   watch_account_key_added          an AddKey with full access, or a function call key with an empty
                                    method_names list, on a NEAR account labelled infrastructure,
                                    treasury or watch
@@ -142,11 +142,13 @@ class Context:
             reported = document.get("code_hash_as_reported")
             if reported:
                 self.code_hashes[reported["value"]] = document["id"]
-        self.labelled, self.watched, self.watch_categories = {}, {}, {}
+        self.labelled, self.watched, self.watch_categories, self.deny_receivers = {}, {}, {}, set()
         for assertion in store.assertions:
             if assertion.chain != "near" or assertion.superseded_by is not None:
                 continue
             self.labelled.setdefault(assertion.subject, []).append(assertion.id)
+            if assertion.category in ("incident", "denylist"):
+                self.deny_receivers.add(assertion.subject)
             if assertion.category in WATCH_CATEGORIES:
                 self.watched.setdefault(assertion.subject, []).append(assertion.id)
                 categories = self.watch_categories.setdefault(assertion.subject, [])
@@ -196,7 +198,8 @@ def signals(block, state, context, source):
             deposit = sum(int(a["deposit"]) for a in receipt["actions"] if a["type"] == "Transfer")
             if deposit < rules.DUST_YOCTO:
                 fresh[receiver] = {"deposit": str(deposit), "created_ms": now_ms, "height": block["height"]}
-        elif predecessor in fresh and receiver in context.labelled and ({"FunctionCall", "Transfer"} & set(types)):
+        elif (predecessor in fresh and receiver in context.labelled and receiver in context.deny_receivers
+              and ({"FunctionCall", "Transfer"} & set(types))):
             info = fresh[predecessor]
             age_minutes = (now_ms - info["created_ms"]) // 60000
             events.append(_event(SIGNALS[1], predecessor, f"{predecessor}, created at block {info['height']} with a "
