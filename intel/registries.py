@@ -12,6 +12,7 @@ from intel import seed
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURES_DIR = ROOT / "fixtures" / "registries"
 ROWS_PATH = Path(__file__).resolve().parent / "registries" / "rows.jsonl"
+HYPOTHESES_PATH = Path(__file__).resolve().parent / "registries" / "hypotheses.jsonl"
 ENTITIES_PATH = Path(__file__).resolve().parent / "entities.jsonl"
 BRIDGE_METHOD = "get_tokens_accounts"
 REGISTRY_ORDER = ("sputnik_dao", "validators", "ref_whitelist", "bridge_factory")
@@ -162,7 +163,8 @@ def append():
 
 
 def hypotheses(facts=None, mode="replay"):
-    """Build cautious exchange name hypotheses from recorded account and FastNEAR facts."""
+    """The exchange named account facts from recorded account and FastNEAR reads, then the cautious
+    exchange name hypotheses those facts support."""
     if facts is None:
         client = rpc.Client(rpc.MAINNET_RPC_URL, mode, fixtures_dir=FIXTURES_DIR)
         http = rpc.Client("https://api.fastnear.com", mode, fixtures_dir=FIXTURES_DIR, kind="http")
@@ -248,7 +250,7 @@ def hypotheses(facts=None, mode="replay"):
             observed_at=max(fact["observed_at"] for fact in account_facts), confidence=0.6,
             rule_id="exchange_name_pattern",
             note="attribution hypothesis; no official exchange address list for NEAR was found"))
-    return result
+    return facts + result
 
 
 def main(argv=None):
@@ -257,6 +259,7 @@ def main(argv=None):
     commands.add_parser("record", help="record registry reads and write rows and entities")
     commands.add_parser("rows", help="print row counts by registry from fixtures")
     commands.add_parser("append", help="append registry rows that are not in the label store")
+    commands.add_parser("hypotheses", help="write the exchange account facts and hypotheses from fixtures")
     args = parser.parse_args(argv)
     if args.command == "record":
         result = record()
@@ -267,6 +270,12 @@ def main(argv=None):
         result = rows()
         for name in REGISTRY_ORDER:
             print(f"{name}: {len(result[name])}")
+        return 0
+    if args.command == "hypotheses":
+        result = hypotheses()
+        _write_jsonl(HYPOTHESES_PATH, result)
+        for provenance in ("onchain", "third_party", "inferred"):
+            print(f"{provenance}: {sum(row['provenance'] == provenance for row in result)}")
         return 0
     added = append()
     print(f"{added} new registry assertions")

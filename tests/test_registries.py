@@ -1,4 +1,6 @@
 import base64
+import contextlib
+import io
 import json
 import tempfile
 import unittest
@@ -117,13 +119,33 @@ class RegistriesTests(unittest.TestCase):
             self.assertFalse(output_dir.exists())
 
     def test_hypotheses_are_inferred_with_inputs_and_a_confidence_at_most_0_6(self):
-        hypotheses = registries.hypotheses()
-        recorded = [json.loads(line) for line in
-                    (registries.ROOT / "intel" / "registries" / "hypotheses.jsonl")
-                    .read_text(encoding="utf-8").splitlines()]
+        rows = registries.hypotheses()
+        recorded = [json.loads(line) for line in registries.HYPOTHESES_PATH.read_text(encoding="utf-8").splitlines()]
+        facts = [row for row in rows if row["provenance"] != "inferred"]
+        hypotheses = [row for row in rows if row["provenance"] == "inferred"]
 
         self.assertTrue(hypotheses)
-        self.assertEqual(hypotheses, recorded)
+        self.assertEqual(rows, recorded)
+        self.assertEqual(rows, facts + hypotheses)
+        self.assertEqual([row["subject"] for row in facts if row["provenance"] == "onchain"],
+                         list(registries.EXCHANGE_ACCOUNTS))
+        self.assertEqual({row["provenance"] for row in facts}, {"onchain", "third_party"})
+        for row in facts:
+            self.assertEqual(row["category"], "organisation")
+            labels.validate(row)
+        facts_by_id = {row["id"]: row for row in facts}
+        for row in hypotheses:
+            for value in row["source"]["inputs"]:
+                self.assertIn(value, facts_by_id)
+                self.assertEqual(facts_by_id[value]["subject"], row["subject"])
+
+        with tempfile.TemporaryDirectory() as temporary:
+            written = Path(temporary) / "hypotheses.jsonl"
+            with patch.object(registries, "HYPOTHESES_PATH", written), contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(registries.main(["hypotheses"]), 0)
+            self.assertEqual(written.read_text(encoding="utf-8"),
+                             registries.HYPOTHESES_PATH.read_text(encoding="utf-8"))
+
         for row in hypotheses:
             self.assertEqual(row["provenance"], "inferred")
             self.assertEqual(row["category"], "organisation")
