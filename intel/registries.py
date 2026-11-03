@@ -183,6 +183,7 @@ def hypotheses(facts=None, mode="replay"):
             if not isinstance(block, int) or not isinstance(observed_at, str):
                 raise RegistryError(f"view_account has no block or fetch time for {account}")
             balance = int(view["amount"]) + int(view["locked"])
+            # 8 NEAR: the 2 Nov 2026 read only check (CRITIQUE2 section 0) found every exchange named account but binancecold3.near under 8 NEAR.
             balance_class = "zero" if balance == 0 else "under 8 NEAR" if balance < 8 * 10**24 else "8 NEAR or more"
             has_code = view["code_hash"] != rpc.EMPTY_CODE_HASH
             facts.append(seed.make_row(
