@@ -11,7 +11,10 @@ Routes (GET only; no route writes anything and no route opens the network):
     /flow/<subject>       the exit trace intel/flows/<subject>.json, else the trace file under
                           intel/flows/ whose subject it is (such as rhea-collector.json); 403 for a
                           subject that carries no incident label, 404 when no trace was written
-    anything else         a static file under --site when one is given, else 404
+    anything else         a static file under --site when one is given; a path whose last segment
+                          ends in .html is never an API route, so /incidents/<id>.html is the page
+                          and /incidents/<id> the JSON; a path that is neither answers 404 with the
+                          site's 404.html when it has one, else with JSON
 
 Every answer is JSON (static files aside) and carries Cache-Control: no-store.
 """
@@ -93,6 +96,8 @@ def _flow(store, subject):
 def route(path, store):
     """(status, JSON body) for an API path, or None when the path is not an API route."""
     parts = [urllib.parse.unquote(part) for part in urllib.parse.urlsplit(path).path.split("/")[1:]]
+    if parts[-1].endswith(".html"):
+        return None
     if parts == ["health"]:
         return 200, {"status": "ok", "assertions": len(store.assertions), "label_store_sha256": store.sha256}
     if parts == ["feed"]:
@@ -140,7 +145,11 @@ def make_server(host, port, site=None, store=None):
                 return
             static = _static(site, self.path)
             if static is None:
-                self._send(404, JSON_TYPE, b'{"error": "not found"}\n')
+                missing = _static(site, "/404.html")
+                if missing is None:
+                    self._send(404, JSON_TYPE, b'{"error": "not found"}\n')
+                else:
+                    self._send(404, *missing[1:])
                 return
             self._send(*static)
 

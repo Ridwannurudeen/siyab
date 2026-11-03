@@ -1,13 +1,16 @@
 """python -m intel render --out <dir>: the static hosted pages, built from the committed JSON files.
 
 No framework and no external script; one stylesheet inline in each page. The pages: index.html
-(the headline, the counts block of scripts/counts.py, the links), feed.html (the feed state and
-its events), incidents/<id>.html (sources, accounts, on chain facts, rules today, what is not
+(the headline, what the counts are of, the counts block of scripts/counts.py, the links), feed.html
+(the recorded window or, in follow mode, the follower's lines, then the events),
+incidents/<id>.html (sources, accounts, on chain facts, rules today, what is not
 public), entities/<set>.html (treasuries, catalog, infrastructure: one page per seed set),
 flows/<name>.html (an exit trace: the summary line, the shares of the subject's gross outbound
 transfer value, the subject's balance and issuer status at a block, then one card per hop grouped
-by depth) and verify.html (a form that reads a registry record from https://test.rpc.fastnear.com in the
-browser, never the ShieldBot API, and shows it next to the evidence hash the reader pastes). Every
+by depth), verify.html (a form that reads a registry record from https://test.rpc.fastnear.com in the
+browser, never the ShieldBot API, and shows it next to the evidence hash the reader pastes; its inputs
+show the vendor's committed record as examples) and 404.html (the page the API serves for a path that
+is neither a route nor a file; its links are relative to the site root). Every
 page carries a robots noindex meta and the footer "Data: NearBlocks".
 
 Text from a source (a report's sentence, a token symbol, a quoted string in a label row) is shown
@@ -26,7 +29,13 @@ from intel import feed, labels, trace
 ROOT = Path(__file__).resolve().parent.parent
 INCIDENTS_DIR = Path(__file__).resolve().parent / "incidents"
 TESTNET_RPC = "https://test.rpc.fastnear.com"
+# The record the verify page offers as its example: a latest view of the testnet registry.
+VERIFY_RECORD = ROOT / "fixtures" / "registry" / "testnet-vendor.json"
+EVIDENCE_DIR = ROOT / "fixtures" / "evidence"
 HEADLINE = "ShieldBot for NEAR: security intelligence for AI agent money on NEAR"
+COUNTS_OF = ("The counts below are of the recorded mainnet receivers the rules judged, the label store's assertions "
+             "and subjects by provenance class, the incident pages, the blocks and events of the feed, the exit "
+             "traces and their hops, and the verdict latency runs.")
 ENTITY_SETS = (("treasuries", "Treasuries", ("treasury",)),
                ("catalog", "Catalog tokens", ("catalog_token",)),
                ("infrastructure", "Infrastructure and bridge accounts", ("infrastructure", "bridge")))
@@ -115,7 +124,7 @@ def index_page(incidents, flows):
               f'depth {f["depth_reached"]} of {f["depth"]}, {esc(trace.stop_state(f["completeness"]))}, with the shares '
               'of its gross outbound transfer value</a></li>' for name, f in flows]
     links.append("<li><a href=\"verify.html\">Read a registry record and compare its evidence hash</a></li>")
-    body = (f"<h1>{esc(HEADLINE)}</h1>\n<h2>Counts</h2>\n<div class=\"card\">{counts}</div>\n"
+    body = (f"<h1>{esc(HEADLINE)}</h1>\n<p>{esc(COUNTS_OF)}</p>\n<h2>Counts</h2>\n<div class=\"card\">{counts}</div>\n"
             "<p class=\"muted\">Every number above is printed by <code>scripts/counts.py</code> from the committed "
             "files.</p>\n<h2>Pages</h2>\n<ul>" + "".join(links) + "</ul>")
     return page("ShieldBot for NEAR", body)
@@ -125,6 +134,9 @@ def feed_page(state_path=feed.STATE_PATH, events_dir=feed.EVENTS_DIR):
     if not Path(state_path).is_file():
         return page("Feed", "<h1>Feed</h1><p>The feed has not run.</p>")
     state = json.loads(Path(state_path).read_text(encoding="utf-8"))
+    window = "" if state.get("mode") == "follow" else (
+        f"<p>Recorded window: blocks {state['start_height']} to {state['last_height']}, read on "
+        f"{esc(state['start_time'][:10])} UTC. Live following is not running yet.</p>\n")
     stats = "".join(f"<li>{esc(line)}</li>" for line in feed.stats_lines(state))
     events = sorted((json.loads(p.read_bytes()), p.stem) for p in Path(events_dir).glob("*.json"))
     cards = "".join(
@@ -132,7 +144,7 @@ def feed_page(state_path=feed.STATE_PATH, events_dir=feed.EVENTS_DIR):
         f'<p>{esc(e["detail"])}</p><p class="mono">receipt {esc(e["receipt_id"])}<br>transaction {esc(e["tx_hash"])}'
         f'<br>evidence {esc(stem)}</p></div>'
         for e, stem in sorted(events, key=lambda item: (item[0]["observed"]["block_height"], item[1])))
-    body = (f"<h1>Feed over finalized mainnet blocks</h1>\n<ul>{stats}</ul>\n<h2>Events</h2>\n"
+    body = (f"<h1>Feed over finalized mainnet blocks</h1>\n{window}<ul>{stats}</ul>\n<h2>Events</h2>\n"
             + (cards or "<p>No signal fired over the recorded blocks.</p>")
             + "\n<p class=\"muted\">The signals: " + ", ".join(feed.SIGNALS) + ".</p>")
     return page("Feed", body)
@@ -280,17 +292,35 @@ document.getElementById("read").addEventListener("click", async function () {
 """
 
 
+def verify_example(record_path=VERIFY_RECORD, evidence_dir=EVIDENCE_DIR):
+    """(registry account, subject, evidence hash) of a committed registry record: the hash from the record,
+    the subject and the Gate from its evidence document, and the registry as the Gate's registry sub account
+    that scripts/setup_testnet.sh deploys."""
+    record = json.loads(Path(record_path).read_text(encoding="utf-8"))
+    evidence = json.loads((Path(evidence_dir) / f"{record['evidence_hash']}.json").read_text(encoding="utf-8"))
+    return f"registry.{evidence['subject']['gate']}", evidence["subject"]["receiver"], record["evidence_hash"]
+
+
 def verify_page():
     script = VERIFY_SCRIPT.replace("RPC_URL", TESTNET_RPC)
+    registry, subject, evidence_hash = (esc(value) for value in verify_example())
     body = ("<h1>Read a registry record</h1><p>The page calls <code>latest</code> on the registry contract over the "
             f"public testnet RPC <code>{TESTNET_RPC}</code> from your browser and shows the record next to the "
             "evidence hash you paste. Compute the hash yourself with <code>sha256sum</code> of the evidence file.</p>"
-            '<div class="card"><label>Registry account<input id="registry" autocomplete="off"></label>'
-            '<label>Subject (a NEAR account id)<input id="subject" autocomplete="off"></label>'
-            '<label>Evidence hash (64 hex)<input id="hash" autocomplete="off"></label>'
-            '<button id="read" type="button">Read the record</button></div>'
+            "<p>The examples in the empty fields are the vendor's record, <code>fixtures/registry/testnet-vendor.json</code>, "
+            "and the sha256 of its evidence document.</p>"
+            f'<div class="card"><label>Registry account<input id="registry" autocomplete="off" placeholder="{registry}">'
+            f'</label><label>Subject (a NEAR account id)<input id="subject" autocomplete="off" placeholder="{subject}">'
+            f'</label><label>Evidence hash (64 hex)<input id="hash" autocomplete="off" placeholder="{evidence_hash}">'
+            '</label><button id="read" type="button">Read the record</button></div>'
             f'<pre id="out" class="card mono"></pre><script>{script}</script>')
     return page("Verify a record", body)
+
+
+def not_found_page():
+    body = ("<h1>Not found</h1><p>No page of this site and no route of the read only API answers this path.</p>"
+            '<p><a href="index.html">Back to the index</a></p>')
+    return page("Not found", body)
 
 
 def render(out_dir, store=None, incidents_dir=INCIDENTS_DIR, flows_dir=trace.FLOWS_DIR):
@@ -298,7 +328,8 @@ def render(out_dir, store=None, incidents_dir=INCIDENTS_DIR, flows_dir=trace.FLO
     store = store or labels.load()
     out = Path(out_dir)
     incidents, flows = _incidents(incidents_dir), _flows(flows_dir)
-    pages = {"index.html": index_page(incidents, flows), "feed.html": feed_page(), "verify.html": verify_page()}
+    pages = {"index.html": index_page(incidents, flows), "feed.html": feed_page(), "verify.html": verify_page(),
+             "404.html": not_found_page()}
     for document in incidents:
         pages[f"incidents/{document['id']}.html"] = incident_page(document)
     for name, title, categories in ENTITY_SETS:

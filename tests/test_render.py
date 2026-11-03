@@ -1,4 +1,5 @@
 import contextlib
+import hashlib
 import html
 import importlib.util
 import io
@@ -10,7 +11,7 @@ from pathlib import Path
 from unittest import mock
 
 from intel import __main__ as intel_main
-from intel import labels, render, trace
+from intel import feed, labels, render, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "demo" / "site"
@@ -63,7 +64,7 @@ class RenderTest(unittest.TestCase):
     def test_every_page_is_written(self):
         incidents = [p.stem for p in (ROOT / "intel" / "incidents").glob("*.json")]
         flows = [p.stem for p in (ROOT / "intel" / "flows").glob("*.json")]
-        expected = (["index.html", "feed.html", "verify.html"] + [f"incidents/{i}.html" for i in incidents]
+        expected = (["index.html", "feed.html", "verify.html", "404.html"] + [f"incidents/{i}.html" for i in incidents]
                     + [f"entities/{name}.html" for name, _, _ in render.ENTITY_SETS] + [f"flows/{f}.html" for f in flows])
         self.assertEqual(sorted(self.written), sorted(expected))
 
@@ -120,6 +121,44 @@ class RenderTest(unittest.TestCase):
     def test_the_index_carries_the_counts_lines(self):
         for line in render._counts_lines():
             self.assertIn(f"<p>{html.escape(line)}</p>", self.pages["index.html"])
+
+    def test_the_index_says_what_the_counts_are_of_between_the_h1_and_the_counts_card(self):
+        page = self.pages["index.html"]
+        sentence = f"<p>{html.escape(render.COUNTS_OF)}</p>"
+        self.assertLess(page.index("</h1>"), page.index(sentence))
+        self.assertLess(page.index(sentence), page.index('<div class="card">'))
+        self.assertEqual(len(render._counts_lines()), 6)
+        for words in ("recorded mainnet receivers the rules judged", "label store", "provenance class", "incident pages",
+                      "feed", "exit traces", "verdict latency runs"):
+            self.assertIn(words, render.COUNTS_OF)
+
+    def test_the_feed_page_names_a_recorded_window_with_its_date_and_says_it_is_not_following(self):
+        state = json.loads(feed.STATE_PATH.read_text(encoding="utf-8"))
+        self.assertNotIn("mode", state)
+        self.assertIn(f"<p>Recorded window: blocks {state['start_height']} to {state['last_height']}, read on "
+                      f"{state['start_time'][:10]} UTC. Live following is not running yet.</p>", self.pages["feed.html"])
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "state.json"
+            following = dict(state, mode="follow")
+            path.write_text(json.dumps(following), encoding="utf-8")
+            page = render.feed_page(path, Path(tmp) / "events")
+        self.assertNotIn("Recorded window", page)
+        self.assertNotIn("not running", page)
+        for line in feed.stats_lines(following):
+            self.assertIn(f"<li>{html.escape(line)}</li>", page)
+
+    def test_the_verify_page_inputs_carry_placeholders_from_committed_records(self):
+        record = json.loads((ROOT / "fixtures" / "registry" / "testnet-vendor.json").read_text(encoding="utf-8"))
+        evidence_path = ROOT / "fixtures" / "evidence" / f"{record['evidence_hash']}.json"
+        self.assertEqual(hashlib.sha256(evidence_path.read_bytes()).hexdigest(), record["evidence_hash"])
+        evidence = json.loads(evidence_path.read_bytes())
+        testnet = (ROOT / "docs" / "TESTNET.md").read_text(encoding="utf-8")
+        registry = re.search(r"^\| Registry \| `([^`]+)` \|", testnet, re.MULTILINE).group(1)
+        page = self.pages["verify.html"]
+        for input_id, value in (("registry", registry), ("subject", evidence["subject"]["receiver"]),
+                                ("hash", record["evidence_hash"])):
+            with self.subTest(input=input_id):
+                self.assertIn(f'<input id="{input_id}" autocomplete="off" placeholder="{html.escape(value)}">', page)
 
     def test_the_incident_page_shows_every_part(self):
         document = json.loads((ROOT / "intel" / "incidents" / "rhea.json").read_text(encoding="utf-8"))
