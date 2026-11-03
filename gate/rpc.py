@@ -63,11 +63,12 @@ class FixtureMiss(Exception):
 
 
 class HttpError(Exception):
-    """The server answered with a status outside 2xx."""
+    """The server answered with a status outside 2xx; retry_after is its Retry-After header or None."""
 
-    def __init__(self, status, url):
+    def __init__(self, status, url, retry_after=None):
         super().__init__(f"HTTP {status} from {url}")
         self.status = status
+        self.retry_after = retry_after
 
 
 class TransportError(Exception):
@@ -295,6 +296,6 @@ def _fetch(url, body, extra_headers=None):
         with urllib.request.urlopen(request, timeout=TIMEOUT_S) as reply:
             return json.loads(reply.read())
     except urllib.error.HTTPError as error:
-        raise HttpError(error.code, url) from error
+        raise HttpError(error.code, url, error.headers.get("Retry-After")) from error
     except http.client.HTTPException as error:
         raise TransportError(f"{type(error).__name__} from {url}") from error

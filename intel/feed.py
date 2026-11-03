@@ -32,10 +32,17 @@ recorded window), so a follower on a host writes no tracked file. Its state.json
 height and time, the last height and time, the block count, the skipped heights, the fresh
 accounts with their funding deposit and time, and the event count per signal; a follower adds
 mode ("follow"), started_at (when the first follow run began), lag_blocks (the final height at the
-last read minus the last height), requests (the neardata requests made on request_day) and
+last read minus the last height), requests (the neardata requests made on request_day),
 request_day (the UTC date the requests count is for, checked before every request; a new date
-resets the count). A block at or below the last height is never counted twice, so a run that stops
-can be started again.
+resets the count) and disabled_signals (a signal that is off and why: the transfer signal when
+FASTNEAR_API_KEY_FILE is unset or names a file that cannot be read or is empty; never the path or
+the key). The transfer poll adds last_large_transfer_poll_ms (the start of the last complete poll,
+or POLL_S before the first one: the next window's from_timestamp_ms), large_transfer_next_poll_ms
+(the earliest start of the next poll), last_large_transfer_error (the UTC time, the HTTP status or
+null, and the error type of the last failed poll; never the key or a header) and
+large_transfer_page_caps (each subject and window that still had rows after MAX_TRANSFER_PAGES
+pages). A block at or below the last height is never counted twice, so a run that stops can be
+started again.
 
 The signals, each written as an evidence document under <state dir>/events/<sha256>.json:
 
@@ -47,9 +54,24 @@ The signals, each written as an evidence document under <state dir>/events/<sha2
   watch_account_key_added          an AddKey with full access, or a function call key with an empty
                                    method_names list, on a NEAR account labelled infrastructure,
                                    treasury or watch
-  labelled_account_large_transfer  a Transfers API row of at least 1000 USD sent by an incident or
-                                   denylist account
-  deploy_on_labelled_contract      a successful DeployContract on a currently labelled account
+  labelled_account_large_transfer  a Transfers API row of at least 1000 USD sent by a NEAR account
+                                   with a current incident or denylist row (follow mode only)
+  deploy_on_labelled_contract      a successful DeployContract on a NEAR account with a current
+                                   catalog_token, infrastructure, bridge, treasury, organisation or
+                                   watch row
+
+The transfer poll runs in follow mode only, from the follower's loop both while it walks heights
+and while it waits at the final height, at most every POLL_S (600 s). It reads the key once at start
+from the file FASTNEAR_API_KEY_FILE names and sends it only as the Authorization Bearer header of a
+client that writes no fixture. Each poll asks POST https://transfers.main.fastnear.com/v0/transfers
+for each subject (direction sender, min_usd_amount 1000, ignore_system true, limit 100,
+from_timestamp_ms the last complete poll's start, to_timestamp_ms this poll's start, which the API
+treats as exclusive, so no row is in two windows), following resume_token up to MAX_TRANSFER_PAGES
+(20) pages. Events are written and the window moves on only when every request of the poll
+succeeded. A 429 moves the next poll to Retry-After seconds later (TRANSFER_BACKOFF_S, 60 s, when the
+header is absent or not a number of seconds) and keeps the window; any other HTTP, transport or
+parse error is recorded in last_large_transfer_error and the window is asked again at the next poll.
+Neither stops the block walk.
 """
 
 import base64
@@ -80,6 +102,8 @@ DEPLOY_CATEGORIES = ("catalog_token", "infrastructure", "bridge", "treasury", "o
 TRANSFERS_URL = "https://transfers.main.fastnear.com"
 FRESH_WINDOW_MS = 24 * 60 * 60 * 1000
 POLL_S = 600
+TRANSFER_BACKOFF_S = 60
+MAX_TRANSFER_PAGES = 20
 MAX_REQUESTS = 600
 BACKOFF_S = 10
 FOLLOW_INTERVAL_S = 0.4
@@ -297,6 +321,67 @@ class Fetcher:
         return answer["block"]["header"]["height"]
 
 
+def poll_transfers(client, state, state_path, context, events_dir, clock):
+    """The large transfer poll when it is due: every subject's rows of the window since the last
+    complete poll, written as events only when every request succeeded."""
+    now_ms = int(clock() * 1000)
+    if now_ms < state.get("large_transfer_next_poll_ms", now_ms):
+        return
+    from_ms = state.setdefault("last_large_transfer_poll_ms", now_ms - POLL_S * 1000)
+    rows, caps = [], []
+    try:
+        for subject in sorted(context.deny_receivers):
+            body = {"account_id": subject, "direction": "sender", "from_timestamp_ms": from_ms,
+                    "to_timestamp_ms": now_ms, "min_usd_amount": 1000, "ignore_system": True, "limit": 100}
+            for _ in range(MAX_TRANSFER_PAGES):
+                response = client.post("/v0/transfers", body)
+                if not isinstance(response, dict) or not isinstance(response.get("transfers"), list):
+                    raise rpc.MalformedResponse("the transfers response has no transfers list")
+                for transfer in response["transfers"]:
+                    if not (isinstance(transfer, dict)
+                            and all(isinstance(transfer.get(name), str)
+                                    for name in ("other_account_id", "asset_id", "transaction_id", "receipt_id"))
+                            and str(transfer.get("block_height")).isdigit()
+                            and str(transfer.get("block_timestamp")).isdigit()
+                            and isinstance(transfer.get("usd_amount"), (int, float))):
+                        raise rpc.MalformedResponse("a transfer row lacks a field the signal reads")
+                    rows.append((subject, transfer, dict(client.last_source)))
+                if not response.get("resume_token"):
+                    break
+                body = {**body, "resume_token": response["resume_token"]}
+            else:
+                caps.append({"subject": subject, "from_timestamp_ms": from_ms, "to_timestamp_ms": now_ms})
+    except (rpc.HttpError, rpc.TransportError, OSError, ValueError) as error:
+        status = error.status if isinstance(error, rpc.HttpError) else None
+        state["last_large_transfer_error"] = {"at": datetime.fromtimestamp(now_ms / 1000, UTC).strftime(_TIME),
+                                              "status": status, "error": type(error).__name__}
+        wait_s = POLL_S
+        if status == 429:
+            retry_after = (error.retry_after or "").strip()
+            wait_s = int(retry_after) if retry_after.isdigit() else TRANSFER_BACKOFF_S
+        state["large_transfer_next_poll_ms"] = now_ms + wait_s * 1000
+        _write_json(Path(state_path), state, indent=2)
+        return
+    for subject, transfer, source in rows:
+        height = int(transfer["block_height"])
+        event = {"version": "1", "kind": "feed_event", "signal": SIGNALS[3], "subject": subject,
+                 "detail": f"FastNEAR reported a transfer of {transfer['usd_amount']} USD from {subject} to "
+                           f"\"{transfer['other_account_id']}\"",
+                 "labels": context.labelled[subject], "other_account_id": transfer["other_account_id"],
+                 "asset_id": transfer["asset_id"], "usd_amount": str(transfer["usd_amount"]),
+                 "transaction_id": transfer["transaction_id"], "tx_hash": transfer["transaction_id"],
+                 "receipt_id": transfer["receipt_id"], "block_height": height,
+                 "observed": {"block_height": height, "timestamp_ms": int(transfer["block_timestamp"]) // 1_000_000},
+                 "source": source}
+        evidence.write(event, events_dir)
+        state["events"][SIGNALS[3]] += 1
+    if caps:
+        state.setdefault("large_transfer_page_caps", []).extend(caps)
+    state["last_large_transfer_poll_ms"] = now_ms
+    state["large_transfer_next_poll_ms"] = now_ms + POLL_S * 1000
+    _write_json(Path(state_path), state, indent=2)
+
+
 def run(start, count, record, store=None, blocks_dir=BLOCKS_DIR, state_path=STATE_PATH, events_dir=EVENTS_DIR,
         fetcher=None, incidents_dir=INCIDENTS_DIR):
     """Walk count heights from start (None: after the state's last height); returns (state, events)."""
@@ -346,21 +431,30 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
     for signal in SIGNALS:
         state["events"].setdefault(signal, 0)
     context = Context(store or labels.load())
-    key_file = os.environ.get("FASTNEAR_API_KEY_FILE")
-    if key_file:
-        api_key = Path(key_file).read_text(encoding="utf-8").strip()
-        transfers_client = rpc.Client(TRANSFERS_URL, "off", kind="http",
-                                      headers={"Authorization": f"Bearer {api_key}"})
-        state.setdefault("disabled_signals", {}).pop("labelled_account_large_transfer", None)
+    disabled = state.setdefault("disabled_signals", {})
+    transfers_client, key_file = None, os.environ.get("FASTNEAR_API_KEY_FILE")
+    if not key_file:
+        disabled[SIGNALS[3]] = "FASTNEAR_API_KEY_FILE is not set"
     else:
-        transfers_client = None
-        state.setdefault("disabled_signals", {})["labelled_account_large_transfer"] = (
-            "FASTNEAR_API_KEY_FILE is not set")
+        try:
+            api_key = Path(key_file).read_text(encoding="utf-8").strip()
+        except (OSError, UnicodeDecodeError):
+            api_key = None
+        if api_key is None:
+            disabled[SIGNALS[3]] = "the file FASTNEAR_API_KEY_FILE names cannot be read"
+        elif not api_key:
+            disabled[SIGNALS[3]] = "the file FASTNEAR_API_KEY_FILE names is empty"
+        else:
+            transfers_client = rpc.Client(TRANSFERS_URL, "off", kind="http",
+                                          headers={"Authorization": f"Bearer {api_key}"})
+            disabled.pop(SIGNALS[3], None)
     walked = 0
     last_request = None
     while not stopped() and (max_blocks is None or walked < max_blocks):
         if last_request is not None:
             sleep(max(0, FOLLOW_INTERVAL_S - (clock() - last_request)))
+        if transfers_client is not None:
+            poll_transfers(transfers_client, state, state_path, context, events_dir, clock)
         request_day = datetime.fromtimestamp(clock(), UTC).strftime("%Y-%m-%d")
         if state["request_day"] != request_day:
             state["request_day"], state["requests"] = request_day, 0
@@ -381,36 +475,7 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
             if last_request is not None:
                 sleep(max(0, FOLLOW_INTERVAL_S - (clock() - last_request)))
             if transfers_client is not None:
-                poll_started_ms = int(clock() * 1000)
-                last_poll_ms = state.get("last_large_transfer_poll_ms", poll_started_ms - POLL_S * 1000)
-                if poll_started_ms - last_poll_ms >= POLL_S * 1000:
-                    for subject in sorted(context.deny_receivers):
-                        body = {"account_id": subject, "direction": "sender", "from_timestamp_ms": last_poll_ms,
-                                "min_usd_amount": 1000, "ignore_system": True, "limit": 100}
-                        response = transfers_client.post("/v0/transfers", body)
-                        if not isinstance(response, dict) or not isinstance(response.get("transfers"), list):
-                            raise rpc.MalformedResponse("the transfers response has no transfers list")
-                        for transfer in response["transfers"]:
-                            if not isinstance(transfer, dict):
-                                raise rpc.MalformedResponse("a transfer row is not an object")
-                            block_timestamp = int(transfer["block_timestamp"])
-                            event = {"version": "1", "kind": "feed_event",
-                                     "signal": SIGNALS[3], "subject": subject,
-                                     "detail": f"FastNEAR reported a transfer of {transfer['usd_amount']} USD "
-                                               f"from {subject} to \"{transfer['other_account_id']}\"",
-                                     "labels": context.labelled[subject],
-                                     "other_account_id": transfer["other_account_id"],
-                                     "asset_id": transfer["asset_id"], "usd_amount": str(transfer["usd_amount"]),
-                                     "transaction_id": transfer["transaction_id"],
-                                     "tx_hash": transfer["transaction_id"],
-                                     "receipt_id": transfer["receipt_id"],
-                                     "observed": {"block_height": transfer["block_height"],
-                                                  "timestamp_ms": block_timestamp // 1_000_000},
-                                     "source": dict(transfers_client.last_source)}
-                            evidence.write(event, events_dir)
-                            state["events"][SIGNALS[3]] += 1
-                    state["last_large_transfer_poll_ms"] = poll_started_ms
-                    _write_json(Path(state_path), state, indent=2)
+                poll_transfers(transfers_client, state, state_path, context, events_dir, clock)
             request_day = datetime.fromtimestamp(clock(), UTC).strftime("%Y-%m-%d")
             if state["request_day"] != request_day:
                 state["request_day"], state["requests"] = request_day, 0

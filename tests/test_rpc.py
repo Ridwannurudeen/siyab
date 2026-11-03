@@ -184,7 +184,16 @@ class ModeTest(unittest.TestCase):
                 self.assertRaises(rpc.HttpError) as caught:
             self.client("record", kind="http").get("/x")
         self.assertEqual(caught.exception.status, 429)
+        self.assertIsNone(caught.exception.retry_after)
         self.assertEqual(list(Path(self.tmp.name).iterdir()), [])
+
+    def test_a_429_carries_its_retry_after_header(self):
+        error = urllib.error.HTTPError("https://rpc.example/x", 429, "Too Many Requests", {"Retry-After": "120"},
+                                       None)
+        with mock.patch("urllib.request.urlopen", side_effect=error), \
+                self.assertRaises(rpc.HttpError) as caught:
+            self.client("off", kind="http").get("/x")
+        self.assertEqual((caught.exception.status, caught.exception.retry_after), (429, "120"))
 
     def test_http_get_and_post(self):
         with mock.patch("urllib.request.urlopen", return_value=reply({"ok": True})) as opened:
