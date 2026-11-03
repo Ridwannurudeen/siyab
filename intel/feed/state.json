@@ -20,6 +20,8 @@
   "events": {
     "code_hash_matches_incident": 0,
     "fresh_dust_funded_pays_labelled": 0,
-    "watch_account_key_added": 0
+    "watch_account_key_added": 0,
+    "labelled_account_large_transfer": 0,
+    "deploy_on_labelled_contract": 0
   }
 }

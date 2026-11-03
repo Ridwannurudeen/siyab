@@ -39,7 +39,7 @@ Label store: 3266 assertions over 3009 subjects (onchain 2894, official_source 3
 
 Incidents: 3 pages.
 
-Feed: since 2026-10-29, 300 blocks, 0 events (0 code_hash_matches_incident, 0 fresh_dust_funded_pays_labelled, 0 watch_account_key_added).
+Feed: since 2026-10-29, 300 blocks, 0 events (0 code_hash_matches_incident, 0 fresh_dust_funded_pays_labelled, 0 watch_account_key_added, 0 labelled_account_large_transfer, 0 deploy_on_labelled_contract).
 
 Flows: 1 exit traces, 1708 hops, depth 2 of 3, stopped while reading an account 1 hop from the subject.
 

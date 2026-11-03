@@ -180,7 +180,7 @@ def _write_json(path, value, indent=None):
 
 def new_state():
     return {"start_height": None, "start_time": None, "last_height": None, "last_time": None, "blocks": 0,
-            "skipped_heights": [], "fresh_accounts": {}, "events": {name: 0 for name in SIGNALS[:3]}}
+            "skipped_heights": [], "fresh_accounts": {}, "events": {name: 0 for name in SIGNALS}}
 
 
 def load_state(path=STATE_PATH):
