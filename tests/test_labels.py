@@ -85,7 +85,8 @@ class CommittedStoreTest(unittest.TestCase):
     def test_catalog_count_is_the_snapshot_count(self):
         [snapshot] = RAW_DIR.glob("1click-tokens-*.json")
         assets = json.loads(snapshot.read_bytes())
-        self.assertEqual(self.store.counts()["category"]["catalog_token"], len(assets))
+        catalog = [a for a in self.store.assertions if a.category == "catalog_token" and a.provenance == "official_source"]
+        self.assertEqual(len(catalog), len(assets))
         bridged = {a["assetId"].rsplit(":", 1)[-1] for a in assets if a["assetId"].endswith(".omft.near")}
         catalog_bridges = [a for a in self.store.assertions if a.category == "bridge" and a.provenance == "official_source"]
         self.assertEqual(len(catalog_bridges), len(bridged))

@@ -28,7 +28,7 @@ A label or note repeats strings from its source (token symbols, page names, cont
 
 ## Categories
 
-`treasury`, `bridge`, `catalog_token`, `infrastructure`, `incident`, `denylist`, `watch`, `organisation`. `organisation` holds DAOs, validators and other named organisations read from on chain registries; it is not a lookalike reference, not a refusal category and not a trace terminal. The verdict service treats a current `denylist` or `incident` assertion on the receiver or the token as a signal and copies its id into the evidence. The subjects on chain `near` of current `catalog_token`, `bridge`, `treasury` and `infrastructure` assertions join the allowlist as the account ids a receiver is compared with for lookalikes; token symbols are never compared with a receiver.
+`treasury`, `bridge`, `catalog_token`, `infrastructure`, `incident`, `denylist`, `watch`, `organisation`. `organisation` holds DAOs, validators and other named organisations read from on chain registries; it is not a lookalike reference, not a refusal category and not a trace terminal. The verdict service treats a current `denylist` or `incident` assertion on the receiver or the token as a signal and copies its id into the evidence. The subjects on chain `near` of current `catalog_token`, `bridge`, `treasury` and `infrastructure` assertions join the allowlist as the account ids a receiver is compared with for lookalikes; token symbols are never compared with a receiver. A receiver that is itself the subject of such an assertion is compared with the allowlist only, never with the other labelled accounts: it is a labelled reference account, not a lookalike of one.
 
 ## Provenance classes and source shapes
 

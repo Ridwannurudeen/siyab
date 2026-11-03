@@ -73,7 +73,7 @@
     {
       "id": "lookalike",
       "status": "pass",
-      "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+      "detail": "zec.omft.near is itself a labelled reference account (assertion 38e8cd2adc1909e5c41e8358fa1313c729f68f4539b09c826430fab9cb6847fa, 2ab38db9712e6322db7ab2b714bf07c024ed17bb6a2b10bf0690d2f08dff4ded, 5d1508825a495b13088d67dedc3f53c8bf4f0676bd2ad22103c383ff29fef4d2, b5074f903cb6cdd1cb218810a37c27b701dda475457b6f0d52ede8c5bd09d403, da38379cf462153d06021fb513d5658dd277192230978f2295e826a61c2cdc90)",
       "source": {
         "provider": "allowlist and label store",
         "request_sha256": "7e09fcc1124230410d94ba1cc4e8f5eb1f27e29e550db38d38f52e8400959782",

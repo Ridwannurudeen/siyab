@@ -41,7 +41,8 @@ CONFUSABLES = (("rn", "m"), ("vv", "w"), ("0", "o"), ("1", "l"), ("i", "l"))
 NETWORK_SUFFIXES = (".near", ".testnet")
 DENY_CATEGORIES = ("denylist", "incident")
 # Labelled NEAR accounts a receiver is compared with, besides the allowlist. Token symbols are not
-# compared: a ticker is not a payee, and token identity is checked on token_id.
+# compared: a ticker is not a payee, and token identity is checked on token_id. A receiver that is
+# itself one of these accounts is compared with the allowlist only, never with the other labelled ones.
 REFERENCE_CATEGORIES = ("catalog_token", "bridge", "treasury", "infrastructure")
 CONTAINMENT_MIN_LENGTH = 4
 CONTAINMENT_AFFIX = re.compile(r"[a-z0-9]{1,4}")
@@ -211,12 +212,16 @@ def _references(policy, store, receiver):
     return references
 
 
-def _lookalike(policy, store, receiver):
-    """(the account the receiver imitates, the check detail, assertion ids) or None."""
+def _lookalike(policy, store, receiver, own):
+    """(the account the receiver imitates, the check detail, assertion ids) or None. A receiver with
+    its own reference assertions (own) is compared with the allowlist only."""
     for account in policy.get("allowlist", []):
         if contains_allowlisted(receiver, account):
             return account, f"contains the allowlisted name {account}", []
-    for account, ids in _references(policy, store, receiver).items():
+    references = _references(policy, store, receiver)
+    if own:
+        references = {account: ids for account, ids in references.items() if account in policy.get("allowlist", [])}
+    for account, ids in references.items():
         detail = lookalike_detail(receiver, account)
         if detail:
             return account, detail, ids
@@ -516,11 +521,15 @@ def _tier2(request, policy, store, account, account_source, rpc, nearblocks, now
             dust_check = evidence.check("dust_funded", "unknown", f"could not read the creation "
                                         f"transaction: {_why(error)}", _source(nearblocks))
 
-    hit = _lookalike(policy, store, receiver)
+    own = [a.id for a in _current(store, receiver) if a.category in REFERENCE_CATEGORIES]
+    hit = _lookalike(policy, store, receiver, own)
     source = _local("allowlist and label store", store.sha256)
     if hit:
         facts["lookalike"], detail, matched = hit
         lookalike_check = evidence.check("lookalike", "signal", detail, source)
+    elif own:
+        lookalike_check = evidence.check("lookalike", "pass", f"{receiver} is itself a labelled reference account "
+                                         f"(assertion {', '.join(own)})", source)
     else:
         lookalike_check = evidence.check("lookalike", "pass", "no allowlisted name contained and no allowlisted "
                                          "or labelled NEAR account within the length scaled distance after "
