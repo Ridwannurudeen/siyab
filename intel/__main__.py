@@ -26,7 +26,7 @@ import time
 from pathlib import Path
 
 from gate import rpc, rules
-from intel import api, cluster, feed, labels, render, seed, trace
+from intel import api, cluster, feed, issuers, labels, render, seed, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 RECEIVERS_DIR = ROOT / "fixtures" / "receivers"
@@ -239,7 +239,8 @@ def main(argv=None):
     seeding = commands.add_parser("seed", help="seed the label store from one source")
     seeding.add_argument("source", choices=seed.SOURCES)
     seeding.set_defaults(handler=_seed)
-    server = commands.add_parser("serve", help="serve the read only labels, incidents, evidence, flow and cluster API")
+    server = commands.add_parser("serve", help="serve the read only labels, incidents, evidence, flow, cluster and "
+                                 "issuers API")
     server.add_argument("--host", default="127.0.0.1")
     server.add_argument("--port", type=int, default=8787)
     server.add_argument("--site", help="a directory of static files to serve too, such as demo/site")
@@ -265,6 +266,10 @@ def main(argv=None):
                                      "as python -m intel.cluster", add_help=False, prefix_chars="+")
     clustering.add_argument("args", nargs=argparse.REMAINDER)
     clustering.set_defaults(handler=lambda args: cluster.main(args.args))
+    issuing = commands.add_parser("issuers", help="issuer status reads and the issuer action history, as python -m "
+                                  "intel.issuers", add_help=False, prefix_chars="+")
+    issuing.add_argument("args", nargs=argparse.REMAINDER)
+    issuing.set_defaults(handler=lambda args: issuers.main(args.args))
     rendering = commands.add_parser("render", help="write the static hosted pages from the committed files")
     rendering.add_argument("--out", required=True, help="the directory to write, such as demo/site")
     rendering.add_argument("--indexable", action="store_true", help="leave the robots noindex meta out")

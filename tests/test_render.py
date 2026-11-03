@@ -11,7 +11,7 @@ from pathlib import Path
 from unittest import mock
 
 from intel import __main__ as intel_main
-from intel import cluster, feed, labels, render, trace
+from intel import cluster, feed, issuers, labels, render, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "demo" / "site"
@@ -79,7 +79,8 @@ class RenderTest(unittest.TestCase):
         incidents = [p.stem for p in (ROOT / "intel" / "incidents").glob("*.json")]
         flows = [p.stem for p in (ROOT / "intel" / "flows").glob("*.json")]
         clusters = [p.stem for p in (ROOT / "intel" / "clusters").glob("*.json")]
-        expected = (["index.html", "feed.html", "verify.html", "404.html"] + [f"incidents/{i}.html" for i in incidents]
+        expected = (["index.html", "feed.html", "verify.html", "404.html", "issuers.html"]
+                    + [f"incidents/{i}.html" for i in incidents]
                     + [f"entities/{name}.html" for name, _, _ in render.ENTITY_SETS] + [f"flows/{f}.html" for f in flows]
                     + [f"clusters/{c}.html" for c in clusters])
         self.assertEqual(sorted(self.written), sorted(expected))
@@ -260,6 +261,56 @@ class RenderTest(unittest.TestCase):
                 self.assertIn(f"{depositors['count']} distinct depositors of", page)
                 self.assertIn(f"{depositors['implicit_count']} of them implicit accounts", page)
                 self.assertIn(f'href="clusters/{path.stem}.html"', self.pages["index.html"])
+
+    def test_the_issuer_page_lists_every_action_with_its_block(self):
+        page = self.pages["issuers.html"]
+        status = labels.load(issuers.STATUS_PATH).assertions
+        history = labels.load(issuers.HISTORY_PATH).assertions
+        self.assertTrue(status and history)
+        status_part = page[page.index("<h2>Banned by the issuer</h2>"):page.index("<h2>Issuer action history</h2>")]
+        history_part = page[page.index("<h2>Issuer action history</h2>"):]
+        for row in status:
+            with self.subTest(status=row.id):
+                card = status_part[status_part.index(f'<p class="mono">{html.escape(row.subject)}</p>'):]
+                card = card[:card.index("</div>")]
+                self.assertIn(render.data_text(row.label), card)
+                self.assertIn(f"at block {row.source['block']}", card)
+                self.assertIn(f"row {row.id}", card)
+        for row in history:
+            with self.subTest(history=row.id):
+                card = history_part[history_part.index(f"row {row.id}") - 400:history_part.index(f"row {row.id}")]
+                transaction = row.source["args"]["tx_hashes"][0]
+                self.assertIn(f"block {row.source['block']}<br>transaction {transaction}", card)
+                self.assertIn(render.data_text(row.label), history_part)
+                self.assertIn(render.data_text(row.note), history_part)
+        coverage = issuers.history_coverage()
+        actions = coverage["actions"]
+        self.assertEqual(coverage["transactions"], coverage["txs_count"])
+        self.assertIn(f"All {coverage['transactions']} function call transactions the Transactions API lists for "
+                      f'<q class="data">{html.escape(issuers._owner(issuers.FIXTURE_DIR))}</q>', history_part)
+        self.assertIn(f"as receiver, transaction blocks {coverage['tx_block_min']} to {coverage['tx_block_max']}, were "
+                      f"read; their receipts carried {sum(actions.values())} successful issuer actions on "
+                      f"usdt.tether-token.near: {actions['add_to_blacklist']} add_to_blacklist and "
+                      f"{actions['destroy_black_funds']} destroy_black_funds, no remove_from_blacklist.", history_part)
+        observations = issuers._account_observations(issuers.FIXTURE_DIR)
+        named = {row.subject for row in history}
+        missing = [subject for subject in named if not observations[subject]["exists"]]
+        self.assertIn(f"{len(missing)} of the {len(named)} account id strings do not exist on chain at block "
+                      f"{observations[missing[0]]['block']}.", history_part)
+        reads = issuers.reads()
+        self.assertIn(f"{len(reads)} status reads over {len({read['subject'] for read in reads})} account ids",
+                      page[:page.index("<h2>Banned by the issuer</h2>")])
+        own = own_text(page)
+        for words in ("every action", "ever took", "frozen", "blocked"):
+            self.assertNotIn(words, own.lower())
+        self.assertIsNone(re.search(r"\bUSD\b|\$", own))
+        self.assertIn('href="issuers.html"', self.pages["index.html"])
+
+    def test_the_issuers_command_hands_every_argument_to_the_module_main(self):
+        with mock.patch.object(issuers, "main", return_value=1) as module_main:
+            self.assertEqual(intel_main.main(["issuers", "rows"]), 1)
+            self.assertEqual(intel_main.main(["issuers", "--help"]), 1)
+        self.assertEqual(module_main.call_args_list, [mock.call(["rows"]), mock.call(["--help"])])
 
     def test_the_cluster_command_hands_every_argument_to_the_module_main(self):
         with mock.patch.object(cluster, "main", return_value=2) as module_main:

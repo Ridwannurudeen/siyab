@@ -13,6 +13,8 @@ Routes (GET only; no route writes anything and no route opens the network):
                           subject that carries no incident label, 404 when no trace was written
     /cluster/<subject>    the cluster file under intel/clusters/ whose seeds hold the subject; 403
                           for a subject that carries no incident label, 404 when no cluster holds it
+    /issuers              the issuer status rows and history rows of intel/issuers/, the number of
+                          status reads and of the account ids they cover, and the history coverage
     anything else         a static file under --site when one is given; a path whose last segment
                           ends in .html is never an API route, so /incidents/<id>.html is the page
                           and /incidents/<id> the JSON; a path that is neither answers 404 with the
@@ -30,7 +32,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from gate import incident
-from intel import labels, trace
+from intel import issuers, labels, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 EVIDENCE_DIRS = (ROOT / "fixtures" / "evidence", ROOT / "intel" / "feed" / "events")
@@ -106,6 +108,14 @@ def _cluster(store, subject):
     return 404, {"error": f"no cluster for {subject}"}
 
 
+def _issuers():
+    reads = issuers.reads()
+    return 200, {"status": [dataclasses.asdict(a) for a in labels.load(issuers.STATUS_PATH).assertions],
+                 "history": [dataclasses.asdict(a) for a in labels.load(issuers.HISTORY_PATH).assertions],
+                 "status_reads": len(reads), "status_read_subjects": len({read["subject"] for read in reads}),
+                 "history_coverage": issuers.history_coverage()}
+
+
 def route(path, store):
     """(status, JSON body) for an API path, or None when the path is not an API route."""
     parts = [urllib.parse.unquote(part) for part in urllib.parse.urlsplit(path).path.split("/")[1:]]
@@ -115,6 +125,8 @@ def route(path, store):
         return 200, {"status": "ok", "assertions": len(store.assertions), "label_store_sha256": store.sha256}
     if parts == ["feed"]:
         return _feed()
+    if parts == ["issuers"]:
+        return _issuers()
     if len(parts) == 2 and parts[1]:
         name, value = parts
         if name == "labels":

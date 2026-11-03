@@ -9,7 +9,9 @@ each subject shown as quoted data, since a third party chose the account id, and
 under the heading "Attribution hypothesis" with its rule id, inputs and confidence),
 clusters/<name>.html (the seeds, one card per edge: the two chain reads of an onchain edge, the
 input facts and confidence of an inferred edge under "Attribution hypothesis", then the precision
-lines as the JSON states them and the depositor count), flows/<name>.html (an exit trace: the
+lines as the JSON states them and the depositor count), issuers.html (the status reads counted by
+issuer and answer, one card per row banned by the issuer, then the history's coverage and one card
+per issuer action with its block and transaction), flows/<name>.html (an exit trace: the
 summary line, the shares of the subject's gross outbound
 transfer value, the subject's balance and issuer status at a block, then one card per hop grouped
 by depth), verify.html (a form that reads a registry record from https://test.rpc.fastnear.com in the
@@ -29,7 +31,7 @@ import json
 import re
 from pathlib import Path
 
-from intel import cluster, feed, labels, trace
+from intel import cluster, feed, issuers, labels, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 INCIDENTS_DIR = Path(__file__).resolve().parent / "incidents"
@@ -37,6 +39,8 @@ TESTNET_RPC = "https://test.rpc.fastnear.com"
 # The record the verify page offers as its example: a latest view of the testnet registry.
 VERIFY_RECORD = ROOT / "fixtures" / "registry" / "testnet-vendor.json"
 EVIDENCE_DIR = ROOT / "fixtures" / "evidence"
+# The token whose issuer actions intel/issuers.py reads from the owner's transactions.
+HISTORY_TOKEN = "usdt.tether-token.near"
 HEADLINE = "ShieldBot for NEAR: security intelligence for AI agent money on NEAR"
 COUNTS_OF = ("The counts below are of the recorded mainnet receivers the rules judged, the label store's assertions "
              "and subjects by provenance class, the incident pages, the blocks and events of the feed, the exit "
@@ -141,6 +145,8 @@ def index_page(incidents, flows, clusters):
     links += [f'<li><a href="clusters/{esc(name)}.html">Account relationship edges over the {len(c["seeds"])} seeds '
               f'of {esc(name)}: {len(c["edges"]) - len(_inferred(c["edges"]))} from chain reads, '
               f'{len(_inferred(c["edges"]))} attribution hypotheses</a></li>' for name, c in clusters]
+    links.append("<li><a href=\"issuers.html\">Issuer actions: what the issuer contracts answer for the account ids "
+                 "read, and the issuer action history with its blocks and transactions</a></li>")
     links.append("<li><a href=\"verify.html\">Read a registry record and compare its evidence hash</a></li>")
     body = (f"<h1>{esc(HEADLINE)}</h1>\n<p>{esc(COUNTS_OF)}</p>\n<h2>Counts</h2>\n<div class=\"card\">{counts}</div>\n"
             "<p class=\"muted\">Every number above is printed by <code>scripts/counts.py</code> from the committed "
@@ -332,6 +338,67 @@ def flow_page(document):
     return page("Exit trace", body, depth=1)
 
 
+def _status_reads(reads):
+    """The status reads counted by issuer view and answer, as one sentence."""
+    answers = {}
+    for read in reads:
+        view = answers.setdefault((read["issuer"], read["method"]), {})
+        answer = json.dumps(read["answer"], ensure_ascii=False)
+        view[answer] = view.get(answer, 0) + 1
+    views = "; ".join(f"{issuer} {method} answered "
+                      + " and ".join(f"{answer} {count} times" for answer, count in counts.items())
+                      for (issuer, method), counts in answers.items())
+    blocks = [read["block"] for read in reads]
+    times = [read["observed_at"] for read in reads]
+    categories = ", ".join(issuers.STATUS_CATEGORIES[:-1]) + " and " + issuers.STATUS_CATEGORIES[-1]
+    return (f"{len(reads)} status reads over {len({read['subject'] for read in reads})} account ids: the NEAR "
+            f"subjects of the label store in the {categories} categories and the recorded "
+            f"receiver set, each read on {len(answers)} issuer views at blocks {min(blocks)} to {max(blocks)}, from "
+            f"{min(times)} to {max(times)}: {views}.")
+
+
+def _history_coverage(history):
+    """The history's coverage in the words its review allows: what the Transactions API lists, the block
+    range, the actions found, and how many named account id strings do not exist on chain."""
+    coverage = issuers.history_coverage()
+    owner = issuers._owner(issuers.FIXTURE_DIR)
+    observations = issuers._account_observations(issuers.FIXTURE_DIR)
+    named = list(dict.fromkeys(row.subject for row in history))
+    missing = [subject for subject in named if not observations[subject]["exists"]]
+    blocks = sorted({observations[subject]["block"] for subject in missing})
+    read = (f"All {coverage['transactions']}" if coverage["transactions"] == coverage["txs_count"]
+            else f"{coverage['transactions']} of the {coverage['txs_count']}")
+    found = [f"{count} {method}" for method, count in coverage["actions"].items() if count]
+    absent = "".join(f", no {method}" for method, count in coverage["actions"].items() if not count)
+    at = f" at block{'s' if len(blocks) > 1 else ''} {', '.join(str(block) for block in blocks)}" if blocks else ""
+    return (f"{read} function call transactions the Transactions API lists for {json.dumps(owner)} (the account "
+            f"the owner view of {HISTORY_TOKEN} answers) as receiver, transaction blocks {coverage['tx_block_min']} "
+            f"to {coverage['tx_block_max']}, were read; their receipts carried {sum(coverage['actions'].values())} "
+            f"successful issuer actions on {HISTORY_TOKEN}: {' and '.join(found)}{absent}. {len(missing)} of the "
+            f"{len(named)} account id strings do not exist on chain{at}.")
+
+
+def issuers_page():
+    status = labels.load(issuers.STATUS_PATH).assertions
+    history = labels.load(issuers.HISTORY_PATH).assertions
+    status_cards = "".join(
+        f'<div class="card"><p class="mono">{esc(row.subject)}</p><p>{data_text(row.label)}</p><p class="mono muted">'
+        f'{esc(row.source["method"])} {esc(json.dumps(row.source["args"], ensure_ascii=False))} at block '
+        f'{row.source["block"]} from {esc(row.source["rpc"])}<br>observed {esc(row.observed_at)}<br>row {esc(row.id)}'
+        "</p></div>" for row in status)
+    history_cards = "".join(
+        f'<div class="card"><p class="mono">{esc(row.subject)}</p><p>{data_text(row.label)}</p><p>{data_text(row.note)}'
+        f'</p><p class="mono muted">block {row.source["block"]}<br>transaction {esc(row.source["args"]["tx_hashes"][0])}'
+        f'<br>observed {esc(row.observed_at)}<br>row {esc(row.id)}</p></div>' for row in history)
+    body = ("<h1>Issuer actions</h1><h2>Status reads</h2>"
+            f"<p>{data_text(_status_reads(issuers.reads()))}</p>"
+            f"<h2>Banned by the issuer</h2><p>{len(status)} account ids read as banned by their issuer, one row each in "
+            f"<code>intel/issuers/status.jsonl</code>; a status read is a view call, so no transaction.</p>{status_cards}"
+            f"<h2>Issuer action history</h2><p>{data_text(_history_coverage(history))}</p><p>{len(history)} rows in "
+            f"<code>intel/issuers/history.jsonl</code>, one per action, newest block first.</p>{history_cards}")
+    return page("Issuer actions", body)
+
+
 VERIFY_SCRIPT = """
 document.getElementById("read").addEventListener("click", async function () {
   var out = document.getElementById("out");
@@ -403,7 +470,7 @@ def render(out_dir, store=None, incidents_dir=INCIDENTS_DIR, flows_dir=trace.FLO
     out = Path(out_dir)
     incidents, flows, clusters = _incidents(incidents_dir), _flows(flows_dir), _clusters(clusters_dir)
     pages = {"index.html": index_page(incidents, flows, clusters), "feed.html": feed_page(),
-             "verify.html": verify_page(), "404.html": not_found_page()}
+             "verify.html": verify_page(), "404.html": not_found_page(), "issuers.html": issuers_page()}
     for document in incidents:
         pages[f"incidents/{document['id']}.html"] = incident_page(document)
     for name, title, categories in ENTITY_SETS:

@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from intel import api, labels, render
+from intel import api, issuers, labels, render
 
 ROOT = Path(__file__).resolve().parent.parent
 EVIDENCE = min((ROOT / "fixtures" / "evidence").glob("*.json"))
@@ -150,6 +150,19 @@ class ApiTest(unittest.TestCase):
         subject = self.incident_subject()
         with tempfile.TemporaryDirectory() as tmp, mock.patch.object(api, "CLUSTERS_DIR", Path(tmp)):
             self.assertEqual(self.get_json(f"/cluster/{subject}"), (404, {"error": f"no cluster for {subject}"}))
+
+    def test_the_api_serves_the_issuer_rows(self):
+        status, body = self.get_json("/issuers")
+        self.assertEqual(status, 200)
+        for key, path in (("status", issuers.STATUS_PATH), ("history", issuers.HISTORY_PATH)):
+            with self.subTest(rows=key):
+                rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+                self.assertTrue(rows)
+                self.assertEqual(body[key], rows)
+        reads = issuers.reads()
+        self.assertEqual((body["status_reads"], body["status_read_subjects"]),
+                         (len(reads), len({read["subject"] for read in reads})))
+        self.assertEqual(body["history_coverage"], issuers.history_coverage())
 
     def test_static_files_stay_under_the_site(self):
         status, content_type, cache, body = self.request("/")
