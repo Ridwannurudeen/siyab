@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from intel import labels
+from intel import labels, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 FORMATS = (
@@ -16,7 +16,7 @@ FORMATS = (
     r"Incidents: \d+ pages\.",
     (r"Feed: (not run|since \d{4}-\d{2}-\d{2}, \d+ blocks, \d+ events \(\d+ code_hash_matches_incident, \d+ "
      r"fresh_dust_funded_pays_labelled, \d+ watch_account_key_added\))\."),
-    r"Flows: \d+ exit traces, \d+ hops\.",
+    r"Flows: \d+ exit traces, \d+ hops, depth \d+ of \d+, (complete|stopped while reading (the subject|an account \d+ hops? from the subject))\.",
     r"Latency: (not measured|p50 \d+ ms, p95 \d+ ms over \d+ verdict runs)\.",
 )
 
@@ -65,10 +65,12 @@ class CountsTest(unittest.TestCase):
                                                   f"{sum(state['events'].values())} events ({signals}).")
         traces = [json.loads(p.read_text(encoding="utf-8")) for p in (ROOT / "intel" / "flows").glob("*.json")]
         self.assertTrue(traces)
+        least = min(traces, key=lambda t: (t["depth_reached"], t["completeness"] == "complete"))
         self.assertEqual(self.counts.flows_line(),
-                         f"Flows: {len(traces)} exit traces, {sum(len(t['hops']) for t in traces)} hops.")
+                         f"Flows: {len(traces)} exit traces, {sum(len(t['hops']) for t in traces)} hops, depth "
+                         f"{least['depth_reached']} of {least['depth']}, {trace.stop_state(least['completeness'])}.")
         with tempfile.TemporaryDirectory() as tmp:
-            self.assertEqual(self.counts.flows_line(Path(tmp)), "Flows: 0 exit traces, 0 hops.")
+            self.assertEqual(self.counts.flows_line(Path(tmp)), "Flows: 0 exit traces, 0 hops, depth 0 of 0, complete.")
 
     def test_the_feed_line_reads_not_run_without_a_state_file(self):
         with tempfile.TemporaryDirectory() as tmp:

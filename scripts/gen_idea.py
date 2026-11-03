@@ -65,8 +65,10 @@ COUNT_PROSE = (
                 f"{_count(m['c'], 'event')}.")),
     (re.compile(r"Feed: not run\."),
      lambda m: "The block feed has not run."),
-    (re.compile(r"Flows: (?P<t>\d+) exit traces, (?P<h>\d+) hops\."),
-     lambda m: f"The flow trace holds {_count(m['t'], 'exit trace')} over {_count(m['h'], 'hop')}."),
+    (re.compile(r"Flows: (?P<t>\d+) exit traces, (?P<h>\d+) hops, depth (?P<d>\d+) of (?P<b>\d+), "
+                r"(?P<s>complete|stopped while reading (?:the subject|an account \d+ hops? from the subject))\."),
+     lambda m: (f"The flow trace holds {_count(m['t'], 'exit trace')} over {_count(m['h'], 'hop')}, depth {m['d']} of "
+                f"{m['b']}, {m['s']}.")),
     (re.compile(r"Latency: p50 (?P<p50>\d+) ms, p95 (?P<p95>\d+) ms over (?P<r>\d+) verdict runs\."),
      lambda m: f"Verdict latency: p50 {m['p50']} ms, p95 {m['p95']} ms over {_count(m['r'], 'recorded run')}."),
     (re.compile(r"Latency: not measured\."),

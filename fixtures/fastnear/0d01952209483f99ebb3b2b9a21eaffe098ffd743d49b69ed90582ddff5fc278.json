@@ -1,0 +1,61 @@
+{
+  "request": {
+    "method": "POST",
+    "params": {
+      "body_sha256": "9a9502e1e45d40a881f8cc12bbf9729b9da4802f8166fd6dc17323c4f515c045"
+    }
+  },
+  "response": {
+    "transfers": [
+      {
+        "block_height": "194076534",
+        "block_timestamp": "1776237260517534975",
+        "transaction_id": "Rq3UBU4FzArRkkuoeTKduu8uAxVCh8wwTUZZyNnoaLt",
+        "receipt_id": "AWqxyPvjkmTKE6Rw8pc7gtxg3EYBPUAwE4YMmNAP2CgX",
+        "action_index": null,
+        "log_index": 5,
+        "transfer_index": 170002,
+        "signer_id": "intents.near",
+        "predecessor_id": "intents.near",
+        "receipt_account_id": "intents.near",
+        "account_id": "bc8d04fb952de336534de7d9d96d37fdb8e8557b249e1c0d132afe679231af7e",
+        "other_account_id": "solver-multichain-asset-escrow.near",
+        "asset_id": "nep245:intents.near:nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+        "asset_type": "Mt",
+        "amount": "-1689",
+        "method_name": "execute_intents",
+        "transfer_type": "MtTransfer",
+        "human_amount": -0.001689,
+        "usd_amount": -0.0016886841569999998,
+        "start_of_block_balance": "95000000000",
+        "end_of_block_balance": "0"
+      },
+      {
+        "block_height": "194076534",
+        "block_timestamp": "1776237260517534975",
+        "transaction_id": "Rq3UBU4FzArRkkuoeTKduu8uAxVCh8wwTUZZyNnoaLt",
+        "receipt_id": "AWqxyPvjkmTKE6Rw8pc7gtxg3EYBPUAwE4YMmNAP2CgX",
+        "action_index": null,
+        "log_index": 5,
+        "transfer_index": 170003,
+        "signer_id": "intents.near",
+        "predecessor_id": "intents.near",
+        "receipt_account_id": "intents.near",
+        "account_id": "bc8d04fb952de336534de7d9d96d37fdb8e8557b249e1c0d132afe679231af7e",
+        "other_account_id": "7066024d3f20f94de601c003163367873cca78507eeca4df66d9be645f197f05",
+        "asset_id": "nep245:intents.near:nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+        "asset_type": "Mt",
+        "amount": "-1",
+        "method_name": "execute_intents",
+        "transfer_type": "MtTransfer",
+        "human_amount": -1e-06,
+        "usd_amount": -9.998129999999999e-07,
+        "start_of_block_balance": "95000000000",
+        "end_of_block_balance": "0"
+      }
+    ],
+    "resume_token": null
+  },
+  "url": "https://transfers.main.fastnear.com/v0/transfers",
+  "fetched_at": "2026-11-03T08:02:54Z"
+}

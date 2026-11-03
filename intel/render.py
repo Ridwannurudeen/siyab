@@ -4,10 +4,11 @@ No framework and no external script; one stylesheet inline in each page. The pag
 (the headline, the counts block of scripts/counts.py, the links), feed.html (the feed state and
 its events), incidents/<id>.html (sources, accounts, on chain facts, rules today, what is not
 public), entities/<set>.html (treasuries, catalog, infrastructure: one page per seed set),
-flows/<name>.html (an exit trace, one hop per card) and verify.html (a form that reads a registry
-record from https://test.rpc.fastnear.com in the browser, never the ShieldBot API, and shows it
-next to the evidence hash the reader pastes). Every page carries a robots noindex meta and the
-footer "Data: NearBlocks".
+flows/<name>.html (an exit trace: the summary line, the shares of the subject's gross outbound
+transfer value, the subject's balance and issuer status at a block, then one card per hop grouped
+by depth) and verify.html (a form that reads a registry record from https://test.rpc.fastnear.com in the
+browser, never the ShieldBot API, and shows it next to the evidence hash the reader pastes). Every
+page carries a robots noindex meta and the footer "Data: NearBlocks".
 
 Text from a source (a report's sentence, a token symbol, a quoted string in a label row) is shown
 as quoted data: a quote object as <blockquote class="data">, a double quoted string inside a label
@@ -110,8 +111,9 @@ def index_page(incidents, flows):
     links += [f'<li><a href="incidents/{esc(d["id"])}.html">{esc(d["title"])} ({esc(d["date"])})</a></li>'
               for d in incidents]
     links += [f'<li><a href="entities/{name}.html">{esc(title)}</a></li>' for name, title, _ in ENTITY_SETS]
-    links += [f'<li><a href="flows/{esc(name)}.html">Exit trace from <span class="mono">{esc(f["subject"])}</span></a></li>'
-              for name, f in flows]
+    links += [f'<li><a href="flows/{esc(name)}.html">Exit trace from <span class="mono">{esc(f["subject"])}</span>: '
+              f'depth {f["depth_reached"]} of {f["depth"]}, {esc(trace.stop_state(f["completeness"]))}, with the shares '
+              'of its gross outbound transfer value</a></li>' for name, f in flows]
     links.append("<li><a href=\"verify.html\">Read a registry record and compare its evidence hash</a></li>")
     body = (f"<h1>{esc(HEADLINE)}</h1>\n<h2>Counts</h2>\n<div class=\"card\">{counts}</div>\n"
             "<p class=\"muted\">Every number above is printed by <code>scripts/counts.py</code> from the committed "
@@ -189,16 +191,60 @@ def entity_page(title, categories, store):
                 depth=1)
 
 
+def _hop_card(hop):
+    usd = "" if hop["usd_amount"] is None else f', {hop["usd_amount"]} USD as the Transfers API values it'
+    return (f'<div class="card"><p class="mono">{esc(hop["from"])} to {esc(hop["to"])}</p><p>{esc(hop["amount"])} of '
+            f'<span class="mono">{esc(hop["asset_id"])}</span>{esc(usd)}, method {esc(hop["method_name"] or "none")}</p>'
+            f'<p class="mono muted">block {hop["block"]} at {esc(trace.utc_minute(hop["block_timestamp"]))}<br>transaction '
+            f'{esc(hop["transaction_hash"])}<br>receipt {esc(hop["receipt_id"])}</p></div>')
+
+
+def _shares_table(shares):
+    rows = "".join(f'<tr><td class="mono">{esc(b["to"])}</td><td>{esc(b["kind"])}</td><td>{esc(trace.usd_text(b["usd"]))}</td>'
+                   f'<td>{b["count"]}</td><td>{b["percent"]}</td></tr>' for b in shares["buckets"])
+    below, without = shares["below_min_usd"], shares["without_usd"]
+    units = ", ".join(f"{amount} of {asset}" for asset, amount in without["base_units"].items()) or "none"
+    rows += (f'<tr><td>rows below {shares["min_usd"]} USD, counted apart</td><td></td><td>{esc(trace.usd_text(below["usd"]))}</td>'
+             f'<td>{below["count"]}</td><td></td></tr><tr><td>rows without a USD amount, counted apart</td><td></td>'
+             f'<td>{esc(units)} (base units)</td><td>{without["count"]}</td><td></td></tr>')
+    return ("<div class=\"table\"><table><thead><tr><th>To</th><th>Kind</th><th>USD</th><th>Rows</th><th>Percent</th>"
+            f"</tr></thead><tbody>{rows}</tbody></table></div>")
+
+
+def _state_card(reads):
+    lines = []
+    for read in reads:
+        answer = json.dumps(read["result"], ensure_ascii=False)
+        if read["method"] == "ft_balance_of":
+            said = f"balance {trace.human(read['result'], read['decimals'])} ({read['decimals']} decimals)"
+        elif read["banned"]:
+            said = f"banned by the issuer, {read['method']} answers {answer}"
+        else:
+            said = f"{read['method']} answers {answer}"
+        lines.append(f'<p><span class="mono">{esc(read["token"])}</span> {esc(read["method"])} at block '
+                     f'{read["block"]}: {data_text(said)}</p><p class="mono muted">result sha256 '
+                     f'{esc(read["result_sha256"])}</p>')
+    return '<div class="card state">' + ("".join(lines) or "<p>No issuer read.</p>") + "</div>"
+
+
 def flow_page(document):
-    cards = "".join(
-        f'<div class="card"><p class="mono">{esc(h["from"])} to {esc(h["to"])}</p><p>{esc(h["amount"])} of '
-        f'<span class="mono">{esc(h["asset_id"])}</span>, method {esc(h["method_name"] or "none")}</p>'
-        f'<p class="mono muted">block {h["block"]}<br>transaction {esc(h["transaction_hash"])}<br>receipt '
-        f'{esc(h["receipt_id"])}</p></div>' for h in document["hops"])
-    body = (f'<h1>Exit trace</h1><p class="mono">{esc(document["subject"])}</p><p>{esc(trace.summary(document))}; read '
-            f'{esc(document["fetched_at"])}.</p>'
+    depths = trace.hop_depths(document)
+    groups = []
+    for depth in sorted(set(depths)):
+        hops = [hop for hop, d in zip(document["hops"], depths) if d == depth]
+        groups.append(f"<h2>Depth {depth}: {len(hops)} hops</h2>" + "".join(_hop_card(hop) for hop in hops))
+    window = document["window"]
+    body = (f'<h1>Exit trace</h1><p class="mono">{esc(document["subject"])}</p>'
+            f'<div class="card summary"><p>{data_text(trace.summary(document))}</p><p class="muted">Read '
+            f'{esc(document["fetched_at"])}.</p></div>'
+            f"<p>The window starts at {esc(window['from'])}, {esc(window['rule'])} {esc(window['incident_date'])}; "
+            "older outbound rows are outside it.</p>"
+            "<h2>Shares of the gross outbound transfer value</h2>" + _shares_table(document["shares"]) +
+            "<p>Shares are of the subject's gross outbound transfer value; deeper hops are shown and not re summed.</p>"
+            f"<p>{esc(trace.gross_sentence(document))}</p>"
+            "<h2>The subject at a block</h2>" + _state_card(document["state_at_block"]) +
             "<p class=\"muted\">Only an account that carries an incident label is traced. Each card is one transfer "
-            "read from the FastNEAR Transfers API.</p>" + cards)
+            "read from the FastNEAR Transfers API.</p>" + "".join(groups))
     return page("Exit trace", body, depth=1)
 
 

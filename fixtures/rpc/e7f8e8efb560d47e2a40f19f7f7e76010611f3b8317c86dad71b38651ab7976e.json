@@ -1,0 +1,40 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "call_function",
+      "finality": "final",
+      "account_id": "usdt.tether-token.near",
+      "method_name": "ft_balance_of",
+      "args_base64": "eyJhY2NvdW50X2lkIjoiMzFhYzdhMjcwNWEwNjg2ZmY0MjdiMWE1MmQzZmZkMWZjZmFhNGIxZjNjYjNlODNhMGY3Njc0OTRlNzI0YTU0MCJ9"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "EuAyMLB42LnX8tRdZyfzginSzJFdUxfB6i8qGdPy13Ht",
+      "block_height": 222838799,
+      "logs": [],
+      "result": [
+        34,
+        51,
+        50,
+        57,
+        49,
+        57,
+        52,
+        54,
+        53,
+        52,
+        55,
+        52,
+        54,
+        48,
+        34
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-03T07:30:36Z"
+}
