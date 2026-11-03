@@ -65,6 +65,7 @@ STATE_PATH = FEED_DIR / "state.json"
 EVENTS_DIR = FEED_DIR / "events"
 EVENT_BLOCKS_DIR = FEED_DIR / "event-blocks"
 INCIDENTS_DIR = Path(__file__).resolve().parent / "incidents"
+SNAPSHOT_PATH = Path(__file__).resolve().parent / "feed" / "follow-snapshot.json"
 SIGNALS = ("code_hash_matches_incident", "fresh_dust_funded_pays_labelled", "watch_account_key_added")
 WATCH_CATEGORIES = ("infrastructure", "treasury", "watch")
 FRESH_WINDOW_MS = 24 * 60 * 60 * 1000
@@ -373,6 +374,10 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
 
 def stats_lines(state):
     """The feed-stats output: the start date, the block count and the event count per signal."""
+    if state.get("mode") == "follow":
+        return [f"following since {state['started_at']}",
+                f"last block {state['last_height']} at {state['last_time']}",
+                f"lag {state['lag_blocks']} blocks"] + [f"{name} {count}" for name, count in state["events"].items()]
     lines = [f"start {state['start_time']} at block {state['start_height']}",
              f"last {state['last_time']} at block {state['last_height']}",
              f"blocks {state['blocks']}, skipped heights {len(state['skipped_heights'])}"]

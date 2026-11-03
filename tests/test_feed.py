@@ -343,6 +343,44 @@ class FollowModeTest(unittest.TestCase):
             self.assertEqual(body["stats"]["mode"], "follow")
             self.assertNotIn("fresh_accounts", body["stats"])
 
+    def test_the_snapshot_never_changes_the_recorded_window_state(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "source"
+            (source / "events").mkdir(parents=True)
+            (source / "event-blocks").mkdir()
+            recorded_state = feed.load_state()
+            feed._write_json(source / "state.json", recorded_state, indent=2)
+            before = (source / "state.json").read_bytes()
+            destination = root / "follow-snapshot.json"
+            intel_main.write_feed_snapshot(source, destination)
+            self.assertEqual((source / "state.json").read_bytes(), before)
+            self.assertNotIn("fresh_accounts", json.loads(destination.read_text(encoding="utf-8")))
+
+    def test_the_feed_snapshot_command_writes_the_snapshot_from_a_state_dir(self):
+        synthetic = json.loads((BLOCKS / "synthetic-code-hash.json").read_text(encoding="utf-8"))
+        fake = FakeFetcher({9: raw_block(9, [])}, 9)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "follower"
+            with mock.patch("intel.feed.reduce_block", return_value=synthetic):
+                feed.follow(fetcher=fake.inner, state_path=state_dir / "state.json", events_dir=state_dir / "events",
+                            event_blocks_dir=state_dir / "event-blocks", max_blocks=1, sleep=lambda _: None)
+            destination = root / "follow-snapshot.json"
+            output = io.StringIO()
+            with mock.patch.object(feed, "SNAPSHOT_PATH", destination), contextlib.redirect_stdout(output):
+                code = intel_main.main(["feed-snapshot", "--from", str(state_dir)])
+            self.assertEqual(code, 0)
+            self.assertEqual(output.getvalue(), "snapshot written with 1 events and 1 event blocks\n")
+            state = json.loads((state_dir / "state.json").read_text(encoding="utf-8"))
+            event = json.loads(next((state_dir / "events").glob("*.json")).read_text(encoding="utf-8"))
+            snapshot = json.loads(destination.read_text(encoding="utf-8"))
+        self.assertEqual(snapshot.pop("event_documents"), [event])
+        self.assertEqual(snapshot.pop("event_blocks"), {"9.json": synthetic})
+        del state["fresh_accounts"]
+        self.assertEqual(snapshot, state)
+        self.assertEqual(snapshot["mode"], "follow")
+
 
 if __name__ == "__main__":
     unittest.main()

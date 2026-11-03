@@ -15,7 +15,9 @@ FORMATS = (
      r"inferred \d+\)\."),
     r"Incidents: \d+ pages\.",
     (r"Feed: (not run|since \d{4}-\d{2}-\d{2}, \d+ blocks, \d+ events \(\d+ code_hash_matches_incident, \d+ "
-     r"fresh_dust_funded_pays_labelled, \d+ watch_account_key_added\))\."),
+     r"fresh_dust_funded_pays_labelled, \d+ watch_account_key_added\)|following since \d{4}-\d{2}-\d{2}, \d+ "
+     r"blocks, \d+ events \(\d+ code_hash_matches_incident, \d+ fresh_dust_funded_pays_labelled, "
+     r"\d+ watch_account_key_added\))\."),
     r"Flows: \d+ exit traces, \d+ hops, depth \d+ of \d+, (complete|stopped while reading (the subject|an account \d+ hops? from the subject))\.",
     r"Latency: (not measured|p50 \d+ ms, p95 \d+ ms over \d+ verdict runs)\.",
 )
@@ -75,6 +77,18 @@ class CountsTest(unittest.TestCase):
     def test_the_feed_line_reads_not_run_without_a_state_file(self):
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(self.counts.feed_line(Path(tmp) / "state.json"), "Feed: not run.")
+
+    def test_the_counts_line_says_following_when_the_snapshot_says_so(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "snapshot.json"
+            path.write_text(json.dumps({"mode": "follow", "started_at": "2026-11-03T00:00:00Z", "blocks": 20,
+                                        "events": {"code_hash_matches_incident": 1,
+                                                   "fresh_dust_funded_pays_labelled": 2,
+                                                   "watch_account_key_added": 3}}), encoding="utf-8")
+            self.counts.FEED_SNAPSHOT = path
+            self.assertEqual(self.counts.feed_line(), "Feed: following since 2026-11-03, 20 blocks, 6 events "
+                                                       "(1 code_hash_matches_incident, 2 "
+                                                       "fresh_dust_funded_pays_labelled, 3 watch_account_key_added).")
 
     def test_latency_is_not_measured_without_files_and_nearest_rank_with_them(self):
         with tempfile.TemporaryDirectory() as tmp:

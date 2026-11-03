@@ -232,6 +232,25 @@ def _feed(args):
     return 0
 
 
+def write_feed_snapshot(source, destination):
+    source = Path(source)
+    state = json.loads((source / "state.json").read_text(encoding="utf-8"))
+    state.pop("fresh_accounts", None)
+    events = [json.loads(path.read_text(encoding="utf-8")) for path in sorted((source / "events").glob("*.json"))]
+    blocks = {path.name: json.loads(path.read_text(encoding="utf-8"))
+              for path in sorted((source / "event-blocks").glob("*.json"))}
+    state["event_documents"] = events
+    state["event_blocks"] = blocks
+    feed._write_json(Path(destination), state, indent=2)
+    return len(events), len(blocks)
+
+
+def _feed_snapshot(args):
+    events, blocks = write_feed_snapshot(args.source, feed.SNAPSHOT_PATH)
+    print(f"snapshot written with {events} events and {blocks} event blocks")
+    return 0
+
+
 def _feed_stats(args):
     for line in feed.stats_lines(feed.load_state()):
         print(line)
@@ -274,6 +293,9 @@ def main(argv=None):
     feeding.add_argument("--max-blocks", type=int, help="stop after this many heights, for bounded runs")
     feeding.add_argument("--record", action="store_true", help="fetch and reduce the blocks not recorded yet")
     feeding.set_defaults(handler=_feed)
+    snapshot = commands.add_parser("feed-snapshot", help="copy a follower state into the committed snapshot")
+    snapshot.add_argument("--from", dest="source", required=True, help="the follower state directory")
+    snapshot.set_defaults(handler=_feed_snapshot)
     flow = commands.add_parser("flow", help="the bounded exit trace of an account with an incident label")
     flow.add_argument("subject")
     flow.add_argument("--depth", type=int, default=trace.DEFAULT_DEPTH)

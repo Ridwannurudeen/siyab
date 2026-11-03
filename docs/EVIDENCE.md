@@ -41,5 +41,6 @@ The EVM leg is a preflight before signing; no transaction was sent on any chain.
 - 1Click supplies the recorded dry quote. No deposit was made.
 - FastNEAR supplies the read-only transaction and transfer data used by the collector.
 - `mainnet.neardata.xyz` supplies read-only NEAR data.
+- The feed follower reads finalized heights sequentially from `mainnet.neardata.xyz`, paces requests with a 0.4 second minimum interval, and stores state and event blocks under `FEED_STATE_DIR`; recorded feed snapshots contain the state, event documents and blocks that raised them.
 
 The signature is pure Ed25519 over the sha256 digest of the canonical message; it is not Ed25519ph.

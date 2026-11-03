@@ -14,8 +14,12 @@ The six lines, in this order (every number is counted from the files named):
       intel/incidents/*.json
   Feed: since D, B blocks, C events (X code_hash_matches_incident, Y fresh_dust_funded_pays_labelled,
   Z watch_account_key_added).
-      intel/feed/state.json: its start date, block count and event count per signal, in the file's
-      order; "Feed: not run." while that file does not exist
+  Feed: following since D, B blocks, C events (X code_hash_matches_incident, Y
+  fresh_dust_funded_pays_labelled, Z watch_account_key_added).
+      intel/feed/follow-snapshot.json when it exists, else intel/feed/state.json; the second form
+      when that file says mode "follow", else the first. D is the date of its start_time (the first
+      form) or of its started_at (the second), then its block count and event count per signal, in
+      the file's order; "Feed: not run." while neither file exists
   Flows: T exit traces, H hops, depth D of B, S.
       intel/flows/*.json, the hops of every trace; D (depth_reached) and B (depth) of the trace with
       the least progress (the smallest depth_reached, a stopped one first among equals); S is
@@ -45,6 +49,7 @@ from intel import labels, trace
 JUDGEMENTS_DIR = ROOT / "fixtures" / "receivers" / "judgements"
 INCIDENTS_DIR = ROOT / "intel" / "incidents"
 FEED_STATE = ROOT / "intel" / "feed" / "state.json"
+FEED_SNAPSHOT = ROOT / "intel" / "feed" / "follow-snapshot.json"
 FLOWS_DIR = ROOT / "intel" / "flows"
 LATENCY_DIR = ROOT / "fixtures" / "latency"
 START, END = "<!-- counts:start -->", "<!-- counts:end -->"
@@ -69,11 +74,14 @@ def incidents_line(directory=INCIDENTS_DIR):
 
 
 def feed_line(state_path=FEED_STATE):
-    path = Path(state_path)
+    path = FEED_SNAPSHOT if Path(state_path) == FEED_STATE and FEED_SNAPSHOT.is_file() else Path(state_path)
     if not path.is_file():
         return "Feed: not run."
     state = json.loads(path.read_text(encoding="utf-8"))
     signals = ", ".join(f"{count} {name}" for name, count in state["events"].items())
+    if state.get("mode") == "follow":
+        return (f"Feed: following since {state['started_at'][:10]}, {state['blocks']} blocks, "
+                f"{sum(state['events'].values())} events ({signals}).")
     return (f"Feed: since {state['start_time'][:10]}, {state['blocks']} blocks, {sum(state['events'].values())} "
             f"events ({signals}).")
 
