@@ -1,0 +1,14 @@
+{
+  "request": {
+    "method": "POST",
+    "params": {
+      "body_sha256": "010e22a9d4d604829eaa0ffdcbcf4c07efd53c6bdb04c1c1c9c0c0a25d305f94"
+    }
+  },
+  "response": {
+    "account_txs": [],
+    "txs_count": 0
+  },
+  "url": "https://tx.main.fastnear.com/v0/account",
+  "fetched_at": "2026-11-03T08:35:46Z"
+}

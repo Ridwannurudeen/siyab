@@ -1,4 +1,8 @@
-"""Issuer blacklist status rows built from recorded NEAR view calls."""
+"""Issuer blacklist status rows built from recorded NEAR view calls.
+
+Transaction detail response fixtures are reduced at record time: every signature field is dropped,
+and no other response field is changed.
+"""
 
 import argparse
 import base64
@@ -16,7 +20,6 @@ ISSUERS_PATH = ROOT / "intel" / "issuers.json"
 FIXTURE_DIR = ROOT / "fixtures" / "issuers"
 DATA_DIR = ROOT / "intel" / "issuers"
 STATUS_PATH = DATA_DIR / "status.jsonl"
-HISTORY_PATH = DATA_DIR / "history.jsonl"
 READS_PATH = DATA_DIR / "reads.json"
 RECEIVERS_PATH = ROOT / "fixtures" / "receivers" / "set.json"
 RPC_URL = rpc.MAINNET_RPC_URL
@@ -180,8 +183,6 @@ def record(sleep=time.sleep, clock=time.monotonic, progress=print):
     observed = read_status("record", sleep=sleep, clock=clock, progress=progress)
     write_reads(observed)
     count = write_rows(build_rows(observed))
-    HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
-    HISTORY_PATH.write_text("", encoding="utf-8", newline="\n")
     return len(observed), count
 
 
