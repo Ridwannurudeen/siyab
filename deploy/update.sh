@@ -2,7 +2,8 @@
 # usage: deploy/update.sh <full 40 character commit sha>
 # Tests the commit in a temporary worktree first. Only when the suite and the hygiene check are green
 # does the live checkout move to it and both services restart, so a red commit is never checked out
-# where the services run.
+# where the services run. Run the live checkout's own copy: the script updates the repository it
+# sits in.
 set -eu
 
 if [ "$#" -ne 1 ] || ! printf '%s\n' "$1" | grep -Eq '^[0-9a-f]{40}$'; then
@@ -44,14 +45,17 @@ if [ "$tests_exit" -eq 0 ] && [ "$hygiene_exit" -eq 0 ]; then
     printf 'step 6: green, switch the live checkout to %s\n' "$revision"
     git checkout --detach "$revision"
     printf 'step 7: restart shieldbot-near-feed.service and shieldbot-near-api.service\n'
-    sudo systemctl restart shieldbot-near-feed.service shieldbot-near-api.service
-    restarted=yes
+    if sudo systemctl restart shieldbot-near-feed.service shieldbot-near-api.service; then
+        restarted=yes
+    else
+        restarted='NO (restart failed)'
+    fi
 else
     printf 'step 6: red, the live checkout stays at %s and no service restarts\n' "$old"
 fi
 
 printf 'old sha: %s\nnew sha: %s\ntests: %s\nhygiene: %s\nservices restarted: %s\n' \
     "$old" "$(git rev-parse HEAD)" "$tests_line" "$hygiene_line" "$restarted"
-if [ "$restarted" = no ]; then
+if [ "$restarted" != yes ]; then
     exit 1
 fi
