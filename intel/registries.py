@@ -58,7 +58,7 @@ def _read(client):
     rows = {"sputnik_dao": [], "validators": [], "ref_whitelist": [], "bridge_factory": []}
     for index, account in enumerate(dao_accounts, start=1):
         rows["sputnik_dao"].append(seed.make_row(
-            entity=f"Sputnik DAO: {account.removesuffix('.sputnik-dao.near')}", subject=account, chain="near",
+            entity=f"Sputnik DAO: {seed._quoted(account.removesuffix('.sputnik-dao.near'))}", subject=account, chain="near",
             label="DAO created by the Sputnik DAO factory", category="organisation", provenance="onchain",
             source={"rpc": rpc.MAINNET_RPC_URL, "method": "get_dao_list", "args": {},
                     "block": dao_source["block"]}, observed_at=dao_source["fetched_at"],
@@ -68,7 +68,7 @@ def _read(client):
     for validator in validators:
         account = validator["account_id"]
         rows["validators"].append(seed.make_row(
-            entity=f"validator {account}", subject=account, chain="near",
+            entity=f"validator {seed._quoted(account)}", subject=account, chain="near",
             label=f"current validator at epoch {epoch_height}", category="organisation", provenance="onchain",
             source={"rpc": rpc.MAINNET_RPC_URL, "method": "validators", "args": {"block_id": None},
                     "block": epoch_height}, observed_at=validator_source["fetched_at"],

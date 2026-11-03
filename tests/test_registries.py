@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from gate import rpc
-from intel import labels, registries
+from intel import labels, registries, seed
 
 
 class RegistriesTests(unittest.TestCase):
@@ -37,6 +37,14 @@ class RegistriesTests(unittest.TestCase):
             self.assertEqual(row["provenance"], "onchain")
             self.assertEqual(row["source"]["method"], "get_dao_list")
             self.assertGreater(row["source"]["block"], 0)
+
+    def test_registry_entity_names_quote_account_names(self):
+        for row in self.by_registry["sputnik_dao"]:
+            first_label = row["subject"].removesuffix(".sputnik-dao.near")
+            self.assertEqual(row["entity"], f"Sputnik DAO: {seed._quoted(first_label)}")
+
+        for row in self.by_registry["validators"]:
+            self.assertEqual(row["entity"], f'validator {seed._quoted(row["subject"])}')
 
     def test_validator_rows_name_the_epoch_and_carry_a_block(self):
         validator_rows = self.by_registry["validators"]
