@@ -10,10 +10,12 @@ the previous page, in the order the API returns them, and no server side USD fil
 the rows that carry no usd_amount). The window starts at 00:00 UTC on the day before the incident
 page's date; older outbound rows are outside it. The walk descends breadth first into each receiver
 that is not a terminal account, to the depth bound and at most the transfer cap in all, reading at
-most MAX_REQUESTS pages; a 429 is retried after BACKOFF_S seconds and the third 429 in a row stops
-the run. A terminal account is a NEAR account the label store labels catalog_token, bridge or
-infrastructure (intents.near, zec.omft.near, the bridge token accounts), or the subject itself when
-the walk comes back to it: its hop is kept and the trace goes no further.
+most MAX_REQUESTS requests, each attempt counted, a retry included; a 429 is retried after BACKOFF_S
+seconds and the third 429 in a row stops the run. The command prints the request count and the 429
+count after the summary; neither is written to the trace. A terminal account is a NEAR account
+the label store labels catalog_token, bridge or infrastructure (intents.near, zec.omft.near, the
+bridge token accounts), or the subject itself when the walk comes back to it: its hop is kept and
+the trace goes no further.
 
 The trace is written as intel/flows/<name>.json, where the name defaults to the existing trace file
 of the subject, else the subject itself: {subject, assertion_ids, depth, filters, window, hops
@@ -298,27 +300,34 @@ def state_at_block(subject, rpc_client, issuers):
     return reads, fetched
 
 
-def _page(client, body):
-    """One transfers page; a 429 waits BACKOFF_S and retries, the third in a row is raised."""
+def _page(client, body, tally):
+    """One transfers page, or None when the request budget is used up first. Every attempt counts in
+    tally["requests"], a retry included, and the budget is checked before each; a 429 counts in
+    tally["answered_429"], waits BACKOFF_S and retries, and the third in a row is raised."""
     in_a_row = 0
-    while True:
+    while tally["requests"] < MAX_REQUESTS:
+        tally["requests"] += 1
         try:
             return client.post("/v0/transfers", body)
         except rpc.HttpError as error:
             if error.status != 429:
                 raise
+            tally["answered_429"] += 1
             in_a_row += 1
             if in_a_row >= MAX_429_IN_A_ROW:
                 raise
             client.sleep(BACKOFF_S)
+    return None
 
 
 def _stop(account, level_depth, reason):
     return {"account": account, "depth": level_depth, "reason": reason}
 
 
-def trace(subject, store, client, rpc_client, incident, issuers, depth=DEFAULT_DEPTH, cap=DEFAULT_MAX):
-    """The trace document; raises Refused for a subject without an incident label or page."""
+def trace(subject, store, client, rpc_client, incident, issuers, depth=DEFAULT_DEPTH, cap=DEFAULT_MAX, tally=None):
+    """The trace document; raises Refused for a subject without an incident label or page. The
+    transfers requests made and the 429 answers among them are counted into tally (a dict, when
+    given), never into the document."""
     assertion_ids = incident_ids(store, subject)
     if not assertion_ids:
         raise Refused(REFUSAL)
@@ -330,7 +339,9 @@ def trace(subject, store, client, rpc_client, incident, issuers, depth=DEFAULT_D
     terminal = terminal_accounts(store) | {subject}
     named = {account["subject"] for account in incident["accounts"]} - {subject}
     hops, reached, fetched, seen = [], [], [], {subject}
-    level, requests, stopped = [subject], 0, None
+    tally = {} if tally is None else tally
+    tally.update(requests=0, answered_429=0)
+    level, stopped = [subject], None
     for level_depth in range(depth):
         following = []
         for account in level:
@@ -339,14 +350,13 @@ def trace(subject, store, client, rpc_client, incident, issuers, depth=DEFAULT_D
                 if len(hops) >= cap:
                     stopped = _stop(account, level_depth, f"the transfer cap of {cap} hops")
                     break
-                if requests >= MAX_REQUESTS:
-                    stopped = _stop(account, level_depth, f"the page budget of {MAX_REQUESTS} requests")
-                    break
                 body = dict(account_id=account, **filters)
                 if resume_token is not None:
                     body["resume_token"] = resume_token
-                page = _page(client, body)
-                requests += 1
+                page = _page(client, body, tally)
+                if page is None:
+                    stopped = _stop(account, level_depth, f"the page budget of {MAX_REQUESTS} requests")
+                    break
                 fetched.append(client.last_source["fetched_at"])
                 if not isinstance(page, dict) or not isinstance(page.get("transfers"), list):
                     raise rpc.MalformedResponse("the transfers page has no transfers list")
@@ -422,8 +432,9 @@ def main(subject, depth, cap, name, record, out=print, store=None, flows_dir=FLO
     client = rpc.Client(TRANSFERS_URL, mode, kind="http", fixtures_dir=FASTNEAR_DIR)
     rpc_client = rpc.Client(rpc.MAINNET_RPC_URL, mode)
     issuers = [dict(entry, decimals=catalog_decimals(entry["token"])) for entry in rules.issuers_for("mainnet")]
+    tally = {}
     try:
-        document = trace(subject, store, client, rpc_client, incident_for(subject), issuers, depth, cap)
+        document = trace(subject, store, client, rpc_client, incident_for(subject), issuers, depth, cap, tally)
     except Refused as error:
         out(f"refused: {error}")
         return 2
@@ -432,4 +443,5 @@ def main(subject, depth, cap, name, record, out=print, store=None, flows_dir=FLO
     path.write_bytes((json.dumps(document, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
     out(f"{subject}: {summary(document)}")
     out(f"written to {path.name}")
+    out(f"{tally['requests']} requests, {tally['answered_429']} answered 429 and retried after {BACKOFF_S} s")
     return 0

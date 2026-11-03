@@ -324,6 +324,38 @@ class WalkTest(unittest.TestCase):
         with self.assertRaises(rpc.HttpError):
             trace.trace("start.near", STORE, stopped, FakeViews(VIEWS), INCIDENT, ISSUERS)
         self.assertEqual((len(stopped.calls), stopped.slept), (3, [10, 10]))
+        pages = {"start.near": [[row("start.near", "intents.near", 1)], [row("start.near", "intents.near", 2)]]}
+        budget = FakeTransfers(pages, errors=[429, 429])
+        tally = {}
+        with mock.patch.object(trace, "MAX_REQUESTS", 3):
+            document = trace.trace("start.near", STORE, budget, FakeViews(VIEWS), INCIDENT, ISSUERS, tally=tally)
+        self.assertEqual(len(budget.calls), 3)
+        self.assertEqual([h["transaction_hash"] for h in document["hops"]], ["tx1"])
+        self.assertEqual(document["completeness"], {"account": "start.near", "depth": 0,
+                                                    "reason": "the page budget of 3 requests"})
+        self.assertEqual(tally, {"requests": 3, "answered_429": 2})
+        self.assertNotIn("answered_429", json.dumps(document))
+
+    def test_the_command_prints_the_request_and_429_counts(self):
+        transfers = FakeTransfers({"start.near": [[row("start.near", "intents.near", 1)]]}, errors=[429])
+        views = FakeViews(VIEWS)
+        lines = []
+
+        def client(url, mode, kind="rpc", fixtures_dir=None):
+            return transfers if kind == "http" else views
+
+        with (tempfile.TemporaryDirectory() as tmp, mock.patch.object(trace.rpc, "Client", side_effect=client),
+              mock.patch.object(trace, "incident_for", return_value=INCIDENT),
+              mock.patch.object(trace.rules, "issuers_for", return_value=ISSUERS),
+              mock.patch.object(trace, "catalog_decimals", return_value=6)):
+            self.assertEqual(trace.main("start.near", 3, 600, "start", False, out=lines.append, store=STORE,
+                                        flows_dir=Path(tmp)), 0)
+            written = (Path(tmp) / "start.json").read_text(encoding="utf-8")
+        self.assertEqual(lines[-1], "2 requests, 1 answered 429 and retried after 10 s")
+        self.assertEqual(lines[-2], "written to start.json")
+        self.assertNotIn("answered_429", written)
+        self.assertNotIn("requests", json.loads(written))
+        self.assertEqual(transfers.slept, [10])
 
     def test_the_summary_line_holds_no_authored_freeze_word(self):
         document, _, _ = walk({"start.near": [[row("start.near", "intents.near", 1)]]})
