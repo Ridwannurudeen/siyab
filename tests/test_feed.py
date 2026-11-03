@@ -97,9 +97,11 @@ class TransfersStub:
 
 
 def transfer_row(account, timestamp_ms, number):
-    """A row as the Transfers API returns it: block height and time as strings, usd_amount a float."""
+    """An outbound row as the Transfers API returns it: block height and time as strings, a negative
+    usd_amount float and a minus signed amount."""
     return {"account_id": account, "other_account_id": "recipient.near", "asset_id": "native:near",
-            "usd_amount": 1200.5, "transaction_id": f"tx-{number}", "receipt_id": f"receipt-{number}",
+            "amount": "-1200500000000000000000000", "usd_amount": -1200.5,
+            "transaction_id": f"tx-{number}", "receipt_id": f"receipt-{number}",
             "block_height": str(100 + number), "block_timestamp": str(timestamp_ms * 1_000_000)}
 
 
@@ -557,18 +559,19 @@ class FollowModeTest(unittest.TestCase):
 
     def test_a_caught_up_follower_still_polls_on_the_schedule(self):
         transfers = TransfersStub()
-        now, sleeps = [T0], []
+        now, waits = [T0], []
 
         def sleep(seconds):
-            sleeps.append(seconds)
-            now[0] += 300
+            if seconds == 1:
+                waits.append(seconds)
+                now[0] += 300
 
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             feed._write_json(root / "state.json", {**feed.new_state(), "last_height": 1, "blocks": 1,
                                                    "last_time": "2026-11-03T11:59:59Z"}, indent=2)
             state, walked = self.follow_transfers(root, FakeFetcher(self.blocks(1), 1), lambda: now[0], transfers,
-                                                  max_blocks=None, sleep=sleep, stopped=lambda: len(sleeps) >= 3)
+                                                  max_blocks=None, sleep=sleep, stopped=lambda: len(waits) >= 3)
         self.assertEqual((walked, state["last_height"]), (0, 1))
         self.assertEqual(len(transfers.calls), 2 * len(self.subjects))
         self.assertEqual({(body["from_timestamp_ms"], body["to_timestamp_ms"]) for _, body in transfers.calls},
@@ -583,9 +586,13 @@ class FollowModeTest(unittest.TestCase):
                                                                  None), 429, "HttpError", 120),
                  ("429", urllib.error.HTTPError(url, 429, "Too Many Requests", {}, None), 429, "HttpError",
                   feed.TRANSFER_BACKOFF_S),
+                 ("429 with a Retry-After past the cap", urllib.error.HTTPError(
+                     url, 429, "Too Many Requests", {"Retry-After": "86400"}, None), 429, "HttpError", feed.POLL_S),
                  ("500", urllib.error.HTTPError(url, 500, "Internal Server Error", {}, None), 500, "HttpError",
                   feed.POLL_S),
-                 ("malformed JSON", http_reply(b"not json"), None, "JSONDecodeError", feed.POLL_S)]
+                 ("malformed JSON", http_reply(b"not json"), None, "JSONDecodeError", feed.POLL_S),
+                 ("no transfers list", http_reply(b'{"transfers": null}'), None, "MalformedResponse",
+                  feed.POLL_S)]
         for name, answer, status, error, wait_s in cases:
             with self.subTest(case=name), tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp)
@@ -599,6 +606,10 @@ class FollowModeTest(unittest.TestCase):
                                  {"at": "2026-11-03T12:00:00Z", "status": status, "error": error})
                 self.assertEqual(state["large_transfer_next_poll_ms"], T0_MS + wait_s * 1000)
                 self.assertEqual(state["last_large_transfer_poll_ms"], T0_MS - 600_000)
+                self.assertEqual(state["transfer_requests"], 1)
+                shown = "no HTTP status" if status is None else f"HTTP {status}"
+                self.assertIn(f"labelled_account_large_transfer last failed poll at 2026-11-03T12:00:00Z: {error}, "
+                              f"{shown}", feed.stats_lines(state))
                 self.assertFalse((root / "events").exists())
                 self.assertNotIn("literal-test-key", (root / "state.json").read_text(encoding="utf-8"))
                 empty = http_reply(b'{"transfers": [], "resume_token": null}')
@@ -611,6 +622,52 @@ class FollowModeTest(unittest.TestCase):
                 self.assertEqual(opened.call_count, len(self.subjects))
                 self.assertEqual((walked, state["last_height"], state["last_large_transfer_poll_ms"]),
                                  (1, 2, T0_MS + wait_s * 1000))
+                self.assertEqual(state["transfer_requests"], 1 + len(self.subjects))
+
+    def test_the_usd_amount_is_read_as_a_magnitude_and_an_unreadable_row_is_counted_not_raised(self):
+        subject = self.subjects[0]
+        rows = [{**transfer_row(subject, T0_MS - 50_000, 1), "usd_amount": -1500.25},
+                {**transfer_row(subject, T0_MS - 40_000, 2), "usd_amount": 2000},
+                {**transfer_row(subject, T0_MS - 30_000, 3), "usd_amount": -999.99},
+                {**transfer_row(subject, T0_MS - 20_000, 4), "usd_amount": 500},
+                {**transfer_row(subject, T0_MS - 10_000, 5), "usd_amount": None}]
+        missing_usd, missing_receiver = transfer_row(subject, T0_MS - 5_000, 6), transfer_row(subject, T0_MS - 4_000, 7)
+        del missing_usd["usd_amount"], missing_receiver["other_account_id"]
+        transfers = TransfersStub(rows + [missing_usd, missing_receiver])
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state, walked = self.follow_transfers(root, FakeFetcher(self.blocks(1), 1), lambda: T0, transfers)
+            events = self.transfer_events(root)
+        self.assertEqual([(event["transaction_id"], event["usd_amount"], event["direction"]) for event in events],
+                         [("tx-1", "1500.25", "outbound"), ("tx-2", "2000", "outbound")])
+        self.assertEqual(events[0]["detail"],
+                         f'FastNEAR reported a transfer of 1500.25 USD from {subject} to "recipient.near"')
+        self.assertEqual((walked, state["skipped_rows"], state["events"]["labelled_account_large_transfer"]),
+                         (1, 3, 2))
+        self.assertEqual(state["last_large_transfer_poll_ms"], T0_MS)
+        self.assertNotIn("last_large_transfer_error", state)
+        self.assertEqual(events[1]["detail"],
+                         f'FastNEAR reported a transfer of 2000 USD from {subject} to "recipient.near"')
+        self.assertFalse(any(line.startswith("-") or " -" in line for line in feed.stats_lines(state)))
+
+    def test_transfers_requests_are_paced_and_counted_apart_from_neardata(self):
+        log = []
+        transfers = TransfersStub()
+        post = transfers.post
+
+        def logged(path, body):
+            log.append("post")
+            return post(path, body)
+
+        transfers.post = logged
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state, _ = self.follow_transfers(root, FakeFetcher(self.blocks(1), 1), lambda: T0, transfers,
+                                             sleep=log.append)
+        count = len(self.subjects)
+        self.assertEqual(log.count("post"), count)
+        self.assertEqual(log[:2 * count - 1], ["post", feed.FOLLOW_INTERVAL_S] * (count - 1) + ["post"])
+        self.assertEqual((state["transfer_requests"], state["requests"]), (len(self.subjects), 2))
 
     def test_large_transfer_signal_is_disabled_without_the_key_file_and_the_state_says_so(self):
         import os

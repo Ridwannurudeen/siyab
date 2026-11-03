@@ -36,16 +36,17 @@ height and time, the last height and time, the block count, the skipped heights,
 accounts with their funding deposit and time, and the event count per signal; a follower adds
 mode ("follow"), started_at (when the first follow run began), lag_blocks (the final height at the
 last read minus the last height), requests (the neardata requests made on request_day),
-request_day (the UTC date the requests count is for, checked before every request; a new date
-resets the count) and disabled_signals (a signal that is off and why: the transfer signal when
-FASTNEAR_API_KEY_FILE is unset or names a file that cannot be read or is empty; never the path or
-the key). The transfer poll adds last_large_transfer_poll_ms (the start of the last complete poll,
-or POLL_S before the first one: the next window's from_timestamp_ms), large_transfer_next_poll_ms
-(the earliest start of the next poll), last_large_transfer_error (the UTC time, the HTTP status or
-null, and the error type of the last failed poll; never the key or a header) and
-large_transfer_page_caps (each subject and window that still had rows after MAX_TRANSFER_PAGES
-pages). A block at or below the last height is never counted twice, so a run that stops can be
-started again.
+transfer_requests (the Transfers API requests made on request_day), request_day (the UTC date both
+counts are for, checked before every neardata request; a new date resets them) and
+disabled_signals (a signal that is off and why: the transfer signal when FASTNEAR_API_KEY_FILE is
+unset or names a file that cannot be read or is empty; never the path or the key). The transfer
+poll adds last_large_transfer_poll_ms (the start of the last complete poll, or POLL_S before the
+first one: the next window's from_timestamp_ms), large_transfer_next_poll_ms (the earliest start
+of the next poll), last_large_transfer_error (the UTC time, the HTTP status or null, and the error
+type of the last failed poll; never the key or a header), large_transfer_page_caps (each subject
+and window that still had rows after MAX_TRANSFER_PAGES pages) and skipped_rows (Transfers API rows
+the poll could not read: not an object, a field missing, or a null or missing usd_amount). A block
+at or below the last height is never counted twice, so a run that stops can be started again.
 
 The signals, each written as an evidence document under <state dir>/events/<sha256>.json:
 
@@ -57,24 +58,30 @@ The signals, each written as an evidence document under <state dir>/events/<sha2
   watch_account_key_added          an AddKey with full access, or a function call key with an empty
                                    method_names list, on a NEAR account labelled infrastructure,
                                    treasury or watch
-  labelled_account_large_transfer  a Transfers API row of at least 1000 USD sent by a NEAR account
-                                   with a current incident or denylist row (follow mode only)
+  labelled_account_large_transfer  a Transfers API row of at least 1000 USD (the magnitude of its
+                                   usd_amount) sent by a NEAR account with a current incident or
+                                   denylist row (follow mode only)
   deploy_on_labelled_contract      a successful DeployContract on a NEAR account with a current
                                    catalog_token, infrastructure, bridge, treasury, organisation or
                                    watch row
 
 The transfer poll runs in follow mode only, from the follower's loop both while it walks heights
-and while it waits at the final height, at most every POLL_S (600 s). It reads the key once at start
-from the file FASTNEAR_API_KEY_FILE names and sends it only as the Authorization Bearer header of a
-client that writes no fixture. Each poll asks POST https://transfers.main.fastnear.com/v0/transfers
-for each subject (direction sender, min_usd_amount 1000, ignore_system true, limit 100,
-from_timestamp_ms the last complete poll's start, to_timestamp_ms this poll's start, which the API
-treats as exclusive, so no row is in two windows), following resume_token up to MAX_TRANSFER_PAGES
-(20) pages. Events are written and the window moves on only when every request of the poll
-succeeded. A 429 moves the next poll to Retry-After seconds later (TRANSFER_BACKOFF_S, 60 s, when the
-header is absent or not a number of seconds) and keeps the window; any other HTTP, transport or
-parse error is recorded in last_large_transfer_error and the window is asked again at the next poll.
-Neither stops the block walk.
+and while it waits at the final height, every POLL_S (600 s), sooner after a 429 as below. It
+reads the key once at start from the file FASTNEAR_API_KEY_FILE names and sends it only as the
+Authorization Bearer header of clients that write no fixture. Each poll asks POST
+https://transfers.main.fastnear.com/v0/transfers for each subject, FOLLOW_INTERVAL_S apart
+(direction sender, min_usd_amount 1000, ignore_system true, limit 100, from_timestamp_ms the last
+complete poll's start, to_timestamp_ms this poll's start, which the API treats as exclusive, so no
+row is in two windows), following resume_token up to MAX_TRANSFER_PAGES (20) pages. The API gives
+an outbound row a negative usd_amount, so a row becomes an event when the magnitude of its
+usd_amount is at least LARGE_TRANSFER_USD (1000), whatever the server filter did, and the event
+holds that magnitude with direction "outbound". A row the poll cannot read is counted in
+skipped_rows and never fails the poll; only a response without a transfers list does. Events are
+written and the window moves on only when every request of the poll succeeded. A 429 moves the
+next poll to Retry-After seconds later, at most POLL_S (TRANSFER_BACKOFF_S, 60 s, when the header
+is absent or not a number of seconds), and keeps the window; any other HTTP, transport or parse
+error is recorded in last_large_transfer_error and the window is asked again at the next poll.
+Neither stops the block walk. feed-stats and the feed page show the last failed poll.
 """
 
 import base64
@@ -106,6 +113,7 @@ TRANSFERS_URL = "https://transfers.main.fastnear.com"
 FRESH_WINDOW_MS = 24 * 60 * 60 * 1000
 POLL_S = 600
 TRANSFER_BACKOFF_S = 60
+LARGE_TRANSFER_USD = 1000
 MAX_TRANSFER_PAGES = 20
 MAX_REQUESTS = 600
 BACKOFF_S = 10
@@ -324,31 +332,38 @@ class Fetcher:
         return answer["block"]["header"]["height"]
 
 
-def poll_transfers(client, state, state_path, context, events_dir, clock):
+def poll_transfers(client, state, state_path, context, events_dir, clock, sleep):
     """The large transfer poll when it is due: every subject's rows of the window since the last
-    complete poll, written as events only when every request succeeded."""
+    complete poll, asked FOLLOW_INTERVAL_S apart and written as events only when every request
+    succeeded."""
     now_ms = int(clock() * 1000)
     if now_ms < state.get("large_transfer_next_poll_ms", now_ms):
         return
     from_ms = state.setdefault("last_large_transfer_poll_ms", now_ms - POLL_S * 1000)
-    rows, caps = [], []
+    rows, caps, skipped, last_request = [], [], 0, None
     try:
         for subject in sorted(context.deny_receivers):
             body = {"account_id": subject, "direction": "sender", "from_timestamp_ms": from_ms,
-                    "to_timestamp_ms": now_ms, "min_usd_amount": 1000, "ignore_system": True, "limit": 100}
+                    "to_timestamp_ms": now_ms, "min_usd_amount": LARGE_TRANSFER_USD, "ignore_system": True,
+                    "limit": 100}
             for _ in range(MAX_TRANSFER_PAGES):
+                if last_request is not None:
+                    sleep(max(0, FOLLOW_INTERVAL_S - (clock() - last_request)))
+                state["transfer_requests"] += 1
                 response = client.post("/v0/transfers", body)
+                last_request = clock()
                 if not isinstance(response, dict) or not isinstance(response.get("transfers"), list):
                     raise rpc.MalformedResponse("the transfers response has no transfers list")
                 for transfer in response["transfers"]:
                     if not (isinstance(transfer, dict)
                             and all(isinstance(transfer.get(name), str)
                                     for name in ("other_account_id", "asset_id", "transaction_id", "receipt_id"))
-                            and str(transfer.get("block_height")).isdigit()
-                            and str(transfer.get("block_timestamp")).isdigit()
+                            and str(transfer.get("block_height")).isdecimal()
+                            and str(transfer.get("block_timestamp")).isdecimal()
                             and isinstance(transfer.get("usd_amount"), (int, float))):
-                        raise rpc.MalformedResponse("a transfer row lacks a field the signal reads")
-                    rows.append((subject, transfer, dict(client.last_source)))
+                        skipped += 1
+                    elif abs(transfer["usd_amount"]) >= LARGE_TRANSFER_USD:
+                        rows.append((subject, transfer, dict(client.last_source)))
                 if not response.get("resume_token"):
                     break
                 body = {**body, "resume_token": response["resume_token"]}
@@ -361,17 +376,17 @@ def poll_transfers(client, state, state_path, context, events_dir, clock):
         wait_s = POLL_S
         if status == 429:
             retry_after = (error.retry_after or "").strip()
-            wait_s = int(retry_after) if retry_after.isdigit() else TRANSFER_BACKOFF_S
+            wait_s = min(int(retry_after), POLL_S) if retry_after.isdecimal() else TRANSFER_BACKOFF_S
         state["large_transfer_next_poll_ms"] = now_ms + wait_s * 1000
         _write_json(Path(state_path), state, indent=2)
         return
     for subject, transfer, source in rows:
-        height = int(transfer["block_height"])
+        height, usd_amount = int(transfer["block_height"]), abs(transfer["usd_amount"])
         event = {"version": "1", "kind": "feed_event", "signal": SIGNALS[3], "subject": subject,
-                 "detail": f"FastNEAR reported a transfer of {transfer['usd_amount']} USD from {subject} to "
+                 "detail": f"FastNEAR reported a transfer of {usd_amount} USD from {subject} to "
                            f"\"{transfer['other_account_id']}\"",
                  "labels": context.labelled[subject], "other_account_id": transfer["other_account_id"],
-                 "asset_id": transfer["asset_id"], "usd_amount": str(transfer["usd_amount"]),
+                 "asset_id": transfer["asset_id"], "direction": "outbound", "usd_amount": str(usd_amount),
                  "transaction_id": transfer["transaction_id"], "tx_hash": transfer["transaction_id"],
                  "receipt_id": transfer["receipt_id"], "block_height": height,
                  "observed": {"block_height": height, "timestamp_ms": int(transfer["block_timestamp"]) // 1_000_000},
@@ -380,6 +395,7 @@ def poll_transfers(client, state, state_path, context, events_dir, clock):
         state["events"][SIGNALS[3]] += 1
     if caps:
         state.setdefault("large_transfer_page_caps", []).extend(caps)
+    state["skipped_rows"] = state.get("skipped_rows", 0) + skipped
     state["last_large_transfer_poll_ms"] = now_ms
     state["large_transfer_next_poll_ms"] = now_ms + POLL_S * 1000
     _write_json(Path(state_path), state, indent=2)
@@ -443,6 +459,7 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
     state.setdefault("started_at", datetime.fromtimestamp(clock(), UTC).strftime(_TIME))
     state.setdefault("lag_blocks", 0)
     state.setdefault("requests", 0)
+    state.setdefault("transfer_requests", 0)
     state.setdefault("request_day", datetime.fromtimestamp(clock(), UTC).strftime("%Y-%m-%d"))
     for signal in SIGNALS:
         state["events"].setdefault(signal, 0)
@@ -459,11 +476,11 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
     while not stopped() and (max_blocks is None or walked < max_blocks):
         if last_request is not None:
             sleep(max(0, FOLLOW_INTERVAL_S - (clock() - last_request)))
-        if transfers_client is not None:
-            poll_transfers(transfers_client, state, state_path, context, events_dir, clock)
         request_day = datetime.fromtimestamp(clock(), UTC).strftime("%Y-%m-%d")
         if state["request_day"] != request_day:
-            state["request_day"], state["requests"] = request_day, 0
+            state["request_day"], state["requests"], state["transfer_requests"] = request_day, 0, 0
+        if transfers_client is not None:
+            poll_transfers(transfers_client, state, state_path, context, events_dir, clock, sleep)
         requests_before = fetcher.requests
         final_height = fetcher.final_height()
         state["requests"] += fetcher.requests - requests_before
@@ -480,11 +497,11 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
         while next_height <= final_height and not stopped() and (max_blocks is None or walked < max_blocks):
             if last_request is not None:
                 sleep(max(0, FOLLOW_INTERVAL_S - (clock() - last_request)))
-            if transfers_client is not None:
-                poll_transfers(transfers_client, state, state_path, context, events_dir, clock)
             request_day = datetime.fromtimestamp(clock(), UTC).strftime("%Y-%m-%d")
             if state["request_day"] != request_day:
-                state["request_day"], state["requests"] = request_day, 0
+                state["request_day"], state["requests"], state["transfer_requests"] = request_day, 0, 0
+            if transfers_client is not None:
+                poll_transfers(transfers_client, state, state_path, context, events_dir, clock, sleep)
             requests_before = fetcher.requests
             try:
                 raw = fetcher.get(f"/v0/block/{next_height}")
@@ -530,4 +547,8 @@ def stats_lines(state):
         events = [f"{name} {count}" for name, count in state['events'].items()]
     lines += events
     lines += [f"{name} disabled: {reason}" for name, reason in state.get("disabled_signals", {}).items()]
+    error = state.get("last_large_transfer_error")
+    if error:
+        status = "no HTTP status" if error["status"] is None else f"HTTP {error['status']}"
+        lines.append(f"{SIGNALS[3]} last failed poll at {error['at']}: {error['error']}, {status}")
     return lines
