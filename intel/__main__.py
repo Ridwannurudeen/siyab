@@ -205,6 +205,9 @@ def _receivers(args):
 def _feed(args):
     try:
         if args.follow:
+            if args.blocks is not None or args.record:
+                print("stopped: --follow takes neither --blocks nor --record", file=sys.stderr)
+                return 2
             interrupted = False
 
             def stop(signum, frame):

@@ -337,6 +337,16 @@ class FollowModeTest(unittest.TestCase):
         self.assertEqual(state["requests"], len(after))
         self.assertLess(len(after), len(made))
 
+    def test_follow_with_blocks_or_record_stops_with_one_line(self):
+        for extra in (["--blocks", "3"], ["--record"]):
+            with self.subTest(extra=extra):
+                errors = io.StringIO()
+                with mock.patch("urllib.request.urlopen", side_effect=no_network), \
+                        contextlib.redirect_stderr(errors), contextlib.redirect_stdout(io.StringIO()):
+                    code = intel_main.main(["feed", "--follow", *extra])
+                self.assertEqual(code, 2)
+                self.assertEqual(errors.getvalue().strip(), "stopped: --follow takes neither --blocks nor --record")
+
     def test_follow_writes_the_event_block_and_points_the_event_source_at_it(self):
         raw = raw_block(9, [])
         synthetic = json.loads((BLOCKS / "synthetic-code-hash.json").read_text(encoding="utf-8"))
