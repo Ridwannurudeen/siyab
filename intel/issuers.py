@@ -40,7 +40,6 @@ HISTORY_METHODS = {
     "remove_from_blacklist": "removed from the issuer blacklist of",
     "destroy_black_funds": "black funds destroyed by the issuer of",
 }
-HISTORY_ACCOUNT = "tether.multi" + "s" + "a" + "f" + "e.near"
 HISTORY_PAGE_SIZE = 200
 TRANSACTION_BATCH_SIZE = 20
 
@@ -107,10 +106,11 @@ def _history_page(body, client, sleep=time.sleep, progress=print):
 
 def record_history(sleep=time.sleep, progress=print):
     page_client = rpc.Client(FASTNEAR_TX_URL, "record", kind="http", fixtures_dir=FIXTURE_DIR)
+    owner = _owner(FIXTURE_DIR)
     hashes = []
     resume_token = None
     while True:
-        body = {"account_id": HISTORY_ACCOUNT, "is_receiver": True, "is_function_call": True,
+        body = {"account_id": owner, "is_receiver": True, "is_function_call": True,
                 "limit": HISTORY_PAGE_SIZE, "desc": True}
         if resume_token is not None:
             body["resume_token"] = resume_token
@@ -252,7 +252,7 @@ def history_rows(fixtures_dir=FIXTURE_DIR):
                     seen.add(key)
                     observation = observations[subject]
                     account_note = (f'a string the issuer passed as an account id, '
-                                    f'{json.dumps(subject, ensure_ascii=False)}, does not exist on chain: '
+                                    f'{json.dumps(subject, ensure_ascii=False)}; it does not exist on chain: '
                                     f'view_account returned {observation["cause"]} at block '
                                     f'{observation["block"]}; nothing further is inferred.'
                                     if not observation["exists"] else
@@ -318,7 +318,7 @@ def history_coverage(fixtures_dir=FIXTURE_DIR):
                 call = action.get("FunctionCall") if isinstance(action, dict) else None
                 if call and call.get("method_name") in action_counts:
                     action_counts[call["method_name"]] += 1
-    return {"transactions": len(details), "txs_count": sum(page["txs_count"] for page in pages),
+    return {"transactions": len(details), "txs_count": pages[0]["txs_count"],
             "tx_block_min": min(blocks), "tx_block_max": max(blocks), "actions": action_counts}
 
 
