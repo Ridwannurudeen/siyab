@@ -4,9 +4,9 @@ No framework and no external script; one stylesheet inline in each page. The pag
 (the headline, the counts block of scripts/counts.py, the links), feed.html (the feed state and
 its events), incidents/<id>.html (sources, accounts, on chain facts, rules today, what is not
 public), entities/<set>.html (treasuries, catalog, infrastructure: one page per seed set),
-flows/<name>.html (an exit trace: the summary line, the shares of the subject's direct outbound
-value, the subject's balance and issuer status at a block, then one card per hop grouped by depth)
-and verify.html (a form that reads a registry record from https://test.rpc.fastnear.com in the
+flows/<name>.html (an exit trace: the summary line, the shares of the subject's gross outbound
+transfer value, the subject's balance and issuer status at a block, then one card per hop grouped
+by depth) and verify.html (a form that reads a registry record from https://test.rpc.fastnear.com in the
 browser, never the ShieldBot API, and shows it next to the evidence hash the reader pastes). Every
 page carries a robots noindex meta and the footer "Data: NearBlocks".
 
@@ -113,7 +113,7 @@ def index_page(incidents, flows):
     links += [f'<li><a href="entities/{name}.html">{esc(title)}</a></li>' for name, title, _ in ENTITY_SETS]
     links += [f'<li><a href="flows/{esc(name)}.html">Exit trace from <span class="mono">{esc(f["subject"])}</span>: '
               f'depth {f["depth_reached"]} of {f["depth"]}, {esc(trace.stop_state(f["completeness"]))}, with the shares '
-              'of its direct outbound value</a></li>' for name, f in flows]
+              'of its gross outbound transfer value</a></li>' for name, f in flows]
     links.append("<li><a href=\"verify.html\">Read a registry record and compare its evidence hash</a></li>")
     body = (f"<h1>{esc(HEADLINE)}</h1>\n<h2>Counts</h2>\n<div class=\"card\">{counts}</div>\n"
             "<p class=\"muted\">Every number above is printed by <code>scripts/counts.py</code> from the committed "
@@ -239,8 +239,9 @@ def flow_page(document):
             f'{esc(document["fetched_at"])}.</p></div>'
             f"<p>The window starts at {esc(window['from'])}, {esc(window['rule'])} {esc(window['incident_date'])}; "
             "older outbound rows are outside it.</p>"
-            "<h2>Shares of the direct outbound value</h2>" + _shares_table(document["shares"]) +
-            "<p>Shares are of the subject's direct outbound value; deeper hops are shown and not re summed.</p>"
+            "<h2>Shares of the gross outbound transfer value</h2>" + _shares_table(document["shares"]) +
+            "<p>Shares are of the subject's gross outbound transfer value; deeper hops are shown and not re summed.</p>"
+            f"<p>{esc(trace.gross_sentence(document))}</p>"
             "<h2>The subject at a block</h2>" + _state_card(document["state_at_block"]) +
             "<p class=\"muted\">Only an account that carries an incident label is traced. Each card is one transfer "
             "read from the FastNEAR Transfers API.</p>" + "".join(groups))

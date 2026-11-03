@@ -163,18 +163,62 @@ def _state_text(reads):
     return "; ".join(parts)
 
 
+FOLD_PERCENT = 0.5
+FOLD_WORDS = {"terminal": ("more terminal account", "more terminal accounts"),
+              "named in the report": ("more account the report names", "more accounts the report names")}
+
+
+def share_items(shares):
+    """The summary's shares: each bucket at or above FOLD_PERCENT with its percent (and the not named
+    bucket always), then the smaller buckets folded into one item per kind with their USD sum."""
+    listed, folded = [], {}
+    for bucket in shares["buckets"]:
+        if bucket["kind"] in FOLD_WORDS and bucket["percent"] < FOLD_PERCENT:
+            folded.setdefault(bucket["kind"], []).append(Decimal(bucket["usd"]))
+        else:
+            listed.append(f"{bucket['to']} {bucket['percent']} percent")
+    for kind, sums in folded.items():
+        words = FOLD_WORDS[kind][0 if len(sums) == 1 else 1]
+        listed.append(f"{len(sums)} {words}, {usd_text(sum(sums))} together")
+    return listed
+
+
+def gross_sentence(document):
+    """What the gross figure counts more than once, computed from the hops."""
+    subject, hops = document["subject"], document["hops"]
+    terminal = {b["to"] for b in document["shares"]["buckets"] if b["kind"] == "terminal"}
+    direct = [h for h in hops if h["from"] == subject and h["usd_amount"] is not None and h["usd_amount"] >= MIN_USD]
+    into = [h for h in direct if h["method_name"] in ("ft_transfer_call", "near_deposit") and h["to"] in terminal]
+    inside = [h for h in direct if h["asset_id"].startswith("nep245:")]
+    back = [h for h in hops if h["to"] == subject]
+    read = {h["from"] for h in hops} - {subject}
+    contracts = ", ".join(sorted({h["to"] for h in into})) or "none"
+
+    def total(rows):
+        return usd_text(sum((Decimal(str(h["usd_amount"] or 0)) for h in rows), Decimal(0)))
+
+    return (f"Gross means the same value can appear in more than one row: {total(into)} of these rows are "
+            f"ft_transfer_call or near_deposit into a terminal contract ({contracts}), {total(inside)} are moves of "
+            "balances held inside intents.near (asset ids under nep245:intents.near:), and "
+            f"{total(back)} came back to the subject in {len(back)} rows of the {len(read)} accounts read; inbound "
+            "rows of the subject were not read, so no net figure is stated, and the incident page states no loss "
+            "figure.")
+
+
 def summary(document):
-    """One line on how far the walk went, where the direct outbound value ended and the subject's
-    state at a block."""
+    """One line on how far the walk went, how the subject's gross outbound transfer value splits by
+    where the rows end, what that gross figure counts more than once, and the subject's state at a
+    block."""
     accounts = {document["subject"]} | {h["from"] for h in document["hops"]} | {h["to"] for h in document["hops"]}
     shares = document["shares"]
-    ends = ", ".join(f"{bucket['to']} {bucket['percent']} percent" for bucket in shares["buckets"]) or "none"
+    ends = ", ".join(share_items(shares)) or "none"
     return (f"{len(document['hops'])} hops over {len(accounts)} accounts; depth {document['depth_reached']} of "
-            f"{document['depth']}, {_stop_text(document['completeness'])}; direct outbound after "
+            f"{document['depth']}, {_stop_text(document['completeness'])}; gross outbound transfer value after "
             f"{document['window']['from'][:10]} 00:00 UTC{read_extent(document)}: "
             f"{usd_text(shares['direct_outbound_usd'])} across {shares['rows']} rows ({shares['without_usd']['count']} "
-            f"rows without a USD amount, {shares['below_min_usd']['count']} below {MIN_USD} USD); shares of the "
-            f"direct outbound value: {ends}; subject: "
+            f"rows without a USD amount, {shares['below_min_usd']['count']} below {MIN_USD} USD), each row counted "
+            f"once as the Transfers API values it; shares of the gross outbound transfer value: {ends}; "
+            f"{gross_sentence(document)[:-1]}; subject: "
             f"{_state_text(document['state_at_block']) or 'no issuer read'}")
 
 

@@ -146,8 +146,9 @@ class RenderTest(unittest.TestCase):
         self.assertIn(render.data_text(trace.summary(document)), page)
         self.assertIn(f"stopped while reading {document['completeness']['account']} (1 hop from the subject): the page "
                       "budget of 150 requests", page)
-        self.assertIn("Shares are of the subject's direct outbound value; deeper hops are shown and not re summed.",
-                      page)
+        self.assertIn("<h2>Shares of the gross outbound transfer value</h2>", page)
+        self.assertIn("<p>Shares are of the subject's gross outbound transfer value; deeper hops are shown and not re "
+                      f"summed.</p><p>{html.escape(trace.gross_sentence(document))}</p>", page)
         self.assertIn("older outbound rows are outside it", page)
         for bucket in document["shares"]["buckets"]:
             self.assertIn(f'<td class="mono">{html.escape(bucket["to"])}</td><td>{html.escape(bucket["kind"])}</td>'

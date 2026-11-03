@@ -220,12 +220,13 @@ class WalkTest(unittest.TestCase):
         self.assertIn("across 1 rows (3 rows without a USD amount, 1 below 1.0 USD)", trace.summary(document))
 
     def test_shares_sum_to_the_direct_outbound_total_and_name_every_terminal(self):
-        pages = {"start.near": [[row("start.near", "intents.near", 1, usd=60.25),
+        pages = {"start.near": [[dict(row("start.near", "intents.near", 1, usd=60.25), method_name="ft_transfer_call"),
                                  row("start.near", "zec.omft.near", 2, usd=20.0),
                                  row("start.near", "worker.near", 3, usd=10.0),
-                                 row("start.near", "anon1.near", 4, usd=5.5),
+                                 dict(row("start.near", "anon1.near", 4, usd=5.5),
+                                      asset_id="nep245:intents.near:nep141:wrap.near"),
                                  row("start.near", "anon2.near", 5, usd=4.25)]],
-                 "anon1.near": [[row("anon1.near", "intents.near", 6, usd=5000.0)]]}
+                 "anon1.near": [[row("anon1.near", "start.near", 6, usd=5000.0)]]}
         document, _, _ = walk(pages)
         shares = document["shares"]
         self.assertEqual(shares["direct_outbound_usd"], "100.00")
@@ -241,10 +242,32 @@ class WalkTest(unittest.TestCase):
         direct = {h["to"] for h in document["hops"] if h["from"] == "start.near"}
         self.assertEqual(direct.intersection(("intents.near", "zec.omft.near")),
                          {b["to"] for b in shares["buckets"] if b["kind"] == "terminal"})
-        self.assertIn("shares of the direct outbound value: intents.near 60.25 percent, zec.omft.near 20.0 percent, worker.near 10.0 percent, "
-                      f"{trace.NOT_NAMED} 9.75 percent;", trace.summary(document))
-        self.assertIn("direct outbound after 2026-04-15 00:00 UTC, read in full: 100.00 USD across 5 rows",
+        self.assertIn("shares of the gross outbound transfer value: intents.near 60.25 percent, zec.omft.near 20.0 "
+                      f"percent, worker.near 10.0 percent, {trace.NOT_NAMED} 9.75 percent;", trace.summary(document))
+        self.assertIn("gross outbound transfer value after 2026-04-15 00:00 UTC, read in full: 100.00 USD across 5 rows",
                       trace.summary(document))
+        gross = ("Gross means the same value can appear in more than one row: 60.25 USD of these rows are "
+                 "ft_transfer_call or near_deposit into a terminal contract (intents.near), 5.50 USD are moves of "
+                 "balances held inside intents.near (asset ids under nep245:intents.near:), and 5,000.00 USD came back "
+                 "to the subject in 1 rows of the 1 accounts read; inbound rows of the subject were not read, so no net "
+                 "figure is stated, and the incident page states no loss figure.")
+        self.assertEqual(trace.gross_sentence(document), gross)
+        self.assertIn(f"; {gross[:-1]}; subject: ", trace.summary(document))
+
+    def test_shares_below_half_a_percent_fold_into_one_summary_item_per_kind(self):
+        pages = {"start.near": [[row("start.near", "intents.near", 1, usd=995.0),
+                                 row("start.near", "worker.near", 2, usd=1.0),
+                                 row("start.near", "other.near", 3, usd=1.0)]]}
+        incident = {"date": "2026-04-16", "accounts": [{"subject": "start.near"}, {"subject": "worker.near"},
+                                                       {"subject": "other.near"}]}
+        client = FakeTransfers(pages)
+        document = trace.trace("start.near", STORE, client, FakeViews(VIEWS), incident, ISSUERS)
+        self.assertEqual([(b["to"], b["percent"]) for b in document["shares"]["buckets"]],
+                         [("intents.near", 99.8), ("other.near", 0.1), ("worker.near", 0.1)])
+        self.assertEqual(trace.share_items(document["shares"]),
+                         ["intents.near 99.8 percent", "2 more accounts the report names, 2.00 USD together"])
+        self.assertIn("shares of the gross outbound transfer value: intents.near 99.8 percent, 2 more accounts the "
+                      "report names, 2.00 USD together;", trace.summary(document))
 
     def test_completeness_names_the_account_and_depth_where_the_walk_stopped(self):
         complete, _, _ = walk({"start.near": [[row("start.near", "a.near", 1)]]})
@@ -257,7 +280,7 @@ class WalkTest(unittest.TestCase):
         self.assertTrue(capped["truncated"])
         self.assertIn("depth 2 of 3, stopped while reading a.near (1 hop from the subject): the transfer cap of 4 hops;",
                       trace.summary(capped))
-        self.assertIn("direct outbound after 2026-04-15 00:00 UTC, read in full: ", trace.summary(capped))
+        self.assertIn("gross outbound transfer value after 2026-04-15 00:00 UTC, read in full: ", trace.summary(capped))
         self.assertEqual(trace.stop_state(capped["completeness"]), "stopped while reading an account 1 hop from the subject")
         self.assertEqual(trace.stop_state({"account": "b.near", "depth": 2, "reason": "r"}),
                          "stopped while reading an account 2 hops from the subject")
@@ -268,8 +291,9 @@ class WalkTest(unittest.TestCase):
         self.assertEqual(budget["completeness"], {"account": "start.near", "depth": 0,
                                                   "reason": "the page budget of 150 requests"})
         self.assertEqual(trace.stop_state(budget["completeness"]), "stopped while reading the subject")
-        self.assertIn("depth 1 of 3, stopped while reading the subject: the page budget of 150 requests; direct "
-                      "outbound after 2026-04-15 00:00 UTC read in part, to 2026-04-15 00:00 UTC: ", trace.summary(budget))
+        self.assertIn("depth 1 of 3, stopped while reading the subject: the page budget of 150 requests; gross "
+                      "outbound transfer value after 2026-04-15 00:00 UTC read in part, to 2026-04-15 00:00 UTC: ",
+                      trace.summary(budget))
 
     def test_state_at_block_reads_each_issuer_once_with_a_block(self):
         document, _, views = walk({"start.near": [[row("start.near", "intents.near", 1)]]})
@@ -346,8 +370,17 @@ class CommittedTraceTest(unittest.TestCase):
         for hop in direct:
             self.assertGreaterEqual(hop["block_timestamp"], start_ns)
         self.assertIn(f"depth 2 of 3, stopped while reading {self.document['completeness']['account']} (1 hop from the "
-                      "subject): the page budget of 150 requests; direct outbound after 2026-04-15 00:00 UTC, read in "
-                      "full: ", trace.summary(self.document))
+                      "subject): the page budget of 150 requests; gross outbound transfer value after 2026-04-15 00:00 "
+                      "UTC, read in full: 51,020,561.64 USD", trace.summary(self.document))
+        self.assertIn("wrap.near 9.31 percent, 72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5 1.13 "
+                      "percent, 9 more accounts the report names, 124.41 USD together;", trace.summary(self.document))
+
+    def test_the_summary_names_the_value_gross_and_states_no_net_figure(self):
+        line = trace.summary(self.document)
+        for words in ("gross", "no net figure", "no loss figure"):
+            self.assertIn(words, line)
+        for word in ("stolen", "lost", "exited", "reached", "drained", "moved away"):
+            self.assertNotIn(word, line)
 
     def test_the_committed_state_at_block_reads_the_collector_banned_by_the_usdt_issuer(self):
         reads = {(r["token"], r["method"]): r for r in self.document["state_at_block"]}
