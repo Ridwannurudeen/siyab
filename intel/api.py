@@ -15,6 +15,10 @@ Routes (GET only; no route writes anything and no route opens the network):
                           for a subject that carries no incident label, 404 when no cluster holds it
     /issuers              the issuer status rows and history rows of intel/issuers/, the number of
                           status reads and of the account ids they cover, and the history coverage
+    /search/<term>        the entries of demo/site/search.json whose subject, name or one of whose labels
+                          holds the term, ignoring case, each with the path of its page
+    /accounts/<subject>   every current assertion on the subject, on any chain; 404 for a subject with none
+    /entities/<id>        the registry entity <id> of intel/entities.jsonl; 404 when there is none
     anything else         a static file under --site when one is given; a path whose last segment
                           ends in .html is never an API route, so /incidents/<id>.html is the page
                           and /incidents/<id> the JSON; a path that is neither answers 404 with the
@@ -38,6 +42,7 @@ ROOT = Path(__file__).resolve().parent.parent
 EVIDENCE_DIRS = (ROOT / "fixtures" / "evidence", ROOT / "intel" / "feed" / "events")
 FEED_STATE = ROOT / "intel" / "feed" / "state.json"
 FEED_EVENTS = ROOT / "intel" / "feed" / "events"
+SEARCH_INDEX = ROOT / "demo" / "site" / "search.json"
 FLOWS_DIR = ROOT / "intel" / "flows"
 CLUSTERS_DIR = ROOT / "intel" / "clusters"
 FEED_LIMIT = 50
@@ -116,6 +121,32 @@ def _issuers():
                  "history_coverage": issuers.history_coverage()}
 
 
+def _search(term):
+    index = _read_json(SEARCH_INDEX)
+    needle = term.casefold()
+    results = [entry for entry in index["accounts"] + index["entities"]
+               if needle in entry.get("subject", "").casefold()
+               or needle in entry.get("name", "").casefold()
+               or any(needle in label.casefold() for label in entry.get("labels", []))]
+    return 200, {"term": term, "results": results}
+
+
+def _account(store, subject):
+    rows = [dataclasses.asdict(a) for a in store.assertions
+            if a.subject == subject and a.superseded_by is None]
+    if not rows:
+        return None
+    return 200, {"subject": subject, "assertions": rows}
+
+
+def _entity(entity_id):
+    for line in (ROOT / "intel" / "entities.jsonl").read_text(encoding="utf-8").splitlines():
+        entity = json.loads(line)
+        if entity["id"] == entity_id:
+            return 200, entity
+    return None
+
+
 def route(path, store):
     """(status, JSON body) for an API path, or None when the path is not an API route."""
     parts = [urllib.parse.unquote(part) for part in urllib.parse.urlsplit(path).path.split("/")[1:]]
@@ -127,8 +158,14 @@ def route(path, store):
         return _feed()
     if parts == ["issuers"]:
         return _issuers()
+    if len(parts) == 2 and parts[0] == "search" and parts[1]:
+        return _search(parts[1])
     if len(parts) == 2 and parts[1]:
         name, value = parts
+        if name == "accounts":
+            return _account(store, value)
+        if name == "entities":
+            return _entity(value)
         if name == "labels":
             return _labels(store, value)
         if name == "incidents":

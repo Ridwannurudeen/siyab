@@ -24,6 +24,11 @@ QUOTED = re.compile(r'<blockquote class="data"[^>]*>.*?</blockquote>|<q class="d
 LINK = re.compile(r'(?:href|src)="([^"]*)"')
 
 
+def page_name(key):
+    """A page name as the render names it, computed here apart from intel/render.py."""
+    return re.sub(r"[^A-Za-z0-9._-]", "_", key)
+
+
 def load_hygiene():
     spec = importlib.util.spec_from_file_location("check_hygiene", ROOT / "scripts" / "check_hygiene.py")
     module = importlib.util.module_from_spec(spec)
@@ -69,21 +74,72 @@ class RenderTest(unittest.TestCase):
         with mock.patch("urllib.request.urlopen", side_effect=no_network):
             cls.written = render.render(cls.tmp.name)
         cls.out = Path(cls.tmp.name)
-        cls.pages = {name: (cls.out / name).read_text(encoding="utf-8") for name in cls.written}
+        cls.pages = {name: (cls.out / name).read_text(encoding="utf-8") for name in cls.written if name.endswith(".html")}
+        cls.subjects = {a.subject for a in labels.load().assertions if a.superseded_by is None}
 
     @classmethod
     def tearDownClass(cls):
         cls.tmp.cleanup()
 
+    def linked(self, subject):
+        """The escaped subject, linked to its account page when it has a current row."""
+        text = html.escape(subject)
+        return f'<a href="../accounts/{page_name(subject)}.html">{text}</a>' if subject in self.subjects else text
+
     def test_every_page_is_written(self):
         incidents = [p.stem for p in (ROOT / "intel" / "incidents").glob("*.json")]
         flows = [p.stem for p in (ROOT / "intel" / "flows").glob("*.json")]
         clusters = [p.stem for p in (ROOT / "intel" / "clusters").glob("*.json")]
+        entities = [json.loads(line)["id"] for line in (ROOT / "intel" / "entities.jsonl").read_text(
+            encoding="utf-8").splitlines()]
         expected = (["index.html", "feed.html", "verify.html", "404.html", "issuers.html"]
                     + [f"incidents/{i}.html" for i in incidents]
                     + [f"entities/{name}.html" for name, _, _ in render.ENTITY_SETS] + [f"flows/{f}.html" for f in flows]
-                    + [f"clusters/{c}.html" for c in clusters])
+                    + [f"clusters/{c}.html" for c in clusters]
+                    + [f"entities/{page_name(entity)}.html" for entity in entities]
+                    + [f"accounts/{page_name(subject)}.html" for subject in self.subjects]
+                    + ["search.json", "style.css"])
         self.assertEqual(sorted(self.written), sorted(expected))
+
+    def test_search_index_covers_every_subject_and_entity(self):
+        search = json.loads((self.out / "search.json").read_text(encoding="utf-8"))
+        store = labels.load()
+        current_subjects = {a.subject for a in store.assertions if a.superseded_by is None}
+        self.assertEqual({entry["subject"] for entry in search["accounts"]}, current_subjects)
+        entities = [json.loads(line) for line in (ROOT / "intel" / "entities.jsonl").read_text(encoding="utf-8").splitlines()]
+        self.assertEqual({entry["id"] for entry in search["entities"]}, {entity["id"] for entity in entities})
+        self.assertIn("search-box", self.pages["index.html"])
+        self.assertIn("<script>", self.pages["index.html"])
+        self.assertNotIn("<script src", self.pages["index.html"])
+
+    def test_every_search_link_is_a_page_inside_the_site(self):
+        search = json.loads((self.out / "search.json").read_text(encoding="utf-8"))
+        root = self.out.resolve()
+        for entry, key, folder in ([(entry, entry["subject"], "accounts") for entry in search["accounts"]]
+                                   + [(entry, entry["id"], "entities") for entry in search["entities"]]):
+            with self.subTest(url=entry["url"]):
+                self.assertEqual(entry["url"], f"{folder}/{page_name(key)}.html")
+                target = (self.out / entry["url"]).resolve()
+                self.assertIn(root, target.parents)
+                self.assertTrue(target.is_file())
+
+    def test_pages_that_name_a_subject_link_its_account_page(self):
+        document = json.loads((ROOT / "intel" / "incidents" / "rhea.json").read_text(encoding="utf-8"))
+        named = [account["subject"] for account in document["accounts"] if account["subject"] in self.subjects]
+        self.assertTrue(named)
+        for subject in named:
+            self.assertIn(self.linked(subject), self.pages["incidents/rhea.html"])
+        store = labels.load()
+        for name, _, categories in render.ENTITY_SETS:
+            for row in (a for a in store.assertions if a.category in categories and a.superseded_by is None):
+                with self.subTest(set=name, subject=row.subject):
+                    self.assertIn(f'<a href="../accounts/{page_name(row.subject)}.html"><q class="data">'
+                                  f'{html.escape(row.subject)}</q></a>', self.pages[f"entities/{name}.html"])
+        entity = json.loads((ROOT / "intel" / "entities.jsonl").read_text(encoding="utf-8").splitlines()[0])
+        member = entity["members"][0]
+        self.assertIn(member, self.subjects)
+        self.assertIn(f'<a href="../accounts/{page_name(member)}.html"><q class="data">{html.escape(member)}</q></a>',
+                      self.pages[f"entities/{page_name(entity['id'])}.html"])
 
     def test_every_page_is_noindex_with_the_footer_and_no_external_script(self):
         for name, page in self.pages.items():
@@ -92,8 +148,8 @@ class RenderTest(unittest.TestCase):
                 self.assertIn('<meta name="robots" content="noindex">', page)
                 self.assertIn("Data: NearBlocks", page)
                 self.assertNotIn("<script src", page)
-                self.assertNotIn('rel="stylesheet"', page)
-                self.assertEqual(page.count("<style>"), 1)
+                self.assertIn('rel="stylesheet" href="/style.css"', page)
+                self.assertNotIn("<style>", page)
 
     def test_no_forbidden_or_barred_word_outside_quoted_source_data(self):
         for name, page in self.pages.items():
@@ -191,7 +247,7 @@ class RenderTest(unittest.TestCase):
         for item in document["not_public"]:
             self.assertIn(html.escape(item), page)
         for entry in document["rules_today"]:
-            self.assertIn(f"{entry['subject']} as {entry['as']}", page)
+            self.assertIn(f"{self.linked(entry['subject'])} as {entry['as']}", page)
         self.assertIn(document["code_hash_as_reported"]["value"], page)
 
     def test_the_flow_page_has_the_summary_the_shares_and_one_card_per_hop(self):
@@ -210,7 +266,7 @@ class RenderTest(unittest.TestCase):
                       f"summed.</p><p>{html.escape(trace.gross_sentence(document))}</p>", page)
         self.assertIn("older outbound rows are outside it", page)
         for bucket in document["shares"]["buckets"]:
-            self.assertIn(f'<td class="mono">{html.escape(bucket["to"])}</td><td>{html.escape(bucket["kind"])}</td>'
+            self.assertIn(f'<td class="mono">{self.linked(bucket["to"])}</td><td>{html.escape(bucket["kind"])}</td>'
                           f'<td>{trace.usd_text(bucket["usd"])}</td><td>{bucket["count"]}</td><td>{bucket["percent"]}</td>', page)
         self.assertIn('banned by the issuer, get_blacklist_status answers <q class="data">Banned</q>', page)
         for read in document["state_at_block"]:
@@ -242,7 +298,7 @@ class RenderTest(unittest.TestCase):
                 cards = page.split('<div class="card edge">')[1:]
                 for edge, card in zip(chain + inferred, cards):
                     self.assertIn(f"<strong>{edge['rule']}</strong>, provenance {edge['provenance']}", card)
-                    self.assertIn(f'<p class="mono">{html.escape(edge["from"])} to {html.escape(edge["to"])}</p>', card)
+                    self.assertIn(f'<p class="mono">{self.linked(edge["from"])} to {self.linked(edge["to"])}</p>', card)
                 for edge, card in zip(chain, cards):
                     for side in ("from", "to"):
                         read = edge["source"][side]
@@ -259,7 +315,7 @@ class RenderTest(unittest.TestCase):
                     self.assertIn(f"<li>{html.escape(line)}</li>", page[precision:])
                 self.assertLess(page.index("<h2>Seeds</h2>"), page.index('<div class="card edge">'))
                 for seed in document["seeds"]:
-                    self.assertIn(f'<li class="mono">{html.escape(seed)}</li>', page)
+                    self.assertIn(f'<li class="mono">{self.linked(seed)}</li>', page)
                 depositors = document["depositors"]
                 self.assertIn(f"{depositors['count']} distinct depositors of", page)
                 self.assertIn(f"{depositors['implicit_count']} of them implicit accounts", page)
@@ -328,7 +384,7 @@ class RenderTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp, contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(intel_main.main(["render", "--out", tmp, "--indexable"]), 0)
             indexable = {name: (Path(tmp) / name).read_text(encoding="utf-8") for name in self.written}
-        for name in self.written:
+        for name in (page for page in self.written if page.endswith(".html")):
             with self.subTest(page=name):
                 self.assertIn(ROBOTS, self.pages[name])
                 self.assertIn(ROBOTS, (SITE / name).read_text(encoding="utf-8"))
@@ -365,6 +421,59 @@ class RenderTest(unittest.TestCase):
                 self.assertTrue(rows)
                 self.assertEqual(self.pages[f"entities/{name}.html"].count("<tr><td"), len(rows))
 
+    def test_no_account_page_for_a_subject_without_a_row(self):
+        subject = "no-current-row.example.near"
+        self.assertFalse(any(a.subject == subject and a.superseded_by is None for a in labels.load().assertions))
+        self.assertNotIn(f"accounts/{subject}.html", self.written)
+        replacement = make_row(subject="relay2.example.near")
+        superseded = make_row(superseded_by=replacement.id)
+        with tempfile.TemporaryDirectory() as tmp, mock.patch("urllib.request.urlopen", side_effect=no_network):
+            written = render.render(tmp, store=labels.Store([superseded, replacement], "0" * 64))
+            search = json.loads((Path(tmp) / "search.json").read_text(encoding="utf-8"))
+            self.assertFalse((Path(tmp) / f"accounts/{page_name(superseded.subject)}.html").exists())
+        self.assertNotIn(f"accounts/{page_name(superseded.subject)}.html", written)
+        self.assertIn(f"accounts/{page_name(replacement.subject)}.html", written)
+        self.assertEqual([entry["subject"] for entry in search["accounts"]], [replacement.subject])
+
+    def test_an_inferred_row_renders_under_the_hypothesis_heading_on_its_account_page(self):
+        store = labels.load()
+        by_id = {a.id: a for a in store.assertions}
+        inferred = [a for a in store.assertions if a.provenance == "inferred" and a.superseded_by is None]
+        self.assertTrue(inferred)
+        for row in inferred:
+            with self.subTest(row=row.id):
+                page = self.pages[f"accounts/{page_name(row.subject)}.html"]
+                heading = page.index("<h2>Attribution hypothesis</h2>")
+                plain, hypothesis = page[:heading], page[heading:]
+                stated = [a for a in store.assertions if a.subject == row.subject and a.superseded_by is None
+                          and a.provenance != "inferred"]
+                self.assertEqual(plain.count("<tr><td>"), len(stated))
+                self.assertNotIn("<td>inferred</td>", plain)
+                self.assertIn(render.data_text(row.label), hypothesis)
+                self.assertIn(f"<td>{row.confidence}</td>", hypothesis)
+                for input_id in row.source["inputs"]:
+                    self.assertIn(f'<a href="../accounts/{page_name(by_id[input_id].subject)}.html">{input_id}</a>',
+                                  hypothesis)
+
+    def test_the_account_page_shows_the_chain_of_every_row(self):
+        chains = {}
+        for a in labels.load().assertions:
+            if a.superseded_by is None:
+                chains.setdefault(a.subject, []).append(a.chain)
+        subject = max(chains, key=lambda key: len(set(chains[key])))
+        self.assertGreaterEqual(len(set(chains[subject])), 12)
+        page = self.pages[f"accounts/{page_name(subject)}.html"]
+        self.assertIn("<th>Chain</th>", page)
+        self.assertEqual(sorted(re.findall(r"<tr><td>([a-z0-9]+)</td>", page)), sorted(chains[subject]))
+
+    def test_the_entity_page_lists_its_members_with_the_registry_read(self):
+        entity = json.loads((ROOT / "intel" / "entities.jsonl").read_text(encoding="utf-8").splitlines()[0])
+        page = self.pages[f"entities/{entity['id']}.html"]
+        self.assertIn("<h2>Members</h2>", page)
+        self.assertIn(f'<q class="data">{html.escape(entity["members"][0])}</q>', page)
+        self.assertIn(entity["source"]["method"], page)
+        self.assertIn(str(entity["source"]["block"]), page)
+
     def test_the_verify_page_reads_the_testnet_rpc_only(self):
         page = self.pages["verify.html"]
         self.assertIn('fetch("https://test.rpc.fastnear.com"', page)
@@ -373,7 +482,7 @@ class RenderTest(unittest.TestCase):
         self.assertEqual(re.findall(r"https://[a-z.]+", page.split("<script>", 1)[1]), ["https://test.rpc.fastnear.com"])
 
     def test_the_committed_site_equals_a_fresh_render(self):
-        committed = sorted(p.relative_to(SITE).as_posix() for p in SITE.rglob("*.html"))
+        committed = sorted(p.relative_to(SITE).as_posix() for p in SITE.rglob("*") if p.is_file())
         self.assertEqual(committed, sorted(self.written))
         for name in self.written:
             with self.subTest(page=name):

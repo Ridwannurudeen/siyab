@@ -5,6 +5,7 @@ import re
 import tempfile
 import threading
 import unittest
+import urllib.parse
 from pathlib import Path
 from unittest import mock
 
@@ -68,6 +69,18 @@ class ApiTest(unittest.TestCase):
     def test_health(self):
         self.assertEqual(self.get_json("/health"), (200, {"status": "ok", "assertions": len(self.store.assertions),
                                                          "label_store_sha256": self.store.sha256}))
+
+    def test_the_api_search_matches_by_subject_label_and_entity(self):
+        for term, expected_type in (("genesis.sputnik-dao.near", "account"),
+                                    ("DAO created by the Sputnik DAO factory", "account"),
+                                    ("Sputnik DAO: \"genesis\"", "entity")):
+            with self.subTest(term=term):
+                status, body = self.get_json("/search/" + urllib.parse.quote(term, safe=""))
+                self.assertEqual(status, 200)
+                self.assertTrue(any(result["type"] == expected_type for result in body["results"]))
+                for result in body["results"]:
+                    folder = "accounts/" if result["type"] == "account" else "entities/"
+                    self.assertTrue(result["url"].startswith(folder) and result["url"].endswith(".html"))
 
     def test_labels_on_every_chain(self):
         status, body = self.get_json(f"/labels/{TREASURY}")
@@ -206,7 +219,20 @@ class HostedSiteTest(unittest.TestCase):
         for link in links:
             with self.subTest(link=link):
                 status, content_type, cache, body = get(self.server, "/" + link)
-                self.assertEqual((status, content_type, cache), (200, "text/html", "no-store"))
+                self.assertEqual((status, cache), (200, "no-store"))
+                if link == "/style.css":
+                    self.assertEqual(content_type, "text/css")
+                else:
+                    self.assertEqual(content_type, "text/html")
+                    self.assertTrue(body.startswith(b"<!doctype html>"))
+
+    def test_every_search_link_answers_200_with_html_through_the_server(self):
+        search = json.loads((Path(self.site.name) / "search.json").read_text(encoding="utf-8"))
+        self.assertGreaterEqual(len([entry for entry in search["accounts"] if ":" in entry["subject"]]), 12)
+        for entry in search["accounts"] + search["entities"]:
+            with self.subTest(url=entry["url"]):
+                status, content_type, _, body = get(self.server, "/" + entry["url"])
+                self.assertEqual((status, content_type), (200, "text/html"))
                 self.assertTrue(body.startswith(b"<!doctype html>"))
 
     def test_the_incident_json_route_still_answers(self):
@@ -240,8 +266,11 @@ class HostedSiteTest(unittest.TestCase):
             with self.subTest(link=link):
                 self.assertTrue(link.startswith("/") and not link.startswith("//"))
                 status, content_type, _, page = get(self.server, link)
-                self.assertEqual((status, content_type), (200, "text/html"))
-                self.assertTrue(page.startswith(b"<!doctype html>"))
+                if link == "/style.css":
+                    self.assertEqual((status, content_type), (200, "text/css"))
+                else:
+                    self.assertEqual((status, content_type), (200, "text/html"))
+                    self.assertTrue(page.startswith(b"<!doctype html>"))
 
 
 if __name__ == "__main__":

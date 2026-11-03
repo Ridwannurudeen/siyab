@@ -1,13 +1,21 @@
 """python -m intel render --out <dir>: the static hosted pages, built from the committed JSON files.
 
-No framework and no external script; one stylesheet inline in each page. The pages: index.html
-(the headline, what the counts are of, the counts block of scripts/counts.py, the links), feed.html
+No framework and no external script; one shared stylesheet, style.css, that every page links. The
+pages: index.html (the headline, what the counts are of, a search box whose inline script filters
+search.json in the browser, the counts block of scripts/counts.py, the links), search.json (one entry
+per subject with a current row and per registry entity of intel/entities.jsonl, each with the path of
+its page relative to the site root), feed.html
 (the recorded window or, in follow mode, the follower's lines, then the events),
 incidents/<id>.html (sources, accounts, on chain facts, rules today, what is not
 public), entities/<set>.html (treasuries, catalog, infrastructure, organisations: one page per set,
 each subject shown as quoted data, since a third party chose the account id, and every inferred row
 under the heading "Attribution hypothesis" with its rule id, inputs and confidence),
-clusters/<name>.html (the seeds, one card per edge: the two chain reads of an onchain edge, the
+entities/<name>.html (one registry entity of intel/entities.jsonl: its kind, name, members and the
+registry read that produced it), accounts/<name>.html (one subject with a current row: its rows from
+sources and chain reads with chain, provenance and source, its inferred rows under "Attribution
+hypothesis" with their inputs and confidence, the incident pages naming it, the trace and cluster
+edges touching it and the feed events on it), clusters/<name>.html (the seeds, one card per edge:
+the two chain reads of an onchain edge, the
 input facts and confidence of an inferred edge under "Attribution hypothesis", then the precision
 lines as the JSON states them and the depositor count), issuers.html (the status reads counted by
 issuer and answer, one card per row banned by the issuer, then the history's coverage and one card
@@ -19,6 +27,9 @@ browser, never the ShieldBot API, and shows it next to the evidence hash the rea
 show the vendor's committed record as examples) and 404.html (the page the API serves for a path that
 is neither a route nor a file at any depth, so its links are root absolute). Every
 page carries a robots noindex meta, which render --indexable leaves out, and the footer "Data: NearBlocks".
+A page name is the subject or entity id with every character outside letters, digits, dot, underscore
+and hyphen replaced by an underscore; the incident, entity, cluster and flow pages link each subject
+that has an account page to it.
 
 Text from a source (a report's sentence, a token symbol, a quoted string in a label row) is shown
 as quoted data: a quote object as <blockquote class="data">, a double quoted string inside a label
@@ -73,6 +84,8 @@ button{padding:8px 16px;font:inherit;margin-top:8px}footer{border-top:1px solid 
 # A double quoted source string, which may itself hold escaped quotes and backslashes (JSON text).
 _QUOTED = re.compile(r'"((?:[^"\\]|\\.)*)"')
 _UNESCAPE = re.compile(r'\\(["\\])')
+# The characters a page name keeps; page_names replaces every other one with an underscore.
+_PAGE_NAME = re.compile(r"[^A-Za-z0-9._-]")
 
 
 def esc(text):
@@ -96,6 +109,43 @@ def quote_block(quote, sources):
             f'<br><span class="muted">quoted from [{esc(quote["source"])}]</span></blockquote>')
 
 
+def page_names(keys):
+    """{key: page name}: the key with every character outside letters, digits, dot, underscore and hyphen
+    replaced by an underscore, a name every file system and URL accepts. Two keys whose names are equal
+    ignoring case, one file on a case insensitive file system, raise ValueError."""
+    names, seen = {}, {}
+    for key in keys:
+        name = _PAGE_NAME.sub("_", key)
+        other = seen.setdefault(name.casefold(), key)
+        if other != key:
+            raise ValueError(f"{other!r} and {key!r} share the page name {name!r}")
+        names[key] = name
+    return names
+
+
+def account_pages(store):
+    """{subject: page path relative to the site root} for every subject with a current row."""
+    subjects = sorted({a.subject for a in store.assertions if a.superseded_by is None})
+    return {subject: f"accounts/{name}.html" for subject, name in page_names(subjects).items()}
+
+
+def _linked(subject, inner, accounts):
+    """inner, linked to the subject's account page when the subject has one, from a page one directory
+    below the site root."""
+    return f'<a href="../{accounts[subject]}">{inner}</a>' if subject in accounts else inner
+
+
+def _subject_cell(subject, accounts):
+    """The subject as quoted data, linked to its account page when it has one."""
+    return _linked(subject, f'<q class="data">{esc(subject)}</q>', accounts)
+
+
+def _inputs(assertion, by_id, accounts):
+    """The input assertion ids of an inferred row, each linked to the account page of its row's subject."""
+    return "<br>".join(_linked(by_id[i].subject, esc(i), accounts) if i in by_id else esc(i)
+                       for i in assertion.source["inputs"])
+
+
 def page(title, body, depth=0, rooted=False):
     """A whole HTML page; depth is how many directories below the site root it sits, and a rooted page
     links root absolute because it is served at any path."""
@@ -104,7 +154,7 @@ def page(title, body, depth=0, rooted=False):
         ("index.html", "Home"), ("feed.html", "Feed"), ("verify.html", "Verify")))
     return ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"
             f"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n{ROBOTS}"
-            f"<title>{esc(title)}</title>\n<style>{STYLE}</style>\n</head>\n<body>\n"
+            f"<title>{esc(title)}</title>\n<link rel=\"stylesheet\" href=\"/style.css\">\n</head>\n<body>\n"
             f"<header><nav>{nav}</nav></header>\n<main>\n{body}\n</main>\n"
             "<footer><p>Data: NearBlocks. Blocks: mainnet.neardata.xyz. Transfers: FastNEAR.</p></footer>\n"
             "</body>\n</html>\n")
@@ -149,10 +199,37 @@ def index_page(incidents, flows, clusters):
     links.append("<li><a href=\"issuers.html\">Issuer actions: what the issuer contracts answer for the account ids "
                  "read, and the issuer action history with its blocks and transactions</a></li>")
     links.append("<li><a href=\"verify.html\">Read a registry record and compare its evidence hash</a></li>")
-    body = (f"<h1>{esc(HEADLINE)}</h1>\n<p>{esc(COUNTS_OF)}</p>\n<h2>Counts</h2>\n<div class=\"card\">{counts}</div>\n"
+    search = ('<form id="search-box"><label for="search-term">Search accounts and entities</label>'
+              '<input id="search-term" name="term" autocomplete="off"><button type="submit">Search</button>'
+              '<div id="search-results" aria-live="polite"></div></form>'
+              '<script>const form=document.getElementById("search-box");const term=document.getElementById("search-term");'
+              'const results=document.getElementById("search-results");let entries=[];'
+              'fetch("/search.json").then(response=>response.json()).then(data=>{entries=data.accounts.concat(data.entities)});'
+              'form.addEventListener("submit",event=>{event.preventDefault();const value=term.value.trim().toLocaleLowerCase();'
+              'const matches=entries.filter(entry=>(entry.subject||"").toLocaleLowerCase().includes(value)||'
+              '(entry.labels||[]).some(label=>label.toLocaleLowerCase().includes(value))||'
+              '(entry.name||"").toLocaleLowerCase().includes(value));results.replaceChildren();'
+              'for(const entry of matches.slice(0,50)){const paragraph=document.createElement("p");'
+              'const link=document.createElement("a");link.href=entry.url;const quoted=document.createElement("q");'
+              'quoted.className="data";quoted.textContent=entry.subject||entry.name;link.append(quoted);'
+              'paragraph.append(link);results.append(paragraph)}});</script>')
+    body = (f"<h1>{esc(HEADLINE)}</h1>\n<p>{esc(COUNTS_OF)}</p>\n{search}\n<h2>Counts</h2>\n<div class=\"card\">{counts}</div>\n"
             "<p class=\"muted\">Every number above is printed by <code>scripts/counts.py</code> from the committed "
             "files.</p>\n<h2>Pages</h2>\n<ul>" + "".join(links) + "</ul>")
     return page("ShieldBot for NEAR", body)
+
+
+def search_index(store, pages, entities, entity_paths):
+    accounts = {}
+    current = [a for a in store.assertions if a.superseded_by is None]
+    for assertion in current:
+        entry = accounts.setdefault(assertion.subject, {"type": "account", "subject": assertion.subject,
+                                                           "labels": [], "url": pages[assertion.subject]})
+        if assertion.label not in entry["labels"]:
+            entry["labels"].append(assertion.label)
+    return {"accounts": [accounts[subject] for subject in sorted(accounts)],
+            "entities": [{"type": "entity", "id": entity["id"], "name": entity["name"],
+                          "url": entity_paths[entity["id"]]} for entity in entities]}
 
 
 def feed_page(state_path=feed.STATE_PATH, events_dir=feed.EVENTS_DIR):
@@ -175,7 +252,7 @@ def feed_page(state_path=feed.STATE_PATH, events_dir=feed.EVENTS_DIR):
     return page("Feed", body)
 
 
-def incident_page(document):
+def incident_page(document, accounts):
     sources = {s["id"]: s for s in document["sources"]}
     chains = ", ".join(document["chains"])
     parts = [f"<h1>{esc(document['title'])}</h1>", f"<p>{esc(document['date'])}; chains {esc(chains)}</p>",
@@ -189,7 +266,8 @@ def incident_page(document):
         parts.append("<p>The sources name no account.</p>")
     for account in document["accounts"]:
         ids = "<br>".join(esc(i) for i in account["assertion_ids"]) or "none"
-        parts.append(f'<div class="card"><p class="mono">{esc(account["subject"])} ({esc(account["chain"])})</p>'
+        parts.append(f'<div class="card"><p class="mono">{_linked(account["subject"], esc(account["subject"]), accounts)} '
+                     f'({esc(account["chain"])})</p>'
                      f'<p>role as reported: {esc(account["role_as_reported"])}</p>'
                      f'{quote_block(account["quote"], sources)}<p class="mono muted">assertions<br>{ids}</p></div>')
     for key in [key for key in document if key.endswith("_as_reported")]:
@@ -201,7 +279,7 @@ def incident_page(document):
     if document.get("onchain_state"):
         parts.append(f"<p>{esc(document['onchain_state'])}</p>")
     for fact in document["onchain_facts"]:
-        parts.append(f'<div class="card"><p class="mono">{esc(fact["subject"])}</p><p>{esc(fact["method"])} at block '
+        parts.append(f'<div class="card"><p class="mono">{_linked(fact["subject"], esc(fact["subject"]), accounts)}</p><p>{esc(fact["method"])} at block '
                      f'{fact["block"]}: {data_text(fact["summary"])}</p><p class="mono muted">result sha256 '
                      f'{esc(fact["result_sha256"])}</p></div>')
     parts.append("<h2>Rules today</h2>")
@@ -210,7 +288,8 @@ def incident_page(document):
     for entry in document["rules_today"]:
         checks = ", ".join(f"{c['id']} {c['status']}" for c in entry["checks"])
         css = ' class="deny"' if entry["verdict"] == "DENY" else ""
-        parts.append(f'<div class="card"><p class="mono">{esc(entry["subject"])} as {esc(entry["as"])}: '
+        parts.append(f'<div class="card"><p class="mono">{_linked(entry["subject"], esc(entry["subject"]), accounts)} as '
+                     f'{esc(entry["as"])}: '
                      f'<strong{css}>{esc(entry["verdict"])}</strong></p><p class="muted">{esc(checks)}</p></div>')
     parts.append("<h2>Not public</h2><ul>" + "".join(f"<li>{esc(i)}</li>" for i in document["not_public"]) + "</ul>")
     parts.append(f"<h2>Standard</h2><p>{esc(document['standard'])}</p>")
@@ -221,15 +300,16 @@ def entity_page(title, categories, store):
     rows = [a for a in store.assertions if a.category in categories and a.superseded_by is None]
     stated = [a for a in rows if a.provenance != "inferred"]
     inferred = [a for a in rows if a.provenance == "inferred"]
-    body = "".join(f'<tr><td class="mono"><q class="data">{esc(a.subject)}</q></td><td>{esc(a.chain)}</td>'
+    accounts, by_id = account_pages(store), {a.id: a for a in store.assertions}
+    body = "".join(f'<tr><td class="mono">{_subject_cell(a.subject, accounts)}</td><td>{esc(a.chain)}</td>'
                    f'<td>{data_text(a.label)}</td><td>{esc(a.category)}</td><td>{esc(a.provenance)}</td>'
                    f'<td>{data_text(a.note)}</td></tr>' for a in stated)
     table = ("<div class=\"table\"><table><thead><tr><th>Subject</th><th>Chain</th><th>Label</th><th>Category</th>"
              f"<th>Provenance</th><th>Note</th></tr></thead><tbody>{body}</tbody></table></div>")
     if inferred:
-        body = "".join(f'<tr><td class="mono"><q class="data">{esc(a.subject)}</q></td><td>{esc(a.chain)}</td>'
+        body = "".join(f'<tr><td class="mono">{_subject_cell(a.subject, accounts)}</td><td>{esc(a.chain)}</td>'
                        f'<td>{data_text(a.label)}</td><td>{esc(a.category)}</td><td class="mono">{esc(a.rule_id)}</td>'
-                       f'<td class="mono">{"<br>".join(esc(i) for i in a.source["inputs"])}</td><td>{a.confidence}</td>'
+                       f'<td class="mono">{_inputs(a, by_id, accounts)}</td><td>{a.confidence}</td>'
                        f'<td>{data_text(a.note)}</td></tr>' for a in inferred)
         table += ("<h2>Attribution hypothesis</h2><p>Each row below is inferred: it names the rule that inferred "
                   "it, the assertions the rule read as its inputs and its confidence.</p><div class=\"table\"><table>"
@@ -239,10 +319,77 @@ def entity_page(title, categories, store):
                 depth=1)
 
 
-def _edge_card(edge, facts):
+def account_page(subject, store, accounts, incidents, flows, clusters, events_dir=feed.EVENTS_DIR):
+    assertions = [a for a in store.assertions if a.subject == subject and a.superseded_by is None]
+    rows = "".join(f'<tr><td>{esc(a.chain)}</td><td>{data_text(a.label)}</td><td>{esc(a.category)}</td>'
+                   f'<td>{esc(a.provenance)}</td><td>{data_text(a.note)}</td><td class="mono"><q class="data">'
+                   f'{esc(json.dumps(a.source, ensure_ascii=False, sort_keys=True))}</q></td></tr>'
+                   for a in assertions if a.provenance != "inferred")
+    body = (f'<h1>Account</h1><p class="mono"><q class="data">{esc(subject)}</q></p>'
+            f'<h2>Current label rows from sources and chain reads</h2><div class="table"><table><thead><tr>'
+            f'<th>Chain</th><th>Label</th><th>Category</th><th>Provenance</th><th>Note</th><th>Source</th></tr>'
+            f'</thead><tbody>{rows}</tbody></table></div>')
+    inferred = [a for a in assertions if a.provenance == "inferred"]
+    if inferred:
+        by_id = {a.id: a for a in store.assertions}
+        rows = "".join(f'<tr><td>{esc(a.chain)}</td><td>{data_text(a.label)}</td><td>{esc(a.category)}</td>'
+                       f'<td class="mono">{_inputs(a, by_id, accounts)}</td><td>{a.confidence}</td>'
+                       f'<td>{data_text(a.note)}</td></tr>' for a in inferred)
+        body += ('<h2>Attribution hypothesis</h2><p>Each row below is inferred: it lists the assertions its rule '
+                 'read as inputs and its confidence.</p><div class="table"><table><thead><tr><th>Chain</th>'
+                 '<th>Label</th><th>Category</th><th>Inputs</th><th>Confidence</th><th>Note</th></tr></thead>'
+                 f'<tbody>{rows}</tbody></table></div>')
+    named = [(document["id"], document["title"]) for document in incidents
+             if any(account["subject"] == subject for account in document.get("accounts", []))]
+    body += "<h2>Incident pages naming this account</h2>" + ("<ul>" + "".join(
+        f'<li><a href="/incidents/{esc(incident_id)}.html">{esc(title)}</a></li>' for incident_id, title in named)
+        + "</ul>" if named else "<p>No incident page names this account.</p>")
+    flow_edges = [(name, hop) for name, document in flows for hop in document.get("hops", [])
+                  if subject in (hop.get("from"), hop.get("to"))]
+    flow_roots = [(name, document) for name, document in flows if document.get("subject") == subject]
+    body += "<h2>Trace edges</h2>" + ("<ul>" + "".join(
+        f'<li><a href="/flows/{esc(name)}.html">Committed trace edge: '
+        f'<q class="data">{esc(hop["from"])}</q> to <q class="data">{esc(hop["to"])}</q></a></li>'
+        for name, hop in flow_edges) + "".join(
+        f'<li><a href="/flows/{esc(name)}.html">Committed trace root with {len(document.get("hops", []))} edges</a></li>'
+        for name, document in flow_roots if not any(edge_name == name for edge_name, _ in flow_edges))
+        + "</ul>" if flow_edges or flow_roots else "<p>No committed trace edge touches this account.</p>")
+    cluster_edges = [(name, edge) for name, document in clusters for edge in document.get("edges", [])
+                     if subject in (edge.get("from"), edge.get("to"))]
+    body += "<h2>Cluster edges</h2>" + ("<ul>" + "".join(
+        f'<li><a href="/clusters/{esc(name)}.html">{esc(edge["rule"])}: '
+        f'<q class="data">{esc(edge["from"])}</q> to <q class="data">{esc(edge["to"])}</q></a></li>'
+        for name, edge in cluster_edges) + "</ul>" if cluster_edges else "<p>No committed cluster edge touches this account.</p>")
+    events = []
+    for path in sorted(Path(events_dir).glob("*.json")):
+        document = json.loads(path.read_text(encoding="utf-8"))
+        if subject in document.get("accounts", []) or subject == document.get("subject"):
+            events.append((path.stem, document))
+    body += "<h2>Feed events</h2>" + ("".join(
+        f'<div class="card"><p><strong>{esc(document["signal"])}</strong> at block '
+        f'{document["observed"]["block_height"]}</p><p>{esc(document["detail"])}</p>'
+        f'<p class="mono">evidence {esc(stem)}</p></div>' for stem, document in events)
+        if events else "<p>No committed feed event names this account.</p>")
+    return page("Account", body, depth=1)
+
+
+def registry_entity_page(entity, accounts):
+    source = entity["source"]
+    members = "".join(f'<li>{_subject_cell(member, accounts)}</li>' for member in entity["members"])
+    body = (f'<h1>{esc(entity["kind"].replace("_", " ").title())}</h1>'
+            f'<p><q class="data">{esc(entity["name"])}</q></p>'
+            f'<p>Registry read: {esc(source["method"])} at block {source["block"]}, '
+            f'arguments {esc(json.dumps(source["args"], sort_keys=True))}</p>'
+            f'<p>Observed at {esc(entity["observed_at"])} on {esc(source["rpc"])}</p>'
+            f'<h2>Members</h2><ul>{members}</ul>')
+    return page("Entity", body, depth=1)
+
+
+def _edge_card(edge, facts, accounts):
     head = (f'<div class="card edge"><p><strong>{esc(edge["rule"])}</strong>, provenance {esc(edge["provenance"])}'
             + (f', confidence {edge["confidence"]}' if edge["provenance"] == "inferred" else "")
-            + f'</p><p class="mono">{esc(edge["from"])} to {esc(edge["to"])}</p>')
+            + f'</p><p class="mono">{_linked(edge["from"], esc(edge["from"]), accounts)} to '
+            f'{_linked(edge["to"], esc(edge["to"]), accounts)}</p>')
     if edge["provenance"] != "inferred":
         reads = "<br>".join(f'{esc(read["method"])} {esc(json.dumps(read["args"], ensure_ascii=False))} at block '
                             f'{read["block"]} from {esc(read["rpc"])}'
@@ -250,48 +397,51 @@ def _edge_card(edge, facts):
         return head + f'<p class="mono muted">{reads}</p></div>'
     shared = ", ".join(f"{esc(key)} {esc(value)}" for key, value in edge["source"].items())
     inputs = "".join(
-        f'<li class="mono">fact {esc(fact["id"])}: {esc(fact["subject"])} {esc(fact["kind"])} {esc(fact["value"])}, '
+        f'<li class="mono">fact {esc(fact["id"])}: {_linked(fact["subject"], esc(fact["subject"]), accounts)} '
+        f'{esc(fact["kind"])} {esc(fact["value"])}, '
         f'read from {esc(fact["source"]["provider"])} {esc(fact["source"]["method"])} '
         f'{esc(json.dumps(fact["source"]["args"], ensure_ascii=False))} at block {fact["source"]["block"]}</li>'
         for fact in (facts[fact_id] for fact_id in edge["inputs"]))
     return head + f'<p>shared: <span class="mono">{shared}</span></p><p>inputs</p><ul>{inputs}</ul></div>'
 
 
-def cluster_page(name, document):
+def cluster_page(name, document, accounts):
     facts = {fact["id"]: fact for fact in document["facts"]}
     inferred = _inferred(document["edges"])
     chain = [edge for edge in document["edges"] if edge["provenance"] != "inferred"]
-    seeds = "".join(f'<li class="mono">{esc(seed)}</li>' for seed in document["seeds"])
+    seeds = "".join(f'<li class="mono">{_linked(seed, esc(seed), accounts)}</li>' for seed in document["seeds"])
     precision = "".join(f"<li>{esc(line)}</li>" for line in document["precision"].values())
     depositors = document["depositors"]
     counted = ("<p>No deposit count in this run.</p>" if depositors is None else
-               f'<p>{depositors["count"]} distinct depositors of <span class="mono">{esc(depositors["collector"])}</span> '
+               f'<p>{depositors["count"]} distinct depositors of <span class="mono">'
+               f'{_linked(depositors["collector"], esc(depositors["collector"]), accounts)}</span> '
                f'since {esc(depositors["since"])}, {depositors["implicit_count"]} of them implicit accounts; the '
                "cluster file counts them and lists none.</p>")
     body = (f"<h1>Account relationship edges: {esc(name)}</h1><p>{esc(document['standard'])}</p>"
             f"<h2>Seeds</h2><p>{len(document['seeds'])} seeds, each with a current incident label in the label "
             f"store.</p><ul>{seeds}</ul>"
-            "<h2>Edges from chain reads</h2>" + ("".join(_edge_card(edge, facts) for edge in chain)
+            "<h2>Edges from chain reads</h2>" + ("".join(_edge_card(edge, facts, accounts) for edge in chain)
                                                  or "<p>No edge from chain reads.</p>") +
             "<h2>Attribution hypothesis</h2><p>Each edge below is inferred from the facts named as its inputs, at "
             "the confidence shown; it is a hypothesis, not a chain read, and no verdict reads it.</p>"
-            + ("".join(_edge_card(edge, facts) for edge in inferred) or "<p>No inferred edge.</p>") +
+            + ("".join(_edge_card(edge, facts, accounts) for edge in inferred) or "<p>No inferred edge.</p>") +
             f"<h2>Precision</h2><ul>{precision}</ul><h2>Depositors</h2>{counted}"
             f"<p class=\"muted\">Read {esc(document['fetched_at'])}. docs/CLUSTER.md states the heuristics and their "
             "limits.</p>")
     return page(f"Account relationship edges: {name}", body, depth=1)
 
 
-def _hop_card(hop):
+def _hop_card(hop, accounts):
     usd = "" if hop["usd_amount"] is None else f', {hop["usd_amount"]} USD as the Transfers API values it'
-    return (f'<div class="card"><p class="mono">{esc(hop["from"])} to {esc(hop["to"])}</p><p>{esc(hop["amount"])} of '
+    return (f'<div class="card"><p class="mono">{_linked(hop["from"], esc(hop["from"]), accounts)} to '
+            f'{_linked(hop["to"], esc(hop["to"]), accounts)}</p><p>{esc(hop["amount"])} of '
             f'<span class="mono">{esc(hop["asset_id"])}</span>{esc(usd)}, method {esc(hop["method_name"] or "none")}</p>'
             f'<p class="mono muted">block {hop["block"]} at {esc(trace.utc_minute(hop["block_timestamp"]))}<br>transaction '
             f'{esc(hop["transaction_hash"])}<br>receipt {esc(hop["receipt_id"])}</p></div>')
 
 
-def _shares_table(shares):
-    rows = "".join(f'<tr><td class="mono">{esc(b["to"])}</td><td>{esc(b["kind"])}</td><td>{esc(trace.usd_text(b["usd"]))}</td>'
+def _shares_table(shares, accounts):
+    rows = "".join(f'<tr><td class="mono">{_linked(b["to"], esc(b["to"]), accounts)}</td><td>{esc(b["kind"])}</td><td>{esc(trace.usd_text(b["usd"]))}</td>'
                    f'<td>{b["count"]}</td><td>{b["percent"]}</td></tr>' for b in shares["buckets"])
     below, without = shares["below_min_usd"], shares["without_usd"]
     units = ", ".join(f"{amount} of {asset}" for asset, amount in without["base_units"].items()) or "none"
@@ -318,19 +468,19 @@ def _state_card(reads):
     return '<div class="card state">' + ("".join(lines) or "<p>No issuer read.</p>") + "</div>"
 
 
-def flow_page(document):
+def flow_page(document, accounts):
     depths = trace.hop_depths(document)
     groups = []
     for depth in sorted(set(depths)):
         hops = [hop for hop, d in zip(document["hops"], depths) if d == depth]
-        groups.append(f"<h2>Depth {depth}: {len(hops)} hops</h2>" + "".join(_hop_card(hop) for hop in hops))
+        groups.append(f"<h2>Depth {depth}: {len(hops)} hops</h2>" + "".join(_hop_card(hop, accounts) for hop in hops))
     window = document["window"]
-    body = (f'<h1>Exit trace</h1><p class="mono">{esc(document["subject"])}</p>'
+    body = (f'<h1>Exit trace</h1><p class="mono">{_linked(document["subject"], esc(document["subject"]), accounts)}</p>'
             f'<div class="card summary"><p>{data_text(trace.summary(document))}</p><p class="muted">Read '
             f'{esc(document["fetched_at"])}.</p></div>'
             f"<p>The window starts at {esc(window['from'])}, {esc(window['rule'])} {esc(window['incident_date'])}; "
             "older outbound rows are outside it.</p>"
-            "<h2>Shares of the gross outbound transfer value</h2>" + _shares_table(document["shares"]) +
+            "<h2>Shares of the gross outbound transfer value</h2>" + _shares_table(document["shares"], accounts) +
             "<p>Shares are of the subject's gross outbound transfer value; deeper hops are shown and not re summed.</p>"
             f"<p>{esc(trace.gross_sentence(document))}</p>"
             "<h2>The subject at a block</h2>" + _state_card(document["state_at_block"]) +
@@ -470,18 +620,30 @@ def render(out_dir, store=None, incidents_dir=INCIDENTS_DIR, flows_dir=trace.FLO
     store = store or labels.load()
     out = Path(out_dir)
     incidents, flows, clusters = _incidents(incidents_dir), _flows(flows_dir), _clusters(clusters_dir)
+    registry_entities = [json.loads(line) for line in (ROOT / "intel" / "entities.jsonl").read_text(encoding="utf-8").splitlines()]
+    accounts = account_pages(store)
+    entity_paths = {entity_id: f"entities/{name}.html"
+                    for entity_id, name in page_names(entity["id"] for entity in registry_entities).items()}
+    search = search_index(store, accounts, registry_entities, entity_paths)
     pages = {"index.html": index_page(incidents, flows, clusters), "feed.html": feed_page(),
              "verify.html": verify_page(), "404.html": not_found_page(), "issuers.html": issuers_page()}
     for document in incidents:
-        pages[f"incidents/{document['id']}.html"] = incident_page(document)
+        pages[f"incidents/{document['id']}.html"] = incident_page(document, accounts)
     for name, title, categories in ENTITY_SETS:
         pages[f"entities/{name}.html"] = entity_page(title, categories, store)
+    for entity in registry_entities:
+        pages[entity_paths[entity["id"]]] = registry_entity_page(entity, accounts)
+    pages.update({path: account_page(subject, store, accounts, incidents, flows, clusters)
+                  for subject, path in accounts.items()})
     for name, document in flows:
-        pages[f"flows/{name}.html"] = flow_page(document)
+        pages[f"flows/{name}.html"] = flow_page(document, accounts)
     for name, document in clusters:
-        pages[f"clusters/{name}.html"] = cluster_page(name, document)
+        pages[f"clusters/{name}.html"] = cluster_page(name, document, accounts)
     for relative, text in pages.items():
         path = out / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes((text.replace(ROBOTS, "") if indexable else text).encode("utf-8"))
-    return sorted(pages)
+    (out / "style.css").write_text(STYLE, encoding="utf-8", newline="\n")
+    (out / "search.json").write_text(json.dumps(search, ensure_ascii=False, separators=(",", ":")) + "\n",
+                                     encoding="utf-8", newline="\n")
+    return sorted([*pages, "search.json", "style.css"])

@@ -5,32 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>ShieldBot for NEAR</title>
-<style>
-:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#dcd8cf;--card:#ffffff;--accent:#2f5d50;--deny:#8a2b1f}
-@media (prefers-color-scheme:dark){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3934;
---card:#1f1f1c;--accent:#8fc1ae;--deny:#e08a7c}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
-font:16px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
-main,header,footer{max-width:960px;margin:0 auto;padding:16px}
-header{border-bottom:1px solid var(--line)}header a{margin-right:16px}
-a{color:var(--accent)}h1{font-size:1.6rem;line-height:1.25}h2{font-size:1.2rem;margin-top:2rem}
-code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.85rem;
-overflow-wrap:anywhere}
-.card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px 16px;margin:12px 0}
-.muted{color:var(--muted)}.deny{color:var(--deny)}
-blockquote.data{margin:8px 0;padding:4px 12px;border-left:3px solid var(--line);color:var(--muted)}
-q.data{color:var(--muted)}
-table{border-collapse:collapse}td,th{border-bottom:1px solid var(--line);padding:6px 8px;
-text-align:left;vertical-align:top}.table{overflow-x:auto}
-input{display:block;width:60ch;max-width:calc(100vw - 72px);padding:8px;font:inherit;background:var(--card);color:var(--fg);border:1px solid var(--line)}
-button{padding:8px 16px;font:inherit;margin-top:8px}footer{border-top:1px solid var(--line);color:var(--muted)}
-</style>
+<link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <header><nav><a href="index.html">Home</a><a href="feed.html">Feed</a><a href="verify.html">Verify</a></nav></header>
 <main>
 <h1>ShieldBot for NEAR: security intelligence for AI agent money on NEAR</h1>
 <p>The counts below are of the recorded mainnet receivers the rules judged, the label store&#x27;s assertions and subjects by provenance class, the incident pages, the blocks and events of the feed, the exit traces and their hops, and the verdict latency runs.</p>
+<form id="search-box"><label for="search-term">Search accounts and entities</label><input id="search-term" name="term" autocomplete="off"><button type="submit">Search</button><div id="search-results" aria-live="polite"></div></form><script>const form=document.getElementById("search-box");const term=document.getElementById("search-term");const results=document.getElementById("search-results");let entries=[];fetch("/search.json").then(response=>response.json()).then(data=>{entries=data.accounts.concat(data.entities)});form.addEventListener("submit",event=>{event.preventDefault();const value=term.value.trim().toLocaleLowerCase();const matches=entries.filter(entry=>(entry.subject||"").toLocaleLowerCase().includes(value)||(entry.labels||[]).some(label=>label.toLocaleLowerCase().includes(value))||(entry.name||"").toLocaleLowerCase().includes(value));results.replaceChildren();for(const entry of matches.slice(0,50)){const paragraph=document.createElement("p");const link=document.createElement("a");link.href=entry.url;const quoted=document.createElement("q");quoted.className="data";quoted.textContent=entry.subject||entry.name;link.append(quoted);paragraph.append(link);results.append(paragraph)}});</script>
 <h2>Counts</h2>
 <div class="card"><p>On 52 recorded mainnet receivers the rules returned 32 ALLOW, 19 DENY, 1 Unknown.</p><p>Label store: 3266 assertions over 3009 subjects (onchain 2894, official_source 350, third_party 18, inferred 4).</p><p>Incidents: 3 pages.</p><p>Feed: since 2026-10-29, 300 blocks, 0 events (0 code_hash_matches_incident, 0 fresh_dust_funded_pays_labelled, 0 watch_account_key_added).</p><p>Flows: 1 exit traces, 1708 hops, depth 2 of 3, stopped while reading an account 1 hop from the subject.</p><p>Latency: p50 1843 ms, p95 2300 ms over 20 verdict runs.</p></div>
 <p class="muted">Every number above is printed by <code>scripts/counts.py</code> from the committed files.</p>

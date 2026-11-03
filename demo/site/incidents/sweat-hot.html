@@ -5,26 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>SWEAT token ft_resolve_transfer exploit and the HOT token patch</title>
-<style>
-:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#dcd8cf;--card:#ffffff;--accent:#2f5d50;--deny:#8a2b1f}
-@media (prefers-color-scheme:dark){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3934;
---card:#1f1f1c;--accent:#8fc1ae;--deny:#e08a7c}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
-font:16px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
-main,header,footer{max-width:960px;margin:0 auto;padding:16px}
-header{border-bottom:1px solid var(--line)}header a{margin-right:16px}
-a{color:var(--accent)}h1{font-size:1.6rem;line-height:1.25}h2{font-size:1.2rem;margin-top:2rem}
-code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.85rem;
-overflow-wrap:anywhere}
-.card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px 16px;margin:12px 0}
-.muted{color:var(--muted)}.deny{color:var(--deny)}
-blockquote.data{margin:8px 0;padding:4px 12px;border-left:3px solid var(--line);color:var(--muted)}
-q.data{color:var(--muted)}
-table{border-collapse:collapse}td,th{border-bottom:1px solid var(--line);padding:6px 8px;
-text-align:left;vertical-align:top}.table{overflow-x:auto}
-input{display:block;width:60ch;max-width:calc(100vw - 72px);padding:8px;font:inherit;background:var(--card);color:var(--fg);border:1px solid var(--line)}
-button{padding:8px 16px;font:inherit;margin-top:8px}footer{border-top:1px solid var(--line);color:var(--muted)}
-</style>
+<link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <header><nav><a href="../index.html">Home</a><a href="../feed.html">Feed</a><a href="../verify.html">Verify</a></nav></header>
@@ -35,16 +16,16 @@ button{padding:8px 16px;font:inherit;margin-top:8px}footer{border-top:1px solid 
 <div class="card"><p>[fireblocks] Fireblocks: <a href="https://www.fireblocks.com/blog/near-zero-day-sweat-hot-token-exploit">https://www.fireblocks.com/blog/near-zero-day-sweat-hot-token-exploit</a></p><p class="mono">sha256 364bda02a4b0274990037064d4b23bfffe5e90f2414763c83fc8b09881fe2641<br>fetched 2026-10-29T15:26:42Z</p></div>
 <div class="card"><p>[defillama] DeFiLlama hacks API: <a href="https://api.llama.fi/hacks">https://api.llama.fi/hacks</a></p><p class="mono">sha256 70699af10bafa8796baaf07d36fba597acb7f8faa1c25169955a02f6918de103<br>fetched 2026-10-29T15:26:44Z</p></div>
 <h2>Accounts named in the sources</h2>
-<div class="card"><p class="mono">game.hot.tg (near)</p><p>role as reported: the HOT token contract, in which the report detected the same unguarded ft_resolve_transfer callback, patched the same day</p><blockquote class="data" cite="https://www.fireblocks.com/blog/near-zero-day-sweat-hot-token-exploit">After identifying the issue, we asked ourselves. If one major team missed this macro, who else did? We used agents and to proactive screening of the broader NEAR ecosystem for the exact same structural flaw. Using this method we detected the same flaw in the HOT token contract.<br><span class="muted">quoted from [fireblocks]</span></blockquote><p class="mono muted">assertions<br>1232c50828a251ddb4a1de4dae3337b3f63f63efee38611eb124562b392d7b4c<br>8dbca45da57d0690851fd2568e9fe37df6ec048ad85df50ba7d68b33ca011411<br>b5d9c445555e3b2a28dcb7d8a5449ab062ea47537556b93bca1ed923b5966a6b<br>e7b080027e770af1f4f689a70edc9316fcded859357e6dd2aa22580c76633e03</p></div>
+<div class="card"><p class="mono"><a href="../accounts/game.hot.tg.html">game.hot.tg</a> (near)</p><p>role as reported: the HOT token contract, in which the report detected the same unguarded ft_resolve_transfer callback, patched the same day</p><blockquote class="data" cite="https://www.fireblocks.com/blog/near-zero-day-sweat-hot-token-exploit">After identifying the issue, we asked ourselves. If one major team missed this macro, who else did? We used agents and to proactive screening of the broader NEAR ecosystem for the exact same structural flaw. Using this method we detected the same flaw in the HOT token contract.<br><span class="muted">quoted from [fireblocks]</span></blockquote><p class="mono muted">assertions<br>1232c50828a251ddb4a1de4dae3337b3f63f63efee38611eb124562b392d7b4c<br>8dbca45da57d0690851fd2568e9fe37df6ec048ad85df50ba7d68b33ca011411<br>b5d9c445555e3b2a28dcb7d8a5449ab062ea47537556b93bca1ed923b5966a6b<br>e7b080027e770af1f4f689a70edc9316fcded859357e6dd2aa22580c76633e03</p></div>
 <h2>Patch transaction as reported</h2><div class="card"><p class="mono">M7aGQyaqq3Pmzvxsh4VM31wgvYe5J7nQDGgyxM2UrwD</p><blockquote class="data" cite="https://www.fireblocks.com/blog/near-zero-day-sweat-hot-token-exploit">We reached out to the HOT token maintainers, and reported the issue. They acknowledged the issue and deployed a patch the same day.<br><span class="muted">quoted from [fireblocks]</span></blockquote></div>
 <h2>Loss as reported</h2><div class="card"><p class="mono">3500000 USD on 2026-04-29</p><blockquote class="data" cite="https://api.llama.fi/hacks">{&quot;amount&quot;: 3500000, &quot;bridgeHack&quot;: false, &quot;chain&quot;: [&quot;Near&quot;], &quot;classification&quot;: &quot;Protocol Logic&quot;, &quot;date&quot;: 1777420800, &quot;defillamaId&quot;: null, &quot;language&quot;: &quot;Rust&quot;, &quot;name&quot;: &quot;Sweat Foundation&quot;, &quot;returnedFunds&quot;: null, &quot;source&quot;: &quot;&quot;, &quot;targetType&quot;: &quot;DeFi Protocol&quot;, &quot;technique&quot;: &quot;Withdrawal Logic Flaw&quot;}<br><span class="muted">quoted from [defillama]</span></blockquote></div>
 <h2>On chain facts</h2>
 <p>current state of the contract, not a historical block replay</p>
-<div class="card"><p class="mono">game.hot.tg</p><p>view_account at block 222142624: account exists with contract code hash GH7Zs8zab1YHiTkdveDj18Uu2je6fpiXcHmXkqYNCuew</p><p class="mono muted">result sha256 0d162aff7d32c78cf72cf49abcdaeef92c2ad905aba2f1e81766e322dc958282</p></div>
-<div class="card"><p class="mono">game.hot.tg</p><p>contract_source_metadata at block 222142625: contract_source_metadata answers <q class="data">{&quot;build_info&quot;: null, &quot;link&quot;: null, &quot;standards&quot;: [{&quot;standard&quot;: &quot;nep330&quot;, &quot;version&quot;: &quot;1.3.0&quot;}], &quot;version&quot;: &quot;1.2.0&quot;}</q></p><p class="mono muted">result sha256 422789e57aa170ab6d2865104e43e155cfa1e4d41110c81e2573c1021e1e9433</p></div>
-<div class="card"><p class="mono">game.hot.tg</p><p>GET /v1/txns/{transaction_hash} at block 200042403: transaction M7aGQyaqq3Pmzvxsh4VM31wgvYe5J7nQDGgyxM2UrwD at block 200042403, signer <q class="data">game.hot.tg</q>, receiver <q class="data">game.hot.tg</q>, actions <q class="data">DEPLOY_CONTRACT</q></p><p class="mono muted">result sha256 a4819ae44ab7ba2067ef921c7a0ca1f95ad3a214c1fafc3c533007d454552a0d</p></div>
+<div class="card"><p class="mono"><a href="../accounts/game.hot.tg.html">game.hot.tg</a></p><p>view_account at block 222142624: account exists with contract code hash GH7Zs8zab1YHiTkdveDj18Uu2je6fpiXcHmXkqYNCuew</p><p class="mono muted">result sha256 0d162aff7d32c78cf72cf49abcdaeef92c2ad905aba2f1e81766e322dc958282</p></div>
+<div class="card"><p class="mono"><a href="../accounts/game.hot.tg.html">game.hot.tg</a></p><p>contract_source_metadata at block 222142625: contract_source_metadata answers <q class="data">{&quot;build_info&quot;: null, &quot;link&quot;: null, &quot;standards&quot;: [{&quot;standard&quot;: &quot;nep330&quot;, &quot;version&quot;: &quot;1.3.0&quot;}], &quot;version&quot;: &quot;1.2.0&quot;}</q></p><p class="mono muted">result sha256 422789e57aa170ab6d2865104e43e155cfa1e4d41110c81e2573c1021e1e9433</p></div>
+<div class="card"><p class="mono"><a href="../accounts/game.hot.tg.html">game.hot.tg</a></p><p>GET /v1/txns/{transaction_hash} at block 200042403: transaction M7aGQyaqq3Pmzvxsh4VM31wgvYe5J7nQDGgyxM2UrwD at block 200042403, signer <q class="data">game.hot.tg</q>, receiver <q class="data">game.hot.tg</q>, actions <q class="data">DEPLOY_CONTRACT</q></p><p class="mono muted">result sha256 a4819ae44ab7ba2067ef921c7a0ca1f95ad3a214c1fafc3c533007d454552a0d</p></div>
 <h2>Rules today</h2>
-<div class="card"><p class="mono">game.hot.tg as token: <strong class="deny">DENY</strong></p><p class="muted">receiver_exists pass, label_denylist pass, issuer_blacklist pass, token_in_catalog signal, ft_metadata_sane pass, storage_registered unknown, memo_injection pass, account_age unknown, dust_funded unknown, lookalike pass, code_without_metadata pass</p></div>
+<div class="card"><p class="mono"><a href="../accounts/game.hot.tg.html">game.hot.tg</a> as token: <strong class="deny">DENY</strong></p><p class="muted">receiver_exists pass, label_denylist pass, issuer_blacklist pass, token_in_catalog signal, ft_metadata_sane pass, storage_registered unknown, memo_injection pass, account_age unknown, dust_funded unknown, lookalike pass, code_without_metadata pass</p></div>
 <h2>Not public</h2><ul><li>The report names no SWEAT attacker account, no victim account and no SWEAT exploit transaction; this page names none.</li><li>The report names no person, and this page names none.</li><li>The only account the report names is the HOT token contract, and the only transaction is the HOT patch.</li><li>The SWEAT token contract is not named by the report; its catalog row is not cited here.</li></ul>
 <h2>Standard</h2><p>Only accounts named in the cited sources or provable on chain by a read anyone can repeat; no person, no motive; the sources&#x27; own words appear only inside quote fields with their source id; failed checks read Unknown.</p>
 </main>
