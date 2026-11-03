@@ -204,6 +204,26 @@ def _receivers(args):
 
 def _feed(args):
     try:
+        if args.follow:
+            interrupted = False
+
+            def stop(signum, frame):
+                nonlocal interrupted
+                interrupted = True
+
+            import signal
+
+            previous = signal.signal(signal.SIGINT, stop)
+            try:
+                state, walked = feed.follow(args.start, max_blocks=args.max_blocks,
+                                            stopped=lambda: interrupted)
+            finally:
+                signal.signal(signal.SIGINT, previous)
+            print(f"followed {walked} blocks to height {state['last_height']}, lag {state['lag_blocks']} blocks")
+            return 0
+        if args.blocks is None:
+            print("stopped: --blocks is required unless --follow is set", file=sys.stderr)
+            return 2
         state, events = feed.run(args.start, args.blocks, args.record)
     except (feed.FeedError, rpc.HttpError, rpc.TransportError) as error:
         print(f"stopped: {error}", file=sys.stderr)
@@ -249,7 +269,9 @@ def main(argv=None):
     receivers.set_defaults(handler=_receivers)
     feeding = commands.add_parser("feed", help="run the three signals over finalized mainnet blocks")
     feeding.add_argument("--from", dest="start", type=int, help="the first height (default: after the state)")
-    feeding.add_argument("--blocks", type=int, required=True, help="how many heights to walk")
+    feeding.add_argument("--blocks", type=int, help="how many recorded heights to walk")
+    feeding.add_argument("--follow", action="store_true", help="follow finalized heights continuously")
+    feeding.add_argument("--max-blocks", type=int, help="stop after this many heights, for bounded runs")
     feeding.add_argument("--record", action="store_true", help="fetch and reduce the blocks not recorded yet")
     feeding.set_defaults(handler=_feed)
     flow = commands.add_parser("flow", help="the bounded exit trace of an account with an incident label")

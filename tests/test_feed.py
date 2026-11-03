@@ -1,5 +1,6 @@
 import base64
 import contextlib
+import hashlib
 import io
 import json
 import tempfile
@@ -271,6 +272,76 @@ class RecordModeTest(unittest.TestCase):
         fetcher = feed.Fetcher(client=Refusing(), sleep=lambda s: self.fail("slept"))
         with self.assertRaises(rpc.HttpError):
             fetcher.get("/v0/block/1")
+
+
+class FollowModeTest(unittest.TestCase):
+    def blocks(self, end):
+        return {height: raw_block(height, []) for height in range(1, end + 1)}
+
+    def test_follow_walks_to_the_final_height_without_writing_block_fixtures(self):
+        fake = FakeFetcher(self.blocks(3), 3)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state, walked = feed.follow(start=1, fetcher=fake.inner, state_path=root / "state.json",
+                                        events_dir=root / "events", event_blocks_dir=root / "event-blocks",
+                                        max_blocks=3, sleep=lambda _: None)
+            self.assertEqual((walked, state["last_height"], state["blocks"]), (3, 3, 3))
+            self.assertEqual(list(root.glob("*.json")), [root / "state.json"])
+            self.assertEqual(state["mode"], "follow")
+            self.assertEqual(state["requests"], 4)
+
+    def test_follow_writes_the_event_block_and_points_the_event_source_at_it(self):
+        raw = raw_block(9, [])
+        synthetic = json.loads((BLOCKS / "synthetic-code-hash.json").read_text(encoding="utf-8"))
+        fake = FakeFetcher({9: raw}, 9)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            with mock.patch("intel.feed.reduce_block", return_value=synthetic):
+                feed.follow(fetcher=fake.inner, state_path=root / "state.json", events_dir=root / "events",
+                            event_blocks_dir=root / "event-blocks", max_blocks=1, sleep=lambda _: None)
+            event_path = next((root / "events").glob("*.json"))
+            event = json.loads(event_path.read_text(encoding="utf-8"))
+            self.assertEqual(event["source"]["block_fixture"], "9.json")
+            block_path = root / "event-blocks" / "9.json"
+            self.assertTrue(block_path.is_file())
+            self.assertEqual(event["source"]["block_fixture_sha256"], hashlib.sha256(block_path.read_bytes()).hexdigest())
+
+    def test_follow_paces_and_backs_off(self):
+        fake = FakeFetcher(self.blocks(1), 1, throttled=1)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            feed.follow(fetcher=fake.inner, state_path=root / "state.json", events_dir=root / "events",
+                        event_blocks_dir=root / "event-blocks", max_blocks=1, sleep=fake.sleeps.append,
+                        clock=lambda: 1793284740.0)
+        self.assertIn(feed.BACKOFF_S, fake.sleeps)
+        self.assertIn(feed.FOLLOW_INTERVAL_S, fake.sleeps)
+
+    def test_a_restart_resumes_after_the_last_height(self):
+        heights = self.blocks(4)
+        fake = FakeFetcher(heights, 4)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_path = root / "state.json"
+            state, _ = feed.follow(start=1, fetcher=fake.inner, state_path=state_path, events_dir=root / "events",
+                                   event_blocks_dir=root / "event-blocks", max_blocks=2, sleep=lambda _: None)
+            state, walked = feed.follow(fetcher=fake.inner, state_path=state_path, events_dir=root / "events",
+                                        event_blocks_dir=root / "event-blocks", max_blocks=2, sleep=lambda _: None)
+            self.assertEqual((walked, state["last_height"], state["blocks"]), (2, 4, 4))
+
+    def test_the_state_dir_variable_moves_the_state_and_the_api_reads_it(self):
+        import os
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "feed-state"
+            fake = FakeFetcher(self.blocks(1), 1)
+            with mock.patch.dict(os.environ, {"FEED_STATE_DIR": str(state_dir)}):
+                state, _ = feed.follow(start=1, fetcher=fake.inner, max_blocks=1, sleep=lambda _: None)
+                status, body = api.route("/feed", labels.load())
+            self.assertEqual(status, 200)
+            self.assertEqual(state["last_height"], 1)
+            self.assertEqual(body["stats"]["mode"], "follow")
+            self.assertNotIn("fresh_accounts", body["stats"])
 
 
 if __name__ == "__main__":

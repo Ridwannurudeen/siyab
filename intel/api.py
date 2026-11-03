@@ -66,12 +66,16 @@ def _evidence(evidence_hash):
 def _feed():
     """The state file without its fresh accounts and the last FEED_LIMIT events ordered by observed
     block height, then hash."""
-    stats = _read_json(FEED_STATE) if FEED_STATE.is_file() else None
+    import os
+
+    state_dir = Path(os.environ.get("FEED_STATE_DIR", FEED_STATE.parent))
+    state_path, events_dir = state_dir / "state.json", state_dir / "events"
+    stats = _read_json(state_path) if state_path.is_file() else None
     if stats is not None:
         stats.pop("fresh_accounts", None)
     events = []
-    if FEED_EVENTS.is_dir():
-        for path in FEED_EVENTS.glob("*.json"):
+    if events_dir.is_dir():
+        for path in events_dir.glob("*.json"):
             document = _read_json(path)
             height = (document.get("observed") or {}).get("block_height") or 0
             events.append((height, path.stem, document))
