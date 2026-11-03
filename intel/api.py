@@ -11,7 +11,14 @@ Routes (GET only; no route writes anything and no route opens the network):
     /flow/<subject>       the exit trace intel/flows/<subject>.json, else the trace file under
                           intel/flows/ whose subject it is (such as rhea-collector.json); 403 for a
                           subject that carries no incident label, 404 when no trace was written
-    anything else         a static file under --site when one is given, else 404
+    /cluster/<subject>    the cluster file under intel/clusters/ whose seeds hold the subject; 403
+                          for a subject that carries no incident label, 404 when no cluster holds it
+    /issuers              the issuer status rows and history rows of intel/issuers/, the number of
+                          status reads and of the account ids they cover, and the history coverage
+    anything else         a static file under --site when one is given; a path whose last segment
+                          ends in .html is never an API route, so /incidents/<id>.html is the page
+                          and /incidents/<id> the JSON; a path that is neither answers 404 with the
+                          site's 404.html when it has one, else with JSON
 
 Every answer is JSON (static files aside) and carries Cache-Control: no-store.
 """
@@ -25,13 +32,14 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from gate import incident
-from intel import labels, trace
+from intel import issuers, labels, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 EVIDENCE_DIRS = (ROOT / "fixtures" / "evidence", ROOT / "intel" / "feed" / "events")
 FEED_STATE = ROOT / "intel" / "feed" / "state.json"
 FEED_EVENTS = ROOT / "intel" / "feed" / "events"
 FLOWS_DIR = ROOT / "intel" / "flows"
+CLUSTERS_DIR = ROOT / "intel" / "clusters"
 FEED_LIMIT = 50
 JSON_TYPE = "application/json; charset=utf-8"
 _HEX64 = re.compile(r"[0-9a-f]{64}")
@@ -90,13 +98,35 @@ def _flow(store, subject):
     return 200, _read_json(path)
 
 
+def _cluster(store, subject):
+    if not any(a.subject == subject and a.category == "incident" for a in store.assertions):
+        return 403, {"error": "subject carries no incident label"}
+    for path in sorted(CLUSTERS_DIR.glob("*.json")):
+        document = _read_json(path)
+        if subject in document["seeds"]:
+            return 200, document
+    return 404, {"error": f"no cluster for {subject}"}
+
+
+def _issuers():
+    reads = issuers.reads()
+    return 200, {"status": [dataclasses.asdict(a) for a in labels.load(issuers.STATUS_PATH).assertions],
+                 "history": [dataclasses.asdict(a) for a in labels.load(issuers.HISTORY_PATH).assertions],
+                 "status_reads": len(reads), "status_read_subjects": len({read["subject"] for read in reads}),
+                 "history_coverage": issuers.history_coverage()}
+
+
 def route(path, store):
     """(status, JSON body) for an API path, or None when the path is not an API route."""
     parts = [urllib.parse.unquote(part) for part in urllib.parse.urlsplit(path).path.split("/")[1:]]
+    if parts[-1].endswith(".html"):
+        return None
     if parts == ["health"]:
         return 200, {"status": "ok", "assertions": len(store.assertions), "label_store_sha256": store.sha256}
     if parts == ["feed"]:
         return _feed()
+    if parts == ["issuers"]:
+        return _issuers()
     if len(parts) == 2 and parts[1]:
         name, value = parts
         if name == "labels":
@@ -107,6 +137,8 @@ def route(path, store):
             return _evidence(value)
         if name == "flow":
             return _flow(store, value)
+        if name == "cluster":
+            return _cluster(store, value)
     return None
 
 
@@ -140,7 +172,11 @@ def make_server(host, port, site=None, store=None):
                 return
             static = _static(site, self.path)
             if static is None:
-                self._send(404, JSON_TYPE, b'{"error": "not found"}\n')
+                missing = _static(site, "/404.html")
+                if missing is None:
+                    self._send(404, JSON_TYPE, b'{"error": "not found"}\n')
+                else:
+                    self._send(404, *missing[1:])
                 return
             self._send(*static)
 

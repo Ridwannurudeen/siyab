@@ -1,14 +1,24 @@
 """python -m intel render --out <dir>: the static hosted pages, built from the committed JSON files.
 
 No framework and no external script; one stylesheet inline in each page. The pages: index.html
-(the headline, the counts block of scripts/counts.py, the links), feed.html (the feed state and
-its events), incidents/<id>.html (sources, accounts, on chain facts, rules today, what is not
-public), entities/<set>.html (treasuries, catalog, infrastructure: one page per seed set),
-flows/<name>.html (an exit trace: the summary line, the shares of the subject's gross outbound
+(the headline, what the counts are of, the counts block of scripts/counts.py, the links), feed.html
+(the recorded window or, in follow mode, the follower's lines, then the events),
+incidents/<id>.html (sources, accounts, on chain facts, rules today, what is not
+public), entities/<set>.html (treasuries, catalog, infrastructure, organisations: one page per set,
+each subject shown as quoted data, since a third party chose the account id, and every inferred row
+under the heading "Attribution hypothesis" with its rule id, inputs and confidence),
+clusters/<name>.html (the seeds, one card per edge: the two chain reads of an onchain edge, the
+input facts and confidence of an inferred edge under "Attribution hypothesis", then the precision
+lines as the JSON states them and the depositor count), issuers.html (the status reads counted by
+issuer and answer, one card per row banned by the issuer, then the history's coverage and one card
+per issuer action with its block and transaction), flows/<name>.html (an exit trace: the
+summary line, the shares of the subject's gross outbound
 transfer value, the subject's balance and issuer status at a block, then one card per hop grouped
-by depth) and verify.html (a form that reads a registry record from https://test.rpc.fastnear.com in the
-browser, never the ShieldBot API, and shows it next to the evidence hash the reader pastes). Every
-page carries a robots noindex meta and the footer "Data: NearBlocks".
+by depth), verify.html (a form that reads a registry record from https://test.rpc.fastnear.com in the
+browser, never the ShieldBot API, and shows it next to the evidence hash the reader pastes; its inputs
+show the vendor's committed record as examples) and 404.html (the page the API serves for a path that
+is neither a route nor a file at any depth, so its links are root absolute). Every
+page carries a robots noindex meta, which render --indexable leaves out, and the footer "Data: NearBlocks".
 
 Text from a source (a report's sentence, a token symbol, a quoted string in a label row) is shown
 as quoted data: a quote object as <blockquote class="data">, a double quoted string inside a label
@@ -21,15 +31,25 @@ import json
 import re
 from pathlib import Path
 
-from intel import feed, labels, trace
+from intel import cluster, feed, issuers, labels, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 INCIDENTS_DIR = Path(__file__).resolve().parent / "incidents"
 TESTNET_RPC = "https://test.rpc.fastnear.com"
+# The record the verify page offers as its example: a latest view of the testnet registry.
+VERIFY_RECORD = ROOT / "fixtures" / "registry" / "testnet-vendor.json"
+EVIDENCE_DIR = ROOT / "fixtures" / "evidence"
+# The token whose issuer actions intel/issuers.py reads from the owner's transactions.
+HISTORY_TOKEN = "usdt.tether-token.near"
 HEADLINE = "ShieldBot for NEAR: security intelligence for AI agent money on NEAR"
+COUNTS_OF = ("The counts below are of the recorded mainnet receivers the rules judged, the label store's assertions "
+             "and subjects by provenance class, the incident pages, the blocks and events of the feed, the exit "
+             "traces and their hops, and the verdict latency runs.")
 ENTITY_SETS = (("treasuries", "Treasuries", ("treasury",)),
                ("catalog", "Catalog tokens", ("catalog_token",)),
-               ("infrastructure", "Infrastructure and bridge accounts", ("infrastructure", "bridge")))
+               ("infrastructure", "Infrastructure and bridge accounts", ("infrastructure", "bridge")),
+               ("organisations", "Organisations from on chain registries", ("organisation",)))
+ROBOTS = "<meta name=\"robots\" content=\"noindex\">\n"
 STYLE = """
 :root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#dcd8cf;--card:#ffffff;--accent:#2f5d50;--deny:#8a2b1f}
 @media (prefers-color-scheme:dark){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3934;
@@ -76,14 +96,14 @@ def quote_block(quote, sources):
             f'<br><span class="muted">quoted from [{esc(quote["source"])}]</span></blockquote>')
 
 
-def page(title, body, depth=0):
-    """A whole HTML page; depth is how many directories below the site root it sits."""
-    up = "../" * depth
+def page(title, body, depth=0, rooted=False):
+    """A whole HTML page; depth is how many directories below the site root it sits, and a rooted page
+    links root absolute because it is served at any path."""
+    up = "/" if rooted else "../" * depth
     nav = "".join(f'<a href="{up}{href}">{label}</a>' for href, label in (
         ("index.html", "Home"), ("feed.html", "Feed"), ("verify.html", "Verify")))
     return ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"
-            "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
-            "<meta name=\"robots\" content=\"noindex\">\n"
+            f"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n{ROBOTS}"
             f"<title>{esc(title)}</title>\n<style>{STYLE}</style>\n</head>\n<body>\n"
             f"<header><nav>{nav}</nav></header>\n<main>\n{body}\n</main>\n"
             "<footer><p>Data: NearBlocks. Blocks: mainnet.neardata.xyz. Transfers: FastNEAR.</p></footer>\n"
@@ -105,7 +125,16 @@ def _flows(flows_dir=trace.FLOWS_DIR):
     return [(path.stem, json.loads(path.read_text(encoding="utf-8"))) for path in sorted(Path(flows_dir).glob("*.json"))]
 
 
-def index_page(incidents, flows):
+def _clusters(clusters_dir=cluster.CLUSTERS_DIR):
+    return [(path.stem, json.loads(path.read_text(encoding="utf-8")))
+            for path in sorted(Path(clusters_dir).glob("*.json"))]
+
+
+def _inferred(edges):
+    return [edge for edge in edges if edge["provenance"] == "inferred"]
+
+
+def index_page(incidents, flows, clusters):
     counts = "".join(f"<p>{esc(line)}</p>" for line in _counts_lines())
     links = ["<li><a href=\"feed.html\">The block feed and its events</a></li>"]
     links += [f'<li><a href="incidents/{esc(d["id"])}.html">{esc(d["title"])} ({esc(d["date"])})</a></li>'
@@ -114,8 +143,13 @@ def index_page(incidents, flows):
     links += [f'<li><a href="flows/{esc(name)}.html">Exit trace from <span class="mono">{esc(f["subject"])}</span>: '
               f'depth {f["depth_reached"]} of {f["depth"]}, {esc(trace.stop_state(f["completeness"]))}, with the shares '
               'of its gross outbound transfer value</a></li>' for name, f in flows]
+    links += [f'<li><a href="clusters/{esc(name)}.html">Account relationship edges over the {len(c["seeds"])} seeds '
+              f'of {esc(name)}: {len(c["edges"]) - len(_inferred(c["edges"]))} from chain reads, '
+              f'{len(_inferred(c["edges"]))} attribution hypotheses</a></li>' for name, c in clusters]
+    links.append("<li><a href=\"issuers.html\">Issuer actions: what the issuer contracts answer for the account ids "
+                 "read, and the issuer action history with its blocks and transactions</a></li>")
     links.append("<li><a href=\"verify.html\">Read a registry record and compare its evidence hash</a></li>")
-    body = (f"<h1>{esc(HEADLINE)}</h1>\n<h2>Counts</h2>\n<div class=\"card\">{counts}</div>\n"
+    body = (f"<h1>{esc(HEADLINE)}</h1>\n<p>{esc(COUNTS_OF)}</p>\n<h2>Counts</h2>\n<div class=\"card\">{counts}</div>\n"
             "<p class=\"muted\">Every number above is printed by <code>scripts/counts.py</code> from the committed "
             "files.</p>\n<h2>Pages</h2>\n<ul>" + "".join(links) + "</ul>")
     return page("ShieldBot for NEAR", body)
@@ -125,6 +159,9 @@ def feed_page(state_path=feed.STATE_PATH, events_dir=feed.EVENTS_DIR):
     if not Path(state_path).is_file():
         return page("Feed", "<h1>Feed</h1><p>The feed has not run.</p>")
     state = json.loads(Path(state_path).read_text(encoding="utf-8"))
+    window = "" if state.get("mode") == "follow" else (
+        f"<p>Recorded window: blocks {state['start_height']} to {state['last_height']}, read on "
+        f"{esc(state['start_time'][:10])} UTC. Live following is not running yet.</p>\n")
     stats = "".join(f"<li>{esc(line)}</li>" for line in feed.stats_lines(state))
     events = sorted((json.loads(p.read_bytes()), p.stem) for p in Path(events_dir).glob("*.json"))
     cards = "".join(
@@ -132,7 +169,7 @@ def feed_page(state_path=feed.STATE_PATH, events_dir=feed.EVENTS_DIR):
         f'<p>{esc(e["detail"])}</p><p class="mono">receipt {esc(e["receipt_id"])}<br>transaction {esc(e["tx_hash"])}'
         f'<br>evidence {esc(stem)}</p></div>'
         for e, stem in sorted(events, key=lambda item: (item[0]["observed"]["block_height"], item[1])))
-    body = (f"<h1>Feed over finalized mainnet blocks</h1>\n<ul>{stats}</ul>\n<h2>Events</h2>\n"
+    body = (f"<h1>Feed over finalized mainnet blocks</h1>\n{window}<ul>{stats}</ul>\n<h2>Events</h2>\n"
             + (cards or "<p>No signal fired over the recorded blocks.</p>")
             + "\n<p class=\"muted\">The signals: " + ", ".join(feed.SIGNALS) + ".</p>")
     return page("Feed", body)
@@ -182,13 +219,67 @@ def incident_page(document):
 
 def entity_page(title, categories, store):
     rows = [a for a in store.assertions if a.category in categories and a.superseded_by is None]
-    body = "".join(f'<tr><td class="mono">{esc(a.subject)}</td><td>{esc(a.chain)}</td><td>{data_text(a.label)}</td>'
-                   f'<td>{esc(a.category)}</td><td>{esc(a.provenance)}</td><td>{data_text(a.note)}</td></tr>'
-                   for a in rows)
+    stated = [a for a in rows if a.provenance != "inferred"]
+    inferred = [a for a in rows if a.provenance == "inferred"]
+    body = "".join(f'<tr><td class="mono"><q class="data">{esc(a.subject)}</q></td><td>{esc(a.chain)}</td>'
+                   f'<td>{data_text(a.label)}</td><td>{esc(a.category)}</td><td>{esc(a.provenance)}</td>'
+                   f'<td>{data_text(a.note)}</td></tr>' for a in stated)
     table = ("<div class=\"table\"><table><thead><tr><th>Subject</th><th>Chain</th><th>Label</th><th>Category</th>"
              f"<th>Provenance</th><th>Note</th></tr></thead><tbody>{body}</tbody></table></div>")
+    if inferred:
+        body = "".join(f'<tr><td class="mono"><q class="data">{esc(a.subject)}</q></td><td>{esc(a.chain)}</td>'
+                       f'<td>{data_text(a.label)}</td><td>{esc(a.category)}</td><td class="mono">{esc(a.rule_id)}</td>'
+                       f'<td class="mono">{"<br>".join(esc(i) for i in a.source["inputs"])}</td><td>{a.confidence}</td>'
+                       f'<td>{data_text(a.note)}</td></tr>' for a in inferred)
+        table += ("<h2>Attribution hypothesis</h2><p>Each row below is inferred: it names the rule that inferred "
+                  "it, the assertions the rule read as its inputs and its confidence.</p><div class=\"table\"><table>"
+                  "<thead><tr><th>Subject</th><th>Chain</th><th>Label</th><th>Category</th><th>Rule</th>"
+                  f"<th>Inputs</th><th>Confidence</th><th>Note</th></tr></thead><tbody>{body}</tbody></table></div>")
     return page(title, f"<h1>{esc(title)}</h1><p>{len(rows)} current assertions from the label store.</p>{table}",
                 depth=1)
+
+
+def _edge_card(edge, facts):
+    head = (f'<div class="card edge"><p><strong>{esc(edge["rule"])}</strong>, provenance {esc(edge["provenance"])}'
+            + (f', confidence {edge["confidence"]}' if edge["provenance"] == "inferred" else "")
+            + f'</p><p class="mono">{esc(edge["from"])} to {esc(edge["to"])}</p>')
+    if edge["provenance"] != "inferred":
+        reads = "<br>".join(f'{esc(read["method"])} {esc(json.dumps(read["args"], ensure_ascii=False))} at block '
+                            f'{read["block"]} from {esc(read["rpc"])}'
+                            for read in (edge["source"]["from"], edge["source"]["to"]))
+        return head + f'<p class="mono muted">{reads}</p></div>'
+    shared = ", ".join(f"{esc(key)} {esc(value)}" for key, value in edge["source"].items())
+    inputs = "".join(
+        f'<li class="mono">fact {esc(fact["id"])}: {esc(fact["subject"])} {esc(fact["kind"])} {esc(fact["value"])}, '
+        f'read from {esc(fact["source"]["provider"])} {esc(fact["source"]["method"])} '
+        f'{esc(json.dumps(fact["source"]["args"], ensure_ascii=False))} at block {fact["source"]["block"]}</li>'
+        for fact in (facts[fact_id] for fact_id in edge["inputs"]))
+    return head + f'<p>shared: <span class="mono">{shared}</span></p><p>inputs</p><ul>{inputs}</ul></div>'
+
+
+def cluster_page(name, document):
+    facts = {fact["id"]: fact for fact in document["facts"]}
+    inferred = _inferred(document["edges"])
+    chain = [edge for edge in document["edges"] if edge["provenance"] != "inferred"]
+    seeds = "".join(f'<li class="mono">{esc(seed)}</li>' for seed in document["seeds"])
+    precision = "".join(f"<li>{esc(line)}</li>" for line in document["precision"].values())
+    depositors = document["depositors"]
+    counted = ("<p>No deposit count in this run.</p>" if depositors is None else
+               f'<p>{depositors["count"]} distinct depositors of <span class="mono">{esc(depositors["collector"])}</span> '
+               f'since {esc(depositors["since"])}, {depositors["implicit_count"]} of them implicit accounts; the '
+               "cluster file counts them and lists none.</p>")
+    body = (f"<h1>Account relationship edges: {esc(name)}</h1><p>{esc(document['standard'])}</p>"
+            f"<h2>Seeds</h2><p>{len(document['seeds'])} seeds, each with a current incident label in the label "
+            f"store.</p><ul>{seeds}</ul>"
+            "<h2>Edges from chain reads</h2>" + ("".join(_edge_card(edge, facts) for edge in chain)
+                                                 or "<p>No edge from chain reads.</p>") +
+            "<h2>Attribution hypothesis</h2><p>Each edge below is inferred from the facts named as its inputs, at "
+            "the confidence shown; it is a hypothesis, not a chain read, and no verdict reads it.</p>"
+            + ("".join(_edge_card(edge, facts) for edge in inferred) or "<p>No inferred edge.</p>") +
+            f"<h2>Precision</h2><ul>{precision}</ul><h2>Depositors</h2>{counted}"
+            f"<p class=\"muted\">Read {esc(document['fetched_at'])}. docs/CLUSTER.md states the heuristics and their "
+            "limits.</p>")
+    return page(f"Account relationship edges: {name}", body, depth=1)
 
 
 def _hop_card(hop):
@@ -248,6 +339,67 @@ def flow_page(document):
     return page("Exit trace", body, depth=1)
 
 
+def _status_reads(reads):
+    """The status reads counted by issuer view and answer, as one sentence."""
+    answers = {}
+    for read in reads:
+        view = answers.setdefault((read["issuer"], read["method"]), {})
+        answer = json.dumps(read["answer"], ensure_ascii=False)
+        view[answer] = view.get(answer, 0) + 1
+    views = "; ".join(f"{issuer} {method} answered "
+                      + " and ".join(f"{answer} {count} times" for answer, count in counts.items())
+                      for (issuer, method), counts in answers.items())
+    blocks = [read["block"] for read in reads]
+    times = [read["observed_at"] for read in reads]
+    categories = ", ".join(issuers.STATUS_CATEGORIES[:-1]) + " and " + issuers.STATUS_CATEGORIES[-1]
+    return (f"{len(reads)} status reads over {len({read['subject'] for read in reads})} account ids: the NEAR "
+            f"subjects of the label store in the {categories} categories and the recorded "
+            f"receiver set, each read on {len(answers)} issuer views at blocks {min(blocks)} to {max(blocks)}, from "
+            f"{min(times)} to {max(times)}: {views}.")
+
+
+def _history_coverage(history):
+    """The history's coverage in the words its review allows: what the Transactions API lists, the block
+    range, the actions found, and how many named account id strings do not exist on chain."""
+    coverage = issuers.history_coverage()
+    owner = issuers._owner(issuers.FIXTURE_DIR)
+    observations = issuers._account_observations(issuers.FIXTURE_DIR)
+    named = list(dict.fromkeys(row.subject for row in history))
+    missing = [subject for subject in named if not observations[subject]["exists"]]
+    blocks = sorted({observations[subject]["block"] for subject in missing})
+    read = (f"All {coverage['transactions']}" if coverage["transactions"] == coverage["txs_count"]
+            else f"{coverage['transactions']} of the {coverage['txs_count']}")
+    found = [f"{count} {method}" for method, count in coverage["actions"].items() if count]
+    absent = "".join(f", no {method}" for method, count in coverage["actions"].items() if not count)
+    at = f" at block{'s' if len(blocks) > 1 else ''} {', '.join(str(block) for block in blocks)}" if blocks else ""
+    return (f"{read} function call transactions the Transactions API lists for {json.dumps(owner)} (the account "
+            f"the owner view of {HISTORY_TOKEN} answers) as receiver, transaction blocks {coverage['tx_block_min']} "
+            f"to {coverage['tx_block_max']}, were read; their receipts carried {sum(coverage['actions'].values())} "
+            f"successful issuer actions on {HISTORY_TOKEN}: {' and '.join(found)}{absent}. {len(missing)} of the "
+            f"{len(named)} account id strings do not exist on chain{at}.")
+
+
+def issuers_page():
+    status = labels.load(issuers.STATUS_PATH).assertions
+    history = labels.load(issuers.HISTORY_PATH).assertions
+    status_cards = "".join(
+        f'<div class="card"><p class="mono">{esc(row.subject)}</p><p>{data_text(row.label)}</p><p class="mono muted">'
+        f'{esc(row.source["method"])} {esc(json.dumps(row.source["args"], ensure_ascii=False))} at block '
+        f'{row.source["block"]} from {esc(row.source["rpc"])}<br>observed {esc(row.observed_at)}<br>row {esc(row.id)}'
+        "</p></div>" for row in status)
+    history_cards = "".join(
+        f'<div class="card"><p class="mono">{esc(row.subject)}</p><p>{data_text(row.label)}</p><p>{data_text(row.note)}'
+        f'</p><p class="mono muted">block {row.source["block"]}<br>transaction {esc(row.source["args"]["tx_hashes"][0])}'
+        f'<br>observed {esc(row.observed_at)}<br>row {esc(row.id)}</p></div>' for row in history)
+    body = ("<h1>Issuer actions</h1><h2>Status reads</h2>"
+            f"<p>{data_text(_status_reads(issuers.reads()))}</p>"
+            f"<h2>Banned by the issuer</h2><p>{len(status)} account ids read as banned by their issuer, one row each in "
+            f"<code>intel/issuers/status.jsonl</code>; a status read is a view call, so no transaction.</p>{status_cards}"
+            f"<h2>Issuer action history</h2><p>{data_text(_history_coverage(history))}</p><p>{len(history)} rows in "
+            f"<code>intel/issuers/history.jsonl</code>, one per action, newest block first.</p>{history_cards}")
+    return page("Issuer actions", body)
+
+
 VERIFY_SCRIPT = """
 document.getElementById("read").addEventListener("click", async function () {
   var out = document.getElementById("out");
@@ -280,33 +432,56 @@ document.getElementById("read").addEventListener("click", async function () {
 """
 
 
+def verify_example(record_path=VERIFY_RECORD, evidence_dir=EVIDENCE_DIR):
+    """(registry account, subject, evidence hash) of a committed registry record: the hash from the record,
+    the subject and the Gate from its evidence document, and the registry as the Gate's registry sub account
+    that scripts/setup_testnet.sh deploys."""
+    record = json.loads(Path(record_path).read_text(encoding="utf-8"))
+    evidence = json.loads((Path(evidence_dir) / f"{record['evidence_hash']}.json").read_text(encoding="utf-8"))
+    return f"registry.{evidence['subject']['gate']}", evidence["subject"]["receiver"], record["evidence_hash"]
+
+
 def verify_page():
     script = VERIFY_SCRIPT.replace("RPC_URL", TESTNET_RPC)
+    registry, subject, evidence_hash = (esc(value) for value in verify_example())
     body = ("<h1>Read a registry record</h1><p>The page calls <code>latest</code> on the registry contract over the "
             f"public testnet RPC <code>{TESTNET_RPC}</code> from your browser and shows the record next to the "
             "evidence hash you paste. Compute the hash yourself with <code>sha256sum</code> of the evidence file.</p>"
-            '<div class="card"><label>Registry account<input id="registry" autocomplete="off"></label>'
-            '<label>Subject (a NEAR account id)<input id="subject" autocomplete="off"></label>'
-            '<label>Evidence hash (64 hex)<input id="hash" autocomplete="off"></label>'
-            '<button id="read" type="button">Read the record</button></div>'
+            "<p>The examples in the empty fields are the vendor's record, <code>fixtures/registry/testnet-vendor.json</code>, "
+            "and the sha256 of its evidence document.</p>"
+            f'<div class="card"><label>Registry account<input id="registry" autocomplete="off" placeholder="{registry}">'
+            f'</label><label>Subject (a NEAR account id)<input id="subject" autocomplete="off" placeholder="{subject}">'
+            f'</label><label>Evidence hash (64 hex)<input id="hash" autocomplete="off" placeholder="{evidence_hash}">'
+            '</label><button id="read" type="button">Read the record</button></div>'
             f'<pre id="out" class="card mono"></pre><script>{script}</script>')
     return page("Verify a record", body)
 
 
-def render(out_dir, store=None, incidents_dir=INCIDENTS_DIR, flows_dir=trace.FLOWS_DIR):
-    """Write every page under out_dir; returns the written paths relative to it."""
+def not_found_page():
+    body = ("<h1>Not found</h1><p>No page of this site and no route of the read only API answers this path.</p>"
+            '<p><a href="/index.html">Back to the index</a></p>')
+    return page("Not found", body, rooted=True)
+
+
+def render(out_dir, store=None, incidents_dir=INCIDENTS_DIR, flows_dir=trace.FLOWS_DIR,
+           clusters_dir=cluster.CLUSTERS_DIR, indexable=False):
+    """Write every page under out_dir, without the robots noindex meta when indexable; returns the written
+    paths relative to it."""
     store = store or labels.load()
     out = Path(out_dir)
-    incidents, flows = _incidents(incidents_dir), _flows(flows_dir)
-    pages = {"index.html": index_page(incidents, flows), "feed.html": feed_page(), "verify.html": verify_page()}
+    incidents, flows, clusters = _incidents(incidents_dir), _flows(flows_dir), _clusters(clusters_dir)
+    pages = {"index.html": index_page(incidents, flows, clusters), "feed.html": feed_page(),
+             "verify.html": verify_page(), "404.html": not_found_page(), "issuers.html": issuers_page()}
     for document in incidents:
         pages[f"incidents/{document['id']}.html"] = incident_page(document)
     for name, title, categories in ENTITY_SETS:
         pages[f"entities/{name}.html"] = entity_page(title, categories, store)
     for name, document in flows:
         pages[f"flows/{name}.html"] = flow_page(document)
+    for name, document in clusters:
+        pages[f"clusters/{name}.html"] = cluster_page(name, document)
     for relative, text in pages.items():
         path = out / relative
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(text.encode("utf-8"))
+        path.write_bytes((text.replace(ROBOTS, "") if indexable else text).encode("utf-8"))
     return sorted(pages)
