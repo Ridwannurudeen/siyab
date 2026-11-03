@@ -1,0 +1,84 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "account_id": "binance.near",
+    "pools": [
+      {
+        "pool_id": "infiniteloop.poolv1.near",
+        "last_update_block_height": null
+      }
+    ],
+    "tokens": [
+      {
+        "contract_id": "token.sweat",
+        "last_update_block_height": 216907475,
+        "balance": "42749000000000000"
+      },
+      {
+        "contract_id": "adtoken.near",
+        "last_update_block_height": null,
+        "balance": "20884000000000000000000"
+      },
+      {
+        "contract_id": "mem.tkn.near",
+        "last_update_block_height": null,
+        "balance": "948568067624644914841330376"
+      },
+      {
+        "contract_id": "t.tkn.near",
+        "last_update_block_height": null,
+        "balance": "100000000000000000"
+      },
+      {
+        "contract_id": "wrap.near",
+        "last_update_block_height": 139908837,
+        "balance": "0"
+      },
+      {
+        "contract_id": "usdt.tether-token.near",
+        "last_update_block_height": 218051333,
+        "balance": "5329000"
+      }
+    ],
+    "nfts": [
+      {
+        "contract_id": "nft-rewards.near",
+        "last_update_block_height": 166895237
+      },
+      {
+        "contract_id": "near-rewards.near",
+        "last_update_block_height": 168314182
+      },
+      {
+        "contract_id": "claim-rewards.near",
+        "last_update_block_height": 169151573
+      },
+      {
+        "contract_id": "event-drop.near",
+        "last_update_block_height": 169261268
+      },
+      {
+        "contract_id": "event-drops.near",
+        "last_update_block_height": 169584013
+      },
+      {
+        "contract_id": "stake-boost.near",
+        "last_update_block_height": 169971591
+      },
+      {
+        "contract_id": "usmen.hot.tg",
+        "last_update_block_height": 184688289
+      }
+    ],
+    "state": {
+      "balance": "65118930462500000000000",
+      "locked": "0",
+      "storage_bytes": 1558
+    }
+  },
+  "url": "https://api.fastnear.com/v1/account/binance.near/full",
+  "fetched_at": "2026-11-03T10:59:30Z"
+}

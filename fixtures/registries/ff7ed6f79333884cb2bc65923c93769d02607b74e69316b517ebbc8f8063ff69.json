@@ -1,0 +1,15 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "account_id": "kraken.near",
+    "pools": [],
+    "tokens": [],
+    "nfts": [],
+    "state": null
+  },
+  "url": "https://api.fastnear.com/v1/account/kraken.near/full",
+  "fetched_at": "2026-11-03T10:59:37Z"
+}

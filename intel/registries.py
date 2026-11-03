@@ -1,6 +1,7 @@
 """Build label rows and entity groups from recorded NEAR registry reads."""
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -14,6 +15,11 @@ ROWS_PATH = Path(__file__).resolve().parent / "registries" / "rows.jsonl"
 ENTITIES_PATH = Path(__file__).resolve().parent / "entities.jsonl"
 BRIDGE_METHOD = "get_tokens_accounts"
 REGISTRY_ORDER = ("sputnik_dao", "validators", "ref_whitelist", "bridge_factory")
+EXCHANGE_ACCOUNTS = (
+    "binancecold3.near", "binance.near", "binancecold1.near", "binancecold2.near",
+    "okx.near", "okex.near", "bybit.near", "kraken.near", "coinbase.near", "kucoin.near",
+    "gate.near", "gateio.near",
+)
 
 
 class RegistryError(ValueError):
@@ -153,6 +159,96 @@ def record():
 def append():
     """Append registry rows whose ids are absent from the label store."""
     return seed.append([row for group in rows().values() for row in group])
+
+
+def hypotheses(facts=None, mode="replay"):
+    """Build cautious exchange name hypotheses from recorded account and FastNEAR facts."""
+    if facts is None:
+        client = rpc.Client(rpc.MAINNET_RPC_URL, mode, fixtures_dir=FIXTURES_DIR)
+        http = rpc.Client("https://api.fastnear.com", mode, fixtures_dir=FIXTURES_DIR, kind="http")
+        top_url = "https://api.fastnear.com/v1/ft/usdt.tether-token.near/top"
+        top_key = rpc.fixture_key(top_url, "GET", None)
+        top = http.get(top_url)
+        if not isinstance(top, dict) or not isinstance(top.get("accounts"), list):
+            raise RegistryError("FastNEAR top holders returned an unexpected shape")
+        top_accounts = {entry.get("account_id") for entry in top["accounts"] if isinstance(entry, dict)}
+        facts = []
+        for account in EXCHANGE_ACCOUNTS:
+            view = client.view_account(account)
+            block = client.last_block_height
+            observed_at = client.last_source["fetched_at"]
+            if not isinstance(block, int) or not isinstance(observed_at, str):
+                raise RegistryError(f"view_account has no block or fetch time for {account}")
+            balance = int(view["amount"]) + int(view["locked"])
+            balance_class = "zero" if balance == 0 else "under 8 NEAR" if balance < 8 * 10**24 else "8 NEAR or more"
+            has_code = view["code_hash"] != rpc.EMPTY_CODE_HASH
+            facts.append(seed.make_row(
+                entity=f"NEAR account named {seed._quoted(account)}", subject=account, chain="near",
+                label=f"account exists; {'contract code present' if has_code else 'no contract code'}; "
+                      f"balance class {balance_class}", category="organisation", provenance="onchain",
+                source={"rpc": rpc.MAINNET_RPC_URL, "method": "view_account",
+                        "args": {"account_id": account}, "block": block}, observed_at=observed_at,
+                note=f'view_account for {seed._quoted(account)} at block {block}'))
+
+            full_url = f"https://api.fastnear.com/v1/account/{account}/full"
+            full_key = rpc.fixture_key(full_url, "GET", None)
+            full = http.get(full_url)
+            if not isinstance(full, dict) or full.get("account_id") != account or not isinstance(full.get("pools"), list):
+                raise RegistryError(f"FastNEAR full account returned an unexpected shape for {account}")
+            evidence = []
+            if account in top_accounts:
+                path = FIXTURES_DIR / f"{top_key}.json"
+                fixture = json.loads(path.read_text(encoding="utf-8"))
+                response_data = json.dumps(fixture["response"], ensure_ascii=False,
+                                           separators=(",", ":")).encode("utf-8")
+                response_hash = hashlib.sha256(response_data).hexdigest()
+                evidence.append(seed.make_row(
+                    entity=f"FastNEAR top holder data for {seed._quoted(account)}", subject=account, chain="near",
+                    label='listed in FastNEAR top holders for "usdt.tether-token.near"', category="organisation",
+                    provenance="third_party",
+                    source={"url": top_url, "content_sha256": response_hash, "fetched_at": fixture["fetched_at"]},
+                    observed_at=fixture["fetched_at"], note="FastNEAR top holder response"))
+            account_name = account.split(".", 1)[0]
+            brand = account_name.removesuffix("cold1").removesuffix("cold2").removesuffix("cold3")
+            matching_pools = [pool["pool_id"] for pool in full["pools"]
+                              if isinstance(pool, dict) and isinstance(pool.get("pool_id"), str)
+                              and pool["pool_id"].split(".", 1)[0].startswith(brand)]
+            if matching_pools:
+                path = FIXTURES_DIR / f"{full_key}.json"
+                fixture = json.loads(path.read_text(encoding="utf-8"))
+                response_data = json.dumps(fixture["response"], ensure_ascii=False,
+                                           separators=(",", ":")).encode("utf-8")
+                response_hash = hashlib.sha256(response_data).hexdigest()
+                evidence.append(seed.make_row(
+                    entity=f"FastNEAR pool data for {seed._quoted(account)}", subject=account, chain="near",
+                    label="staking pool name repeats the named account pattern", category="organisation",
+                    provenance="third_party",
+                    source={"url": full_url, "content_sha256": response_hash, "fetched_at": fixture["fetched_at"]},
+                    observed_at=fixture["fetched_at"],
+                    note=f"FastNEAR lists pool account names {seed._quoted(', '.join(matching_pools))}"))
+            facts.extend(evidence)
+
+    by_subject = {}
+    for fact in facts:
+        if fact["subject"] in EXCHANGE_ACCOUNTS:
+            by_subject.setdefault(fact["subject"], []).append(fact)
+
+    result = []
+    for account, account_facts in by_subject.items():
+        chain_facts = [fact for fact in account_facts if fact["provenance"] == "onchain"]
+        support = [fact for fact in account_facts if fact["provenance"] == "third_party"]
+        if not chain_facts or not support:
+            continue
+        inputs = [fact["id"] for fact in chain_facts + support]
+        evidence_text = "; ".join(fact["label"] for fact in support)
+        result.append(seed.make_row(
+            entity=f"exchange named account hypothesis for {seed._quoted(account)}", subject=account, chain="near",
+            label=f"attribution hypothesis: exchange name pattern; {evidence_text}", category="organisation",
+            provenance="inferred", source={"rule_id": "exchange_name_pattern", "inputs": inputs},
+            observed_at=max(fact["observed_at"] for fact in account_facts), confidence=0.6,
+            rule_id="exchange_name_pattern",
+            note="attribution hypothesis; no official exchange address list for NEAR was found"))
+    return result
 
 
 def main(argv=None):

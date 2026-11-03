@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "coinbase.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "6969014976906444500000000",
+      "block_hash": "Cxx6RhvPBVPe1qM915pHASU6MBvNMeiEtEK8DWZXXkqn",
+      "block_height": 222860824,
+      "code_hash": "E8jZ1giWcVrps8PcV75ATauu6gFRkcwjNtKp7NKmipZG",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 1048
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-03T10:59:37Z"
+}

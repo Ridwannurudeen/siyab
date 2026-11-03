@@ -1,0 +1,15 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "account_id": "binancecold1.near",
+    "pools": [],
+    "tokens": [],
+    "nfts": [],
+    "state": null
+  },
+  "url": "https://api.fastnear.com/v1/account/binancecold1.near/full",
+  "fetched_at": "2026-11-03T10:59:31Z"
+}

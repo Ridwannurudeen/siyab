@@ -116,6 +116,30 @@ class RegistriesTests(unittest.TestCase):
                 registries.record()
             self.assertFalse(output_dir.exists())
 
+    def test_hypotheses_are_inferred_with_inputs_and_a_confidence_at_most_0_6(self):
+        hypotheses = registries.hypotheses()
+        recorded = [json.loads(line) for line in
+                    (registries.ROOT / "intel" / "registries" / "hypotheses.jsonl")
+                    .read_text(encoding="utf-8").splitlines()]
+
+        self.assertTrue(hypotheses)
+        self.assertEqual(hypotheses, recorded)
+        for row in hypotheses:
+            self.assertEqual(row["provenance"], "inferred")
+            self.assertEqual(row["category"], "organisation")
+            self.assertEqual(row["rule_id"], "exchange_name_pattern")
+            self.assertLessEqual(row["confidence"], 0.6)
+            self.assertIn("attribution hypothesis", row["label"])
+            self.assertIn("attribution hypothesis", row["note"])
+            self.assertIn("no official exchange address list for NEAR was found", row["note"])
+            self.assertTrue(row["source"]["inputs"])
+            self.assertTrue(all(len(value) == 64 and all(char in "0123456789abcdef" for char in value)
+                                for value in row["source"]["inputs"]))
+            labels.validate(row)
+
+    def test_no_hypothesis_without_a_recorded_fact(self):
+        self.assertEqual(registries.hypotheses(facts=[]), [])
+
 
 if __name__ == "__main__":
     unittest.main()

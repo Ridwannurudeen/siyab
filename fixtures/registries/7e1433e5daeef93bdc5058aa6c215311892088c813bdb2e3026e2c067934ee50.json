@@ -1,0 +1,30 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "account_id": "gate.near",
+    "pools": [],
+    "tokens": [
+      {
+        "contract_id": "kusama-airdrop.near",
+        "last_update_block_height": null,
+        "balance": "384458"
+      }
+    ],
+    "nfts": [
+      {
+        "contract_id": "yuzu.recurforever.near",
+        "last_update_block_height": null
+      }
+    ],
+    "state": {
+      "balance": "58718930462500000000000",
+      "locked": "0",
+      "storage_bytes": 933
+    }
+  },
+  "url": "https://api.fastnear.com/v1/account/gate.near/full",
+  "fetched_at": "2026-11-03T10:59:40Z"
+}
