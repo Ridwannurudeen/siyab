@@ -75,7 +75,8 @@ class ApiTest(unittest.TestCase):
                                     ("DAO created by the Sputnik DAO factory", "account"),
                                     ("Sputnik DAO: \"genesis\"", "entity")):
             with self.subTest(term=term):
-                status, body = self.get_json("/search/" + urllib.parse.quote(term, safe=""))
+                # The second argument leaves no character unencoded.
+                status, body = self.get_json("/search/" + urllib.parse.quote(term, ""))
                 self.assertEqual(status, 200)
                 self.assertTrue(any(result["type"] == expected_type for result in body["results"]))
                 for result in body["results"]:
