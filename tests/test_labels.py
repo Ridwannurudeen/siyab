@@ -11,7 +11,7 @@ from unittest import mock
 
 from gate import rpc, rules
 from intel import __main__ as intel_main
-from intel import labels, registries, seed
+from intel import issuers, labels, registries, seed
 
 RAW_DIR = seed.RAW_DIR
 ROOT = Path(__file__).resolve().parent.parent
@@ -105,7 +105,8 @@ class CommittedStoreTest(unittest.TestCase):
             by_registry = registries.rows()
             rows = (seed.treasuries("replay") + seed.catalog("replay") + seed.infrastructure("replay")
                     + seed.rhea("replay") + seed.sweat_hot("replay")
-                    + [row for name in registries.REGISTRY_ORDER for row in by_registry[name]])
+                    + [row for name in registries.REGISTRY_ORDER for row in by_registry[name]]
+                    + issuers.history_rows() + issuers.rows())
         self.assertEqual([r["id"] for r in rows], [r["id"] for r in self.rows])
         self.assertEqual([labels.row_line(r) for r in rows], labels.STORE_PATH.read_text(encoding="utf-8").splitlines())
 

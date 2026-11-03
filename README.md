@@ -35,7 +35,7 @@ Every line below is written by `python scripts/counts.py --readme README.md` fro
 
 On 52 recorded mainnet receivers the rules returned 32 ALLOW, 19 DENY, 1 Unknown.
 
-Label store: 3235 assertions over 3000 subjects (onchain 2863, official_source 350, third_party 18, inferred 4).
+Label store: 3266 assertions over 3009 subjects (onchain 2894, official_source 350, third_party 18, inferred 4).
 
 Incidents: 3 pages.
 

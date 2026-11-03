@@ -6623,6 +6623,226 @@
   },
   {
     "issuer": "usdt.tether-token.near",
+    "subject": "0x4ad0aaaee18a66b12caff45df515c0047a8dac0c",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "0x4ad0aaaee18a66b12caff45df515c0047a8dac0c"
+    },
+    "answer": "Banned",
+    "block": 222857405,
+    "observed_at": "2026-11-03T10:27:17Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "0x4ad0aaaee18a66b12caff45df515c0047a8dac0c",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "0x4ad0aaaee18a66b12caff45df515c0047a8dac0c"
+    },
+    "answer": false,
+    "block": 222857406,
+    "observed_at": "2026-11-03T10:27:18Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "9b193cc8c890ef006f201e2ce0de58a42932f0950e965c2f3fe19b2c9322f20c",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "9b193cc8c890ef006f201e2ce0de58a42932f0950e965c2f3fe19b2c9322f20c"
+    },
+    "answer": "Banned",
+    "block": 222857407,
+    "observed_at": "2026-11-03T10:27:19Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "9b193cc8c890ef006f201e2ce0de58a42932f0950e965c2f3fe19b2c9322f20c",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "9b193cc8c890ef006f201e2ce0de58a42932f0950e965c2f3fe19b2c9322f20c"
+    },
+    "answer": false,
+    "block": 222857409,
+    "observed_at": "2026-11-03T10:27:19Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "1546.07",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "1546.07"
+    },
+    "answer": "Banned",
+    "block": 222857411,
+    "observed_at": "2026-11-03T10:27:21Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "1546.07",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "1546.07"
+    },
+    "answer": false,
+    "block": 222857412,
+    "observed_at": "2026-11-03T10:27:21Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "05bbaa5983c5c95b401395ba7a219d3ddb67afb32f4d383a05aafb289f466802",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "05bbaa5983c5c95b401395ba7a219d3ddb67afb32f4d383a05aafb289f466802"
+    },
+    "answer": "Banned",
+    "block": 222857414,
+    "observed_at": "2026-11-03T10:27:22Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "05bbaa5983c5c95b401395ba7a219d3ddb67afb32f4d383a05aafb289f466802",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "05bbaa5983c5c95b401395ba7a219d3ddb67afb32f4d383a05aafb289f466802"
+    },
+    "answer": false,
+    "block": 222857415,
+    "observed_at": "2026-11-03T10:27:23Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "f712ec5e4d1b80c8d1a53c2b022a927a738c54115a2814b4e00ba04c4162f588",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "f712ec5e4d1b80c8d1a53c2b022a927a738c54115a2814b4e00ba04c4162f588"
+    },
+    "answer": "Banned",
+    "block": 222857418,
+    "observed_at": "2026-11-03T10:27:25Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "f712ec5e4d1b80c8d1a53c2b022a927a738c54115a2814b4e00ba04c4162f588",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "f712ec5e4d1b80c8d1a53c2b022a927a738c54115a2814b4e00ba04c4162f588"
+    },
+    "answer": false,
+    "block": 222857419,
+    "observed_at": "2026-11-03T10:27:26Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "bc1qrxzqhazks7s9kcu55tktuqh2pvpv02u829kw2w",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "bc1qrxzqhazks7s9kcu55tktuqh2pvpv02u829kw2w"
+    },
+    "answer": "Banned",
+    "block": 222857421,
+    "observed_at": "2026-11-03T10:27:27Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "bc1qrxzqhazks7s9kcu55tktuqh2pvpv02u829kw2w",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "bc1qrxzqhazks7s9kcu55tktuqh2pvpv02u829kw2w"
+    },
+    "answer": false,
+    "block": 222857422,
+    "observed_at": "2026-11-03T10:27:27Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "5c763d782d413c4f7272c3f32a61967dac6f97f201ede424af1e5fee81e706f3",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "5c763d782d413c4f7272c3f32a61967dac6f97f201ede424af1e5fee81e706f3"
+    },
+    "answer": "Banned",
+    "block": 222857424,
+    "observed_at": "2026-11-03T10:27:28Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "5c763d782d413c4f7272c3f32a61967dac6f97f201ede424af1e5fee81e706f3",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "5c763d782d413c4f7272c3f32a61967dac6f97f201ede424af1e5fee81e706f3"
+    },
+    "answer": false,
+    "block": 222857426,
+    "observed_at": "2026-11-03T10:27:30Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "usdt.tether-token.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "usdt.tether-token.near"
+    },
+    "answer": "Banned",
+    "block": 222857427,
+    "observed_at": "2026-11-03T10:27:30Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "usdt.tether-token.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "usdt.tether-token.near"
+    },
+    "answer": false,
+    "block": 222857429,
+    "observed_at": "2026-11-03T10:27:31Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "0x4672647cb8a70223c96a83ce4dbda78f8b4ed334",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "0x4672647cb8a70223c96a83ce4dbda78f8b4ed334"
+    },
+    "answer": "Banned",
+    "block": 222857431,
+    "observed_at": "2026-11-03T10:27:32Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "0x4672647cb8a70223c96a83ce4dbda78f8b4ed334",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "0x4672647cb8a70223c96a83ce4dbda78f8b4ed334"
+    },
+    "answer": false,
+    "block": 222857433,
+    "observed_at": "2026-11-03T10:27:34Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "470d5d2ded7239d48460dc8c48694cf3bb672569ad21114a21ef55c4b6ab1d40",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "470d5d2ded7239d48460dc8c48694cf3bb672569ad21114a21ef55c4b6ab1d40"
+    },
+    "answer": "Banned",
+    "block": 222857434,
+    "observed_at": "2026-11-03T10:27:35Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "470d5d2ded7239d48460dc8c48694cf3bb672569ad21114a21ef55c4b6ab1d40",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "470d5d2ded7239d48460dc8c48694cf3bb672569ad21114a21ef55c4b6ab1d40"
+    },
+    "answer": false,
+    "block": 222857436,
+    "observed_at": "2026-11-03T10:27:36Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
     "subject": "mmt-arb.near",
     "method": "get_blacklist_status",
     "args": {

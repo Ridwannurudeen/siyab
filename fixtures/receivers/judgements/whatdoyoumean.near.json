@@ -26,7 +26,7 @@
       "detail": "no denylist or incident label on whatdoyoumean.near",
       "source": {
         "provider": "label store",
-        "request_sha256": "f98e1f12498535262e413c38dfa6e994861b78bfad33ebf347cda2f3a8596427",
+        "request_sha256": "74c235c6aefd1daae4c8028fc7e6461bbd9d8baa401caaa018ae29c001c1133d",
         "fetched_at": null
       }
     },
@@ -76,7 +76,7 @@
       "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
       "source": {
         "provider": "allowlist and label store",
-        "request_sha256": "f98e1f12498535262e413c38dfa6e994861b78bfad33ebf347cda2f3a8596427",
+        "request_sha256": "74c235c6aefd1daae4c8028fc7e6461bbd9d8baa401caaa018ae29c001c1133d",
         "fetched_at": null
       }
     },
