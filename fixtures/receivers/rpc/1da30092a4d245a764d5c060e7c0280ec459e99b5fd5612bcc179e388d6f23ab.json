@@ -1,0 +1,73 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "txns": [
+      {
+        "transaction_hash": "HYwASbkE6fxXvexVxYkArw6KrwvBzG9x8evXUBeZypoq",
+        "included_in_block_hash": "9RWoGYhJkweg7GsjDXzfFyEXewpW4Xo4B9mNrp2dHDvH",
+        "block_timestamp": "1625775697411895685",
+        "signer_account_id": "mxjxn.near",
+        "receiver_account_id": "sputnik-dao.near",
+        "receipt_conversion_gas_burnt": "2428446444490",
+        "receipt_conversion_tokens_burnt": "242844644449000000000",
+        "shard_id": "0",
+        "block": {
+          "block_height": 42085358
+        },
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "create",
+            "args": "{\"args\": \"eyJjb25maWciOnsibmFtZSI6Imh5cGUiLCJwdXJwb3NlIjoiQSB2ZXJ5IHBvd2VyZnVsIGFydGlzdCBndWlsZC4iLCJtZXRhZGF0YSI6IiJ9LCJwb2xpY3kiOlsibXhqeG4ubmVhciJdfQ==\", \"name\": \"hype\", \"public_key\": \"2gtDEwdLuUBawzFLAnCS9gUso3Ph76bRzMpVrtb66f3J\"}"
+          }
+        ],
+        "actions_agg": {
+          "deposit": 5e+24,
+          "gas_attached": 150000000000000
+        },
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": 6.8825852323412e+21,
+          "gas_used": 68825852323412
+        },
+        "receipts": [
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          }
+        ]
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/txns/HYwASbkE6fxXvexVxYkArw6KrwvBzG9x8evXUBeZypoq",
+  "fetched_at": "2026-11-03T18:51:19Z"
+}

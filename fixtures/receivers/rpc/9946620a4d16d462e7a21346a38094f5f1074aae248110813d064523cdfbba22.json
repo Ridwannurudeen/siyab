@@ -1,0 +1,73 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "txns": [
+      {
+        "transaction_hash": "66ZqRXybaL7zdyY8uUfbU7D2YspvDBptiqGRKfi6xnu3",
+        "included_in_block_hash": "2zFS1tvAyQbAHkH2XiNmrDYeQbi61oyJEi4nVfT6JjSR",
+        "block_timestamp": "1627506352199585648",
+        "signer_account_id": "empress.near",
+        "receiver_account_id": "sputnik-dao.near",
+        "receipt_conversion_gas_burnt": "2428477747566",
+        "receipt_conversion_tokens_burnt": "242847774756600000000",
+        "shard_id": "0",
+        "block": {
+          "block_height": 43811209
+        },
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "create",
+            "args": "{\"args\": \"eyJjb25maWciOnsibmFtZSI6ImZhbWphbSIsInB1cnBvc2UiOiJCdWlsZCBzdXN0YWluYWJsZSBpbmNvbWUgZm9yIGFydGlzdHMiLCJtZXRhZGF0YSI6IiJ9LCJwb2xpY3kiOlsiZW1wcmVzcy5uZWFyIl19\", \"name\": \"famjam\", \"public_key\": \"2gtDEwdLuUBawzFLAnCS9gUso3Ph76bRzMpVrtb66f3J\"}"
+          }
+        ],
+        "actions_agg": {
+          "deposit": 5e+24,
+          "gas_attached": 150000000000000
+        },
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": 6.8840868192024e+21,
+          "gas_used": 68840868192024
+        },
+        "receipts": [
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          }
+        ]
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/txns/66ZqRXybaL7zdyY8uUfbU7D2YspvDBptiqGRKfi6xnu3",
+  "fetched_at": "2026-11-03T18:54:32Z"
+}

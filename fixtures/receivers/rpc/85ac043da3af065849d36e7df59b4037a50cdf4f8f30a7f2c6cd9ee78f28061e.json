@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "keys": [
+      {
+        "public_key": "ed25519:2gtDEwdLuUBawzFLAnCS9gUso3Ph76bRzMpVrtb66f3J",
+        "account_id": "nearweek.sputnik-dao.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "Cm9qR9cEXXHUer7sjPr2zYERie2pYkQBebt6W8CMEQ1a",
+          "block_timestamp": 1627328149419021600
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/account/nearweek.sputnik-dao.near/keys",
+  "fetched_at": "2026-11-03T18:53:01Z"
+}

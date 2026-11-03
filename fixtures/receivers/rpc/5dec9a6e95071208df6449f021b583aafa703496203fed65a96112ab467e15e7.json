@@ -1,0 +1,81 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "txns": [
+      {
+        "transaction_hash": "JEDT2YbsV7yeG95KEcS2yBKieo1rpgoB327G8ZAtQFph",
+        "included_in_block_hash": "AeTCy71qT8AYWARdq4KTduqipzjYH6hP1cn9dKd4RTp4",
+        "block_timestamp": "1625795380186116355",
+        "signer_account_id": "ziyad.near",
+        "receiver_account_id": "ziyad.near",
+        "receipt_conversion_gas_burnt": "2427974662416",
+        "receipt_conversion_tokens_burnt": "242797466241600000000",
+        "shard_id": "0",
+        "block": {
+          "block_height": 42105199
+        },
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "confirm",
+            "args": "{\"request_id\": 41}"
+          }
+        ],
+        "actions_agg": {
+          "deposit": 0,
+          "gas_attached": 250000000000000
+        },
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": 8.0930720644641e+21,
+          "gas_used": 80930720644641
+        },
+        "receipts": [
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          }
+        ]
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/txns/JEDT2YbsV7yeG95KEcS2yBKieo1rpgoB327G8ZAtQFph",
+  "fetched_at": "2026-11-03T18:52:11Z"
+}

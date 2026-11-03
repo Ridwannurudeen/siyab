@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "keys": [
+      {
+        "public_key": "ed25519:2gtDEwdLuUBawzFLAnCS9gUso3Ph76bRzMpVrtb66f3J",
+        "account_id": "nihilism_fulltime.sputnik-dao.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "HddMPPr3tN7c3bBAqCm1fkUkfMfQeNvjzwiqibyszShi",
+          "block_timestamp": 1627506322371210800
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/account/nihilism_fulltime.sputnik-dao.near/keys",
+  "fetched_at": "2026-11-03T18:53:41Z"
+}

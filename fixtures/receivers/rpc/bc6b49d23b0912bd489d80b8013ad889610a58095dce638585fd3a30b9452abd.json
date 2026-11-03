@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "peter.sputnik-dao.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "28001768290526598300000000",
+      "block_hash": "FB4gCb1uEdLsrxmH1zbZoRJynh2g816X3vjc2zTgHVfv",
+      "block_height": 222909865,
+      "code_hash": "8RMeZ5cXDap6TENxaJKtigRYf3n139iHmTRe8ZUNey6N",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 471485
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-03T18:48:47Z"
+}

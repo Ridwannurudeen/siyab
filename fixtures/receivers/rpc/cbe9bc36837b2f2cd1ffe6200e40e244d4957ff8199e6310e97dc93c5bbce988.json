@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "keys": [
+      {
+        "public_key": "ed25519:2gtDEwdLuUBawzFLAnCS9gUso3Ph76bRzMpVrtb66f3J",
+        "account_id": "localmakermart.sputnik-dao.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "94dRRtAJABoUKCcBLypM4gEq8ZQv8K4AVcN34heFJj74",
+          "block_timestamp": 1627506513666561800
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/account/localmakermart.sputnik-dao.near/keys",
+  "fetched_at": "2026-11-03T18:55:41Z"
+}

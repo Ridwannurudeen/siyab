@@ -1,0 +1,73 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "txns": [
+      {
+        "transaction_hash": "DpfiwQc5frSMk3SPKxCCHey6podZapYWUhH6HzVcnuHx",
+        "included_in_block_hash": "8EuTYVy1CjLpJjesjUvW8jtpcZHNDPdv6UeFHhUffj8M",
+        "block_timestamp": "1627506477437017826",
+        "signer_account_id": "kindnessgrocerycoop.near",
+        "receiver_account_id": "sputnik-dao.near",
+        "receipt_conversion_gas_burnt": "2428817609534",
+        "receipt_conversion_tokens_burnt": "242881760953400000000",
+        "shard_id": "0",
+        "block": {
+          "block_height": 43811323
+        },
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "create",
+            "args": "{\"args\": \"eyJjb25maWciOnsibmFtZSI6ImtpbmRlc3Nncm9jZXJ5Y29vcCIsInB1cnBvc2UiOiJUbyBpbnNwaXJlIGNvbW11bml0aWVzIHRvIGNvbGxlY3RpdmVseSwgYXV0b25vbW91c2x5IGFuZCBzdXN0YWluYWJseSBleGlzdCBpbiBoYXJtb255IHdpdGggdGhlIEVhcnRoIGFuZCBvbmUgYW5vdGhlci4iLCJtZXRhZGF0YSI6IiJ9LCJwb2xpY3kiOlsia2luZG5lc3Nncm9jZXJ5Y29vcC5uZWFyIl19\", \"name\": \"kindessgrocerycoop\", \"public_key\": \"2gtDEwdLuUBawzFLAnCS9gUso3Ph76bRzMpVrtb66f3J\"}"
+          }
+        ],
+        "actions_agg": {
+          "deposit": 5e+24,
+          "gas_attached": 150000000000000
+        },
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": 6.8916057685147e+21,
+          "gas_used": 68916057685147
+        },
+        "receipts": [
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          }
+        ]
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/txns/DpfiwQc5frSMk3SPKxCCHey6podZapYWUhH6HzVcnuHx",
+  "fetched_at": "2026-11-03T18:55:29Z"
+}

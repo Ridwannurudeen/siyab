@@ -53,7 +53,7 @@
     {
       "id": "account_age",
       "status": "pass",
-      "detail": "created 196 d ago",
+      "detail": "created 201 d ago",
       "source": {
         "provider": "api.nearblocks.io",
         "request_sha256": "516eef037d0239bcdb1e8b62accb80a3a2f393a0fba138ef4dfe3a41cc393844",
@@ -82,8 +82,8 @@
     },
     {
       "id": "code_without_metadata",
-      "status": "signal",
-      "detail": "code_without_metadata: contract code without contract_source_metadata",
+      "status": "pass",
+      "detail": "contract code without contract_source_metadata; not a signal on its own",
       "source": {
         "provider": "free.rpc.fastnear.com",
         "request_sha256": "e99f332de711063deaf93d55f32e87aa4d1e6f2cf71ffabe5d3b51c60e02e9e4",
@@ -93,8 +93,7 @@
   ],
   "reasons": [
     "Not on the owner's allowlist.",
-    "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5 carries the incident label \"named in the rekt.news Rhea Finance report as the master account\" (assertion 56bcaa5972ef748cca8a1f9b9be8f856184a94fa7268ec9a681ee89664d4d207); 72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5 carries the incident label \"account exists with contract code hash BbQTHv9y5pJcAVbcZVRgMkZib9v2bfydRtBL9msUR4Wi\" (assertion a28b0030e0a5060ee2e24e8dd6b0cd288d795e347660baf73a7f2ca2bfcdf7f4).",
-    "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5 has contract code without contract_source_metadata."
+    "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5 carries the incident label \"named in the rekt.news Rhea Finance report as the master account\" (assertion 56bcaa5972ef748cca8a1f9b9be8f856184a94fa7268ec9a681ee89664d4d207); 72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5 carries the incident label \"account exists with contract code hash BbQTHv9y5pJcAVbcZVRgMkZib9v2bfydRtBL9msUR4Wi\" (assertion a28b0030e0a5060ee2e24e8dd6b0cd288d795e347660baf73a7f2ca2bfcdf7f4)."
   ],
   "labels": [
     "56bcaa5972ef748cca8a1f9b9be8f856184a94fa7268ec9a681ee89664d4d207",
@@ -102,6 +101,6 @@
   ],
   "observed": {
     "block_height": 222119657,
-    "timestamp_ms": 1793284573923
+    "timestamp_ms": 1793731688201
   }
 }

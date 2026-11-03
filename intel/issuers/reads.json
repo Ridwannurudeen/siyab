@@ -6865,94 +6865,6 @@
   },
   {
     "issuer": "usdt.tether-token.near",
-    "subject": "ayoublaf.near",
-    "method": "get_blacklist_status",
-    "args": {
-      "account_id": "ayoublaf.near"
-    },
-    "answer": "Allowable",
-    "block": 222840365,
-    "observed_at": "2026-11-03T07:45:18Z"
-  },
-  {
-    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
-    "subject": "ayoublaf.near",
-    "method": "is_blocklisted",
-    "args": {
-      "account_id": "ayoublaf.near"
-    },
-    "answer": false,
-    "block": 222840367,
-    "observed_at": "2026-11-03T07:45:19Z"
-  },
-  {
-    "issuer": "usdt.tether-token.near",
-    "subject": "closemeat6237.near",
-    "method": "get_blacklist_status",
-    "args": {
-      "account_id": "closemeat6237.near"
-    },
-    "answer": "Allowable",
-    "block": 222840369,
-    "observed_at": "2026-11-03T07:45:20Z"
-  },
-  {
-    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
-    "subject": "closemeat6237.near",
-    "method": "is_blocklisted",
-    "args": {
-      "account_id": "closemeat6237.near"
-    },
-    "answer": false,
-    "block": 222840371,
-    "observed_at": "2026-11-03T07:45:21Z"
-  },
-  {
-    "issuer": "usdt.tether-token.near",
-    "subject": "hideon.near",
-    "method": "get_blacklist_status",
-    "args": {
-      "account_id": "hideon.near"
-    },
-    "answer": "Allowable",
-    "block": 222840373,
-    "observed_at": "2026-11-03T07:45:22Z"
-  },
-  {
-    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
-    "subject": "hideon.near",
-    "method": "is_blocklisted",
-    "args": {
-      "account_id": "hideon.near"
-    },
-    "answer": false,
-    "block": 222840374,
-    "observed_at": "2026-11-03T07:45:23Z"
-  },
-  {
-    "issuer": "usdt.tether-token.near",
-    "subject": "whatdoyoumean.near",
-    "method": "get_blacklist_status",
-    "args": {
-      "account_id": "whatdoyoumean.near"
-    },
-    "answer": "Allowable",
-    "block": 222840376,
-    "observed_at": "2026-11-03T07:45:24Z"
-  },
-  {
-    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
-    "subject": "whatdoyoumean.near",
-    "method": "is_blocklisted",
-    "args": {
-      "account_id": "whatdoyoumean.near"
-    },
-    "answer": false,
-    "block": 222840378,
-    "observed_at": "2026-11-03T07:45:25Z"
-  },
-  {
-    "issuer": "usdt.tether-token.near",
     "subject": "via-trading.near",
     "method": "get_blacklist_status",
     "args": {
@@ -7019,28 +6931,6 @@
   },
   {
     "issuer": "usdt.tether-token.near",
-    "subject": "cryptovulcanedge.near",
-    "method": "get_blacklist_status",
-    "args": {
-      "account_id": "cryptovulcanedge.near"
-    },
-    "answer": "Allowable",
-    "block": 222840409,
-    "observed_at": "2026-11-03T07:45:43Z"
-  },
-  {
-    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
-    "subject": "cryptovulcanedge.near",
-    "method": "is_blocklisted",
-    "args": {
-      "account_id": "cryptovulcanedge.near"
-    },
-    "answer": false,
-    "block": 222840411,
-    "observed_at": "2026-11-03T07:45:44Z"
-  },
-  {
-    "issuer": "usdt.tether-token.near",
     "subject": "wrap.near",
     "method": "get_blacklist_status",
     "args": {
@@ -7060,94 +6950,6 @@
     "answer": false,
     "block": 222840414,
     "observed_at": "2026-11-03T07:45:46Z"
-  },
-  {
-    "issuer": "usdt.tether-token.near",
-    "subject": "davin2525.near",
-    "method": "get_blacklist_status",
-    "args": {
-      "account_id": "davin2525.near"
-    },
-    "answer": "Allowable",
-    "block": 222840416,
-    "observed_at": "2026-11-03T07:45:47Z"
-  },
-  {
-    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
-    "subject": "davin2525.near",
-    "method": "is_blocklisted",
-    "args": {
-      "account_id": "davin2525.near"
-    },
-    "answer": false,
-    "block": 222840418,
-    "observed_at": "2026-11-03T07:45:48Z"
-  },
-  {
-    "issuer": "usdt.tether-token.near",
-    "subject": "grefdegen-53f63595b9.near",
-    "method": "get_blacklist_status",
-    "args": {
-      "account_id": "grefdegen-53f63595b9.near"
-    },
-    "answer": "Allowable",
-    "block": 222840419,
-    "observed_at": "2026-11-03T07:45:49Z"
-  },
-  {
-    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
-    "subject": "grefdegen-53f63595b9.near",
-    "method": "is_blocklisted",
-    "args": {
-      "account_id": "grefdegen-53f63595b9.near"
-    },
-    "answer": false,
-    "block": 222840421,
-    "observed_at": "2026-11-03T07:45:50Z"
-  },
-  {
-    "issuer": "usdt.tether-token.near",
-    "subject": "frosty_santa3.user.intear.near",
-    "method": "get_blacklist_status",
-    "args": {
-      "account_id": "frosty_santa3.user.intear.near"
-    },
-    "answer": "Allowable",
-    "block": 222840423,
-    "observed_at": "2026-11-03T07:45:51Z"
-  },
-  {
-    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
-    "subject": "frosty_santa3.user.intear.near",
-    "method": "is_blocklisted",
-    "args": {
-      "account_id": "frosty_santa3.user.intear.near"
-    },
-    "answer": false,
-    "block": 222840425,
-    "observed_at": "2026-11-03T07:45:52Z"
-  },
-  {
-    "issuer": "usdt.tether-token.near",
-    "subject": "keepsilence.near",
-    "method": "get_blacklist_status",
-    "args": {
-      "account_id": "keepsilence.near"
-    },
-    "answer": "Allowable",
-    "block": 222840427,
-    "observed_at": "2026-11-03T07:45:53Z"
-  },
-  {
-    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
-    "subject": "keepsilence.near",
-    "method": "is_blocklisted",
-    "args": {
-      "account_id": "keepsilence.near"
-    },
-    "answer": false,
-    "block": 222840428,
-    "observed_at": "2026-11-03T07:45:54Z"
   },
   {
     "issuer": "usdt.tether-token.near",
@@ -7195,204 +6997,6 @@
   },
   {
     "issuer": "usdt.tether-token.near",
-    "subject": "freshgarden2689.near",
-    "method": "get_blacklist_status",
-    "args": {
-      "account_id": "freshgarden2689.near"
-    },
-    "answer": "Allowable",
-    "block": 222840437,
-    "observed_at": "2026-11-03T07:45:59Z"
-  },
-  {
-    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
-    "subject": "freshgarden2689.near",
-    "method": "is_blocklisted",
-    "args": {
-      "account_id": "freshgarden2689.near"
-    },
-    "answer": false,
-    "block": 222840458,
-    "observed_at": "2026-11-03T07:46:11Z"
-  },
-  {
-    "issuer": "usdt.tether-token.near",
-    "subject": "holderspot.near",
-    "method": "get_blacklist_status",
-    "args": {
-      "account_id": "holderspot.near"
-    },
-    "answer": "Allowable",
-    "block": 222840459,
-    "observed_at": "2026-11-03T07:46:12Z"
-  },
-  {
-    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
-    "subject": "holderspot.near",
-    "method": "is_blocklisted",
-    "args": {
-      "account_id": "holderspot.near"
-    },
-    "answer": false,
-    "block": 222840461,
-    "observed_at": "2026-11-03T07:46:13Z"
-  },
-  {
-    "issuer": "usdt.tether-token.near",
-    "subject": "kirillsokolovsky.tg",
-    "method": "get_blacklist_status",
-    "args": {
-      "account_id": "kirillsokolovsky.tg"
-    },
-    "answer": "Allowable",
-    "block": 222840463,
-    "observed_at": "2026-11-03T07:46:13Z"
-  },
-  {
-    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
-    "subject": "kirillsokolovsky.tg",
-    "method": "is_blocklisted",
-    "args": {
-      "account_id": "kirillsokolovsky.tg"
-    },
-    "answer": false,
-    "block": 222840465,
-    "observed_at": "2026-11-03T07:46:14Z"
-  },
-  {
-    "issuer": "usdt.tether-token.near",
-    "subject": "mrnicevery.near",
-    "method": "get_blacklist_status",
-    "args": {
-      "account_id": "mrnicevery.near"
-    },
-    "answer": "Allowable",
-    "block": 222840467,
-    "observed_at": "2026-11-03T07:46:15Z"
-  },
-  {
-    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
-    "subject": "mrnicevery.near",
-    "method": "is_blocklisted",
-    "args": {
-      "account_id": "mrnicevery.near"
-    },
-    "answer": false,
-    "block": 222840469,
-    "observed_at": "2026-11-03T07:46:17Z"
-  },
-  {
-    "issuer": "usdt.tether-token.near",
-    "subject": "safenode8556.near",
-    "method": "get_blacklist_status",
-    "args": {
-      "account_id": "safenode8556.near"
-    },
-    "answer": "Allowable",
-    "block": 222840471,
-    "observed_at": "2026-11-03T07:46:18Z"
-  },
-  {
-    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
-    "subject": "safenode8556.near",
-    "method": "is_blocklisted",
-    "args": {
-      "account_id": "safenode8556.near"
-    },
-    "answer": false,
-    "block": 222840472,
-    "observed_at": "2026-11-03T07:46:18Z"
-  },
-  {
-    "issuer": "usdt.tether-token.near",
-    "subject": "thecoins.near",
-    "method": "get_blacklist_status",
-    "args": {
-      "account_id": "thecoins.near"
-    },
-    "answer": "Allowable",
-    "block": 222840474,
-    "observed_at": "2026-11-03T07:46:19Z"
-  },
-  {
-    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
-    "subject": "thecoins.near",
-    "method": "is_blocklisted",
-    "args": {
-      "account_id": "thecoins.near"
-    },
-    "answer": false,
-    "block": 222840476,
-    "observed_at": "2026-11-03T07:46:20Z"
-  },
-  {
-    "issuer": "usdt.tether-token.near",
-    "subject": "irisout.near",
-    "method": "get_blacklist_status",
-    "args": {
-      "account_id": "irisout.near"
-    },
-    "answer": "Allowable",
-    "block": 222840478,
-    "observed_at": "2026-11-03T07:46:21Z"
-  },
-  {
-    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
-    "subject": "irisout.near",
-    "method": "is_blocklisted",
-    "args": {
-      "account_id": "irisout.near"
-    },
-    "answer": false,
-    "block": 222840479,
-    "observed_at": "2026-11-03T07:46:22Z"
-  },
-  {
-    "issuer": "usdt.tether-token.near",
-    "subject": "frigid_polar1.user.intear.near",
-    "method": "get_blacklist_status",
-    "args": {
-      "account_id": "frigid_polar1.user.intear.near"
-    },
-    "answer": "Allowable",
-    "block": 222840481,
-    "observed_at": "2026-11-03T07:46:23Z"
-  },
-  {
-    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
-    "subject": "frigid_polar1.user.intear.near",
-    "method": "is_blocklisted",
-    "args": {
-      "account_id": "frigid_polar1.user.intear.near"
-    },
-    "answer": false,
-    "block": 222840482,
-    "observed_at": "2026-11-03T07:46:24Z"
-  },
-  {
-    "issuer": "usdt.tether-token.near",
-    "subject": "protacioo.near",
-    "method": "get_blacklist_status",
-    "args": {
-      "account_id": "protacioo.near"
-    },
-    "answer": "Allowable",
-    "block": 222840484,
-    "observed_at": "2026-11-03T07:46:25Z"
-  },
-  {
-    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
-    "subject": "protacioo.near",
-    "method": "is_blocklisted",
-    "args": {
-      "account_id": "protacioo.near"
-    },
-    "answer": false,
-    "block": 222840486,
-    "observed_at": "2026-11-03T07:46:26Z"
-  },
-  {
-    "issuer": "usdt.tether-token.near",
     "subject": "grid.deltatrade.near",
     "method": "get_blacklist_status",
     "args": {
@@ -7412,6 +7016,1106 @@
     "answer": false,
     "block": 222840490,
     "observed_at": "2026-11-03T07:46:29Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "genesis.sputnik-dao.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "genesis.sputnik-dao.near"
+    },
+    "answer": "Allowable",
+    "block": 222911211,
+    "observed_at": "2026-11-03T19:01:34Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "genesis.sputnik-dao.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "genesis.sputnik-dao.near"
+    },
+    "answer": false,
+    "block": 222911213,
+    "observed_at": "2026-11-03T19:01:35Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "codame.sputnik-dao.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "codame.sputnik-dao.near"
+    },
+    "answer": "Allowable",
+    "block": 222911214,
+    "observed_at": "2026-11-03T19:01:36Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "codame.sputnik-dao.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "codame.sputnik-dao.near"
+    },
+    "answer": false,
+    "block": 222911216,
+    "observed_at": "2026-11-03T19:01:37Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "pulse.sputnik-dao.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "pulse.sputnik-dao.near"
+    },
+    "answer": "Allowable",
+    "block": 222911218,
+    "observed_at": "2026-11-03T19:01:38Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "pulse.sputnik-dao.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "pulse.sputnik-dao.near"
+    },
+    "answer": false,
+    "block": 222911220,
+    "observed_at": "2026-11-03T19:01:40Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "peter.sputnik-dao.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "peter.sputnik-dao.near"
+    },
+    "answer": "Allowable",
+    "block": 222911222,
+    "observed_at": "2026-11-03T19:01:41Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "peter.sputnik-dao.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "peter.sputnik-dao.near"
+    },
+    "answer": false,
+    "block": 222911224,
+    "observed_at": "2026-11-03T19:01:42Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "jascha.sputnik-dao.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "jascha.sputnik-dao.near"
+    },
+    "answer": "Allowable",
+    "block": 222911226,
+    "observed_at": "2026-11-03T19:01:43Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "jascha.sputnik-dao.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "jascha.sputnik-dao.near"
+    },
+    "answer": false,
+    "block": 222911229,
+    "observed_at": "2026-11-03T19:01:45Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "hak.sputnik-dao.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "hak.sputnik-dao.near"
+    },
+    "answer": "Allowable",
+    "block": 222911231,
+    "observed_at": "2026-11-03T19:01:46Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "hak.sputnik-dao.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "hak.sputnik-dao.near"
+    },
+    "answer": false,
+    "block": 222911233,
+    "observed_at": "2026-11-03T19:01:47Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "maximum-viable-potential.sputnik-dao.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "maximum-viable-potential.sputnik-dao.near"
+    },
+    "answer": "Allowable",
+    "block": 222911235,
+    "observed_at": "2026-11-03T19:01:49Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "maximum-viable-potential.sputnik-dao.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "maximum-viable-potential.sputnik-dao.near"
+    },
+    "answer": false,
+    "block": 222911237,
+    "observed_at": "2026-11-03T19:01:50Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "ref-finance.sputnik-dao.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "ref-finance.sputnik-dao.near"
+    },
+    "answer": "Allowable",
+    "block": 222911239,
+    "observed_at": "2026-11-03T19:01:51Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "ref-finance.sputnik-dao.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "ref-finance.sputnik-dao.near"
+    },
+    "answer": false,
+    "block": 222911241,
+    "observed_at": "2026-11-03T19:01:52Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "mochi.sputnik-dao.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "mochi.sputnik-dao.near"
+    },
+    "answer": "Allowable",
+    "block": 222911243,
+    "observed_at": "2026-11-03T19:01:54Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "mochi.sputnik-dao.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "mochi.sputnik-dao.near"
+    },
+    "answer": false,
+    "block": 222911245,
+    "observed_at": "2026-11-03T19:01:55Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "marmaj.sputnik-dao.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "marmaj.sputnik-dao.near"
+    },
+    "answer": "Allowable",
+    "block": 222911246,
+    "observed_at": "2026-11-03T19:01:56Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "marmaj.sputnik-dao.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "marmaj.sputnik-dao.near"
+    },
+    "answer": false,
+    "block": 222911249,
+    "observed_at": "2026-11-03T19:01:57Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "hype.sputnik-dao.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "hype.sputnik-dao.near"
+    },
+    "answer": "Allowable",
+    "block": 222911251,
+    "observed_at": "2026-11-03T19:01:59Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "hype.sputnik-dao.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "hype.sputnik-dao.near"
+    },
+    "answer": false,
+    "block": 222911253,
+    "observed_at": "2026-11-03T19:01:58Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "nft.sputnik-dao.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "nft.sputnik-dao.near"
+    },
+    "answer": "Allowable",
+    "block": 222911255,
+    "observed_at": "2026-11-03T19:01:59Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "nft.sputnik-dao.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "nft.sputnik-dao.near"
+    },
+    "answer": false,
+    "block": 222911257,
+    "observed_at": "2026-11-03T19:02:01Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "abra.sputnik-dao.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "abra.sputnik-dao.near"
+    },
+    "answer": "Allowable",
+    "block": 222911259,
+    "observed_at": "2026-11-03T19:02:02Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "abra.sputnik-dao.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "abra.sputnik-dao.near"
+    },
+    "answer": false,
+    "block": 222911260,
+    "observed_at": "2026-11-03T19:02:03Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "flymoon.sputnik-dao.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "flymoon.sputnik-dao.near"
+    },
+    "answer": "Allowable",
+    "block": 222911263,
+    "observed_at": "2026-11-03T19:02:04Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "flymoon.sputnik-dao.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "flymoon.sputnik-dao.near"
+    },
+    "answer": false,
+    "block": 222911265,
+    "observed_at": "2026-11-03T19:02:06Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "blackvirtualmap.sputnik-dao.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "blackvirtualmap.sputnik-dao.near"
+    },
+    "answer": "Allowable",
+    "block": 222911267,
+    "observed_at": "2026-11-03T19:02:07Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "blackvirtualmap.sputnik-dao.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "blackvirtualmap.sputnik-dao.near"
+    },
+    "answer": false,
+    "block": 222911269,
+    "observed_at": "2026-11-03T19:02:08Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "nearweek.sputnik-dao.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "nearweek.sputnik-dao.near"
+    },
+    "answer": "Allowable",
+    "block": 222911271,
+    "observed_at": "2026-11-03T19:02:10Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "nearweek.sputnik-dao.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "nearweek.sputnik-dao.near"
+    },
+    "answer": false,
+    "block": 222911273,
+    "observed_at": "2026-11-03T19:02:11Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "hfq.sputnik-dao.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "hfq.sputnik-dao.near"
+    },
+    "answer": "Allowable",
+    "block": 222911276,
+    "observed_at": "2026-11-03T19:02:12Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "hfq.sputnik-dao.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "hfq.sputnik-dao.near"
+    },
+    "answer": false,
+    "block": 222911279,
+    "observed_at": "2026-11-03T19:02:14Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "nihilism_fulltime.sputnik-dao.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "nihilism_fulltime.sputnik-dao.near"
+    },
+    "answer": "Allowable",
+    "block": 222911281,
+    "observed_at": "2026-11-03T19:02:15Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "nihilism_fulltime.sputnik-dao.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "nihilism_fulltime.sputnik-dao.near"
+    },
+    "answer": false,
+    "block": 222911283,
+    "observed_at": "2026-11-03T19:02:17Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "catalygraphy.sputnik-dao.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "catalygraphy.sputnik-dao.near"
+    },
+    "answer": "Allowable",
+    "block": 222911285,
+    "observed_at": "2026-11-03T19:02:18Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "catalygraphy.sputnik-dao.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "catalygraphy.sputnik-dao.near"
+    },
+    "answer": false,
+    "block": 222911288,
+    "observed_at": "2026-11-03T19:02:19Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "famjam.sputnik-dao.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "famjam.sputnik-dao.near"
+    },
+    "answer": "Allowable",
+    "block": 222911290,
+    "observed_at": "2026-11-03T19:02:21Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "famjam.sputnik-dao.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "famjam.sputnik-dao.near"
+    },
+    "answer": false,
+    "block": 222911293,
+    "observed_at": "2026-11-03T19:02:22Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "devco.sputnik-dao.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "devco.sputnik-dao.near"
+    },
+    "answer": "Allowable",
+    "block": 222911295,
+    "observed_at": "2026-11-03T19:02:24Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "devco.sputnik-dao.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "devco.sputnik-dao.near"
+    },
+    "answer": false,
+    "block": 222911297,
+    "observed_at": "2026-11-03T19:02:25Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "yaway.sputnik-dao.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "yaway.sputnik-dao.near"
+    },
+    "answer": "Allowable",
+    "block": 222911299,
+    "observed_at": "2026-11-03T19:02:26Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "yaway.sputnik-dao.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "yaway.sputnik-dao.near"
+    },
+    "answer": false,
+    "block": 222911301,
+    "observed_at": "2026-11-03T19:02:28Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "kindessgrocerycoop.sputnik-dao.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "kindessgrocerycoop.sputnik-dao.near"
+    },
+    "answer": "Allowable",
+    "block": 222911303,
+    "observed_at": "2026-11-03T19:02:29Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "kindessgrocerycoop.sputnik-dao.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "kindessgrocerycoop.sputnik-dao.near"
+    },
+    "answer": false,
+    "block": 222911305,
+    "observed_at": "2026-11-03T19:02:30Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "localmakermart.sputnik-dao.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "localmakermart.sputnik-dao.near"
+    },
+    "answer": "Allowable",
+    "block": 222911307,
+    "observed_at": "2026-11-03T19:02:29Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "localmakermart.sputnik-dao.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "localmakermart.sputnik-dao.near"
+    },
+    "answer": false,
+    "block": 222911309,
+    "observed_at": "2026-11-03T19:02:30Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "nftbuzz.sputnik-dao.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "nftbuzz.sputnik-dao.near"
+    },
+    "answer": "Allowable",
+    "block": 222911311,
+    "observed_at": "2026-11-03T19:02:32Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "nftbuzz.sputnik-dao.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "nftbuzz.sputnik-dao.near"
+    },
+    "answer": false,
+    "block": 222911314,
+    "observed_at": "2026-11-03T19:02:34Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "astro-stakers.poolv1.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "astro-stakers.poolv1.near"
+    },
+    "answer": "Allowable",
+    "block": 222911316,
+    "observed_at": "2026-11-03T19:02:35Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "astro-stakers.poolv1.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "astro-stakers.poolv1.near"
+    },
+    "answer": false,
+    "block": 222911318,
+    "observed_at": "2026-11-03T19:02:36Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "figment.poolv1.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "figment.poolv1.near"
+    },
+    "answer": "Allowable",
+    "block": 222911320,
+    "observed_at": "2026-11-03T19:02:37Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "figment.poolv1.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "figment.poolv1.near"
+    },
+    "answer": false,
+    "block": 222911322,
+    "observed_at": "2026-11-03T19:02:38Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "ledgerbyfigment.poolv1.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "ledgerbyfigment.poolv1.near"
+    },
+    "answer": "Allowable",
+    "block": 222911325,
+    "observed_at": "2026-11-03T19:02:40Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "ledgerbyfigment.poolv1.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "ledgerbyfigment.poolv1.near"
+    },
+    "answer": false,
+    "block": 222911326,
+    "observed_at": "2026-11-03T19:02:41Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "staked.poolv1.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "staked.poolv1.near"
+    },
+    "answer": "Allowable",
+    "block": 222911328,
+    "observed_at": "2026-11-03T19:02:42Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "staked.poolv1.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "staked.poolv1.near"
+    },
+    "answer": false,
+    "block": 222911330,
+    "observed_at": "2026-11-03T19:02:44Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "binancenode1.poolv1.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "binancenode1.poolv1.near"
+    },
+    "answer": "Allowable",
+    "block": 222911333,
+    "observed_at": "2026-11-03T19:02:45Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "binancenode1.poolv1.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "binancenode1.poolv1.near"
+    },
+    "answer": false,
+    "block": 222911334,
+    "observed_at": "2026-11-03T19:02:46Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "bitwise_1.poolv1.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "bitwise_1.poolv1.near"
+    },
+    "answer": "Allowable",
+    "block": 222911336,
+    "observed_at": "2026-11-03T19:02:48Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "bitwise_1.poolv1.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "bitwise_1.poolv1.near"
+    },
+    "answer": false,
+    "block": 222911339,
+    "observed_at": "2026-11-03T19:02:49Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "sumerian.poolv1.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "sumerian.poolv1.near"
+    },
+    "answer": "Allowable",
+    "block": 222911340,
+    "observed_at": "2026-11-03T19:02:50Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "sumerian.poolv1.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "sumerian.poolv1.near"
+    },
+    "answer": false,
+    "block": 222911343,
+    "observed_at": "2026-11-03T19:02:51Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "zavodil.poolv1.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "zavodil.poolv1.near"
+    },
+    "answer": "Allowable",
+    "block": 222911345,
+    "observed_at": "2026-11-03T19:02:52Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "zavodil.poolv1.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "zavodil.poolv1.near"
+    },
+    "answer": false,
+    "block": 222911349,
+    "observed_at": "2026-11-03T19:02:55Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "bitwise_2.poolv1.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "bitwise_2.poolv1.near"
+    },
+    "answer": "Allowable",
+    "block": 222911352,
+    "observed_at": "2026-11-03T19:02:57Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "bitwise_2.poolv1.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "bitwise_2.poolv1.near"
+    },
+    "answer": false,
+    "block": 222911354,
+    "observed_at": "2026-11-03T19:02:58Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "liver.pool.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "liver.pool.near"
+    },
+    "answer": "Allowable",
+    "block": 222911357,
+    "observed_at": "2026-11-03T19:03:00Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "liver.pool.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "liver.pool.near"
+    },
+    "answer": false,
+    "block": 222911359,
+    "observed_at": "2026-11-03T19:03:01Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "cnear-1.poolv1.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "cnear-1.poolv1.near"
+    },
+    "answer": "Allowable",
+    "block": 222911361,
+    "observed_at": "2026-11-03T19:03:00Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "cnear-1.poolv1.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "cnear-1.poolv1.near"
+    },
+    "answer": false,
+    "block": 222911362,
+    "observed_at": "2026-11-03T19:03:01Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "cnear-3.poolv1.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "cnear-3.poolv1.near"
+    },
+    "answer": "Allowable",
+    "block": 222911365,
+    "observed_at": "2026-11-03T19:03:03Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "cnear-3.poolv1.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "cnear-3.poolv1.near"
+    },
+    "answer": false,
+    "block": 222911367,
+    "observed_at": "2026-11-03T19:03:04Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "cnear-2.poolv1.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "cnear-2.poolv1.near"
+    },
+    "answer": "Allowable",
+    "block": 222911369,
+    "observed_at": "2026-11-03T19:03:05Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "cnear-2.poolv1.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "cnear-2.poolv1.near"
+    },
+    "answer": false,
+    "block": 222911372,
+    "observed_at": "2026-11-03T19:03:07Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "kiln-1.poolv1.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "kiln-1.poolv1.near"
+    },
+    "answer": "Allowable",
+    "block": 222911374,
+    "observed_at": "2026-11-03T19:03:08Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "kiln-1.poolv1.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "kiln-1.poolv1.near"
+    },
+    "answer": false,
+    "block": 222911376,
+    "observed_at": "2026-11-03T19:03:09Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "svrn-ai.poolv1.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "svrn-ai.poolv1.near"
+    },
+    "answer": "Allowable",
+    "block": 222911379,
+    "observed_at": "2026-11-03T19:03:11Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "svrn-ai.poolv1.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "svrn-ai.poolv1.near"
+    },
+    "answer": false,
+    "block": 222911381,
+    "observed_at": "2026-11-03T19:03:12Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "svrn.pool.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "svrn.pool.near"
+    },
+    "answer": "Allowable",
+    "block": 222911383,
+    "observed_at": "2026-11-03T19:03:14Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "svrn.pool.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "svrn.pool.near"
+    },
+    "answer": false,
+    "block": 222911386,
+    "observed_at": "2026-11-03T19:03:15Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "epic.poolv1.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "epic.poolv1.near"
+    },
+    "answer": "Allowable",
+    "block": 222911388,
+    "observed_at": "2026-11-03T19:03:16Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "epic.poolv1.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "epic.poolv1.near"
+    },
+    "answer": false,
+    "block": 222911390,
+    "observed_at": "2026-11-03T19:03:18Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "svrn-luganodes.pool.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "svrn-luganodes.pool.near"
+    },
+    "answer": "Allowable",
+    "block": 222911392,
+    "observed_at": "2026-11-03T19:03:19Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "svrn-luganodes.pool.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "svrn-luganodes.pool.near"
+    },
+    "answer": false,
+    "block": 222911394,
+    "observed_at": "2026-11-03T19:03:20Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "nearvana.poolv1.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "nearvana.poolv1.near"
+    },
+    "answer": "Allowable",
+    "block": 222911396,
+    "observed_at": "2026-11-03T19:03:21Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "nearvana.poolv1.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "nearvana.poolv1.near"
+    },
+    "answer": false,
+    "block": 222911398,
+    "observed_at": "2026-11-03T19:03:23Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "stake1.poolv1.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "stake1.poolv1.near"
+    },
+    "answer": "Allowable",
+    "block": 222911400,
+    "observed_at": "2026-11-03T19:03:24Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "stake1.poolv1.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "stake1.poolv1.near"
+    },
+    "answer": false,
+    "block": 222911402,
+    "observed_at": "2026-11-03T19:03:25Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "svrn_bitwise.poolv1.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "svrn_bitwise.poolv1.near"
+    },
+    "answer": "Allowable",
+    "block": 222911406,
+    "observed_at": "2026-11-03T19:03:27Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "svrn_bitwise.poolv1.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "svrn_bitwise.poolv1.near"
+    },
+    "answer": false,
+    "block": 222911408,
+    "observed_at": "2026-11-03T19:03:28Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "metapool01.pool.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "metapool01.pool.near"
+    },
+    "answer": "Allowable",
+    "block": 222911410,
+    "observed_at": "2026-11-03T19:03:30Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "metapool01.pool.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "metapool01.pool.near"
+    },
+    "answer": false,
+    "block": 222911412,
+    "observed_at": "2026-11-03T19:03:31Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "p2p-org.poolv1.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "p2p-org.poolv1.near"
+    },
+    "answer": "Allowable",
+    "block": 222911414,
+    "observed_at": "2026-11-03T19:03:30Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "p2p-org.poolv1.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "p2p-org.poolv1.near"
+    },
+    "answer": false,
+    "block": 222911416,
+    "observed_at": "2026-11-03T19:03:31Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "dragonfly.poolv1.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "dragonfly.poolv1.near"
+    },
+    "answer": "Allowable",
+    "block": 222911418,
+    "observed_at": "2026-11-03T19:03:32Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "dragonfly.poolv1.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "dragonfly.poolv1.near"
+    },
+    "answer": false,
+    "block": 222911421,
+    "observed_at": "2026-11-03T19:03:34Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "allnodes.poolv1.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "allnodes.poolv1.near"
+    },
+    "answer": "Allowable",
+    "block": 222911424,
+    "observed_at": "2026-11-03T19:03:36Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "allnodes.poolv1.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "allnodes.poolv1.near"
+    },
+    "answer": false,
+    "block": 222911426,
+    "observed_at": "2026-11-03T19:03:37Z"
   },
   {
     "issuer": "usdt.tether-token.near",

@@ -2,20 +2,27 @@
 
 receivers [--record] judges the recorded mainnet receiver set with gate.rules.judge in replay (an
 empty allowlist and the committed label store) and writes one
-fixtures/receivers/judgements/<subject>.json per subject of fixtures/receivers/set.json. The set
-is the last COUNTERPARTIES distinct counterparties of each account in RECEIVER_SOURCES (the FastNEAR
-Transfers API, newest first; implicit accounts are left out as the likeliest personal wallets,
-unless the label store holds them as a catalog token), then the NEAR accounts of
-intel/incidents/rhea.json, then the first CATALOG_SUBJECTS catalog_token NEAR accounts of the label
-store that are not in the set yet. A token subject is judged as the token of a transfer to
+fixtures/receivers/judgements/<subject>.json per subject of fixtures/receivers/set.json. Each subject
+has a cohort. The set is the last COUNTERPARTIES distinct counterparties of each account in
+RECEIVER_SOURCES (the FastNEAR Transfers API, newest first; implicit accounts are left out as the
+likeliest personal wallets, unless the label store holds them as a catalog token), less the ids the
+exclusion file names (cohort counterparty); then the first ORGANISATION_SUBJECTS Sputnik DAO accounts
+and the first ORGANISATION_SUBJECTS validator pool accounts among the organisation rows of the label
+store, in store order (cohort organisation); then the NEAR accounts of intel/incidents/rhea.json
+(cohort incident); then the first CATALOG_SUBJECTS catalog_token NEAR accounts of the label store
+that are not in the set yet (cohort catalog). A token subject is judged as the token of a transfer to
 TOKEN_RECEIVER, as intel/incidents/rhea.json judges its token contracts, and every other subject as
 the receiver of a NEAR transfer.
 
---record chooses the set and fetches what is missing: the transfers pages, the view calls the
-rules make, and the NearBlocks keys and creation transaction for the first AGE_SUBJECTS receivers
-only (at most two NearBlocks calls each), so every later receiver without an earlier recording
-reads unknown on age. The view calls and NearBlocks answers live under fixtures/receivers/rpc/.
-Without --record nothing touches the network.
+--record chooses the set and fetches what is missing for the subjects new to it. The counterparties
+come from the transfers pages recorded under fixtures/fastnear/, read in replay, and the ids of
+--exclude-file (a file kept outside the repository, one account id per line) are left out after
+they are chosen, so no other account takes their place. A subject of the committed set is judged
+on its earlier recording; a new subject gets the view calls the rules make and, while fewer than
+AGE_SUBJECTS receivers have their age recorded, the NearBlocks keys and creation transaction (at
+most two NearBlocks calls each), so every later receiver without an earlier recording reads unknown
+on age. The view calls and NearBlocks answers live under fixtures/receivers/rpc/. Without --record
+nothing touches the network.
 """
 
 import argparse
@@ -44,7 +51,24 @@ COUNTERPARTIES = 15
 TRANSFER_PAGES = 5
 TRANSFER_LIMIT = 100
 CATALOG_SUBJECTS = 10
-AGE_SUBJECTS = 30
+AGE_SUBJECTS = 80
+ORGANISATION_SUBJECTS = 25
+# The registry reads whose organisation rows the organisation cohort is drawn from, each with its why.
+ORGANISATION_SOURCES = (
+    ("get_dao_list", (f"one of the first {ORGANISATION_SUBJECTS} Sputnik DAO accounts among the organisation rows of "
+                      "the label store (sputnik-dao.near get_dao_list), in store order; DAO accounts were expected to "
+                      "be locked contracts, but NearBlocks lists a full access key with its creation for the first "
+                      "of them, so a DAO account's age reads like any account's")),
+    ("validators", (f"one of the first {ORGANISATION_SUBJECTS} validator pool accounts among the organisation rows of "
+                    "the label store (the validators RPC), in store order; staking pools are locked contracts with "
+                    "no access key (NearBlocks lists no key for the first of them), so their age reads unknown "
+                    "without an explorer creation record")),
+)
+# Each cohort with the words the cohort summary uses for it, in its order.
+COHORTS = (("counterparty", "ordinary counterparties"), ("organisation", "organisations from registries"),
+           ("incident", "incident accounts"), ("catalog", "catalog tokens"))
+EXCLUSION = ("Named accounts whose id reads as a person's name or handle were left out by hand before publication "
+             "({} accounts); the set lists no account id for them.")
 TOKEN_RECEIVER = "intents.near"
 IMPLICIT = re.compile(r"[0-9a-f]{64}|0x[0-9a-f]{40}")
 _TIME = "%Y-%m-%dT%H:%M:%SZ"
@@ -70,6 +94,19 @@ def catalog_accounts(store):
                 and assertion.subject not in accounts):
             accounts.append(assertion.subject)
     return accounts
+
+
+def organisation_accounts(store):
+    """[(subject, why)]: the first ORGANISATION_SUBJECTS current NEAR organisation subjects of each read of
+    ORGANISATION_SOURCES, in store order."""
+    picked = {method: [] for method, _ in ORGANISATION_SOURCES}
+    for assertion in store.assertions:
+        if assertion.category != "organisation" or assertion.chain != "near" or assertion.superseded_by is not None:
+            continue
+        found = picked.get(assertion.source.get("method"))
+        if found is not None and len(found) < ORGANISATION_SUBJECTS and assertion.subject not in found:
+            found.append(assertion.subject)
+    return [(subject, why) for method, why in ORGANISATION_SOURCES for subject in picked[method]]
 
 
 def counterparties(client, account, catalog):
@@ -104,35 +141,41 @@ def _request(subject, as_token):
             "memo": None}
 
 
-def choose(store, transfers_client):
-    """(subjects [{subject, why, as, request}], sources [{account, role, requests}])."""
+def choose(store, transfers_client, exclude=frozenset()):
+    """(subjects [{subject, why, as, cohort, request}], sources [{account, role, requests}], how many chosen
+    counterparties exclude left out)."""
     catalog = catalog_accounts(store)
     rhea = json.loads(RHEA_INCIDENT.read_text(encoding="utf-8"))
     rhea_tokens = {entry["subject"] for entry in rhea["rules_today"] if entry["as"] == "token"}
-    subjects, sources, seen = [], [], set()
+    subjects, sources, seen, excluded = [], [], set(), set()
 
-    def add(subject, why, as_token):
+    def add(subject, why, as_token, cohort):
         if subject not in seen:
             seen.add(subject)
             subjects.append({"subject": subject, "why": why, "as": "token" if as_token else "receiver",
-                             "request": _request(subject, as_token)})
+                             "cohort": cohort, "request": _request(subject, as_token)})
 
     for account, role in RECEIVER_SOURCES:
         found, keys = counterparties(transfers_client, account, catalog)
         sources.append({"account": account, "role": role, "requests": keys})
         for subject in found:
+            if subject in exclude:
+                excluded.add(subject)
+                continue
             add(subject, f"one of the last {COUNTERPARTIES} distinct counterparties of {account} in the FastNEAR "
-                         "Transfers API", subject in catalog)
+                         "Transfers API", subject in catalog, "counterparty")
+    for subject, why in organisation_accounts(store):
+        add(subject, why, False, "organisation")
     for account in rhea["accounts"]:
         if account["chain"] == "near":
             add(account["subject"], f"named in the incident page rhea as {account['role_as_reported']}",
-                account["subject"] in rhea_tokens)
+                account["subject"] in rhea_tokens, "incident")
     added = 0
     for account in catalog:
         if added < CATALOG_SUBJECTS and account not in seen:
-            add(account, "a catalog_token NEAR account of the label store, in store order", True)
+            add(account, "a catalog_token NEAR account of the label store, in store order", True, "catalog")
             added += 1
-    return subjects, sources
+    return subjects, sources, len(excluded)
 
 
 def _judge(entry, store, client, nearblocks, now_ms):
@@ -153,24 +196,34 @@ def receivers_rule():
     return " ".join(" ".join(__doc__.split("\n\n")[1:3]).split())
 
 
-def record_receivers(store, clock=time.time):
-    """Choose the set and fetch what the rules read for it; returns the set document."""
-    transfers_client = rpc.Client(TRANSFERS_URL, "record", kind="http", fixtures_dir=FASTNEAR_DIR)
-    subjects, sources = choose(store, transfers_client)
+def record_receivers(store, previous, exclude, clock=time.time):
+    """Choose the set, leaving the ids of exclude out of the counterparties, and fetch what the rules read for
+    the subjects previous (the subjects of the committed set) does not hold; returns the set document."""
+    transfers_client = rpc.Client(TRANSFERS_URL, "replay", kind="http", fixtures_dir=FASTNEAR_DIR)
+    subjects, sources, excluded = choose(store, transfers_client, exclude)
     now_ms = int(clock() * 1000)
     client = rpc.Client(rpc.MAINNET_RPC_URL, "record", fixtures_dir=RECEIVER_RPC_DIR)
+    earlier = {entry["subject"]: entry["age_recorded"] for entry in previous}
     aged = []
     for entry in subjects:
+        if earlier.get(entry["subject"]) and entry["request"]["receiver_id"] not in aged:
+            aged.append(entry["request"]["receiver_id"])
+    fresh = []
+    for entry in subjects:
+        if entry["subject"] in earlier:
+            continue
         receiver = entry["request"]["receiver_id"]
         if receiver not in aged and len(aged) < AGE_SUBJECTS:
             aged.append(receiver)
-        nearblocks = rpc.Client(rpc.NEARBLOCKS_URL, "record" if receiver in aged else "replay", kind="http",
+            fresh.append(receiver)
+        nearblocks = rpc.Client(rpc.NEARBLOCKS_URL, "record" if receiver in fresh else "replay", kind="http",
                                 fixtures_dir=RECEIVER_RPC_DIR)
         _judge(entry, store, client, nearblocks, now_ms)
     for entry in subjects:
-        entry["age_recorded"] = entry["request"]["receiver_id"] in aged
+        entry["age_recorded"] = earlier.get(entry["subject"], entry["request"]["receiver_id"] in aged)
     return {"chosen_at": time.strftime(_TIME, time.gmtime(now_ms // 1000)), "judged_at_ms": now_ms,
-            "rule": receivers_rule(), "sources": sources, "subjects": subjects}
+            "rule": receivers_rule(), "exclusion": EXCLUSION.format(excluded), "sources": sources,
+            "subjects": subjects}
 
 
 def judge_receivers(document, store, directory=RECEIVERS_DIR):
@@ -185,20 +238,38 @@ def judge_receivers(document, store, directory=RECEIVERS_DIR):
     return results
 
 
+def cohort_line(document, results):
+    """The verdicts of the judgements results per cohort of the set document, as one sentence."""
+    verdicts = {result["subject"]: result["verdict"] for result in results}
+    parts = []
+    for cohort, words in COHORTS:
+        found = [verdicts[entry["subject"]] for entry in document["subjects"] if entry["cohort"] == cohort]
+        parts.append(f"{words} {len(found)} ({found.count('ALLOW')} ALLOW, {found.count('DENY')} DENY, "
+                     f"{found.count('UNKNOWN')} Unknown)")
+    return "By cohort: " + "; ".join(parts) + "."
+
+
 def _receivers(args):
     store = labels.load()
     set_path = RECEIVERS_DIR / "set.json"
     if args.record:
+        previous = json.loads(set_path.read_text(encoding="utf-8"))["subjects"] if set_path.is_file() else []
+        exclude = set()
+        if args.exclude_file:
+            exclude = {line.strip() for line in Path(args.exclude_file).read_text(encoding="utf-8").splitlines()
+                       if line.strip()}
         try:
-            document = record_receivers(store)
+            document = record_receivers(store, previous, exclude)
         except rpc.HttpError as error:
             print(f"stopped: {error}; no key is ever added", file=sys.stderr)
             return 1
         _write_json(set_path, document)
     document = json.loads(set_path.read_text(encoding="utf-8"))
-    verdicts = [result["verdict"] for result in judge_receivers(document, store)]
+    results = judge_receivers(document, store)
+    verdicts = [result["verdict"] for result in results]
     print(f"On {len(verdicts)} recorded mainnet receivers the rules returned {verdicts.count('ALLOW')} ALLOW, "
           f"{verdicts.count('DENY')} DENY, {verdicts.count('UNKNOWN')} Unknown.")
+    print(cohort_line(document, results))
     return 0
 
 
@@ -289,6 +360,8 @@ def main(argv=None):
     server.set_defaults(handler=lambda args: api.serve(args.host, args.port, args.site))
     receivers = commands.add_parser("receivers", help="judge the recorded mainnet receiver set in replay")
     receivers.add_argument("--record", action="store_true", help="choose the set and record what is missing")
+    receivers.add_argument("--exclude-file", help="with --record: a file of account ids kept outside the repository, "
+                           "one per line, left out of the counterparties")
     receivers.set_defaults(handler=_receivers)
     feeding = commands.add_parser("feed", help="run the three signals over finalized mainnet blocks")
     feeding.add_argument("--from", dest="start", type=int, help="the first height (default: after the state)")

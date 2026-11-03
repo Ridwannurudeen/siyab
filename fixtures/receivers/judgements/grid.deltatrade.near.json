@@ -8,7 +8,7 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "DENY",
+  "verdict": "ALLOW",
   "checks": [
     {
       "id": "receiver_exists",
@@ -53,7 +53,7 @@
     {
       "id": "account_age",
       "status": "pass",
-      "detail": "created 918 d ago",
+      "detail": "created 923 d ago",
       "source": {
         "provider": "api.nearblocks.io",
         "request_sha256": "5a835d1a3d999872995ea777246e4dbeeb2c51da426e8eb58035dacac9f976eb",
@@ -82,8 +82,8 @@
     },
     {
       "id": "code_without_metadata",
-      "status": "signal",
-      "detail": "code_without_metadata: contract code without contract_source_metadata",
+      "status": "pass",
+      "detail": "contract code without contract_source_metadata; not a signal on its own",
       "source": {
         "provider": "free.rpc.fastnear.com",
         "request_sha256": "d72563b1a779f3fd0a5a4ea5b27c30b6239317869d7805e6a5e5db4ac5d90e8b",
@@ -92,12 +92,12 @@
     }
   ],
   "reasons": [
-    "Not on the owner's allowlist.",
-    "grid.deltatrade.near has contract code without contract_source_metadata."
+    "Every check ran and none found a signal.",
+    "Not on the owner's allowlist."
   ],
   "labels": [],
   "observed": {
     "block_height": 222138175,
-    "timestamp_ms": 1793284573923
+    "timestamp_ms": 1793731688201
   }
 }

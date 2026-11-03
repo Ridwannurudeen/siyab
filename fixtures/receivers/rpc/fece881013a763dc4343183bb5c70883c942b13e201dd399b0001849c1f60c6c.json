@@ -1,0 +1,11 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "keys": []
+  },
+  "url": "https://api.nearblocks.io/v1/account/zavodil.poolv1.near/keys",
+  "fetched_at": "2026-11-03T18:57:22Z"
+}

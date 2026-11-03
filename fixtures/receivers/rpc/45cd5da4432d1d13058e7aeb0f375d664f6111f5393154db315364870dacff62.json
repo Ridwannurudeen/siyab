@@ -1,0 +1,73 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "txns": [
+      {
+        "transaction_hash": "AjntPtGo7VAkcqX9u2EvieB4kkW7JpWAVao7VTPMf36S",
+        "included_in_block_hash": "HArLkM52FjduxRKhS1M4GFqJttMVbYB9Lw1eoW6NYxEx",
+        "block_timestamp": "1624136922980303624",
+        "signer_account_id": "starpause.near",
+        "receiver_account_id": "sputnik-dao.near",
+        "receipt_conversion_gas_burnt": "2428714756570",
+        "receipt_conversion_tokens_burnt": "242871475657000000000",
+        "shard_id": "0",
+        "block": {
+          "block_height": 40451296
+        },
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "create",
+            "args": "{\"args\": \"eyJjb25maWciOnsibmFtZSI6Im1heGltdW0tdmlhYmxlLXBvdGVudGlhbCIsInB1cnBvc2UiOiIkTVZQIGlzIG9uLWNoYWluIG1lcml0LCBwb3dlcmluZyBhIHB1cnBvc2VmdWwgZm91bmRlcnMgbmV0d29yay4ge3tDaGF0cm9vbXMgVEJBfX0iLCJtZXRhZGF0YSI6IiJ9LCJwb2xpY3kiOlsic3RhcnBhdXNlLm5lYXIiXX0=\", \"name\": \"maximum-viable-potential\", \"public_key\": \"2gtDEwdLuUBawzFLAnCS9gUso3Ph76bRzMpVrtb66f3J\"}"
+          }
+        ],
+        "actions_agg": {
+          "deposit": 5e+24,
+          "gas_attached": 150000000000000
+        },
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": 6.9040513948891e+21,
+          "gas_used": 69040513948891
+        },
+        "receipts": [
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          }
+        ]
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/txns/AjntPtGo7VAkcqX9u2EvieB4kkW7JpWAVao7VTPMf36S",
+  "fetched_at": "2026-11-03T18:50:11Z"
+}

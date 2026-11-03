@@ -1,0 +1,73 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "txns": [
+      {
+        "transaction_hash": "D69V7KpjFStNJ3j23JHNmuwq2hcSDy7f2f8bY7YSR3FK",
+        "included_in_block_hash": "DrkvsDFq1jZDaFWzCnMtH4w29aCqdrHncPFZKoXD228v",
+        "block_timestamp": "1627506371514763373",
+        "signer_account_id": "blockchainbroke.near",
+        "receiver_account_id": "sputnik-dao.near",
+        "receipt_conversion_gas_burnt": "2428538117784",
+        "receipt_conversion_tokens_burnt": "242853811778400000000",
+        "shard_id": "0",
+        "block": {
+          "block_height": 43811226
+        },
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "create",
+            "args": "{\"args\": \"eyJjb25maWciOnsibmFtZSI6ImRldmNvIiwicHVycG9zZSI6IlRvIGdvdmVybiBuZXcgcHJvamVjdHMgYW5kIHRvIGFsbG9jYXRlIHJlc291cmNlcyAiLCJtZXRhZGF0YSI6IiJ9LCJwb2xpY3kiOlsiYmxvY2tjaGFpbmJyb2tlLm5lYXIiXX0=\", \"name\": \"devco\", \"public_key\": \"2gtDEwdLuUBawzFLAnCS9gUso3Ph76bRzMpVrtb66f3J\"}"
+          }
+        ],
+        "actions_agg": {
+          "deposit": 5e+24,
+          "gas_attached": 150000000000000
+        },
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": 6.8907372254577e+21,
+          "gas_used": 68907372254577
+        },
+        "receipts": [
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          }
+        ]
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/txns/D69V7KpjFStNJ3j23JHNmuwq2hcSDy7f2f8bY7YSR3FK",
+  "fetched_at": "2026-11-03T18:54:50Z"
+}

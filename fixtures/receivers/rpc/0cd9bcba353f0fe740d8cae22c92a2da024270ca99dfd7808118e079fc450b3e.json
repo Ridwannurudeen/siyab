@@ -1,0 +1,73 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "txns": [
+      {
+        "transaction_hash": "94dRRtAJABoUKCcBLypM4gEq8ZQv8K4AVcN34heFJj74",
+        "included_in_block_hash": "B29R2sH2i2q8kYs7u6VymMkwqKPjp4GMWgr8pYxhUDqe",
+        "block_timestamp": "1627506513666561833",
+        "signer_account_id": "localmakermart.near",
+        "receiver_account_id": "sputnik-dao.near",
+        "receipt_conversion_gas_burnt": "2428567184926",
+        "receipt_conversion_tokens_burnt": "242856718492600000000",
+        "shard_id": "0",
+        "block": {
+          "block_height": 43811355
+        },
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "create",
+            "args": "{\"args\": \"eyJjb25maWciOnsibmFtZSI6ImxvY2FsbWFrZXJtYXJ0IiwicHVycG9zZSI6IkNyZWF0ZSBhYnVuZGFuY2UgZm9yIGFydGlzdHMgYW5kIG5vbnByb2ZpdHMiLCJtZXRhZGF0YSI6IiJ9LCJwb2xpY3kiOlsibG9jYWxtYWtlcm1hcnQubmVhciJdfQ==\", \"name\": \"localmakermart\", \"public_key\": \"2gtDEwdLuUBawzFLAnCS9gUso3Ph76bRzMpVrtb66f3J\"}"
+          }
+        ],
+        "actions_agg": {
+          "deposit": 5e+24,
+          "gas_attached": 150000000000000
+        },
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": 6.8830958157085e+21,
+          "gas_used": 68830958157085
+        },
+        "receipts": [
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          }
+        ]
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/txns/94dRRtAJABoUKCcBLypM4gEq8ZQv8K4AVcN34heFJj74",
+  "fetched_at": "2026-11-03T18:55:52Z"
+}

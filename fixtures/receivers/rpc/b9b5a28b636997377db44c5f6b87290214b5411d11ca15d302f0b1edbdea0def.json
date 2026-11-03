@@ -1,0 +1,73 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "txns": [
+      {
+        "transaction_hash": "77uLgevr7ENkFkGqM1jekXSdu9vhZMGLA1bC1woDbTqW",
+        "included_in_block_hash": "2vdJBDiMnSERa3B295xMZViWoS6kJhL5KgzUG1c6bNnN",
+        "block_timestamp": "1627525874178019822",
+        "signer_account_id": "nftbuzz.near",
+        "receiver_account_id": "sputnik-dao.near",
+        "receipt_conversion_gas_burnt": "2428471039764",
+        "receipt_conversion_tokens_burnt": "242847103976400000000",
+        "shard_id": "0",
+        "block": {
+          "block_height": 43829131
+        },
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "create",
+            "args": "{\"args\": \"eyJjb25maWciOnsibmFtZSI6Im5mdGJ1enoiLCJwdXJwb3NlIjoiRm9zdGVyIENvbW11bml0eSAmIENyZWF0aXZpdHkgIiwibWV0YWRhdGEiOiIifSwicG9saWN5IjpbIm5mdGJ1enoubmVhciJdfQ==\", \"name\": \"nftbuzz\", \"public_key\": \"2gtDEwdLuUBawzFLAnCS9gUso3Ph76bRzMpVrtb66f3J\"}"
+          }
+        ],
+        "actions_agg": {
+          "deposit": 5e+24,
+          "gas_attached": 150000000000000
+        },
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": 6.8902675549675e+21,
+          "gas_used": 68902675549675
+        },
+        "receipts": [
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          }
+        ]
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/txns/77uLgevr7ENkFkGqM1jekXSdu9vhZMGLA1bC1woDbTqW",
+  "fetched_at": "2026-11-03T18:56:11Z"
+}
