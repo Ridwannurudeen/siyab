@@ -139,7 +139,8 @@ class RenderTest(unittest.TestCase):
         document = json.loads((ROOT / "intel" / "flows" / "rhea-collector.json").read_text(encoding="utf-8"))
         page = self.pages["flows/rhea-collector.html"]
         self.assertEqual(page.count('<div class="card">'), len(document["hops"]))
-        self.assertIn("the walk reached depth 1 of a bound of 3; the transfer cap or the page budget stopped it", page)
+        self.assertIn(f"depth 1 of 3, stopped at depth 0 reading {document['subject']}: the transfer cap of 600 hops",
+                      page)
         self.assertNotIn("hops to depth", page)
         for hop in document["hops"]:
             self.assertIn(hop["transaction_hash"], page)
