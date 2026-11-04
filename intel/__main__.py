@@ -56,13 +56,13 @@ ORGANISATION_SUBJECTS = 25
 # The registry reads whose organisation rows the organisation cohort is drawn from, each with its why.
 ORGANISATION_SOURCES = (
     ("get_dao_list", (f"one of the first {ORGANISATION_SUBJECTS} Sputnik DAO accounts among the organisation rows of "
-                      "the label store (sputnik-dao.near get_dao_list), in store order; DAO accounts were expected to "
-                      "be locked contracts, but NearBlocks lists a full access key with its creation for the first "
-                      "of them, so a DAO account's age reads like any account's")),
+                      "the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a "
+                      "NearBlocks key creation time and read their age like any account; "
+                      "ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the "
+                      "account and view_account shows contract code, so no creation time could be read")),
     ("validators", (f"one of the first {ORGANISATION_SUBJECTS} validator pool accounts among the organisation rows of "
-                    "the label store (the validators RPC), in store order; staking pools are locked contracts with "
-                    "no access key (NearBlocks lists no key for the first of them), so their age reads unknown "
-                    "without an explorer creation record")),
+                    "the label store (the validators RPC), in store order; NearBlocks lists no access key for the "
+                    "account and view_account shows contract code, so no creation time could be read")),
 )
 # Each cohort with the words the cohort summary uses for it, in its order.
 COHORTS = (("counterparty", "ordinary counterparties"), ("organisation", "organisations from registries"),
