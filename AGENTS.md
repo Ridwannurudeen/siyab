@@ -60,7 +60,7 @@ Python variables:
 - `NEAR_ARCHIVAL_RPC_URL`: archival JSON-RPC endpoint override.
 - `NEARBLOCKS_API_URL`: NearBlocks endpoint override.
 - `SHIELDBOT_API_URL`: optional ShieldBot API base URL for firewall and memo checks.
-- `GATE_ACCOUNT_ID`: Gate account used by the MCP server and testnet scripts; the MCP server defaults to `gate.near`.
+- `GATE_ACCOUNT_ID`: Gate account used by the MCP server, the testnet scripts and `python -m gate pay` and `attack`; the MCP server defaults to `gate.near`, and `pay` and `attack` run only for an id ending in `.testnet`, which selects the testnet endpoints.
 - `GATE_POLICY`: payment policy JSON used by the MCP server.
 - `VERIFIER_KEY_FILE`: path to the live verifier key file, kept outside the repository.
 - `AGENT_KEY_FILE`: path to the agent function call key file, kept outside the repository.

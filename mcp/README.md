@@ -38,7 +38,7 @@ The payment tool writes its evidence documents into a temporary directory that t
 
 ## Connect a client
 
-The Claude Code command below and the Codex configuration were run on 2 Nov 2026 against the testnet Gate, each with `GATE_FIXTURES_MODE=off`, `GATE_ACCOUNT_ID=<gate>.testnet` and `GATE_POLICY=<get_agent JSON>` in the server's environment. Each client called all three tools once and got `isError: false` from each. The `.mcp.json` form is shown as an alternative configuration.
+The Claude Code command below and the Codex configuration were run on 2 Nov 2026 against the testnet Gate, each with `GATE_FIXTURES_MODE=off`, `GATE_ACCOUNT_ID=<gate>.testnet` and `GATE_POLICY=<get_agent JSON>` in the server's environment. Each client called all three tools once and got `isError: false` from each. The `.mcp.json` file declares the same server in a file; it was not part of that run.
 
 Claude Code, from the repository root:
 
