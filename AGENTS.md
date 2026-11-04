@@ -36,7 +36,7 @@ cd contracts/<crate> && cargo near build reproducible-wasm    # network, Docker
 
 ```
 contracts/gate/         guard contract that holds the agent's funds and pays only on a signed ALLOW
-contracts/registry/     registry contract that records each verdict with its evidence hash
+contracts/registry/     registry contract that records verdicts with their evidence hashes
 contracts/test-token/   NEP-141 token for the sandbox and testnet runs
 gate/                   canonical message, Ed25519, evidence, RPC, rules, verdict service, EVM leg, agent, scan, CLI
 intel/                  label store, seeds, incidents, feed, flow trace, static page renderer, read only API
