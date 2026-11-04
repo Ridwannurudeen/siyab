@@ -10,7 +10,7 @@ import re
 import unittest
 from pathlib import Path
 
-from intel import labels
+from intel import feed, labels
 from tests.test_attack_evidence import declared_functions, table_rows
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -24,6 +24,10 @@ SUMMARY = re.compile(r"^\d+ attempts, \d+ refusals, \d+ bypasses\..*$", re.MULTI
 HEADLINE = "# ShieldBot for NEAR: security intelligence with a source on every row, enforced on chain."
 ONE_LINE = "**Every label has a source. Every verdict has evidence. Unknown never passes.**"
 RANKING = ("number one", "first on", "the first to")
+SHIPPED = ("intel/registries.py:rows", "gate/rules.py:_issuer_check", "intel/trace.py:trace",
+           "intel/cluster.py:build_cluster", "intel/feed.py:follow", "intel/render.py:account_pages",
+           "contracts/registry/src/lib.rs:record_label")
+NUMBER_WORDS = ("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten")
 
 
 def table_lines(text, header):
@@ -103,6 +107,19 @@ class ReadmeTablesTest(unittest.TestCase):
                 self.assertTrue(tests)
                 for reference in tests:
                     self.assert_test_exists(reference)
+
+
+class ShippedRowsTest(unittest.TestCase):
+    def setUp(self):
+        self.rows = {row[1].strip("`"): row for row in table_rows(CLAIMS.read_text(encoding="utf-8"), CLAIMS_HEADER)}
+
+    def test_every_shipped_intelligence_item_has_a_claims_row(self):
+        for source in SHIPPED:
+            with self.subTest(source=source):
+                self.assertIn(source, self.rows)
+
+    def test_the_feed_row_counts_the_signals_the_feed_defines(self):
+        self.assertIn(f"its {NUMBER_WORDS[len(feed.SIGNALS)]} signals", self.rows["intel/feed.py:follow"][0])
 
 
 class FirstScreenTest(unittest.TestCase):
