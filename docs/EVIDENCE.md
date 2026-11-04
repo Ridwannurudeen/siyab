@@ -10,7 +10,9 @@ The first payment, invoice 1, is transaction `9XVcMjuS...ekVsyK`; it has no stor
 
 ## Verdict latency
 
-The committed latency fixture `fixtures/latency/verdict-runs.json` contains 20 runs for the allowlisted vendor `kestrelridge-shop.testnet`. All 20 returned ALLOW. These runs used tier 1 checks only. Tier 2 is skipped for an allowlisted receiver by design in `gate/rules.py`. The recorded p50 is 1843 ms and p95 is 2300 ms. The aged payee runs of 1 November are not committed because they measured a superseded code path. The counts block reads this file for its latency line; its second latency line, for a payee off the allowlist, reads `fixtures/latency/verdict-runs-tier2.json` and is printed only while that file exists.
+The committed latency fixture `fixtures/latency/verdict-runs.json` contains 20 runs for the allowlisted vendor `kestrelridge-shop.testnet`. All 20 returned ALLOW. These runs used tier 1 checks only. Tier 2 is skipped for an allowlisted receiver by design in `gate/rules.py`. The recorded p50 is 1843 ms and p95 is 2300 ms. The aged payee runs of 1 November are not committed because they measured a superseded code path. The counts block reads this file for its latency line; its second latency line, for a payee off the allowlist, reads `fixtures/latency/verdict-runs-tier2.json`.
+
+The committed fixture `fixtures/latency/verdict-runs-tier2.json` contains 20 runs of 4 November for `examples.testnet`, the payee off the allowlist that the unknown payee attack used (`docs/TESTNET.md`). All 20 returned ALLOW through tier 1 and tier 2 checks, the account age read from the NearBlocks key creation time. The recorded p50 is 16219 ms and p95 is 17484 ms. Each run read testnet RPC, NearBlocks testnet and the testnet archival RPC with the policy the Gate's `get_agent` returned, and signed its ALLOW with the TEST key, which the testnet Gate does not trust; nothing was sent. The aged payee `lindenvale.testnet` was under 7 days old that day, so its verdict would have read DENY as younger than 7 days, as its registry record does.
 
 ## Receiver cohorts
 

@@ -1,0 +1,142 @@
+[
+  {
+    "receiver": "examples.testnet",
+    "run": 1,
+    "verdict": "ALLOW",
+    "latency_ms": 15560,
+    "path": "tier 1 and 2, account age from the NearBlocks key creation time"
+  },
+  {
+    "receiver": "examples.testnet",
+    "run": 2,
+    "verdict": "ALLOW",
+    "latency_ms": 17569,
+    "path": "tier 1 and 2, account age from the NearBlocks key creation time"
+  },
+  {
+    "receiver": "examples.testnet",
+    "run": 3,
+    "verdict": "ALLOW",
+    "latency_ms": 14660,
+    "path": "tier 1 and 2, account age from the NearBlocks key creation time"
+  },
+  {
+    "receiver": "examples.testnet",
+    "run": 4,
+    "verdict": "ALLOW",
+    "latency_ms": 15946,
+    "path": "tier 1 and 2, account age from the NearBlocks key creation time"
+  },
+  {
+    "receiver": "examples.testnet",
+    "run": 5,
+    "verdict": "ALLOW",
+    "latency_ms": 16360,
+    "path": "tier 1 and 2, account age from the NearBlocks key creation time"
+  },
+  {
+    "receiver": "examples.testnet",
+    "run": 6,
+    "verdict": "ALLOW",
+    "latency_ms": 16516,
+    "path": "tier 1 and 2, account age from the NearBlocks key creation time"
+  },
+  {
+    "receiver": "examples.testnet",
+    "run": 7,
+    "verdict": "ALLOW",
+    "latency_ms": 16780,
+    "path": "tier 1 and 2, account age from the NearBlocks key creation time"
+  },
+  {
+    "receiver": "examples.testnet",
+    "run": 8,
+    "verdict": "ALLOW",
+    "latency_ms": 15909,
+    "path": "tier 1 and 2, account age from the NearBlocks key creation time"
+  },
+  {
+    "receiver": "examples.testnet",
+    "run": 9,
+    "verdict": "ALLOW",
+    "latency_ms": 15932,
+    "path": "tier 1 and 2, account age from the NearBlocks key creation time"
+  },
+  {
+    "receiver": "examples.testnet",
+    "run": 10,
+    "verdict": "ALLOW",
+    "latency_ms": 16586,
+    "path": "tier 1 and 2, account age from the NearBlocks key creation time"
+  },
+  {
+    "receiver": "examples.testnet",
+    "run": 11,
+    "verdict": "ALLOW",
+    "latency_ms": 16219,
+    "path": "tier 1 and 2, account age from the NearBlocks key creation time"
+  },
+  {
+    "receiver": "examples.testnet",
+    "run": 12,
+    "verdict": "ALLOW",
+    "latency_ms": 17484,
+    "path": "tier 1 and 2, account age from the NearBlocks key creation time"
+  },
+  {
+    "receiver": "examples.testnet",
+    "run": 13,
+    "verdict": "ALLOW",
+    "latency_ms": 16162,
+    "path": "tier 1 and 2, account age from the NearBlocks key creation time"
+  },
+  {
+    "receiver": "examples.testnet",
+    "run": 14,
+    "verdict": "ALLOW",
+    "latency_ms": 16295,
+    "path": "tier 1 and 2, account age from the NearBlocks key creation time"
+  },
+  {
+    "receiver": "examples.testnet",
+    "run": 15,
+    "verdict": "ALLOW",
+    "latency_ms": 16000,
+    "path": "tier 1 and 2, account age from the NearBlocks key creation time"
+  },
+  {
+    "receiver": "examples.testnet",
+    "run": 16,
+    "verdict": "ALLOW",
+    "latency_ms": 16140,
+    "path": "tier 1 and 2, account age from the NearBlocks key creation time"
+  },
+  {
+    "receiver": "examples.testnet",
+    "run": 17,
+    "verdict": "ALLOW",
+    "latency_ms": 16586,
+    "path": "tier 1 and 2, account age from the NearBlocks key creation time"
+  },
+  {
+    "receiver": "examples.testnet",
+    "run": 18,
+    "verdict": "ALLOW",
+    "latency_ms": 16271,
+    "path": "tier 1 and 2, account age from the NearBlocks key creation time"
+  },
+  {
+    "receiver": "examples.testnet",
+    "run": 19,
+    "verdict": "ALLOW",
+    "latency_ms": 17125,
+    "path": "tier 1 and 2, account age from the NearBlocks key creation time"
+  },
+  {
+    "receiver": "examples.testnet",
+    "run": 20,
+    "verdict": "ALLOW",
+    "latency_ms": 15485,
+    "path": "tier 1 and 2, account age from the NearBlocks key creation time"
+  }
+]
