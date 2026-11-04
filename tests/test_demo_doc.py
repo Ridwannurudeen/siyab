@@ -10,8 +10,8 @@ from gate import demo
 
 ROOT = Path(__file__).resolve().parent.parent
 DEMO_DOC = ROOT / "docs" / "DEMO.md"
-FIRST_LINE = ("Built at NEAR HACKATHON: security intelligence for AI agent money on NEAR. Who your agent pays gets a "
-              "verdict with evidence, the guard refuses the rest, on NEAR and at the bridge.")
+FIRST_LINE = ("Built at NEAR HACKATHON: security intelligence for NEAR with a source on every row. Who your agent pays "
+              "gets a verdict with evidence, the guard refuses the rest, on NEAR and at the bridge.")
 URL_PLACEHOLDER = "<repo URL>"
 # The link weight and the length limit of the platform, both UNVERIFIED (docs/DEMO.md says so).
 URL_WEIGHT = 23
@@ -71,7 +71,7 @@ class OpeningLineTest(unittest.TestCase):
         denied = [line.strip() for line in printed if line.strip().startswith(f"DENIED. {demo.LOOKALIKE} ")]
         self.assertEqual(len(denied), 1)
         document = DEMO_DOC.read_text(encoding="utf-8")
-        opening = document[document.index("## The opening line"):document.index("## Shots")]
+        opening = document[document.index("### 1."):document.index("### 2.")]
         self.assertIn("```\n" + denied[0] + "\n```", opening)
         self.assertNotIn("deposit.", denied[0])
 

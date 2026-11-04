@@ -38,12 +38,12 @@ The payment tool writes its evidence documents into a temporary directory that t
 
 ## Connect a client
 
-The Claude Code command and the Codex config below were run on 2 Nov 2026 against the testnet Gate, each with `GATE_FIXTURES_MODE=off`, `GATE_ACCOUNT_ID=<gate>.testnet` and `GATE_POLICY=<get_agent JSON>` in the server's environment: each client called the three tools once and got `isError: false` from each. The `.mcp.json` file is the same server declared in a file; it was not part of that run.
+The Claude Code command below and the Codex configuration were run on 2 Nov 2026 against the testnet Gate, each with `GATE_FIXTURES_MODE=off`, `GATE_ACCOUNT_ID=<gate>.testnet` and `GATE_POLICY=<get_agent JSON>` in the server's environment. Each client called all three tools once and got `isError: false` from each. The `.mcp.json` file declares the same server in a file; it was not part of that run.
 
-Claude Code, from the repository root (add `-e GATE_FIXTURES_MODE=off -e GATE_ACCOUNT_ID=<gate>.testnet -e GATE_POLICY=<get_agent JSON>` before `--` for live reads):
+Claude Code, from the repository root:
 
 ```
-claude mcp add shieldbot-near -- python -m mcp.server
+claude mcp add shieldbot-near -s local -e GATE_FIXTURES_MODE=off -e GATE_ACCOUNT_ID=<gate>.testnet -e GATE_POLICY=<get_agent JSON> -- python -m mcp.server
 ```
 
 or a `.mcp.json` file in the repository root:
@@ -59,7 +59,7 @@ or a `.mcp.json` file in the repository root:
 }
 ```
 
-Codex, in `~/.codex/config.toml`. `codex mcp add` has no working directory option, so `PYTHONPATH` names the repository root and `python -m mcp.server` finds this package from any directory. With `approval_policy = "never"` a tool call fails with "MCP tool call requires approval" unless the tool is approved in the config:
+Codex, in `~/.codex/config.toml`. `codex mcp add` has no working directory option, so `PYTHONPATH` names the repository root and `python -m mcp.server` finds this package from any directory. With `approval_policy = "never"`, each tool needs its own `approval_mode = "approve"` entry:
 
 ```toml
 [mcp_servers.shieldbot_near]
