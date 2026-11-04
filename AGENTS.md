@@ -51,7 +51,53 @@ res/                    built wasm files, their sha256 and the build record
 
 ## Environment variables
 
-`env.example` lists every variable with a comment. The code reads `NEAR_RPC_URL`, `NEAR_MAINNET_RPC_URL`, `NEAR_ARCHIVAL_RPC_URL`, `NEARBLOCKS_API_URL`, `SHIELDBOT_API_URL` (empty means off), `GATE_ACCOUNT_ID` (the MCP server defaults to `gate.near`), `GATE_POLICY` (the agent policy JSON the MCP server checks payments against), `VERIFIER_KEY_FILE` and `AGENT_KEY_FILE` (key file paths kept outside the repository), `GATE_FIXTURES_MODE` (`replay` by default, `record` or `off`), `GATE_ALLOW_PURE_PYTHON_SIGNER`, `GATE_LIVE_SIGNING` (`1` lets the MCP server sign with the live key), `GATE_KEEP_EVIDENCE` (`1` keeps the evidence directory `python -m gate demo` and the MCP server write at exit) and `AGENT_PUB` (the agent public key the MCP server binds a live verdict to). The testnet scripts read the variables in the `scripts/README.md` table.
+`env.example` lists every environment variable read by the Python code and testnet scripts, once each, with its purpose.
+
+Python variables:
+
+- `NEAR_RPC_URL`: testnet JSON-RPC endpoint override.
+- `NEAR_MAINNET_RPC_URL`: mainnet JSON-RPC endpoint override.
+- `NEAR_ARCHIVAL_RPC_URL`: archival JSON-RPC endpoint override.
+- `NEARBLOCKS_API_URL`: NearBlocks endpoint override.
+- `SHIELDBOT_API_URL`: optional ShieldBot API base URL for firewall and memo checks.
+- `GATE_ACCOUNT_ID`: Gate account used by the MCP server and testnet scripts; the MCP server defaults to `gate.near`.
+- `GATE_POLICY`: payment policy JSON used by the MCP server.
+- `VERIFIER_KEY_FILE`: path to the live verifier key file, kept outside the repository.
+- `AGENT_KEY_FILE`: path to the agent function call key file, kept outside the repository.
+- `GATE_FIXTURES_MODE`: fixture behavior, `replay` by default, `record` or `off`.
+- `GATE_ALLOW_PURE_PYTHON_SIGNER`: set to `1` to enable the pure Python live signer.
+- `GATE_LIVE_SIGNING`: set to `1` to enable MCP live signing when all required conditions hold.
+- `GATE_KEEP_EVIDENCE`: set to `1` to retain evidence directories after process exit.
+- `AGENT_PUB`: agent public key used by the MCP live verdict and testnet registration scripts.
+- `FEED_STATE_DIR`: feed state directory; defaults to `intel/feed`.
+- `FASTNEAR_API_KEY_FILE`: path to a file holding the FastNEAR key; the follower reads it for authenticated requests.
+
+Testnet script variables:
+
+- `NETWORK`: network selector, defaults to `testnet`; scripts refuse other values.
+- `DRY_RUN`: set to `1` to print planned commands without reading keys or sending transactions.
+- `OWNER_ACCOUNT_ID`: account authorized to configure the Gate and registry.
+- `VENDOR_ACCOUNT_ID`: account used for the vendor payment path.
+- `AGED_PAYEE_ACCOUNT_ID`: account used for the aged payee path.
+- `ATTACKER_ACCOUNT_ID`: account used to fund a lookalike receiver.
+- `NEAR_KEYS_DIR`: directory for external account key files.
+- `VERIFIER_PUB`: public verifier key passed to the Gate initializer.
+- `AGENT_LABEL`: label stored with the agent.
+- `TOKEN_SYMBOL`: test token symbol, defaults to `DMT`.
+- `TOKEN_DECIMALS`: test token decimals, defaults to `6`.
+- `TOKEN_SUPPLY`: initial test token supply in base units.
+- `GATE_WASM`: Gate wasm path, with a repository default and external target fallback.
+- `REGISTRY_WASM`: registry wasm path.
+- `TOKEN_WASM`: test token wasm path.
+- `CARGO_TARGET_DIR`: build directory used by testnet setup, defaults outside the repository.
+- `MAX_TTL_MS`: Gate verdict lifetime in milliseconds, defaults to `300000`.
+- `CAP_PER_CALL`: agent token cap per call, in whole tokens.
+- `CAP_WINDOW`: agent token cap per window, in whole tokens.
+- `CAP_WINDOW_MS`: agent cap window length in milliseconds.
+- `UNKNOWN_PER_CALL`: unknown payee token cap per call, in whole tokens.
+- `UNKNOWN_WINDOW`: unknown payee token cap per window, in whole tokens.
+- `AGENT_ALLOWANCE_NEAR`: function call key allowance in NEAR, defaults to `1`.
+- `GATE_STATE_FROZEN`: set to `1` to allow redeployment after 4 Nov.
 
 ## Working agreements
 
