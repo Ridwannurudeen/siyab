@@ -1,13 +1,18 @@
 """Print the counts the README states, from committed files only, in a fixed format.
 
 Usage:
-  python scripts/counts.py                    print the six lines
+  python scripts/counts.py                    print the lines
   python scripts/counts.py --readme README.md rewrite the block between the counts markers
 
-The six lines, in this order (every number is counted from the files named):
+The lines, in this order (every number is counted from the files named); the last one is printed only
+while its file exists, so there are seven lines or eight:
 
   On N recorded mainnet receivers the rules returned A ALLOW, D DENY, U Unknown.
       fixtures/receivers/judgements/*.json, one judgement per subject
+  By cohort: ordinary counterparties N (A ALLOW, D DENY, U Unknown); organisations from registries N
+  (A ALLOW, D DENY, U Unknown); incident accounts N (...); catalog tokens N (...).
+      the cohort of each subject of fixtures/receivers/set.json and the verdict of its judgement, counted
+      by cohort_line of intel/__main__.py, the function python -m intel receivers prints
   Label store: L assertions over E subjects (onchain O, official_source F, third_party T, inferred I).
       intel/labels.jsonl; E counts distinct (chain, subject) pairs
   Incidents: I pages.
@@ -27,12 +32,16 @@ The six lines, in this order (every number is counted from the files named):
       one): "stopped while reading the subject" or "stopped while reading an account N hop(s) from
       the subject"; "Flows: 0 exit traces, 0 hops, depth 0 of 0, complete." without a trace
   Latency: p50 X ms, p95 Y ms over R verdict runs.
-      fixtures/latency/*.json, each a JSON list of integers or of objects with an integer latency_ms;
-      the percentiles are nearest rank; "Latency: not measured." while no such file exists
+      fixtures/latency/verdict-runs.json (the allowlisted payee's runs), a JSON list of integers or of
+      objects with an integer latency_ms; the percentiles are nearest rank; "Latency: not measured."
+      while the file does not exist or holds no run
+  Latency, payee off the allowlist: p50 X ms, p95 Y ms over R verdict runs.
+      fixtures/latency/verdict-runs-tier2.json in the same form and the same way; no line while the file
+      does not exist
 
 --readme replaces everything between the lines <!-- counts:start --> and <!-- counts:end --> with the
-six lines, each followed by a blank line so each renders as its own paragraph, and exits 2 when the
-file lacks the markers.
+lines, each followed by a blank line so each renders as its own paragraph, and exits 2 when the file
+lacks the markers.
 """
 
 import argparse
@@ -44,14 +53,17 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from intel import __main__ as intel_main
 from intel import labels, trace
 
 JUDGEMENTS_DIR = ROOT / "fixtures" / "receivers" / "judgements"
+RECEIVER_SET = ROOT / "fixtures" / "receivers" / "set.json"
 INCIDENTS_DIR = ROOT / "intel" / "incidents"
 FEED_STATE = ROOT / "intel" / "feed" / "state.json"
 FEED_SNAPSHOT = ROOT / "intel" / "feed" / "follow-snapshot.json"
 FLOWS_DIR = ROOT / "intel" / "flows"
-LATENCY_DIR = ROOT / "fixtures" / "latency"
+LATENCY_RUNS = ROOT / "fixtures" / "latency" / "verdict-runs.json"
+TIER2_LATENCY_RUNS = ROOT / "fixtures" / "latency" / "verdict-runs-tier2.json"
 START, END = "<!-- counts:start -->", "<!-- counts:end -->"
 
 
@@ -59,6 +71,12 @@ def receivers_line(directory=JUDGEMENTS_DIR):
     verdicts = [json.loads(path.read_text(encoding="utf-8"))["verdict"] for path in sorted(Path(directory).glob("*.json"))]
     return (f"On {len(verdicts)} recorded mainnet receivers the rules returned {verdicts.count('ALLOW')} ALLOW, "
             f"{verdicts.count('DENY')} DENY, {verdicts.count('UNKNOWN')} Unknown.")
+
+
+def cohorts_line(set_path=RECEIVER_SET, directory=JUDGEMENTS_DIR):
+    document = json.loads(Path(set_path).read_text(encoding="utf-8"))
+    judgements = [json.loads(path.read_text(encoding="utf-8")) for path in sorted(Path(directory).glob("*.json"))]
+    return intel_main.cohort_line(document, judgements)
 
 
 def labels_line(store_path=labels.STORE_PATH):
@@ -111,16 +129,27 @@ def _nearest_rank(ordered, percent):
     return ordered[max(1, math.ceil(percent / 100 * len(ordered))) - 1]
 
 
-def latency_line(directory=LATENCY_DIR):
-    runs = sorted(ms for path in sorted(Path(directory).glob("*.json")) for ms in _latencies(path))
+def _latency(label, path):
+    runs = sorted(_latencies(path)) if Path(path).is_file() else []
     if not runs:
-        return "Latency: not measured."
-    return (f"Latency: p50 {_nearest_rank(runs, 50)} ms, p95 {_nearest_rank(runs, 95)} ms over {len(runs)} "
+        return f"{label}: not measured."
+    return (f"{label}: p50 {_nearest_rank(runs, 50)} ms, p95 {_nearest_rank(runs, 95)} ms over {len(runs)} "
             "verdict runs.")
 
 
+def latency_line(path=LATENCY_RUNS):
+    return _latency("Latency", path)
+
+
+def tier2_latency_line(path=TIER2_LATENCY_RUNS):
+    """The latency line of the payee off the allowlist, or None while its file does not exist."""
+    return _latency("Latency, payee off the allowlist", path) if Path(path).is_file() else None
+
+
 def lines():
-    return [receivers_line(), labels_line(), incidents_line(), feed_line(), flows_line(), latency_line()]
+    tier2 = tier2_latency_line(TIER2_LATENCY_RUNS)
+    return ([receivers_line(), cohorts_line(), labels_line(), incidents_line(), feed_line(), flows_line(),
+             latency_line(LATENCY_RUNS)] + ([tier2] if tier2 else []))
 
 
 def readme_block(count_lines):

@@ -55,9 +55,10 @@ EVIDENCE_DIR = ROOT / "fixtures" / "evidence"
 # The token whose issuer actions intel/issuers.py reads from the owner's transactions.
 HISTORY_TOKEN = "usdt.tether-token.near"
 HEADLINE = "ShieldBot for NEAR: security intelligence for AI agent money on NEAR"
-COUNTS_OF = ("The counts below are of the recorded mainnet receivers the rules judged, the label store's assertions "
-             "and subjects by provenance class, the incident pages, the blocks and events of the feed, the exit "
-             "traces and their hops, and the verdict latency runs.")
+COUNTS_OF = ("The counts below are of the recorded mainnet receivers the rules judged, in all and by cohort, the label "
+             "store's assertions and subjects by provenance class, the incident pages, the blocks and events of the "
+             "feed, the exit traces and their hops, and the verdict latency runs for the allowlisted payee and, once "
+             "they are recorded, for a payee off the allowlist.")
 ENTITY_SETS = (("treasuries", "Treasuries", ("treasury",)),
                ("catalog", "Catalog tokens", ("catalog_token",)),
                ("infrastructure", "Infrastructure and bridge accounts", ("infrastructure", "bridge")),

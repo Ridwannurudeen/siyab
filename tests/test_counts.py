@@ -6,11 +6,15 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from intel import __main__ as intel_main
 from intel import labels, trace
 
 ROOT = Path(__file__).resolve().parent.parent
+TALLY = r"\d+ \(\d+ ALLOW, \d+ DENY, \d+ Unknown\)"
 FORMATS = (
     r"On \d+ recorded mainnet receivers the rules returned \d+ ALLOW, \d+ DENY, \d+ Unknown\.",
+    (rf"By cohort: ordinary counterparties {TALLY}; organisations from registries {TALLY}; incident accounts "
+     rf"{TALLY}; catalog tokens {TALLY}\."),
     (r"Label store: \d+ assertions over \d+ subjects \(onchain \d+, official_source \d+, third_party \d+, "
      r"inferred \d+\)\."),
     r"Incidents: \d+ pages\.",
@@ -21,6 +25,7 @@ FORMATS = (
      r"\d+ watch_account_key_added, \d+ labelled_account_large_transfer, \d+ deploy_on_labelled_contract\))\."),
     r"Flows: \d+ exit traces, \d+ hops, depth \d+ of \d+, (complete|stopped while reading (the subject|an account \d+ hops? from the subject))\.",
     r"Latency: (not measured|p50 \d+ ms, p95 \d+ ms over \d+ verdict runs)\.",
+    r"Latency, payee off the allowlist: (not measured|p50 \d+ ms, p95 \d+ ms over \d+ verdict runs)\.",
 )
 
 
@@ -45,10 +50,19 @@ class CountsTest(unittest.TestCase):
         code, output = self.run_main()
         self.assertEqual(code, 0)
         printed = output.splitlines()
-        self.assertEqual(len(printed), len(FORMATS))
+        self.assertEqual(len(printed), len(FORMATS) if self.counts.TIER2_LATENCY_RUNS.is_file() else len(FORMATS) - 1)
         for line, pattern in zip(printed, FORMATS):
             with self.subTest(line=line):
                 self.assertRegex(line, "^" + pattern + "$")
+
+    def test_the_cohort_line_is_the_one_intel_receivers_prints(self):
+        document = json.loads((ROOT / "fixtures" / "receivers" / "set.json").read_text(encoding="utf-8"))
+        judgements = {path.stem: json.loads(path.read_text(encoding="utf-8"))
+                      for path in (ROOT / "fixtures" / "receivers" / "judgements").glob("*.json")}
+        self.assertEqual(sorted(judgements), sorted(entry["subject"] for entry in document["subjects"]))
+        self.assertEqual(self.counts.cohorts_line(),
+                         intel_main.cohort_line(document, [judgements[e["subject"]] for e in document["subjects"]]))
+        self.assertEqual(self.counts.lines()[:2], [self.counts.receivers_line(), self.counts.cohorts_line()])
 
     def test_the_label_and_incident_lines_equal_a_recount(self):
         store = labels.load()
@@ -93,14 +107,40 @@ class CountsTest(unittest.TestCase):
 
     def test_latency_is_not_measured_without_files_and_nearest_rank_with_them(self):
         with tempfile.TemporaryDirectory() as tmp:
-            self.assertEqual(self.counts.latency_line(Path(tmp)), "Latency: not measured.")
-            (Path(tmp) / "a.json").write_text(json.dumps(list(range(1, 11))), encoding="utf-8")
-            (Path(tmp) / "b.json").write_text(json.dumps([{"latency_ms": n} for n in range(11, 21)]),
-                                              encoding="utf-8")
-            self.assertEqual(self.counts.latency_line(Path(tmp)), "Latency: p50 10 ms, p95 19 ms over 20 verdict runs.")
-            (Path(tmp) / "c.json").write_text(json.dumps([1.5]), encoding="utf-8")
+            path = Path(tmp) / "verdict-runs.json"
+            self.assertEqual(self.counts.latency_line(path), "Latency: not measured.")
+            path.write_text(json.dumps(list(range(1, 11)) + [{"latency_ms": n} for n in range(11, 21)]),
+                            encoding="utf-8")
+            self.assertEqual(self.counts.latency_line(path), "Latency: p50 10 ms, p95 19 ms over 20 verdict runs.")
+            path.write_text(json.dumps([1.5]), encoding="utf-8")
             with self.assertRaises(ValueError):
-                self.counts.latency_line(Path(tmp))
+                self.counts.latency_line(path)
+
+    def test_the_second_latency_line_reads_its_own_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            first, second = Path(tmp) / "verdict-runs.json", Path(tmp) / "verdict-runs-tier2.json"
+            first.write_text(json.dumps([{"receiver": "kestrelridge-shop.testnet", "run": n, "verdict": "ALLOW",
+                                          "latency_ms": n} for n in range(1, 11)]), encoding="utf-8")
+            self.counts.LATENCY_RUNS, self.counts.TIER2_LATENCY_RUNS = first, second
+            self.assertIsNone(self.counts.tier2_latency_line(second))
+            without = self.counts.lines()
+            self.assertEqual(len(without), len(FORMATS) - 1)
+            for line, pattern in zip(without, FORMATS):
+                with self.subTest(line=line):
+                    self.assertRegex(line, "^" + pattern + "$")
+            self.assertEqual(without[-1], "Latency: p50 5 ms, p95 10 ms over 10 verdict runs.")
+            second.write_text(json.dumps([{"receiver": "lindenvale.testnet", "run": n, "verdict": "ALLOW",
+                                           "latency_ms": 100 * n,
+                                           "path": "tier 1 and 2, account age from the access key nonce"}
+                                          for n in range(1, 21)]), encoding="utf-8")
+            printed = self.counts.lines()
+            self.assertEqual(len(printed), len(FORMATS))
+            for line, pattern in zip(printed, FORMATS):
+                with self.subTest(line=line):
+                    self.assertRegex(line, "^" + pattern + "$")
+            self.assertEqual(printed[:-1], without)
+            self.assertEqual(printed[-1], "Latency, payee off the allowlist: p50 1000 ms, p95 1900 ms over 20 verdict "
+                                          "runs.")
 
     def test_readme_rewrites_only_the_marked_block(self):
         with tempfile.TemporaryDirectory() as tmp:

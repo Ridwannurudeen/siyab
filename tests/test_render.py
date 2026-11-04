@@ -203,9 +203,10 @@ class RenderTest(unittest.TestCase):
         sentence = f"<p>{html.escape(render.COUNTS_OF)}</p>"
         self.assertLess(page.index("</h1>"), page.index(sentence))
         self.assertLess(page.index(sentence), page.index('<div class="card">'))
-        self.assertEqual(len(render._counts_lines()), 6)
-        for words in ("recorded mainnet receivers the rules judged", "label store", "provenance class", "incident pages",
-                      "feed", "exit traces", "verdict latency runs"):
+        tier2 = (ROOT / "fixtures" / "latency" / "verdict-runs-tier2.json").is_file()
+        self.assertEqual(len(render._counts_lines()), 8 if tier2 else 7)
+        for words in ("recorded mainnet receivers the rules judged", "by cohort", "label store", "provenance class",
+                      "incident pages", "feed", "exit traces", "verdict latency runs", "payee off the allowlist"):
             self.assertIn(words, render.COUNTS_OF)
 
     def test_the_feed_page_names_a_recorded_window_with_its_date_and_says_it_is_not_following(self):

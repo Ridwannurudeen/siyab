@@ -29,11 +29,13 @@ Three layers on one data model:
 - **Protocol** (`docs/VERDICT-RECORD.md`, `docs/REGISTRY.md`, `contracts/registry/`): an open verdict and label record format with an on chain NEAR registry, and the offline verifier `python -m gate verify`.
 - **Security** (`contracts/gate/`, `mcp/`, `gate/scan.py`): the guard contract, a stdio MCP server with three tools, and the key hygiene scanner `python -m gate scan`.
 
-Every line below is written by `python scripts/counts.py --readme README.md` from committed files. The latency line covers live testnet verdicts for the allowlisted payee, tier 1 checks only (`docs/EVIDENCE.md`).
+Every line below is written by `python scripts/counts.py --readme README.md` from committed files. The first two count the recorded mainnet receivers the rules judged, in all and by cohort. The latency line covers live testnet verdicts for the allowlisted payee, tier 1 checks only (`docs/EVIDENCE.md`); a second latency line, for a payee off the allowlist, is printed once `fixtures/latency/verdict-runs-tier2.json` is committed.
 
 <!-- counts:start -->
 
 On 84 recorded mainnet receivers the rules returned 43 ALLOW, 14 DENY, 27 Unknown.
+
+By cohort: ordinary counterparties 9 (9 ALLOW, 0 DENY, 0 Unknown); organisations from registries 50 (24 ALLOW, 0 DENY, 26 Unknown); incident accounts 15 (0 ALLOW, 14 DENY, 1 Unknown); catalog tokens 10 (10 ALLOW, 0 DENY, 0 Unknown).
 
 Label store: 3266 assertions over 3009 subjects (onchain 2894, official_source 350, third_party 18, inferred 4).
 
@@ -47,7 +49,7 @@ Latency: p50 1843 ms, p95 2300 ms over 20 verdict runs.
 
 <!-- counts:end -->
 
-The 52 receivers of the first line (`fixtures/receivers/set.json`, chosen by `intel/__main__.py`) are recent counterparties of the two contracts `v2.ref-finance.near` and `wrap.near` (the last distinct counterparties of each in the FastNEAR Transfers API), the further NEAR accounts named in the Rhea Lend incident page, and catalog tokens of the label store; `fixtures/receivers/set.json` gives each one with why it was chosen. Implicit accounts are left out of the counterparties, unless the label store holds them as a catalog token.
+The 84 receivers of the first line are chosen by `intel/__main__.py` and listed in `fixtures/receivers/set.json`, each with its cohort and why it was chosen. They fall into the four cohorts of the second line: ordinary counterparties are the last distinct counterparties of `v2.ref-finance.near` and `wrap.near` in the FastNEAR Transfers API, implicit accounts left out unless the label store holds them as a catalog token; organisations from registries are the first Sputnik DAO accounts and the first validator pool accounts among the `organisation` rows of the label store, in store order; incident accounts are the NEAR accounts named in the Rhea Lend incident page; catalog tokens are the first `catalog_token` NEAR accounts of the label store not already in the set, each judged as the token of a transfer. Each cohort is counted apart, so the figures for ordinary payees are not mixed with the accounts named in an incident report or with the organisation accounts, some of whose ages could not be read (Limits). The set file states the rule applied to the counterparties before publication: "Named accounts whose id reads as a person's name or handle were left out by hand before publication (18 accounts); the set lists no account id for them." No other account took their place.
 
 Consumers today are the guard, the MCP server and the demo agent; none from a third party yet.
 
@@ -219,10 +221,11 @@ Python 3.11 or later, from the repository root. Steps 3, 5 and 6 show POSIX shel
    ```
 
 8. `fixtures/canon/*.json` are read by both `python -m unittest tests.test_canon` and the Rust unit tests in `contracts/gate` (`cargo test --lib`, network once for crates.io), so the two implementations of the signed message are checked against the same bytes without a network.
-9. `python -m intel receivers` replays the rules over the recorded mainnet receiver set from `fixtures/receivers/`, rewrites the committed judgement files under `fixtures/receivers/judgements/` from the replay, and prints the measured line; `git status` shows no change afterwards:
+9. `python -m intel receivers` replays the rules over the recorded mainnet receiver set from `fixtures/receivers/`, rewrites the committed judgement files under `fixtures/receivers/judgements/` from the replay, and prints the two measured lines; `git status` shows no change afterwards:
 
    ```
-   On 52 recorded mainnet receivers the rules returned 32 ALLOW, 19 DENY, 1 Unknown.
+   On 84 recorded mainnet receivers the rules returned 43 ALLOW, 14 DENY, 27 Unknown.
+   By cohort: ordinary counterparties 9 (9 ALLOW, 0 DENY, 0 Unknown); organisations from registries 50 (24 ALLOW, 0 DENY, 26 Unknown); incident accounts 15 (0 ALLOW, 14 DENY, 1 Unknown); catalog tokens 10 (10 ALLOW, 0 DENY, 0 Unknown).
    ```
 
    `python scripts/smoke.py` runs the nine steps above with Python alone and read only: each command in replay with the network refused, step 2 inside the smoke process without `tests/test_smoke.py` (which runs `smoke.py`), step 8's Python half (the Rust half needs crates.io), and step 9 into a temporary directory whose judgements it compares byte for byte with `fixtures/receivers/judgements/`. It prints PASS or FAIL with the reason for each step, then the summary, and exits 0 only on nine passes; every temporary file goes into one directory it removes at the end. Its last line:
@@ -350,8 +353,9 @@ Copied from `docs/ATTACKS.md`. Each NEAR command is `python -m gate attack <name
 
 - No TEE. The rules are view call heuristics; a check that cannot run reads Unknown, and Unknown is refused. Unknown is expected whenever a data source is down or holds no data: NearBlocks testnet has indexed nothing since 27 Sep, so testnet account age comes from the oldest access key nonce and an archival block read (`docs/SPIKES.md` S8).
 - ALLOW is the absence of a known scam signal, not proof of identity; the unknown payee cap bounds what a patient attacker can take.
-- The measured line of the counts block is the replay of a recorded mainnet receiver set, not a rate over all NEAR payees.
+- The receiver lines of the counts block are the replay of a recorded mainnet receiver set, not a rate over all NEAR payees.
 - `code_without_metadata` (contract code without `contract_source_metadata`) alone is a pass with a detail; it counts only with another tier 2 signal (`account_age`, `dust_funded` or `lookalike`). That moved three deployed protocol contracts of the receiver set from DENY to ALLOW (`grid.deltatrade.near`, `dclv2.ref-labs.near`, `aggregatedex.near`, `fixtures/receivers/judgements/`).
+- Where NearBlocks lists no access key for an account and `view_account` shows contract code, no creation time could be read, so `account_age` reads Unknown, and so does the verdict when no other check found a signal. In the receiver set these are the validator pool accounts and a DAO account of the organisation cohort (`fixtures/receivers/judgements/`). An agent that pays such an account has it put on its allowlist (the owner's `set_allowlist`), which skips the tier 2 checks.
 - The testnet Gate kept a full access key during the build.
 - A used verdict stays used when the transfer then fails; the agent needs a fresh ALLOW. A failed transfer restores the debited cap (`failed_transfer_restores_the_debited_cap`), except when the agent was revoked, the cap removed or the window rolled in between (the four `failed_transfer_after_*_is_not_restored` tests). If the completion callback itself fails, the budget stays debited.
 - Storage for used verdict ids, pending requests and agent keys is staked from the Gate's own balance; the registry pays storage for its records (`docs/REGISTRY.md`). `request_transfer` refuses a call whose gas cannot cover the transfer and its callback (`REFUSED:low_gas`).

@@ -37,6 +37,7 @@ def filler(characters):
 
 
 TOPIC_CLAIMS = {
+    "the protocol refusals": "The agent key calling the token is refused by the protocol.",
     "the latency lines": "The verdict latency is measured.",
     "the scanner": "The key scanner lists access keys.",
     "the reproducible build": "The reproducible build matches the hash.",
@@ -46,21 +47,29 @@ TOPIC_CLAIMS = {
 }
 COUNT_LINES = [
     "On 52 recorded mainnet receivers the rules returned 32 ALLOW, 19 DENY, 1 Unknown.",
+    ("By cohort: ordinary counterparties 9 (9 ALLOW, 0 DENY, 0 Unknown); organisations from registries 50 (24 ALLOW, "
+     "0 DENY, 26 Unknown); incident accounts 15 (0 ALLOW, 14 DENY, 1 Unknown); catalog tokens 10 (10 ALLOW, 0 DENY, "
+     "0 Unknown)."),
     "Label store: 412 assertions over 262 subjects (onchain 40, official_source 350, third_party 18, inferred 4).",
     "Incidents: 3 pages.",
     ("Feed: since 2026-10-29, 300 blocks, 0 events (0 code_hash_matches_incident, 0 fresh_dust_funded_pays_labelled, "
      "0 watch_account_key_added)."),
     "Flows: 1 exit traces, 200 hops, depth 1 of 3, stopped while reading the subject.",
     "Latency: p50 1843 ms, p95 2300 ms over 20 verdict runs.",
+    "Latency, payee off the allowlist: p50 4210 ms, p95 6100 ms over 20 verdict runs.",
 ]
 COUNT_PROSE = [
     ("The label store holds 412 assertions over 262 subjects: onchain 40, official_source 350, third_party 18, "
      "inferred 4."),
     "On 52 recorded mainnet receivers the rules return 32 ALLOW, 19 DENY, 1 Unknown.",
+    ("By cohort: ordinary counterparties 9 (9 ALLOW, 0 DENY, 0 Unknown); organisations from registries 50 (24 ALLOW, "
+     "0 DENY, 26 Unknown); incident accounts 15 (0 ALLOW, 14 DENY, 1 Unknown); catalog tokens 10 (10 ALLOW, 0 DENY, "
+     "0 Unknown)."),
     "Incident pages: 3.",
     "The block feed has read 300 blocks since 2026-10-29 and raised 0 events.",
     "The flow trace holds 1 exit trace over 200 hops, depth 1 of 3, stopped while reading the subject.",
     "Verdict latency: p50 1843 ms, p95 2300 ms over 20 recorded runs.",
+    "Verdict latency for a payee off the allowlist: p50 4210 ms, p95 6100 ms over 20 recorded runs.",
 ]
 
 
@@ -98,10 +107,16 @@ class IdeaTextTest(unittest.TestCase):
                                                                        "Flows: 2 exit traces, 1 hops, depth 1 of 3, complete."])],
                          ["The block feed has not run.", "The flow trace holds 2 exit traces over 1 hop, depth 1 of 3, complete.",
                           "Verdict latency is not measured."])
+        self.assertEqual([row["claim"] for row in gen_idea.count_rows(["Latency, payee off the allowlist: not measured.",
+                                                                       "Latency: not measured."])],
+                         ["Verdict latency is not measured.",
+                          "Verdict latency for a payee off the allowlist is not measured."])
+        self.assertIsNone(gen_idea.topic(COUNT_PROSE[2]))
         with self.assertRaises(ValueError) as raised:
             gen_idea.count_rows(["Receivers: a line in a format no template knows."])
         self.assertIn("no prose template for the counts line", str(raised.exception))
-        self.assertEqual(len(gen_idea.count_rows(gen_idea.counts.lines())), 6)
+        tier2 = (ROOT / "fixtures" / "latency" / "verdict-runs-tier2.json").is_file()
+        self.assertEqual(len(gen_idea.count_rows(gen_idea.counts.lines())), 8 if tier2 else 7)
 
     def test_the_first_300_characters_name_the_label_store_and_the_guard(self):
         code, stdout, _ = self.run_main([])
@@ -162,7 +177,7 @@ class IdeaTextTest(unittest.TestCase):
         kept = [row for row in rows if gen_idea.topic(row["claim"]) != "the scanner"]
         with mock.patch.object(gen_idea, "MAX_CHARS", len(gen_idea.assemble(kept))):
             text, dropped = gen_idea.build(rows)
-        self.assertEqual(dropped, ["the latency lines", "the scanner"])
+        self.assertEqual(dropped, ["the protocol refusals", "the latency lines", "the scanner"])
         self.assertIn(mcp_claim, text)
         self.assertNotIn(TOPIC_CLAIMS["the scanner"], text)
         self.assertNotIn("Run python -m gate scan on an account.", text)
@@ -172,8 +187,8 @@ class IdeaTextTest(unittest.TestCase):
         rows = gen_idea.idea_rows(table(["A lookalike name is refused.", long_feed, "The key scan lists keys."]))
         self.assertGreater(len(gen_idea.assemble(rows)), 2000)
         text, dropped = gen_idea.build(rows)
-        self.assertEqual(dropped, ["the latency lines", "the scanner", "the reproducible build", "lookalike names",
-                                   "the feed"])
+        self.assertEqual(dropped, ["the protocol refusals", "the latency lines", "the scanner", "the reproducible build",
+                                   "lookalike names", "the feed"])
         self.assertNotIn("A lookalike name is refused.", text)
         self.assertIn("The key scan lists keys.", text)
         self.assertIsNone(gen_idea.length_problem(text))
