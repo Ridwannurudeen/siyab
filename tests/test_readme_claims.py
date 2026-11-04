@@ -1,22 +1,33 @@
-"""The README claims and adversarial tables are copies of docs/CLAIMS.md and docs/ATTACKS.md.
+"""The README claims and adversarial tables are copies of docs/CLAIMS.md and docs/ATTACKS.md, and the README
+first screen states what is enforced and where.
 
 Each table is compared line for line with its source, and every file, function, test and fixture the
-README copy names must exist in the repository.
+README copy names must exist in the repository. The first screen is the headline, the one line and the
+paragraph before the first second level heading.
 """
 
 import re
 import unittest
 from pathlib import Path
 
+from intel import feed, labels
 from tests.test_attack_evidence import declared_functions, table_rows
 
 ROOT = Path(__file__).resolve().parent.parent
 README = ROOT / "README.md"
 CLAIMS = ROOT / "docs" / "CLAIMS.md"
 ATTACKS = ROOT / "docs" / "ATTACKS.md"
+TESTNET = ROOT / "docs" / "TESTNET.md"
 CLAIMS_HEADER = "| Claim | File:function |"
 ATTACKS_HEADER = "| # | Attack and command |"
 SUMMARY = re.compile(r"^\d+ attempts, \d+ refusals, \d+ bypasses\..*$", re.MULTILINE)
+HEADLINE = "# ShieldBot for NEAR: security intelligence with a source on every row, enforced on chain."
+ONE_LINE = "**Every label has a source. Every verdict has evidence. Unknown never passes.**"
+RANKING = ("number one", "first on", "the first to")
+SHIPPED = ("intel/registries.py:rows", "gate/rules.py:_issuer_check", "intel/trace.py:trace",
+           "intel/cluster.py:build_cluster", "intel/feed.py:follow", "intel/render.py:account_pages",
+           "contracts/registry/src/lib.rs:record_label")
+NUMBER_WORDS = ("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten")
 
 
 def table_lines(text, header):
@@ -35,6 +46,11 @@ def table_lines(text, header):
 
 def code_spans(cell):
     return re.findall(r"`([^`]+)`", cell)
+
+
+def first_screen(text):
+    """The blocks of the README before its first second level heading."""
+    return text[:text.index("\n## ")].split("\n\n")
 
 
 class ReadmeTablesTest(unittest.TestCase):
@@ -91,6 +107,59 @@ class ReadmeTablesTest(unittest.TestCase):
                 self.assertTrue(tests)
                 for reference in tests:
                     self.assert_test_exists(reference)
+
+
+class ShippedRowsTest(unittest.TestCase):
+    def setUp(self):
+        self.rows = {row[1].strip("`"): row for row in table_rows(CLAIMS.read_text(encoding="utf-8"), CLAIMS_HEADER)}
+
+    def test_every_shipped_intelligence_item_has_a_claims_row(self):
+        for source in SHIPPED:
+            with self.subTest(source=source):
+                self.assertIn(source, self.rows)
+
+    def test_the_feed_row_counts_the_signals_the_feed_defines(self):
+        self.assertIn(f"its {NUMBER_WORDS[len(feed.SIGNALS)]} signals", self.rows["intel/feed.py:follow"][0])
+
+
+class FirstScreenTest(unittest.TestCase):
+    def setUp(self):
+        self.blocks = first_screen(README.read_text(encoding="utf-8"))
+
+    def test_the_headline_and_the_one_line_open_the_readme_before_the_layers(self):
+        self.assertEqual(self.blocks[:2], [HEADLINE, ONE_LINE])
+        self.assertTrue(self.blocks[2].startswith("ShieldBot for NEAR is a security intelligence layer for NEAR: a "
+                                                  "label store in which every assertion names its provenance class "
+                                                  "and its source"))
+
+    def test_the_guard_sentence_says_what_is_enforced_on_chain_and_where(self):
+        guard = re.search(r"Its first consumer is a guard: [^.]*\.", self.blocks[2]).group(0)
+        for words in ("in a preflight before signing", "a NEAR contract on testnet",
+                      "pays only on a signed ALLOW bound to that exact transfer"):
+            with self.subTest(words=words):
+                self.assertIn(words, guard)
+        self.assertNotRegex(guard, r"\bevery\b|\beach verdict\b")
+
+    def test_the_registry_sentence_states_the_testnet_total_and_the_payments_without_a_record(self):
+        total = re.findall(r"`total_records` (\d+)", TESTNET.read_text(encoding="utf-8"))[-1]
+        self.assertIn(f"The testnet registry holds {total} verdict records: ", self.blocks[2])
+        self.assertIn("the first payment and the replay attack's first send have no record, because their evidence "
+                      "documents were not kept", self.blocks[2])
+
+    def test_the_first_screen_states_no_rank_and_names_no_host(self):
+        screen = "\n\n".join(self.blocks).lower()
+        for phrase in RANKING:
+            with self.subTest(phrase=phrase):
+                self.assertNotIn(phrase, screen)
+        self.assertNotIn("://", screen)
+
+
+class TryItOfflineTest(unittest.TestCase):
+    def test_the_step_7_sample_is_the_line_intel_counts_prints(self):
+        text = README.read_text(encoding="utf-8")
+        step = text[text.index("7. `python -m intel counts`"):]
+        start = step.index("   ```\n") + len("   ```\n")
+        self.assertEqual(step[start:step.index("\n", start)].strip(), labels.counts_line(labels.load().counts()))
 
 
 if __name__ == "__main__":

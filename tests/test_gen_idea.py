@@ -54,20 +54,26 @@ COUNT_LINES = [
     "Incidents: 3 pages.",
     ("Feed: since 2026-10-29, 300 blocks, 0 events (0 code_hash_matches_incident, 0 fresh_dust_funded_pays_labelled, "
      "0 watch_account_key_added)."),
+    ("Feed: following since 2026-11-05, 86400 blocks, 2 events (0 code_hash_matches_incident, "
+     "1 fresh_dust_funded_pays_labelled, 0 watch_account_key_added, 1 labelled_account_large_transfer, "
+     "0 deploy_on_labelled_contract)."),
     "Flows: 1 exit traces, 200 hops, depth 1 of 3, stopped while reading the subject.",
     "Latency: p50 1843 ms, p95 2300 ms over 20 verdict runs.",
     "Latency, payee off the allowlist: p50 4210 ms, p95 6100 ms over 20 verdict runs.",
+    "10 attempts, 10 refusals, 0 bypasses.",
 ]
 COUNT_PROSE = [
     ("The label store holds 412 assertions over 262 subjects: onchain 40, official_source 350, third_party 18, "
      "inferred 4."),
+    "Incident pages: 3.",
+    "The flow trace holds 1 exit trace over 200 hops, depth 1 of 3, stopped while reading the subject.",
+    "The block feed has read 300 blocks since 2026-10-29 and raised 0 events.",
+    "The block feed has followed 86400 blocks since 2026-11-05 and raised 2 events.",
     "On 52 recorded mainnet receivers the rules return 32 ALLOW, 19 DENY, 1 Unknown.",
     ("By cohort: ordinary counterparties 9 (9 ALLOW, 0 DENY, 0 Unknown); organisations from registries 50 (24 ALLOW, "
      "0 DENY, 26 Unknown); incident accounts 15 (0 ALLOW, 14 DENY, 1 Unknown); catalog tokens 10 (10 ALLOW, 0 DENY, "
      "0 Unknown)."),
-    "Incident pages: 3.",
-    "The block feed has read 300 blocks since 2026-10-29 and raised 0 events.",
-    "The flow trace holds 1 exit trace over 200 hops, depth 1 of 3, stopped while reading the subject.",
+    "Adversarial table: 10 attempts, 10 refusals, 0 bypasses.",
     "Verdict latency: p50 1843 ms, p95 2300 ms over 20 recorded runs.",
     "Verdict latency for a payee off the allowlist: p50 4210 ms, p95 6100 ms over 20 recorded runs.",
 ]
@@ -105,13 +111,13 @@ class IdeaTextTest(unittest.TestCase):
         self.assertEqual([row["claim"] for row in gen_idea.count_rows(COUNT_LINES)], COUNT_PROSE)
         self.assertEqual([row["claim"] for row in gen_idea.count_rows(["Feed: not run.", "Latency: not measured.",
                                                                        "Flows: 2 exit traces, 1 hops, depth 1 of 3, complete."])],
-                         ["The block feed has not run.", "The flow trace holds 2 exit traces over 1 hop, depth 1 of 3, complete.",
+                         ["The flow trace holds 2 exit traces over 1 hop, depth 1 of 3, complete.", "The block feed has not run.",
                           "Verdict latency is not measured."])
         self.assertEqual([row["claim"] for row in gen_idea.count_rows(["Latency, payee off the allowlist: not measured.",
                                                                        "Latency: not measured."])],
                          ["Verdict latency is not measured.",
                           "Verdict latency for a payee off the allowlist is not measured."])
-        self.assertIsNone(gen_idea.topic(COUNT_PROSE[2]))
+        self.assertIsNone(gen_idea.topic(COUNT_PROSE[6]))
         with self.assertRaises(ValueError) as raised:
             gen_idea.count_rows(["Receivers: a line in a format no template knows."])
         self.assertIn("no prose template for the counts line", str(raised.exception))
@@ -125,6 +131,36 @@ class IdeaTextTest(unittest.TestCase):
         for word in ("label store", "provenance", "incident", "guard"):
             with self.subTest(word=word):
                 self.assertIn(word, first)
+
+    def test_check_stays_green_on_the_following_feed_line_of_a_follow_snapshot(self):
+        following = COUNT_LINES[5]
+        with mock.patch.object(gen_idea.counts, "feed_line", return_value=following):
+            self.assertIn(following, gen_idea.counts.lines())
+            code, stdout, _ = self.run_main(["--check"])
+            self.assertEqual(code, 0, stdout)
+            code, text, _ = self.run_main([])
+        self.assertEqual(code, 0)
+        self.assertIn(COUNT_PROSE[4], text)
+
+    def test_the_adversarial_table_sentence_is_read_from_the_attacks_document(self):
+        document = (ROOT / "docs" / "ATTACKS.md").read_text(encoding="utf-8")
+        [line] = re.findall(r"^(\d+ attempts, \d+ refusals, \d+ bypasses\.)", document, re.MULTILINE)
+        self.assertEqual(gen_idea.attack_line(), line)
+        [prose] = [row["claim"] for row in gen_idea.count_rows([line])]
+        self.assertTrue(prose.startswith("Adversarial table: "))
+        self.assertIsNone(gen_idea.topic(prose))
+        code, text, _ = self.run_main([])
+        self.assertEqual(code, 0)
+        self.assertIn(prose, text)
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        for name, body in (("none.md", "No counts here.\n"),
+                           ("two.md", "10 attempts, 10 refusals, 0 bypasses.\n9 attempts, 9 refusals, 0 bypasses.\n")):
+            with self.subTest(document=name):
+                path = Path(tmp.name) / name
+                path.write_text(body, encoding="utf-8")
+                with self.assertRaises(ValueError):
+                    gen_idea.attack_line(path)
 
     def test_the_length_bounds_are_20_to_2000_characters(self):
         self.assertIsNone(gen_idea.length_problem("x" * 20))
