@@ -426,7 +426,8 @@ class TierTwoTest(RulesCase):
         self.fx.method_missing("pool.testnet", "contract_source_metadata", {})
         judgement = self.judge(request("pool.testnet"))
         self.assertEqual(self.status(judgement, "account_age"), "unknown")
-        self.assertEqual(self.detail(judgement, "account_age"), "locked contract: no access key and no creation record")
+        self.assertEqual(self.detail(judgement, "account_age"), "NearBlocks lists no access key for the account and "
+                         "view_account shows contract code, so no creation time could be read")
         self.assertEqual(self.detail(judgement, "dust_funded"), "the creation transaction is not known")
         self.assertEqual(self.status(judgement, "code_without_metadata"), "pass")
         self.assertEqual(judgement.verdict, "UNKNOWN")

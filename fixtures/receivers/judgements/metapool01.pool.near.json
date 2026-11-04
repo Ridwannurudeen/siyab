@@ -53,7 +53,7 @@
     {
       "id": "account_age",
       "status": "unknown",
-      "detail": "locked contract: no access key and no creation record",
+      "detail": "NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
       "source": {
         "provider": "api.nearblocks.io",
         "request_sha256": "cce744ff6d342eab1cdab181b282e5908770e4bcbd6440900909e92664f809d8",
@@ -92,7 +92,7 @@
     }
   ],
   "reasons": [
-    "account_age could not run: locked contract: no access key and no creation record.",
+    "account_age could not run: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read.",
     "dust_funded could not run: the creation transaction is not known."
   ],
   "labels": [

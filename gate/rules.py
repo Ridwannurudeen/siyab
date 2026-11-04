@@ -490,7 +490,8 @@ def _tier2(request, policy, store, account, account_source, rpc, nearblocks, now
             # A contract account without any access key is a locked contract, which no key can date.
             locked = not keys["keys"] and account is not None and account.get("code_hash") != EMPTY_CODE_HASH
             age_check = evidence.check("account_age", "unknown",
-                                       "locked contract: no access key and no creation record" if locked
+                                       "NearBlocks lists no access key for the account and view_account shows "
+                                       "contract code, so no creation time could be read" if locked
                                        else f"no key of {receiver} carries a creation time", _source(nearblocks))
         else:
             created_ns, creation_hash = oldest
