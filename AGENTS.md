@@ -1,6 +1,6 @@
 # ShieldBot for NEAR
 
-Who your agent pays gets a verdict with evidence. Unknown never passes. A verdict service checks an agent payment on NEAR, a guard contract pays only on a signed ALLOW, and a registry records each verdict with its evidence hash. `README.md` has the full description.
+Every label has a source. Every verdict has evidence. Unknown never passes. A verdict service judges the receiver, the token, the amount and the memo of an agent payment on NEAR, a guard contract on testnet pays only on a signed ALLOW bound to that exact transfer, and a registry on testnet records verdicts with their evidence hashes (`docs/TESTNET.md` lists them). `README.md` has the full description.
 
 ## Install
 

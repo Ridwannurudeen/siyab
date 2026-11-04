@@ -284,6 +284,11 @@ class RenderTest(unittest.TestCase):
         self.assertNotIn("torn", page)
         self.assertNotIn("No signal fired", page)
 
+    def test_the_index_headline_is_the_readme_headline(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertEqual(readme.splitlines()[0], f"# {render.HEADLINE}.")
+        self.assertIn(f"<h1>{html.escape(render.HEADLINE)}</h1>", self.pages["index.html"])
+
     def test_the_verify_page_inputs_carry_placeholders_from_committed_records(self):
         record = json.loads((ROOT / "fixtures" / "registry" / "testnet-latest-kestrelridge-shop.json")
                             .read_text(encoding="utf-8"))
