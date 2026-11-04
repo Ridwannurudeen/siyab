@@ -35,6 +35,8 @@ Every line below is written by `python scripts/counts.py --readme README.md` fro
 
 On 84 recorded mainnet receivers the rules returned 43 ALLOW, 14 DENY, 27 Unknown.
 
+By cohort: ordinary counterparties 9 (9 ALLOW, 0 DENY, 0 Unknown); organisations from registries 50 (24 ALLOW, 0 DENY, 26 Unknown); incident accounts 15 (0 ALLOW, 14 DENY, 1 Unknown); catalog tokens 10 (10 ALLOW, 0 DENY, 0 Unknown).
+
 Label store: 3266 assertions over 3009 subjects (onchain 2894, official_source 350, third_party 18, inferred 4).
 
 Incidents: 3 pages.

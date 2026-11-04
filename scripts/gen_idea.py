@@ -7,14 +7,15 @@ Usage:
 
 The text is three paragraphs: the problem in two fixed sentences; "What exists:" with the fixed sentence
 naming the parts, then the counts lines of scripts/counts.py rewritten as prose by the fixed templates of
-COUNT_PROSE (the label store and its provenance split, the receiver line, the incident count, the feed
-line, the flows line, the latency line, in that order), then the claim of every row whose idea column is
-yes, in table order; and the fixed "How NEAR fits" and offline sentences. A counts line no template
-matches stops the run with ValueError.
+COUNT_PROSE (the label store and its provenance split, the receiver line, the cohort line, the incident
+count, the feed line, the flows line, the latency lines, in that order), then the claim of every row
+whose idea column is yes, in table order; and the fixed "How NEAR fits" and offline sentences. A counts
+line no template matches stops the run with ValueError.
 
 The text must hold 20 to 2,000 characters. While it is longer, the sentences of each topic in DROP_ORDER
-are removed, one topic at a time in that order: the latency lines, the scanner, the reproducible build,
-lookalike names, the feed, the trace; the label store, receiver and incident sentences are never dropped.
+are removed, one topic at a time in that order: the protocol refusals, the latency lines, the scanner, the
+reproducible build, lookalike names, the feed, the trace; the label store, receiver, cohort and incident
+sentences are never dropped.
 A sentence belongs to a topic when it contains one of the topic's words; a claim that names the MCP server
 never belongs to the scanner topic, so the MCP sentence stays when the scanner drops. The exit code is 1
 when the text is still out of bounds, and with --check also when an idea row names a file, a function or
@@ -48,6 +49,8 @@ def _count(number, noun):
     return f"{number} {noun}" + ("" if number == "1" else "s")
 
 
+# A cohort's subject count and verdicts, as the cohort line states them.
+_TALLY = r"\d+ \(\d+ ALLOW, \d+ DENY, \d+ Unknown\)"
 # One template per counts line format, in the order the prose states them.
 COUNT_PROSE = (
     (re.compile(r"Label store: (?P<a>\d+) assertions over (?P<s>\d+) subjects \(onchain (?P<o>\d+), "
@@ -58,6 +61,9 @@ COUNT_PROSE = (
                 r"(?P<u>\d+) Unknown\."),
      lambda m: (f"On {_count(m['n'], 'recorded mainnet receiver')} the rules return {m['a']} ALLOW, {m['d']} DENY, "
                 f"{m['u']} Unknown.")),
+    (re.compile(rf"By cohort: (?P<c>ordinary counterparties {_TALLY}); (?P<o>organisations from registries {_TALLY}); "
+                rf"(?P<i>incident accounts {_TALLY}); (?P<t>catalog tokens {_TALLY})\."),
+     lambda m: f"By cohort: {m['c']}; {m['o']}; {m['i']}; {m['t']}."),
     (re.compile(r"Incidents: (?P<n>\d+) pages\."),
      lambda m: f"Incident pages: {m['n']}."),
     (re.compile(r"Feed: since (?P<d>[0-9-]+), (?P<b>\d+) blocks, (?P<c>\d+) events \(.*\)\."),
@@ -73,8 +79,15 @@ COUNT_PROSE = (
      lambda m: f"Verdict latency: p50 {m['p50']} ms, p95 {m['p95']} ms over {_count(m['r'], 'recorded run')}."),
     (re.compile(r"Latency: not measured\."),
      lambda m: "Verdict latency is not measured."),
+    (re.compile(r"Latency, payee off the allowlist: p50 (?P<p50>\d+) ms, p95 (?P<p95>\d+) ms over (?P<r>\d+) verdict "
+                r"runs\."),
+     lambda m: (f"Verdict latency for a payee off the allowlist: p50 {m['p50']} ms, p95 {m['p95']} ms over "
+                f"{_count(m['r'], 'recorded run')}.")),
+    (re.compile(r"Latency, payee off the allowlist: not measured\."),
+     lambda m: "Verdict latency for a payee off the allowlist is not measured."),
 )
 DROP_ORDER = (
+    ("the protocol refusals", ("refused by the protocol",)),
     ("the latency lines", ("latency",)),
     ("the scanner", ("scanner", "python -m gate scan")),
     ("the reproducible build", ("reproducible",)),
