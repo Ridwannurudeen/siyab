@@ -13,11 +13,13 @@ python -m intel feed --follow [--from <height>] [--max-blocks <n>] reads the fin
 /v0/last_block/final and walks every height from the state's last height + 1 (with no state:
 --from, else the final height) to it in order, never skipping one; once caught up it sleeps 1 s
 and reads the final height again. It stops on SIGINT or after --max-blocks heights, a skipped
-height included. It has no request budget: it leaves FOLLOW_INTERVAL_S (0.4 s) between one request
-and the next, so at most 150 a minute, and backs off 10 s on a 429 as above. When
+height included. It has no request budget and backs off 10 s on a 429 as above. When
 FASTNEAR_API_KEY_FILE names a usable key, its neardata requests (the final height and the blocks)
 carry that key as an Authorization Bearer header, read once at start and kept in memory; without
-one they are keyless, and record mode never sends it. No reduced block is
+one they are keyless, and record mode never sends it. Between one neardata request and the next
+it leaves FOLLOW_INTERVAL_KEYED_S (0.1 s, so at most 600 a minute) when keyed and FOLLOW_INTERVAL_S
+(0.4 s, so at most 150 a minute) when keyless, since neardata does not throttle keyed requests from
+the shared host the follower runs on and does throttle keyless ones from it. No reduced block is
 written per height: a block that raised an event is written as
 <state dir>/event-blocks/<height>.json, the block_fixture its events' source names. A finalized
 height neardata answers with null or a 404 holds no block, as in record mode: the follower adds
@@ -118,6 +120,7 @@ MAX_TRANSFER_PAGES = 20
 MAX_REQUESTS = 600
 BACKOFF_S = 10
 FOLLOW_INTERVAL_S = 0.4
+FOLLOW_INTERVAL_KEYED_S = 0.1
 _TIME = "%Y-%m-%dT%H:%M:%SZ"
 
 
@@ -449,6 +452,7 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
             disabled_reason = "the file FASTNEAR_API_KEY_FILE names is empty"
         else:
             headers, disabled_reason = {"Authorization": f"Bearer {api_key}"}, None
+    interval_s = FOLLOW_INTERVAL_KEYED_S if headers else FOLLOW_INTERVAL_S
     fetcher = fetcher or Fetcher(rpc.Client(NEARDATA_URL, "off", kind="http", headers=headers), max_requests=None)
     state_dir = Path(os.environ.get("FEED_STATE_DIR", FEED_DIR))
     state_path = Path(state_path) if state_path is not None else state_dir / "state.json"
@@ -475,7 +479,7 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
     last_request = None
     while not stopped() and (max_blocks is None or walked < max_blocks):
         if last_request is not None:
-            sleep(max(0, FOLLOW_INTERVAL_S - (clock() - last_request)))
+            sleep(max(0, interval_s - (clock() - last_request)))
         request_day = datetime.fromtimestamp(clock(), UTC).strftime("%Y-%m-%d")
         if state["request_day"] != request_day:
             state["request_day"], state["requests"], state["transfer_requests"] = request_day, 0, 0
@@ -496,7 +500,7 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
             continue
         while next_height <= final_height and not stopped() and (max_blocks is None or walked < max_blocks):
             if last_request is not None:
-                sleep(max(0, FOLLOW_INTERVAL_S - (clock() - last_request)))
+                sleep(max(0, interval_s - (clock() - last_request)))
             request_day = datetime.fromtimestamp(clock(), UTC).strftime("%Y-%m-%d")
             if state["request_day"] != request_day:
                 state["request_day"], state["requests"], state["transfer_requests"] = request_day, 0, 0
