@@ -761,6 +761,57 @@ class FollowModeTest(unittest.TestCase):
         self.assertIn(feed.BACKOFF_S, fake.sleeps)
         self.assertIn(feed.FOLLOW_INTERVAL_S, fake.sleeps)
 
+    def paced_log(self, end, keyed):
+        """The neardata gets, Transfers posts and sleeps of a follow over heights 1 to end, in order, with
+        an injected clock that each sleep moves on; keyed follows over a temp key file and a Transfers stub."""
+        now, log = [T0], []
+
+        class Logged(FakeFetcher):
+            def get(self, path):
+                log.append("get")
+                return super().get(path)
+
+        def sleep(seconds):
+            log.append(seconds)
+            now[0] += seconds
+
+        fake = Logged(self.blocks(end), end)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            if keyed:
+                transfers = TransfersStub()
+                post = transfers.post
+
+                def logged(path, body):
+                    log.append("post")
+                    return post(path, body)
+
+                transfers.post = logged
+                state, walked = self.follow_transfers(root, fake, lambda: now[0], transfers, max_blocks=end,
+                                                      sleep=sleep)
+            else:
+                state, walked = feed.follow(start=1, fetcher=fake.inner, state_path=root / "state.json",
+                                            events_dir=root / "events", event_blocks_dir=root / "event-blocks",
+                                            max_blocks=end, sleep=sleep, clock=lambda: now[0])
+        self.assertEqual((walked, state["last_height"]), (end, end))
+        self.assertEqual(fake.sleeps, [])
+        return log
+
+    def test_a_keyed_follower_paces_neardata_at_a_tenth_of_a_second(self):
+        log = self.paced_log(3, keyed=True)
+        self.assertEqual(log[log.index("get"):], ["get", 0.1, "get", 0.1, "get", 0.1, "get"])
+
+    def test_a_keyless_follower_paces_neardata_at_four_tenths_of_a_second(self):
+        log = self.paced_log(3, keyed=False)
+        self.assertEqual(log, ["get", 0.4, "get", 0.4, "get", 0.4, "get"])
+        self.assertNotIn(feed.FOLLOW_INTERVAL_KEYED_S, log)
+
+    def test_a_keyed_follower_keeps_the_transfers_poll_four_tenths_of_a_second_apart(self):
+        log = self.paced_log(1, keyed=True)
+        count = len(self.subjects)
+        self.assertGreater(count, 1)
+        self.assertEqual(log, ["post", 0.4] * (count - 1) + ["post", "get", 0.1, "get"])
+
     def test_a_restart_resumes_after_the_last_height(self):
         heights = self.blocks(4)
         fake = FakeFetcher(heights, 4)
