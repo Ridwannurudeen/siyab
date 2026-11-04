@@ -285,7 +285,8 @@ class RenderTest(unittest.TestCase):
         self.assertNotIn("No signal fired", page)
 
     def test_the_verify_page_inputs_carry_placeholders_from_committed_records(self):
-        record = json.loads((ROOT / "fixtures" / "registry" / "testnet-vendor.json").read_text(encoding="utf-8"))
+        record = json.loads((ROOT / "fixtures" / "registry" / "testnet-latest-kestrelridge-shop.json")
+                            .read_text(encoding="utf-8"))
         evidence_path = ROOT / "fixtures" / "evidence" / f"{record['evidence_hash']}.json"
         self.assertEqual(hashlib.sha256(evidence_path.read_bytes()).hexdigest(), record["evidence_hash"])
         evidence = json.loads(evidence_path.read_bytes())
@@ -296,6 +297,7 @@ class RenderTest(unittest.TestCase):
                                 ("hash", record["evidence_hash"])):
             with self.subTest(input=input_id):
                 self.assertIn(f'<input id="{input_id}" autocomplete="off" placeholder="{html.escape(value)}">', page)
+        self.assertIn("<code>fixtures/registry/testnet-latest-kestrelridge-shop.json</code>", page)
 
     def test_the_incident_page_shows_every_part(self):
         document = json.loads((ROOT / "intel" / "incidents" / "rhea.json").read_text(encoding="utf-8"))
