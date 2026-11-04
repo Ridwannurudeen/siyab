@@ -16,7 +16,7 @@ URL_PLACEHOLDER = "<repo URL>"
 # The link weight and the length limit of the platform, both UNVERIFIED (docs/DEMO.md says so).
 URL_WEIGHT = 23
 LIMIT = 280
-PITCH = "Security intelligence for NEAR, with evidence that can be checked on chain."
+PITCH = "security intelligence, the way the best EVM products do it, with the evidence on chain"
 POST = re.compile(r"<!-- post:start -->\n```\n(.*?)\n```\n<!-- post:end -->", re.DOTALL)
 
 
@@ -80,7 +80,7 @@ class PitchSentenceTest(unittest.TestCase):
     def test_the_pitch_sentence_appears_once_in_the_narration_and_nowhere_else(self):
         document = DEMO_DOC.read_text(encoding="utf-8")
         self.assertEqual(document.count(PITCH), 1)
-        self.assertIn(f"The pitch sentence is: \"{PITCH}\"", document)
+        self.assertIn(f"Narration, the one sentence of pitch voice: \"{PITCH}\"", document)
         for name in ("README.md", "AGENTS.md"):
             with self.subTest(file=name):
                 self.assertNotIn(PITCH, (ROOT / name).read_text(encoding="utf-8"))

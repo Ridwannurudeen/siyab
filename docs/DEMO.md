@@ -104,7 +104,7 @@ Show one MCP tool call using the setup in `mcp/README.md`, then run the offline 
 python scripts/smoke.py
 ```
 
-The first line is `1. python -m gate demo --offline: PASS (ALLOW, DENY, UNKNOWN, DENY)` and the final line is `9 of 9 PASS`. Show the repository URL, the hosted page path `/`, "built at NEAR HACKATHON", and the AI Security & Defense track. The pitch sentence is: "Security intelligence for NEAR, with evidence that can be checked on chain."
+The first line is `1. python -m gate demo --offline: PASS (ALLOW, DENY, UNKNOWN, DENY)` and the final line is `9 of 9 PASS`. Show the repository URL, the hosted page path `/`, "built at NEAR HACKATHON", and the AI Security & Defense track. Narration, the one sentence of pitch voice: "security intelligence, the way the best EVM products do it, with the evidence on chain".
 
 ## Recording order
 
