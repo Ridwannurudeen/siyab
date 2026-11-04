@@ -186,6 +186,21 @@ class ReceiverSetTest(unittest.TestCase):
                    f"ALLOW, {verdicts.count('DENY')} DENY, {verdicts.count('UNKNOWN')} Unknown.")
         self.assertEqual(load_counts().receivers_line(), recount)
 
+    def test_every_unknown_organisation_judgement_carries_the_locked_contract_detail(self):
+        expected = ("NearBlocks lists no access key for the account and view_account shows contract code, "
+                    "so no creation time could be read")
+        organisation = [entry for entry in self.document["subjects"] if entry["cohort"] == "organisation"]
+        unknown = []
+        for entry in organisation:
+            judgement = json.loads((JUDGEMENTS / f"{entry['subject']}.json").read_text(encoding="utf-8"))
+            if judgement["verdict"] == "UNKNOWN":
+                unknown.append(entry["subject"])
+                age = next(check for check in judgement["checks"] if check["id"] == "account_age")
+                with self.subTest(subject=entry["subject"]):
+                    self.assertEqual(age["status"], "unknown")
+                    self.assertEqual(age["detail"], expected)
+        self.assertEqual(len(unknown), 26)
+
     def test_a_receiver_without_a_recorded_keys_answer_reads_unknown_on_age(self):
         for entry in self.document["subjects"]:
             receiver = entry["request"]["receiver_id"]

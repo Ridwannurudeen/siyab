@@ -131,8 +131,7 @@ class ApiTest(unittest.TestCase):
 
     def test_feed_is_empty_without_the_feed_files(self):
         with tempfile.TemporaryDirectory() as tmp, \
-                mock.patch.object(api, "FEED_STATE", Path(tmp) / "state.json"), \
-                mock.patch.object(api, "FEED_EVENTS", Path(tmp) / "events"):
+                mock.patch.object(api, "FEED_STATE", Path(tmp) / "state.json"):
             self.assertEqual(self.get_json("/feed"), (200, {"stats": None, "events": []}))
 
     def test_feed_returns_the_state_and_the_last_50_events_in_block_order(self):
@@ -143,8 +142,7 @@ class ApiTest(unittest.TestCase):
             for number in range(60):
                 document = {"observed": {"block_height": 1000 - number}, "n": number}
                 (events / f"{number:064x}.json").write_text(json.dumps(document), encoding="utf-8")
-            with mock.patch.object(api, "FEED_STATE", Path(tmp) / "state.json"), \
-                    mock.patch.object(api, "FEED_EVENTS", events):
+            with mock.patch.object(api, "FEED_STATE", Path(tmp) / "state.json"):
                 status, body = self.get_json("/feed")
         self.assertEqual(status, 200)
         self.assertEqual(body["stats"], {"blocks": 300})

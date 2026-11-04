@@ -6,13 +6,15 @@ The invoice 2 payment sent 10 DMT to `kestrelridge-shop.testnet` on 1 November. 
 
 The Gate emitted `EVENT_JSON` `transfer_scheduled` with request id 3, verdict id `1b29052381ecf3fc1937b36db2539678` and evidence hash `7e77187d...c88bb2cc`. The token receipt emitted `EVENT_JSON` `ft_transfer` from `kestrelridge-main.testnet` to `kestrelridge-shop.testnet`, amount `10000000`, memo `invoice 2`. The transaction also contains `transfer_completed`.
 
+The first payment, invoice 1, is transaction `9XVcMjuS...ekVsyK`; it has no stored evidence document.
+
 ## Verdict latency
 
 The committed latency fixture `fixtures/latency/verdict-runs.json` contains 20 runs for the allowlisted vendor `kestrelridge-shop.testnet`. All 20 returned ALLOW. These runs used tier 1 checks only. Tier 2 is skipped for an allowlisted receiver by design in `gate/rules.py`. The recorded p50 is 1843 ms and p95 is 2300 ms. The aged payee runs of 1 November are not committed because they measured a superseded code path. The counts block reads this file for its latency line; its second latency line, for a payee off the allowlist, reads `fixtures/latency/verdict-runs-tier2.json` and is printed only while that file exists.
 
-The receiver lines of the counts block are a replay of the recorded mainnet receiver set, not testnet evidence: the second splits the verdicts by cohort with `cohort_line` in `intel/__main__.py`, the function `python -m intel receivers` prints. Every Unknown of the organisation cohort carries the `account_age` detail "NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read" (`fixtures/receivers/judgements/`).
+## Receiver cohorts
 
-The first payment, invoice 1, is transaction `9XVcMjuS...ekVsyK`; it has no stored evidence document.
+The receiver lines of the counts block are a replay of the recorded mainnet receiver set, not testnet evidence: the second splits the verdicts by cohort with `cohort_line` in `intel/__main__.py`, the function `python -m intel receivers` prints. Every Unknown of the organisation cohort carries the `account_age` detail "NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read" (`fixtures/receivers/judgements/`).
 
 ## Refused receipt
 
@@ -43,7 +45,7 @@ The EVM leg is a preflight before signing; no transaction was sent on any chain.
 - 1Click supplies the recorded dry quote. No deposit was made.
 - FastNEAR supplies the read-only transaction and transfer data used by the collector.
 - `mainnet.neardata.xyz` supplies read-only NEAR data.
-- The feed follower reads finalized heights sequentially from `mainnet.neardata.xyz`, paces requests with a 0.4 second minimum interval, sends the FastNEAR key from `FASTNEAR_API_KEY_FILE` as a Bearer header when that file holds one (keyless otherwise), and stores state and event blocks under `FEED_STATE_DIR`. A follower event's `block_fixture` names a file under `<state dir>/event-blocks/`, or a key of a feed snapshot's `event_blocks`. A feed snapshot, when recorded, holds the state without its fresh accounts, the event documents and the blocks that raised them.
+- The feed follower reads finalized heights sequentially from `mainnet.neardata.xyz`, paces keyed requests with a 0.1 second minimum interval and keyless requests with a 0.4 second minimum interval, sends the FastNEAR key from `FASTNEAR_API_KEY_FILE` as a Bearer header when that file holds one (keyless otherwise), and stores state and event blocks under `FEED_STATE_DIR`. A follower event's `block_fixture` names a file under `<state dir>/event-blocks/`, or a key of a feed snapshot's `event_blocks`. A feed snapshot, when recorded, holds the state without its fresh accounts, the event documents and the blocks that raised them.
 - The feed follower asks the FastNEAR Transfers API every 600 seconds, or at the Retry-After time (60 seconds without one, 600 at most) after a 429, with 0.4 seconds between requests, for outgoing transfers from current incident and denylist accounts, with a minimum USD amount filter and system transfers omitted. The API reports an outbound transfer with a negative USD amount; the follower keeps a row when that amount is at least 1000 USD in magnitude, publishes the magnitude with the direction "outbound", and counts the rows it cannot read, such as one without a USD amount, in the state. Each window starts where the last complete one ended, so no transfer is in two windows; it reads up to 20 pages per account and window, and the follower state records a window that reached that cap and the time, status and type of the last failed poll. It reads the Bearer value from `FASTNEAR_API_KEY_FILE` at startup, keeps it in memory, and writes neither the header nor the key to fixtures or to the state. The transfer signal is disabled, with the reason in the state, when that variable is unset or names a file that cannot be read or is empty.
 - The block stream reports successful contract deployments on current catalog token, infrastructure, bridge, treasury, organisation and watch accounts, including the deployed code hash.
 

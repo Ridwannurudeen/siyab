@@ -42,7 +42,6 @@ from intel import issuers, labels, render, trace
 ROOT = Path(__file__).resolve().parent.parent
 EVIDENCE_DIRS = (ROOT / "fixtures" / "evidence", ROOT / "intel" / "feed" / "events")
 FEED_STATE = ROOT / "intel" / "feed" / "state.json"
-FEED_EVENTS = ROOT / "intel" / "feed" / "events"
 SEARCH_INDEX = ROOT / "demo" / "site" / "search.json"
 FLOWS_DIR = ROOT / "intel" / "flows"
 CLUSTERS_DIR = ROOT / "intel" / "clusters"
