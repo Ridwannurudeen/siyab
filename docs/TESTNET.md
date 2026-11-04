@@ -69,4 +69,4 @@ The `latest` views after the run are in `fixtures/registry/testnet-latest-<subje
 
 ## Latency
 
-Live verdicts on 1 Nov: 20 for the vendor (allowlisted, all ALLOW), p50 1843 ms, p95 2300 ms; 10 for the aged payee on the superseded archival account read with the step down (all DENY), p50 6639 ms, p95 15486 ms; the extra time is the NearBlocks calls and the archival reads. The account age now comes from the oldest access key nonce (one key list read and one archival block read); its latency is not measured yet. Before the step down, 9 of 20 aged payee runs read Unknown (see `docs/SPIKES.md` S8).
+The allowlisted vendor's tier 1 latency is measured over 20 runs: all returned ALLOW, with p50 1843 ms and p95 2300 ms. The tier 2 latency of the aged payee, which is off the allowlist, is not measured yet; its runs wait until the payee is 7 days old, after 5 Nov 18:20 UTC. The earlier aged payee runs measured a superseded code path; before the step down, 9 of 20 read Unknown (see `docs/SPIKES.md` S8).
