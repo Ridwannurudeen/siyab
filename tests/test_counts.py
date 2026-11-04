@@ -76,9 +76,13 @@ class CountsTest(unittest.TestCase):
         self.assertEqual(self.counts.incidents_line(), f"Incidents: {pages} pages.")
 
     def test_the_feed_and_flows_lines_equal_a_recount(self):
-        state = json.loads((ROOT / "intel" / "feed" / "state.json").read_text(encoding="utf-8"))
+        snapshot = ROOT / "intel" / "feed" / "follow-snapshot.json"
+        state = json.loads((snapshot if snapshot.is_file() else ROOT / "intel" / "feed" / "state.json")
+                           .read_text(encoding="utf-8"))
         signals = ", ".join(f"{count} {name}" for name, count in state["events"].items())
-        self.assertEqual(self.counts.feed_line(), f"Feed: since {state['start_time'][:10]}, {state['blocks']} blocks, "
+        since = (f"following since {state['started_at'][:10]}" if state.get("mode") == "follow"
+                 else f"since {state['start_time'][:10]}")
+        self.assertEqual(self.counts.feed_line(), f"Feed: {since}, {state['blocks']} blocks, "
                                                   f"{sum(state['events'].values())} events ({signals}).")
         traces = [json.loads(p.read_text(encoding="utf-8")) for p in (ROOT / "intel" / "flows").glob("*.json")]
         self.assertTrue(traces)

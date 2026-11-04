@@ -94,7 +94,7 @@ Open these hosted paths in order:
 2. `/flows/rhea-collector.html`, showing the committed flow summary, shares, and balance at a block.
 3. `/clusters/rhea.html`, showing each edge with its heuristic and the precision lines.
 4. `/issuers.html`, showing the issuer reads and action history.
-5. `/feed.html`, showing the last recorded block, events, and the five signal names. The committed feed snapshot ends at 29 Oct, so present it as a recorded snapshot, not as a current follower view.
+5. `/feed.html` on the hosted copy, showing the follower's state (following since 3 Nov), its events and the five signal names. The committed site's feed page shows the recorded 29 Oct window instead, so say which one is on screen.
 6. `/accounts/000001.sputnik-dao.near.html`, an account page in the committed site.
 7. `/`, using its search box over the committed search index at `/search.json`.
 
@@ -122,7 +122,7 @@ The local feed summary is available with:
 python -m intel feed-stats
 ```
 
-Its first line is `start 2026-10-29T14:51:35Z at block 222138899`. The feed page is a committed snapshot; it does not show a live host follower.
+Its first line is `start 2026-10-29T14:51:35Z at block 222138899`. The committed site's feed page shows that recorded window; the hosted copy's page shows the follower.
 
 Caption: "The registry is a public record. The evidence can be checked offline."
 
