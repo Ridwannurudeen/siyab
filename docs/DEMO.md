@@ -1,101 +1,126 @@
 # Demo video and post
 
-The video runs 140 s, 16:9 at 1080p, with captions burned in and the narration spoken. Each terminal run is full screen with the explorer tab behind it. The commands below run from the repository root; the testnet ones need `GATE_ACCOUNT_ID=kestrelridge-main.testnet`, `AGENT_KEY_FILE` and `VERIFIER_KEY_FILE` set (`env.example`), and the accounts are those of `docs/TESTNET.md`. A command that prints a transaction prints its `explorer:` line; that URL is the explorer tab for the shot. Narration states facts only; the one sentence of pitch voice is marked in shot 7 and appears nowhere else in the repository.
+The video runs 140 seconds at 1080p, with captions and narration. The hosted pages are opened by path only. The EVM leg is a dry quote and a DENIED preflight. Nothing is signed or deposited there.
 
-## The opening line
+## Shot list
 
-The opening frame is the line the rules print for the lookalike, from `python -m gate demo --offline` (testnet responses recorded on 1 and 2 Nov, replayed):
+### 1. 0 to 5 seconds: the refusal
+
+Run from the repository root:
+
+```console
+python -m gate demo --offline
+```
+
+The command starts with `ShieldBot for NEAR offline demo v1: testnet responses recorded on 1 and 2 Nov 2026, replayed from`. Show the recorded lookalike result:
 
 ```
 DENIED. kestrelridge-sh0p.testnet is a lookalike of kestrelridge-shop.testnet. Created less than 7 d ago. Not on the owner's allowlist. Not registered on the token.
 ```
 
-Account age stayed in the rules (`docs/SPIKES.md` S8): NearBlocks testnet has indexed nothing since 27 Sep, so the age comes from the oldest access key nonce and the creation deposit is not read. The opening line therefore names no deposit. A live run on the recording day dates `kestrelridge-sh0p.testnet` at more than 7 days, so the opening frame uses the recorded replay, captioned as such.
+Caption: "ShieldBot for NEAR: security intelligence for agent money, enforced on chain." Add "recorded replay" under the opening line.
 
-## Shots
+### 2. 5 to 15 seconds: the agent key
 
-### 1. 0 to 5 s: the refusal
+Show the recorded account scan and the key scoped to `request_transfer`. The scan command is replayed from local fixtures:
 
-- Command: `python -m gate demo --offline`, the lookalike's section in frame.
-- Expected first line: `ShieldBot for NEAR offline demo v1: testnet responses recorded on 1 and 2 Nov 2026, replayed from`
-- On screen: the DENIED line above, with the headline burned in under it.
-- Caption: "ShieldBot for NEAR: security intelligence for agent money, enforced on chain." and, small, "replay of the 1 and 2 Nov testnet recording".
-- Narration: "This agent holds no key that can move money. The guard refused its payment."
-- Explorer: the refused receipt `REFUSED:no_verdict`, https://testnet.nearblocks.io/txns/6kfxEFCR2uuoiM6cpj8CmGAfmRjKTYNtFq4igkv48qK7
+```console
+python -m gate scan kestrelridge-main.testnet
+```
 
-### 2. 5 to 20 s: the problem and the agent key
+Its first line is `account: kestrelridge-main.testnet on https://test.rpc.fastnear.com, read at block 275865306`. The output reports two access keys, one full access key, and one function call key scoped to `request_transfer`.
 
-- Command: `near account list-keys kestrelridge-main.testnet network-config testnet now`
-- Expected first line: not recorded in the repository. The same keys as `python -m gate scan kestrelridge-main.testnet` reads them: `access keys: 2`, `full access keys: 1`, `agent keys: 1 scoped to kestrelridge-main.testnet, 0 with method_names other than exactly ["request_transfer"]`.
-- Caption: "The agent's only key: a function call key scoped to request_transfer."
-- Narration: "On NEAR a function call key cannot attach the 1 yoctoNEAR a token transfer needs, so agents are handed full keys; here the funds sit in the guard, and the agent can only ask it to pay."
-- Explorer: none; the keys are read over RPC as the command prints them.
+Caption: "The agent can request a payment. The guard holds the funds."
 
-### 3. 20 to 35 s: the allowed payment
+### 3. 15 to 30 seconds: the payment record
 
-- Command: `python -m gate pay --kind ft --token token.kestrelridge-main.testnet --receiver kestrelridge-shop.testnet --amount 10000000 --memo "invoice 3" --out <dir>`
-- Expected first line: `pass    receiver_exists: kestrelridge-shop.testnet exists`
-- On screen: the checks (receiver exists, no label, token in the catalog, metadata, storage registered, memo clean), `verdict: ALLOW`, the evidence hash, the latency in ms, then the transaction.
-- Caption: "ALLOW: every check ran and none found a signal. Signed for this exact transfer." and, next to the latency, "allowlisted payee, tier 1 checks".
-- Narration: "The service checks the receiver, the token, the amount and the memo, signs an ALLOW bound to this exact transfer, and the guard pays."
-- Explorer: the transaction the command prints, with the `EVENT_JSON` log carrying the verdict id and the evidence hash, the `ft_transfer` receipt and the vendor's balance. The recorded payment of this shape is invoice 2, https://testnet.nearblocks.io/txns/7agsRsZgeRm2vhK1LXug2qRQ2qudbAMjsLncuxGpvdwn
+Show the ALLOW and its registry record from the hosted verification page. This offline fixture command verifies a committed sample record:
 
-### 4. 35 to 50 s: the attacks
+```console
+python -m gate verify fixtures/registry/sample-allow.json fixtures/registry/sample-allow-evidence.json
+```
 
-- On screen first: a staged vendor reply that tells the agent to pay `kestrelridge-sh0p.testnet`, captioned "staged vendor reply".
-- Command: `python -m gate attack no-verdict --kind ft --token token.kestrelridge-main.testnet --receiver kestrelridge-sh0p.testnet --amount 10000000 --memo "attack no-verdict" --out <dir>`
-- Expected first line: `attack no-verdict: a simulation the Gate or the protocol must refuse`
-- Caption: "DENY from the service. Submitted anyway: refused by the guard."
-- Explorer: https://testnet.nearblocks.io/txns/6kfxEFCR2uuoiM6cpj8CmGAfmRjKTYNtFq4igkv48qK7
-- Replay cut: `python -m gate attack replay ...`, expected first line `attack replay: a simulation the Gate or the protocol must refuse`; the second submission fails `REFUSED:verdict_used` (recorded: https://testnet.nearblocks.io/txns/2FFnYUrXYLLgAHA2vsNud2mawU1xttkCQaNXg2yZG6Pn). A one second caption: "A day old ALLOW: `REFUSED:expired`" (recorded: https://testnet.nearblocks.io/txns/5KG3sPSqdvUP6y6a5iR1APzcHxb8pSsVxKiffWbNvQ7H).
-- Unknown payee: `python -m gate attack unknown-payee --kind ft --token token.kestrelridge-main.testnet --receiver examples.testnet --amount 2000000 --memo "attack unknown-payee" --out <dir>`, expected first line `attack unknown-payee: a simulation the Gate or the protocol must refuse`; `examples.testnet` is an aged account not on the allowlist, the service answers ALLOW and the guard refuses the 2 DMT, above the 1 DMT unknown payee cap, with `REFUSED:unknown_payee_cap` (recorded 2 Nov: https://testnet.nearblocks.io/txns/H6WqJYSbwBPECSVqADRHAGA1qV1a2ictujUiBqaLe416). `examples.testnet` is not a team account and is never paid, so the allowlist change on camera allows the team's own payee instead: the owner runs `bash scripts/set_allowlist.sh <agent pub> kestrelridge-shop.testnet,lindenvale.testnet`, and `python -m gate pay` with the same token, amount 2000000 and receiver `lindenvale.testnet` is expected to go through (not yet recorded; no transaction in the repository); a caption names `lindenvale.testnet` as the allowlisted account.
-- Narration: "A clean looking account is not enough. Payees the owner has not approved are capped."
+The output ends with `verified`. Beside it, open `/verify.html` and show the registry record for the recorded payment. Caption: "ALLOW: every check ran and none found a signal."
 
-### 5. 50 to 85 s: beat 2, the money leaves NEAR
+### 4. 30 to 45 seconds: the attacks
 
-- Command: `python -m gate intents --origin nep141:wrap.near --destination nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near --amount 1000000000000000000000000 --recipient 0x1fcdb04d0c5364fbd92c73ca8af9baa72c269107`
-- Expected first line: `dry quote: 1000000000000000000000000 of nep141:wrap.near to nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near, recipient 0x1fcdb04d0c5364fbd92c73ca8af9baa72c269107, amountOut 4398699` (the recorded quote; with `--live` the quote is new and its amountOut differs).
-- On screen: the dry quote (recipient, Base, amount), `verdict: DENY (unsigned preflight)`, the reason naming the GoPlus labels `stealing_attack` with data_source "SlowMist,BlockSec" and the fetch time, then `Nothing was signed, nothing was deposited.`
-- Caption: "The verdict follows the money off NEAR."
-- Narration: "The same agent is told to send NEAR to a supplier on Base. The dry quote shows the recipient before anything is signed; the recipient carries a theft label, so nothing is signed and nothing is deposited."
-- Then: `python -m gate incident rhea`, expected first line `Rhea Lend margin trading route exploit (2026-04-16)`: the accounts, the sources and the on chain re-read. Then the exit trace page `demo/site/flows/rhea-collector.html`, one hop per card.
-- Explorer: none; the preflight sends no transaction on any chain.
+Show the no-verdict refusal, replay refusal, and unknown payee cap from recorded outcomes. Show the 11 Nov recording of the allowlist change and payment to `lindenvale.testnet`.
 
-### 6. 85 to 110 s: the record
+Caption: "A clean looking account is not enough. Payees the owner has not approved are capped."
 
-- Command: `python -m gate scan kestrelridge-main.testnet`
-- Expected first line: `account: kestrelridge-main.testnet on https://test.rpc.fastnear.com, read at block <height>`; on screen the on chain verifier key next to the TEST key, labelled different.
-- Command: `python -m gate verify fixtures/registry/testnet-vendor.json fixtures/evidence/7e77187d*.json`, expected first line `record shape: view`, last line `verified`, next to the registry record on the explorer.
-- Command: `sha256sum res/gate.wasm` next to the testnet `code_hash`; its output lands with the wasm build under `res/`.
-- Caption: "The registry is the public record. Anyone can verify it without a key."
-- Narration: "Every verdict is recorded on chain with its evidence hash, and the evidence file checks against it offline."
-- Explorer: the registry `record_batch`, https://testnet.nearblocks.io/txns/CW5TWeRyvLngggXiBY5Y7xSZTD3BPWerFtsXczJdPRhW
+### 5. 45 to 95 seconds: the intelligence pages
 
-### 7. 110 to 140 s: integrate and close
+Show the local replay of the dry quote and denied preflight:
 
-- On screen: one MCP tool call from an MCP client connected as `mcp/README.md` describes, and its reply; then `<repo URL>`, "built at NEAR HACKATHON" and the track, AI Security & Defense.
-- Expected first line of the reply: the tool's JSON text, starting `{"outcome": ` for `check_near_payment`.
-- Caption: "Who your agent pays gets a verdict with evidence. Unknown never passes."
-- Narration, the one sentence of pitch voice: "security intelligence, the way the best EVM products do it, with the evidence on chain".
-- Explorer: none for the call itself. Recorded on 2 Nov: with `GATE_LIVE_SIGNING=1` and the live conditions of `mcp/README.md` set, `check_near_payment` signed an ALLOW for invoice 4 that `python -m gate pay --verdict-file` paid, https://testnet.nearblocks.io/txns/AADLzYbqhEm6D83osYfQQ5SMED86chiS77XGsA8d7rTJ
+```console
+python -m gate intents --origin nep141:wrap.near --destination nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near --amount 1000000000000000000000000 --recipient 0x1fcdb04d0c5364fbd92c73ca8af9baa72c269107
+```
+
+The output begins `dry quote: 1000000000000000000000000 of nep141:wrap.near` and includes `verdict: DENY (unsigned preflight)` followed by `Nothing was signed, nothing was deposited.` Caption the cross-chain step "dry quote and denied preflight".
+
+Open these hosted paths in order:
+
+1. `/incidents/rhea.html`, showing the `issuer_blacklist` row.
+2. `/flows/rhea-collector.html`, showing the committed flow summary, shares, and balance at a block.
+3. `/clusters/rhea.html`, showing each edge with its heuristic and the precision lines.
+4. `/issuers.html`, showing the issuer reads and action history.
+5. `/feed.html`, showing the last recorded block, lag, events, and the five signal names. The committed feed snapshot ends at 29 Oct, so present it as a recorded snapshot, not as a current follower view.
+6. `/accounts/000001.sputnik-dao.near.html`, an account page in the committed site.
+7. `/`, using its search box over the committed search index at `/search.json`.
+
+Also show the offline incident output. Its first line is `Rhea Lend margin trading route exploit (2026-04-16)`:
+
+```console
+python -m gate incident rhea
+```
+
+Caption: "Every row names its source. Every edge names its heuristic."
+
+### 6. 95 to 120 seconds: the checks
+
+Show the recorded scan, the sample record verification from shot 3, the wasm code hash beside the testnet registry value, and `total_labels` on the registry. Print the local wasm hash with:
+
+```console
+python -m gate codehash res/gate.wasm
+```
+
+The output begins `sha256: f7a0...a107` and then prints the base58 `code_hash`.
+
+The local feed summary is available with:
+
+```console
+python -m intel feed-stats
+```
+
+Its first line is `start 2026-10-29T14:51:35Z at block 222138899`. The feed page is a committed snapshot; it does not show a live host follower.
+
+Caption: "The registry is a public record. The evidence can be checked offline."
+
+### 7. 120 to 140 seconds: connect and close
+
+Show one MCP tool call using the setup in `mcp/README.md`, then run the offline smoke command:
+
+```console
+python scripts/smoke.py
+```
+
+The first line is `1. python -m gate demo --offline: PASS (ALLOW, DENY, UNKNOWN, DENY)` and the final line is `9 of 9 PASS`. Show the repository URL, the hosted page path `/`, "built at NEAR HACKATHON", and the AI Security & Defense track. The pitch sentence is: "Security intelligence for NEAR, with evidence that can be checked on chain."
 
 ## Recording order
 
-1. At least three hours before recording: `bash scripts/make_attack_receiver.sh <a second lookalike name>`.
-2. Beat 1: the staged vendor reply, the DENIED line, `attack no-verdict`, the failed receipt; `pay` to the vendor with the ALLOW, the event and the receipt; the replay cut; the unknown payee refusal on `examples.testnet`, then the owner runs `scripts/set_allowlist.sh` on camera to allow `lindenvale.testnet` and a 2 DMT payment to it is expected to go through (not yet recorded; no transaction in the repository).
-3. Beat 2: `python -m gate intents ...` with the dry quote on screen and the DENIED line; `python -m gate incident rhea`; the flow page.
-4. The close: `scan`, the registry record next to `verify`, `sha256sum res/gate.wasm` next to the testnet `code_hash`, the MCP call, the repository URL.
-
-The raw footage stays outside the repository.
+1. Start with the recorded refusal and account scan.
+2. Show the payment record and the recorded attack outcomes.
+3. Show the dry quote and denied preflight, then the hosted incident, flow, cluster, issuer, feed, account, and search views.
+4. Close with the scan, registry verification, wasm code hash, MCP call, and offline smoke run.
 
 ## The post
 
-The owner posts it. The first line is fixed; then the track and the repository link. The video is attached to the post, not written in it.
+The owner posts the video with this text. The first line follows the section 5.3 wording; the track and repository link follow it.
 
 <!-- post:start -->
 ```
-Built at NEAR HACKATHON: security intelligence for AI agent money on NEAR. Who your agent pays gets a verdict with evidence, the guard refuses the rest, on NEAR and at the bridge. Track: AI Security & Defense. <repo URL>
+Built at NEAR HACKATHON: security intelligence for NEAR with a source on every row. Who your agent pays gets a verdict with evidence, the guard refuses the rest, on NEAR and at the bridge. Track: AI Security & Defense. <repo URL>
 ```
 <!-- post:end -->
 
-Measured with Python `len`: 210 characters before the URL, counting the space before it, 233 with the URL counted as 23. Both limits are UNVERIFIED: the 280 character limit and the 23 character weight of a link are not checked against the platform's own documentation, and the owner reads the composer's counter before posting.
+Measured with Python `len`: 219 characters before the URL, counting the space before it, 242 with the URL counted as 23. Both limits are UNVERIFIED: the 280 character limit and the 23 character weight of a link are not checked against the platform's own documentation, and the owner reads the composer's counter before posting.
