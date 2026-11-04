@@ -207,7 +207,7 @@ Python 3.11 or later, from the repository root. Steps 3, 5 and 6 show POSIX shel
 7. `python -m intel counts` and `python -m gate incident rhea` print the label counts and the Rhea Lend incident page from committed files:
 
    ```
-   412 assertions over 262 subjects: onchain 40, official_source 350, third_party 18, inferred 4, unknown 0
+   3266 assertions over 3009 subjects: onchain 2894, official_source 350, third_party 18, inferred 4, unknown 0
    ```
 
    ```
@@ -288,7 +288,7 @@ fixtures/, tests/     recorded responses replayed offline; the Python tests
 - The MCP server is a stdio process with no caller authentication: whoever can start it and call its tools can obtain verdicts for the configured agent, so the operator controls access to it. Each live ALLOW is bounded by the Gate's caps and the 5 minute expiry. The evidence document of a live verdict is written to the temporary directory the server names on stderr, which the server removes when it exits unless `GATE_KEEP_EVIDENCE=1`; to record the verdict in the registry, the operator sets `GATE_KEEP_EVIDENCE=1` or copies the document before the server exits.
 - The recorder key (`recorder.kestrelridge-main.testnet`), the agent function call key and the testnet Gate account key are held by the team's operator; the owner account key and every mainnet key are held by the owner. No private key is in the repository.
 - Without `--verdict-file`, `python -m gate pay` runs the verdict service and the agent in one process on one machine.
-- Verdict latency: the latency line of the counts block, live testnet verdicts for the allowlisted payee, tier 1 checks.
+- Verdict latency: the latency lines of the counts block. The first, `Latency:`, covers live testnet verdicts for the allowlisted payee, tier 1 checks; the second, `Latency, payee off the allowlist:`, covers a payee off the allowlist and is printed once `fixtures/latency/verdict-runs-tier2.json` is committed.
 - A wrong ALLOW costs at most the per call cap, then the window cap; for a payee off the allowlist, the separate unknown payee caps (`per_call_cap_is_enforced`, `window_cap_is_enforced`, `unknown_payee_cap_is_enforced` in `contracts/gate/src/lib.rs`).
 - The testnet Gate kept a full access key during the build (`scan` above).
 - The testnet Gate and registry run the reproducible wasm of `res/`: on 2 Nov `scripts/redeploy.sh` deployed it without an init call, state kept, and each `code_hash` read back equals base58 of the sha256 of the wasm (MATCH, `docs/TESTNET.md`). The Gate's `contract_source_metadata` view returns the NEP-330 link to source commit `eb54c8e` (`res/BUILD.md`).
@@ -367,7 +367,7 @@ Copied from `docs/ATTACKS.md`. Each NEAR command is `python -m gate attack <name
 - Reproducing the hash from source needs Docker; checking it against testnet needs network.
 - The signature is pure Ed25519 over the sha256 digest, not Ed25519ph.
 - Dependencies: NEAR RPC, NearBlocks, the archival RPC, GoPlus, 1Click and the ShieldBot API; each check that needs one reads Unknown when it is down.
-- What waits: chain wide coverage, clustering, exchange labels, the NEAR Intents SHIELD feed, alerts, search, numeric risk ratings, billing, chain signatures linking, any trace of an unlabelled account. The browser extension and the Telegram bot do not cover NEAR.
+- What waits: chain wide label coverage, exchange labels, the NEAR Intents SHIELD feed, alerts, numeric risk ratings, billing, chain signatures linking, any trace of an unlabelled account. The browser extension and the Telegram bot do not cover NEAR.
 
 ## Relationship to other NEAR work
 

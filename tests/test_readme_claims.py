@@ -10,6 +10,7 @@ import re
 import unittest
 from pathlib import Path
 
+from intel import labels
 from tests.test_attack_evidence import declared_functions, table_rows
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -134,6 +135,14 @@ class FirstScreenTest(unittest.TestCase):
             with self.subTest(phrase=phrase):
                 self.assertNotIn(phrase, screen)
         self.assertNotIn("://", screen)
+
+
+class TryItOfflineTest(unittest.TestCase):
+    def test_the_step_7_sample_is_the_line_intel_counts_prints(self):
+        text = README.read_text(encoding="utf-8")
+        step = text[text.index("7. `python -m intel counts`"):]
+        start = step.index("   ```\n") + len("   ```\n")
+        self.assertEqual(step[start:step.index("\n", start)].strip(), labels.counts_line(labels.load().counts()))
 
 
 if __name__ == "__main__":
