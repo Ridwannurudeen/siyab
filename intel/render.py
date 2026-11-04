@@ -234,22 +234,60 @@ def search_index(store, pages, entities, entity_paths):
                           "url": entity_paths[entity["id"]]} for entity in entities]}
 
 
-def feed_page(state_path=feed.STATE_PATH, events_dir=feed.EVENTS_DIR):
-    if not Path(state_path).is_file():
-        return page("Feed", "<h1>Feed</h1><p>The feed has not run.</p>")
-    state = json.loads(Path(state_path).read_text(encoding="utf-8"))
+def feed_events(events_dir):
+    """The (block height, hash, document) of every event file under events_dir, ordered by observed block
+    height, then hash: the order of the /feed route and of the feed page; and the number of files skipped
+    because they do not read as a JSON object with an integer observed block height."""
+    events, unreadable = [], 0
+    for path in Path(events_dir).glob("*.json"):
+        try:
+            document = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            unreadable += 1
+            continue
+        observed = document.get("observed") if isinstance(document, dict) else None
+        height = observed.get("block_height") if isinstance(observed, dict) else None
+        if not isinstance(height, int):
+            unreadable += 1
+            continue
+        events.append((height, path.stem, document))
+    return sorted(events, key=lambda item: (item[0], item[1])), unreadable
+
+
+def _event_field(document, *keys):
+    """The escaped value at keys in an event document, or unknown when the document lacks it."""
+    for key in keys:
+        document = document.get(key) if isinstance(document, dict) else None
+    return "unknown" if document is None else esc(document)
+
+
+def feed_page(state_path=feed.STATE_PATH, events_dir=feed.EVENTS_DIR, *, state=None, event_rows=None, total=None,
+              unreadable=0):
+    """The feed page; event_rows, (document, hash) in the order to show, total, the number of events they were
+    selected from, and unreadable, the number of event files skipped, come from a caller that selected them,
+    else every event under events_dir is shown."""
+    if state is None:
+        if not Path(state_path).is_file():
+            return page("Feed", "<h1>Feed</h1><p>The feed has not run.</p>")
+        state = json.loads(Path(state_path).read_text(encoding="utf-8"))
     window = "" if state.get("mode") == "follow" else (
         f"<p>Recorded window: blocks {state['start_height']} to {state['last_height']}, read on "
         f"{esc(state['start_time'][:10])} UTC. Live following is not running yet.</p>\n")
     stats = "".join(f"<li>{esc(line)}</li>" for line in feed.stats_lines(state))
-    events = sorted((json.loads(p.read_bytes()), p.stem) for p in Path(events_dir).glob("*.json"))
+    if event_rows is None:
+        events, unreadable = feed_events(events_dir)
+        event_rows = [(document, stem) for _, stem, document in events]
     cards = "".join(
-        f'<div class="card"><p><strong>{esc(e["signal"])}</strong> at block {e["observed"]["block_height"]}</p>'
-        f'<p>{esc(e["detail"])}</p><p class="mono">receipt {esc(e["receipt_id"])}<br>transaction {esc(e["tx_hash"])}'
-        f'<br>evidence {esc(stem)}</p></div>'
-        for e, stem in sorted(events, key=lambda item: (item[0]["observed"]["block_height"], item[1])))
-    body = (f"<h1>Feed over finalized mainnet blocks</h1>\n{window}<ul>{stats}</ul>\n<h2>Events</h2>\n"
-            + (cards or "<p>No signal fired over the recorded blocks.</p>")
+        f'<div class="card"><p><strong>{_event_field(e, "signal")}</strong> at block '
+        f'{_event_field(e, "observed", "block_height")}</p><p>{_event_field(e, "detail")}</p><p class="mono">receipt '
+        f'{_event_field(e, "receipt_id")}<br>transaction {_event_field(e, "tx_hash")}<br>evidence {esc(stem)}</p></div>'
+        for e, stem in event_rows)
+    shown = "" if total == len(event_rows) else f"; the {len(event_rows)} most recent by block height are shown"
+    count = "" if total is None else f"<p>{total} event{'' if total == 1 else 's'} in total{shown}.</p>\n"
+    if unreadable:
+        count += f"<p>{unreadable} event file{'' if unreadable == 1 else 's'} could not be read.</p>\n"
+    body = (f"<h1>Feed over finalized mainnet blocks</h1>\n{window}<ul>{stats}</ul>\n<h2>Events</h2>\n{count}"
+            + (cards or ("" if unreadable else "<p>No signal fired over the recorded blocks.</p>"))
             + "\n<p class=\"muted\">The signals: " + ", ".join(feed.SIGNALS) + ".</p>")
     return page("Feed", body)
 

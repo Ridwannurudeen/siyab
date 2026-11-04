@@ -1,6 +1,8 @@
+import hashlib
 import html
 import http.client
 import json
+import os
 import re
 import tempfile
 import threading
@@ -9,7 +11,7 @@ import urllib.parse
 from pathlib import Path
 from unittest import mock
 
-from intel import api, issuers, labels, render
+from intel import api, feed, issuers, labels, render
 
 ROOT = Path(__file__).resolve().parent.parent
 EVIDENCE = min((ROOT / "fixtures" / "evidence").glob("*.json"))
@@ -27,6 +29,19 @@ def get(server, path):
         return reply.status, reply.getheader("Content-Type"), reply.getheader("Cache-Control"), reply.read()
     finally:
         connection.close()
+
+
+def write_follow_state(state_dir, texts):
+    """A follow state under state_dir and one event file per text, named by the sha256 of its bytes as the
+    follower names them."""
+    state = json.loads(feed.STATE_PATH.read_text(encoding="utf-8"))
+    state.update(mode="follow", started_at="2026-11-03T12:00:00Z", last_height=1060,
+                 last_time="2026-11-03T12:05:00Z", lag_blocks=0)
+    (state_dir / "state.json").write_text(json.dumps(state), encoding="utf-8")
+    (state_dir / "events").mkdir()
+    for text in texts:
+        name = hashlib.sha256(text.encode("utf-8")).hexdigest() + ".json"
+        (state_dir / "events" / name).write_text(text, encoding="utf-8")
 
 
 class ApiTest(unittest.TestCase):
@@ -235,6 +250,110 @@ class HostedSiteTest(unittest.TestCase):
                 status, content_type, _, body = get(self.server, "/" + entry["url"])
                 self.assertEqual((status, content_type), (200, "text/html"))
                 self.assertTrue(body.startswith(b"<!doctype html>"))
+
+    def test_feed_page_uses_the_follow_state_and_events_from_feed_state_dir(self):
+        state = json.loads(feed.STATE_PATH.read_text(encoding="utf-8"))
+        state.update(mode="follow", started_at="2026-11-03T12:00:00Z", last_height=987,
+                     last_time="2026-11-03T12:05:00Z", lag_blocks=4)
+        event = {"signal": "new receiver", "observed": {"block_height": 987}, "detail": "recorded event",
+                 "receipt_id": "receipt", "tx_hash": "transaction"}
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            (state_dir / "state.json").write_text(json.dumps(state), encoding="utf-8")
+            events_dir = state_dir / "events"
+            events_dir.mkdir()
+            (events_dir / ("ab" * 32 + ".json")).write_text(json.dumps(event), encoding="utf-8")
+            with mock.patch.dict(os.environ, {"FEED_STATE_DIR": str(state_dir)}):
+                status, content_type, cache, body = get(self.server, "/feed.html")
+        page = body.decode("utf-8")
+        self.assertEqual((status, content_type, cache), (200, "text/html", "no-store"))
+        self.assertIn("following since 2026-11-03T12:00:00Z", page)
+        self.assertIn("last block 987 at 2026-11-03T12:05:00Z", page)
+        self.assertIn("lag 4 blocks", page)
+        self.assertIn("recorded event", page)
+        self.assertIn('<meta name="robots" content="noindex">', page)
+        self.assertIn('rel="stylesheet" href="/style.css"', page)
+
+    def test_feed_page_falls_back_to_static_without_a_follow_state(self):
+        static_page = (Path(self.site.name) / "feed.html").read_bytes()
+        recorded_state = json.dumps(json.loads(feed.STATE_PATH.read_text(encoding="utf-8")))
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(get(self.server, "/feed.html")[3], static_page)
+        for state_text in (None, "not json", recorded_state):
+            with self.subTest(state=state_text), tempfile.TemporaryDirectory() as tmp:
+                if state_text is not None:
+                    (Path(tmp) / "state.json").write_text(state_text, encoding="utf-8")
+                with mock.patch.dict(os.environ, {"FEED_STATE_DIR": tmp}):
+                    status, content_type, cache, body = get(self.server, "/feed.html")
+                self.assertEqual((status, content_type, cache, body),
+                                 (200, "text/html", "no-store", static_page))
+
+    def test_feed_page_shows_the_50_events_the_feed_route_answers_and_the_total(self):
+        events = [{"signal": "new receiver", "observed": {"block_height": height}, "detail": f"event {height}",
+                   "receipt_id": f"receipt {height}", "tx_hash": f"transaction {height}"}
+                  for height in range(1001, 1061)]
+        with tempfile.TemporaryDirectory() as tmp:
+            write_follow_state(Path(tmp), [json.dumps(event) for event in events])
+            with mock.patch.dict(os.environ, {"FEED_STATE_DIR": tmp}):
+                status, content_type, _, body = get(self.server, "/feed.html")
+                route_events = json.loads(get(self.server, "/feed")[3])["events"]
+        page = body.decode("utf-8")
+        self.assertEqual((status, content_type), (200, "text/html"))
+        self.assertEqual(page.count('<div class="card">'), 50)
+        self.assertIn("<p>60 events in total; the 50 most recent by block height are shown.</p>", page)
+        heights = [event["observed"]["block_height"] for event in route_events]
+        self.assertEqual(heights, list(range(1011, 1061)))
+        self.assertEqual([int(height) for height in re.findall(r"at block (\d+)</p>", page)], heights)
+        self.assertNotIn("<p>event 1010</p>", page)
+        self.assertNotIn("could not be read", page)
+
+    def test_feed_page_skips_and_counts_a_torn_a_non_json_and_a_keyless_event_file(self):
+        good = json.dumps({"signal": "new receiver", "observed": {"block_height": 1001}, "detail": "readable event",
+                           "receipt_id": "receipt", "tx_hash": "transaction"})
+        cases = {"torn": good[:30], "not json": "not json", "missing keys": json.dumps({"signal": "new receiver"})}
+        for case, text in cases.items():
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as tmp:
+                write_follow_state(Path(tmp), [good, text])
+                with mock.patch.dict(os.environ, {"FEED_STATE_DIR": tmp}):
+                    status, content_type, _, body = get(self.server, "/feed.html")
+                page = body.decode("utf-8")
+                self.assertEqual((status, content_type), (200, "text/html"))
+                self.assertIn("following since 2026-11-03T12:00:00Z", page)
+                self.assertIn("<p>1 event in total.</p>\n<p>1 event file could not be read.</p>", page)
+                self.assertEqual(page.count('<div class="card">'), 1)
+                self.assertIn("readable event", page)
+                self.assertNotIn(hashlib.sha256(text.encode("utf-8")).hexdigest(), page)
+                self.assertNotIn(html.escape(text), page)
+
+    def test_feed_page_and_feed_route_answer_over_every_kind_of_bad_event_file(self):
+        good = json.dumps({"signal": "labelled_account_large_transfer", "observed": {"block_height": 1002},
+                           "detail": "transfer event", "receipt_id": "receipt", "transaction_id": "transaction",
+                           "usd_amount": "1500", "direction": "outbound", "other_account_id": "other.near",
+                           "asset_id": "nep141:wrap.near", "block_height": 1002})
+        bad = ["", '{"signal": "new rec', "not json", "[1, 2]", json.dumps({"signal": "new receiver"}),
+               json.dumps({"observed": "1001"}), json.dumps({"observed": {"block_height": "1001"}})]
+        with tempfile.TemporaryDirectory() as tmp:
+            write_follow_state(Path(tmp), [good] + bad)
+            with mock.patch.dict(os.environ, {"FEED_STATE_DIR": tmp}):
+                status, content_type, _, body = get(self.server, "/feed.html")
+                route_status, _, _, route_body = get(self.server, "/feed")
+        page = body.decode("utf-8")
+        self.assertEqual((status, content_type), (200, "text/html"))
+        self.assertIn("<p>1 event in total.</p>\n<p>7 event files could not be read.</p>", page)
+        self.assertIn("transfer event", page)
+        self.assertIn("transaction unknown", page)
+        self.assertEqual(route_status, 200)
+        self.assertEqual([event["detail"] for event in json.loads(route_body)["events"]], ["transfer event"])
+
+    def test_feed_page_with_only_unreadable_event_files_does_not_say_no_signal_fired(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            write_follow_state(Path(tmp), ["not json"])
+            with mock.patch.dict(os.environ, {"FEED_STATE_DIR": tmp}):
+                status, _, _, body = get(self.server, "/feed.html")
+        page = body.decode("utf-8")
+        self.assertEqual(status, 200)
+        self.assertIn("<p>0 events in total.</p>\n<p>1 event file could not be read.</p>", page)
+        self.assertNotIn("No signal fired", page)
 
     def test_the_incident_json_route_still_answers(self):
         status, content_type, _, body = get(self.server, "/incidents/rhea")

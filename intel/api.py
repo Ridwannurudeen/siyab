@@ -30,13 +30,14 @@ Every answer is JSON (static files aside) and carries Cache-Control: no-store.
 import dataclasses
 import json
 import mimetypes
+import os
 import re
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from gate import incident
-from intel import issuers, labels, trace
+from intel import issuers, labels, render, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 EVIDENCE_DIRS = (ROOT / "fixtures" / "evidence", ROOT / "intel" / "feed" / "events")
@@ -79,8 +80,6 @@ def _evidence(evidence_hash):
 def _feed():
     """The state file without its fresh accounts and the last FEED_LIMIT events ordered by observed
     block height, then hash; a 503 while the state file does not parse."""
-    import os
-
     state_dir = Path(os.environ.get("FEED_STATE_DIR", FEED_STATE.parent))
     state_path, events_dir = state_dir / "state.json", state_dir / "events"
     try:
@@ -89,14 +88,26 @@ def _feed():
         return 503, {"error": "feed state unreadable"}
     if stats is not None:
         stats.pop("fresh_accounts", None)
-    events = []
-    if events_dir.is_dir():
-        for path in events_dir.glob("*.json"):
-            document = _read_json(path)
-            height = (document.get("observed") or {}).get("block_height") or 0
-            events.append((height, path.stem, document))
-    events.sort(key=lambda item: (item[0], item[1]))
+    events = render.feed_events(events_dir)[0]
     return 200, {"stats": stats, "events": [document for _, _, document in events[-FEED_LIMIT:]]}
+
+
+def _live_feed_page():
+    state_dir = os.environ.get("FEED_STATE_DIR")
+    if state_dir is None:
+        return None
+    state_path = Path(state_dir) / "state.json"
+    events_dir = Path(state_dir) / "events"
+    try:
+        state = _read_json(state_path)
+        if not isinstance(state, dict) or state.get("mode") != "follow":
+            return None
+        events, unreadable = render.feed_events(events_dir)
+    except (OSError, UnicodeError, ValueError):
+        return None
+    event_rows = [(document, stem) for _, stem, document in events[-FEED_LIMIT:]]
+    return render.feed_page(state=state, event_rows=event_rows, total=len(events),
+                            unreadable=unreadable).encode("utf-8")
 
 
 def _flow(store, subject):
@@ -214,6 +225,11 @@ def make_server(host, port, site=None, store=None):
                 status, body = answer
                 self._send(status, JSON_TYPE, (json.dumps(body, ensure_ascii=False) + "\n").encode("utf-8"))
                 return
+            if urllib.parse.urlsplit(self.path).path == "/feed.html":
+                live_page = _live_feed_page()
+                if live_page is not None:
+                    self._send(200, "text/html", live_page)
+                    return
             static = _static(site, self.path)
             if static is None:
                 missing = _static(site, "/404.html")
