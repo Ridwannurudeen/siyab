@@ -363,7 +363,7 @@ def main(argv=None):
     receivers.add_argument("--exclude-file", help="with --record: a file of account ids kept outside the repository, "
                            "one per line, left out of the counterparties")
     receivers.set_defaults(handler=_receivers)
-    feeding = commands.add_parser("feed", help="run the three signals over finalized mainnet blocks")
+    feeding = commands.add_parser("feed", help="five signals: code_hash_matches_incident, fresh_dust_funded_pays_labelled, watch_account_key_added, labelled_account_large_transfer, deploy_on_labelled_contract")
     feeding.add_argument("--from", dest="start", type=int, help="the first height (default: after the state)")
     feeding.add_argument("--blocks", type=int, help="how many recorded heights to walk")
     feeding.add_argument("--follow", action="store_true", help="follow finalized heights continuously")
