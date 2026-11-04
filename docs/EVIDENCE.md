@@ -8,7 +8,9 @@ The Gate emitted `EVENT_JSON` `transfer_scheduled` with request id 3, verdict id
 
 ## Verdict latency
 
-The committed latency fixture contains 20 runs for the allowlisted vendor `kestrelridge-shop.testnet`. All 20 returned ALLOW. These runs used tier 1 checks only. Tier 2 is skipped for an allowlisted receiver by design in `gate/rules.py`. The recorded p50 is 1843 ms and p95 is 2300 ms. The aged payee runs are not committed because they measured a superseded code path.
+The committed latency fixture `fixtures/latency/verdict-runs.json` contains 20 runs for the allowlisted vendor `kestrelridge-shop.testnet`. All 20 returned ALLOW. These runs used tier 1 checks only. Tier 2 is skipped for an allowlisted receiver by design in `gate/rules.py`. The recorded p50 is 1843 ms and p95 is 2300 ms. The aged payee runs of 1 November are not committed because they measured a superseded code path. The counts block reads this file for its latency line; its second latency line, for a payee off the allowlist, reads `fixtures/latency/verdict-runs-tier2.json` and is printed only while that file exists.
+
+The receiver lines of the counts block are a replay of the recorded mainnet receiver set, not testnet evidence: the second splits the verdicts by cohort with `cohort_line` in `intel/__main__.py`, the function `python -m intel receivers` prints. Every Unknown of the organisation cohort carries the `account_age` detail "NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read" (`fixtures/receivers/judgements/`).
 
 The first payment, invoice 1, is transaction `9XVcMjuS...ekVsyK`; it has no stored evidence document.
 
