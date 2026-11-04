@@ -50,7 +50,7 @@ ROOT = Path(__file__).resolve().parent.parent
 INCIDENTS_DIR = Path(__file__).resolve().parent / "incidents"
 TESTNET_RPC = "https://test.rpc.fastnear.com"
 # The record the verify page offers as its example: a latest view of the testnet registry.
-VERIFY_RECORD = ROOT / "fixtures" / "registry" / "testnet-vendor.json"
+VERIFY_RECORD = ROOT / "fixtures" / "registry" / "testnet-latest-kestrelridge-shop.json"
 EVIDENCE_DIR = ROOT / "fixtures" / "evidence"
 # The token whose issuer actions intel/issuers.py reads from the owner's transactions.
 HISTORY_TOKEN = "usdt.tether-token.near"
@@ -643,8 +643,9 @@ def verify_page():
     body = ("<h1>Read a registry record</h1><p>The page calls <code>latest</code> on the registry contract over the "
             f"public testnet RPC <code>{TESTNET_RPC}</code> from your browser and shows the record next to the "
             "evidence hash you paste. Compute the hash yourself with <code>sha256sum</code> of the evidence file.</p>"
-            "<p>The examples in the empty fields are the vendor's record, <code>fixtures/registry/testnet-vendor.json</code>, "
-            "and the sha256 of its evidence document.</p>"
+            "<p>The examples in the empty fields are the vendor's latest record, "
+            "<code>fixtures/registry/testnet-latest-kestrelridge-shop.json</code>, and the sha256 of its evidence "
+            "document.</p>"
             f'<div class="card"><label>Registry account<input id="registry" autocomplete="off" placeholder="{registry}">'
             f'</label><label>Subject (a NEAR account id)<input id="subject" autocomplete="off" placeholder="{subject}">'
             f'</label><label>Evidence hash (64 hex)<input id="hash" autocomplete="off" placeholder="{evidence_hash}">'
