@@ -29,7 +29,7 @@ Three layers on one data model:
 - **Protocol** (`docs/VERDICT-RECORD.md`, `docs/REGISTRY.md`, `contracts/registry/`): an open verdict and label record format with an on chain NEAR registry, and the offline verifier `python -m gate verify`.
 - **Security** (`contracts/gate/`, `mcp/`, `gate/scan.py`): the guard contract, a stdio MCP server with three tools, and the key hygiene scanner `python -m gate scan`.
 
-Every line below is written by `python scripts/counts.py --readme README.md` from committed files. The first two count the recorded mainnet receivers the rules judged, in all and by cohort. The latency line covers live testnet verdicts for the allowlisted payee, tier 1 checks only (`docs/EVIDENCE.md`); a second latency line, for a payee off the allowlist, is printed once `fixtures/latency/verdict-runs-tier2.json` is committed.
+Every line below is written by `python scripts/counts.py --readme README.md` from committed files. The first two count the recorded mainnet receivers the rules judged, in all and by cohort. The latency line covers live testnet verdicts for the allowlisted payee, tier 1 checks only (`docs/EVIDENCE.md`); the second covers live testnet verdicts for `examples.testnet`, a payee off the allowlist, through tier 1 and tier 2 checks (`fixtures/latency/verdict-runs-tier2.json`); 10 s of each such run passes between the starts of its two NearBlocks requests, which the client spaces 10 s apart (`docs/EVIDENCE.md`). The feed line reads `intel/feed/follow-snapshot.json`, a copy of the hosted follower's state (`docs/EVIDENCE.md` gives its date and height).
 
 <!-- counts:start -->
 
@@ -41,11 +41,13 @@ Label store: 3266 assertions over 3009 subjects (onchain 2894, official_source 3
 
 Incidents: 3 pages.
 
-Feed: since 2026-10-29, 300 blocks, 0 events (0 code_hash_matches_incident, 0 fresh_dust_funded_pays_labelled, 0 watch_account_key_added, 0 labelled_account_large_transfer, 0 deploy_on_labelled_contract).
+Feed: following since 2026-11-03, 64697 blocks, 0 events (0 code_hash_matches_incident, 0 fresh_dust_funded_pays_labelled, 0 watch_account_key_added, 0 labelled_account_large_transfer, 0 deploy_on_labelled_contract).
 
 Flows: 1 exit traces, 1708 hops, depth 2 of 3, stopped while reading an account 1 hop from the subject.
 
 Latency: p50 1843 ms, p95 2300 ms over 20 verdict runs.
+
+Latency, payee off the allowlist: p50 16219 ms, p95 17484 ms over 20 verdict runs.
 
 <!-- counts:end -->
 
@@ -288,7 +290,7 @@ fixtures/, tests/     recorded responses replayed offline; the Python tests
 - The MCP server is a stdio process with no caller authentication: whoever can start it and call its tools can obtain verdicts for the configured agent, so the operator controls access to it. Each live ALLOW is bounded by the Gate's caps and the 5 minute expiry. The evidence document of a live verdict is written to the temporary directory the server names on stderr, which the server removes when it exits unless `GATE_KEEP_EVIDENCE=1`; to record the verdict in the registry, the operator sets `GATE_KEEP_EVIDENCE=1` or copies the document before the server exits.
 - The recorder key (`recorder.kestrelridge-main.testnet`), the agent function call key and the testnet Gate account key are held by the team's operator; the owner account key and every mainnet key are held by the owner. No private key is in the repository.
 - Without `--verdict-file`, `python -m gate pay` runs the verdict service and the agent in one process on one machine.
-- Verdict latency: the latency lines of the counts block. The first, `Latency:`, covers live testnet verdicts for the allowlisted payee, tier 1 checks; the second, `Latency, payee off the allowlist:`, covers a payee off the allowlist and is printed once `fixtures/latency/verdict-runs-tier2.json` is committed.
+- Verdict latency: the latency lines of the counts block. The first, `Latency:`, covers live testnet verdicts for the allowlisted payee, tier 1 checks; the second, `Latency, payee off the allowlist:`, covers live testnet verdicts for `examples.testnet`, a payee off the allowlist, through tier 1 and tier 2 checks.
 - A wrong ALLOW costs at most the per call cap, then the window cap; for a payee off the allowlist, the separate unknown payee caps (`per_call_cap_is_enforced`, `window_cap_is_enforced`, `unknown_payee_cap_is_enforced` in `contracts/gate/src/lib.rs`).
 - The testnet Gate kept a full access key during the build (`scan` above).
 - The testnet Gate and registry run the reproducible wasm of `res/`: on 2 Nov `scripts/redeploy.sh` deployed it without an init call, state kept, and each `code_hash` read back equals base58 of the sha256 of the wasm (MATCH, `docs/TESTNET.md`). The Gate's `contract_source_metadata` view returns the NEP-330 link to source commit `eb54c8e` (`res/BUILD.md`).
@@ -332,6 +334,7 @@ Copied from `docs/CLAIMS.md`; `tests/test_readme_claims.py` asserts the two tabl
 | Feed and flow totals are generated from committed state, events and traces. | `scripts/counts.py:feed_line` | `tests/test_counts.py::CountsTest.test_the_feed_and_flows_lines_equal_a_recount` | `intel/feed/`, `intel/flows/` | no |
 | Verdict latency percentiles are generated from the recorded run fixtures. | `scripts/counts.py:latency_line` | `tests/test_counts.py::CountsTest.test_latency_is_not_measured_without_files_and_nearest_rank_with_them` | `fixtures/latency/` | no |
 | README count lines are generated by `scripts/counts.py` from committed files. | `scripts/counts.py:lines` | `tests/test_counts.py::CountsTest.test_the_lines_follow_the_fixed_format_in_order` | offline | no |
+| The committed wasm files are the reproducible build of the source commit `res/BUILD.md` records, their sha256 files match their bytes, and the testnet Gate and registry run their code_hash. | `gate/wasm.py:codehash` | `tests/test_res.py::WasmArtifactsTest.test_sha256_files_match_the_wasm_bytes` | `res/BUILD.md`, `fixtures/runs/reproducible-two-clones-20261102.txt`, `docs/TESTNET.md` | no |
 | A TEE is not built. | `tests/test_attack_evidence.py:unbuilt_limit_rows` | `tests/test_attack_evidence.py::AttackEvidenceTest.test_unbuilt_surfaces_are_stated_as_limits` | offline | no |
 | An OutLayer approver is not built. | `tests/test_attack_evidence.py:unbuilt_limit_rows` | `tests/test_attack_evidence.py::AttackEvidenceTest.test_unbuilt_surfaces_are_stated_as_limits` | offline | no |
 | A browser extension for NEAR is not built. | `tests/test_attack_evidence.py:unbuilt_limit_rows` | `tests/test_attack_evidence.py::AttackEvidenceTest.test_unbuilt_surfaces_are_stated_as_limits` | offline | no |
@@ -358,7 +361,7 @@ Copied from `docs/ATTACKS.md`. Each NEAR command is `python -m gate attack <name
 
 ## Limits
 
-- No TEE. The rules are view call heuristics; a check that cannot run reads Unknown, and Unknown is refused. Unknown is expected whenever a data source is down or holds no data: NearBlocks testnet has indexed nothing since 27 Sep, so testnet account age comes from the oldest access key nonce and an archival block read (`docs/SPIKES.md` S8).
+- No TEE. The rules are view call heuristics; a check that cannot run reads Unknown, and Unknown is refused. Unknown is expected whenever a data source is down or holds no data: NearBlocks testnet has indexed nothing since 27 Sep, so the age of a testnet account created after that comes from the oldest access key nonce and an archival block read (`docs/SPIKES.md` S8); an older account such as `examples.testnet` still reads its age from NearBlocks.
 - ALLOW is the absence of a known scam signal, not proof of identity; the unknown payee cap bounds what a patient attacker can take.
 - The receiver lines of the counts block are the replay of a recorded mainnet receiver set, not a rate over all NEAR payees.
 - `code_without_metadata` (contract code without `contract_source_metadata`) alone is a pass with a detail; it counts only with another tier 2 signal (`account_age`, `dust_funded` or `lookalike`). That moved three deployed protocol contracts of the receiver set from DENY to ALLOW (`grid.deltatrade.near`, `dclv2.ref-labs.near`, `aggregatedex.near`, `fixtures/receivers/judgements/`).
