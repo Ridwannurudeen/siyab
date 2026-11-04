@@ -57,8 +57,8 @@ HISTORY_TOKEN = "usdt.tether-token.near"
 HEADLINE = "ShieldBot for NEAR: security intelligence with a source on every row, enforced on chain"
 COUNTS_OF = ("The counts below are of the recorded mainnet receivers the rules judged, in all and by cohort, the label "
              "store's assertions and subjects by provenance class, the incident pages, the blocks and events of the "
-             "feed, the exit traces and their hops, and the verdict latency runs for the allowlisted payee and, once "
-             "they are recorded, for a payee off the allowlist.")
+             "feed, the exit traces and their hops, and the verdict latency runs for the allowlisted payee and for a "
+             "payee off the allowlist.")
 ENTITY_SETS = (("treasuries", "Treasuries", ("treasury",)),
                ("catalog", "Catalog tokens", ("catalog_token",)),
                ("infrastructure", "Infrastructure and bridge accounts", ("infrastructure", "bridge")),
@@ -273,7 +273,7 @@ def feed_page(state_path=feed.STATE_PATH, events_dir=feed.EVENTS_DIR, *, state=N
         state = json.loads(Path(state_path).read_text(encoding="utf-8"))
     window = "" if state.get("mode") == "follow" else (
         f"<p>Recorded window: blocks {state['start_height']} to {state['last_height']}, read on "
-        f"{esc(state['start_time'][:10])} UTC. Live following is not running yet.</p>\n")
+        f"{esc(state['start_time'][:10])} UTC. The hosted copy's feed page shows the follower's own state.</p>\n")
     stats = "".join(f"<li>{esc(line)}</li>" for line in feed.stats_lines(state))
     if event_rows is None:
         events, unreadable = feed_events(events_dir)

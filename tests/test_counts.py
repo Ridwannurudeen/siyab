@@ -2,6 +2,7 @@ import contextlib
 import importlib.util
 import io
 import json
+import math
 import tempfile
 import unittest
 from pathlib import Path
@@ -75,6 +76,19 @@ class CountsTest(unittest.TestCase):
         pages = len(list((ROOT / "intel" / "incidents").glob("*.json")))
         self.assertEqual(self.counts.incidents_line(), f"Incidents: {pages} pages.")
 
+    def test_the_snapshot_and_tier_2_numbers_in_the_docs_equal_the_committed_files(self):
+        evidence = (ROOT / "docs" / "EVIDENCE.md").read_text(encoding="utf-8")
+        testnet = (ROOT / "docs" / "TESTNET.md").read_text(encoding="utf-8")
+        snapshot = json.loads((ROOT / "intel" / "feed" / "follow-snapshot.json").read_text(encoding="utf-8"))
+        self.assertIn(f"following since {snapshot['started_at']}, {snapshot['blocks']} blocks up to height "
+                      f"{snapshot['last_height']} ({snapshot['last_time']}), {len(snapshot['skipped_heights'])} "
+                      f"skipped heights and {sum(snapshot['events'].values())} events", evidence)
+        runs = sorted(run["latency_ms"] for run in json.loads(
+            (ROOT / "fixtures" / "latency" / "verdict-runs-tier2.json").read_text(encoding="utf-8")))
+        p50, p95 = (runs[max(1, math.ceil(percent / 100 * len(runs))) - 1] for percent in (50, 95))
+        self.assertIn(f"The recorded p50 is {p50} ms and p95 is {p95} ms.", evidence)
+        self.assertIn(f"with p50 {p50} ms and p95 {p95} ms (`fixtures/latency/verdict-runs-tier2.json`)", testnet)
+
     def test_the_feed_and_flows_lines_equal_a_recount(self):
         snapshot = ROOT / "intel" / "feed" / "follow-snapshot.json"
         state = json.loads((snapshot if snapshot.is_file() else ROOT / "intel" / "feed" / "state.json")
@@ -84,6 +98,16 @@ class CountsTest(unittest.TestCase):
                  else f"since {state['start_time'][:10]}")
         self.assertEqual(self.counts.feed_line(), f"Feed: {since}, {state['blocks']} blocks, "
                                                   f"{sum(state['events'].values())} events ({signals}).")
+        self.assertEqual(state["blocks"],
+                         state["last_height"] - state["start_height"] + 1 - len(state["skipped_heights"]))
+        recorded = json.loads((ROOT / "intel" / "feed" / "state.json").read_text(encoding="utf-8"))
+        recorded_signals = ", ".join(f"{count} {name}" for name, count in recorded["events"].items())
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "state.json"
+            path.write_text(json.dumps(recorded), encoding="utf-8")
+            self.assertEqual(self.counts.feed_line(path),
+                             f"Feed: since {recorded['start_time'][:10]}, {recorded['blocks']} blocks, "
+                             f"{sum(recorded['events'].values())} events ({recorded_signals}).")
         traces = [json.loads(p.read_text(encoding="utf-8")) for p in (ROOT / "intel" / "flows").glob("*.json")]
         self.assertTrue(traces)
         least = min(traces, key=lambda t: (t["depth_reached"], t["completeness"] == "complete"))

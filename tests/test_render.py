@@ -209,11 +209,12 @@ class RenderTest(unittest.TestCase):
                       "incident pages", "feed", "exit traces", "verdict latency runs", "payee off the allowlist"):
             self.assertIn(words, render.COUNTS_OF)
 
-    def test_the_feed_page_names_a_recorded_window_with_its_date_and_says_it_is_not_following(self):
+    def test_the_feed_page_names_a_recorded_window_with_its_date_and_points_to_the_hosted_follower(self):
         state = json.loads(feed.STATE_PATH.read_text(encoding="utf-8"))
         self.assertNotIn("mode", state)
         self.assertIn(f"<p>Recorded window: blocks {state['start_height']} to {state['last_height']}, read on "
-                      f"{state['start_time'][:10]} UTC. Live following is not running yet.</p>", self.pages["feed.html"])
+                      f"{state['start_time'][:10]} UTC. The hosted copy's feed page shows the follower's own state.</p>",
+                      self.pages["feed.html"])
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "state.json"
             following = dict(state, mode="follow", started_at=state["start_time"], lag_blocks=0, requests=0,
