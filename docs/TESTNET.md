@@ -69,4 +69,4 @@ The `latest` views after the run are in `fixtures/registry/testnet-latest-<subje
 
 ## Latency
 
-The allowlisted vendor's tier 1 latency is measured over 20 runs: all returned ALLOW, with p50 1843 ms and p95 2300 ms. The tier 2 latency of the aged payee, which is off the allowlist, is not measured yet; its runs wait until the payee is 7 days old, after 5 Nov 18:20 UTC. The earlier aged payee runs measured a superseded code path; before the step down, 9 of 20 read Unknown (see `docs/SPIKES.md` S8).
+The allowlisted vendor's tier 1 latency is measured over 20 runs: all returned ALLOW, with p50 1843 ms and p95 2300 ms. The tier 2 latency of the aged payee, which is off the allowlist, is not measured yet; its runs wait until the payee, created 29 Oct, is 7 days old on 5 Nov. The earlier aged payee runs measured a superseded code path; before the step down, 9 of 20 read Unknown (see `docs/SPIKES.md` S8).
