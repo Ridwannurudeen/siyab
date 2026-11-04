@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from gate import rpc
 from intel import __main__ as intel_main
 from intel import labels, trace
 
@@ -87,6 +88,9 @@ class CountsTest(unittest.TestCase):
             (ROOT / "fixtures" / "latency" / "verdict-runs-tier2.json").read_text(encoding="utf-8")))
         p50, p95 = (runs[max(1, math.ceil(percent / 100 * len(runs))) - 1] for percent in (50, 95))
         self.assertIn(f"The recorded p50 is {p50} ms and p95 is {p95} ms.", evidence)
+        self.assertIn(f"`fixtures/latency/verdict-runs-tier2.json` contains {len(runs)} runs of", evidence)
+        self.assertIn(f"The tier 2 latency is measured over {len(runs)} runs on", testnet)
+        self.assertIn(f"at least {rpc.NEARBLOCKS_MIN_INTERVAL_S} s apart (`NEARBLOCKS_MIN_INTERVAL_S`", evidence)
         self.assertIn(f"with p50 {p50} ms and p95 {p95} ms (`fixtures/latency/verdict-runs-tier2.json`)", testnet)
 
     def test_the_feed_and_flows_lines_equal_a_recount(self):
@@ -98,8 +102,8 @@ class CountsTest(unittest.TestCase):
                  else f"since {state['start_time'][:10]}")
         self.assertEqual(self.counts.feed_line(), f"Feed: {since}, {state['blocks']} blocks, "
                                                   f"{sum(state['events'].values())} events ({signals}).")
-        self.assertEqual(state["blocks"],
-                         state["last_height"] - state["start_height"] + 1 - len(state["skipped_heights"]))
+        walked_skips = [height for height in state["skipped_heights"] if height <= state["last_height"]]
+        self.assertEqual(state["blocks"], state["last_height"] - state["start_height"] + 1 - len(walked_skips))
         recorded = json.loads((ROOT / "intel" / "feed" / "state.json").read_text(encoding="utf-8"))
         recorded_signals = ", ".join(f"{count} {name}" for name, count in recorded["events"].items())
         with tempfile.TemporaryDirectory() as tmp:

@@ -361,7 +361,7 @@ Copied from `docs/ATTACKS.md`. Each NEAR command is `python -m gate attack <name
 
 ## Limits
 
-- No TEE. The rules are view call heuristics; a check that cannot run reads Unknown, and Unknown is refused. Unknown is expected whenever a data source is down or holds no data: NearBlocks testnet has indexed nothing since 27 Sep, so testnet account age comes from the oldest access key nonce and an archival block read (`docs/SPIKES.md` S8).
+- No TEE. The rules are view call heuristics; a check that cannot run reads Unknown, and Unknown is refused. Unknown is expected whenever a data source is down or holds no data: NearBlocks testnet has indexed nothing since 27 Sep, so the age of a testnet account created after that comes from the oldest access key nonce and an archival block read (`docs/SPIKES.md` S8); an older account such as `examples.testnet` still reads its age from NearBlocks.
 - ALLOW is the absence of a known scam signal, not proof of identity; the unknown payee cap bounds what a patient attacker can take.
 - The receiver lines of the counts block are the replay of a recorded mainnet receiver set, not a rate over all NEAR payees.
 - `code_without_metadata` (contract code without `contract_source_metadata`) alone is a pass with a detail; it counts only with another tier 2 signal (`account_age`, `dust_funded` or `lookalike`). That moved three deployed protocol contracts of the receiver set from DENY to ALLOW (`grid.deltatrade.near`, `dclv2.ref-labs.near`, `aggregatedex.near`, `fixtures/receivers/judgements/`).

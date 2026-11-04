@@ -271,9 +271,16 @@ def feed_page(state_path=feed.STATE_PATH, events_dir=feed.EVENTS_DIR, *, state=N
         if not Path(state_path).is_file():
             return page("Feed", "<h1>Feed</h1><p>The feed has not run.</p>")
         state = json.loads(Path(state_path).read_text(encoding="utf-8"))
-    window = "" if state.get("mode") == "follow" else (
-        f"<p>Recorded window: blocks {state['start_height']} to {state['last_height']}, read on "
-        f"{esc(state['start_time'][:10])} UTC. The hosted copy's feed page shows the follower's own state.</p>\n")
+    window = ""
+    if state.get("mode") != "follow":
+        snapshot_note = ""
+        if Path(feed.SNAPSHOT_PATH).is_file():
+            snapshot = json.loads(Path(feed.SNAPSHOT_PATH).read_text(encoding="utf-8"))
+            snapshot_note = (f" The follower snapshot <code>intel/feed/follow-snapshot.json</code> covers "
+                             f"{snapshot['blocks']} blocks from {esc(snapshot['started_at'])} to height "
+                             f"{snapshot['last_height']}.")
+        window = (f"<p>Recorded window: blocks {state['start_height']} to {state['last_height']}, read on "
+                  f"{esc(state['start_time'][:10])} UTC.{snapshot_note}</p>\n")
     stats = "".join(f"<li>{esc(line)}</li>" for line in feed.stats_lines(state))
     if event_rows is None:
         events, unreadable = feed_events(events_dir)

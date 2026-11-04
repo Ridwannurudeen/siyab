@@ -209,20 +209,25 @@ class RenderTest(unittest.TestCase):
                       "incident pages", "feed", "exit traces", "verdict latency runs", "payee off the allowlist"):
             self.assertIn(words, render.COUNTS_OF)
 
-    def test_the_feed_page_names_a_recorded_window_with_its_date_and_points_to_the_hosted_follower(self):
+    def test_the_feed_page_names_a_recorded_window_with_its_date_and_the_follower_snapshot(self):
         state = json.loads(feed.STATE_PATH.read_text(encoding="utf-8"))
         self.assertNotIn("mode", state)
-        self.assertIn(f"<p>Recorded window: blocks {state['start_height']} to {state['last_height']}, read on "
-                      f"{state['start_time'][:10]} UTC. The hosted copy's feed page shows the follower's own state.</p>",
-                      self.pages["feed.html"])
+        window = (f"<p>Recorded window: blocks {state['start_height']} to {state['last_height']}, read on "
+                  f"{state['start_time'][:10]} UTC.")
+        snapshot = json.loads(feed.SNAPSHOT_PATH.read_text(encoding="utf-8"))
+        self.assertIn(f"{window} The follower snapshot <code>intel/feed/follow-snapshot.json</code> covers "
+                      f"{snapshot['blocks']} blocks from {snapshot['started_at']} to height "
+                      f"{snapshot['last_height']}.</p>", self.pages["feed.html"])
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "state.json"
             following = dict(state, mode="follow", started_at=state["start_time"], lag_blocks=0, requests=0,
                              request_day=state["start_time"][:10])
             path.write_text(json.dumps(following), encoding="utf-8")
             page = render.feed_page(path, Path(tmp) / "events")
+            with mock.patch.object(feed, "SNAPSHOT_PATH", Path(tmp) / "missing.json"):
+                self.assertIn(f"{window}</p>", render.feed_page())
         self.assertNotIn("Recorded window", page)
-        self.assertNotIn("not running", page)
+        self.assertNotIn("follower snapshot", page)
         for line in feed.stats_lines(following):
             self.assertIn(f"<li>{html.escape(line)}</li>", page)
         event = {"signal": "new receiver", "observed": {"block_height": 123}, "detail": "follow event",
