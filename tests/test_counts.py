@@ -102,7 +102,8 @@ class CountsTest(unittest.TestCase):
                  else f"since {state['start_time'][:10]}")
         self.assertEqual(self.counts.feed_line(), f"Feed: {since}, {state['blocks']} blocks, "
                                                   f"{sum(state['events'].values())} events ({signals}).")
-        walked_skips = [height for height in state["skipped_heights"] if height <= state["last_height"]]
+        walked_skips = [height for height in state["skipped_heights"]
+                        if state["start_height"] <= height <= state["last_height"]]
         self.assertEqual(state["blocks"], state["last_height"] - state["start_height"] + 1 - len(walked_skips))
         recorded = json.loads((ROOT / "intel" / "feed" / "state.json").read_text(encoding="utf-8"))
         recorded_signals = ", ".join(f"{count} {name}" for name, count in recorded["events"].items())

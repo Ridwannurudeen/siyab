@@ -216,7 +216,7 @@ class RenderTest(unittest.TestCase):
                   f"{state['start_time'][:10]} UTC.")
         snapshot = json.loads(feed.SNAPSHOT_PATH.read_text(encoding="utf-8"))
         self.assertIn(f"{window} The follower snapshot <code>intel/feed/follow-snapshot.json</code> covers "
-                      f"{snapshot['blocks']} blocks from {snapshot['started_at']} to height "
+                      f"{snapshot['blocks']} blocks from height {snapshot['start_height']} to height "
                       f"{snapshot['last_height']}.</p>", self.pages["feed.html"])
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "state.json"
