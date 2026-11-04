@@ -54,7 +54,7 @@ VERIFY_RECORD = ROOT / "fixtures" / "registry" / "testnet-latest-kestrelridge-sh
 EVIDENCE_DIR = ROOT / "fixtures" / "evidence"
 # The token whose issuer actions intel/issuers.py reads from the owner's transactions.
 HISTORY_TOKEN = "usdt.tether-token.near"
-HEADLINE = "ShieldBot for NEAR: security intelligence for AI agent money on NEAR"
+HEADLINE = "ShieldBot for NEAR: security intelligence with a source on every row, enforced on chain"
 COUNTS_OF = ("The counts below are of the recorded mainnet receivers the rules judged, in all and by cohort, the label "
              "store's assertions and subjects by provenance class, the incident pages, the blocks and events of the "
              "feed, the exit traces and their hops, and the verdict latency runs for the allowlisted payee and, once "

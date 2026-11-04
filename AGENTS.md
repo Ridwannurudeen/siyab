@@ -1,6 +1,6 @@
 # ShieldBot for NEAR
 
-Who your agent pays gets a verdict with evidence. Unknown never passes. A verdict service checks an agent payment on NEAR, a guard contract pays only on a signed ALLOW, and a registry records each verdict with its evidence hash. `README.md` has the full description.
+Every label has a source. Every verdict has evidence. Unknown never passes. A verdict service judges the receiver, the token, the amount and the memo of an agent payment on NEAR, a guard contract on testnet pays only on a signed ALLOW bound to that exact transfer, and a registry on testnet records verdicts with their evidence hashes (`docs/TESTNET.md` lists them). `README.md` has the full description.
 
 ## Install
 
@@ -36,7 +36,7 @@ cd contracts/<crate> && cargo near build reproducible-wasm    # network, Docker
 
 ```
 contracts/gate/         guard contract that holds the agent's funds and pays only on a signed ALLOW
-contracts/registry/     registry contract that records each verdict with its evidence hash
+contracts/registry/     registry contract that records verdicts with their evidence hashes
 contracts/test-token/   NEP-141 token for the sandbox and testnet runs
 gate/                   canonical message, Ed25519, evidence, RPC, rules, verdict service, EVM leg, agent, scan, CLI
 intel/                  label store, seeds, incidents, feed, flow trace, static page renderer, read only API
