@@ -281,6 +281,7 @@ class RecordedFeedTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertNotIn("fresh_accounts", body["stats"])
         self.assertEqual(body["stats"], {key: value for key, value in state.items() if key != "fresh_accounts"})
+        self.assertIsNone(body["follower"])
         self.assertTrue(state["fresh_accounts"])
         self.assertEqual(len(body["events"]), min(len(list(feed.EVENTS_DIR.glob("*.json"))), api.FEED_LIMIT))
 
@@ -377,7 +378,7 @@ class FollowModeTest(unittest.TestCase):
             self.assertEqual((walked, state["last_height"], state["blocks"]), (3, 3, 3))
             self.assertEqual(list(root.glob("*.json")), [root / "state.json"])
             self.assertEqual(state["mode"], "follow")
-            self.assertEqual(state["requests"], 4)
+            self.assertEqual(state["requests"], 3)
         self.assertEqual(len(list(BLOCKS.glob("*.json"))), fixtures)
 
     def test_follow_records_a_null_or_404_height_as_skipped_and_goes_on(self):
@@ -395,10 +396,123 @@ class FollowModeTest(unittest.TestCase):
                                             max_blocks=3, sleep=lambda _: None)
                 self.assertEqual((walked, state["last_height"], state["blocks"], state["skipped_heights"]),
                                  (3, 3, 2, [2]))
-                self.assertEqual(state["requests"], 4)
+                self.assertEqual(state["requests"], 3)
                 self.assertEqual(json.loads((root / "state.json").read_text(encoding="utf-8")), state)
                 self.assertFalse((root / "events").exists())
                 self.assertFalse((root / "event-blocks").exists())
+
+    def test_a_final_height_one_ahead_at_every_read_costs_one_request_a_height(self):
+        paths = []
+
+        class Advancing(FakeFetcher):
+            def get(self, path):
+                paths.append(path)
+                if path == "/v0/last_block/final":
+                    self.final += 1
+                return super().get(path)
+
+        fake = Advancing(self.blocks(10), 0)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state, walked = feed.follow(start=1, fetcher=fake.inner, state_path=root / "state.json",
+                                        events_dir=root / "events", event_blocks_dir=root / "event-blocks",
+                                        max_blocks=10, sleep=lambda _: None)
+        self.assertEqual((walked, state["last_height"], state["blocks"]), (10, 10, 10))
+        self.assertEqual(paths, ["/v0/last_block/final"] * 10)
+        self.assertEqual((fake.inner.requests, state["requests"]), (10, 10))
+
+    def test_a_catch_up_walk_of_k_heights_is_one_final_read_and_k_minus_1_block_fetches(self):
+        paths = []
+
+        class Logged(FakeFetcher):
+            def get(self, path):
+                paths.append(path)
+                return super().get(path)
+
+        fake = Logged(self.blocks(5), 5)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state, walked = feed.follow(start=1, fetcher=fake.inner, state_path=root / "state.json",
+                                        events_dir=root / "events", event_blocks_dir=root / "event-blocks",
+                                        max_blocks=5, sleep=lambda _: None)
+        self.assertEqual((walked, state["last_height"], state["blocks"]), (5, 5, 5))
+        self.assertEqual(paths, ["/v0/last_block/final"] + [f"/v0/block/{height}" for height in range(1, 5)])
+        self.assertEqual(state["requests"], 5)
+
+    def test_the_final_height_is_the_block_of_the_final_read_with_the_events_a_fetch_of_it_writes(self):
+        key = {"AddKey": {"public_key": "ed25519:pk", "access_key": {"nonce": 0, "permission": "FullAccess"}}}
+        event_block = raw_block(3, [raw_receipt("game.hot.tg", [key])])
+
+        class FinalRead(FakeFetcher):
+            """Answers the final read with the event block and refuses to serve that height again."""
+
+            def get(self, path):
+                if path == "/v0/block/3":
+                    raise AssertionError("the final height was fetched again")
+                if path == "/v0/last_block/final":
+                    return event_block
+                return super().get(path)
+
+        written = {}
+        for name, fake in (("final read", FinalRead(self.blocks(3), 3)),
+                           ("fetched", FakeFetcher({**self.blocks(4), 3: event_block}, 4))):
+            with tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                state, walked = feed.follow(start=1, fetcher=fake.inner, state_path=root / "state.json",
+                                            events_dir=root / "events", event_blocks_dir=root / "event-blocks",
+                                            max_blocks=3, sleep=lambda _: None, clock=lambda: T0)
+                self.assertEqual((walked, state["last_height"], state["events"]["watch_account_key_added"]),
+                                 (3, 3, 1))
+                written[name] = {path.relative_to(root).as_posix(): path.read_bytes()
+                                 for path in root.rglob("*.json") if path.name != "state.json"}
+        self.assertEqual(written["final read"], written["fetched"])
+        [event] = [json.loads(data) for path, data in written["final read"].items() if path.startswith("events/")]
+        self.assertEqual(event["source"]["url"], f"{feed.NEARDATA_URL}/v0/block/3")
+        self.assertEqual(event["source"]["block_fixture_sha256"],
+                         hashlib.sha256(written["final read"]["event-blocks/3.json"]).hexdigest())
+        self.assertEqual(json.loads(written["final read"]["event-blocks/3.json"]), feed.reduce_block(event_block))
+
+    def test_updated_at_is_stamped_at_every_height_and_every_wait_and_never_by_the_transfers_poll(self):
+        now, stamps, waits = [T0], [], []
+        write_json = feed._write_json
+
+        class Timed(FakeFetcher):
+            def get(self, path):
+                now[0] += 1
+                return super().get(path)
+
+        def recording(path, value, indent=None):
+            if Path(path).name == "state.json":
+                stamps.append(value.get("updated_at"))
+            write_json(path, value, indent)
+
+        def sleep(seconds):
+            now[0] += seconds
+            if seconds == 1:
+                waits.append(seconds)
+
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(feed, "_write_json", recording):
+            state, walked = self.follow_transfers(Path(tmp), Timed(self.blocks(2), 2), lambda: now[0], TransfersStub(),
+                                                  max_blocks=None, sleep=sleep, stopped=lambda: bool(waits))
+        self.assertEqual((walked, state["last_height"], state["last_large_transfer_poll_ms"]), (2, 2, T0_MS))
+        self.assertEqual(stamps, [None, "2026-11-03T12:00:07Z", "2026-11-03T12:00:07Z", "2026-11-03T12:00:08Z"])
+
+    def test_a_restart_neardata_refuses_keeps_updated_at_while_the_transfers_poll_writes_the_state(self):
+        class Refused(FakeFetcher):
+            def get(self, path):
+                raise rpc.HttpError(402, path)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.follow_transfers(root, FakeFetcher(self.blocks(1), 1), lambda: T0, TransfersStub())
+            for restart in (1, 2):
+                later = T0 + restart * (feed.POLL_S + 5)
+                with self.subTest(restart=restart), self.assertRaises(rpc.HttpError):
+                    self.follow_transfers(root, Refused({}, 0), lambda later=later: later, TransfersStub())
+                state = json.loads((root / "state.json").read_text(encoding="utf-8"))
+                self.assertEqual(state["last_large_transfer_poll_ms"], int(later * 1000))
+                self.assertEqual(state["updated_at"], "2026-11-03T12:00:00Z")
+            self.assertEqual(api._stopped_since(state, root / "state.json", later), "2026-11-03T12:00:00Z")
 
     def test_follow_counts_requests_on_the_utc_date_they_are_made_across_midnight(self):
         midnight = datetime(2026, 11, 4, tzinfo=UTC).timestamp()
@@ -478,7 +592,7 @@ class FollowModeTest(unittest.TestCase):
                 return "literal-test-key"
             return original_read_text(path, *args, **kwargs)
 
-        fake = Timed(self.blocks(3), 3)
+        fake = Timed(self.blocks(4), 4)
         with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(
                 os.environ, {"FASTNEAR_API_KEY_FILE": str(key_file)}), \
                 mock.patch.object(Path, "read_text", read_text), \
@@ -667,7 +781,7 @@ class FollowModeTest(unittest.TestCase):
         count = len(self.subjects)
         self.assertEqual(log.count("post"), count)
         self.assertEqual(log[:2 * count - 1], ["post", feed.FOLLOW_INTERVAL_S] * (count - 1) + ["post"])
-        self.assertEqual((state["transfer_requests"], state["requests"]), (len(self.subjects), 2))
+        self.assertEqual((state["transfer_requests"], state["requests"]), (len(self.subjects), 1))
 
     def test_large_transfer_signal_is_disabled_without_the_key_file_and_the_state_says_so(self):
         import os
@@ -696,7 +810,8 @@ class FollowModeTest(unittest.TestCase):
             requests.append(request)
             if request.full_url.startswith(feed.TRANSFERS_URL):
                 return http_reply(b'{"transfers": [], "resume_token": null}')
-            return http_reply(json.dumps(raw_block(1, [])).encode("utf-8"))
+            height = 2 if request.full_url.endswith("/v0/last_block/final") else 1
+            return http_reply(json.dumps(raw_block(height, [])).encode("utf-8"))
 
         for keyed in (True, False):
             requests.clear()
@@ -752,10 +867,10 @@ class FollowModeTest(unittest.TestCase):
                     client.assert_not_called()
 
     def test_follow_paces_and_backs_off(self):
-        fake = FakeFetcher(self.blocks(1), 1, throttled=1)
+        fake = FakeFetcher(self.blocks(2), 2, throttled=1)
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            feed.follow(fetcher=fake.inner, state_path=root / "state.json", events_dir=root / "events",
+            feed.follow(start=1, fetcher=fake.inner, state_path=root / "state.json", events_dir=root / "events",
                         event_blocks_dir=root / "event-blocks", max_blocks=1, sleep=fake.sleeps.append,
                         clock=lambda: 1793284740.0)
         self.assertIn(feed.BACKOFF_S, fake.sleeps)
@@ -799,18 +914,18 @@ class FollowModeTest(unittest.TestCase):
 
     def test_a_keyed_follower_paces_neardata_at_a_tenth_of_a_second(self):
         log = self.paced_log(3, keyed=True)
-        self.assertEqual(log[log.index("get"):], ["get", 0.1, "get", 0.1, "get", 0.1, "get"])
+        self.assertEqual(log[log.index("get"):], ["get", 0.1, "get", 0.1, "get"])
 
     def test_a_keyless_follower_paces_neardata_at_four_tenths_of_a_second(self):
         log = self.paced_log(3, keyed=False)
-        self.assertEqual(log, ["get", 0.4, "get", 0.4, "get", 0.4, "get"])
+        self.assertEqual(log, ["get", 0.4, "get", 0.4, "get"])
         self.assertNotIn(feed.FOLLOW_INTERVAL_KEYED_S, log)
 
     def test_a_keyed_follower_keeps_the_transfers_poll_four_tenths_of_a_second_apart(self):
         log = self.paced_log(1, keyed=True)
         count = len(self.subjects)
         self.assertGreater(count, 1)
-        self.assertEqual(log, ["post", 0.4] * (count - 1) + ["post", "get", 0.1, "get"])
+        self.assertEqual(log, ["post", 0.4] * (count - 1) + ["post", "get"])
 
     def test_a_restart_resumes_after_the_last_height(self):
         heights = self.blocks(4)

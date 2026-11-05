@@ -263,10 +263,11 @@ def _event_field(document, *keys):
 
 
 def feed_page(state_path=feed.STATE_PATH, events_dir=feed.EVENTS_DIR, *, state=None, event_rows=None, total=None,
-              unreadable=0):
+              unreadable=0, stopped_since=None):
     """The feed page; event_rows, (document, hash) in the order to show, total, the number of events they were
     selected from, and unreadable, the number of event files skipped, come from a caller that selected them,
-    else every event under events_dir is shown."""
+    else every event under events_dir is shown; stopped_since, when a follower judged stopped last wrote its
+    state, comes from the caller that judged it."""
     if state is None:
         if not Path(state_path).is_file():
             return page("Feed", "<h1>Feed</h1><p>The feed has not run.</p>")
@@ -281,7 +282,7 @@ def feed_page(state_path=feed.STATE_PATH, events_dir=feed.EVENTS_DIR, *, state=N
                              f"{snapshot['last_height']}.")
         window = (f"<p>Recorded window: blocks {state['start_height']} to {state['last_height']}, read on "
                   f"{esc(state['start_time'][:10])} UTC.{snapshot_note}</p>\n")
-    stats = "".join(f"<li>{esc(line)}</li>" for line in feed.stats_lines(state))
+    stats = "".join(f"<li>{esc(line)}</li>" for line in feed.stats_lines(state, stopped_since))
     if event_rows is None:
         events, unreadable = feed_events(events_dir)
         event_rows = [(document, stem) for _, stem, document in events]
