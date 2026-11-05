@@ -15,8 +15,9 @@ The tools replay recorded fixtures unless GATE_FIXTURES_MODE says record or off:
 check_near_payment binds the verdict to GATE_ACCOUNT_ID (default gate.near) and writes its evidence
 into a temporary directory, removed when the server exits unless GATE_KEEP_EVIDENCE=1. By default it
 binds the verdict to the TEST agent key, judges against GATE_POLICY (JSON in the get_agent shape;
-default no allowlist, so every receiver gets the off allowlist checks too) and signs an ALLOW with
-the TEST key. It signs with the live key in VERIFIER_KEY_FILE (PyNaCl) only when
+default no allowlist and no unknown payee caps, so every ALLOW for a payee off the allowlist answers
+action: ask with REFUSED:not_allowlisted) and signs an ALLOW with the TEST key. It signs with the live
+key in VERIFIER_KEY_FILE (PyNaCl) only when
 GATE_LIVE_SIGNING=1, GATE_FIXTURES_MODE=off, GATE_ACCOUNT_ID ends .testnet, GATE_POLICY is unset and
 AGENT_PUB holds the agent public key: the verdict is then bound to AGENT_PUB and judged against the
 Gate's get_agent for that key, read at every call. With the flag set, any other condition missing is

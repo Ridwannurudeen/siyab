@@ -43,12 +43,12 @@ class Transport:
 
 
 class Client:
-    def __init__(self, policy=POLICY):
-        self.policy, self.calls = policy, []
+    def __init__(self, policy=POLICY, gate_policy=None):
+        self.policy, self.gate_policy, self.calls = policy, gate_policy or {"paused": False, "denylist": []}, []
 
     def call_function(self, contract, method, args):
         self.calls.append((contract, method, args))
-        return self.policy
+        return self.gate_policy if method == "get_policy" else self.policy
 
 
 def judged(outcome="ALLOW", verdict_signer=None):
@@ -58,8 +58,11 @@ def judged(outcome="ALLOW", verdict_signer=None):
         verdict_object = {"literal": "ALLOW", "issued_ms": NOW_S * 1000, "expires_ms": NOW_S * 1000 + 300000,
                           "verdict_id": "ab" * 16, "evidence_hash": "cd" * 32, "key_id": "cur", "signature": "ef" * 64}
     action = {"ALLOW": "sign", "DENY": "refuse", "UNKNOWN": "ask"}[outcome]
-    return {"outcome": outcome, "action": action, "verdict": verdict_object, "checks": [
-        {"id": "receiver_exists", "status": "pass", "detail": "vendor-shop.testnet exists"}],
+    check_status = "unknown" if outcome == "UNKNOWN" else "pass"
+    check_detail = "no recorded response" if outcome == "UNKNOWN" else "vendor-shop.testnet exists"
+    checks = [{"id": "receiver_exists", "status": check_status, "detail": check_detail}]
+    ask = [f"{check['id']} could not run: {check['detail']}" for check in checks if check["status"] == "unknown"]
+    return {"outcome": outcome, "action": action, "ask": ask, "verdict": verdict_object, "checks": checks,
         "reasons": [], "evidence_hash": "cd" * 32, "latency_ms": 12}
 
 
@@ -73,8 +76,8 @@ class AgentCase(unittest.TestCase):
         self.addCleanup(patcher.stop)
         self.lines = []
 
-    def make(self, *outcomes, policy=POLICY, verifier=signer.TestSigner):
-        self.transport, self.client = Transport(*outcomes), Client(policy)
+    def make(self, *outcomes, policy=POLICY, gate_policy=None, verifier=signer.TestSigner):
+        self.transport, self.client = Transport(*outcomes), Client(policy, gate_policy)
         return agent.Agent(gate=GATE, public_hex=AGENT_PK.hex(), public_key=base58.encode_key(AGENT_PK),
                            transport=self.transport, clients=(self.client, None, None, None), verifier=verifier,
                            out_dir=self.dir / "out", clock=lambda: NOW_S)
@@ -87,6 +90,19 @@ class AgentCase(unittest.TestCase):
         return json.loads((self.dir / "out" / f"{name}.json").read_text(encoding="utf-8"))
 
 
+class ReadPolicyTest(AgentCase):
+    def test_read_policy_combines_the_agent_and_gate_views(self):
+        context = self.make(gate_policy={"paused": True, "denylist": ["blocked.testnet"]})
+        policy = agent.read_policy(context)
+        self.assertEqual(policy["gate_paused"], True)
+        self.assertEqual(policy["gate_denylist"], ["blocked.testnet"])
+        self.assertEqual(policy["enabled"], True)
+        self.assertEqual(context.clients[0].calls, [
+            (GATE, "get_agent", {"public_key": context.public_key}),
+            (GATE, "get_policy", {}),
+        ])
+
+
 class PayTest(AgentCase):
     def test_pay_sends_the_judged_verdict_untouched(self):
         context = self.make(SUCCESS)
@@ -94,9 +110,13 @@ class PayTest(AgentCase):
         with mock.patch("gate.verdict.request", return_value=result) as service:
             self.assertEqual(agent.pay(context, self.request(), out=self.lines.append), 0)
         kwargs = service.call_args.kwargs
-        self.assertEqual((kwargs["gate"], kwargs["agent_pk_hex"], kwargs["policy"]), (GATE, AGENT_PK.hex(), POLICY))
+        self.assertEqual((kwargs["gate"], kwargs["agent_pk_hex"], kwargs["policy"]),
+                         (GATE, AGENT_PK.hex(), {**POLICY, "gate_paused": False, "gate_denylist": []}))
         self.assertIsInstance(kwargs["signer"], signer.TestSigner)
-        self.assertEqual(self.client.calls, [(GATE, "get_agent", {"public_key": base58.encode_key(AGENT_PK)})])
+        self.assertEqual(self.client.calls, [
+            (GATE, "get_agent", {"public_key": base58.encode_key(AGENT_PK)}),
+            (GATE, "get_policy", {}),
+        ])
         self.assertEqual(self.transport.sent, [{
             "receiver_id": GATE, "method_name": "request_transfer", "gas": 30 * 10**12, "deposit": 0,
             "args": {"request": {"kind": "ft", "token_id": TOKEN, "receiver_id": "vendor-shop.testnet",
@@ -136,6 +156,8 @@ class PayTest(AgentCase):
             {"id": "account_age", "status": "unknown", "detail": "no recorded response"},
             {"id": "dust_funded", "status": "unknown", "detail": "no recorded response"},
         ]
+        result["ask"] = [f"{check['id']} could not run: {check['detail']}" for check in result["checks"]
+                         if check["status"] == "unknown"]
         with mock.patch("gate.verdict.request", return_value=result):
             self.assertEqual(agent.pay(context, self.request("other-payee.testnet"), out=self.lines.append), 3)
         self.assertEqual(self.transport.sent, [])
@@ -148,8 +170,13 @@ class PayTest(AgentCase):
         self.assertEqual(len(listed), len(set(listed)))
         self.assertIn("scripts/set_allowlist.sh needs OWNER_ACCOUNT_ID, GATE_ACCOUNT_ID, and NEAR_KEYS_DIR", self.lines)
         self.assertIn("nothing is sent until then", self.lines)
-        self.assertEqual(context.clients[0].calls, [(GATE, "get_agent", {"public_key": context.public_key})])
-        self.assertFalse(self.written(f"pay-{'cd' * 32}")["submitted"])
+        self.assertEqual(context.clients[0].calls, [
+            (GATE, "get_agent", {"public_key": context.public_key}),
+            (GATE, "get_policy", {}),
+        ])
+        record = self.written(f"pay-{'cd' * 32}")
+        self.assertFalse(record["submitted"])
+        self.assertEqual(record["ask"], result["ask"])
         unsigned = self.dir / "unknown.verdict.json"
         unsigned.write_text(json.dumps({"literal": "UNKNOWN", "evidence_hash": "cd" * 32}), encoding="utf-8")
         context = self.make()
@@ -185,11 +212,159 @@ class PayTest(AgentCase):
         self.assertFalse(self.written("pay-not-sent")["submitted"])
         self.assertFalse((self.dir / "out" / "pay-None.json").exists())
 
+    def test_an_allow_the_gate_refuses_asks_a_human_and_sends_nothing(self):
+        policy = json.loads((ROOT / "fixtures" / "demo" / "policy.json").read_text(encoding="utf-8"))
+        context = self.make(policy=policy)
+        receiver = "lindenvale.testnet"
+        amount = "2000000"
+        reason = (f"{receiver} is not on the agent's allowlist and {amount} is over its unknown payee cap of "
+                  "1000000 per call, so the Gate refuses the transfer (REFUSED:unknown_payee_cap)")
+        result = judged()
+        result["action"] = "ask"
+        result["ask"] = [reason]
+        result["checks"] = [{"id": "receiver_exists", "status": "pass", "detail": f"{receiver} exists"}]
+        request = agent.transfer_request("ft", "token.kestrelridge-main.testnet", receiver, amount, None,
+                                         gate=GATE, agent_pk_hex=AGENT_PK.hex())
+        with mock.patch("gate.verdict.request", return_value=result):
+            self.assertEqual(agent.pay(context, request, out=self.lines.append), 3)
+        self.assertEqual(self.transport.sent, [])
+        self.assertEqual(context.clients[0].calls, [
+            (GATE, "get_agent", {"public_key": context.public_key}),
+            (GATE, "get_policy", {}),
+        ])
+        command = (f"the owner's step, when the payee is known to them: bash scripts/set_allowlist.sh "
+                   f"{context.public_key} kestrelridge-shop.testnet,{receiver}")
+        decision_lines = [line for line in self.lines if line.startswith((
+            "not sent: the verdict is ALLOW", "ask a human:", "the owner's step,",
+            "scripts/set_allowlist.sh needs", "nothing is sent until then"))]
+        self.assertEqual(decision_lines, [
+            "not sent: the verdict is ALLOW, and the Gate refuses this transfer as it stands",
+            f"ask a human: {reason}",
+            command,
+            "scripts/set_allowlist.sh needs OWNER_ACCOUNT_ID, GATE_ACCOUNT_ID, and NEAR_KEYS_DIR",
+            "nothing is sent until then",
+        ])
+        record = self.written(f"pay-{'cd' * 32}")
+        self.assertFalse(record["submitted"])
+        self.assertEqual(record["ask"], [reason])
+
+    def test_an_allow_while_paused_prints_only_the_pause_step(self):
+        context = self.make(gate_policy={"paused": True, "denylist": []})
+        result = judged()
+        result["action"] = "ask"
+        result["ask"] = ["the Gate is paused, so it refuses every transfer (REFUSED:paused)"]
+        step = ("the owner's step: the Gate is paused; resume it with bash scripts/set_paused.sh false once the "
+                "cause is resolved")
+        with mock.patch("gate.verdict.request", return_value=result):
+            self.assertEqual(agent.pay(context, self.request(), out=self.lines.append), 3)
+        self.assertIn(step, self.lines)
+        self.assertFalse(any("set_allowlist.sh" in line for line in self.lines))
+        self.assertIn("nothing is sent until then", self.lines)
+        self.assertEqual(self.transport.sent, [])
+        record = self.written(f"pay-{'cd' * 32}")
+        self.assertFalse(record["submitted"])
+        self.assertEqual(record["ask"], result["ask"])
+
+    def test_an_allow_with_a_disabled_agent_prints_only_the_enable_step(self):
+        context = self.make(policy={**POLICY, "enabled": False})
+        result = judged()
+        result["action"] = "ask"
+        result["ask"] = ["the agent is disabled on the Gate, so the Gate refuses the transfer "
+                         "(REFUSED:agent_disabled)"]
+        step = ("the owner's step: the agent is disabled on the Gate; the owner re-enables it with the Gate's "
+                "set_agent_enabled call")
+        with mock.patch("gate.verdict.request", return_value=result):
+            self.assertEqual(agent.pay(context, self.request(), out=self.lines.append), 3)
+        self.assertIn(step, self.lines)
+        self.assertFalse(any("set_allowlist.sh" in line for line in self.lines))
+        self.assertIn("nothing is sent until then", self.lines)
+        self.assertEqual(self.transport.sent, [])
+        record = self.written(f"pay-{'cd' * 32}")
+        self.assertFalse(record["submitted"])
+        self.assertEqual(record["ask"], result["ask"])
+
+    def test_an_allow_for_a_denylisted_payee_prints_only_the_review_step(self):
+        context = self.make(gate_policy={"paused": False, "denylist": ["vendor-shop.testnet"]})
+        result = judged()
+        result["action"] = "ask"
+        result["ask"] = ["vendor-shop.testnet is on the Gate's denylist, so the Gate refuses the transfer "
+                         "(REFUSED:denylisted)"]
+        step = ("the owner's step: the payee is on the Gate's denylist; remove it with scripts/set_denylist.sh only "
+                "after the owner has reviewed why it was added")
+        with mock.patch("gate.verdict.request", return_value=result):
+            self.assertEqual(agent.pay(context, self.request(), out=self.lines.append), 3)
+        self.assertIn(step, self.lines)
+        self.assertFalse(any("set_allowlist.sh" in line for line in self.lines))
+        self.assertIn("nothing is sent until then", self.lines)
+        self.assertEqual(self.transport.sent, [])
+        record = self.written(f"pay-{'cd' * 32}")
+        self.assertFalse(record["submitted"])
+        self.assertEqual(record["ask"], result["ask"])
+
+    def test_an_allowlisted_payee_with_a_window_cap_reason_gets_no_allowlist_step(self):
+        context = self.make()
+        result = judged()
+        result["action"] = "ask"
+        result["ask"] = ["the agent's window cap is exceeded (REFUSED:window_cap)"]
+        with mock.patch("gate.verdict.request", return_value=result):
+            self.assertEqual(agent.pay(context, self.request(), out=self.lines.append), 3)
+        self.assertFalse(any("set_allowlist.sh" in line for line in self.lines))
+        self.assertIn("nothing is sent until then", self.lines)
+        self.assertEqual(self.transport.sent, [])
+        self.assertFalse(self.written(f"pay-{'cd' * 32}")["submitted"])
+
+    def test_unknown_tier2_with_a_paused_gate_prints_only_the_pause_step(self):
+        context = self.make(gate_policy={"paused": True, "denylist": []})
+        result = judged("UNKNOWN")
+        result["checks"] = [{"id": "account_age", "status": "unknown", "detail": "age read unavailable"}]
+        result["ask"] = ["account_age could not run: age read unavailable",
+                         "the Gate is paused, so it refuses every transfer (REFUSED:paused)"]
+        step = ("the owner's step: the Gate is paused; resume it with bash scripts/set_paused.sh false once the "
+                "cause is resolved")
+        with mock.patch("gate.verdict.request", return_value=result):
+            self.assertEqual(agent.pay(context, self.request("other-payee.testnet"), out=self.lines.append), 3)
+        self.assertIn(step, self.lines)
+        self.assertFalse(any("set_allowlist.sh" in line for line in self.lines))
+        self.assertIn("nothing is sent until then", self.lines)
+        self.assertEqual(self.transport.sent, [])
+        record = self.written(f"pay-{'cd' * 32}")
+        self.assertFalse(record["submitted"])
+        self.assertEqual(record["ask"], result["ask"])
+
+    def test_mixed_tier1_and_tier2_unknowns_offer_no_allowlist_step(self):
+        context = self.make()
+        result = judged("UNKNOWN")
+        result["checks"] = [
+            {"id": "storage_registered", "status": "unknown", "detail": "token read unavailable"},
+            {"id": "account_age", "status": "unknown", "detail": "age read unavailable"},
+        ]
+        result["ask"] = [f"{check['id']} could not run: {check['detail']}" for check in result["checks"]]
+        with mock.patch("gate.verdict.request", return_value=result):
+            self.assertEqual(agent.pay(context, self.request("other-payee.testnet"), out=self.lines.append), 3)
+        self.assertEqual(self.transport.sent, [])
+        self.assertIn("the owner's step: allowlisting skips only the tier 2 checks, so pay again when the source of "
+                      "storage_registered, account_age answers", self.lines)
+        self.assertFalse(any(line.startswith("the owner's step, when the payee is known") for line in self.lines))
+
+    def test_a_disabled_agent_asks_and_sends_nothing(self):
+        context = self.make(policy={**POLICY, "enabled": False})
+        result = judged()
+        result["action"] = "ask"
+        result["ask"] = ["the agent is disabled on the Gate, so the Gate refuses the transfer "
+                         "(REFUSED:agent_disabled)"]
+        with mock.patch("gate.verdict.request", return_value=result):
+            self.assertEqual(agent.pay(context, self.request(), out=self.lines.append), 3)
+        self.assertEqual(self.transport.sent, [])
+        self.assertIn("ask a human: the agent is disabled on the Gate, so the Gate refuses the transfer "
+                      "(REFUSED:agent_disabled)", self.lines)
+        self.assertFalse(self.written(f"pay-{'cd' * 32}")["submitted"])
+
     def test_an_allowlisted_unknown_does_not_print_an_allowlist_step(self):
         policy = {**POLICY, "allowlist": ["vendor-shop.testnet", "other-payee.testnet"]}
         context = self.make(policy=policy)
         result = judged("UNKNOWN")
         result["checks"] = [{"id": "receiver_exists", "status": "unknown", "detail": "no recorded response"}]
+        result["ask"] = ["receiver_exists could not run: no recorded response"]
         with mock.patch("gate.verdict.request", return_value=result):
             self.assertEqual(agent.pay(context, self.request("other-payee.testnet"), out=self.lines.append), 3)
         self.assertFalse(any(line.startswith("the owner's step,") for line in self.lines))

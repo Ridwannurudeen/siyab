@@ -31,6 +31,8 @@ from gate.rpc import (
 )
 
 MIN_AGE_DAYS = 7
+# The checks judge runs only for a receiver off the agent's allowlist; an owner's set_allowlist call skips them.
+TIER2_CHECKS = ("account_age", "dust_funded", "lookalike", "code_without_metadata")
 DAY_MS = 24 * 60 * 60 * 1000
 YOCTO_PER_NEAR = 10**24
 DUST_YOCTO = 10**23  # 0.1 NEAR
