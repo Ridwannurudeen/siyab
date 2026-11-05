@@ -33,7 +33,7 @@ import time
 from pathlib import Path
 
 from gate import rpc, rules
-from intel import api, cluster, feed, issuers, labels, render, seed, trace
+from intel import api, cluster, feed, issuers, labels, render, render_records, seed, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 RECEIVERS_DIR = ROOT / "fixtures" / "receivers"
@@ -339,6 +339,11 @@ def _flow(args):
         return 1
 
 
+def _render_records(args):
+    for relative in render_records.render_records(args.out):
+        print(relative)
+
+
 def _render(args):
     pages = render.render(args.out, indexable=args.indexable)
     print(f"{len(pages)} pages written under {args.out}")
@@ -394,6 +399,9 @@ def main(argv=None):
     rendering.add_argument("--out", required=True, help="the directory to write, such as demo/site")
     rendering.add_argument("--indexable", action="store_true", help="leave the robots noindex meta out")
     rendering.set_defaults(handler=_render)
+    desk = commands.add_parser("render-records", help="write the incident desk pages from the committed records")
+    desk.add_argument("--out", required=True, help="the directory to write, such as demo/records")
+    desk.set_defaults(handler=_render_records)
     commands.add_parser("feed-stats", help="print the feed state").set_defaults(handler=_feed_stats)
     args = parser.parse_args(argv)
     return args.handler(args)
