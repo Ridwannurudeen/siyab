@@ -9,8 +9,8 @@ Routes (GET only; no route writes anything and no route opens the network):
     /feed                 the feed state without its fresh accounts and the last 50 events, or null
                           and an empty list, with follower: "running" for a follower's state, or
                           "stopped" with lag_blocks null once its last update (updated_at, else
-                          last_time, else the state file's mtime) is more than
-                          FOLLOWER_STOPPED_AFTER_S old; null for any other state
+                          last_time, else started_at) is more than FOLLOWER_STOPPED_AFTER_S old;
+                          null for any other state
     /feed.html            with FEED_STATE_DIR naming a follower's state, the feed page built from it,
                           which gives a stopped follower's last update time and says the lag is
                           unknown; else the static file as below
@@ -54,19 +54,22 @@ SEARCH_INDEX = ROOT / "demo" / "site" / "search.json"
 FLOWS_DIR = ROOT / "intel" / "flows"
 CLUSTERS_DIR = ROOT / "intel" / "clusters"
 FEED_LIMIT = 50
-# The follower stamps updated_at at every height, at every read of the final height while it waits
-# there, and, once its run has read the final block, at the end of every transfer poll; a run that has
-# not read it, such as a restart on a refused key, stamps nothing, so a crash loop never refreshes the
-# stamp. With every request answered inside its rpc.TIMEOUT_S (30 s), the longest gap between two
-# stamps of a running follower is a transfer poll after the 1 s wait at the final height: one page each
-# for 13 of the 14 incident and denylist subjects and all MAX_TRANSFER_PAGES (20) for the last, 33
-# requests FOLLOW_INTERVAL_S (0.4 s) apart, 33 x 30 + 32 x 0.4 = 1002.8 s, so 1003.8 s. After a poll's
-# stamp the next one comes within a final read, two requests since neardata redirects it, with one 429
-# back off (BACKOFF_S, 10 s), 2 x 30 + 10 + 2 x 30 = 130 s, a 0.4 s pace and a block fetch with one
-# back off, 30 + 10 + 30 = 70 s: 200.4 s. 1200 s clears 1003.8 s with room for six more subjects. Not
-# covered: a run's first poll, which comes before its first final read and so stamps nothing
-# (1002.8 + 200.4 = 1203.2 s at that speed, the restart on top), a second subject paging to the cap at
-# that speed, and an unbroken run of 429 answers, which Fetcher.get waits out without end.
+# The follower stamps updated_at at every height and at every read of the final height while it waits
+# there, and, once its run has done either, at the end of every transfer poll; a run that has done
+# neither, such as a restart on a refused key or one whose first block fetch fails, stamps nothing, so
+# a crash loop never refreshes the stamp. With every request answered inside its rpc.TIMEOUT_S (30 s),
+# a poll is one page each for 13 of the 14 incident and denylist subjects and all MAX_TRANSFER_PAGES
+# (20) for the last, 33 requests FOLLOW_INTERVAL_S (0.4 s) apart, 33 x 30 + 32 x 0.4 = 1002.8 s; a
+# final read is two requests since neardata redirects it, with one 429 back off (BACKOFF_S, 10 s),
+# 2 x 30 + 10 + 2 x 30 = 130 s; a block fetch with one back off is 30 + 10 + 30 = 70 s. A poll that
+# falls due during the final read after the 1 s wait at the final height runs before the next fetch,
+# so the longest gap between two stamps of a running follower is that wait, that read, a 0.4 s pace
+# and the poll: 1 + 130 + 0.4 + 1002.8 = 1134.2 s. A poll due at the wait itself gives
+# 1 + 1002.8 = 1003.8 s, and after a poll's stamp the next comes within a final read, a pace and a
+# fetch, 200.4 s. 1200 s clears 1134.2 s with room for two more subjects. Not covered: a run's polls
+# before its first stamp (1002.8 + 200.4 = 1203.2 s at that speed, the restart on top), a second
+# subject paging to the cap at that speed, and an unbroken run of 429 answers, which Fetcher.get waits
+# out without end.
 FOLLOWER_STOPPED_AFTER_S = 1200
 JSON_TYPE = "application/json; charset=utf-8"
 _HEX64 = re.compile(r"[0-9a-f]{64}")
@@ -106,16 +109,20 @@ def _timestamp(value):
         return None
 
 
-def _stopped_since(state, state_path, now):
+def _stopped_since(state, now):
     """The time of a follower's last update when that is more than FOLLOWER_STOPPED_AFTER_S before now, else
     None. The last update is updated_at; for a state without a readable one, last_time, the chain time of the
     last height it walked, which the transfer poll never moves (older than the walk itself while the follower
-    catches up, so such a state reads stopped sooner); and, when it has neither, the state file's mtime."""
+    catches up, so such a state reads stopped sooner); else started_at, when the follower first started. A
+    state with none of the three readable reads stopped since an unknown time. The state file's mtime is never
+    read, since the transfer poll rewrites it."""
     written = _timestamp(state.get("updated_at"))
     if written is None:
         written = _timestamp(state.get("last_time"))
     if written is None:
-        written = Path(state_path).stat().st_mtime
+        written = _timestamp(state.get("started_at"))
+    if written is None:
+        return "an unknown time"
     if now - written <= FOLLOWER_STOPPED_AFTER_S:
         return None
     return datetime.fromtimestamp(written, UTC).strftime(feed._TIME)
@@ -135,7 +142,7 @@ def _feed():
     if stats is not None:
         stats.pop("fresh_accounts", None)
         if stats.get("mode") == "follow":
-            follower = "running" if _stopped_since(stats, state_path, time.time()) is None else "stopped"
+            follower = "running" if _stopped_since(stats, time.time()) is None else "stopped"
         if follower == "stopped":
             stats["lag_blocks"] = None
     events = render.feed_events(events_dir)[0]
@@ -153,7 +160,7 @@ def _live_feed_page():
         state = _read_json(state_path)
         if not isinstance(state, dict) or state.get("mode") != "follow":
             return None
-        stopped_since = _stopped_since(state, state_path, time.time())
+        stopped_since = _stopped_since(state, time.time())
         events, unreadable = render.feed_events(events_dir)
     except (OSError, UnicodeError, ValueError):
         return None

@@ -152,24 +152,21 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(body["stats"], {"blocks": 300})
         self.assertEqual([event["n"] for event in body["events"]], list(range(49, -1, -1)))
 
-    def test_the_follower_reads_stopped_a_second_past_the_threshold_by_updated_at_else_last_time_else_the_mtime(self):
+    def test_the_follower_reads_stopped_a_second_past_the_threshold_by_updated_at_else_last_time_else_started_at(self):
         written = datetime(2026, 11, 5, 5, 3, 12, tzinfo=UTC).timestamp()
         limit = written + api.FOLLOWER_STOPPED_AFTER_S
-        stamp = "2026-11-05T05:03:12Z"
-        cases = (("updated_at", {"updated_at": stamp, "last_time": "2026-11-05T01:00:00Z"}, limit + 60),
-                 ("last_time", {"last_time": stamp}, limit + 60),
-                 ("last_time past a null updated_at", {"updated_at": None, "last_time": stamp}, limit + 60),
-                 ("last_time past a malformed updated_at", {"updated_at": "2026-11-05 05:03:12", "last_time": stamp},
-                  limit + 60),
-                 ("mtime", {"last_time": None}, written))
-        with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / "state.json"
-            path.write_text("{}", encoding="utf-8")
-            for judged_by, state, mtime in cases:
-                with self.subTest(judged_by=judged_by):
-                    os.utime(path, (mtime, mtime))
-                    self.assertIsNone(api._stopped_since(state, path, limit))
-                    self.assertEqual(api._stopped_since(state, path, limit + 1), stamp)
+        stamp, earlier = "2026-11-05T05:03:12Z", "2026-11-05T01:00:00Z"
+        cases = (("updated_at", {"updated_at": stamp, "last_time": earlier, "started_at": earlier}),
+                 ("last_time", {"last_time": stamp, "started_at": earlier}),
+                 ("last_time past a null updated_at", {"updated_at": None, "last_time": stamp, "started_at": earlier}),
+                 ("last_time past a malformed updated_at",
+                  {"updated_at": "2026-11-05 05:03:12", "last_time": stamp, "started_at": earlier}),
+                 ("started_at", {"last_time": None, "started_at": stamp}))
+        for judged_by, state in cases:
+            with self.subTest(judged_by=judged_by):
+                self.assertIsNone(api._stopped_since(state, limit))
+                self.assertEqual(api._stopped_since(state, limit + 1), stamp)
+        self.assertEqual(api._stopped_since({"last_time": None, "started_at": None}, written), "an unknown time")
 
     def test_the_stopped_threshold_clears_the_longest_gap_between_two_stamps_of_a_running_follower(self):
         requests = len(feed.Context(self.store).deny_receivers) - 1 + feed.MAX_TRANSFER_PAGES
@@ -177,7 +174,8 @@ class ApiTest(unittest.TestCase):
         final_read = 2 * rpc.TIMEOUT_S + feed.BACKOFF_S + 2 * rpc.TIMEOUT_S
         fetch = rpc.TIMEOUT_S + feed.BACKOFF_S + rpc.TIMEOUT_S
         self.assertGreater(api.FOLLOWER_STOPPED_AFTER_S,
-                           max(1 + poll, final_read + feed.FOLLOW_INTERVAL_S + fetch))
+                           max(1 + poll, 1 + final_read + feed.FOLLOW_INTERVAL_S + poll,
+                               final_read + feed.FOLLOW_INTERVAL_S + fetch))
 
     def test_flow_refuses_a_subject_without_an_incident_label(self):
         subject = "intents.near"
@@ -324,16 +322,15 @@ class HostedSiteTest(unittest.TestCase):
                     self.assertIn(f"<li>follower stopped: its last update was at {written}, lag unknown</li>", page)
                     self.assertNotIn("lag 4 blocks", page)
 
-    def test_a_follow_state_without_updated_at_is_judged_by_last_time_else_by_the_state_file_mtime(self):
+    def test_a_follow_state_without_updated_at_is_judged_by_last_time_else_by_started_at(self):
         now = int(time.time())
-        fresh, stale = now - 10, now - api.FOLLOWER_STOPPED_AFTER_S - 60
-        for last_time, mtime, follower in ((fresh, stale, "running"), (stale, fresh, "stopped"),
-                                           (None, fresh, "running"), (None, stale, "stopped")):
-            text = None if last_time is None else datetime.fromtimestamp(last_time, UTC).strftime(feed._TIME)
-            shown = datetime.fromtimestamp(last_time or mtime, UTC).strftime(feed._TIME)
-            with self.subTest(last_time=text, follower=follower), tempfile.TemporaryDirectory() as tmp:
-                write_follow_state(Path(tmp), [], lag_blocks=4, last_time=text)
-                os.utime(Path(tmp) / "state.json", (mtime, mtime))
+        fresh = datetime.fromtimestamp(now - 10, UTC).strftime(feed._TIME)
+        stale = datetime.fromtimestamp(now - api.FOLLOWER_STOPPED_AFTER_S - 60, UTC).strftime(feed._TIME)
+        for last_time, started_at, follower in ((fresh, stale, "running"), (stale, fresh, "stopped"),
+                                                (None, fresh, "running"), (None, stale, "stopped")):
+            shown = last_time or started_at
+            with self.subTest(last_time=last_time, started_at=started_at), tempfile.TemporaryDirectory() as tmp:
+                write_follow_state(Path(tmp), [], lag_blocks=4, last_time=last_time, started_at=started_at)
                 with mock.patch.dict(os.environ, {"FEED_STATE_DIR": tmp}):
                     page = get(self.server, "/feed.html")[3].decode("utf-8")
                     body = json.loads(get(self.server, "/feed")[3])

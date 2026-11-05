@@ -554,7 +554,59 @@ class FollowModeTest(unittest.TestCase):
                 state = json.loads((root / "state.json").read_text(encoding="utf-8"))
                 self.assertEqual(state["last_large_transfer_poll_ms"], int(later * 1000))
                 self.assertEqual(state["updated_at"], "2026-11-03T12:00:00Z")
-            self.assertEqual(api._stopped_since(state, root / "state.json", later), "2026-11-03T12:00:00Z")
+            self.assertEqual(api._stopped_since(state, later), "2026-11-03T12:00:00Z")
+
+    def test_a_restart_whose_block_fetch_fails_after_its_final_read_never_stamps_in_a_poll_due_between(self):
+        class Failing(FakeFetcher):
+            def get(self, path):
+                if path == "/v0/block/2":
+                    raise rpc.HttpError(500, path)
+                return super().get(path)
+
+        now = [T0]
+
+        def sleep(seconds):
+            now[0] += seconds
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            feed._write_json(root / "state.json", {**feed.new_state(), "mode": "follow",
+                                                   "started_at": "2026-11-03T08:00:00Z", "last_height": 1,
+                                                   "blocks": 1, "last_time": "2026-11-03T11:10:00Z",
+                                                   "updated_at": "2026-11-03T11:10:00Z",
+                                                   "last_large_transfer_poll_ms": T0_MS - 599_950,
+                                                   "large_transfer_next_poll_ms": T0_MS + 50}, indent=2)
+            with self.assertRaises(rpc.HttpError):
+                self.follow_transfers(root, Failing(self.blocks(3), 3), lambda: now[0], TransfersStub(),
+                                      max_blocks=None, sleep=sleep)
+            state = json.loads((root / "state.json").read_text(encoding="utf-8"))
+        self.assertGreaterEqual(state["last_large_transfer_poll_ms"], T0_MS + 50)
+        self.assertEqual((state["last_height"], state["updated_at"]), (1, "2026-11-03T11:10:00Z"))
+        self.assertEqual(api._stopped_since(state, T0 + 60), "2026-11-03T11:10:00Z")
+
+    def test_a_fresh_install_whose_final_read_always_fails_reads_stopped_by_its_started_at(self):
+        import os
+
+        class Refused(FakeFetcher):
+            def get(self, path):
+                raise rpc.HttpError(402, path)
+
+        first = time.time() - 2 * 3600
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for start in (first, time.time()):
+                with self.assertRaises(rpc.HttpError):
+                    self.follow_transfers(root, Refused({}, 0), lambda start=start: start, TransfersStub())
+            state = json.loads((root / "state.json").read_text(encoding="utf-8"))
+            with mock.patch.dict(os.environ, {"FEED_STATE_DIR": str(root)}):
+                status, body = api.route("/feed", labels.load())
+                page = api._live_feed_page().decode("utf-8")
+        started_at = datetime.fromtimestamp(first, UTC).strftime(feed._TIME)
+        self.assertEqual((state["started_at"], state["last_time"]), (started_at, None))
+        self.assertGreater(state["last_large_transfer_poll_ms"], int(first * 1000))
+        self.assertNotIn("updated_at", state)
+        self.assertEqual((status, body["follower"], body["stats"]["lag_blocks"]), (200, "stopped", None))
+        self.assertIn(f"<li>follower stopped: its last update was at {started_at}, lag unknown</li>", page)
 
     def test_a_state_without_updated_at_reads_stopped_after_a_refused_restart_whose_transfers_poll_writes_it(self):
         import os
@@ -586,7 +638,7 @@ class FollowModeTest(unittest.TestCase):
 
         def judge():
             path = root / "state.json"
-            judged.append(api._stopped_since(json.loads(path.read_text(encoding="utf-8")), path, now[0]))
+            judged.append(api._stopped_since(json.loads(path.read_text(encoding="utf-8")), now[0]))
 
         class Slow(TransfersStub):
             def post(self, path, body):

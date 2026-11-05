@@ -44,13 +44,13 @@ height and time, the last height and time, the block count, the skipped heights,
 accounts with their funding deposit and time, and the event count per signal; a follower adds
 mode ("follow"), started_at (when the first follow run began), lag_blocks (the final height at the
 last read minus the last height), updated_at (the UTC time of the follower's last update: its state
-write at a height, at a read of the final height while it waits there, or, once its run has read the
-final block, at the end of a transfer poll; a run that has not read it, such as a restart on a
-refused key, never moves it, and the read only API judges the follower stopped once updated_at, or
-for a state without one last_time, is more than FOLLOWER_STOPPED_AFTER_S old), requests (the
-neardata requests made on request_day), transfer_requests (the Transfers API requests made on
-request_day), request_day (the UTC date both counts are for, checked before every neardata request;
-a new date resets them) and
+write at a height, at a read of the final height while it waits there, or, once its run has walked a
+height or waited at the final height, at the end of a transfer poll; a run that has done neither,
+such as a restart on a refused key or one whose first block fetch fails, never moves it, and the
+read only API judges the follower stopped once updated_at, else last_time, else started_at, is more
+than FOLLOWER_STOPPED_AFTER_S old), requests (the neardata requests made on request_day),
+transfer_requests (the Transfers API requests made on request_day), request_day (the UTC date both
+counts are for, checked before every neardata request; a new date resets them) and
 disabled_signals (a signal that is off and why: the transfer signal when FASTNEAR_API_KEY_FILE is
 unset or names a file that cannot be read or is empty; never the path or the key). The transfer
 poll adds last_large_transfer_poll_ms (the start of the last complete poll, or POLL_S before the
@@ -357,8 +357,8 @@ class Fetcher:
 def poll_transfers(client, state, state_path, context, events_dir, clock, sleep, stamp=False):
     """The large transfer poll when it is due: every subject's rows of the window since the last
     complete poll, asked FOLLOW_INTERVAL_S apart and written as events only when every request
-    succeeded; with stamp, given once the run has read the final block, its state write stamps
-    updated_at."""
+    succeeded; with stamp, given once the run has stamped updated_at itself (walked a height or waited
+    at the final height), its state write stamps updated_at too."""
     now_ms = int(clock() * 1000)
     if now_ms < state.get("large_transfer_next_poll_ms", now_ms):
         return
@@ -501,7 +501,7 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
         disabled[SIGNALS[3]] = disabled_reason
     walked = 0
     last_request = None
-    read_final = False
+    stamped = False
     while not stopped() and (max_blocks is None or walked < max_blocks):
         if last_request is not None:
             sleep(max(0, interval_s - (clock() - last_request)))
@@ -509,10 +509,9 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
         if state["request_day"] != request_day:
             state["request_day"], state["requests"], state["transfer_requests"] = request_day, 0, 0
         if transfers_client is not None:
-            poll_transfers(transfers_client, state, state_path, context, events_dir, clock, sleep, stamp=read_final)
+            poll_transfers(transfers_client, state, state_path, context, events_dir, clock, sleep, stamp=stamped)
         requests_before = fetcher.requests
         final_block = fetcher.final_block()
-        read_final = True
         final_height = final_block["block"]["header"]["height"]
         state["requests"] += fetcher.requests - requests_before
         last_request = clock()
@@ -523,6 +522,7 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
             state["lag_blocks"] = 0
             state["mode"] = "follow"
             _stamp(state, clock)
+            stamped = True
             _write_json(Path(state_path), state, indent=2)
             sleep(1)
             continue
@@ -533,7 +533,7 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
             if state["request_day"] != request_day:
                 state["request_day"], state["requests"], state["transfer_requests"] = request_day, 0, 0
             if transfers_client is not None:
-                poll_transfers(transfers_client, state, state_path, context, events_dir, clock, sleep, stamp=read_final)
+                poll_transfers(transfers_client, state, state_path, context, events_dir, clock, sleep, stamp=stamped)
             if next_height == final_height:
                 raw = final_block
             else:
@@ -564,6 +564,7 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
             state["mode"] = "follow"
             state["lag_blocks"] = max(0, final_height - (state["last_height"] or final_height))
             _stamp(state, clock)
+            stamped = True
             _write_json(Path(state_path), state, indent=2)
             next_height += 1
         if next_height > final_height and not stopped() and (max_blocks is None or walked < max_blocks):
