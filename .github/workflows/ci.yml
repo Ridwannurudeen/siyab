@@ -53,7 +53,7 @@ jobs:
       CARGO_TARGET_DIR: /tmp/shieldbot-near-target
     strategy:
       matrix:
-        crate: [gate, test-token, registry]
+        crate: [gate, test-token, registry, reports]
     steps:
       - uses: actions/checkout@v4
       - name: Select repository toolchain
@@ -76,7 +76,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        crate: [gate, registry]
+        crate: [gate, registry, reports]
     steps:
       - uses: actions/checkout@v4
       - name: Select repository toolchain
