@@ -6,7 +6,7 @@ The format of a ShieldBot for NEAR verdict: the canonical message the verifier s
 
 - ALLOW: every check ran and none found a scam signal.
 - DENY: a check found a signal. A signal wins over a check that could not run.
-- UNKNOWN: a check could not run, and none found a signal.
+- UNKNOWN: a check could not run, and none found a signal; a pending report for a payee off the allowlist, an unreadable community report summary, or an accepted social report also yields UNKNOWN.
 
 Only ALLOW is signed. DENY and UNKNOWN carry no signature and no verdict id, so a refused verdict and an unreachable service look the same to the contract: no signature, no transfer. ALLOW is the absence of a known scam signal, not proof of identity.
 

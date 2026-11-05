@@ -14,6 +14,7 @@ with another tier 2 signal (account_age, dust_funded or lookalike); alone it is 
 
 import dataclasses
 import json
+import os
 import re
 from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
@@ -29,10 +30,11 @@ from gate.rpc import (
     RpcError,
     TransportError,
 )
+from intel import reports
 
 MIN_AGE_DAYS = 7
 # The checks judge runs only for a receiver off the agent's allowlist; an owner's set_allowlist call skips them.
-TIER2_CHECKS = ("account_age", "dust_funded", "lookalike", "code_without_metadata")
+TIER2_CHECKS = ("account_age", "dust_funded", "lookalike", "code_without_metadata", "pending_report")
 DAY_MS = 24 * 60 * 60 * 1000
 YOCTO_PER_NEAR = 10**24
 DUST_YOCTO = 10**23  # 0.1 NEAR
@@ -316,7 +318,7 @@ def _issuer_check(rpc, receiver, issuers):
     return evidence.check("issuer_blacklist", status, "; ".join(parts), sources[status])
 
 
-def _tier1(request, policy, store, rpc, injection_scanner, issuers):
+def _tier1(request, policy, store, rpc, injection_scanner, issuers, reports_account):
     """Tier 1 checks; returns (checks, the receiver account or None, its source, label ids)."""
     kind, token, receiver, memo = (request["kind"], request["token_id"], request["receiver_id"],
                                    request["memo"])
@@ -373,7 +375,28 @@ def _tier1(request, policy, store, rpc, injection_scanner, issuers):
                                          f"could not read storage_balance_of: {_why(error)}", _source(rpc)))
 
     checks.append(_memo_check(memo, injection_scanner))
-    return checks, account, account_source, [a.id for a in consulted]
+    report_summary, report_source, report_effect = None, None, None
+    if reports_account:
+        try:
+            report_summary = rpc.call_function(reports_account, "subject_summary", {"subject": receiver})
+            report_effect = reports.effect(report_summary, receiver in policy.get("allowlist", []))
+            if report_effect == "deny":
+                detail = (f"accepted report {report_summary['latest_accepted_id']} for {receiver} is "
+                          f"{report_summary['latest_accepted_kind']}")
+                status = "signal"
+            elif report_effect == "unknown":
+                detail = f"the community report summary for {receiver} is inconclusive or unreadable"
+                status = "unknown"
+            else:
+                detail = f"no community report requires review for {receiver}"
+                status = "pass"
+        except UNAVAILABLE as error:
+            report_effect = "unknown"
+            status = "unknown"
+            detail = f"could not read subject_summary on {reports_account}: {_why(error)}"
+        report_source = _source(rpc)
+        checks.append(evidence.check("community_report", status, detail, report_source))
+    return checks, account, account_source, [a.id for a in consulted], report_summary, report_source, report_effect
 
 
 def _ft_metadata_check(rpc, token):
@@ -477,7 +500,8 @@ def _nonce_age(rpc, archival, receiver, now_ms, min_age_days, nearblocks_why):
                           archival_source), False
 
 
-def _tier2(request, policy, store, account, account_source, rpc, nearblocks, now_ms, min_age_days, archival):
+def _tier2(request, policy, store, account, account_source, rpc, nearblocks, now_ms, min_age_days, archival,
+            reports_account, report_summary, report_source, report_effect):
     """Tier 2 checks; returns (checks, facts for the reasons, matched catalog assertion ids)."""
     receiver = request["receiver_id"]
     checks, facts, matched = [], {}, []
@@ -568,6 +592,18 @@ def _tier2(request, policy, store, account, account_source, rpc, nearblocks, now
     # only together with another tier 2 signal (PLAN-v4 B6).
     checks.append(_code_check(rpc, receiver, account, account_source,
                               any(check["status"] == "signal" for check in checks)))
+    if reports_account:
+        pending = report_summary.get("pending") if isinstance(report_summary, dict) else None
+        pending_unknown = (report_effect == "unknown" and (type(pending) is not int or pending > 0))
+        if pending_unknown:
+            detail = (f"pending reports for {receiver} await review"
+                      if type(pending) is int and pending > 0
+                      else f"could not determine pending report status for {receiver}")
+            status = "unknown"
+        else:
+            detail = f"no pending report requires review for {receiver}"
+            status = "pass"
+        checks.append(evidence.check("pending_report", status, detail, report_source))
     return checks, facts, matched
 
 
@@ -641,13 +677,16 @@ def judge(request, policy, store, rpc, nearblocks, *, now_ms, injection_scanner,
     empty list adds no check. A receiver that is not a valid account id raises canon.CanonError, a
     ValueError, before any request."""
     canon.account_id(request["receiver_id"], "receiver_id")
-    tier1_checks, account, account_source, labels = _tier1(request, policy, store, rpc, injection_scanner, issuers)
+    reports_account = os.environ.get("REPORTS_ACCOUNT_ID")
+    (tier1_checks, account, account_source, labels, report_summary, report_source,
+     report_effect) = _tier1(request, policy, store, rpc, injection_scanner, issuers, reports_account)
     block_height = account.get("block_height") if account else None
     tier2 = request["receiver_id"] not in policy.get("allowlist", [])
     checks, facts = list(tier1_checks), {}
     if tier2:
         tier2_checks, facts, matched = _tier2(request, policy, store, account, account_source, rpc,
-                                              nearblocks, now_ms, min_age_days, archival)
+                                              nearblocks, now_ms, min_age_days, archival, reports_account,
+                                              report_summary, report_source, report_effect)
         checks += tier2_checks
         labels += [assertion_id for assertion_id in matched if assertion_id not in labels]
     statuses = {check["status"] for check in checks}

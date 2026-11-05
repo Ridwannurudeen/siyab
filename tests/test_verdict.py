@@ -234,13 +234,16 @@ class ActionTest(VerdictCase):
         client = rpc.Client(rpc.MAINNET_RPC_URL, "replay")
         nearblocks = rpc.Client(rpc.NEARBLOCKS_URL, "replay", kind="http")
         common = {"caps": [{"asset": {"Ft": "wrap.near"}}]}
-        allowed = rules.judge(transfer, {**common, "allowlist": ["intents.near"]}, self.store, client, nearblocks,
-                              now_ms=1800000000000, injection_scanner=None)
-        unapproved = rules.judge(transfer, {**common, "allowlist": []}, self.store, client, nearblocks,
-                                 now_ms=1800000000000, injection_scanner=None)
+        with mock.patch.dict(os.environ):
+            os.environ.pop("REPORTS_ACCOUNT_ID", None)
+            allowed = rules.judge(transfer, {**common, "allowlist": ["intents.near"]}, self.store, client, nearblocks,
+                                  now_ms=1800000000000, injection_scanner=None)
+            unapproved = rules.judge(transfer, {**common, "allowlist": []}, self.store, client, nearblocks,
+                                     now_ms=1800000000000, injection_scanner=None)
         allowed_ids = {check["id"] for check in allowed.checks}
         unapproved_ids = {check["id"] for check in unapproved.checks}
-        self.assertEqual(unapproved_ids - allowed_ids, set(rules.TIER2_CHECKS))
+        self.assertEqual(unapproved_ids - allowed_ids, set(rules.TIER2_CHECKS) - {"pending_report"})
+        self.assertNotIn("pending_report", unapproved_ids)
 
 
 class NoSignatureTest(VerdictCase):
