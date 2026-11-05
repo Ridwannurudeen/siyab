@@ -3,7 +3,7 @@
 The pages are built from fixtures/records/, so the desk can be reviewed before the contract lane
 lands and the same renderer reads real records later without a second template. Nothing here invents
 a number: every count is computed from the committed files, and the action beside a record comes from
-records.verdict_for, the same function the signing paths call.
+records.verdict_for, the function the payment path must call once it is built.
 
 Two pages: index.html, one row per subject with its state and what a payment may do, and
 records/<id>.html, one record with its subjects, state, timeline, evidence, decisions and the record

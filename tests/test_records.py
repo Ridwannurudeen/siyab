@@ -1,7 +1,8 @@
 """The incident and attempt record: the rules of docs/RECORD.md, over the examples in fixtures/records/.
 
 The safety rules: an accepted report denies only for the five kinds that describe an exploit of
-code, an accepted social report asks instead, pending and contested only ask, an allowlisted payee
+code, an accepted social report asks instead, pending asks, a contested report keeps the DENY of
+those five kinds and asks for social, a deny on any record beats a newer ask, an allowlisted payee
 is not stalled by an ask, and anything unreadable is never a pass.
 """
 
@@ -22,12 +23,13 @@ def load(name):
     return json.loads((ROOT / "fixtures" / "records" / name).read_text(encoding="utf-8"))
 
 
-CLEAN = {"accepted": 0, "pending": 0, "contested": 0, "latest_accepted_id": None}
+CLEAN = {"accepted": 0, "pending": 0, "contested": 0, "latest_accepted_id": None,
+         "denies": False}
 
 
-def row(accepted=0, pending=0, contested=0, latest="0" * 64):
+def row(accepted=0, pending=0, contested=0, latest="0" * 64, denies=False):
     return {"accepted": accepted, "pending": pending, "contested": contested,
-            "latest_accepted_id": latest if accepted else None}
+            "latest_accepted_id": latest if accepted else None, "denies": denies}
 
 
 class FixtureTest(unittest.TestCase):
@@ -117,9 +119,35 @@ class VerdictTest(unittest.TestCase):
     def test_a_deny_still_applies_to_an_allowlisted_payee(self):
         self.assertEqual(records.verdict_for(row(accepted=1), "theft", allowlisted=True), "DENY")
 
+    def test_an_older_accepted_deny_is_not_lost_behind_a_newer_social_report(self):
+        denial = copy.deepcopy(load("injected-collector.json"))
+        denial["subjects"] = ["kestrelridge-sh0p.testnet"]
+        denial["record_id"] = records.record_id(denial)
+        social = load("social-accepted.json")
+        built = records.summary([denial, social])
+        self.assertEqual(built["accepted"], 2)
+        self.assertTrue(built["denies"])
+        self.assertEqual(built["latest_accepted_id"], social["record_id"])
+        self.assertEqual(records.verdict_for(built, "social"), "DENY")
+        self.assertEqual(records.verdict_for(built, "social", allowlisted=True), "DENY")
+
+    def test_a_contested_denial_kind_keeps_the_deny_when_the_latest_is_social(self):
+        built = records.summary([load("lookalike-contested.json"), load("social-accepted.json")])
+        self.assertEqual(built["contested"], 1)
+        self.assertTrue(built["denies"])
+        self.assertEqual(built["latest_accepted_id"], load("social-accepted.json")["record_id"])
+        self.assertEqual(records.verdict_for(built, "social"), "DENY")
+        self.assertEqual(records.verdict_for(built, "social", allowlisted=True), "DENY")
+
+    def test_a_social_record_alone_or_a_pending_one_does_not_set_denies(self):
+        self.assertFalse(records.summary([load("social-accepted.json")])["denies"])
+        self.assertFalse(records.summary([load("lookalike-pending.json")])["denies"])
+
     def test_an_unreadable_summary_is_never_a_pass_and_the_allowlist_does_not_forgive_it(self):
         broken = [None, {}, CLEAN | {"extra": 1}, row(accepted=-1), row(accepted=True),
-                  row(accepted=1, latest="abc"), row(pending="1")]
+                  row(accepted=1, latest="abc"), row(pending="1"),
+                  {key: value for key, value in CLEAN.items() if key != "denies"},
+                  row(denies=1), row(denies="yes")]
         for summary_row in broken:
             with self.subTest(summary=summary_row):
                 self.assertEqual(records.verdict_for(summary_row, "theft"), "UNKNOWN")
@@ -137,6 +165,7 @@ class VerdictTest(unittest.TestCase):
         self.assertEqual(built["accepted"], 2)
         self.assertEqual(built["pending"], 1)
         self.assertEqual(built["contested"], 1)
+        self.assertTrue(built["denies"])
         self.assertIn(built["latest_accepted_id"],
                       {record["record_id"] for record in holdings if record["state"] == "accepted"})
 
@@ -266,7 +295,7 @@ class ShapeTest(unittest.TestCase):
 
     def test_the_summary_fields_are_the_bounded_contract_read(self):
         self.assertEqual(records.SUMMARY_FIELDS,
-                         ("accepted", "pending", "contested", "latest_accepted_id"))
+                         ("accepted", "pending", "contested", "latest_accepted_id", "denies"))
 
     def test_the_canonical_bytes_do_not_depend_on_key_order(self):
         record = load("injected-collector.json")

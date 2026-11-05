@@ -6,9 +6,9 @@ state, and every state change is an entry in its timeline.
 
 `intel/record_enums.json` holds the three lists, and nothing else: kinds, outcomes and states.
 `intel/records.py` validates it and owns the one place a state becomes a verdict, `fixtures/records/`
-holds examples and `tests/test_records.py` holds the rules. The contract enforces the same state list
-against that file in a Rust test. `intel/records.py` does not import `gate.rules` or `gate.verdict`,
-so the record model cannot depend on the rules that read it.
+holds examples and `tests/test_records.py` holds the rules. The contract lane is specified to
+enforce the same state list against that file in a Rust test. `intel/records.py` does not import
+`gate.rules` or `gate.verdict`, so the record model cannot depend on the rules that read it.
 
 ## Two axes, not one list
 
@@ -90,11 +90,14 @@ Transitions: `pending` to `accepted`, `rejected` or `withdrawn`; `accepted` to `
 
 ## The read the payment check makes
 
-The payment path does not reread every record. It reads one bounded summary for the subject,
-`subject_summary(subject)` returning `{accepted, pending, contested, latest_accepted_id}`, and
-`verdict_for` takes that summary, the kind of the latest accepted report, and the allowlist flag.
-`records.summary` builds the same shape from the records held off chain, so the replay and the site
-agree with the contract rather than inventing a second ordering.
+The payment path does not reread every record. It is specified to read one bounded summary for the
+subject, `subject_summary(subject)` returning
+`{accepted, pending, contested, latest_accepted_id, denies}`, and `verdict_for` takes that summary,
+the kind of the latest accepted report, and the allowlist flag. `denies` is true when any accepted
+or contested record is one of the five denial kinds, so a subject with an older accepted theft and
+a newer accepted social report still gets the DENY. `records.summary` builds the same shape from
+the records held off chain, so the replay and the site agree with the contract rather than
+inventing a second ordering.
 
 ### The allowlist, and why it is here
 
@@ -104,10 +107,12 @@ payee is on the owner's allowlist. A DENY from an `accepted` record still applie
 allowlisted account can be compromised or named in an incident, and that is exactly when the label
 has to win.
 
-A read that fails, a summary that does not match the four fields, a negative count, or an accepted
-summary whose kind is missing or outside the vocabulary all read `UNKNOWN`, and the allowlist does
-not forgive them. A pending record that can deny is a censorship tool with a storage deposit;
-`verdict_for` is the only place the mapping lives and every signing path calls it.
+A read that fails, a summary that does not match the five fields, a negative count, a `denies` that
+is not a boolean, or an accepted summary whose kind is missing or outside the vocabulary all read
+`UNKNOWN`, and the allowlist does not forgive them. A pending record that can deny is a censorship
+tool with a storage deposit; `verdict_for` is the only place the mapping lives. The desk renderer
+calls it today, and the payment path is not built on this branch: when it is, it must call this
+function rather than keep a second copy of the ladder.
 
 ## What a record is not
 
@@ -118,13 +123,14 @@ appeal, and the site shows the state beside every subject.
 
 ## The report body behind body_sha256
 
-A report is hashed from exactly six fields, and both the contract test and the Python test build the
-same bytes:
+A report is hashed from exactly six fields, and the Python test and the contract lane's Rust test
+must build the same bytes:
 
     {evidence_sha256, evidence_url, kind, outcome, subject, submitter}
 
 Keys sorted, compact JSON, UTF-8, no nulls, no trailing newline. `subject` is the single account
 agents should not pay, and `submitter` is the account that filed it. `evidence_url` is https and at
 most 512 bytes; the contract stores the hash and the url, and the record adds `fetched_at` off chain.
-`fixtures/records/report-body-vector.json` holds one body, its exact canonical bytes and its sha256,
-and the Rust test reads the same file, so a change on either side breaks both tests.
+`fixtures/records/report-body-vector.json` holds one body, its exact canonical bytes and its sha256.
+The Python test reads it today; the contract lane's Rust test must read the same file, so a change
+on either side is caught before either side ships.

@@ -1,7 +1,7 @@
 """The incident desk pages: rendered from the committed records, and committed as bytes a reader can diff.
 
 The pages carry no number that is not computed, and the action beside a record comes from
-records.verdict_for, so a page cannot say a payment blocks when the signing paths would ask.
+records.verdict_for, so a page cannot say a payment blocks when the payment path would ask.
 """
 
 import tempfile

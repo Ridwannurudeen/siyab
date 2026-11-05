@@ -10,8 +10,9 @@ A record is content addressed. record_id is the sha256 of the compact JSON of th
 sorted keys, so nothing edits a record in place. A correction is a new record whose supersedes names
 the one it replaces, and the store marks the old one superseded; no state is rewritten.
 
-verdict_for is the only place a subject's records become an answer, and every signing path calls it
-with the summary the contract returns.
+verdict_for is the only place a subject's records become an answer. The desk renderer calls it
+today with the summary the contract is specified to return; the payment path is not built on this
+branch and must call it rather than keep a second copy of the ladder.
 """
 
 import hashlib
@@ -43,7 +44,7 @@ TRANSITIONS = {
 FIELDS = ("version", "record_id", "kind", "outcome", "state", "subjects", "reports", "evidence",
           "moderation", "timeline", "supersedes", "publisher", "observed")
 
-SUMMARY_FIELDS = ("accepted", "pending", "contested", "latest_accepted_id")
+SUMMARY_FIELDS = ("accepted", "pending", "contested", "latest_accepted_id", "denies")
 REPORT_BODY_FIELDS = ("evidence_sha256", "evidence_url", "kind", "outcome", "subject", "submitter")
 
 # The kinds an accepted report may deny for. A social report is an ask, because a human was
@@ -85,22 +86,29 @@ def summary(records):
 
     The counts are per state, and latest_accepted_id is the accepted record with the greatest report
     seq, so this mirrors subject_summary on chain rather than inventing a second ordering.
+
+    denies is true when any accepted or contested record is a denial kind. One latest id cannot
+    carry that: with an older accepted theft and a newer accepted social report the latest kind is
+    social, so a summary without this flag would lose the DENY.
     """
     accepted = [record for record in records if record["state"] == "accepted"]
+    contested = [record for record in records if record["state"] == "contested"]
     latest = max(accepted, key=_latest_key) if accepted else None
     return {
         "accepted": len(accepted),
         "pending": sum(1 for record in records if record["state"] == "pending"),
-        "contested": sum(1 for record in records if record["state"] == "contested"),
+        "contested": len(contested),
         "latest_accepted_id": latest["record_id"] if latest else None,
+        "denies": any(record["kind"] in DENY_KINDS for record in accepted + contested),
     }
 
 
 def report_body(body):
     """The canonical report body the contract hashes into body_sha256.
 
-    Exactly six fields, keys sorted, compact JSON, UTF-8, no nulls and no trailing newline. The same
-    bytes are built by the Rust test that reads fixtures/records/report-body-vector.json.
+    Exactly six fields, keys sorted, compact JSON, UTF-8, no nulls and no trailing newline.
+    fixtures/records/report-body-vector.json fixes the bytes; the Python test here reads it, and the
+    contract lane's Rust test must read the same file once that lane lands.
     """
     if not isinstance(body, dict) or tuple(sorted(body)) != REPORT_BODY_FIELDS:
         raise RecordError(f"report body: exactly the fields {REPORT_BODY_FIELDS} are required")
@@ -134,8 +142,10 @@ def verdict_for(summary_row, kind=None, *, allowlisted=False):
     no effect, so a report with a storage deposit cannot stall a payment to a payee the owner
     already trusts; a DENY still applies, because an allowlisted account can be compromised.
 
-    A summary that cannot be read, or an accepted summary whose kind is missing or outside the
-    vocabulary, reads UNKNOWN and is never forgiven by the allowlist.
+    denies covers every accepted and contested record, so an older accepted theft is not lost
+    behind a newer accepted social report. A summary that cannot be read, a denies that is not a
+    boolean, or an accepted summary whose kind is missing or outside the vocabulary, reads UNKNOWN
+    and is never forgiven by the allowlist.
     """
     if not isinstance(summary_row, dict) or tuple(sorted(summary_row)) != tuple(sorted(SUMMARY_FIELDS)):
         return UNREADABLE
@@ -150,11 +160,13 @@ def verdict_for(summary_row, kind=None, *, allowlisted=False):
             isinstance(summary_row["latest_accepted_id"], str)
             and _HEX64.fullmatch(summary_row["latest_accepted_id"])):
         return UNREADABLE
+    if not isinstance(summary_row["denies"], bool):
+        return UNREADABLE
 
     if accepted or contested:
         if kind not in KINDS:
             return UNREADABLE
-        if kind in DENY_KINDS:
+        if summary_row["denies"] or kind in DENY_KINDS:
             return "DENY"
         if contested:
             return "UNKNOWN"
