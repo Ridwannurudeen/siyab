@@ -143,6 +143,11 @@ class FirstScreenTest(unittest.TestCase):
     def test_the_registry_sentence_states_the_testnet_total_and_the_payments_without_a_record(self):
         total = re.findall(r"`total_records` (\d+)", TESTNET.read_text(encoding="utf-8"))[-1]
         self.assertIn(f"The testnet registry holds {total} verdict records: ", self.blocks[2])
+        self.assertIn(
+            "the DENYs of the lookalike, the aged payee and the collector account named in the Rhea Lend "
+            "incident report",
+            self.blocks[2],
+        )
         self.assertIn("the first payment and the replay attack's first send have no record, because their evidence "
                       "documents were not kept", self.blocks[2])
 

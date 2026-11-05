@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest import mock
 
 from gate import __main__ as gate_main
-from gate import agent, base58, canon, ed25519, rpc, signer
+from gate import agent, base58, canon, demo, ed25519, rpc, signer
 
 ROOT = Path(__file__).resolve().parent.parent
 AGENT_SOURCE = ROOT / "gate" / "agent.py"
@@ -57,7 +57,8 @@ def judged(outcome="ALLOW", verdict_signer=None):
     if outcome == "ALLOW":
         verdict_object = {"literal": "ALLOW", "issued_ms": NOW_S * 1000, "expires_ms": NOW_S * 1000 + 300000,
                           "verdict_id": "ab" * 16, "evidence_hash": "cd" * 32, "key_id": "cur", "signature": "ef" * 64}
-    return {"outcome": outcome, "verdict": verdict_object, "checks": [
+    action = {"ALLOW": "sign", "DENY": "refuse", "UNKNOWN": "ask"}[outcome]
+    return {"outcome": outcome, "action": action, "verdict": verdict_object, "checks": [
         {"id": "receiver_exists", "status": "pass", "detail": "vendor-shop.testnet exists"}],
         "reasons": [], "evidence_hash": "cd" * 32, "latency_ms": 12}
 
@@ -117,21 +118,48 @@ class PayTest(AgentCase):
         with mock.patch("gate.verdict.request", side_effect=AssertionError("judged again")):
             self.assertEqual(agent.pay(context, self.request(), str(path), out=self.lines.append), 0)
         self.assertEqual(self.transport.sent[0]["args"]["verdict"], verdict_object)
+        self.assertEqual(context.clients[0].calls, [])
 
-    def test_pay_sends_nothing_on_deny_or_unknown(self):
-        for outcome in ("DENY", "UNKNOWN"):
-            with self.subTest(outcome=outcome), mock.patch("gate.verdict.request", return_value=judged(outcome)):
-                context = self.make()
-                self.assertEqual(agent.pay(context, self.request(), out=self.lines.append), 1)
-                self.assertEqual(self.transport.sent, [])
-                self.assertIn(f"not sent: the verdict is {outcome}, and the Gate pays only on a signed ALLOW",
-                              self.lines)
-                self.assertFalse(self.written(f"pay-{'cd' * 32}")["submitted"])
+    def test_pay_sends_nothing_on_deny(self):
+        with mock.patch("gate.verdict.request", return_value=judged("DENY")):
+            context = self.make()
+            self.assertEqual(agent.pay(context, self.request(), out=self.lines.append), 1)
+        self.assertEqual(self.transport.sent, [])
+        self.assertIn("not sent: the verdict is DENY, and the Gate pays only on a signed ALLOW", self.lines)
+        self.assertFalse(self.written(f"pay-{'cd' * 32}")["submitted"])
+
+    def test_unknown_asks_a_human_and_sends_nothing(self):
+        context = self.make()
+        result = judged("UNKNOWN")
+        result["checks"] = [
+            {"id": "receiver_exists", "status": "pass", "detail": "other-payee.testnet exists"},
+            {"id": "account_age", "status": "unknown", "detail": "no recorded response"},
+            {"id": "dust_funded", "status": "unknown", "detail": "no recorded response"},
+        ]
+        with mock.patch("gate.verdict.request", return_value=result):
+            self.assertEqual(agent.pay(context, self.request("other-payee.testnet"), out=self.lines.append), 3)
+        self.assertEqual(self.transport.sent, [])
+        self.assertIn("not sent: the verdict is UNKNOWN, and the Gate pays only on a signed ALLOW", self.lines)
+        self.assertIn("ask a human: 2 checks could not run: account_age, dust_funded", self.lines)
+        allowlist_line = (f"the owner's step, when the payee is known to them: bash scripts/set_allowlist.sh "
+                          f"{context.public_key} vendor-shop.testnet,other-payee.testnet")
+        self.assertIn(allowlist_line, self.lines)
+        listed = allowlist_line.rsplit(" ", 1)[1].split(",")
+        self.assertEqual(len(listed), len(set(listed)))
+        self.assertIn("scripts/set_allowlist.sh needs OWNER_ACCOUNT_ID, GATE_ACCOUNT_ID, and NEAR_KEYS_DIR", self.lines)
+        self.assertIn("nothing is sent until then", self.lines)
+        self.assertEqual(context.clients[0].calls, [(GATE, "get_agent", {"public_key": context.public_key})])
+        self.assertFalse(self.written(f"pay-{'cd' * 32}")["submitted"])
         unsigned = self.dir / "unknown.verdict.json"
         unsigned.write_text(json.dumps({"literal": "UNKNOWN", "evidence_hash": "cd" * 32}), encoding="utf-8")
         context = self.make()
-        self.assertEqual(agent.pay(context, self.request(), str(unsigned), out=self.lines.append), 1)
+        self.lines = []
+        self.assertEqual(agent.pay(context, self.request(), str(unsigned), out=self.lines.append), 3)
         self.assertEqual(self.transport.sent, [])
+        self.assertEqual(context.clients[0].calls, [])
+        self.assertIn("ask a human: the verdict file carries no check details", self.lines)
+        self.assertIn("nothing is sent until then", self.lines)
+        self.assertFalse(any("0 checks could not run" in line for line in self.lines))
         allow = judged()["verdict"]
         broken = {
             "an ALLOW without a signature": {key: value for key, value in allow.items() if key != "signature"},
@@ -156,6 +184,16 @@ class PayTest(AgentCase):
         self.assertEqual(agent.pay(self.make(), self.request(), str(unsigned), out=self.lines.append), 1)
         self.assertFalse(self.written("pay-not-sent")["submitted"])
         self.assertFalse((self.dir / "out" / "pay-None.json").exists())
+
+    def test_an_allowlisted_unknown_does_not_print_an_allowlist_step(self):
+        policy = {**POLICY, "allowlist": ["vendor-shop.testnet", "other-payee.testnet"]}
+        context = self.make(policy=policy)
+        result = judged("UNKNOWN")
+        result["checks"] = [{"id": "receiver_exists", "status": "unknown", "detail": "no recorded response"}]
+        with mock.patch("gate.verdict.request", return_value=result):
+            self.assertEqual(agent.pay(context, self.request("other-payee.testnet"), out=self.lines.append), 3)
+        self.assertFalse(any(line.startswith("the owner's step,") for line in self.lines))
+        self.assertEqual(self.transport.sent, [])
 
     def failed_after_scheduling(self, restored):
         event = json.dumps({"standard": "shieldbot-near", "version": "1.0.0", "event": "transfer_failed",
@@ -232,9 +270,10 @@ class NoBypassTest(unittest.TestCase):
 
 
 class AttackTest(AgentCase):
-    def run_attack(self, name, *outcomes, receiver="vendor-shop.testnet", amount="1000000"):
+    def run_attack(self, name, *outcomes, receiver="vendor-shop.testnet", amount="1000000",
+                   verdict_outcome="ALLOW"):
         context = self.make(*outcomes)
-        with mock.patch("gate.verdict.request", return_value=judged()):
+        with mock.patch("gate.verdict.request", return_value=judged(verdict_outcome)):
             code = agent.attack(name, context, self.request(receiver, amount), out=self.lines.append)
         return code, self.transport.sent
 
@@ -254,18 +293,49 @@ class AttackTest(AgentCase):
             "service-down": [request_transfer],
             "one-yocto": [(GATE, "request_transfer", 1, 30 * 10**12)],
             "unknown-payee": [request_transfer],
+            "injected": [request_transfer],
         }
         self.assertEqual(sorted(rows), sorted(agent.ATTACKS))
         for name, expected in rows.items():
             with self.subTest(attack=name):
                 self.lines = []
-                code, sent = self.run_attack(name, SUCCESS if name == "replay" else PANIC, PANIC)
+                code, sent = self.run_attack(name, SUCCESS if name == "replay" else PANIC, PANIC,
+                                             verdict_outcome="DENY" if name == "injected" else "ALLOW")
                 self.assertEqual([self.shape(s) for s in sent], expected)
                 self.assertEqual(code, 0)
                 record = self.written(name)
                 self.assertTrue(record["refused"])
                 self.assertEqual([s["sent"] for s in record["submissions"]], sent)
                 self.assertIn(f"{name}: refused", self.lines)
+
+    def test_injected_sends_one_request_without_a_verdict_after_a_deny(self):
+        context = self.make(PANIC)
+        result = judged("DENY")
+        result["reasons"] = ["the collector carries an incident label"]
+        with mock.patch("gate.verdict.request", return_value=result):
+            code = agent.attack("injected", context, self.request(), out=self.lines.append)
+        self.assertEqual(code, 0)
+        self.assertEqual(len(self.transport.sent), 1)
+        self.assertEqual(self.transport.sent[0]["method_name"], "request_transfer")
+        self.assertIsNone(self.transport.sent[0]["args"]["verdict"])
+        record = self.written("injected")
+        self.assertTrue(record["refused"])
+        self.assertEqual(record["notes"], ["the verdict service answered DENY: the collector carries an incident label",
+                                           "the agent submits without a verdict"])
+
+    def test_injected_stops_when_the_service_allows(self):
+        context = self.make()
+        with mock.patch("gate.verdict.request", return_value=judged("ALLOW")):
+            with self.assertRaisesRegex(agent.AgentError, "not DENY"):
+                agent.attack("injected", context, self.request(), out=self.lines.append)
+        self.assertEqual(self.transport.sent, [])
+
+    def test_injected_stops_when_the_service_answers_unknown(self):
+        context = self.make()
+        with mock.patch("gate.verdict.request", return_value=judged("UNKNOWN")):
+            with self.assertRaisesRegex(agent.AgentError, "UNKNOWN.*not DENY"):
+                agent.attack("injected", context, self.request(), out=self.lines.append)
+        self.assertEqual(self.transport.sent, [])
 
     def test_the_verdicts_each_attack_carries(self):
         request = self.request()
@@ -458,6 +528,86 @@ class CommandTest(unittest.TestCase):
                                         {"GATE_ACCOUNT_ID": GATE, "AGENT_KEY_FILE": "missing.json"})
         self.assertEqual(code, 2)
         self.assertIn("cannot read a key file", errors)
+
+    def test_attack_injected_needs_a_message_and_the_others_need_the_transfer_fields(self):
+        code, errors = self.run_command(["attack", "injected", "--out", "unused"], {})
+        self.assertEqual((code, errors), (2, "not sent: attack injected reads the transfer from --message\n"))
+        code, errors = self.run_command(["attack", "no-verdict", "--kind", "ft", "--amount", "1", "--out",
+                                         "unused"], {})
+        self.assertEqual((code, errors), (2, "not sent: set --kind, --receiver and --amount\n"))
+        code, errors = self.run_command(["attack", "injected", "--message", "fixtures/demo/injected-message.txt",
+                                         "--receiver", "x", "--out", "unused"], {})
+        self.assertEqual((code, errors),
+                         (2, "not sent: attack injected reads the transfer from --message; do not pass "
+                             "transfer options\n"))
+        for option in ("--token", "--memo"):
+            with self.subTest(option=option):
+                code, errors = self.run_command(["attack", "injected", "--message",
+                                                  "fixtures/demo/injected-message.txt", option, "value",
+                                                  "--out", "unused"], {})
+                self.assertEqual((code, errors),
+                                 (2, "not sent: attack injected reads the transfer from --message; do not pass "
+                                     "transfer options\n"))
+
+    def test_injected_message_read_and_parse_errors_are_not_tracebacks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            key_file = Path(tmp) / "agent-public.json"
+            key_file.write_text(json.dumps({"public_key": demo.AGENT_KEY}), encoding="utf-8")
+
+            def public_only_key(path):
+                public_key = json.loads(Path(path).read_text(encoding="utf-8"))["public_key"]
+                return base58.decode_key(public_key).hex(), public_key, None
+
+            environment = {"GATE_ACCOUNT_ID": GATE, "AGENT_KEY_FILE": str(key_file)}
+            missing_path = Path(tmp) / "missing-message.txt"
+            cases = (
+                ("missing file", missing_path, None, "cannot read --message:"),
+                ("missing pay-to", Path(tmp) / "missing-pay-to.txt", "From: billing\n\namount: 1\n",
+                 "missing pay-to"),
+                ("missing amount", Path(tmp) / "missing-amount.txt",
+                 "From: billing\n\npay-to: vendor-shop.testnet\n", "missing amount"),
+            )
+            with mock.patch("gate.agent.agent_key", side_effect=public_only_key), \
+                    mock.patch("gate.agent.NearCliTransport") as transport:
+                for name, message_path, message, expected in cases:
+                    with self.subTest(error=name):
+                        if message is not None:
+                            message_path.write_text(message, encoding="utf-8")
+                        code, errors = self.run_command(
+                            ["attack", "injected", "--message", str(message_path), "--via", "near-cli", "--out",
+                             str(Path(tmp) / "out")], environment)
+                        self.assertEqual(code, 2)
+                        self.assertTrue(errors.startswith(f"not sent: {expected}"), errors)
+                        self.assertNotIn("Traceback", errors)
+                transport.assert_not_called()
+
+    def test_pay_in_default_replay_refuses_without_a_live_agent_fixture(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            key_file = Path(tmp) / "agent-public.json"
+            key_file.write_text(json.dumps({"public_key": demo.AGENT_KEY}), encoding="utf-8")
+
+            def public_only_key(path):
+                public_key = json.loads(Path(path).read_text(encoding="utf-8"))["public_key"]
+                return base58.decode_key(public_key).hex(), public_key, None
+
+            transport = Transport()
+            output, errors = io.StringIO(), io.StringIO()
+            argv = ["pay", "--kind", "ft", "--token", "token.kestrelridge-main.testnet", "--receiver",
+                    "kestrelridge-shop.testnet", "--amount", "1", "--via", "near-cli", "--out",
+                    str(Path(tmp) / "out")]
+            environment = {"GATE_ACCOUNT_ID": "kestrelridge-main.testnet", "AGENT_KEY_FILE": str(key_file)}
+            with (mock.patch.dict(os.environ, environment, clear=True),
+                  mock.patch("gate.agent.agent_key", side_effect=public_only_key),
+                  mock.patch("gate.agent.NearCliTransport", return_value=transport),
+                  mock.patch("urllib.request.urlopen", side_effect=AssertionError("replay opened the network")),
+                  contextlib.redirect_stdout(output), contextlib.redirect_stderr(errors)):
+                self.assertNotIn("GATE_FIXTURES_MODE", os.environ)
+                code = gate_main.main(argv)
+        self.assertEqual(code, 2)
+        self.assertEqual(output.getvalue(), "")
+        self.assertEqual(errors.getvalue(),
+                         "not sent: pay reads the Gate live: set GATE_FIXTURES_MODE=record or off\n")
+        self.assertEqual(transport.sent, [])
 
     def test_pay_in_replay_mode_says_it_reads_the_gate_live(self):
         with tempfile.TemporaryDirectory() as tmp:

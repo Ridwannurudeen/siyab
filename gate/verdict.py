@@ -21,11 +21,12 @@ def request(kind, token, receiver, amount, memo, *, gate, agent_pk_hex, policy, 
             clock=time.time, issuers=None):
     """Judge one transfer for the agent agent_pk_hex at the Gate gate.
 
-    Returns {"outcome", "verdict", "request", "checks", "reasons", "evidence_hash", "evidence_path",
-    "latency_ms", "message"}: "request" is the TransferRequest and "verdict" the Verdict object the
-    Gate's request_transfer takes, or None unless the outcome is ALLOW. clock gives the wall time in
-    seconds for the rules and the issue time; the latency always uses time.perf_counter. issuers is
-    the issuer table the rules read (gate.rules.issuers_for), or None for no issuer_blacklist check.
+    Returns {"outcome", "action", "verdict", "request", "checks", "reasons", "evidence_hash",
+    "evidence_path", "latency_ms", "message"}: "request" is the TransferRequest and "verdict" the
+    Verdict object the Gate's request_transfer takes, or None unless the outcome is ALLOW. "action"
+    is sign for ALLOW, refuse for DENY, or ask for UNKNOWN. clock gives the wall time in seconds for
+    the rules and the issue time; the latency always uses time.perf_counter. issuers is the issuer
+    table the rules read (gate.rules.issuers_for), or None for no issuer_blacklist check.
     """
     amount = canon.validate_transfer(gate=gate, agent_pk_hex=agent_pk_hex, kind=kind, token_id=token,
                                      receiver_id=receiver, amount=amount, memo=memo)
@@ -63,6 +64,7 @@ def request(kind, token, receiver, amount, memo, *, gate, agent_pk_hex, policy, 
         }
     return {
         "outcome": judgement.verdict,
+        "action": {"ALLOW": "sign", "DENY": "refuse", "UNKNOWN": "ask"}[judgement.verdict],
         "verdict": verdict,
         "request": transfer,
         "checks": judgement.checks,

@@ -40,7 +40,7 @@ The agent registration, 29 Oct, transaction `HNVuBL2N...K2wmdu` (`fixtures/runs/
 
 Each emitted `transfer_scheduled`, the token's `ft_transfer` and `transfer_completed`. The evidence document of the first payment was lost with a scratch copy, so the registry holds no record of it; the second, third and fourth are recorded (see Registry).
 
-## Attack runs, 29 Oct and 2 Nov
+## Attack runs, 29 Oct to 5 Nov
 
 | Attack | Refused by | Transaction |
 |---|---|---|
@@ -54,8 +54,11 @@ Each emitted `transfer_scheduled`, the token's `ft_transfer` and `transfer_compl
 | service-down (no verifier key) | Gate, `REFUSED:no_verdict` | `CTm9yDGH...vt9wnk` |
 | one-yocto (1 yoctoNEAR attached) | protocol, `DepositWithFunctionCall` | none (rejected before execution) |
 | unknown-payee, 2 Nov (2 DMT to `examples.testnet`, not on the allowlist, ALLOW from the service, unknown payee cap 1 DMT per call) | Gate, `REFUSED:unknown_payee_cap` | `H6WqJYSb...aLe416` |
+| injected, 5 Nov (scripted agent; testnet verdict DENY) | Gate, `REFUSED:no_verdict` | `8M5NqTdA...r6yVMS` |
 
 The unknown payee attack ran on 2 Nov against `examples.testnet`, an account with no contract code created 1825 days before the run, because the accounts the team controls, `lindenvale.testnet` among them, were created 29 Oct and were under 7 days old. Its verdict was ALLOW in 13477 ms, every check run and none with a signal (evidence `9471fea5...66112f27`); nothing was sent to it. Before the attack the Gate registered `examples.testnet` on the token with `storage_deposit`, 0.00129 NEAR from the Gate's balance, as setup did for the vendor and the aged payee (transaction `Bd62DYEp...7gtz49`, `fixtures/runs/storage_deposit-examples-20261102T134415Z.txt`). The live verdict for the lookalike is DENY: a lookalike of the vendor, not on the allowlist, not registered on the token.
+
+On 5 Nov the scripted agent followed an instruction planted in a vendor message and submitted a transfer to the collector account named in the Rhea Lend incident report without a verdict. The Gate refused it with `REFUSED:no_verdict` in transaction `8M5NqTdA...r6yVMS`; the testnet verdict's first signal was that the account does not exist on testnet.
 
 ## Registry
 
@@ -66,6 +69,10 @@ The unknown payee attack ran on 2 Nov against `examples.testnet`, an account wit
 Read back after the run (run record `totals-20261103T143037Z.txt`): `total_records` 6, `total_subjects` 4, `total_labels` 43. The six records are the second, third and fourth payments' ALLOWs, the `examples.testnet` ALLOW, the lookalike's DENY and the aged payee's DENY. Two payments have no record: the first payment and the replay attack's first send (`HWXiWZKc...d8jiRu`, 10 DMT to the vendor). Their evidence documents were not kept, so no record can be built for them.
 
 The `latest` views after the run are in `fixtures/registry/testnet-latest-<subject>.json` for `kestrelridge-shop`, `examples`, `kestrelridge-sh0p` and `lindenvale`. The vendor's is now the fourth payment (observed block 275907012): the third was recorded first in the same batch and was replaced at once, so it shows only in its `verdict_recorded` event (`fixtures/registry/event-087cff-20261103.json`). The lookalike's and the aged payee's views are unchanged since 1 Nov. The 43 `label_recorded` events, as logged, are in `fixtures/registry/labels-20261103.json`. `python -m gate verify` passes for the vendor's and `examples.testnet`'s `latest` views and for the third payment's event, each against its evidence document and against its Verdict's signature with the live verifier key, and for the lookalike's and the aged payee's views against their evidence documents (`fixtures/runs/verify-o2-20261103.txt`). As on 1 Nov, the Verdict files the signature checks read are kept outside the repository.
+
+`record_batch` by the recorder, 5 Nov, transaction `6nVYg8BK...fUt3Ay`: one record, the DENY for the collector account named in the Rhea Lend incident report, `31ac7a27...e724a540` (evidence `5371ec35...bdaab7a7`). Its observed block 276319568 is the block of the verdict's own `view_account` read of the collector, which answered that the account does not exist on testnet; the refused submission landed in block 276319582. The record was recorded at 2026-11-05 09:25:56 UTC.
+
+Read back after the 5 Nov record (`fixtures/runs/registry-readback-20261105.txt`): `total_records` 7, `total_subjects` 5, `total_labels` 43. The collector's latest view is `fixtures/registry/testnet-latest-rhea-incident-collector.json`. `python -m gate verify` passes for this view against the live evidence document, `fixtures/evidence/5371ec35*.json` (`fixtures/runs/verify-injected-20261105.txt`).
 
 ## Latency
 

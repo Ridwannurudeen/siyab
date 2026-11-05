@@ -1,0 +1,13 @@
+Registry read back on testnet after the 5 Nov record_batch, captured at about 09:26 UTC with near-cli-rs 0.30.1
+view calls on registry.kestrelridge-main.testnet; the lines below are as captured.
+total_records after: 7
+total_subjects after: 5
+total_labels after: 43
+latest:
+{
+  "evidence_hash": "5371ec3512ea8b8fcdcd4e1210b39c6f53bc545ecf941e837f264c83bdaab7a7",
+  "observed_block": 276319568,
+  "recorded_ms": 1793870756446,
+  "verdict": "Deny",
+  "verdict_id": "5371ec3512ea8b8fcdcd4e1210b39c6f"
+}
