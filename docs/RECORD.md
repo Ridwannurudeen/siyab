@@ -72,7 +72,7 @@ rather than as current.
 |---|---|
 | `pending` | `UNKNOWN` only. Never a DENY, whatever the severity. |
 | `accepted` | `DENY` for `scam`, `theft`, `phishing`, `exploit` and `key_compromise`, citing the report seq, the report hash and the record id. `UNKNOWN` for `social`. |
-| `contested` | `DENY` for the same five kinds, and the allowlist does not lift it. Only a moderator's `overturned` removes it. |
+| `contested` | The answer it had when it was accepted: `DENY` for the same five kinds, which the allowlist does not lift. A record disputed from `rejected` had no DENY to keep, so it asks. Only a moderator's `overturned` removes a DENY. |
 | `rejected`, `withdrawn`, `overturned` | Nothing: the record is not a label any more. |
 
 A `social` report is an ask rather than a block because nobody exploited code: a human was
@@ -81,14 +81,16 @@ only kind where an accepted report stops short of DENY, and `DENY_KINDS` in `int
 the list, so a new kind cannot start denying by being added to the vocabulary file alone.
 
 A disputed report keeps its DENY. If a subject could lift an accepted report by filing a dispute,
-the dispute would be the cheapest way to switch a label off, so `contested` denies, the allowlist
-does not except it, and only a moderator's `overturned` removes it.
+the dispute would be the cheapest way to switch a label off: a contested report that was accepted
+keeps denying, the allowlist does not except it, and only a moderator's `overturned` removes it. A
+dispute preserves an answer and never creates one, so `rejected` to `contested` is a request to
+review the rejection: a rejection held no DENY, and that record asks while the appeal runs.
 
 One ladder runs over a subject with several records: DENY beats UNKNOWN, which beats no effect. The
-summary carries one `deny` bit, so the ladder reads every accepted and contested record rather than
-only the latest: an accepted exploit record followed by an accepted social report still denies. An
-unreadable read is UNKNOWN, which sits above no effect and below DENY, and the allowlist never
-forgives it.
+summary carries one `deny` bit, so the ladder reads every accepted record, and every contested one
+that was accepted first, rather than only the latest: an accepted exploit record followed by an
+accepted social report still denies. An unreadable read is UNKNOWN, which sits above no effect and
+below DENY, and the allowlist never forgives it.
 
 Transitions: `pending` to `accepted`, `rejected` or `withdrawn`; `accepted` to `contested`;
 `rejected` to `contested`; `contested` to `accepted`, `rejected` or `overturned`; `withdrawn` and
@@ -100,15 +102,16 @@ Transitions: `pending` to `accepted`, `rejected` or `withdrawn`; `accepted` to `
 The payment path does not reread every record. It reads one bounded summary for the subject, and
 `verdict_for` takes that summary and the allowlist flag. The summary the contract must expose is
 `subject_summary(subject)` returning `{accepted, pending, contested, latest_accepted_id, deny}`,
-where `deny` is true when any accepted or contested record holds one of the five `DENY_KINDS`.
-`records.summary` builds the same shape from the records held off chain, so the replay and the site
-agree with the contract rather than inventing a second ordering.
+where `deny` is true when an accepted record holds one of the five `DENY_KINDS`, or a contested
+record held one when it was accepted. `records.summary` builds the same shape from the records held
+off chain, so the replay and the site agree with the contract rather than inventing a second
+ordering.
 
 `deny` is one bit because counts alone cannot answer the ladder: a subject whose latest accepted
 record is `social` would read as an ask while an earlier accepted `exploit` vanished. The contract
-sets the bit when it accepts or contests a report of a DENY kind, and it refuses a report whose kind
-is outside `intel/record_enums.json` at accept time, so a stored record always has a known kind and
-`verdict_for` never needs a second call to learn it.
+sets the bit when it accepts a report of a DENY kind, or contests one it had accepted, and it
+refuses a report whose kind is outside `intel/record_enums.json` at accept time, so a stored record
+always has a known kind and `verdict_for` never needs a second call to learn it.
 
 ### The allowlist, and why it is here
 
@@ -158,7 +161,8 @@ to, in `contracts/gate`:
 
 - read `intel/record_enums.json` and refuse a state or a kind outside it,
 - expose `subject_summary(subject)` as exactly `{accepted, pending, contested, latest_accepted_id,
-  deny}`, setting `deny` on accept and contest for the five `DENY_KINDS`,
+  deny}`, setting `deny` when it accepts a report of one of the five `DENY_KINDS` and when it
+  contests a record it had accepted as one,
 - build the canonical report body and hash it into `body_sha256`,
 - and add a Rust test that reads `fixtures/records/report-body-vector.json` and reproduces its bytes
   and sha256.

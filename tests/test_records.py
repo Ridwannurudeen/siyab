@@ -180,6 +180,28 @@ class VerdictTest(unittest.TestCase):
                 self.assertFalse(built["deny"])
                 self.assertNotEqual(records.verdict_for(built), "DENY")
 
+    def test_a_contested_record_holds_only_the_deny_it_had_when_accepted(self):
+        """A dispute preserves an answer. It cannot create the block it was filed against."""
+        source = load("lookalike-contested.json")
+        accepted, contested = source["moderation"]
+        times = ("2026-11-05T15:05:00Z", "2026-11-05T15:10:00Z")
+        for decisions, expected in ((("accepted", "contested"), True),
+                                    (("rejected", "contested"), False),
+                                    (("contested",), False)):
+            with self.subTest(decisions=decisions):
+                record = copy.deepcopy(source)
+                record["moderation"] = [
+                    {"decision": decision, "decided_at": times[index],
+                     "reason_sha256": (accepted if decision == "accepted"
+                                       else contested)["reason_sha256"],
+                     "reason": f"a {decision} decision"}
+                    for index, decision in enumerate(decisions)]
+                record["record_id"] = records.record_id(record)
+                built = records.summary([record])
+                self.assertEqual(built["contested"], 1)
+                self.assertIs(built["deny"], expected)
+                self.assertEqual(records.verdict_for(built), "DENY" if expected else "UNKNOWN")
+
     def test_the_latest_accepted_record_is_the_greatest_report_seq(self):
         accepted = [record for record in (load("injected-collector.json"), load("social-accepted.json"))
                     if record["state"] == "accepted"]
@@ -290,6 +312,16 @@ class EvidenceTest(unittest.TestCase):
         with self.assertRaises(records.RecordError) as caught:
             records.report_body(body)
         self.assertIn("evidence_url", str(caught.exception))
+
+    def test_a_decision_that_is_not_in_the_timeline_is_refused(self):
+        edited = copy.deepcopy(self.record)
+        del edited["timeline"][1]
+        self.assert_refused(self.reseal(edited), "decision at")
+
+    def test_a_state_that_disagrees_with_the_last_decision_is_refused(self):
+        edited = copy.deepcopy(self.record)
+        edited["state"] = "accepted"
+        self.assert_refused(self.reseal(edited), "not the last decision")
 
     def test_a_moderation_decision_without_readable_text_is_refused(self):
         edited = copy.deepcopy(self.record)
