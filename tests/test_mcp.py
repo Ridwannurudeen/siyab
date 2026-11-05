@@ -107,6 +107,7 @@ class McpServerTest(McpSessionCase):
         verdict = json.loads(payment["content"][0]["text"])
         self.assertEqual(verdict["outcome"], "ALLOW")
         self.assertEqual(verdict["action"], "sign")
+        self.assertIsInstance(verdict["ask"], list)
         self.assertEqual(verdict["verdict"]["evidence_hash"], verdict["evidence_hash"])
         self.assertTrue(verdict["message"].startswith("GATEv1|gate.near|"))
         self.assertTrue(Path(verdict["evidence_path"]).is_relative_to(self.tmp))

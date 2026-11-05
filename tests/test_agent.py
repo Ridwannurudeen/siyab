@@ -58,8 +58,11 @@ def judged(outcome="ALLOW", verdict_signer=None):
         verdict_object = {"literal": "ALLOW", "issued_ms": NOW_S * 1000, "expires_ms": NOW_S * 1000 + 300000,
                           "verdict_id": "ab" * 16, "evidence_hash": "cd" * 32, "key_id": "cur", "signature": "ef" * 64}
     action = {"ALLOW": "sign", "DENY": "refuse", "UNKNOWN": "ask"}[outcome]
-    return {"outcome": outcome, "action": action, "verdict": verdict_object, "checks": [
-        {"id": "receiver_exists", "status": "pass", "detail": "vendor-shop.testnet exists"}],
+    check_status = "unknown" if outcome == "UNKNOWN" else "pass"
+    check_detail = "no recorded response" if outcome == "UNKNOWN" else "vendor-shop.testnet exists"
+    checks = [{"id": "receiver_exists", "status": check_status, "detail": check_detail}]
+    ask = [f"{check['id']} could not run: {check['detail']}" for check in checks if check["status"] == "unknown"]
+    return {"outcome": outcome, "action": action, "ask": ask, "verdict": verdict_object, "checks": checks,
         "reasons": [], "evidence_hash": "cd" * 32, "latency_ms": 12}
 
 
@@ -136,6 +139,8 @@ class PayTest(AgentCase):
             {"id": "account_age", "status": "unknown", "detail": "no recorded response"},
             {"id": "dust_funded", "status": "unknown", "detail": "no recorded response"},
         ]
+        result["ask"] = [f"{check['id']} could not run: {check['detail']}" for check in result["checks"]
+                         if check["status"] == "unknown"]
         with mock.patch("gate.verdict.request", return_value=result):
             self.assertEqual(agent.pay(context, self.request("other-payee.testnet"), out=self.lines.append), 3)
         self.assertEqual(self.transport.sent, [])
@@ -149,7 +154,9 @@ class PayTest(AgentCase):
         self.assertIn("scripts/set_allowlist.sh needs OWNER_ACCOUNT_ID, GATE_ACCOUNT_ID, and NEAR_KEYS_DIR", self.lines)
         self.assertIn("nothing is sent until then", self.lines)
         self.assertEqual(context.clients[0].calls, [(GATE, "get_agent", {"public_key": context.public_key})])
-        self.assertFalse(self.written(f"pay-{'cd' * 32}")["submitted"])
+        record = self.written(f"pay-{'cd' * 32}")
+        self.assertFalse(record["submitted"])
+        self.assertEqual(record["ask"], result["ask"])
         unsigned = self.dir / "unknown.verdict.json"
         unsigned.write_text(json.dumps({"literal": "UNKNOWN", "evidence_hash": "cd" * 32}), encoding="utf-8")
         context = self.make()
@@ -185,11 +192,57 @@ class PayTest(AgentCase):
         self.assertFalse(self.written("pay-not-sent")["submitted"])
         self.assertFalse((self.dir / "out" / "pay-None.json").exists())
 
+    def test_an_allow_the_gate_refuses_asks_a_human_and_sends_nothing(self):
+        policy = json.loads((ROOT / "fixtures" / "demo" / "policy.json").read_text(encoding="utf-8"))
+        context = self.make(policy=policy)
+        receiver = "lindenvale.testnet"
+        amount = "2000000"
+        reason = (f"{receiver} is not on the agent's allowlist and {amount} is over its unknown payee cap of "
+                  "1000000 per call, so the Gate refuses the transfer (REFUSED:unknown_payee_cap)")
+        result = judged()
+        result["action"] = "ask"
+        result["ask"] = [reason]
+        result["checks"] = [{"id": "receiver_exists", "status": "pass", "detail": f"{receiver} exists"}]
+        request = agent.transfer_request("ft", "token.kestrelridge-main.testnet", receiver, amount, None,
+                                         gate=GATE, agent_pk_hex=AGENT_PK.hex())
+        with mock.patch("gate.verdict.request", return_value=result):
+            self.assertEqual(agent.pay(context, request, out=self.lines.append), 3)
+        self.assertEqual(self.transport.sent, [])
+        self.assertEqual(context.clients[0].calls, [(GATE, "get_agent", {"public_key": context.public_key})])
+        command = (f"the owner's step, when the payee is known to them: bash scripts/set_allowlist.sh "
+                   f"{context.public_key} kestrelridge-shop.testnet,{receiver}")
+        decision_lines = [line for line in self.lines if line.startswith((
+            "not sent: the verdict is ALLOW", "ask a human:", "the owner's step,",
+            "scripts/set_allowlist.sh needs", "nothing is sent until then"))]
+        self.assertEqual(decision_lines, [
+            "not sent: the verdict is ALLOW, and the Gate refuses this transfer as it stands",
+            f"ask a human: {reason}",
+            command,
+            "scripts/set_allowlist.sh needs OWNER_ACCOUNT_ID, GATE_ACCOUNT_ID, and NEAR_KEYS_DIR",
+            "nothing is sent until then",
+        ])
+        record = self.written(f"pay-{'cd' * 32}")
+        self.assertFalse(record["submitted"])
+        self.assertEqual(record["ask"], [reason])
+
+    def test_an_unknown_tier1_check_offers_no_allowlist_step(self):
+        context = self.make()
+        result = judged("UNKNOWN")
+        result["checks"] = [{"id": "storage_registered", "status": "unknown", "detail": "token read unavailable"}]
+        result["ask"] = ["storage_registered could not run: token read unavailable"]
+        with mock.patch("gate.verdict.request", return_value=result):
+            self.assertEqual(agent.pay(context, self.request("other-payee.testnet"), out=self.lines.append), 3)
+        self.assertEqual(self.transport.sent, [])
+        self.assertIn("the owner's step: allowlisting skips only the tier 2 checks, so pay again when the source of "
+                      "storage_registered answers", self.lines)
+        self.assertFalse(any(line.startswith("the owner's step, when the payee is known") for line in self.lines))
+
     def test_an_allowlisted_unknown_does_not_print_an_allowlist_step(self):
         policy = {**POLICY, "allowlist": ["vendor-shop.testnet", "other-payee.testnet"]}
         context = self.make(policy=policy)
         result = judged("UNKNOWN")
         result["checks"] = [{"id": "receiver_exists", "status": "unknown", "detail": "no recorded response"}]
+        result["ask"] = ["receiver_exists could not run: no recorded response"]
         with mock.patch("gate.verdict.request", return_value=result):
             self.assertEqual(agent.pay(context, self.request("other-payee.testnet"), out=self.lines.append), 3)
         self.assertFalse(any(line.startswith("the owner's step,") for line in self.lines))

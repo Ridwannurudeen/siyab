@@ -10,7 +10,7 @@ from pathlib import Path
 from unittest import mock
 
 from gate import __main__ as gate_main
-from gate import base58, canon, ed25519, evidence, rpc, signer, verdict
+from gate import base58, canon, ed25519, evidence, rpc, rules, signer, verdict
 from intel import labels
 
 try:
@@ -104,6 +104,70 @@ class AllowTest(VerdictCase):
 
     def test_each_allow_draws_a_new_verdict_id(self):
         self.assertNotEqual(self.request()["verdict"]["verdict_id"], self.request()["verdict"]["verdict_id"])
+
+
+class ActionTest(VerdictCase):
+    def request_allow(self, receiver, amount, policy):
+        judgement = rules.Judgement(verdict="ALLOW", checks=[], reasons=[], labels=[], observed={})
+        with mock.patch.object(rules, "judge", return_value=judgement):
+            return self.request(receiver=receiver, amount=amount, policy=policy)
+
+    def test_an_allow_off_the_allowlist_over_the_unknown_cap_asks(self):
+        policy = {"allowlist": ["intents.near"], "unknown_caps": [
+            {"asset": {"Ft": "wrap.near"}, "per_call": "1000000"}]}
+        result = self.request_allow("unapproved.near", "2000000", policy)
+        self.assertEqual(result["outcome"], "ALLOW")
+        self.assertIsNotNone(result["verdict"]["signature"])
+        self.assertEqual(result["action"], "ask")
+        self.assertEqual(len(result["ask"]), 1)
+        self.assertTrue(result["ask"][0].endswith("(REFUSED:unknown_payee_cap)"))
+        self.assertIn("1000000 per call", result["ask"][0])
+
+    def test_an_allow_within_the_unknown_cap_signs(self):
+        policy = {"allowlist": [], "unknown_caps": [
+            {"asset": {"Ft": "wrap.near"}, "per_call": "1000000"}]}
+        result = self.request_allow("unapproved.near", "1000000", policy)
+        self.assertEqual(result["action"], "sign")
+        self.assertEqual(result["ask"], [])
+
+    def test_no_unknown_caps_or_no_cap_for_the_asset_asks(self):
+        no_caps = self.request_allow("unapproved.near", "1000", {"allowlist": [], "unknown_caps": None})
+        other_asset = self.request_allow("unapproved.near", "1000", {
+            "allowlist": [], "unknown_caps": [{"asset": {"Ft": "other.near"}, "per_call": "1000"}]})
+        self.assertEqual(no_caps["ask"], [
+            "unapproved.near is not on the agent's allowlist and the agent has no unknown payee caps, "
+            "so the Gate refuses the transfer (REFUSED:not_allowlisted)"])
+        self.assertEqual(other_asset["ask"], [
+            "unapproved.near is not on the agent's allowlist and no unknown payee cap covers wrap.near, "
+            "so the Gate refuses the transfer (REFUSED:unknown_payee_cap)"])
+
+    def test_an_allowlisted_payee_signs_whatever_the_amount(self):
+        policy = {"allowlist": ["unapproved.near"], "caps": [
+            {"asset": {"Ft": "wrap.near"}, "per_call": "1"}], "unknown_caps": [
+            {"asset": {"Ft": "wrap.near"}, "per_call": "1"}]}
+        result = self.request_allow("unapproved.near", "2000000", policy)
+        self.assertEqual(result["action"], "sign")
+        self.assertEqual(result["ask"], [])
+
+    def test_deny_refuses_and_unknown_asks_with_each_check_that_could_not_run(self):
+        unknown_checks = [
+            {"id": "storage_registered", "status": "unknown", "detail": "the token read could not run"},
+            {"id": "account_age", "status": "unknown", "detail": "no account age response"},
+            {"id": "receiver_exists", "status": "pass", "detail": "receiver exists"},
+        ]
+        denied = rules.Judgement(verdict="DENY", checks=unknown_checks, reasons=[], labels=[], observed={})
+        waiting = rules.Judgement(verdict="UNKNOWN", checks=unknown_checks, reasons=[], labels=[], observed={})
+        policy = {"allowlist": [], "unknown_caps": None}
+        with mock.patch.object(rules, "judge", return_value=denied):
+            deny = self.request(receiver="unapproved.near", policy=policy)
+        with mock.patch.object(rules, "judge", return_value=waiting):
+            unknown = self.request(receiver="unapproved.near", policy=policy)
+        self.assertEqual((deny["action"], deny["ask"]), ("refuse", []))
+        self.assertEqual(unknown["action"], "ask")
+        self.assertEqual(unknown["ask"], [
+            "storage_registered could not run: the token read could not run",
+            "account_age could not run: no account age response",
+        ])
 
 
 class NoSignatureTest(VerdictCase):
@@ -219,6 +283,17 @@ class CommandTest(VerdictCase):
         written = self.dir / f"{verdict_object['verdict_id']}.verdict.json"
         self.assertEqual(json.loads(written.read_text()), verdict_object)
         self.assertIn(f"evidence: {verdict_object['evidence_hash']}", lines)
+
+    def test_an_allow_the_gate_would_refuse_prints_ask_reasons(self):
+        judgement = rules.Judgement(verdict="ALLOW", checks=[], reasons=[], labels=[], observed={})
+        policy = {"allowlist": [], "unknown_caps": None}
+        with mock.patch.object(rules, "judge", return_value=judgement):
+            code, output, _ = self.run_command("--policy", json.dumps(policy))
+        lines = output.splitlines()
+        self.assertEqual(code, 0)
+        self.assertLess(lines.index("action: ask"), lines.index(
+            "  ask: intents.near is not on the agent's allowlist and the agent has no unknown payee caps, "
+            "so the Gate refuses the transfer (REFUSED:not_allowlisted)"))
 
     def test_action_follows_the_verdict_reasons(self):
         result = {"checks": [], "outcome": "DENY", "reasons": ["the receiver carries a label"],
