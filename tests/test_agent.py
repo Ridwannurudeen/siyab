@@ -248,6 +248,89 @@ class PayTest(AgentCase):
         self.assertFalse(record["submitted"])
         self.assertEqual(record["ask"], [reason])
 
+    def test_an_allow_while_paused_prints_only_the_pause_step(self):
+        context = self.make(gate_policy={"paused": True, "denylist": []})
+        result = judged()
+        result["action"] = "ask"
+        result["ask"] = ["the Gate is paused, so it refuses every transfer (REFUSED:paused)"]
+        step = ("the owner's step: the Gate is paused; resume it with bash scripts/set_paused.sh false once the "
+                "cause is resolved")
+        with mock.patch("gate.verdict.request", return_value=result):
+            self.assertEqual(agent.pay(context, self.request(), out=self.lines.append), 3)
+        self.assertIn(step, self.lines)
+        self.assertFalse(any("set_allowlist.sh" in line for line in self.lines))
+        self.assertIn("nothing is sent until then", self.lines)
+        self.assertEqual(self.transport.sent, [])
+        record = self.written(f"pay-{'cd' * 32}")
+        self.assertFalse(record["submitted"])
+        self.assertEqual(record["ask"], result["ask"])
+
+    def test_an_allow_with_a_disabled_agent_prints_only_the_enable_step(self):
+        context = self.make(policy={**POLICY, "enabled": False})
+        result = judged()
+        result["action"] = "ask"
+        result["ask"] = ["the agent is disabled on the Gate, so the Gate refuses the transfer "
+                         "(REFUSED:agent_disabled)"]
+        step = ("the owner's step: the agent is disabled on the Gate; the owner re-enables it with the Gate's "
+                "set_agent_enabled call")
+        with mock.patch("gate.verdict.request", return_value=result):
+            self.assertEqual(agent.pay(context, self.request(), out=self.lines.append), 3)
+        self.assertIn(step, self.lines)
+        self.assertFalse(any("set_allowlist.sh" in line for line in self.lines))
+        self.assertIn("nothing is sent until then", self.lines)
+        self.assertEqual(self.transport.sent, [])
+        record = self.written(f"pay-{'cd' * 32}")
+        self.assertFalse(record["submitted"])
+        self.assertEqual(record["ask"], result["ask"])
+
+    def test_an_allow_for_a_denylisted_payee_prints_only_the_review_step(self):
+        context = self.make(gate_policy={"paused": False, "denylist": ["vendor-shop.testnet"]})
+        result = judged()
+        result["action"] = "ask"
+        result["ask"] = ["vendor-shop.testnet is on the Gate's denylist, so the Gate refuses the transfer "
+                         "(REFUSED:denylisted)"]
+        step = ("the owner's step: the payee is on the Gate's denylist; remove it with scripts/set_denylist.sh only "
+                "after the owner has reviewed why it was added")
+        with mock.patch("gate.verdict.request", return_value=result):
+            self.assertEqual(agent.pay(context, self.request(), out=self.lines.append), 3)
+        self.assertIn(step, self.lines)
+        self.assertFalse(any("set_allowlist.sh" in line for line in self.lines))
+        self.assertIn("nothing is sent until then", self.lines)
+        self.assertEqual(self.transport.sent, [])
+        record = self.written(f"pay-{'cd' * 32}")
+        self.assertFalse(record["submitted"])
+        self.assertEqual(record["ask"], result["ask"])
+
+    def test_an_allowlisted_payee_with_a_window_cap_reason_gets_no_allowlist_step(self):
+        context = self.make()
+        result = judged()
+        result["action"] = "ask"
+        result["ask"] = ["the agent's window cap is exceeded (REFUSED:window_cap)"]
+        with mock.patch("gate.verdict.request", return_value=result):
+            self.assertEqual(agent.pay(context, self.request(), out=self.lines.append), 3)
+        self.assertFalse(any("set_allowlist.sh" in line for line in self.lines))
+        self.assertIn("nothing is sent until then", self.lines)
+        self.assertEqual(self.transport.sent, [])
+        self.assertFalse(self.written(f"pay-{'cd' * 32}")["submitted"])
+
+    def test_unknown_tier2_with_a_paused_gate_prints_only_the_pause_step(self):
+        context = self.make(gate_policy={"paused": True, "denylist": []})
+        result = judged("UNKNOWN")
+        result["checks"] = [{"id": "account_age", "status": "unknown", "detail": "age read unavailable"}]
+        result["ask"] = ["account_age could not run: age read unavailable",
+                         "the Gate is paused, so it refuses every transfer (REFUSED:paused)"]
+        step = ("the owner's step: the Gate is paused; resume it with bash scripts/set_paused.sh false once the "
+                "cause is resolved")
+        with mock.patch("gate.verdict.request", return_value=result):
+            self.assertEqual(agent.pay(context, self.request("other-payee.testnet"), out=self.lines.append), 3)
+        self.assertIn(step, self.lines)
+        self.assertFalse(any("set_allowlist.sh" in line for line in self.lines))
+        self.assertIn("nothing is sent until then", self.lines)
+        self.assertEqual(self.transport.sent, [])
+        record = self.written(f"pay-{'cd' * 32}")
+        self.assertFalse(record["submitted"])
+        self.assertEqual(record["ask"], result["ask"])
+
     def test_mixed_tier1_and_tier2_unknowns_offer_no_allowlist_step(self):
         context = self.make()
         result = judged("UNKNOWN")
