@@ -26,14 +26,16 @@ nothing touches the network.
 """
 
 import argparse
+import hashlib
 import json
+import os
 import re
 import sys
 import time
 from pathlib import Path
 
 from gate import rpc, rules
-from intel import api, cluster, feed, issuers, labels, render, seed, trace
+from intel import alerts, api, cluster, feed, issuers, labels, render, seed, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 RECEIVERS_DIR = ROOT / "fixtures" / "receivers"
@@ -345,6 +347,36 @@ def _render(args):
     return 0
 
 
+def _alert_test(args):
+    secret_path = os.environ.get("SHIELDBOT_ALERT_SECRET_FILE")
+    if not secret_path:
+        print("stopped: SHIELDBOT_ALERT_SECRET_FILE is required", file=sys.stderr)
+        return 2
+    try:
+        sink = alerts.WebhookSink(args.url, secret_path)
+    except ValueError as error:
+        print(f"stopped: {error}", file=sys.stderr)
+        return 2
+    created_ms = int(time.time() * 1000)
+    detail = "A test alert was sent from the intel CLI."
+    alert = alerts.Alert(
+        source="shieldbot-cli",
+        severity="info",
+        subject="alert-test",
+        ref=f"alert-test-{created_ms}",
+        title="ShieldBot alert test",
+        detail=detail,
+        evidence_sha256=hashlib.sha256(detail.encode("utf-8")).hexdigest(),
+        created_ms=created_ms,
+    )
+    result = alerts.send(alert, [sink])[0]
+    if result["ok"]:
+        print("test alert sent")
+        return 0
+    print(f"stopped: alert delivery failed ({result.get('error', 'delivery_failed')})", file=sys.stderr)
+    return 1
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="python -m intel")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -395,6 +427,9 @@ def main(argv=None):
     rendering.add_argument("--indexable", action="store_true", help="leave the robots noindex meta out")
     rendering.set_defaults(handler=_render)
     commands.add_parser("feed-stats", help="print the feed state").set_defaults(handler=_feed_stats)
+    alert_test = commands.add_parser("alert-test", help="send one test alert to an HTTPS webhook")
+    alert_test.add_argument("--url", required=True, help="the HTTPS webhook URL")
+    alert_test.set_defaults(handler=_alert_test)
     args = parser.parse_args(argv)
     return args.handler(args)
 
