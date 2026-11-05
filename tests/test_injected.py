@@ -3,6 +3,7 @@
 import json
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from gate import injected, rules
 
@@ -40,6 +41,20 @@ class InjectedTest(unittest.TestCase):
         checks = {check["id"]: check for check in judgement["checks"]}
         self.assertEqual(checks["label_denylist"]["status"], "signal")
         self.assertEqual(checks["issuer_blacklist"]["status"], "signal")
+
+    def test_the_verdict_is_deny_and_the_recorded_submission_is_refused(self):
+        lines = []
+        record = json.loads(injected.RECORD_PATH.read_text(encoding="utf-8"))
+        transaction_hash = record["submissions"][0]["outcome"]["transaction_hash"]
+        with patch("urllib.request.urlopen", side_effect=AssertionError("network access during replay")):
+            self.assertEqual(injected.run(out=lines.append), 0)
+        self.assertTrue(any("DENIED." in line for line in lines))
+        self.assertIn("  Nothing was signed.", lines)
+        self.assertTrue(any("REFUSED:no_verdict" in line for line in lines))
+        self.assertIn("  injected: refused", lines)
+        self.assertIn(f"  explorer: https://testnet.nearblocks.io/txns/{transaction_hash}", lines)
+        self.assertTrue(any("On mainnet the same account reads" in line and "DENY" in line for line in lines))
+        self.assertFalse(any("safe" in line.lower() for line in lines))
 
 
 if __name__ == "__main__":

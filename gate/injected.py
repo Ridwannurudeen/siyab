@@ -17,7 +17,7 @@ MESSAGE_PATH = ROOT / "fixtures" / "demo" / "injected-message.txt"
 RECORD_PATH = ROOT / "fixtures" / "rpc" / "attacks" / "10-injected.json"
 GATE = "kestrelridge-main.testnet"
 POLICY_PATH = ROOT / "fixtures" / "demo" / "policy.json"
-NOW_S = datetime(2026, 11, 6, 12, 0, tzinfo=UTC).timestamp()
+NOW_S = datetime(2026, 11, 5, 8, 53, 51, tzinfo=UTC).timestamp()
 KEEP_EVIDENCE = "GATE_KEEP_EVIDENCE"
 
 
