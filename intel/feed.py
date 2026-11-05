@@ -9,12 +9,17 @@ the raw block is never written. Without --record the reduced fixtures are read a
 touches the network. A height neardata answers with null holds no block: its fixture says so and
 the state lists it as skipped.
 
-python -m intel feed --follow [--from <height>] [--max-blocks <n>] reads the final height from
-/v0/last_block/final and walks every height from the state's last height + 1 (with no state:
---from, else the final height) to it in order, never skipping one; once caught up it sleeps 1 s
-and reads the final height again. It stops on SIGINT or after --max-blocks heights, a skipped
-height included. It has no request budget and backs off 10 s on a 429 as above. When
-FASTNEAR_API_KEY_FILE names a usable key, its neardata requests (the final height and the blocks)
+python -m intel feed --follow [--from <height>] [--max-blocks <n>] reads the final block from
+/v0/last_block/final, which neardata redirects to /v0/block/<final height>, and walks every height
+from the state's last height + 1 (with no state: --from, else the final height) to it in order,
+never skipping one: it fetches each height below the final one from /v0/block/<height> and takes
+the final height's block from that read, so the walk fetches no block twice; while the follower
+waits at the final height, each read downloads the final block again. Once a walk reaches the
+final height, and whenever a read finds no height past the last one, it sleeps 1 s before it reads
+the final block again, so a follower that keeps up makes about one neardata request a height. It
+stops on SIGINT or after --max-blocks heights, a skipped height included. It has no request budget
+and backs off 10 s on a 429 as above. When
+FASTNEAR_API_KEY_FILE names a usable key, its neardata requests (the final block and the blocks)
 carry that key as an Authorization Bearer header, read once at start and kept in memory; without
 one they are keyless, and record mode never sends it. Between one neardata request and the next
 it leaves FOLLOW_INTERVAL_KEYED_S (0.1 s, so at most 600 a minute) when keyed and FOLLOW_INTERVAL_S
@@ -26,7 +31,8 @@ height neardata answers with null or a 404 holds no block, as in record mode: th
 it to skipped_heights, writes the state and goes on to the next height. NEAR skips a height
 whenever its producer misses the slot, so skipped_heights can grow by a few hundred heights a
 day; a list that size is fine for the weeks this hackathon build runs. The state is written after
-every height; on SIGINT the loop stops after the height in hand and the command exits 0.
+every height and at every read of the final height while it waits there; on SIGINT the loop stops
+after the height in hand and the command exits 0.
 
 The reduced form keeps, for each executed action receipt, its receipt id, transaction hash,
 predecessor, receiver, whether it succeeded, and the actions the signals read: DeployContract
@@ -37,7 +43,12 @@ recorded window), so a follower on a host writes no tracked file. Its state.json
 height and time, the last height and time, the block count, the skipped heights, the fresh
 accounts with their funding deposit and time, and the event count per signal; a follower adds
 mode ("follow"), started_at (when the first follow run began), lag_blocks (the final height at the
-last read minus the last height), requests (the neardata requests made on request_day),
+last read minus the last height), updated_at (the UTC time of the follower's last update: its state
+write at a height, at a read of the final height while it waits there, or, once its run has walked a
+height or waited at the final height, at the end of a transfer poll; a run that has done neither,
+such as a restart on a refused key or one whose first block fetch fails, never moves it, and the
+read only API judges the follower stopped once updated_at, else last_time, else started_at, is more
+than FOLLOWER_STOPPED_AFTER_S old), requests (the neardata requests made on request_day),
 transfer_requests (the Transfers API requests made on request_day), request_day (the UTC date both
 counts are for, checked before every neardata request; a new date resets them) and
 disabled_signals (a signal that is off and why: the transfer signal when FASTNEAR_API_KEY_FILE is
@@ -192,6 +203,11 @@ def _write_json(path, value, indent=None):
     os.replace(temporary, path)
 
 
+def _stamp(state, clock):
+    """Set updated_at, the UTC time of the follower's update, which the read only API judges it by."""
+    state["updated_at"] = datetime.fromtimestamp(clock(), UTC).strftime(_TIME)
+
+
 def new_state():
     return {"start_height": None, "start_time": None, "last_height": None, "last_time": None, "blocks": 0,
             "skipped_heights": [], "fresh_accounts": {}, "events": {name: 0 for name in SIGNALS}}
@@ -330,15 +346,19 @@ class Fetcher:
                     raise
                 self.sleep(BACKOFF_S)
 
+    def final_block(self):
+        """The block at the final height: neardata redirects /v0/last_block/final to /v0/block/<height>."""
+        return self.get("/v0/last_block/final")
+
     def final_height(self):
-        answer = self.get("/v0/last_block/final")
-        return answer["block"]["header"]["height"]
+        return self.final_block()["block"]["header"]["height"]
 
 
-def poll_transfers(client, state, state_path, context, events_dir, clock, sleep):
+def poll_transfers(client, state, state_path, context, events_dir, clock, sleep, stamp=False):
     """The large transfer poll when it is due: every subject's rows of the window since the last
     complete poll, asked FOLLOW_INTERVAL_S apart and written as events only when every request
-    succeeded."""
+    succeeded; with stamp, given once the run has stamped updated_at itself (walked a height or waited
+    at the final height), its state write stamps updated_at too."""
     now_ms = int(clock() * 1000)
     if now_ms < state.get("large_transfer_next_poll_ms", now_ms):
         return
@@ -381,6 +401,8 @@ def poll_transfers(client, state, state_path, context, events_dir, clock, sleep)
             retry_after = (error.retry_after or "").strip()
             wait_s = min(int(retry_after), POLL_S) if retry_after.isdecimal() else TRANSFER_BACKOFF_S
         state["large_transfer_next_poll_ms"] = now_ms + wait_s * 1000
+        if stamp:
+            _stamp(state, clock)
         _write_json(Path(state_path), state, indent=2)
         return
     for subject, transfer, source in rows:
@@ -401,6 +423,8 @@ def poll_transfers(client, state, state_path, context, events_dir, clock, sleep)
     state["skipped_rows"] = state.get("skipped_rows", 0) + skipped
     state["last_large_transfer_poll_ms"] = now_ms
     state["large_transfer_next_poll_ms"] = now_ms + POLL_S * 1000
+    if stamp:
+        _stamp(state, clock)
     _write_json(Path(state_path), state, indent=2)
 
 
@@ -477,6 +501,7 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
         disabled[SIGNALS[3]] = disabled_reason
     walked = 0
     last_request = None
+    stamped = False
     while not stopped() and (max_blocks is None or walked < max_blocks):
         if last_request is not None:
             sleep(max(0, interval_s - (clock() - last_request)))
@@ -484,9 +509,10 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
         if state["request_day"] != request_day:
             state["request_day"], state["requests"], state["transfer_requests"] = request_day, 0, 0
         if transfers_client is not None:
-            poll_transfers(transfers_client, state, state_path, context, events_dir, clock, sleep)
+            poll_transfers(transfers_client, state, state_path, context, events_dir, clock, sleep, stamp=stamped)
         requests_before = fetcher.requests
-        final_height = fetcher.final_height()
+        final_block = fetcher.final_block()
+        final_height = final_block["block"]["header"]["height"]
         state["requests"] += fetcher.requests - requests_before
         last_request = clock()
         next_height = state["last_height"] + 1 if state["last_height"] is not None else (
@@ -495,26 +521,31 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
         if next_height > final_height:
             state["lag_blocks"] = 0
             state["mode"] = "follow"
+            _stamp(state, clock)
+            stamped = True
             _write_json(Path(state_path), state, indent=2)
             sleep(1)
             continue
         while next_height <= final_height and not stopped() and (max_blocks is None or walked < max_blocks):
-            if last_request is not None:
+            if last_request is not None and next_height < final_height:
                 sleep(max(0, interval_s - (clock() - last_request)))
             request_day = datetime.fromtimestamp(clock(), UTC).strftime("%Y-%m-%d")
             if state["request_day"] != request_day:
                 state["request_day"], state["requests"], state["transfer_requests"] = request_day, 0, 0
             if transfers_client is not None:
-                poll_transfers(transfers_client, state, state_path, context, events_dir, clock, sleep)
-            requests_before = fetcher.requests
-            try:
-                raw = fetcher.get(f"/v0/block/{next_height}")
-            except rpc.HttpError as error:
-                if error.status != 404:
-                    raise
-                raw = None
-            state["requests"] += fetcher.requests - requests_before
-            last_request = clock()
+                poll_transfers(transfers_client, state, state_path, context, events_dir, clock, sleep, stamp=stamped)
+            if next_height == final_height:
+                raw = final_block
+            else:
+                requests_before = fetcher.requests
+                try:
+                    raw = fetcher.get(f"/v0/block/{next_height}")
+                except rpc.HttpError as error:
+                    if error.status != 404:
+                        raise
+                    raw = None
+                state["requests"] += fetcher.requests - requests_before
+                last_request = clock()
             if raw is None:
                 if next_height not in state["skipped_heights"]:
                     state["skipped_heights"].append(next_height)
@@ -532,17 +563,24 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
             walked += 1
             state["mode"] = "follow"
             state["lag_blocks"] = max(0, final_height - (state["last_height"] or final_height))
+            _stamp(state, clock)
+            stamped = True
             _write_json(Path(state_path), state, indent=2)
             next_height += 1
+        if next_height > final_height and not stopped() and (max_blocks is None or walked < max_blocks):
+            sleep(1)
     return state, walked
 
 
-def stats_lines(state):
-    """The feed-stats output: the start date, the block count and the event count per signal."""
+def stats_lines(state, stopped_since=None):
+    """The feed-stats output: the start date, the block count and the event count per signal. For a follower
+    judged stopped, stopped_since is the time of its last update, and a line saying so with an unknown lag
+    takes the place of the lag line."""
     if state.get("mode") == "follow":
         lines = [f"following since {state['started_at']}",
                  f"last block {state['last_height']} at {state['last_time']}",
-                 f"lag {state['lag_blocks']} blocks"]
+                 f"lag {state['lag_blocks']} blocks" if stopped_since is None
+                 else f"follower stopped: its last update was at {stopped_since}, lag unknown"]
         events = [f"{name} {state['events'].get(name, 0)}" for name in SIGNALS]
     else:
         lines = [f"start {state['start_time']} at block {state['start_height']}",

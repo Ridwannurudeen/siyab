@@ -6,11 +6,14 @@ import os
 import re
 import tempfile
 import threading
+import time
 import unittest
 import urllib.parse
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest import mock
 
+from gate import rpc
 from intel import api, feed, issuers, labels, render
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -31,12 +34,13 @@ def get(server, path):
         connection.close()
 
 
-def write_follow_state(state_dir, texts):
-    """A follow state under state_dir and one event file per text, named by the sha256 of its bytes as the
-    follower names them."""
+def write_follow_state(state_dir, texts, **fields):
+    """A follow state under state_dir, fields over its defaults (a last_time of now, so it reads running), and
+    one event file per text, named by the sha256 of its bytes as the follower names them."""
     state = json.loads(feed.STATE_PATH.read_text(encoding="utf-8"))
     state.update(mode="follow", started_at="2026-11-03T12:00:00Z", last_height=1060,
-                 last_time="2026-11-03T12:05:00Z", lag_blocks=0)
+                 last_time=datetime.fromtimestamp(time.time(), UTC).strftime(feed._TIME), lag_blocks=0)
+    state.update(fields)
     (state_dir / "state.json").write_text(json.dumps(state), encoding="utf-8")
     (state_dir / "events").mkdir()
     for text in texts:
@@ -132,7 +136,7 @@ class ApiTest(unittest.TestCase):
     def test_feed_is_empty_without_the_feed_files(self):
         with tempfile.TemporaryDirectory() as tmp, \
                 mock.patch.object(api, "FEED_STATE", Path(tmp) / "state.json"):
-            self.assertEqual(self.get_json("/feed"), (200, {"stats": None, "events": []}))
+            self.assertEqual(self.get_json("/feed"), (200, {"follower": None, "stats": None, "events": []}))
 
     def test_feed_returns_the_state_and_the_last_50_events_in_block_order(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -147,6 +151,31 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(body["stats"], {"blocks": 300})
         self.assertEqual([event["n"] for event in body["events"]], list(range(49, -1, -1)))
+
+    def test_the_follower_reads_stopped_a_second_past_the_threshold_by_updated_at_else_last_time_else_started_at(self):
+        written = datetime(2026, 11, 5, 5, 3, 12, tzinfo=UTC).timestamp()
+        limit = written + api.FOLLOWER_STOPPED_AFTER_S
+        stamp, earlier = "2026-11-05T05:03:12Z", "2026-11-05T01:00:00Z"
+        cases = (("updated_at", {"updated_at": stamp, "last_time": earlier, "started_at": earlier}),
+                 ("last_time", {"last_time": stamp, "started_at": earlier}),
+                 ("last_time past a null updated_at", {"updated_at": None, "last_time": stamp, "started_at": earlier}),
+                 ("last_time past a malformed updated_at",
+                  {"updated_at": "2026-11-05 05:03:12", "last_time": stamp, "started_at": earlier}),
+                 ("started_at", {"last_time": None, "started_at": stamp}))
+        for judged_by, state in cases:
+            with self.subTest(judged_by=judged_by):
+                self.assertIsNone(api._stopped_since(state, limit))
+                self.assertEqual(api._stopped_since(state, limit + 1), stamp)
+        self.assertEqual(api._stopped_since({"last_time": None, "started_at": None}, written), "an unknown time")
+
+    def test_the_stopped_threshold_clears_the_longest_gap_between_two_stamps_of_a_running_follower(self):
+        requests = len(feed.Context(self.store).deny_receivers) - 1 + feed.MAX_TRANSFER_PAGES
+        poll = requests * rpc.TIMEOUT_S + (requests - 1) * feed.FOLLOW_INTERVAL_S
+        final_read = 2 * rpc.TIMEOUT_S + feed.BACKOFF_S + 2 * rpc.TIMEOUT_S
+        fetch = rpc.TIMEOUT_S + feed.BACKOFF_S + rpc.TIMEOUT_S
+        self.assertGreater(api.FOLLOWER_STOPPED_AFTER_S,
+                           max(1 + poll, 1 + final_read + feed.FOLLOW_INTERVAL_S + poll,
+                               final_read + feed.FOLLOW_INTERVAL_S + fetch))
 
     def test_flow_refuses_a_subject_without_an_incident_label(self):
         subject = "intents.near"
@@ -252,7 +281,8 @@ class HostedSiteTest(unittest.TestCase):
     def test_feed_page_uses_the_follow_state_and_events_from_feed_state_dir(self):
         state = json.loads(feed.STATE_PATH.read_text(encoding="utf-8"))
         state.update(mode="follow", started_at="2026-11-03T12:00:00Z", last_height=987,
-                     last_time="2026-11-03T12:05:00Z", lag_blocks=4)
+                     last_time="2026-11-03T12:05:00Z", lag_blocks=4,
+                     updated_at=datetime.fromtimestamp(time.time(), UTC).strftime(feed._TIME))
         event = {"signal": "new receiver", "observed": {"block_height": 987}, "detail": "recorded event",
                  "receipt_id": "receipt", "tx_hash": "transaction"}
         with tempfile.TemporaryDirectory() as tmp:
@@ -271,6 +301,56 @@ class HostedSiteTest(unittest.TestCase):
         self.assertIn("recorded event", page)
         self.assertIn('<meta name="robots" content="noindex">', page)
         self.assertIn('rel="stylesheet" href="/style.css"', page)
+
+    def test_feed_route_and_page_say_running_with_the_lag_or_stopped_with_the_last_update(self):
+        now = int(time.time())
+        for age, follower in ((10, "running"), (api.FOLLOWER_STOPPED_AFTER_S + 60, "stopped")):
+            written = datetime.fromtimestamp(now - age, UTC).strftime(feed._TIME)
+            with self.subTest(follower=follower), tempfile.TemporaryDirectory() as tmp:
+                write_follow_state(Path(tmp), [], lag_blocks=4, last_time="2026-11-03T12:05:00Z", updated_at=written)
+                with mock.patch.dict(os.environ, {"FEED_STATE_DIR": tmp}):
+                    page = get(self.server, "/feed.html")[3].decode("utf-8")
+                    body = json.loads(get(self.server, "/feed")[3])
+                self.assertEqual((body["follower"], body["stats"]["updated_at"]), (follower, written))
+                self.assertIn("<li>last block 1060 at 2026-11-03T12:05:00Z</li>", page)
+                if follower == "running":
+                    self.assertEqual(body["stats"]["lag_blocks"], 4)
+                    self.assertIn("<li>lag 4 blocks</li>", page)
+                    self.assertNotIn("follower stopped", page)
+                else:
+                    self.assertIsNone(body["stats"]["lag_blocks"])
+                    self.assertIn(f"<li>follower stopped: its last update was at {written}, lag unknown</li>", page)
+                    self.assertNotIn("lag 4 blocks", page)
+
+    def test_a_follow_state_without_updated_at_is_judged_by_last_time_else_by_started_at(self):
+        now = int(time.time())
+        fresh = datetime.fromtimestamp(now - 10, UTC).strftime(feed._TIME)
+        stale = datetime.fromtimestamp(now - api.FOLLOWER_STOPPED_AFTER_S - 60, UTC).strftime(feed._TIME)
+        for last_time, started_at, follower in ((fresh, stale, "running"), (stale, fresh, "stopped"),
+                                                (None, fresh, "running"), (None, stale, "stopped")):
+            shown = last_time or started_at
+            with self.subTest(last_time=last_time, started_at=started_at), tempfile.TemporaryDirectory() as tmp:
+                write_follow_state(Path(tmp), [], lag_blocks=4, last_time=last_time, started_at=started_at)
+                with mock.patch.dict(os.environ, {"FEED_STATE_DIR": tmp}):
+                    page = get(self.server, "/feed.html")[3].decode("utf-8")
+                    body = json.loads(get(self.server, "/feed")[3])
+                self.assertNotIn("updated_at", body["stats"])
+                self.assertEqual((body["follower"], body["stats"]["lag_blocks"]),
+                                 ("running", 4) if follower == "running" else ("stopped", None))
+                self.assertEqual(f"<li>follower stopped: its last update was at {shown}, lag unknown</li>" in page,
+                                 follower == "stopped")
+                self.assertEqual("<li>lag 4 blocks</li>" in page, follower == "running")
+
+    def test_a_null_or_malformed_updated_at_is_read_as_missing_by_the_feed_route_and_page(self):
+        for updated_at in (None, "2026-11-05 05:03:12"):
+            with self.subTest(updated_at=updated_at), tempfile.TemporaryDirectory() as tmp:
+                write_follow_state(Path(tmp), [], lag_blocks=4, updated_at=updated_at)
+                with mock.patch.dict(os.environ, {"FEED_STATE_DIR": tmp}):
+                    status, _, _, page = get(self.server, "/feed.html")
+                    route_status, _, _, body = get(self.server, "/feed")
+                self.assertEqual((status, route_status), (200, 200))
+                self.assertEqual(json.loads(body)["follower"], "running")
+                self.assertIn("<li>lag 4 blocks</li>", page.decode("utf-8"))
 
     def test_feed_page_falls_back_to_static_without_a_follow_state(self):
         static_page = (Path(self.site.name) / "feed.html").read_bytes()

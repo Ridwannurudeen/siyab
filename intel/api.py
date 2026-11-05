@@ -7,7 +7,13 @@ Routes (GET only; no route writes anything and no route opens the network):
     /incidents/<id>       the incident file intel/incidents/<id>.json
     /evidence/<hash>      an evidence document from fixtures/evidence/ or intel/feed/events/
     /feed                 the feed state without its fresh accounts and the last 50 events, or null
-                          and an empty list
+                          and an empty list, with follower: "running" for a follower's state, or
+                          "stopped" with lag_blocks null once its last update (updated_at, else
+                          last_time, else started_at) is more than FOLLOWER_STOPPED_AFTER_S old;
+                          null for any other state
+    /feed.html            with FEED_STATE_DIR naming a follower's state, the feed page built from it,
+                          which gives a stopped follower's last update time and says the lag is
+                          unknown; else the static file as below
     /flow/<subject>       the exit trace intel/flows/<subject>.json, else the trace file under
                           intel/flows/ whose subject it is (such as rhea-collector.json); 403 for a
                           subject that carries no incident label, 404 when no trace was written
@@ -32,12 +38,14 @@ import json
 import mimetypes
 import os
 import re
+import time
 import urllib.parse
+from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from gate import incident
-from intel import issuers, labels, render, trace
+from intel import feed, issuers, labels, render, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 EVIDENCE_DIRS = (ROOT / "fixtures" / "evidence", ROOT / "intel" / "feed" / "events")
@@ -46,6 +54,25 @@ SEARCH_INDEX = ROOT / "demo" / "site" / "search.json"
 FLOWS_DIR = ROOT / "intel" / "flows"
 CLUSTERS_DIR = ROOT / "intel" / "clusters"
 FEED_LIMIT = 50
+# The follower stamps updated_at at every height and at every read of the final height while it waits
+# there, and, once its run has done either, at the end of every transfer poll; a run that has done
+# neither, such as a restart on a refused key or one whose first block fetch fails, stamps nothing, so
+# a crash loop never refreshes the stamp. With every request answered inside its rpc.TIMEOUT_S (30 s),
+# a poll is one page each for 13 of the 14 incident and denylist subjects and all MAX_TRANSFER_PAGES
+# (20) for the last, 33 requests FOLLOW_INTERVAL_S (0.4 s) apart, 33 x 30 + 32 x 0.4 = 1002.8 s; a
+# final read is two requests since neardata redirects it, with one 429 back off (BACKOFF_S, 10 s),
+# 2 x 30 + 10 + 2 x 30 = 130 s; a block fetch with one back off is 30 + 10 + 30 = 70 s. A poll that
+# falls due during the final read after the 1 s wait at the final height runs before the next fetch,
+# so the longest gap between two stamps of a running follower is that wait, that read, a 0.4 s pace
+# and the poll: 1 + 130 + 0.4 + 1002.8 = 1134.2 s. A poll due at the wait itself gives
+# 1 + 1002.8 = 1003.8 s. At that speed a poll outlasts POLL_S (600 s), so the gap after a poll's own
+# stamp can hold a final read, a pace and a second poll that fell due during the first:
+# 130 + 0.4 + 1002.8 = 1133.2 s. 1200 s clears 1134.2 s with room for two more subjects. Not covered:
+# the polls a run makes before its first stamp, which at that speed can be two before its first fetch
+# (the first stamp about 2206 s after the restart), so a restarted follower can read stopped for about
+# 1000 s; a second subject paging to the cap at that speed; and an unbroken run of 429 answers, which
+# Fetcher.get waits out without end.
+FOLLOWER_STOPPED_AFTER_S = 1200
 JSON_TYPE = "application/json; charset=utf-8"
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 
@@ -76,19 +103,53 @@ def _evidence(evidence_hash):
     return 404, {"error": f"no evidence document {evidence_hash}"}
 
 
+def _timestamp(value):
+    """The POSIX time of a _TIME string, or None for anything else, a null or malformed value included."""
+    try:
+        return datetime.strptime(value, feed._TIME).replace(tzinfo=UTC).timestamp()
+    except (TypeError, ValueError):
+        return None
+
+
+def _stopped_since(state, now):
+    """The time of a follower's last update when that is more than FOLLOWER_STOPPED_AFTER_S before now, else
+    None. The last update is updated_at; for a state without a readable one, last_time, the chain time of the
+    last height it walked, which the transfer poll never moves (older than the walk itself while the follower
+    catches up, so such a state reads stopped sooner); else started_at, when the follower first started. A
+    state with none of the three readable reads stopped since an unknown time. The state file's mtime is never
+    read, since the transfer poll rewrites it."""
+    written = _timestamp(state.get("updated_at"))
+    if written is None:
+        written = _timestamp(state.get("last_time"))
+    if written is None:
+        written = _timestamp(state.get("started_at"))
+    if written is None:
+        return "an unknown time"
+    if now - written <= FOLLOWER_STOPPED_AFTER_S:
+        return None
+    return datetime.fromtimestamp(written, UTC).strftime(feed._TIME)
+
+
 def _feed():
     """The state file without its fresh accounts and the last FEED_LIMIT events ordered by observed
-    block height, then hash; a 503 while the state file does not parse."""
+    block height, then hash, with follower: for a follower's state "running", or "stopped" with
+    lag_blocks null once _stopped_since says so, else null; a 503 while the state file does not parse."""
     state_dir = Path(os.environ.get("FEED_STATE_DIR", FEED_STATE.parent))
     state_path, events_dir = state_dir / "state.json", state_dir / "events"
     try:
         stats = _read_json(state_path) if state_path.is_file() else None
     except ValueError:
         return 503, {"error": "feed state unreadable"}
+    follower = None
     if stats is not None:
         stats.pop("fresh_accounts", None)
+        if stats.get("mode") == "follow":
+            follower = "running" if _stopped_since(stats, time.time()) is None else "stopped"
+        if follower == "stopped":
+            stats["lag_blocks"] = None
     events = render.feed_events(events_dir)[0]
-    return 200, {"stats": stats, "events": [document for _, _, document in events[-FEED_LIMIT:]]}
+    return 200, {"follower": follower, "stats": stats,
+                 "events": [document for _, _, document in events[-FEED_LIMIT:]]}
 
 
 def _live_feed_page():
@@ -101,12 +162,13 @@ def _live_feed_page():
         state = _read_json(state_path)
         if not isinstance(state, dict) or state.get("mode") != "follow":
             return None
+        stopped_since = _stopped_since(state, time.time())
         events, unreadable = render.feed_events(events_dir)
     except (OSError, UnicodeError, ValueError):
         return None
     event_rows = [(document, stem) for _, stem, document in events[-FEED_LIMIT:]]
-    return render.feed_page(state=state, event_rows=event_rows, total=len(events),
-                            unreadable=unreadable).encode("utf-8")
+    return render.feed_page(state=state, event_rows=event_rows, total=len(events), unreadable=unreadable,
+                            stopped_since=stopped_since).encode("utf-8")
 
 
 def _flow(store, subject):
