@@ -20,15 +20,16 @@ nothing is expected in return. Filing is not publishing: a `pending` report has 
 payments.
 
 We accept six kinds: `scam`, `theft`, `phishing`, `exploit`, `key_compromise` and `social`. The
-first five may deny a payment once accepted. `social` only asks, because nobody exploited code. Four
-outcomes: `loss`, `attempt`, `near_miss` and `unknown`.
+first five may deny a payment once accepted. `social` only asks, because a social report names a
+deception rather than a compromised contract. Four outcomes: `loss`, `attempt`, `near_miss` and
+`unknown`.
 
 ## What we do with it
 
 | State | What a payment may do |
 |---|---|
 | `pending` | Ask a human, never block. |
-| `accepted` | Block for the five code kinds, ask for `social`. |
+| `accepted` | Block for the five denial kinds, ask for `social`. |
 | `contested` | Keep the block while the appeal runs. A dispute is not a switch. |
 | `rejected` | Nothing. |
 | `withdrawn` | Nothing. |
