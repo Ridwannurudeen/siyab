@@ -89,6 +89,17 @@ class PageTest(unittest.TestCase):
                 for entry in record["moderation"]:
                     self.assertIn(entry["reason"], page)
 
+    def test_a_record_page_navigates_one_directory_up(self):
+        for record in self.loaded:
+            with self.subTest(record=record["record_id"]):
+                page = render_records.record_page(record)
+                self.assertIn('<a href="../index.html">Home</a>', page)
+                self.assertIn('<a href="../feed.html">Feed</a>', page)
+
+    def test_the_index_navigates_from_the_site_root(self):
+        self.assertIn('<a href="index.html">Home</a>', self.index)
+        self.assertNotIn("../index.html", self.index)
+
     def test_a_page_carries_no_external_script(self):
         for record in self.loaded:
             page = render_records.record_page(record)

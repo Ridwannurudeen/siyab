@@ -88,8 +88,8 @@ def index_page(loaded):
         f"<p>{len(loaded)} records, {len(rows)} subject rows.</p>\n"
         "<table><thead><tr><th>Subject</th><th>Kind</th><th>Outcome</th><th>State</th>"
         "<th>A payment</th></tr></thead><tbody>" + "".join(rows) + "</tbody></table>\n"
-        "<p><a href=\"../docs/REPORTING.md\">Reporting, corrections and appeals</a> · "
-        "<a href=\"../docs/INCIDENTS.md\">How an incident is recorded</a></p>\n")
+        "<p>What this desk commits to is in docs/REPORTING.md, and how a record is written is in "
+        "docs/INCIDENTS.md.</p>\n")
     return render.page("The incident desk", body, depth=0)
 
 
@@ -116,7 +116,7 @@ def record_page(document):
         "<p>The chain keeps the reason hash; the readable reason is published here.</p>\n"
         "<table><thead><tr><th>Decision</th><th>At</th><th>Reason</th><th>Reason sha256</th></tr></thead>"
         "<tbody>" + _moderation_rows(document) + "</tbody></table>\n")
-    return render.page(f"{document['kind']} {document['record_id'][:12]}", body, depth=0)
+    return render.page(f"{document['kind']} {document['record_id'][:12]}", body, depth=1)
 
 
 def render_records(out_dir, records_dir=RECORDS_DIR):
