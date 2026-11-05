@@ -124,16 +124,16 @@ that is not a boolean or that is true with no accepted or contested record, or a
 `UNKNOWN`, and the allowlist does not forgive them. The count check is not pedantry: a summary
 with `accepted` 1 and no id, or an id with no accepted record, would otherwise fall through the
 no-effect branch and pass an allowlisted payee. A pending record that can deny is a censorship
-tool with a storage deposit; `verdict_for` is the only place the mapping lives. The desk renderer
-calls it today, and the payment path is not built on this branch: when it is, it must call this
-function rather than keep a second copy of the ladder.
+tool with a storage deposit; `verdict_for` is the only place the mapping lives. The desk renderer on
+the pages lane is its only caller today; no payment or signing path is built, and when one is it
+must call this function rather than keep a second copy of the ladder.
 
 ## What a record is not
 
 It is not a guarantee that a subject is criminal, and it is not attribution. A record states an
 event, its outcome, its evidence, its state and who asserted it. Publisher statistics are counts of
-reports and outcomes, never an accuracy rate. `docs/REPORTING.md` carries the response times and the
-appeal, and the site shows the state beside every subject.
+reports and outcomes, never an accuracy rate. Response times and an appeal are outside this model
+and are not defined in the repository yet, and this branch adds no site view of a record's state.
 
 ## The report body behind body_sha256
 
