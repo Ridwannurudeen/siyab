@@ -28,7 +28,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from gate import base58, canon, rpc, signer, verdict
+from gate import base58, canon, rpc, rules, signer, verdict
 from intel import labels
 
 GAS = 30 * 10**12
@@ -189,11 +189,12 @@ def _write(agent, name, document, out):
 
 
 def read_policy(agent):
-    """The agent's policy from the Gate's get_agent view, in the shape the rules read."""
+    """The agent policy and Gate transfer settings from their read-only views."""
     policy = agent.clients[0].call_function(agent.gate, "get_agent", {"public_key": agent.public_key})
     if policy is None:
         raise AgentError(f"the agent key {agent.public_key} is not registered on {agent.gate}")
-    return policy
+    gate_policy = agent.clients[0].call_function(agent.gate, "get_policy", {})
+    return {**policy, "gate_paused": gate_policy["paused"], "gate_denylist": gate_policy["denylist"]}
 
 
 def _judge(agent, request, verdict_signer, out, policy=None):
@@ -222,6 +223,44 @@ def _allow(agent, request, out):
     return result["verdict"]
 
 
+def _print_owner_step(agent, request, policy, result, out):
+    reasons = result["ask"]
+    outcome = result["outcome"]
+    unknown_checks = [check["id"] for check in result["checks"] if check["status"] == "unknown"]
+    gate_reasons = reasons if outcome == "ALLOW" else [reason for reason in reasons if "(REFUSED:" in reason]
+
+    if any("(REFUSED:paused)" in reason for reason in gate_reasons):
+        out("the owner's step: the Gate is paused; resume it with bash scripts/set_paused.sh false once the cause is "
+            "resolved")
+        return
+    if any("(REFUSED:agent_disabled)" in reason for reason in gate_reasons):
+        out("the owner's step: the agent is disabled on the Gate; the owner re-enables it with the Gate's "
+            "set_agent_enabled call")
+        return
+    if any("(REFUSED:denylisted)" in reason for reason in gate_reasons):
+        out("the owner's step: the payee is on the Gate's denylist; remove it with scripts/set_denylist.sh only "
+            "after the owner has reviewed why it was added")
+        return
+
+    allowlist_refusals_only = all(
+        any(f"(REFUSED:{code})" in reason for code in ("not_allowlisted", "unknown_payee_cap"))
+        for reason in gate_reasons)
+    if outcome == "ALLOW":
+        allowlist_refusals_only = bool(gate_reasons) and allowlist_refusals_only
+    tier2_unknowns_only = bool(unknown_checks) and all(check in rules.TIER2_CHECKS for check in unknown_checks)
+    if (request["receiver_id"] not in policy.get("allowlist", []) and allowlist_refusals_only
+            and (outcome == "ALLOW" or (outcome == "UNKNOWN" and tier2_unknowns_only))):
+        allowlist = list(dict.fromkeys([*policy.get("allowlist", []), request["receiver_id"]]))
+        out(f"the owner's step, when the payee is known to them: bash scripts/set_allowlist.sh "
+            f"{agent.public_key} {','.join(allowlist)}")
+        out("scripts/set_allowlist.sh needs OWNER_ACCOUNT_ID, GATE_ACCOUNT_ID, and NEAR_KEYS_DIR")
+        return
+
+    if outcome == "UNKNOWN" and unknown_checks and not tier2_unknowns_only:
+        out("the owner's step: allowlisting skips only the tier 2 checks, so pay again when the source "
+            f"of {', '.join(unknown_checks)} answers")
+
+
 def _signed_allow(verdict_object):
     """True for a Verdict object in the interface shape: exactly its seven keys, ALLOW, a 32 hex verdict id
     and a 128 hex signature."""
@@ -246,6 +285,25 @@ def pay(agent, request, verdict_file=None, out=print):
         policy = read_policy(agent)
         result = _judge(agent, request, agent.verifier(), out, policy=policy)
         verdict_object, outcome, evidence_hash = result["verdict"], result["outcome"], result["evidence_hash"]
+    if result and result["action"] == "ask":
+        if outcome == "ALLOW":
+            out("not sent: the verdict is ALLOW, and the Gate refuses this transfer as it stands")
+            for reason in result["ask"]:
+                out(f"ask a human: {reason}")
+            _print_owner_step(agent, request, policy, result, out)
+        elif outcome == "UNKNOWN":
+            unknown_checks = [check["id"] for check in result["checks"] if check["status"] == "unknown"]
+            count = len(unknown_checks)
+            unit = "check" if count == 1 else "checks"
+            out(f"not sent: the verdict is {outcome}, and the Gate pays only on a signed ALLOW")
+            out(f"ask a human: {count} {unit} could not run: {', '.join(unknown_checks)}")
+            _print_owner_step(agent, request, policy, result, out)
+        out("nothing is sent until then")
+        hashed = isinstance(evidence_hash, str) and bool(_HEX64.fullmatch(evidence_hash))
+        name = f"pay-{evidence_hash}" if hashed else "pay-not-sent"
+        _write(agent, name, {"command": "pay", "gate": agent.gate, "request": request, "verdict": verdict_object,
+                             "submitted": False, "ask": result["ask"]}, out)
+        return 3
     if outcome != canon.LITERAL or not _signed_allow(verdict_object):
         if outcome == canon.LITERAL:
             out("not sent: the ALLOW is not a signed Verdict object (literal, issued_ms, expires_ms, verdict_id, "
@@ -253,18 +311,7 @@ def pay(agent, request, verdict_file=None, out=print):
         else:
             out(f"not sent: the verdict is {outcome}, and the Gate pays only on a signed ALLOW")
         if outcome == "UNKNOWN":
-            if result:
-                unknown_checks = [check["id"] for check in result["checks"] if check["status"] == "unknown"]
-                count = len(unknown_checks)
-                unit = "check" if count == 1 else "checks"
-                out(f"ask a human: {count} {unit} could not run: {', '.join(unknown_checks)}")
-                if request["receiver_id"] not in policy["allowlist"]:
-                    allowlist = list(dict.fromkeys([*policy["allowlist"], request["receiver_id"]]))
-                    out(f"the owner's step, when the payee is known to them: bash scripts/set_allowlist.sh "
-                        f"{agent.public_key} {','.join(allowlist)}")
-                    out("scripts/set_allowlist.sh needs OWNER_ACCOUNT_ID, GATE_ACCOUNT_ID, and NEAR_KEYS_DIR")
-            else:
-                out("ask a human: the verdict file carries no check details")
+            out("ask a human: the verdict file carries no check details")
             out("nothing is sent until then")
         hashed = isinstance(evidence_hash, str) and bool(_HEX64.fullmatch(evidence_hash))
         name = f"pay-{evidence_hash}" if hashed else "pay-not-sent"
