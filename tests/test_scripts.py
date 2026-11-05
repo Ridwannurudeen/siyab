@@ -10,6 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 BASH = shutil.which("bash")
+AGENT_PUB = "ed25519:11111111111111111111111111111111"
 
 
 @unittest.skipUnless(BASH, "bash is required for script tests")
@@ -34,6 +35,7 @@ class ScriptTest(unittest.TestCase):
             "NEAR_KEYS_DIR": str(Path(self.tempdir.name) / "keys"),
             "COLD_ACCOUNT_ID": "cold.testnet",
             "NETWORK": "testnet",
+            "AGENT_PUB": AGENT_PUB,
         }
         self.assertIsNone(shutil.which("near", path=self.env["PATH"]))
 
@@ -54,12 +56,12 @@ class ScriptTest(unittest.TestCase):
 
 
 class KillSwitchTest(ScriptTest):
-    def test_dry_run_prints_the_three_owner_calls_in_order_and_sends_nothing(self):
-        agent_pub = "ed25519:11111111111111111111111111111111"
-        process = self.run_script("kill_switch.sh", agent_pub, "--dry-run")
+    def test_dry_run_prints_calls_arguments_reads_and_signer(self):
+        process = self.run_script("kill_switch.sh", AGENT_PUB, "--dry-run")
         self.assertEqual(process.returncode, 0, process.stderr)
         expected = (
             "+ near contract call-function as-transaction gate.testnet set_paused",
+            "+ near contract call-function as-read-only gate.testnet get_agent",
             "+ near contract call-function as-transaction gate.testnet revoke_agent",
             "+ near contract call-function as-read-only token.gate.testnet ft_balance_of",
             "+ near contract call-function as-read-only token.gate.testnet storage_balance_of",
@@ -67,9 +69,31 @@ class KillSwitchTest(ScriptTest):
         )
         positions = [process.stdout.index(command) for command in expected]
         self.assertEqual(positions, sorted(positions))
+
+        for method, expected_args in (
+            ("set_paused", {"paused": True}),
+            ("revoke_agent", {"public_key": AGENT_PUB}),
+        ):
+            args = self.command(process.stdout, method)
+            self.assertEqual(json.loads(args[args.index("json-args") + 1]), expected_args)
+
+        for method, contract, expected_args in (
+            ("get_agent", "gate.testnet", {"public_key": AGENT_PUB}),
+            ("ft_balance_of", "token.gate.testnet", {"account_id": "gate.testnet"}),
+            ("storage_balance_of", "token.gate.testnet", {"account_id": "cold.testnet"}),
+        ):
+            args = self.command(process.stdout, method)
+            self.assertEqual(args[args.index("as-read-only") + 1], contract)
+            self.assertEqual(json.loads(args[args.index("json-args") + 1]), expected_args)
+
         transaction_lines = [line for line in process.stdout.splitlines() if "as-transaction" in line]
         self.assertEqual(len(transaction_lines), 3)
-        self.assertTrue(all("attached-deposit 1\\ yoctoNEAR" in line for line in transaction_lines))
+        for line in transaction_lines:
+            args = shlex.split(line[2:])
+            self.assertEqual(args[args.index("sign-as") + 1], "owner.testnet")
+            self.assertIn("attached-deposit", args)
+            self.assertEqual(args[args.index("attached-deposit") + 1], "1 yoctoNEAR")
+
         withdraw_args = self.command(process.stdout, "withdraw")
         json_args = withdraw_args[withdraw_args.index("json-args") + 1]
         self.assertEqual(
@@ -99,30 +123,50 @@ class KillSwitchTest(ScriptTest):
 
     def test_mainnet_is_refused(self):
         env = {**self.env, "NETWORK": "mainnet"}
-        process = self.run_script("kill_switch.sh", "agent", "--dry-run", env=env)
+        process = self.run_script("kill_switch.sh", AGENT_PUB, "--dry-run", env=env)
         self.assertEqual(process.returncode, 2)
         self.assertIn("NETWORK must be testnet", process.stderr)
 
 
-# The read only answers as near-cli-rs 0.30.1 prints them on testnet (recorded 5 Nov 2026): a Logs box,
-# the return value (one line, or an object pretty printed over several lines), then the console command.
-def cli_answer(value, method, account):
+# near-cli-rs 0.30.1 returns the JSON value between these two lines.
+def cli_answer(value, contract, method, args):
+    json_args = json.dumps(args, separators=(",", ":"))
     return (
         "\u251c  Logs:\n\u2502    No logs\x1b[0m\nFunction execution return value (printed to stdout):\n"
         f"{value}\n\n\nHere is your console command if you need to script it or re-run:\n"
-        f"    \x1b[33mnear contract call-function as-read-only token.gate.testnet {method} json-args "
-        f"'{{\"account_id\":\"{account}\"}}' network-config testnet now\x1b[39m\n\n"
+        f"    \x1b[33mnear contract call-function as-read-only {contract} {method} json-args "
+        f"'{json_args}' network-config testnet now\x1b[39m\n\n"
     )
 
 
-FAKE_NEAR = """#!/bin/sh
-for arg in "$@"; do printf '%s\\n' "$arg"; done >> "$NEAR_LOG"
-printf -- '---\\n' >> "$NEAR_LOG"
-case "$*" in
-  *as-read-only*ft_balance_of*) cat "$FAKE_DIR/ft_balance_of.txt" ;;
-  *as-read-only*storage_balance_of*) cat "$FAKE_DIR/storage_balance_of.txt" ;;
-  *as-transaction*) printf 'Transaction ID: 4QkqgW9n6rN8yP7LhXmVv3dEzC2bA1uT5sR6qJ8kH9gS\\n' ;;
-  *view-account-summary*) printf 'code_hash: recorded\\n' ;;
+FAKE_NEAR = r"""#!/bin/sh
+for arg in "$@"; do printf '%s\n' "$arg"; done >> "$NEAR_LOG"
+printf -- '---\n' >> "$NEAR_LOG"
+case "$3" in
+  as-read-only)
+    contract=$4
+    method=$5
+    json_args=$7
+    if [ "${FAIL_READ_METHOD:-}" = "$method" ]; then
+      printf 'simulated read failure\n' >&2
+      exit 44
+    fi
+    expected_agent_args=$(printf '{"public_key":"%s"}' "$AGENT_PUB")
+    case "$contract|$method|$json_args" in
+      "gate.testnet|get_agent|$expected_agent_args") cat "$FAKE_DIR/get_agent_gate.testnet.txt" ;;
+      'token.gate.testnet|ft_balance_of|{"account_id":"gate.testnet"}') cat "$FAKE_DIR/ft_balance_of_gate.testnet.txt" ;;
+      'token.gate.testnet|storage_balance_of|{"account_id":"cold.testnet"}') cat "$FAKE_DIR/storage_balance_of_cold.testnet.txt" ;;
+      *) printf 'unexpected read request\n' >&2; exit 42 ;;
+    esac
+    ;;
+  as-transaction)
+    if [ "${FAIL_METHOD:-}" = "$5" ]; then
+      printf 'simulated transaction failure\n' >&2
+      exit 1
+    fi
+    printf 'Transaction ID: 4QkqgW9n6rN8yP7LhXmVv3dEzC2bA1uT5sR6qJ8kH9gS\n'
+    ;;
+  view-account-summary) printf 'code_hash: recorded\n' ;;
 esac
 """
 
@@ -135,41 +179,161 @@ class KillSwitchLiveTest(ScriptTest):
         bin_dir = Path(self.tempdir.name) / "bin"
         (bin_dir / "near").write_bytes(FAKE_NEAR.encode("utf-8"))
         (bin_dir / "near").chmod(0o755)
-        (fake / "ft_balance_of.txt").write_bytes(
-            cli_answer('"999940000000"', "ft_balance_of", "gate.testnet").encode("utf-8"))
         self.fake = fake
         self.log = Path(self.tempdir.name) / "near.log"
-        self.env = {**self.env, "FAKE_DIR": str(fake), "NEAR_LOG": str(self.log), "DRY_RUN": "0"}
+        self.env = {
+            **self.env,
+            "FAKE_DIR": str(fake),
+            "NEAR_LOG": str(self.log),
+            "DRY_RUN": "0",
+        }
+        self.write_answer("get_agent", "gate.testnet", "{\n  \"agent_label\": \"registered\"\n}")
+        self.write_answer("ft_balance_of", "token.gate.testnet", '"999940000000"')
+        self.write_answer(
+            "storage_balance_of",
+            "token.gate.testnet",
+            '{\n  "available": "0",\n  "total": "1290000000000000000000"\n}',
+            account="cold.testnet",
+        )
+
+    def write_answer(self, method, contract, value, account=None):
+        if method == "get_agent":
+            args = {"public_key": AGENT_PUB}
+            account = "gate.testnet"
+            name = f"{method}_{account}.txt"
+        else:
+            account = account or "gate.testnet"
+            args = {"account_id": account}
+            name = f"{method}_{account}.txt"
+        (self.fake / name).write_bytes(
+            cli_answer(value, contract, method, args).encode("utf-8")
+        )
 
     def calls(self):
+        if not self.log.exists():
+            return []
         records = self.log.read_text(encoding="utf-8").split("---\n")
         return [record.splitlines() for record in records if record.strip()]
 
-    def test_a_registered_cold_account_gets_the_whole_token_balance(self):
-        registered = '{\n  "available": "0",\n  "total": "1290000000000000000000"\n}'
-        (self.fake / "storage_balance_of.txt").write_bytes(
-            cli_answer(registered, "storage_balance_of", "cold.testnet").encode("utf-8"))
-        process = self.run_script("kill_switch.sh", "ed25519:11111111111111111111111111111111")
+    def transactions(self):
+        return [call for call in self.calls() if len(call) > 2 and call[2] == "as-transaction"]
+
+    def test_registered_cold_account_gets_the_whole_token_balance(self):
+        process = self.run_script("kill_switch.sh", AGENT_PUB)
         self.assertEqual(process.returncode, 0, process.stderr)
-        sent = [call for call in self.calls() if "as-transaction" in call]
-        self.assertEqual([call[call.index("as-transaction") + 2] for call in sent],
-                         ["set_paused", "revoke_agent", "withdraw"])
+        sent = self.transactions()
+        self.assertEqual([call[4] for call in sent], ["set_paused", "revoke_agent", "withdraw"])
+        for call in sent:
+            self.assertEqual(call[call.index("sign-as") + 1], "owner.testnet")
+        self.assertEqual(json.loads(sent[0][sent[0].index("json-args") + 1]), {"paused": True})
+        self.assertEqual(
+            json.loads(sent[1][sent[1].index("json-args") + 1]),
+            {"public_key": AGENT_PUB},
+        )
         withdraw = sent[2]
         self.assertEqual(json.loads(withdraw[withdraw.index("json-args") + 1]), {
             "asset": {"Ft": "token.gate.testnet"},
             "receiver_id": "cold.testnet",
             "amount": "999940000000",
         })
+        self.assertIn("+ near contract call-function as-read-only gate.testnet get_agent", process.stdout)
+        self.assertIn("+ near contract call-function as-read-only token.gate.testnet ft_balance_of", process.stdout)
+        self.assertIn("+ near contract call-function as-read-only token.gate.testnet storage_balance_of", process.stdout)
+        reads = [call for call in self.calls() if len(call) > 2 and call[2] == "as-read-only"]
+        self.assertEqual(
+            [(call[3], call[4], json.loads(call[call.index("json-args") + 1])) for call in reads],
+            [
+                ("gate.testnet", "get_agent", {"public_key": AGENT_PUB}),
+                ("token.gate.testnet", "ft_balance_of", {"account_id": "gate.testnet"}),
+                ("token.gate.testnet", "storage_balance_of", {"account_id": "cold.testnet"}),
+            ],
+        )
         self.assertIn("The Gate NEAR balance stays in place", process.stdout)
 
-    def test_an_unregistered_cold_account_stops_before_the_withdraw(self):
-        (self.fake / "storage_balance_of.txt").write_bytes(
-            cli_answer("null", "storage_balance_of", "cold.testnet").encode("utf-8"))
-        process = self.run_script("kill_switch.sh", "ed25519:11111111111111111111111111111111")
+    def test_null_agent_skips_revoke_and_still_withdraws(self):
+        self.write_answer("get_agent", "gate.testnet", "null")
+        process = self.run_script("kill_switch.sh", AGENT_PUB)
+        self.assertEqual(process.returncode, 0, process.stderr)
+        self.assertIn(
+            f"no agent entry for {AGENT_PUB} on gate.testnet: revoke_agent already ran or the key is not an agent key; not sent",
+            process.stdout,
+        )
+        self.assertEqual([call[4] for call in self.transactions()], ["set_paused", "withdraw"])
+
+    def test_unparseable_read_exits_3_without_withdraw(self):
+        self.write_answer("get_agent", "gate.testnet", "Empty return value")
+        process = self.run_script("kill_switch.sh", AGENT_PUB)
+        self.assertEqual(process.returncode, 3)
+        self.assertIn("Empty return value", process.stderr)
+        self.assertIn("Gate paused: yes", process.stderr)
+        self.assertIn("Agent key revoked: no in this run", process.stderr)
+        self.assertIn("Token balance moved: no", process.stderr)
+        self.assertNotIn("withdraw", [call[4] for call in self.transactions()])
+
+    def test_failed_read_preserves_command_exit_and_reports_state(self):
+        process = self.run_script(
+            "kill_switch.sh",
+            AGENT_PUB,
+            env={**self.env, "FAIL_READ_METHOD": "get_agent"},
+        )
+        self.assertEqual(process.returncode, 44)
+        self.assertIn("simulated read failure", process.stderr)
+        self.assertIn("Gate paused: yes", process.stderr)
+        self.assertIn("Agent key revoked: no in this run", process.stderr)
+        self.assertIn("Token balance moved: no", process.stderr)
+        self.assertNotIn("revoke_agent", [call[4] for call in self.transactions()])
+
+    def test_failed_withdraw_reports_completed_state(self):
+        process = self.run_script(
+            "kill_switch.sh",
+            AGENT_PUB,
+            env={**self.env, "FAIL_METHOD": "withdraw"},
+        )
+        self.assertNotEqual(process.returncode, 0)
+        self.assertIn("Gate paused: yes", process.stderr)
+        self.assertIn("Agent key revoked: yes", process.stderr)
+        self.assertIn("Token balance moved: no", process.stderr)
+        self.assertIn("run this script again", process.stderr)
+        self.assertIn("near contract call-function as-transaction gate.testnet withdraw", process.stderr)
+
+    def test_zero_balance_skips_withdraw(self):
+        self.write_answer("ft_balance_of", "token.gate.testnet", '"0"')
+        process = self.run_script("kill_switch.sh", AGENT_PUB)
+        self.assertEqual(process.returncode, 0, process.stderr)
+        self.assertIn("the Gate holds no token.gate.testnet; nothing to withdraw", process.stdout)
+        self.assertNotIn("withdraw", [call[4] for call in self.transactions()])
+        self.assertNotIn("storage_balance_of", [call[4] for call in self.calls() if len(call) > 4 and call[2] == "as-read-only"])
+
+    def test_unregistered_cold_account_stops_before_withdraw(self):
+        self.write_answer("storage_balance_of", "token.gate.testnet", "null", account="cold.testnet")
+        process = self.run_script("kill_switch.sh", AGENT_PUB)
         self.assertEqual(process.returncode, 3)
         self.assertIn("the cold account cold.testnet is not registered on token.gate.testnet", process.stderr)
-        sent = [call[call.index("as-transaction") + 2] for call in self.calls() if "as-transaction" in call]
-        self.assertEqual(sent, ["set_paused", "revoke_agent"])
+        self.assertIn("set_paused and revoke_agent have already run", process.stderr)
+        self.assertIn("Gate paused: yes", process.stderr)
+        self.assertIn("Agent key revoked: yes", process.stderr)
+        self.assertIn("Token balance moved: no", process.stderr)
+        self.assertEqual([call[4] for call in self.transactions()], ["set_paused", "revoke_agent"])
+
+    def test_cold_account_equal_to_gate_exits_2_before_any_call(self):
+        process = self.run_script(
+            "kill_switch.sh",
+            AGENT_PUB,
+            env={**self.env, "COLD_ACCOUNT_ID": "gate.testnet"},
+        )
+        self.assertEqual(process.returncode, 2)
+        self.assertIn("COLD_ACCOUNT_ID must differ from GATE_ACCOUNT_ID", process.stderr)
+        self.assertEqual(self.calls(), [])
+
+
+class SetPausedTest(ScriptTest):
+    def test_dry_run_prints_false(self):
+        process = self.run_script("set_paused.sh", "false", "--dry-run")
+        self.assertEqual(process.returncode, 0, process.stderr)
+        args = self.command(process.stdout, "set_paused")
+        self.assertEqual(json.loads(args[args.index("json-args") + 1]), {"paused": False})
+        self.assertEqual(args[args.index("sign-as") + 1], "owner.testnet")
+        self.assertEqual(args[args.index("attached-deposit") + 1], "1 yoctoNEAR")
 
 
 class SetDenylistTest(ScriptTest):

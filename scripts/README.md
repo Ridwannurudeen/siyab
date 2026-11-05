@@ -36,9 +36,18 @@ The scripts use environment variables and the near-cli-rs command lines recorded
 
 `set_allowlist.sh` replaces the agent allowlist with the supplied comma separated accounts.
 
-`kill_switch.sh <agent_pub>` pauses the Gate, revokes the agent (removing its entry and function call key), reads the token balance, then withdraws the full token balance to `COLD_ACCOUNT_ID`. The cold account must already be storage registered on the token. If it is not, pause and revocation have already run and the script stops before withdrawing. The Gate's NEAR balance stays in place to stake its own state; the owner can withdraw NEAR by hand with `withdraw` and asset `"Near"` if needed. After a testnet drill, run `register_agent.sh` and `set_allowlist.sh` again: revocation removes the agent entry, and `register_agent` starts with an empty allowlist.
+`kill_switch.sh <agent_pub>` pauses the Gate, reads `get_agent`, revokes the agent only when an entry exists, reads the token balance, then withdraws the full token balance to `COLD_ACCOUNT_ID`. The cold account must already be storage registered on the token. If it is not, pause and revocation have already run and the script stops before withdrawing. The Gate's NEAR balance stays in place to stake its own state; the owner can withdraw NEAR by hand with `withdraw` and asset `"Near"` if needed. A testnet drill recovery must be done in this order:
+
+1. Send the tokens back from the cold account to the Gate with `near contract call-function as-transaction token.<gate> ft_transfer json-args '{"receiver_id":"<gate>","amount":"<amount printed in the kill_switch.sh withdraw command>"}' prepaid-gas '100 Tgas' attached-deposit '1 yoctoNEAR' sign-as <cold account> network-config testnet sign-with-access-key-file <cold account key file> send`.
+2. Run `register_agent.sh` again.
+3. Run `set_allowlist.sh` again with the agent's allowlist because `register_agent` starts with an empty allowlist.
+4. Last, run `set_paused.sh false` to resume the Gate.
+
+After a real compromise, register a new agent key and never the revoked key.
 
 `set_denylist.sh <account[,account...]>` replaces the entire Gate denylist with the supplied comma separated accounts.
+
+`set_paused.sh <true|false>` sets the Gate's pause state with the owner account.
 
 `redeploy.sh` checks the version before and after deploying a selected Gate or registry wasm.
 
