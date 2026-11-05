@@ -397,6 +397,14 @@ class CommandTest(VerdictCase):
         self.assertEqual(code, 2)
         self.assertIn("no signer:", errors)
 
+    def test_malformed_unknown_cap_exits_two_without_a_traceback(self):
+        policy = '{"allowlist": [], "unknown_caps": [{"asset": {"Ft": "wrap.near"}}]}'
+        code, output, errors = self.run_command("--policy", policy)
+        self.assertEqual(code, 2)
+        self.assertEqual(output, "")
+        self.assertEqual(errors, "invalid request: unknown_caps[0] is missing per_call\n")
+        self.assertEqual(list(self.dir.iterdir()), [])
+
     def test_help_says_where_the_files_land(self):
         output = io.StringIO()
         with contextlib.redirect_stdout(output), self.assertRaises(SystemExit) as stop:

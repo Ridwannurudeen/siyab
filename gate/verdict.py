@@ -19,6 +19,8 @@ DEFAULT_TTL_MS = 300000
 def ask_reasons(outcome, checks, transfer, policy):
     """Reasons a human must decide before pay signs or sends.
 
+    The paused and denylist predictions need the `gate_paused` and `gate_denylist` keys, which only `read_policy`
+    adds.
     The Gate still checks the window part of every cap, the per call and window caps of an allowlisted payee
     (REFUSED:per_call_cap, REFUSED:window_cap), and the verdict signature, expiry and replay checks.
     """

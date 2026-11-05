@@ -73,7 +73,7 @@ def _verdict(args):
                                  agent_pk_hex=args.agent_pk, policy=policy, store=labels.load(), rpc=client,
                                  nearblocks=nearblocks, signer=verdict_signer, injection_scanner=scanner,
                                  archival=archival, evidence_dir=args.evidence_dir, issuers=issuers)
-    except canon.CanonError as error:
+    except ValueError as error:
         print(f"invalid request: {error}", file=sys.stderr)
         return 2
     for check in result["checks"]:
