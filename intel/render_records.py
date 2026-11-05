@@ -40,7 +40,7 @@ def load(records_dir=RECORDS_DIR):
 
 def action_for(record):
     """What a payment may do for this record alone, through the model's one mapping."""
-    return ACTION[records.verdict_for(records.summary([record]), record["kind"])]
+    return ACTION[records.verdict_for(records.summary([record]))]
 
 
 def _subject_rows(document):
