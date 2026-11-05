@@ -5,7 +5,7 @@ use near_sdk::{
     env, near, serde::Serialize, serde_json::json, store::LookupMap, AccountId, PanicOnDefault,
 };
 
-pub const REPORT_DEPOSIT: u128 = 23_100_000_000_000_000_000_000;
+pub const REPORT_DEPOSIT: u128 = 23_004_000_000_000_000_000_000;
 const MAX_PENDING_REPORTS: u64 = 5;
 const MAX_DISPUTES: usize = 5;
 const MAX_EVIDENCE_URL_BYTES: usize = 512;
@@ -928,11 +928,11 @@ mod tests {
         let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
         let report = reports.get_report(id).unwrap();
         let expected_body = near_sdk::serde_json::json!({
-            "subject": "vendor.testnet",
-            "kind": "scam",
-            "outcome": "loss",
             "evidence_sha256": hash('a'),
             "evidence_url": "https://evidence.example/report",
+            "kind": "scam",
+            "outcome": "loss",
+            "subject": "vendor.testnet",
             "submitter": "reporter.testnet"
         });
         let expected_json = near_sdk::serde_json::to_vec(&expected_body).unwrap();
@@ -1659,18 +1659,18 @@ mod tests {
 
     #[test]
     fn emits_all_five_nep_297_events_with_report_identity() {
-        let mut reports = reports();
-        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        let mut contract = reports();
+        let id = submit(&mut contract, "reporter.testnet", "vendor.testnet");
         let submitted = get_logs();
-        moderate(&mut reports, id, true);
+        moderate(&mut contract, id, true);
         let moderated = get_logs();
         context("disputer.testnet", REPORT_DEPOSIT, 1_003);
         let dispute_id =
-            reports.dispute(id, hash('c'), "https://evidence.example/dispute".to_owned());
+            contract.dispute(id, hash('c'), "https://evidence.example/dispute".to_owned());
         let disputed = get_logs();
-        let body_sha256 = reports.get_report(id).unwrap().body_sha256;
+        let body_sha256 = contract.get_report(id).unwrap().body_sha256;
         context("moderator.testnet", 1, 1_004);
-        reports.resolve_dispute(dispute_id, true, hash('d'));
+        contract.resolve_dispute(dispute_id, true, hash('d'));
         let resolved = get_logs();
         let mut reports = reports();
         let withdraw_id = submit(&mut reports, "reporter.testnet", "withdraw.testnet");
@@ -1772,8 +1772,8 @@ mod tests {
         let measured_bytes = report_bytes.max(dispute_bytes);
         let byte_cost = env::storage_byte_cost().as_yoctonear();
         let deposit_with_margin = (u128::from(measured_bytes) * byte_cost * 120).div_ceil(100);
-        assert_eq!((report_bytes, dispute_bytes), (1_925, 742));
+        assert_eq!((report_bytes, dispute_bytes), (1_917, 734));
         assert_eq!(REPORT_DEPOSIT, deposit_with_margin);
-        assert_eq!(REPORT_DEPOSIT, 23_100_000_000_000_000_000_000);
+        assert_eq!(REPORT_DEPOSIT, 23_004_000_000_000_000_000_000);
     }
 }
