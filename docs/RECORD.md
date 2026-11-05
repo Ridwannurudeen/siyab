@@ -132,8 +132,9 @@ must call this function rather than keep a second copy of the ladder.
 
 It is not a guarantee that a subject is criminal, and it is not attribution. A record states an
 event, its outcome, its evidence, its state and who asserted it. Publisher statistics are counts of
-reports and outcomes, never an accuracy rate. Response times and an appeal are outside this model
-and are not defined in the repository yet, and this branch adds no site view of a record's state.
+reports and outcomes, never an accuracy rate. Response times and an appeal are outside this model:
+`docs/REPORTING.md` on the reporting lane sets them out, and the desk pages on the pages lane render
+a record's state beside every subject.
 
 ## The report body behind body_sha256
 
