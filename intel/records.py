@@ -10,11 +10,13 @@ A record is content addressed. record_id is the sha256 of the compact JSON of th
 sorted keys, so nothing edits a record in place. A correction is a new record whose supersedes names
 the one it replaces, and the store marks the old one superseded; no state is rewritten.
 
-verdict_for is the only place a subject's records become an answer. The desk renderer on the pages
-lane calls it with the summary the contract is specified to return; no payment or signing path is
-built, and when one is it must call this function rather than keep a second copy of the ladder.
+verdict_for is the only place a subject's records become an answer. Where the desk pages exist they
+call it with the summary the contract is specified to return, and the tests call it with hand-built
+rows; no payment or signing path is built, and when one is it must call this function rather than
+keep a second copy of the ladder.
 """
 
+import datetime
 import hashlib
 import json
 import re
@@ -56,7 +58,7 @@ UNREADABLE = "UNKNOWN"
 
 _ACCOUNT_ID = re.compile(r"(([a-z\d]+[-_])*[a-z\d]+\.)*([a-z\d]+[-_])*[a-z\d]+", re.ASCII)
 _HEX64 = re.compile(r"[0-9a-f]{64}")
-_TIME = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")
+_TIME = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z")
 _URL = re.compile(r"https://\S+")
 URL_BYTES = 512
 
@@ -230,6 +232,18 @@ def _url(value, name):
     return value
 
 
+def _utc_time(value, name):
+    """A UTC timestamp of the right shape that also names a real date and clock time."""
+    if not isinstance(value, str) or not _TIME.fullmatch(value):
+        raise RecordError(f"{name}: a UTC time YYYY-MM-DDTHH:MM:SSZ is required")
+    try:
+        datetime.datetime(int(value[0:4]), int(value[5:7]), int(value[8:10]),
+                          int(value[11:13]), int(value[14:16]), int(value[17:19]))
+    except ValueError:
+        raise RecordError(f"{name}: {value!r} is not a real UTC date and time") from None
+    return value
+
+
 def _hex64(value, name):
     if not isinstance(value, str) or not _HEX64.fullmatch(value):
         raise RecordError(f"{name}: 64 lowercase hex characters are required")
@@ -262,8 +276,7 @@ def _evidence(entry):
         raise RecordError("evidence: exactly the fields sha256, url and fetched_at are required")
     _hex64(entry["sha256"], "evidence sha256")
     _url(entry["url"], "evidence url")
-    if not isinstance(entry["fetched_at"], str) or not _TIME.fullmatch(entry["fetched_at"]):
-        raise RecordError("evidence fetched_at: a UTC time YYYY-MM-DDTHH:MM:SSZ is required")
+    _utc_time(entry["fetched_at"], "evidence fetched_at")
     return entry
 
 
@@ -283,8 +296,7 @@ def _moderation(entry):
                           "reason are required")
     if entry["decision"] not in STATES:
         raise RecordError(f"moderation decision: {entry['decision']!r} is not one of {STATES}")
-    if not isinstance(entry["decided_at"], str) or not _TIME.fullmatch(entry["decided_at"]):
-        raise RecordError("moderation decided_at: a UTC time YYYY-MM-DDTHH:MM:SSZ is required")
+    _utc_time(entry["decided_at"], "moderation decided_at")
     _hex64(entry["reason_sha256"], "moderation reason_sha256")
     _text(entry["reason"], "moderation reason", 2000)
     return entry
@@ -295,8 +307,7 @@ def _timeline_entry(entry):
         raise RecordError("timeline: exactly the fields event, at and source are required")
     if entry["event"] not in EVENTS:
         raise RecordError(f"timeline event: {entry['event']!r} is not one of {EVENTS}")
-    if not isinstance(entry["at"], str) or not _TIME.fullmatch(entry["at"]):
-        raise RecordError("timeline at: a UTC time YYYY-MM-DDTHH:MM:SSZ is required")
+    _utc_time(entry["at"], "timeline at")
     _source(entry["source"])
     return entry
 

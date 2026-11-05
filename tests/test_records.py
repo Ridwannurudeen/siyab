@@ -323,6 +323,22 @@ class EvidenceTest(unittest.TestCase):
         edited["state"] = "accepted"
         self.assert_refused(self.reseal(edited), "not the last decision")
 
+    def test_an_impossible_calendar_or_clock_time_is_refused(self):
+        """The shape is not enough: month 99, hour 99 and 30 February are not UTC times."""
+        for where, field, value, words in (
+                ("evidence", "fetched_at", "2026-99-05T15:00:00Z", "evidence fetched_at"),
+                ("timeline", "at", "2026-11-05T99:00:00Z", "timeline at"),
+                ("moderation", "decided_at", "2026-02-30T15:05:00Z", "moderation decided_at")):
+            with self.subTest(where=where, value=value):
+                edited = copy.deepcopy(self.record)
+                edited[where][0][field] = value
+                self.assert_refused(self.reseal(edited), words)
+
+    def test_a_real_utc_time_is_accepted_even_on_a_leap_day(self):
+        edited = copy.deepcopy(self.record)
+        edited["evidence"][0]["fetched_at"] = "2028-02-29T15:00:00Z"
+        self.assertIs(records.validate(self.reseal(edited)), edited)
+
     def test_a_moderation_decision_without_readable_text_is_refused(self):
         edited = copy.deepcopy(self.record)
         edited["moderation"][0]["reason"] = "  "

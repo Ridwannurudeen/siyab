@@ -127,9 +127,9 @@ that is not a boolean or that is true with no accepted or contested record, or a
 `UNKNOWN`, and the allowlist does not forgive them. The count check is not pedantry: a summary
 with `accepted` 1 and no id, or an id with no accepted record, would otherwise fall through the
 no-effect branch and pass an allowlisted payee. A pending record that can deny is a censorship
-tool with a storage deposit; `verdict_for` is the only place the mapping lives. The desk renderer on
-the pages lane is its only caller today; no payment or signing path is built, and when one is it
-must call this function rather than keep a second copy of the ladder.
+tool with a storage deposit; `verdict_for` is the only place the mapping lives. Where the desk pages
+exist they call it, and the tests call it with hand-built rows; no payment or signing path is built,
+and when one is it must call this function rather than keep a second copy of the ladder.
 
 ## What a record is not
 
@@ -149,8 +149,8 @@ same bytes from the same file:
 Keys sorted, compact JSON, UTF-8, no nulls, no trailing newline. `subject` is the single account
 agents should not pay, and `submitter` is the account that filed it. `evidence_url` is https and at
 most 512 bytes, measured in bytes rather than characters so a multibyte url cannot pass a 512
-character check and exceed the limit; the contract stores the hash and the url, and the record adds
-`fetched_at` off chain. `fixtures/records/report-body-vector.json` holds one body, its exact
+character check and exceed the limit; the report contract stores the hash and the url, and the record
+adds `fetched_at` off chain. `fixtures/records/report-body-vector.json` holds one body, its exact
 canonical bytes and its sha256. Today `tests/test_records.py` checks it; the Rust test that reads
 the same file lands with the contract change, and then a change on either side breaks both.
 

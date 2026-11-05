@@ -12,8 +12,10 @@ committed a crime.
 ## What a report is
 
 A report says that an account should not be paid, and it carries evidence: one document with its
-sha256 and an https url, six fields in a canonical body (see `docs/RECORD.md`). The contract stores
-the hash, the url and the counter; the readable record lives off chain.
+sha256 and an https url, six fields in a canonical body (see `docs/RECORD.md`). The report contract
+will store the hash, the url and the counter; the readable record lives off chain. The registry on
+chain today stores an evidence hash only, and the report fields arrive with that contract change
+(`docs/RECORD.md`, "What the contract lane still has to do").
 
 Reports are permissionless. Anyone may file one against any account, for a storage deposit, and
 nothing is expected in return. Filing is not publishing: a `pending` report has no effect on
@@ -35,9 +37,11 @@ deception rather than a compromised contract. Four outcomes: `loss`, `attempt`, 
 | `withdrawn` | Nothing. |
 | `overturned` | Nothing, and the correction is published. |
 
-Two moderators accept a report above the volume threshold set on the contract; below it one
-moderator is enough. Every decision records its reason hash on chain and its readable reason in the
-published record, so the person affected can read why.
+Two moderators accept a report above our volume threshold, and below it one moderator is enough.
+The threshold and the moderation steps are policy, and the paths that enforce them belong to the
+report contract still to be built (`docs/RECORD.md`); the registry on chain today has no moderation
+call. Every decision will record its reason hash on chain and its readable reason in the published
+record, so the person affected can read why.
 
 ## Response times
 
