@@ -4,6 +4,7 @@ import hashlib
 import io
 import json
 import tempfile
+import time
 import unittest
 from datetime import UTC, datetime
 from pathlib import Path
@@ -546,7 +547,7 @@ class FollowModeTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.follow_transfers(root, FakeFetcher(self.blocks(1), 1), lambda: T0, TransfersStub())
-            for restart in (1, 2):
+            for restart in range(1, 2 + api.FOLLOWER_STOPPED_AFTER_S // (feed.POLL_S + 5)):
                 later = T0 + restart * (feed.POLL_S + 5)
                 with self.subTest(restart=restart), self.assertRaises(rpc.HttpError):
                     self.follow_transfers(root, Refused({}, 0), lambda later=later: later, TransfersStub())
@@ -554,6 +555,76 @@ class FollowModeTest(unittest.TestCase):
                 self.assertEqual(state["last_large_transfer_poll_ms"], int(later * 1000))
                 self.assertEqual(state["updated_at"], "2026-11-03T12:00:00Z")
             self.assertEqual(api._stopped_since(state, root / "state.json", later), "2026-11-03T12:00:00Z")
+
+    def test_a_state_without_updated_at_reads_stopped_after_a_refused_restart_whose_transfers_poll_writes_it(self):
+        import os
+
+        class Refused(FakeFetcher):
+            def get(self, path):
+                raise rpc.HttpError(402, path)
+
+        hours_ago = datetime.fromtimestamp(time.time() - 4 * 3600, UTC).strftime(feed._TIME)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            feed._write_json(root / "state.json", {**feed.new_state(), "mode": "follow", "started_at": hours_ago,
+                                                   "last_height": 1, "last_time": hours_ago, "blocks": 1,
+                                                   "lag_blocks": 0}, indent=2)
+            with self.assertRaises(rpc.HttpError):
+                self.follow_transfers(root, Refused({}, 0), time.time, TransfersStub())
+            state = json.loads((root / "state.json").read_text(encoding="utf-8"))
+            with mock.patch.dict(os.environ, {"FEED_STATE_DIR": str(root)}):
+                status, body = api.route("/feed", labels.load())
+                page = api._live_feed_page().decode("utf-8")
+        self.assertNotIn("updated_at", state)
+        self.assertEqual(state["transfer_requests"], len(self.subjects))
+        self.assertEqual((status, body["follower"], body["stats"]["lag_blocks"]), (200, "stopped", None))
+        self.assertIn(f"<li>follower stopped: its last update was at {hours_ago}, lag unknown</li>", page)
+
+    def test_a_running_follower_stays_running_through_a_transfers_poll_that_pages_to_the_cap(self):
+        now, judged, stamps, waits = [T0], [], [], []
+        write_json = feed._write_json
+
+        def judge():
+            path = root / "state.json"
+            judged.append(api._stopped_since(json.loads(path.read_text(encoding="utf-8")), path, now[0]))
+
+        class Slow(TransfersStub):
+            def post(self, path, body):
+                now[0] += rpc.TIMEOUT_S
+                judge()
+                return super().post(path, body)
+
+        class Judged(FakeFetcher):
+            def get(self, path):
+                judge()
+                return super().get(path)
+
+        def recording(path, value, indent=None):
+            if Path(path).name == "state.json":
+                stamps.append(value.get("updated_at"))
+            write_json(path, value, indent)
+
+        def sleep(seconds):
+            now[0] += seconds
+            if seconds == 1:
+                waits.append(seconds)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            feed._write_json(root / "state.json", {**feed.new_state(), "mode": "follow", "last_height": 1, "blocks": 1,
+                                                   "last_time": "2026-11-03T12:00:00Z",
+                                                   "updated_at": "2026-11-03T12:00:00Z",
+                                                   "last_large_transfer_poll_ms": T0_MS - 599_000,
+                                                   "large_transfer_next_poll_ms": T0_MS + 1000}, indent=2)
+            with mock.patch.object(feed, "_write_json", recording):
+                state, walked = self.follow_transfers(root, Judged(self.blocks(2), 2), lambda: now[0],
+                                                      Slow(endless=[self.subjects[0]]), max_blocks=None, sleep=sleep,
+                                                      stopped=lambda: len(waits) == 2)
+        requests = len(self.subjects) - 1 + feed.MAX_TRANSFER_PAGES
+        self.assertEqual((walked, state["last_height"], state["transfer_requests"]), (1, 2, requests))
+        self.assertEqual(len(judged), requests + 2)
+        self.assertEqual(judged, [None] * len(judged))
+        self.assertEqual(stamps, ["2026-11-03T12:00:00Z", "2026-11-03T12:16:43Z", "2026-11-03T12:16:43Z"])
 
     def test_follow_counts_requests_on_the_utc_date_they_are_made_across_midnight(self):
         midnight = datetime(2026, 11, 4, tzinfo=UTC).timestamp()

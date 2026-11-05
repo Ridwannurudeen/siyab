@@ -8,11 +8,11 @@ Routes (GET only; no route writes anything and no route opens the network):
     /evidence/<hash>      an evidence document from fixtures/evidence/ or intel/feed/events/
     /feed                 the feed state without its fresh accounts and the last 50 events, or null
                           and an empty list, with follower: "running" for a follower's state, or
-                          "stopped" with lag_blocks null once its last state write (updated_at, else
-                          the state file's mtime) is more than FOLLOWER_STOPPED_AFTER_S old; null for
-                          any other state
+                          "stopped" with lag_blocks null once its last update (updated_at, else
+                          last_time, else the state file's mtime) is more than
+                          FOLLOWER_STOPPED_AFTER_S old; null for any other state
     /feed.html            with FEED_STATE_DIR naming a follower's state, the feed page built from it,
-                          which says when a stopped follower last wrote its state and that the lag is
+                          which gives a stopped follower's last update time and says the lag is
                           unknown; else the static file as below
     /flow/<subject>       the exit trace intel/flows/<subject>.json, else the trace file under
                           intel/flows/ whose subject it is (such as rhea-collector.json); 403 for a
@@ -54,17 +54,20 @@ SEARCH_INDEX = ROOT / "demo" / "site" / "search.json"
 FLOWS_DIR = ROOT / "intel" / "flows"
 CLUSTERS_DIR = ROOT / "intel" / "clusters"
 FEED_LIMIT = 50
-# The follower stamps updated_at at every height and at every read of the final height while it waits
-# there, so only once neardata has answered; the transfer poll's own state writes keep the stamp. The
-# longest normal gap between two stamps has a large transfer poll in it, with every request answered
-# inside the client's rpc.TIMEOUT_S (30 s): the 1 s wait at the final height; one page for each of the
-# 14 incident and denylist subjects of the label store, FOLLOW_INTERVAL_S (0.4 s) apart,
-# 14 x 30 + 13 x 0.4 = 425.2 s; then a final read and a block fetch a pace apart, each after one 429
-# back off (BACKOFF_S, 10 s), 2 x (30 + 10 + 30) + 0.4 = 140.4 s; 566.6 s in all. 900 s clears that
-# with room for ten more subjects, and a stopped follower reads as stopped within 15 minutes of its
-# last stamp. Not normal, so not covered: polls past one page a subject at that speed, and an
-# unbroken run of 429 answers, which Fetcher.get waits out without end.
-FOLLOWER_STOPPED_AFTER_S = 900
+# The follower stamps updated_at at every height, at every read of the final height while it waits
+# there, and, once its run has read the final block, at the end of every transfer poll; a run that has
+# not read it, such as a restart on a refused key, stamps nothing, so a crash loop never refreshes the
+# stamp. With every request answered inside its rpc.TIMEOUT_S (30 s), the longest gap between two
+# stamps of a running follower is a transfer poll after the 1 s wait at the final height: one page each
+# for 13 of the 14 incident and denylist subjects and all MAX_TRANSFER_PAGES (20) for the last, 33
+# requests FOLLOW_INTERVAL_S (0.4 s) apart, 33 x 30 + 32 x 0.4 = 1002.8 s, so 1003.8 s. After a poll's
+# stamp the next one comes within a final read, two requests since neardata redirects it, with one 429
+# back off (BACKOFF_S, 10 s), 2 x 30 + 10 + 2 x 30 = 130 s, a 0.4 s pace and a block fetch with one
+# back off, 30 + 10 + 30 = 70 s: 200.4 s. 1200 s clears 1003.8 s with room for six more subjects. Not
+# covered: a run's first poll, which comes before its first final read and so stamps nothing
+# (1002.8 + 200.4 = 1203.2 s at that speed, the restart on top), a second subject paging to the cap at
+# that speed, and an unbroken run of 429 answers, which Fetcher.get waits out without end.
+FOLLOWER_STOPPED_AFTER_S = 1200
 JSON_TYPE = "application/json; charset=utf-8"
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 
@@ -95,12 +98,23 @@ def _evidence(evidence_hash):
     return 404, {"error": f"no evidence document {evidence_hash}"}
 
 
+def _timestamp(value):
+    """The POSIX time of a _TIME string, or None for anything else, a null or malformed value included."""
+    try:
+        return datetime.strptime(value, feed._TIME).replace(tzinfo=UTC).timestamp()
+    except (TypeError, ValueError):
+        return None
+
+
 def _stopped_since(state, state_path, now):
-    """The time a follower last wrote its state when that is more than FOLLOWER_STOPPED_AFTER_S before now,
-    else None: updated_at, or the state file's mtime for a state from a follower that did not stamp it."""
-    if "updated_at" in state:
-        written = datetime.strptime(state["updated_at"], feed._TIME).replace(tzinfo=UTC).timestamp()
-    else:
+    """The time of a follower's last update when that is more than FOLLOWER_STOPPED_AFTER_S before now, else
+    None. The last update is updated_at; for a state without a readable one, last_time, the chain time of the
+    last height it walked, which the transfer poll never moves (older than the walk itself while the follower
+    catches up, so such a state reads stopped sooner); and, when it has neither, the state file's mtime."""
+    written = _timestamp(state.get("updated_at"))
+    if written is None:
+        written = _timestamp(state.get("last_time"))
+    if written is None:
         written = Path(state_path).stat().st_mtime
     if now - written <= FOLLOWER_STOPPED_AFTER_S:
         return None

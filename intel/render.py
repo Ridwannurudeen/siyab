@@ -266,8 +266,8 @@ def feed_page(state_path=feed.STATE_PATH, events_dir=feed.EVENTS_DIR, *, state=N
               unreadable=0, stopped_since=None):
     """The feed page; event_rows, (document, hash) in the order to show, total, the number of events they were
     selected from, and unreadable, the number of event files skipped, come from a caller that selected them,
-    else every event under events_dir is shown; stopped_since, when a follower judged stopped last wrote its
-    state, comes from the caller that judged it."""
+    else every event under events_dir is shown; stopped_since, the time of the last update of a follower
+    judged stopped, comes from the caller that judged it."""
     if state is None:
         if not Path(state_path).is_file():
             return page("Feed", "<h1>Feed</h1><p>The feed has not run.</p>")
