@@ -6,6 +6,7 @@ issued_ms, expires_ms = issued_ms + ttl_ms and a random verdict_id and signs the
 canonical message. DENY and UNKNOWN carry no signature and no verdict id.
 """
 
+import re
 import secrets
 import time
 from pathlib import Path
@@ -79,6 +80,14 @@ def request(kind, token, receiver, amount, memo, *, gate, agent_pk_hex, policy, 
             missing = [field for field in ("asset", "per_call") if field not in cap]
             if missing:
                 raise ValueError(f"unknown_caps[{index}] is missing {', '.join(missing)}")
+            per_call = cap["per_call"]
+            valid_decimal = (isinstance(per_call, str) and len(per_call) <= len(str(canon.U128_MAX))
+                             and re.fullmatch(r"0|[1-9][0-9]*", per_call)
+                             and int(per_call) <= canon.U128_MAX)
+            valid_integer = (type(per_call) is int and 0 <= per_call <= canon.U128_MAX)
+            if not (valid_decimal or valid_integer):
+                raise ValueError(f"unknown_caps[{index}].per_call must be a non-negative u128 integer or "
+                                 "decimal string")
     amount = canon.validate_transfer(gate=gate, agent_pk_hex=agent_pk_hex, kind=kind, token_id=token,
                                      receiver_id=receiver, amount=amount, memo=memo)
     transfer = {"kind": kind, "token_id": token, "receiver_id": receiver, "amount": amount, "memo": memo}

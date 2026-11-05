@@ -228,6 +228,21 @@ class ActionTest(VerdictCase):
                 self.request(policy={"allowlist": [], "unknown_caps": [cap]})
         self.assertEqual(list(self.dir.iterdir()), [])
 
+    def test_invalid_unknown_cap_values_are_rejected_before_judging_or_writing(self):
+        invalid = (None, True, -1, "", "01", "-1", "1.0", str(canon.U128_MAX + 1))
+        for per_call in invalid:
+            policy = {"allowlist": [], "unknown_caps": [{"asset": {"Ft": "wrap.near"}, "per_call": per_call}]}
+            with self.subTest(per_call=per_call), mock.patch("gate.rules.judge", side_effect=AssertionError("judged")), \
+                    self.assertRaisesRegex(ValueError, r"unknown_caps\[0\]\.per_call"):
+                self.request(policy=policy)
+        self.assertEqual(list(self.dir.iterdir()), [])
+
+    def test_unknown_cap_accepts_zero_and_u128_integer_values(self):
+        for per_call in (0, canon.U128_MAX, "0", str(canon.U128_MAX)):
+            with self.subTest(per_call=per_call):
+                self.request(policy={"allowlist": ["intents.near"], "unknown_caps": [
+                    {"asset": {"Ft": "wrap.near"}, "per_call": per_call}]})
+
     def test_judge_adds_exact_tier_two_check_ids_only_off_the_allowlist(self):
         transfer = {"kind": "ft", "token_id": "wrap.near", "receiver_id": "intents.near", "amount": "1000",
                     "memo": None}
@@ -403,6 +418,15 @@ class CommandTest(VerdictCase):
         self.assertEqual(code, 2)
         self.assertEqual(output, "")
         self.assertEqual(errors, "invalid request: unknown_caps[0] is missing per_call\n")
+        self.assertEqual(list(self.dir.iterdir()), [])
+
+    def test_null_unknown_cap_exits_two_without_writing_evidence(self):
+        policy = '{"allowlist": [], "unknown_caps": [{"asset": {"Ft": "wrap.near"}, "per_call": null}]}'
+        code, output, errors = self.run_command("--policy", policy)
+        self.assertEqual(code, 2)
+        self.assertEqual(output, "")
+        self.assertEqual(errors, "invalid request: unknown_caps[0].per_call must be a non-negative u128 integer "
+                                  "or decimal string\n")
         self.assertEqual(list(self.dir.iterdir()), [])
 
     def test_help_says_where_the_files_land(self):
