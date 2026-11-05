@@ -1,0 +1,55 @@
+{
+ "version": "1",
+ "record_id": "f9b5f64a713b721405af7aa726ff696bd8c3c215f753dcfac8b2da5541180bf9",
+ "kind": "social",
+ "outcome": "attempt",
+ "state": "accepted",
+ "subjects": [
+  "kestrelridge-sh0p.testnet"
+ ],
+ "reports": [
+  {
+   "seq": 4,
+   "sha256": "35280cc8ca95a60441fefe0f45ef1b24e69f5d952a6bdf2f5619083c80a11c82"
+  }
+ ],
+ "evidence": [
+  {
+   "sha256": "414dbe8b0e31d22001064272b368443ce0f8058dcb31a5ac144a38b4771d3fc1",
+   "url": "https://testnet.nearblocks.io/txns/8M5NqTdAHGpLbGoRWzw9oo4M1foshWB4FkNKNer6yVMS",
+   "fetched_at": "2026-11-05T16:20:00Z"
+  }
+ ],
+ "moderation": [
+  {
+   "decision": "accepted",
+   "decided_at": "2026-11-05T16:25:00Z",
+   "reason_sha256": "71dc18643fc0e919b33020931e910dbac1558727e33b41d71e587642987a8a5d",
+   "reason": "the payee talked an operator into a payment, no code exploit"
+  }
+ ],
+ "timeline": [
+  {
+   "event": "report_received",
+   "at": "2026-11-05T16:18:00Z",
+   "source": {
+    "type": "report",
+    "ref": "35280cc8ca95a60441fefe0f45ef1b24e69f5d952a6bdf2f5619083c80a11c82"
+   }
+  },
+  {
+   "event": "moderation",
+   "at": "2026-11-05T16:25:00Z",
+   "source": {
+    "type": "moderation",
+    "ref": "71dc18643fc0e919b33020931e910dbac1558727e33b41d71e587642987a8a5d"
+   }
+  }
+ ],
+ "supersedes": null,
+ "publisher": "reporter.testnet",
+ "observed": {
+  "chain": "near",
+  "first_block": null
+ }
+}

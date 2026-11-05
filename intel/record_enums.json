@@ -1,0 +1,5 @@
+{
+  "kinds": ["scam", "theft", "phishing", "exploit", "key_compromise", "social"],
+  "outcomes": ["loss", "attempt", "near_miss", "unknown"],
+  "states": ["pending", "accepted", "rejected", "withdrawn", "contested", "overturned"]
+}
