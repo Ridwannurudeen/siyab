@@ -11,6 +11,7 @@ The scripts use environment variables and the near-cli-rs command lines recorded
 | `AGED_PAYEE_ACCOUNT_ID` | Account used for the aged payee path. |
 | `ATTACKER_ACCOUNT_ID` | Account that funds the lookalike receiver. |
 | `NEAR_KEYS_DIR` | Directory for `<account>.json` key files; created subaccount files are set to mode 600 on a Linux filesystem, while chmod is a no op on `/mnt/c`. |
+| `COLD_ACCOUNT_ID` | Account that `kill_switch.sh` moves the Gate's token balance to; it must be storage registered on the token. |
 | `VERIFIER_PUB` | Public verifier key passed to the Gate initializer. |
 | `AGENT_PUB` | Function call public key registered with the Gate. |
 | `AGENT_LABEL` | Label stored with the agent. |
@@ -34,6 +35,10 @@ The scripts use environment variables and the near-cli-rs command lines recorded
 `register_agent.sh` registers the agent and converts token caps to base units.
 
 `set_allowlist.sh` replaces the agent allowlist with the supplied comma separated accounts.
+
+`kill_switch.sh <agent_pub>` pauses the Gate, revokes the agent (removing its entry and function call key), reads the token balance, then withdraws the full token balance to `COLD_ACCOUNT_ID`. The cold account must already be storage registered on the token. If it is not, pause and revocation have already run and the script stops before withdrawing. The Gate's NEAR balance stays in place to stake its own state; the owner can withdraw NEAR by hand with `withdraw` and asset `"Near"` if needed. After a testnet drill, run `register_agent.sh` and `set_allowlist.sh` again: revocation removes the agent entry, and `register_agent` starts with an empty allowlist.
+
+`set_denylist.sh <account[,account...]>` replaces the entire Gate denylist with the supplied comma separated accounts.
 
 `redeploy.sh` checks the version before and after deploying a selected Gate or registry wasm.
 
