@@ -339,6 +339,7 @@ Copied from `docs/CLAIMS.md`; `tests/test_readme_claims.py` asserts the two tabl
 | An OutLayer approver is not built. | `tests/test_attack_evidence.py:unbuilt_limit_rows` | `tests/test_attack_evidence.py::AttackEvidenceTest.test_unbuilt_surfaces_are_stated_as_limits` | offline | no |
 | A browser extension for NEAR is not built. | `tests/test_attack_evidence.py:unbuilt_limit_rows` | `tests/test_attack_evidence.py::AttackEvidenceTest.test_unbuilt_surfaces_are_stated_as_limits` | offline | no |
 | A Telegram bot for NEAR is not built. | `tests/test_attack_evidence.py:unbuilt_limit_rows` | `tests/test_attack_evidence.py::AttackEvidenceTest.test_unbuilt_surfaces_are_stated_as_limits` | offline | no |
+| The wrapper signs on ALLOW, refuses on DENY and asks a human on UNKNOWN, naming the owner's allowlist step; nothing is sent until then. | `gate/agent.py:pay` | `tests/test_agent.py::PayTest.test_unknown_asks_a_human_and_sends_nothing` | offline | no |
 
 ## Adversarial table
 

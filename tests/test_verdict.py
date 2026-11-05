@@ -55,6 +55,9 @@ class VerdictCase(unittest.TestCase):
 
 
 class AllowTest(VerdictCase):
+    def test_the_action_is_sign(self):
+        self.assertEqual(self.request()["action"], "sign")
+
     def test_the_verdict_object_has_the_interface_shape(self):
         result = self.request()
         self.assertEqual(result["outcome"], "ALLOW")
@@ -126,6 +129,14 @@ class NoSignatureTest(VerdictCase):
                               policy={"allowlist": [], "caps": []}, verdict_signer=spy)
         self.assert_unsigned(result, "UNKNOWN")
         spy.sign.assert_not_called()
+
+    def test_deny_refuses_and_unknown_asks(self):
+        denied = self.request(receiver="no-such-account-example.near",
+                              policy={"allowlist": ["no-such-account-example.near"], "caps": []})
+        unknown = self.request(kind="near", token=None, receiver="relay.aurora", amount="5",
+                               policy={"allowlist": [], "caps": []})
+        self.assertEqual(denied["action"], "refuse")
+        self.assertEqual(unknown["action"], "ask")
 
     def test_an_invalid_request_fails_before_judging_or_writing(self):
         with mock.patch("gate.rules.judge", side_effect=AssertionError("judged")):
@@ -201,6 +212,7 @@ class CommandTest(VerdictCase):
         lines = output.splitlines()
         self.assertEqual(lines[0], "pass    receiver_exists: intents.near exists")
         self.assertIn("verdict: ALLOW", lines)
+        self.assertIn("action: sign", lines)
         self.assertTrue(any(re.fullmatch(r"latency: \d+ ms", line) for line in lines))
         verdict_object = json.loads(lines[-2])
         self.assertEqual(list(verdict_object), VERDICT_KEYS)

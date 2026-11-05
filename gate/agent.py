@@ -34,7 +34,7 @@ from intel import labels
 GAS = 30 * 10**12
 EXPLORER_URL = "https://testnet.nearblocks.io/txns/"
 ATTACKS = ("no-verdict", "forged-signature", "replay", "expired", "over-cap", "callback", "token-direct",
-           "service-down", "one-yocto", "unknown-payee")
+           "service-down", "one-yocto", "unknown-payee", "injected")
 DAY_MS = 24 * 60 * 60 * 1000
 VERDICT_KEYS = {"literal", "issued_ms", "expires_ms", "verdict_id", "evidence_hash", "key_id", "signature"}
 _SIGNATURE = re.compile(r"[0-9a-f]{128}")
@@ -76,11 +76,11 @@ def live_signer():
     return signer.NaClSigner(os.environ["VERIFIER_KEY_FILE"])
 
 
-def transfer_request(kind, token, receiver, amount, memo, *, gate, agent_pk_hex):
+def transfer_request(kind, token_id, receiver_id, amount, memo, *, gate, agent_pk_hex):
     """The TransferRequest argument, validated as the canonical message would be."""
-    amount = canon.validate_transfer(gate=gate, agent_pk_hex=agent_pk_hex, kind=kind, token_id=token,
-                                     receiver_id=receiver, amount=amount, memo=memo)
-    return {"kind": kind, "token_id": token, "receiver_id": receiver, "amount": amount, "memo": memo}
+    amount = canon.validate_transfer(gate=gate, agent_pk_hex=agent_pk_hex, kind=kind, token_id=token_id,
+                                     receiver_id=receiver_id, amount=amount, memo=memo)
+    return {"kind": kind, "token_id": token_id, "receiver_id": receiver_id, "amount": amount, "memo": memo}
 
 
 def action(receiver_id, method_name, args, deposit=0):
@@ -196,12 +196,13 @@ def read_policy(agent):
     return policy
 
 
-def _judge(agent, request, verdict_signer, out):
+def _judge(agent, request, verdict_signer, out, policy=None):
     """The verdict service's answer for the request: gate.verdict.request with the agent's policy."""
     client, nearblocks, scanner, archival = agent.clients
     result = verdict.request(request["kind"], request["token_id"], request["receiver_id"], request["amount"],
                              request["memo"], gate=agent.gate, agent_pk_hex=agent.public_hex,
-                             policy=read_policy(agent), store=labels.load(), rpc=client, nearblocks=nearblocks,
+                             policy=read_policy(agent) if policy is None else policy, store=labels.load(), rpc=client,
+                             nearblocks=nearblocks,
                              signer=verdict_signer, injection_scanner=scanner, archival=archival)
     for check in result["checks"]:
         out(f"{check['status']:<7} {check['id']}: {check['detail']}")
@@ -234,13 +235,15 @@ def _signed_allow(verdict_object):
 
 def pay(agent, request, verdict_file=None, out=print):
     """Submit request_transfer with the service's signed ALLOW; 0 when the transaction succeeded."""
+    policy = read_policy(agent)
+    result = None
     if verdict_file:
         verdict_object = json.loads(Path(verdict_file).read_text(encoding="utf-8"))
         outcome = verdict_object.get("literal") if isinstance(verdict_object, dict) else None
         evidence_hash = verdict_object.get("evidence_hash") if isinstance(verdict_object, dict) else None
         out(f"verdict file {verdict_file}: {outcome}, evidence {evidence_hash}")
     else:
-        result = _judge(agent, request, agent.verifier(), out)
+        result = _judge(agent, request, agent.verifier(), out, policy=policy)
         verdict_object, outcome, evidence_hash = result["verdict"], result["outcome"], result["evidence_hash"]
     if outcome != canon.LITERAL or not _signed_allow(verdict_object):
         if outcome == canon.LITERAL:
@@ -248,10 +251,23 @@ def pay(agent, request, verdict_file=None, out=print):
                 "evidence_hash, key_id and a 128 hex signature)")
         else:
             out(f"not sent: the verdict is {outcome}, and the Gate pays only on a signed ALLOW")
+        if outcome == "UNKNOWN":
+            unknown_checks = ([check["id"] for check in result["checks"] if check["status"] == "unknown"]
+                              if result else [])
+            count = len(unknown_checks)
+            unit = "check" if count == 1 else "checks"
+            details = ", ".join(unknown_checks) if result else "check details are not in the verdict file"
+            out(f"ask a human: {count} {unit} could not run: {details}")
+            allowlist = [*policy["allowlist"], request["receiver_id"]]
+            out(f"the owner's step, when the payee is known to them: bash scripts/set_allowlist.sh "
+                f"{agent.public_key} {','.join(allowlist)}")
+            out("nothing is sent until then")
         hashed = isinstance(evidence_hash, str) and bool(_HEX64.fullmatch(evidence_hash))
         name = f"pay-{evidence_hash}" if hashed else "pay-not-sent"
         _write(agent, name, {"command": "pay", "gate": agent.gate, "request": request, "verdict": verdict_object,
                              "submitted": False}, out)
+        if outcome == "UNKNOWN":
+            return 3
         return 1
     record = _submit(agent, action(agent.gate, "request_transfer", {"request": request, "verdict": verdict_object}),
                      out)
@@ -296,6 +312,14 @@ def _attack_transfer(agent, request, verdict_object):
 def _attack_actions(name, agent, request, out):
     """(the actions to send, notes for the record) for one attack."""
     now_ms = int(agent.clock() * 1000)
+    if name == "injected":
+        result = _judge(agent, request, agent.verifier(), out)
+        if result["outcome"] != "DENY":
+            outcome = result["outcome"]
+            raise AgentError(f"the verdict service answered {outcome} for the injected request, not DENY; nothing was sent")
+        return [_attack_transfer(agent, request, None)], [
+            "the verdict service answered DENY: " + " ".join(result["reasons"]),
+            "the agent submits without a verdict"]
     if name == "no-verdict":
         return [_attack_transfer(agent, request, None)], []
     if name == "forged-signature":
