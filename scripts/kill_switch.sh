@@ -146,8 +146,8 @@ else
   fi
 
   BALANCE_OUTPUT=$(read_only "$TOKEN_ACCOUNT_ID" ft_balance_of "$GATE_ARGS")
-  BALANCE=$(parse_read balance "$BALANCE_OUTPUT")
-  BALANCE=${BALANCE//$'\r'/}
+  PARSED_BALANCE=$(parse_read balance "$BALANCE_OUTPUT")
+  BALANCE=${PARSED_BALANCE//$'\r'/}
   if [[ "$BALANCE" == "0" ]]; then
     printf 'the Gate holds no %s; nothing to withdraw\n' "$TOKEN_ACCOUNT_ID"
   else

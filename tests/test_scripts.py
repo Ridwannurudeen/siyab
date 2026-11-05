@@ -331,6 +331,15 @@ class KillSwitchLiveTest(ScriptTest):
         self.assertIn("Token balance moved: no", process.stderr)
         self.assertNotIn("withdraw", [call[4] for call in self.transactions()])
 
+    def test_an_unparseable_balance_keeps_the_placeholder_in_the_manual_command(self):
+        self.write_answer("ft_balance_of", "token.gate.testnet", '"abc"')
+        process = self.run_script("kill_switch.sh", AGENT_PUB)
+        self.assertEqual(process.returncode, 3)
+        line = next(line for line in process.stderr.splitlines() if "Manual command" in line)
+        args = shlex.split(line.split(": ", 1)[1])
+        self.assertEqual(json.loads(args[args.index("json-args") + 1])["amount"], "<balance>")
+        self.assertNotIn("withdraw", [call[4] for call in self.transactions()])
+
     def test_failed_read_preserves_command_exit_and_reports_state(self):
         process = self.run_script(
             "kill_switch.sh",
