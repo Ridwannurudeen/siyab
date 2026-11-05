@@ -160,11 +160,10 @@ async fn sandbox_submit_accept_dispute_overturn_updates_subject_summary() {
     assert_eq!(dispute["report_id"], report_id);
     assert_eq!(dispute["open"], false);
     let ending_account = contract.view_account().await.unwrap();
-    assert_eq!(
-        ending_account.balance.as_yoctonear() + ending_account.locked.as_yoctonear(),
-        starting_account.balance.as_yoctonear()
-            + starting_account.locked.as_yoctonear()
-            + 2 * REPORT_DEPOSIT
-            + 2
-    );
+    let increase = ending_account.balance.as_yoctonear() + ending_account.locked.as_yoctonear()
+        - starting_account.balance.as_yoctonear()
+        - starting_account.locked.as_yoctonear();
+    // Contract calls add gas rewards to the balance.
+    assert!(increase >= 2 * REPORT_DEPOSIT + 2);
+    assert!(increase <= 2 * REPORT_DEPOSIT + 2 + 100_000_000_000_000_000_000_000);
 }
