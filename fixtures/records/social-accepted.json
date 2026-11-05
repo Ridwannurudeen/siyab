@@ -1,6 +1,6 @@
 {
  "version": "1",
- "record_id": "f9b5f64a713b721405af7aa726ff696bd8c3c215f753dcfac8b2da5541180bf9",
+ "record_id": "e38bf4414e9aef25d624e7aedff2b5db7716e2027fdb0a0453ab6cf854cfd73c",
  "kind": "social",
  "outcome": "attempt",
  "state": "accepted",
@@ -16,7 +16,7 @@
  "evidence": [
   {
    "sha256": "414dbe8b0e31d22001064272b368443ce0f8058dcb31a5ac144a38b4771d3fc1",
-   "url": "https://testnet.nearblocks.io/txns/8M5NqTdAHGpLbGoRWzw9oo4M1foshWB4FkNKNer6yVMS",
+   "url": "https://evidence.example/records/8M5NqTdAHGpLbGoRWzw9oo4M1foshWB4FkNKNer6yVMS",
    "fetched_at": "2026-11-05T16:20:00Z"
   }
  ],

@@ -1,6 +1,6 @@
 {
  "version": "1",
- "record_id": "5ecb5aeafa683563e05adf6bf15538a13470354698abd89a44eab5219bc9706d",
+ "record_id": "d228bae6259034629748ebe1c438fbef44a4ff1f437c477077365813d38455ba",
  "kind": "exploit",
  "outcome": "near_miss",
  "state": "accepted",
@@ -16,7 +16,7 @@
  "evidence": [
   {
    "sha256": "414dbe8b0e31d22001064272b368443ce0f8058dcb31a5ac144a38b4771d3fc1",
-   "url": "https://testnet.nearblocks.io/txns/8M5NqTdAHGpLbGoRWzw9oo4M1foshWB4FkNKNer6yVMS",
+   "url": "https://evidence.example/records/8M5NqTdAHGpLbGoRWzw9oo4M1foshWB4FkNKNer6yVMS",
    "fetched_at": "2026-11-05T09:25:56Z"
   }
  ],

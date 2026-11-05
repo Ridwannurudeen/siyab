@@ -10,9 +10,9 @@ A record is content addressed. record_id is the sha256 of the compact JSON of th
 sorted keys, so nothing edits a record in place. A correction is a new record whose supersedes names
 the one it replaces, and the store marks the old one superseded; no state is rewritten.
 
-verdict_for is the only place a subject's records become an answer. The desk renderer calls it
-today with the summary the contract is specified to return; the payment path is not built on this
-branch and must call it rather than keep a second copy of the ladder.
+verdict_for is the only place a subject's records become an answer. The desk renderer on the pages
+lane calls it with the summary the contract is specified to return; no payment or signing path is
+built, and when one is it must call this function rather than keep a second copy of the ladder.
 """
 
 import hashlib

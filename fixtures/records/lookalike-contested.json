@@ -1,6 +1,6 @@
 {
  "version": "1",
- "record_id": "971ab68776da8c2cf1b2f0a2a0ab61334ffcc3b802462a93d97213f9b8eb4f61",
+ "record_id": "7d1fea7fe86c5d0ea69d808b5c038e3f6d2afc613e80042ce48d7a05509f3431",
  "kind": "phishing",
  "outcome": "attempt",
  "state": "contested",
@@ -20,7 +20,7 @@
  "evidence": [
   {
    "sha256": "eeacefccb60d7493095186ea7845ce4689d2256db46da0df5da64b4814530fc1",
-   "url": "https://testnet.nearblocks.io/txns/6kfxEFCR2uuoiM6cpj8CmGAfmRjKTYNtFq4igkv48qK7",
+   "url": "https://evidence.example/records/6kfxEFCR2uuoiM6cpj8CmGAfmRjKTYNtFq4igkv48qK7",
    "fetched_at": "2026-11-05T15:00:00Z"
   }
  ],

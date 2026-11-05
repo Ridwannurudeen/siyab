@@ -1,12 +1,12 @@
 {
  "report": {
   "evidence_sha256": "6b1e5f0c2a4d8b7e9f3a1c5d7b9e0f2a4c6d8e0f1a3b5c7d9e1f3a5b7c9d0e2f",
-  "evidence_url": "https://testnet.nearblocks.io/txns/8M5NqTdAHGpLbGoRWzw9oo4M1foshWB4FkNKNer6yVMS",
+  "evidence_url": "https://evidence.example/records/8M5NqTdAHGpLbGoRWzw9oo4M1foshWB4FkNKNer6yVMS",
   "kind": "phishing",
   "outcome": "attempt",
   "subject": "kestrelridge-sh0p.testnet",
   "submitter": "reporter.testnet"
  },
- "canonical": "{\"evidence_sha256\":\"6b1e5f0c2a4d8b7e9f3a1c5d7b9e0f2a4c6d8e0f1a3b5c7d9e1f3a5b7c9d0e2f\",\"evidence_url\":\"https://testnet.nearblocks.io/txns/8M5NqTdAHGpLbGoRWzw9oo4M1foshWB4FkNKNer6yVMS\",\"kind\":\"phishing\",\"outcome\":\"attempt\",\"subject\":\"kestrelridge-sh0p.testnet\",\"submitter\":\"reporter.testnet\"}",
- "sha256": "542827d4e45051b9c412aebaf65a0f9a252b0013081e0ce15cda89ffa85239ce"
+ "canonical": "{\"evidence_sha256\":\"6b1e5f0c2a4d8b7e9f3a1c5d7b9e0f2a4c6d8e0f1a3b5c7d9e1f3a5b7c9d0e2f\",\"evidence_url\":\"https://evidence.example/records/8M5NqTdAHGpLbGoRWzw9oo4M1foshWB4FkNKNer6yVMS\",\"kind\":\"phishing\",\"outcome\":\"attempt\",\"subject\":\"kestrelridge-sh0p.testnet\",\"submitter\":\"reporter.testnet\"}",
+ "sha256": "810ce729b16f42bb3081d300d50c5565744efa8493438b842df7f5a12d0dfcf1"
 }
