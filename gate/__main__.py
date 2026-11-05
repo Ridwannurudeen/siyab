@@ -136,7 +136,9 @@ def _agent(args):
             if not args.message:
                 raise agent.AgentError("attack injected reads the transfer from --message")
             if any((args.kind, args.token, args.receiver, args.amount, args.memo)):
-                raise agent.AgentError("attack injected reads the transfer from --message; do not pass transfer options")
+                raise agent.AgentError(
+                    "attack injected reads the transfer from --message; do not pass transfer options"
+                )
         elif not all((args.kind, args.receiver, args.amount)):
             raise agent.AgentError("set --kind, --receiver and --amount")
         if not gate or not key_file:
@@ -248,8 +250,10 @@ def main(argv=None):
     judge.set_defaults(handler=_verdict)
 
     injected_demo = commands.add_parser(
-        "injected", help="offline replay of a scripted agent following a vendor-message instruction, standing in "
-                          "for a prompt-injected model; no model runs")
+        "injected",
+        help=("offline replay of a scripted agent following a vendor message instruction, standing in for a "
+              "prompt injected model; no model runs"),
+    )
     injected_demo.set_defaults(handler=lambda args: injected.main())
 
     show = commands.add_parser("demo", help="four verdicts over recorded testnet data, or the same four live")
@@ -289,8 +293,8 @@ def main(argv=None):
         if name == "attack":
             sender.add_argument("name", choices=agent.ATTACKS)
             sender.add_argument("--message",
-                                help="for attack injected: the scripted agent follows an instruction planted in this "
-                                     "vendor message, standing in for a prompt-injected model")
+                                help=("for attack injected: the scripted agent follows an instruction planted in this "
+                                      "vendor message, standing in for a prompt injected model"))
         sender.add_argument("--kind", required=(name == "pay"), choices=canon.KINDS)
         sender.add_argument("--token", help="the NEP-141 token account (kind ft)")
         sender.add_argument("--receiver", required=(name == "pay"))

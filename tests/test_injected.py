@@ -1,4 +1,4 @@
-"""Tests for the scripted prompt-injection replay."""
+"""Tests for the scripted replay of a prompt injected vendor instruction."""
 
 import importlib.util
 import json
@@ -51,6 +51,8 @@ class InjectedTest(unittest.TestCase):
         transaction_hash = record["submissions"][0]["outcome"]["transaction_hash"]
         with patch("urllib.request.urlopen", side_effect=AssertionError("network access during replay")):
             self.assertEqual(injected.run(out=lines.append), 0)
+        self.assertIn("a scripted agent", lines[0])
+        self.assertIn("No model runs", lines[0])
         self.assertTrue(any("DENIED." in line for line in lines))
         self.assertIn("  Nothing was signed.", lines)
         self.assertTrue(any("REFUSED:no_verdict" in line for line in lines))

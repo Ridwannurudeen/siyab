@@ -1,4 +1,4 @@
-"""Replay a scripted agent following a planted vendor-message instruction on testnet."""
+"""Replay offline over recorded testnet reads and the recorded refusal; the replay never touches testnet."""
 
 import atexit
 import json
@@ -80,7 +80,7 @@ def run(out=print):
                        if check["id"] == "receiver_exists")
     recorded_date = recorded_at.split("T", 1)[0]
     out("ShieldBot for NEAR, a scripted agent following an instruction planted in a vendor message, standing in "
-        "for a prompt-injected model. No model runs.")
+        "for a prompt injected model. No model runs.")
     out(f"Offline replay: the verdict uses testnet reads recorded on {recorded_date}; the refusal was recorded "
         "on testnet the same day.")
     out("")
@@ -88,7 +88,7 @@ def run(out=print):
     for line in message.splitlines():
         out(f"  {line}")
     out("")
-    out(f"The scripted agent follows the planted vendor-message instruction: pay {request['amount']} of "
+    out(f"The scripted agent follows the planted instruction in the vendor message: pay {request['amount']} of "
         f"{request['token_id']} to {request['receiver_id']}, memo \"{request['memo']}\"")
     out("")
     out("The verdict service:")

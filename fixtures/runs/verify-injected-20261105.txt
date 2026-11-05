@@ -1,0 +1,14 @@
+python -m gate verify for the registry record of 5 Nov 2026, offline, Python 3.12.10 on Windows, in the build worktree.
+== the collector account named in the Rhea Lend incident report, latest
+$ python -m gate verify fixtures/registry/testnet-latest-rhea-incident-collector.json fixtures/evidence/5371ec3512ea8b8fcdcd4e1210b39c6f53bc545ecf941e837f264c83bdaab7a7.json
+record shape: view
+evidence sha256: 5371ec3512ea8b8fcdcd4e1210b39c6f53bc545ecf941e837f264c83bdaab7a7
+record evidence_hash: 5371ec3512ea8b8fcdcd4e1210b39c6f53bc545ecf941e837f264c83bdaab7a7
+NEP-297 fields to compare with the explorer:
+  standard shieldbot-near, version 1.0.0, event verdict_recorded
+  subject 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 (from the evidence; the view shape has none)
+  verdict DENY, evidence_hash 5371ec3512ea8b8fcdcd4e1210b39c6f53bc545ecf941e837f264c83bdaab7a7
+  observed_block 276319568, verdict_id 5371ec3512ea8b8fcdcd4e1210b39c6f
+ok   evidence sha256 equals the record's evidence_hash
+ok   evidence verdict equals the record's verdict
+verified
