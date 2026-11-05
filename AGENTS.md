@@ -81,6 +81,7 @@ Testnet script variables:
 - `AGED_PAYEE_ACCOUNT_ID`: account used for the aged payee path.
 - `ATTACKER_ACCOUNT_ID`: account used to fund a lookalike receiver.
 - `NEAR_KEYS_DIR`: directory for external account key files.
+- `COLD_ACCOUNT_ID`: account `kill_switch.sh` moves the Gate's token balance to; must be storage registered on the token.
 - `VERIFIER_PUB`: public verifier key passed to the Gate initializer.
 - `AGENT_LABEL`: label stored with the agent.
 - `TOKEN_SYMBOL`: test token symbol, defaults to `DMT`.

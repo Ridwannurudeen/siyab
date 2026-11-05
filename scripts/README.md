@@ -11,6 +11,7 @@ The scripts use environment variables and the near-cli-rs command lines recorded
 | `AGED_PAYEE_ACCOUNT_ID` | Account used for the aged payee path. |
 | `ATTACKER_ACCOUNT_ID` | Account that funds the lookalike receiver. |
 | `NEAR_KEYS_DIR` | Directory for `<account>.json` key files; created subaccount files are set to mode 600 on a Linux filesystem, while chmod is a no op on `/mnt/c`. |
+| `COLD_ACCOUNT_ID` | Account that `kill_switch.sh` moves the Gate's token balance to; it must be storage registered on the token. |
 | `VERIFIER_PUB` | Public verifier key passed to the Gate initializer. |
 | `AGENT_PUB` | Function call public key registered with the Gate. |
 | `AGENT_LABEL` | Label stored with the agent. |
@@ -34,6 +35,19 @@ The scripts use environment variables and the near-cli-rs command lines recorded
 `register_agent.sh` registers the agent and converts token caps to base units.
 
 `set_allowlist.sh` replaces the agent allowlist with the supplied comma separated accounts.
+
+`kill_switch.sh <agent_pub>` pauses the Gate, reads `get_agent`, revokes the agent only when an entry exists, reads the token balance, then withdraws the full token balance to `COLD_ACCOUNT_ID`. The cold account must already be storage registered on the token. If it is not, the Gate has been paused and the agent revocation either ran or was skipped when `get_agent` returned null; the script stops before withdrawing. The Gate's NEAR balance stays in place to stake its own state; the owner can withdraw NEAR by hand with `withdraw` and asset `"Near"` if needed. The kill switch is complete only when `near account list-keys <gate account> network-config testnet now` shows no function call key for `request_transfer`. If the script printed the "no agent entry" warning for a key the owner believed was the agent's and `near account list-keys` still shows a `request_transfer` key, the wrong key was given; run the script again with the right key before any recovery step. A testnet drill recovery must be done in this order:
+
+1. Send the tokens back from the cold account to the Gate with `near contract call-function as-transaction token.<gate> ft_transfer json-args '{"receiver_id":"<gate>","amount":"<amount printed in the kill_switch.sh withdraw command>"}' prepaid-gas '100 Tgas' attached-deposit '1 yoctoNEAR' sign-as <cold account> network-config testnet sign-with-access-key-file <cold account key file> send`.
+2. Run `register_agent.sh` again.
+3. Run `set_allowlist.sh` again with the agent's allowlist because `register_agent` starts with an empty allowlist.
+4. Last, run `set_paused.sh false` to resume the Gate.
+
+After a real compromise, register a new agent key and never the revoked key.
+
+`set_denylist.sh <account[,account...]>` replaces the entire Gate denylist with the supplied comma separated accounts.
+
+`set_paused.sh <true|false>` sets the Gate's pause state with the owner account.
 
 `redeploy.sh` checks the version before and after deploying a selected Gate or registry wasm.
 
