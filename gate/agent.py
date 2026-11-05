@@ -235,7 +235,7 @@ def _signed_allow(verdict_object):
 
 def pay(agent, request, verdict_file=None, out=print):
     """Submit request_transfer with the service's signed ALLOW; 0 when the transaction succeeded."""
-    policy = read_policy(agent)
+    policy = None
     result = None
     if verdict_file:
         verdict_object = json.loads(Path(verdict_file).read_text(encoding="utf-8"))
@@ -243,6 +243,7 @@ def pay(agent, request, verdict_file=None, out=print):
         evidence_hash = verdict_object.get("evidence_hash") if isinstance(verdict_object, dict) else None
         out(f"verdict file {verdict_file}: {outcome}, evidence {evidence_hash}")
     else:
+        policy = read_policy(agent)
         result = _judge(agent, request, agent.verifier(), out, policy=policy)
         verdict_object, outcome, evidence_hash = result["verdict"], result["outcome"], result["evidence_hash"]
     if outcome != canon.LITERAL or not _signed_allow(verdict_object):
@@ -252,15 +253,18 @@ def pay(agent, request, verdict_file=None, out=print):
         else:
             out(f"not sent: the verdict is {outcome}, and the Gate pays only on a signed ALLOW")
         if outcome == "UNKNOWN":
-            unknown_checks = ([check["id"] for check in result["checks"] if check["status"] == "unknown"]
-                              if result else [])
-            count = len(unknown_checks)
-            unit = "check" if count == 1 else "checks"
-            details = ", ".join(unknown_checks) if result else "check details are not in the verdict file"
-            out(f"ask a human: {count} {unit} could not run: {details}")
-            allowlist = [*policy["allowlist"], request["receiver_id"]]
-            out(f"the owner's step, when the payee is known to them: bash scripts/set_allowlist.sh "
-                f"{agent.public_key} {','.join(allowlist)}")
+            if result:
+                unknown_checks = [check["id"] for check in result["checks"] if check["status"] == "unknown"]
+                count = len(unknown_checks)
+                unit = "check" if count == 1 else "checks"
+                out(f"ask a human: {count} {unit} could not run: {', '.join(unknown_checks)}")
+                if request["receiver_id"] not in policy["allowlist"]:
+                    allowlist = list(dict.fromkeys([*policy["allowlist"], request["receiver_id"]]))
+                    out(f"the owner's step, when the payee is known to them: bash scripts/set_allowlist.sh "
+                        f"{agent.public_key} {','.join(allowlist)}")
+                    out("scripts/set_allowlist.sh needs OWNER_ACCOUNT_ID, GATE_ACCOUNT_ID, and NEAR_KEYS_DIR")
+            else:
+                out("ask a human: the verdict file carries no check details")
             out("nothing is sent until then")
         hashed = isinstance(evidence_hash, str) and bool(_HEX64.fullmatch(evidence_hash))
         name = f"pay-{evidence_hash}" if hashed else "pay-not-sent"
@@ -316,7 +320,8 @@ def _attack_actions(name, agent, request, out):
         result = _judge(agent, request, agent.verifier(), out)
         if result["outcome"] != "DENY":
             outcome = result["outcome"]
-            raise AgentError(f"the verdict service answered {outcome} for the injected request, not DENY; nothing was sent")
+            raise AgentError(f"the verdict service answered {outcome} for the injected request, not DENY; "
+                             "nothing was sent")
         return [_attack_transfer(agent, request, None)], [
             "the verdict service answered DENY: " + " ".join(result["reasons"]),
             "the agent submits without a verdict"]

@@ -158,7 +158,8 @@ class DemoTest(unittest.TestCase):
         self.assertIn("nothing is sent", output.getvalue())
 
     def test_the_fixtures_are_reduced_recordings_under_their_replay_keys(self):
-        paths = sorted(p for p in demo.DEMO_DIR.iterdir() if p.suffix == ".json" and p.name != "policy.json")
+        paths = sorted(p for p in demo.DEMO_DIR.iterdir()
+                       if p.name not in ("policy.json", "injected-message.txt"))
         self.assertEqual(len(paths), 12)
         for path in paths:
             with self.subTest(path=path.name):

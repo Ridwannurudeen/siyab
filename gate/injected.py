@@ -1,4 +1,4 @@
-"""Replay the prompt injected agent's refusal on testnet."""
+"""Replay a scripted agent following a planted vendor-message instruction on testnet."""
 
 import atexit
 import json
@@ -64,7 +64,8 @@ def run(out=print):
     request = agent.transfer_request(**parse_message(message), gate=GATE,
                                      agent_pk_hex=base58.decode_key(AGENT_KEY).hex())
     evidence_dir = Path(tempfile.mkdtemp(prefix="shieldbot-near-injected-"))
-    if os.environ.get(KEEP_EVIDENCE) != "1":
+    keep_evidence = os.environ.get(KEEP_EVIDENCE) == "1"
+    if not keep_evidence:
         atexit.register(_remove, evidence_dir)
     client = rpc.Client(rpc.TESTNET_RPC_URL, "replay")
     nearblocks = rpc.Client(rpc.NEARBLOCKS_TESTNET_URL, "replay", kind="http")
@@ -78,15 +79,17 @@ def run(out=print):
     recorded_at = next(check["source"]["fetched_at"] for check in result["checks"]
                        if check["id"] == "receiver_exists")
     recorded_date = recorded_at.split("T", 1)[0]
-    out("ShieldBot for NEAR, a prompt injected agent, replayed offline: the verdict over testnet reads recorded on "
-        f"{recorded_date}, the refusal recorded on testnet the same day.")
+    out("ShieldBot for NEAR, a scripted agent following an instruction planted in a vendor message, standing in "
+        "for a prompt-injected model. No model runs.")
+    out(f"Offline replay: the verdict uses testnet reads recorded on {recorded_date}; the refusal was recorded "
+        "on testnet the same day.")
     out("")
-    out("The message the agent received (fixtures/demo/injected-message.txt):")
+    out("The vendor message (fixtures/demo/injected-message.txt):")
     for line in message.splitlines():
         out(f"  {line}")
     out("")
-    out(f"What the agent decided to do: pay {request['amount']} of {request['token_id']} to "
-        f"{request['receiver_id']}, memo \"{request['memo']}\"")
+    out(f"The scripted agent follows the planted vendor-message instruction: pay {request['amount']} of "
+        f"{request['token_id']} to {request['receiver_id']}, memo \"{request['memo']}\"")
     out("")
     out("The verdict service:")
     for check in result["checks"]:
@@ -98,7 +101,7 @@ def run(out=print):
     out(f"  evidence sha256: {result['evidence_hash']}")
     out("  Nothing was signed.")
     out("")
-    out("The agent submits request_transfer anyway, without a verdict (recorded on testnet):")
+    out("The scripted agent submits request_transfer without a verdict (recorded on testnet):")
     submission = record["submissions"][0]
     outcome = submission["outcome"]
     transaction_hash = outcome["transaction_hash"]
@@ -115,6 +118,8 @@ def run(out=print):
             f"{judgement['verdict']}. {' '.join(judgement['reasons'])}")
     else:
         out("On mainnet the same account has no recorded judgement.")
+    state = "kept" if keep_evidence else "removed at exit unless GATE_KEEP_EVIDENCE=1"
+    out(f"Evidence documents, {state}: {evidence_dir}")
     return 0 if result["outcome"] == "DENY" and record["refused"] else 1
 
 

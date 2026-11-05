@@ -220,6 +220,16 @@ class CommandTest(VerdictCase):
         self.assertEqual(json.loads(written.read_text()), verdict_object)
         self.assertIn(f"evidence: {verdict_object['evidence_hash']}", lines)
 
+    def test_action_follows_the_verdict_reasons(self):
+        result = {"checks": [], "outcome": "DENY", "reasons": ["the receiver carries a label"],
+                  "action": "refuse", "evidence_hash": "evidence", "latency_ms": 1, "verdict": None}
+        with mock.patch("gate.verdict.request", return_value=result):
+            code, output, _ = self.run_command()
+        lines = output.splitlines()
+        self.assertEqual(code, 0)
+        self.assertLess(lines.index("verdict: DENY"), lines.index("  the receiver carries a label"))
+        self.assertLess(lines.index("  the receiver carries a label"), lines.index("action: refuse"))
+
     def test_unknown_writes_an_unsigned_record(self):
         code, output, _ = self.run_command("--policy", '{"allowlist": [], "caps": []}')
         self.assertEqual(code, 0)

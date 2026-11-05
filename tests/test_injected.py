@@ -1,6 +1,9 @@
-"""Tests for the prompt injected agent replay."""
+"""Tests for the scripted prompt-injection replay."""
 
+import importlib.util
 import json
+import os
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -54,7 +57,21 @@ class InjectedTest(unittest.TestCase):
         self.assertIn("  injected: refused", lines)
         self.assertIn(f"  explorer: https://testnet.nearblocks.io/txns/{transaction_hash}", lines)
         self.assertTrue(any("On mainnet the same account reads" in line and "DENY" in line for line in lines))
-        self.assertFalse(any("safe" in line.lower() for line in lines))
+        spec = importlib.util.spec_from_file_location("check_hygiene", ROOT / "scripts" / "check_hygiene.py")
+        hygiene = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(hygiene)
+        self.assertFalse(any(hygiene.AUTHORED_WORD.search(line) for line in lines))
+
+    def test_a_kept_evidence_directory_is_reported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            evidence_dir = Path(tmp) / "evidence"
+            evidence_dir.mkdir()
+            with (patch("gate.injected.tempfile.mkdtemp", return_value=str(evidence_dir)),
+                  patch.dict(os.environ, {injected.KEEP_EVIDENCE: "1"}),
+                  patch("urllib.request.urlopen", side_effect=AssertionError("network access during replay"))):
+                lines = []
+                self.assertEqual(injected.run(out=lines.append), 0)
+            self.assertIn(f"Evidence documents, kept: {evidence_dir}", lines)
 
 
 if __name__ == "__main__":

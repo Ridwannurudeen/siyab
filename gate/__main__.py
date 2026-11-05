@@ -79,9 +79,9 @@ def _verdict(args):
     for check in result["checks"]:
         print(f"{check['status']:<7} {check['id']}: {check['detail']}")
     print(f"verdict: {result['outcome']}")
-    print(f"action: {result['action']}")
     for reason in result["reasons"]:
         print(f"  {reason}")
+    print(f"action: {result['action']}")
     print(f"evidence: {result['evidence_hash']}")
     print(f"latency: {result['latency_ms']} ms")
     if result["verdict"]:
@@ -133,8 +133,10 @@ def _agent(args):
     gate, key_file = os.environ.get("GATE_ACCOUNT_ID"), os.environ.get("AGENT_KEY_FILE")
     try:
         if args.command == "attack" and args.name == "injected":
-            if not args.message or any((args.kind, args.receiver, args.amount)):
+            if not args.message:
                 raise agent.AgentError("attack injected reads the transfer from --message")
+            if any((args.kind, args.token, args.receiver, args.amount, args.memo)):
+                raise agent.AgentError("attack injected reads the transfer from --message; do not pass transfer options")
         elif not all((args.kind, args.receiver, args.amount)):
             raise agent.AgentError("set --kind, --receiver and --amount")
         if not gate or not key_file:
@@ -143,8 +145,15 @@ def _agent(args):
             raise agent.AgentError(f"the agent sends on testnet only, and {gate} is not a .testnet account")
         public_hex, public_key, secret = agent.agent_key(key_file)
         if args.command == "attack" and args.name == "injected":
-            request = agent.transfer_request(**injected.parse_message(Path(args.message).read_text(encoding="utf-8")),
-                                             gate=gate, agent_pk_hex=public_hex)
+            try:
+                message = Path(args.message).read_text(encoding="utf-8")
+            except OSError as error:
+                raise agent.AgentError(f"cannot read --message: {error}") from error
+            try:
+                fields = injected.parse_message(message)
+            except ValueError as error:
+                raise agent.AgentError(str(error)) from error
+            request = agent.transfer_request(**fields, gate=gate, agent_pk_hex=public_hex)
         else:
             request = agent.transfer_request(args.kind, args.token, args.receiver, args.amount, args.memo, gate=gate,
                                              agent_pk_hex=public_hex)
@@ -239,7 +248,8 @@ def main(argv=None):
     judge.set_defaults(handler=_verdict)
 
     injected_demo = commands.add_parser(
-        "injected", help="a prompt injected agent, replayed offline: the message, the DENY, the refused submission")
+        "injected", help="offline replay of a scripted agent following a vendor-message instruction, standing in "
+                          "for a prompt-injected model; no model runs")
     injected_demo.set_defaults(handler=lambda args: injected.main())
 
     show = commands.add_parser("demo", help="four verdicts over recorded testnet data, or the same four live")
@@ -279,8 +289,8 @@ def main(argv=None):
         if name == "attack":
             sender.add_argument("name", choices=agent.ATTACKS)
             sender.add_argument("--message",
-                                help="for attack injected: the vendor message the agent follows; the transfer fields "
-                                     "come from it")
+                                help="for attack injected: the scripted agent follows an instruction planted in this "
+                                     "vendor message, standing in for a prompt-injected model")
         sender.add_argument("--kind", required=(name == "pay"), choices=canon.KINDS)
         sender.add_argument("--token", help="the NEP-141 token account (kind ft)")
         sender.add_argument("--receiver", required=(name == "pay"))
