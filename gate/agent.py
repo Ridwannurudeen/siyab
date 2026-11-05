@@ -189,11 +189,12 @@ def _write(agent, name, document, out):
 
 
 def read_policy(agent):
-    """The agent's policy from the Gate's get_agent view, in the shape the rules read."""
+    """The agent policy and Gate transfer settings from their read-only views."""
     policy = agent.clients[0].call_function(agent.gate, "get_agent", {"public_key": agent.public_key})
     if policy is None:
         raise AgentError(f"the agent key {agent.public_key} is not registered on {agent.gate}")
-    return policy
+    gate_policy = agent.clients[0].call_function(agent.gate, "get_policy", {})
+    return {**policy, "gate_paused": gate_policy["paused"], "gate_denylist": gate_policy["denylist"]}
 
 
 def _judge(agent, request, verdict_signer, out, policy=None):
@@ -283,18 +284,7 @@ def pay(agent, request, verdict_file=None, out=print):
         else:
             out(f"not sent: the verdict is {outcome}, and the Gate pays only on a signed ALLOW")
         if outcome == "UNKNOWN":
-            if result:
-                unknown_checks = [check["id"] for check in result["checks"] if check["status"] == "unknown"]
-                count = len(unknown_checks)
-                unit = "check" if count == 1 else "checks"
-                out(f"ask a human: {count} {unit} could not run: {', '.join(unknown_checks)}")
-                if request["receiver_id"] not in policy["allowlist"]:
-                    allowlist = list(dict.fromkeys([*policy["allowlist"], request["receiver_id"]]))
-                    out(f"the owner's step, when the payee is known to them: bash scripts/set_allowlist.sh "
-                        f"{agent.public_key} {','.join(allowlist)}")
-                    out("scripts/set_allowlist.sh needs OWNER_ACCOUNT_ID, GATE_ACCOUNT_ID, and NEAR_KEYS_DIR")
-            else:
-                out("ask a human: the verdict file carries no check details")
+            out("ask a human: the verdict file carries no check details")
             out("nothing is sent until then")
         hashed = isinstance(evidence_hash, str) and bool(_HEX64.fullmatch(evidence_hash))
         name = f"pay-{evidence_hash}" if hashed else "pay-not-sent"

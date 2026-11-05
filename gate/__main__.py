@@ -82,7 +82,7 @@ def _verdict(args):
     for reason in result["reasons"]:
         print(f"  {reason}")
     print(f"action: {result['action']}")
-    if result["action"] == "ask":
+    if result["outcome"] == "ALLOW" and result["action"] == "ask":
         for reason in result["ask"]:
             print(f"  ask: {reason}")
     print(f"evidence: {result['evidence_hash']}")

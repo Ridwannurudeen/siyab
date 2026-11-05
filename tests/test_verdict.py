@@ -107,10 +107,10 @@ class AllowTest(VerdictCase):
 
 
 class ActionTest(VerdictCase):
-    def request_allow(self, receiver, amount, policy):
+    def request_allow(self, receiver, amount, policy, *, kind="ft", token="wrap.near"):
         judgement = rules.Judgement(verdict="ALLOW", checks=[], reasons=[], labels=[], observed={})
         with mock.patch.object(rules, "judge", return_value=judgement):
-            return self.request(receiver=receiver, amount=amount, policy=policy)
+            return self.request(kind=kind, token=token, receiver=receiver, amount=amount, policy=policy)
 
     def test_an_allow_off_the_allowlist_over_the_unknown_cap_asks(self):
         policy = {"allowlist": ["intents.near"], "unknown_caps": [
@@ -130,14 +130,53 @@ class ActionTest(VerdictCase):
         self.assertEqual(result["action"], "sign")
         self.assertEqual(result["ask"], [])
 
+    def test_amount_and_cap_comparisons_use_numeric_values(self):
+        over = self.request_allow("unapproved.near", "10000000", {"allowlist": [], "unknown_caps": [
+            {"asset": {"Ft": "wrap.near"}, "per_call": "9000000"}]})
+        under = self.request_allow("unapproved.near", "900000", {"allowlist": [], "unknown_caps": [
+            {"asset": {"Ft": "wrap.near"}, "per_call": "1000000"}]})
+        self.assertEqual(over["action"], "ask")
+        self.assertEqual(over["ask"], [
+            "unapproved.near is not on the agent's allowlist and 10000000 is over its unknown payee cap of "
+            "9000000 per call, so the Gate refuses the transfer (REFUSED:unknown_payee_cap)"])
+        self.assertEqual((under["action"], under["ask"]), ("sign", []))
+
+    def test_near_unknown_caps_match_and_name_the_near_asset(self):
+        policy = {"allowlist": [], "unknown_caps": [{"asset": "Near", "per_call": "1000000"}]}
+        within = self.request_allow("unapproved.near", "900000", policy, kind="near", token=None)
+        over = self.request_allow("unapproved.near", "10000000", policy, kind="near", token=None)
+        uncovered = self.request_allow("unapproved.near", "1", {"allowlist": [], "unknown_caps": []},
+                                       kind="near", token=None)
+        self.assertEqual((within["action"], within["ask"]), ("sign", []))
+        self.assertEqual(over["ask"], [
+            "unapproved.near is not on the agent's allowlist and 10000000 is over its unknown payee cap of "
+            "1000000 per call, so the Gate refuses the transfer (REFUSED:unknown_payee_cap)"])
+        self.assertEqual(uncovered["ask"], [
+            "unapproved.near is not on the agent's allowlist and no unknown payee cap covers NEAR, "
+            "so the Gate refuses the transfer (REFUSED:unknown_payee_cap)"])
+
+    def test_shot_six_reason_text_is_exact(self):
+        receiver = "lindenvale.testnet"
+        token = "token.kestrelridge-main.testnet"
+        policy = {"allowlist": ["kestrelridge-shop.testnet"], "unknown_caps": [
+            {"asset": {"Ft": token}, "per_call": "1000000"}]}
+        result = self.request_allow(receiver, "2000000", policy, token=token)
+        self.assertEqual(result["ask"], [
+            "lindenvale.testnet is not on the agent's allowlist and 2000000 is over its unknown payee cap of "
+            "1000000 per call, so the Gate refuses the transfer (REFUSED:unknown_payee_cap)"])
+
     def test_no_unknown_caps_or_no_cap_for_the_asset_asks(self):
         no_caps = self.request_allow("unapproved.near", "1000", {"allowlist": [], "unknown_caps": None})
         other_asset = self.request_allow("unapproved.near", "1000", {
             "allowlist": [], "unknown_caps": [{"asset": {"Ft": "other.near"}, "per_call": "1000"}]})
+        empty_caps = self.request_allow("unapproved.near", "1000", {"allowlist": [], "unknown_caps": []})
         self.assertEqual(no_caps["ask"], [
             "unapproved.near is not on the agent's allowlist and the agent has no unknown payee caps, "
             "so the Gate refuses the transfer (REFUSED:not_allowlisted)"])
         self.assertEqual(other_asset["ask"], [
+            "unapproved.near is not on the agent's allowlist and no unknown payee cap covers wrap.near, "
+            "so the Gate refuses the transfer (REFUSED:unknown_payee_cap)"])
+        self.assertEqual(empty_caps["ask"], [
             "unapproved.near is not on the agent's allowlist and no unknown payee cap covers wrap.near, "
             "so the Gate refuses the transfer (REFUSED:unknown_payee_cap)"])
 
@@ -157,7 +196,8 @@ class ActionTest(VerdictCase):
         ]
         denied = rules.Judgement(verdict="DENY", checks=unknown_checks, reasons=[], labels=[], observed={})
         waiting = rules.Judgement(verdict="UNKNOWN", checks=unknown_checks, reasons=[], labels=[], observed={})
-        policy = {"allowlist": [], "unknown_caps": None}
+        policy = {"allowlist": [], "unknown_caps": None, "gate_paused": True, "enabled": False,
+                  "gate_denylist": ["unapproved.near"]}
         with mock.patch.object(rules, "judge", return_value=denied):
             deny = self.request(receiver="unapproved.near", policy=policy)
         with mock.patch.object(rules, "judge", return_value=waiting):
@@ -167,7 +207,40 @@ class ActionTest(VerdictCase):
         self.assertEqual(unknown["ask"], [
             "storage_registered could not run: the token read could not run",
             "account_age could not run: no account age response",
+            "the Gate is paused, so it refuses every transfer (REFUSED:paused)",
+            "the agent is disabled on the Gate, so the Gate refuses the transfer (REFUSED:agent_disabled)",
+            "unapproved.near is on the Gate's denylist, so the Gate refuses the transfer (REFUSED:denylisted)",
         ])
+
+    def test_gate_refusals_are_asked_in_contract_order(self):
+        policy = {"allowlist": ["unapproved.near"], "unknown_caps": None, "gate_paused": True,
+                  "enabled": False, "gate_denylist": ["unapproved.near"]}
+        result = self.request_allow("unapproved.near", "1000", policy)
+        self.assertEqual(result["ask"], [
+            "the Gate is paused, so it refuses every transfer (REFUSED:paused)",
+            "the agent is disabled on the Gate, so the Gate refuses the transfer (REFUSED:agent_disabled)",
+            "unapproved.near is on the Gate's denylist, so the Gate refuses the transfer (REFUSED:denylisted)",
+        ])
+
+    def test_incomplete_unknown_caps_are_rejected_before_evidence_is_written(self):
+        for cap, missing in (({"per_call": "1000"}, "asset"), ({"asset": {"Ft": "wrap.near"}}, "per_call")):
+            with self.subTest(missing=missing), self.assertRaisesRegex(ValueError, f"missing {missing}"):
+                self.request(policy={"allowlist": [], "unknown_caps": [cap]})
+        self.assertEqual(list(self.dir.iterdir()), [])
+
+    def test_judge_adds_exact_tier_two_check_ids_only_off_the_allowlist(self):
+        transfer = {"kind": "ft", "token_id": "wrap.near", "receiver_id": "intents.near", "amount": "1000",
+                    "memo": None}
+        client = rpc.Client(rpc.MAINNET_RPC_URL, "replay")
+        nearblocks = rpc.Client(rpc.NEARBLOCKS_URL, "replay", kind="http")
+        common = {"caps": [{"asset": {"Ft": "wrap.near"}}]}
+        allowed = rules.judge(transfer, {**common, "allowlist": ["intents.near"]}, self.store, client, nearblocks,
+                              now_ms=1800000000000, injection_scanner=None)
+        unapproved = rules.judge(transfer, {**common, "allowlist": []}, self.store, client, nearblocks,
+                                 now_ms=1800000000000, injection_scanner=None)
+        allowed_ids = {check["id"] for check in allowed.checks}
+        unapproved_ids = {check["id"] for check in unapproved.checks}
+        self.assertEqual(unapproved_ids - allowed_ids, set(rules.TIER2_CHECKS))
 
 
 class NoSignatureTest(VerdictCase):
@@ -308,6 +381,7 @@ class CommandTest(VerdictCase):
     def test_unknown_writes_an_unsigned_record(self):
         code, output, _ = self.run_command("--policy", '{"allowlist": [], "caps": []}')
         self.assertEqual(code, 0)
+        self.assertFalse(any(line.startswith("  ask:") for line in output.splitlines()))
         record = json.loads(output.splitlines()[-2])
         self.assertEqual(record["literal"], "UNKNOWN")
         self.assertNotIn("signature", record)
