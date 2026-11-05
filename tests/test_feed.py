@@ -439,6 +439,47 @@ class FollowModeTest(unittest.TestCase):
         self.assertEqual(paths, ["/v0/last_block/final"] + [f"/v0/block/{height}" for height in range(1, 5)])
         self.assertEqual(state["requests"], 5)
 
+    def test_a_catch_up_walk_paces_its_heights_and_waits_1_s_only_once_it_reaches_the_final_height(self):
+        now, log = [T0], []
+
+        class Logged(FakeFetcher):
+            def get(self, path):
+                log.append("get")
+                return super().get(path)
+
+        def sleep(seconds):
+            log.append(seconds)
+            now[0] += seconds
+
+        fake = Logged(self.blocks(5), 5)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state, walked = feed.follow(start=1, fetcher=fake.inner, state_path=root / "state.json",
+                                        events_dir=root / "events", event_blocks_dir=root / "event-blocks",
+                                        sleep=sleep, clock=lambda: now[0], stopped=lambda: 1 in log)
+        self.assertEqual((walked, state["last_height"], state["requests"]), (5, 5, 5))
+        self.assertEqual(log, ["get", 0.4, "get", 0.4, "get", 0.4, "get", 0.4, "get", 1])
+
+    def test_a_follower_that_keeps_up_with_the_chain_makes_about_one_request_a_height(self):
+        now = [T0]
+
+        class Chain(FakeFetcher):
+            """Finalizes a height every 0.6 s; every request takes 0.15 s."""
+
+            def get(self, path):
+                now[0] += 0.15
+                self.final = 1 + int((now[0] - T0) / 0.6)
+                return super().get(path)
+
+        def sleep(seconds):
+            now[0] += seconds
+
+        with tempfile.TemporaryDirectory() as tmp:
+            state, walked = self.follow_transfers(Path(tmp), Chain(self.blocks(200), 1), lambda: now[0],
+                                                  TransfersStub(), max_blocks=100, sleep=sleep)
+        self.assertEqual((walked, state["last_height"]), (100, 100))
+        self.assertIn(state["requests"], (100, 101))
+
     def test_the_final_height_is_the_block_of_the_final_read_with_the_events_a_fetch_of_it_writes(self):
         key = {"AddKey": {"public_key": "ed25519:pk", "access_key": {"nonce": 0, "permission": "FullAccess"}}}
         event_block = raw_block(3, [raw_receipt("game.hot.tg", [key])])
@@ -493,9 +534,9 @@ class FollowModeTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp, mock.patch.object(feed, "_write_json", recording):
             state, walked = self.follow_transfers(Path(tmp), Timed(self.blocks(2), 2), lambda: now[0], TransfersStub(),
-                                                  max_blocks=None, sleep=sleep, stopped=lambda: bool(waits))
+                                                  max_blocks=None, sleep=sleep, stopped=lambda: len(waits) == 2)
         self.assertEqual((walked, state["last_height"], state["last_large_transfer_poll_ms"]), (2, 2, T0_MS))
-        self.assertEqual(stamps, [None, "2026-11-03T12:00:07Z", "2026-11-03T12:00:07Z", "2026-11-03T12:00:08Z"])
+        self.assertEqual(stamps, [None, "2026-11-03T12:00:07Z", "2026-11-03T12:00:07Z", "2026-11-03T12:00:09Z"])
 
     def test_a_restart_neardata_refuses_keeps_updated_at_while_the_transfers_poll_writes_the_state(self):
         class Refused(FakeFetcher):

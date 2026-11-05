@@ -13,9 +13,11 @@ python -m intel feed --follow [--from <height>] [--max-blocks <n>] reads the fin
 /v0/last_block/final, which neardata redirects to /v0/block/<final height>, and walks every height
 from the state's last height + 1 (with no state: --from, else the final height) to it in order,
 never skipping one: it fetches each height below the final one from /v0/block/<height> and takes
-the final height's block from that read, so it fetches no block twice. Once caught up it sleeps
-1 s and reads the final block again. It stops on SIGINT or after --max-blocks heights, a skipped
-height included. It has no request budget and backs off 10 s on a 429 as above. When
+the final height's block from that read, so it fetches no block twice. Once a walk reaches the
+final height, and whenever a read finds no height past the last one, it sleeps 1 s before it reads
+the final block again, so a follower that keeps up makes about one neardata request a height. It
+stops on SIGINT or after --max-blocks heights, a skipped height included. It has no request budget
+and backs off 10 s on a 429 as above. When
 FASTNEAR_API_KEY_FILE names a usable key, its neardata requests (the final block and the blocks)
 carry that key as an Authorization Bearer header, read once at start and kept in memory; without
 one they are keyless, and record mode never sends it. Between one neardata request and the next
@@ -549,6 +551,8 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
             state["updated_at"] = datetime.fromtimestamp(clock(), UTC).strftime(_TIME)
             _write_json(Path(state_path), state, indent=2)
             next_height += 1
+        if next_height > final_height and not stopped() and (max_blocks is None or walked < max_blocks):
+            sleep(1)
     return state, walked
 
 
