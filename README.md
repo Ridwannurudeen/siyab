@@ -412,3 +412,5 @@ Static pages: `demo/site/`, written by `python -m intel render` from the committ
 Every variable the code and the scripts read is in `env.example`, with a comment each; the agreements for working in this repository are in `AGENTS.md`.
 
 Data sources: NearBlocks (testnet explorer and account data, free tier, personal use, attribution), FastNEAR (transfers, transactions, account views), mainnet.neardata.xyz (blocks), GoPlus, 1Click.
+
+Raw source copies: [provenance, licensing and removal notice](intel/seeds/raw/NOTICE.md).

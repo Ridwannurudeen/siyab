@@ -786,11 +786,11 @@ def readme_text(store_path=labels.STORE_PATH, raw_dir=RAW_DIR):
             key = (source["content_sha256"], source["url"], source["fetched_at"])
             cited[key] = cited.get(key, 0) + 1
     files = {hashlib.sha256(path.read_bytes()).hexdigest(): path.name
-             for path in sorted(Path(raw_dir).iterdir()) if path.is_file()}
+             for path in sorted(Path(raw_dir).iterdir()) if path.is_file() and path.name != "NOTICE.md"}
     lines = [
         "# Seed snapshots",
         "",
-        ("Each file under `raw/` is the body a source returned, stored byte for byte and named with its "
+        ("Each source snapshot under `raw/` is the body a source returned, stored byte for byte and named with its "
          "fetch time in UTC. The label rows cite each snapshot by its full sha256, which is shortened "
          "here to its first and last four hex characters. `python -m intel seed <source>` rewrites this "
          "file, and `tests/test_labels.py` checks it against the snapshots and the rows."),
