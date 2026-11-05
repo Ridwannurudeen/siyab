@@ -23,13 +23,7 @@ import sys
 print(json.dumps({"public_key": sys.argv[1]}, separators=(",", ":")))
 PY
 )
-MANUAL_ARGS=$(python3 - "$TOKEN_ACCOUNT_ID" "$COLD_ACCOUNT_ID" <<'PY'
-import json
-import sys
-token, receiver = sys.argv[1:]
-print(json.dumps({"asset": {"Ft": token}, "receiver_id": receiver, "amount": "<balance>"}, separators=(",", ":")))
-PY
-)
+BALANCE='<balance>'
 
 PAUSED_STATE=no
 AGENT_REVOKED_STATE='no in this run'
@@ -43,7 +37,15 @@ report_failure() {
     printf '  Agent key revoked: %s\n' "$AGENT_REVOKED_STATE" >&2
     printf '  Token balance moved: %s\n' "$TOKEN_BALANCE_MOVED" >&2
     printf '  Next step: address the reported issue, then run this script again; get_agent returns null after revocation, so revoke_agent is skipped.\n' >&2
-    local -a manual_command=(near contract call-function as-transaction "$GATE_ACCOUNT_ID" withdraw json-args "$MANUAL_ARGS" prepaid-gas '100 Tgas' attached-deposit '1 yoctoNEAR' sign-as "$OWNER_ACCOUNT_ID" network-config "$NETWORK" sign-with-access-key-file "$KEY_PATH" send)
+    local manual_args
+    manual_args=$(python3 - "$TOKEN_ACCOUNT_ID" "$COLD_ACCOUNT_ID" "$BALANCE" <<'PY'
+import json
+import sys
+token, receiver, amount = sys.argv[1:]
+print(json.dumps({"asset": {"Ft": token}, "receiver_id": receiver, "amount": amount}, separators=(",", ":")))
+PY
+)
+    local -a manual_command=(near contract call-function as-transaction "$GATE_ACCOUNT_ID" withdraw json-args "$manual_args" prepaid-gas '100 Tgas' attached-deposit '1 yoctoNEAR' sign-as "$OWNER_ACCOUNT_ID" network-config "$NETWORK" sign-with-access-key-file "$KEY_PATH" send)
     printf '  Manual command after checking the Gate balance: ' >&2
     printf '%q ' "${manual_command[@]}" >&2
     printf '\n' >&2
@@ -140,7 +142,7 @@ else
     AGENT_REVOKED_STATE=yes
   else
     AGENT_REVOKED_STATE='no in this run (get_agent returned null; revoke_agent was skipped)'
-    printf 'no agent entry for %s on %s: revoke_agent already ran or the key is not an agent key; not sent\n' "$AGENT_PUB" "$GATE_ACCOUNT_ID"
+    printf 'warning: no agent entry for %s on %s: revoke_agent already ran or the key is not an agent key; not sent\n' "$AGENT_PUB" "$GATE_ACCOUNT_ID" >&2
   fi
 
   BALANCE_OUTPUT=$(read_only "$TOKEN_ACCOUNT_ID" ft_balance_of "$GATE_ARGS")
@@ -153,7 +155,11 @@ else
     COLD_REGISTRATION=$(parse_read storage "$STORAGE_OUTPUT")
     COLD_REGISTRATION=${COLD_REGISTRATION//$'\r'/}
     if [[ "$COLD_REGISTRATION" == "null" ]]; then
-      printf 'the cold account %s is not registered on %s; register it first with storage_deposit, then run this script again; set_paused and revoke_agent have already run\n' "$COLD_ACCOUNT_ID" "$TOKEN_ACCOUNT_ID" >&2
+      if [[ "$AGENT_REVOKED_STATE" == "yes" ]]; then
+        printf 'the cold account %s is not registered on %s; register it first with storage_deposit, then run this script again; set_paused and revoke_agent have run\n' "$COLD_ACCOUNT_ID" "$TOKEN_ACCOUNT_ID" >&2
+      else
+        printf 'the cold account %s is not registered on %s; register it first with storage_deposit, then run this script again; set_paused has run and revoke_agent was skipped\n' "$COLD_ACCOUNT_ID" "$TOKEN_ACCOUNT_ID" >&2
+      fi
       exit 3
     fi
   fi
