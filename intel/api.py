@@ -65,11 +65,13 @@ FEED_LIMIT = 50
 # falls due during the final read after the 1 s wait at the final height runs before the next fetch,
 # so the longest gap between two stamps of a running follower is that wait, that read, a 0.4 s pace
 # and the poll: 1 + 130 + 0.4 + 1002.8 = 1134.2 s. A poll due at the wait itself gives
-# 1 + 1002.8 = 1003.8 s, and after a poll's stamp the next comes within a final read, a pace and a
-# fetch, 200.4 s. 1200 s clears 1134.2 s with room for two more subjects. Not covered: a run's polls
-# before its first stamp (1002.8 + 200.4 = 1203.2 s at that speed, the restart on top), a second
-# subject paging to the cap at that speed, and an unbroken run of 429 answers, which Fetcher.get waits
-# out without end.
+# 1 + 1002.8 = 1003.8 s. At that speed a poll outlasts POLL_S (600 s), so the gap after a poll's own
+# stamp can hold a final read, a pace and a second poll that fell due during the first:
+# 130 + 0.4 + 1002.8 = 1133.2 s. 1200 s clears 1134.2 s with room for two more subjects. Not covered:
+# the polls a run makes before its first stamp, which at that speed can be two before its first fetch
+# (the first stamp about 2206 s after the restart), so a restarted follower can read stopped for about
+# 1000 s; a second subject paging to the cap at that speed; and an unbroken run of 429 answers, which
+# Fetcher.get waits out without end.
 FOLLOWER_STOPPED_AFTER_S = 1200
 JSON_TYPE = "application/json; charset=utf-8"
 _HEX64 = re.compile(r"[0-9a-f]{64}")
