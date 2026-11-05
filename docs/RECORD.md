@@ -38,7 +38,7 @@ others with sorted keys.
 | `kind` | The event, from the six above. |
 | `outcome` | `loss`, `attempt`, `near_miss` or `unknown`. |
 | `state` | `pending`, `accepted`, `rejected`, `withdrawn`, `contested` or `overturned`. |
-| `subjects` | Sorted, unique NEAR account ids that agents should not pay. At least one. A subject is never a victim: a victim's account is the account that lost money, and it belongs in a report's body, not here. |
+| `subjects` | Sorted, unique NEAR account ids that agents should not pay. At least one. A subject is never a victim: a victim's account is the account that lost money, and it belongs in the evidence and in the prose, not here or in the six-field report body. |
 | `reports` | The reports behind it: `{seq, sha256}`, the contract counter and the sha256 of the canonical report body. Empty when we hold the record alone. |
 | `evidence` | At least one `{sha256, url, fetched_at}`. The sha256 is the evidence document's hash, the url is where a reader gets it, and it is https and at most 512 bytes. |
 | `moderation` | Decisions behind the current state: `{decision, decided_at, reason_sha256, reason}`. The contract keeps only the hash; the readable text is published here, so it can be corrected or taken down without touching the chain. |
@@ -136,8 +136,7 @@ and when one is it must call this function rather than keep a second copy of the
 It is not a guarantee that a subject is criminal, and it is not attribution. A record states an
 event, its outcome, its evidence, its state and who asserted it. Publisher statistics are counts of
 reports and outcomes, never an accuracy rate. Response times and an appeal are outside this model:
-`docs/REPORTING.md` on the reporting lane sets them out, and the desk pages on the pages lane render
-a record's state beside every subject.
+the reporting lane sets them out, and the pages lane renders a record's state beside every subject.
 
 ## The report body behind body_sha256
 
