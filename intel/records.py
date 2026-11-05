@@ -10,8 +10,9 @@ A record is content addressed. record_id is the sha256 of the compact JSON of th
 sorted keys, so nothing edits a record in place. A correction is a new record whose supersedes names
 the one it replaces, and the store marks the old one superseded; no state is rewritten.
 
-verdict_for is the only place a subject's records become an answer, and every signing path calls it
-with the summary the contract returns.
+verdict_for is the only place a subject's records become an answer. The desk renderer calls it
+today with the summary the contract is specified to return; the payment path is not built on this
+branch and must call it rather than keep a second copy of the ladder.
 """
 
 import hashlib
@@ -148,8 +149,10 @@ def verdict_for(summary_row, *, allowlisted=False):
 
     The summary is the only input, so the contract must refuse a report whose kind is outside the
     vocabulary at accept time; a stored record then always has a known kind. A summary that cannot
-    be read, or one whose deny bit disagrees with its own counts, reads UNKNOWN and is never
-    forgiven by the allowlist.
+    be read, one whose deny bit disagrees with its own counts, or one whose latest_accepted_id
+    disagrees with its accepted count reads UNKNOWN and is never forgiven by the allowlist. That
+    last check matters on the allowlist: accepted 1 with no latest id, or an id with no accepted
+    record, would otherwise reach the no-effect branch and pass.
     """
     if not isinstance(summary_row, dict) or tuple(sorted(summary_row)) != tuple(sorted(SUMMARY_FIELDS)):
         return UNREADABLE
@@ -160,12 +163,14 @@ def verdict_for(summary_row, *, allowlisted=False):
             return UNREADABLE
         counts.append(value)
     accepted, pending, contested = counts
-    if summary_row["latest_accepted_id"] is not None and not (
-            isinstance(summary_row["latest_accepted_id"], str)
-            and _HEX64.fullmatch(summary_row["latest_accepted_id"])):
+    latest = summary_row["latest_accepted_id"]
+    if latest is not None and not (
+            isinstance(latest, str) and _HEX64.fullmatch(latest)):
         return UNREADABLE
     deny = summary_row["deny"]
     if not isinstance(deny, bool):
+        return UNREADABLE
+    if (accepted > 0) != (latest is not None):
         return UNREADABLE
     if deny and not (accepted or contested):
         return UNREADABLE

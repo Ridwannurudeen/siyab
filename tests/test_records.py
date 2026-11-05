@@ -115,12 +115,30 @@ class VerdictTest(unittest.TestCase):
 
     def test_an_unreadable_summary_is_never_a_pass_and_the_allowlist_does_not_forgive_it(self):
         broken = [None, {}, CLEAN | {"extra": 1}, row(accepted=-1), row(accepted=True),
-                  row(accepted=1, latest="abc"), row(pending="1"), row(deny="yes"), row(deny=0),
-                  row(deny=None), row(deny=True)]
+                  row(accepted=1, latest="abc"), row(accepted=1, latest=None), row(pending="1"),
+                  row(deny="yes"), row(deny=0), row(deny=None), row(deny=True)]
         for summary_row in broken:
             with self.subTest(summary=summary_row):
                 self.assertEqual(records.verdict_for(summary_row), "UNKNOWN")
                 self.assertEqual(records.verdict_for(summary_row, allowlisted=True), "UNKNOWN")
+
+    def test_a_summary_whose_latest_id_disagrees_with_its_accepted_count_never_passes(self):
+        """An allowlisted payee must not pass on a summary the contract could not have produced."""
+        disagreed = [{"accepted": 1, "pending": 0, "contested": 0,
+                      "latest_accepted_id": None, "deny": False},
+                     {"accepted": 0, "pending": 0, "contested": 0,
+                      "latest_accepted_id": "a" * 64, "deny": False},
+                     {"accepted": 1, "pending": 0, "contested": 0,
+                      "latest_accepted_id": None, "deny": True}]
+        for summary_row in disagreed:
+            with self.subTest(summary=summary_row):
+                self.assertEqual(records.verdict_for(summary_row), "UNKNOWN")
+                self.assertEqual(records.verdict_for(summary_row, allowlisted=True), "UNKNOWN")
+
+    def test_a_summary_with_several_accepted_records_and_their_id_still_reads(self):
+        """The count check rejects only a disagreement, not a count above one."""
+        self.assertEqual(records.verdict_for(row(accepted=3)), "UNKNOWN")
+        self.assertIsNone(records.verdict_for(row(accepted=3), allowlisted=True))
 
     def test_the_summary_counts_follow_the_records_held(self):
         holdings = [load("injected-collector.json"), load("lookalike-pending.json"),
