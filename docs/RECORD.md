@@ -119,10 +119,14 @@ allowlisted account can be compromised or named in an incident, and that is exac
 has to win.
 
 A read that fails, a summary that does not match the five fields, a negative count, a `deny` bit
-that is not a boolean or that is true with no accepted or contested record, or an unreadable
-`latest_accepted_id` all read `UNKNOWN`, and the allowlist does not forgive them. A pending record
-that can deny is a censorship tool with a storage deposit; `verdict_for` is the only place the
-mapping lives and every signing path calls it.
+that is not a boolean or that is true with no accepted or contested record, or a
+`latest_accepted_id` that is unreadable or that disagrees with the `accepted` count all read
+`UNKNOWN`, and the allowlist does not forgive them. The count check is not pedantry: a summary
+with `accepted` 1 and no id, or an id with no accepted record, would otherwise fall through the
+no-effect branch and pass an allowlisted payee. A pending record that can deny is a censorship
+tool with a storage deposit; `verdict_for` is the only place the mapping lives. The desk renderer
+calls it today, and the payment path is not built on this branch: when it is, it must call this
+function rather than keep a second copy of the ladder.
 
 ## What a record is not
 
