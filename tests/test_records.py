@@ -22,12 +22,13 @@ def load(name):
     return json.loads((ROOT / "fixtures" / "records" / name).read_text(encoding="utf-8"))
 
 
-CLEAN = {"accepted": 0, "pending": 0, "contested": 0, "latest_accepted_id": None}
+CLEAN = {"accepted": 0, "pending": 0, "contested": 0, "latest_accepted_id": None,
+         "deny": False}
 
 
-def row(accepted=0, pending=0, contested=0, latest="0" * 64):
+def row(accepted=0, pending=0, contested=0, latest="0" * 64, deny=False):
     return {"accepted": accepted, "pending": pending, "contested": contested,
-            "latest_accepted_id": latest if accepted else None}
+            "latest_accepted_id": latest if accepted else None, "deny": deny}
 
 
 class FixtureTest(unittest.TestCase):
@@ -77,14 +78,12 @@ class EnumTest(unittest.TestCase):
 
 class VerdictTest(unittest.TestCase):
     def test_an_accepted_report_denies_for_the_five_kinds(self):
-        for kind in records.DENY_KINDS:
-            with self.subTest(kind=kind):
-                self.assertEqual(records.verdict_for(row(accepted=1), kind), "DENY")
+        self.assertEqual(records.verdict_for(row(accepted=1, deny=True)), "DENY")
 
     def test_an_accepted_social_report_asks(self):
-        self.assertEqual(records.verdict_for(row(accepted=1), "social"), "UNKNOWN")
+        self.assertEqual(records.verdict_for(row(accepted=1)), "UNKNOWN")
 
-    def test_pending_and_contested_only_ask(self):
+    def test_pending_and_contested_without_a_deny_kind_only_ask(self):
         self.assertEqual(records.verdict_for(row(pending=1)), "UNKNOWN")
         self.assertEqual(records.verdict_for(row(contested=1)), "UNKNOWN")
 
@@ -94,41 +93,34 @@ class VerdictTest(unittest.TestCase):
     def test_an_ask_has_no_effect_on_an_allowlisted_payee(self):
         for summary_row in (row(pending=1), row(accepted=1)):
             with self.subTest(summary=summary_row):
-                kind = "social" if summary_row["accepted"] else None
-                self.assertIsNone(records.verdict_for(summary_row, kind, allowlisted=True))
+                self.assertIsNone(records.verdict_for(summary_row, allowlisted=True))
 
     def test_a_contested_report_keeps_its_deny_and_the_allowlist_does_not_lift_it(self):
-        for kind in records.DENY_KINDS:
-            with self.subTest(kind=kind):
-                self.assertEqual(records.verdict_for(row(contested=1), kind), "DENY")
-                self.assertEqual(records.verdict_for(row(contested=1), kind, allowlisted=True), "DENY")
+        self.assertEqual(records.verdict_for(row(contested=1, deny=True)), "DENY")
+        self.assertEqual(records.verdict_for(row(contested=1, deny=True), allowlisted=True), "DENY")
 
     def test_a_contested_social_report_asks_and_the_allowlist_does_not_lift_it(self):
-        self.assertEqual(records.verdict_for(row(contested=1), "social"), "UNKNOWN")
-        self.assertEqual(records.verdict_for(row(contested=1), "social", allowlisted=True), "UNKNOWN")
+        self.assertEqual(records.verdict_for(row(contested=1)), "UNKNOWN")
+        self.assertEqual(records.verdict_for(row(contested=1), allowlisted=True), "UNKNOWN")
 
     def test_deny_beats_unknown_which_beats_no_effect(self):
-        self.assertEqual(records.verdict_for(row(accepted=1, pending=3), "theft"), "DENY")
-        self.assertEqual(records.verdict_for(row(contested=1, pending=3), "theft"), "DENY")
-        self.assertEqual(records.verdict_for(row(accepted=1, pending=3), "social"), "UNKNOWN")
-        self.assertEqual(records.verdict_for(row(pending=3), None), "UNKNOWN")
-        self.assertIsNone(records.verdict_for(CLEAN, "theft"))
+        self.assertEqual(records.verdict_for(row(accepted=1, pending=3, deny=True)), "DENY")
+        self.assertEqual(records.verdict_for(row(contested=1, pending=3, deny=True)), "DENY")
+        self.assertEqual(records.verdict_for(row(accepted=1, pending=3)), "UNKNOWN")
+        self.assertEqual(records.verdict_for(row(pending=3)), "UNKNOWN")
+        self.assertIsNone(records.verdict_for(CLEAN))
 
     def test_a_deny_still_applies_to_an_allowlisted_payee(self):
-        self.assertEqual(records.verdict_for(row(accepted=1), "theft", allowlisted=True), "DENY")
+        self.assertEqual(records.verdict_for(row(accepted=1, deny=True), allowlisted=True), "DENY")
 
     def test_an_unreadable_summary_is_never_a_pass_and_the_allowlist_does_not_forgive_it(self):
         broken = [None, {}, CLEAN | {"extra": 1}, row(accepted=-1), row(accepted=True),
-                  row(accepted=1, latest="abc"), row(pending="1")]
+                  row(accepted=1, latest="abc"), row(pending="1"), row(deny="yes"), row(deny=0),
+                  row(deny=None), row(deny=True)]
         for summary_row in broken:
             with self.subTest(summary=summary_row):
-                self.assertEqual(records.verdict_for(summary_row, "theft"), "UNKNOWN")
-                self.assertEqual(records.verdict_for(summary_row, "theft", allowlisted=True), "UNKNOWN")
-
-    def test_an_accepted_summary_without_a_known_kind_is_unreadable(self):
-        for kind in (None, "", "rug", "SOCIAL"):
-            with self.subTest(kind=kind):
-                self.assertEqual(records.verdict_for(row(accepted=1), kind), "UNKNOWN")
+                self.assertEqual(records.verdict_for(summary_row), "UNKNOWN")
+                self.assertEqual(records.verdict_for(summary_row, allowlisted=True), "UNKNOWN")
 
     def test_the_summary_counts_follow_the_records_held(self):
         holdings = [load("injected-collector.json"), load("lookalike-pending.json"),
@@ -137,8 +129,38 @@ class VerdictTest(unittest.TestCase):
         self.assertEqual(built["accepted"], 2)
         self.assertEqual(built["pending"], 1)
         self.assertEqual(built["contested"], 1)
+        self.assertTrue(built["deny"])
         self.assertIn(built["latest_accepted_id"],
                       {record["record_id"] for record in holdings if record["state"] == "accepted"})
+
+    def test_an_earlier_deny_kind_survives_a_later_accepted_social_report(self):
+        """The case the ladder exists for: the latest accepted record is not the whole story."""
+        exploit = load("injected-collector.json")
+        social = copy.deepcopy(load("social-accepted.json"))
+        social["reports"] = [{"seq": max(entry["seq"] for entry in exploit["reports"]) + 5,
+                              "sha256": social["reports"][0]["sha256"]}]
+        social["record_id"] = records.record_id(social)
+        built = records.summary([exploit, social])
+        self.assertEqual(built["latest_accepted_id"], social["record_id"])
+        self.assertEqual(built["accepted"], 2)
+        self.assertTrue(built["deny"])
+        self.assertEqual(records.verdict_for(built), "DENY")
+
+    def test_a_subject_with_only_social_reports_asks(self):
+        social = load("social-accepted.json")
+        built = records.summary([social])
+        self.assertFalse(built["deny"])
+        self.assertEqual(records.verdict_for(built), "UNKNOWN")
+
+    def test_a_deny_kind_that_is_not_accepted_or_contested_does_not_set_the_bit(self):
+        for state in ("pending", "rejected", "withdrawn", "overturned"):
+            record = copy.deepcopy(load("injected-collector.json"))
+            record["state"] = state
+            record["record_id"] = records.record_id(record)
+            with self.subTest(state=state):
+                built = records.summary([record])
+                self.assertFalse(built["deny"])
+                self.assertNotEqual(records.verdict_for(built), "DENY")
 
     def test_the_latest_accepted_record_is_the_greatest_report_seq(self):
         accepted = [record for record in (load("injected-collector.json"), load("social-accepted.json"))
@@ -221,6 +243,36 @@ class EvidenceTest(unittest.TestCase):
         edited["evidence"][0]["url"] = "https://example.com/" + "a" * 600
         self.assert_refused(self.reseal(edited), "evidence url")
 
+    def test_the_url_limit_is_measured_in_bytes_not_characters(self):
+        """512 multibyte characters are 1024 bytes, and 512 of those characters must be refused."""
+        edited = copy.deepcopy(self.record)
+        edited["evidence"][0]["url"] = "https://example.com/" + "é" * 250
+        self.assertLessEqual(len(edited["evidence"][0]["url"]), 512)
+        self.assertGreater(len(edited["evidence"][0]["url"].encode("utf-8")), 512)
+        self.assert_refused(self.reseal(edited), "evidence url")
+
+    def test_a_url_of_exactly_512_bytes_is_accepted(self):
+        edited = copy.deepcopy(self.record)
+        url = "https://example.com/" + "a" * (512 - len("https://example.com/"))
+        self.assertEqual(len(url.encode("utf-8")), 512)
+        edited["evidence"][0]["url"] = url
+        self.assertIs(records.validate(self.reseal(edited)), edited)
+
+    def test_a_page_source_url_obeys_the_same_byte_limit(self):
+        edited = copy.deepcopy(self.record)
+        edited["timeline"] = edited["timeline"] + [
+            {"event": "first_public_report", "at": "2026-11-05T15:30:00Z",
+             "source": {"type": "page", "ref": "https://example.com/" + "é" * 250}}]
+        self.assertLessEqual(len(edited["timeline"][-1]["source"]["ref"]), 512)
+        self.assert_refused(self.reseal(edited), "source ref")
+
+    def test_a_report_body_url_obeys_the_same_byte_limit(self):
+        body = json.loads(VECTOR.read_text(encoding="utf-8"))["report"]
+        body["evidence_url"] = "https://example.com/" + "é" * 250
+        with self.assertRaises(records.RecordError) as caught:
+            records.report_body(body)
+        self.assertIn("evidence_url", str(caught.exception))
+
     def test_a_moderation_decision_without_readable_text_is_refused(self):
         edited = copy.deepcopy(self.record)
         edited["moderation"][0]["reason"] = "  "
@@ -266,7 +318,7 @@ class ShapeTest(unittest.TestCase):
 
     def test_the_summary_fields_are_the_bounded_contract_read(self):
         self.assertEqual(records.SUMMARY_FIELDS,
-                         ("accepted", "pending", "contested", "latest_accepted_id"))
+                         ("accepted", "pending", "contested", "latest_accepted_id", "deny"))
 
     def test_the_canonical_bytes_do_not_depend_on_key_order(self):
         record = load("injected-collector.json")

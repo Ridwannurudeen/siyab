@@ -6,9 +6,14 @@ state, and every state change is an entry in its timeline.
 
 `intel/record_enums.json` holds the three lists, and nothing else: kinds, outcomes and states.
 `intel/records.py` validates it and owns the one place a state becomes a verdict, `fixtures/records/`
-holds examples and `tests/test_records.py` holds the rules. The contract enforces the same state list
-against that file in a Rust test. `intel/records.py` does not import `gate.rules` or `gate.verdict`,
-so the record model cannot depend on the rules that read it.
+holds examples and `tests/test_records.py` holds the rules. `intel/records.py` does not import
+`gate.rules` or `gate.verdict`, so the record model cannot depend on the rules that read it.
+
+This document is the spec for the contract lane, not a description of it. Nothing in this branch
+changes `contracts/gate`: there is no `subject_summary`, no `record_enums.json` read and no Rust
+test over the report body vector yet. Those are the contract change that follows this one, listed
+under "What the contract lane still has to do" at the end. Until they land, the Python model and
+the examples here are the only implementation.
 
 ## Two axes, not one list
 
@@ -79,7 +84,9 @@ A disputed report keeps its DENY. If a subject could lift an accepted report by 
 the dispute would be the cheapest way to switch a label off, so `contested` denies, the allowlist
 does not except it, and only a moderator's `overturned` removes it.
 
-One ladder runs over a subject with several records: DENY beats UNKNOWN, which beats no effect. An
+One ladder runs over a subject with several records: DENY beats UNKNOWN, which beats no effect. The
+summary carries one `deny` bit, so the ladder reads every accepted and contested record rather than
+only the latest: an accepted exploit record followed by an accepted social report still denies. An
 unreadable read is UNKNOWN, which sits above no effect and below DENY, and the allowlist never
 forgives it.
 
@@ -90,11 +97,18 @@ Transitions: `pending` to `accepted`, `rejected` or `withdrawn`; `accepted` to `
 
 ## The read the payment check makes
 
-The payment path does not reread every record. It reads one bounded summary for the subject,
-`subject_summary(subject)` returning `{accepted, pending, contested, latest_accepted_id}`, and
-`verdict_for` takes that summary, the kind of the latest accepted report, and the allowlist flag.
+The payment path does not reread every record. It reads one bounded summary for the subject, and
+`verdict_for` takes that summary and the allowlist flag. The summary the contract must expose is
+`subject_summary(subject)` returning `{accepted, pending, contested, latest_accepted_id, deny}`,
+where `deny` is true when any accepted or contested record holds one of the five `DENY_KINDS`.
 `records.summary` builds the same shape from the records held off chain, so the replay and the site
 agree with the contract rather than inventing a second ordering.
+
+`deny` is one bit because counts alone cannot answer the ladder: a subject whose latest accepted
+record is `social` would read as an ask while an earlier accepted `exploit` vanished. The contract
+sets the bit when it accepts or contests a report of a DENY kind, and it refuses a report whose kind
+is outside `intel/record_enums.json` at accept time, so a stored record always has a known kind and
+`verdict_for` never needs a second call to learn it.
 
 ### The allowlist, and why it is here
 
@@ -104,10 +118,11 @@ payee is on the owner's allowlist. A DENY from an `accepted` record still applie
 allowlisted account can be compromised or named in an incident, and that is exactly when the label
 has to win.
 
-A read that fails, a summary that does not match the four fields, a negative count, or an accepted
-summary whose kind is missing or outside the vocabulary all read `UNKNOWN`, and the allowlist does
-not forgive them. A pending record that can deny is a censorship tool with a storage deposit;
-`verdict_for` is the only place the mapping lives and every signing path calls it.
+A read that fails, a summary that does not match the five fields, a negative count, a `deny` bit
+that is not a boolean or that is true with no accepted or contested record, or an unreadable
+`latest_accepted_id` all read `UNKNOWN`, and the allowlist does not forgive them. A pending record
+that can deny is a censorship tool with a storage deposit; `verdict_for` is the only place the
+mapping lives and every signing path calls it.
 
 ## What a record is not
 
@@ -118,13 +133,29 @@ appeal, and the site shows the state beside every subject.
 
 ## The report body behind body_sha256
 
-A report is hashed from exactly six fields, and both the contract test and the Python test build the
-same bytes:
+A report is hashed from exactly six fields, and the contract test and the Python test must build the
+same bytes from the same file:
 
     {evidence_sha256, evidence_url, kind, outcome, subject, submitter}
 
 Keys sorted, compact JSON, UTF-8, no nulls, no trailing newline. `subject` is the single account
 agents should not pay, and `submitter` is the account that filed it. `evidence_url` is https and at
-most 512 bytes; the contract stores the hash and the url, and the record adds `fetched_at` off chain.
-`fixtures/records/report-body-vector.json` holds one body, its exact canonical bytes and its sha256,
-and the Rust test reads the same file, so a change on either side breaks both tests.
+most 512 bytes, measured in bytes rather than characters so a multibyte url cannot pass a 512
+character check and exceed the limit; the contract stores the hash and the url, and the record adds
+`fetched_at` off chain. `fixtures/records/report-body-vector.json` holds one body, its exact
+canonical bytes and its sha256. Today `tests/test_records.py` checks it; the Rust test that reads
+the same file lands with the contract change, and then a change on either side breaks both.
+
+## What the contract lane still has to do
+
+This branch defines the vocabulary and the off-chain model. The contract change that follows it has
+to, in `contracts/gate`:
+
+- read `intel/record_enums.json` and refuse a state or a kind outside it,
+- expose `subject_summary(subject)` as exactly `{accepted, pending, contested, latest_accepted_id,
+  deny}`, setting `deny` on accept and contest for the five `DENY_KINDS`,
+- build the canonical report body and hash it into `body_sha256`,
+- and add a Rust test that reads `fixtures/records/report-body-vector.json` and reproduces its bytes
+  and sha256.
+
+Until each of those is merged, this document describes the intended contract, not a shipped one.

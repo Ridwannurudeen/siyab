@@ -43,7 +43,7 @@ TRANSITIONS = {
 FIELDS = ("version", "record_id", "kind", "outcome", "state", "subjects", "reports", "evidence",
           "moderation", "timeline", "supersedes", "publisher", "observed")
 
-SUMMARY_FIELDS = ("accepted", "pending", "contested", "latest_accepted_id")
+SUMMARY_FIELDS = ("accepted", "pending", "contested", "latest_accepted_id", "deny")
 REPORT_BODY_FIELDS = ("evidence_sha256", "evidence_url", "kind", "outcome", "subject", "submitter")
 
 # The kinds an accepted report may deny for. A social report is an ask, because a human was
@@ -56,7 +56,8 @@ UNREADABLE = "UNKNOWN"
 _ACCOUNT_ID = re.compile(r"(([a-z\d]+[-_])*[a-z\d]+\.)*([a-z\d]+[-_])*[a-z\d]+", re.ASCII)
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 _TIME = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")
-_URL = re.compile(r"https://[^\s]{1,512}")
+_URL = re.compile(r"https://\S+")
+URL_BYTES = 512
 
 
 class RecordError(ValueError):
@@ -85,6 +86,11 @@ def summary(records):
 
     The counts are per state, and latest_accepted_id is the accepted record with the greatest report
     seq, so this mirrors subject_summary on chain rather than inventing a second ordering.
+
+    deny is the one bit that keeps the ladder honest over several records: it is true when any
+    accepted or contested record holds a DENY kind. Counting records alone cannot answer that, and
+    reading only the latest accepted record loses an earlier DENY when a later accepted social
+    report arrives, which is the case the ladder exists to prevent.
     """
     accepted = [record for record in records if record["state"] == "accepted"]
     latest = max(accepted, key=_latest_key) if accepted else None
@@ -93,14 +99,18 @@ def summary(records):
         "pending": sum(1 for record in records if record["state"] == "pending"),
         "contested": sum(1 for record in records if record["state"] == "contested"),
         "latest_accepted_id": latest["record_id"] if latest else None,
+        "deny": any(record["kind"] in DENY_KINDS
+                    for record in records if record["state"] in ("accepted", "contested")),
     }
 
 
 def report_body(body):
     """The canonical report body the contract hashes into body_sha256.
 
-    Exactly six fields, keys sorted, compact JSON, UTF-8, no nulls and no trailing newline. The same
-    bytes are built by the Rust test that reads fixtures/records/report-body-vector.json.
+    Exactly six fields, keys sorted, compact JSON, UTF-8, no nulls and no trailing newline. The
+    contract lane must build the same bytes from fixtures/records/report-body-vector.json; that
+    Rust test is part of the contract change, not this branch, so today only this module checks the
+    vector.
     """
     if not isinstance(body, dict) or tuple(sorted(body)) != REPORT_BODY_FIELDS:
         raise RecordError(f"report body: exactly the fields {REPORT_BODY_FIELDS} are required")
@@ -112,8 +122,7 @@ def report_body(body):
     if body["outcome"] not in OUTCOMES:
         raise RecordError(f"report body outcome: {body['outcome']!r} is not one of {OUTCOMES}")
     _hex64(body["evidence_sha256"], "report body evidence_sha256")
-    if not isinstance(body["evidence_url"], str) or not _URL.fullmatch(body["evidence_url"]):
-        raise RecordError("report body evidence_url: an https url of at most 512 bytes is required")
+    _url(body["evidence_url"], "report body evidence_url")
     _account(body["subject"], "report body subject")
     _account(body["submitter"], "report body submitter")
     return json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
@@ -124,18 +133,23 @@ def body_sha256(body):
     return hashlib.sha256(report_body(body)).hexdigest()
 
 
-def verdict_for(summary_row, kind=None, *, allowlisted=False):
-    """What the rules may answer for one subject, from the contract summary and the latest kind.
+def verdict_for(summary_row, *, allowlisted=False):
+    """What the rules may answer for one subject, from the contract summary alone.
 
-    One ladder, in order: DENY beats UNKNOWN, which beats no effect. An accepted report denies for
-    the five kinds in DENY_KINDS, and a contested report keeps that DENY with no allowlist
-    exemption, because otherwise an accused account could switch its own accepted report off by
-    disputing it. An accepted social report asks. pending asks. On an allowlisted payee an ask has
-    no effect, so a report with a storage deposit cannot stall a payment to a payee the owner
-    already trusts; a DENY still applies, because an allowlisted account can be compromised.
+    One ladder, in order: DENY beats UNKNOWN, which beats no effect. The summary carries deny, so a
+    subject with an accepted exploit record and a later accepted social record still denies: the
+    ladder reads every accepted and contested record, not the latest one.
 
-    A summary that cannot be read, or an accepted summary whose kind is missing or outside the
-    vocabulary, reads UNKNOWN and is never forgiven by the allowlist.
+    A contested report keeps its DENY with no allowlist exemption, because otherwise an accused
+    account could switch its own accepted report off by disputing it. An accepted social report
+    asks. pending asks. On an allowlisted payee an ask has no effect, so a report with a storage
+    deposit cannot stall a payment to a payee the owner already trusts; a DENY still applies,
+    because an allowlisted account can be compromised.
+
+    The summary is the only input, so the contract must refuse a report whose kind is outside the
+    vocabulary at accept time; a stored record then always has a known kind. A summary that cannot
+    be read, or one whose deny bit disagrees with its own counts, reads UNKNOWN and is never
+    forgiven by the allowlist.
     """
     if not isinstance(summary_row, dict) or tuple(sorted(summary_row)) != tuple(sorted(SUMMARY_FIELDS)):
         return UNREADABLE
@@ -150,12 +164,15 @@ def verdict_for(summary_row, kind=None, *, allowlisted=False):
             isinstance(summary_row["latest_accepted_id"], str)
             and _HEX64.fullmatch(summary_row["latest_accepted_id"])):
         return UNREADABLE
+    deny = summary_row["deny"]
+    if not isinstance(deny, bool):
+        return UNREADABLE
+    if deny and not (accepted or contested):
+        return UNREADABLE
 
+    if deny:
+        return "DENY"
     if accepted or contested:
-        if kind not in KINDS:
-            return UNREADABLE
-        if kind in DENY_KINDS:
-            return "DENY"
         if contested:
             return "UNKNOWN"
         return None if allowlisted else "UNKNOWN"
@@ -172,6 +189,16 @@ def may_transition(before, after):
 def _text(value, name, limit=2000):
     if not isinstance(value, str) or not value.strip() or len(value) > limit:
         raise RecordError(f"{name}: a non empty string of at most {limit} characters is required")
+    return value
+
+
+def _url(value, name):
+    """An https url of at most 512 bytes, measured in bytes because the limit is a byte limit."""
+    if not isinstance(value, str) or not _URL.fullmatch(value):
+        raise RecordError(f"{name}: an https url of at most {URL_BYTES} bytes is required")
+    if len(value.encode("utf-8")) > URL_BYTES:
+        raise RecordError(f"{name}: an https url of at most {URL_BYTES} bytes is required, "
+                          f"not {len(value.encode('utf-8'))}")
     return value
 
 
@@ -193,8 +220,8 @@ def _source(source):
     if source["type"] not in SOURCE_TYPES:
         raise RecordError(f"source type: {source['type']!r} is not one of {SOURCE_TYPES}")
     _text(source["ref"], "source ref", 300)
-    if source["type"] == "page" and not _URL.fullmatch(source["ref"]):
-        raise RecordError(f"source ref: a page source needs an https url, not {source['ref']!r}")
+    if source["type"] == "page":
+        _url(source["ref"], "source ref")
     if source["type"] == "chain" and not str(source["ref"]).isdigit():
         raise RecordError(f"source ref: a chain source needs a block height, not {source['ref']!r}")
     if source["type"] in ("report", "moderation") and not _HEX64.fullmatch(str(source["ref"])):
@@ -206,8 +233,7 @@ def _evidence(entry):
     if not isinstance(entry, dict) or tuple(sorted(entry)) != ("fetched_at", "sha256", "url"):
         raise RecordError("evidence: exactly the fields sha256, url and fetched_at are required")
     _hex64(entry["sha256"], "evidence sha256")
-    if not isinstance(entry["url"], str) or not _URL.fullmatch(entry["url"]):
-        raise RecordError("evidence url: an https url of at most 512 bytes is required")
+    _url(entry["url"], "evidence url")
     if not isinstance(entry["fetched_at"], str) or not _TIME.fullmatch(entry["fetched_at"]):
         raise RecordError("evidence fetched_at: a UTC time YYYY-MM-DDTHH:MM:SSZ is required")
     return entry
