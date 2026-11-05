@@ -30,7 +30,7 @@ deception rather than a compromised contract. Four outcomes: `loss`, `attempt`, 
 |---|---|
 | `pending` | Ask a human, never block. |
 | `accepted` | Block for the five denial kinds, ask for `social`. |
-| `contested` | Keep the block while the appeal runs. A dispute is not a switch. |
+| `contested` | Keep the block it held while the appeal runs. A dispute is not a switch, and it cannot create one either: a record appealed from `rejected` only asks. |
 | `rejected` | Nothing. |
 | `withdrawn` | Nothing. |
 | `overturned` | Nothing, and the correction is published. |
@@ -74,8 +74,9 @@ we will not do is quietly drop a record and let the next reader think it never e
 ## Appeals
 
 An appeal is filed against a record, not against a subject in general, and it moves the record to
-`contested`. The block stays in place while we read the appeal. We answer with one of three outcomes,
-each published: upheld, rejected with reasons, or overturned.
+`contested`. A block that was in place stays in place while we read the appeal, and a rejection
+stays a rejection until we answer. We answer with one of three outcomes, each published: upheld,
+rejected with reasons, or overturned.
 
 An appeal may include a registration record, an operating history, a signed statement from the
 account holder, or evidence that the account was not the one named in the report. We do not require

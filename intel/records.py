@@ -82,6 +82,27 @@ def _latest_key(record):
     return (max(seqs) if seqs else 0, record["record_id"])
 
 
+def _held_deny(record):
+    """True when this one record holds a DENY as it stands.
+
+    An accepted record of a denying kind holds one. A contested record holds the answer it had when
+    it was accepted, so it holds a DENY only when the decision before the dispute accepted it. A
+    record contested straight out of `rejected` never held one: a dispute asks for the earlier
+    decision to be reviewed, and it cannot create the block it was filed against.
+    """
+    if record["kind"] not in DENY_KINDS:
+        return False
+    if record["state"] == "accepted":
+        return True
+    if record["state"] != "contested":
+        return False
+    decisions = [entry["decision"] for entry in record["moderation"]]
+    if "contested" not in decisions:
+        return False
+    disputed = len(decisions) - 1 - decisions[::-1].index("contested")
+    return disputed > 0 and decisions[disputed - 1] == "accepted"
+
+
 def summary(records):
     """The bounded subject summary the contract returns, from the records held for one subject.
 
@@ -89,9 +110,10 @@ def summary(records):
     seq, so this mirrors subject_summary on chain rather than inventing a second ordering.
 
     deny is the one bit that keeps the ladder honest over several records: it is true when any
-    accepted or contested record holds a DENY kind. Counting records alone cannot answer that, and
-    reading only the latest accepted record loses an earlier DENY when a later accepted social
-    report arrives, which is the case the ladder exists to prevent.
+    accepted record holds a DENY kind, or a contested record that held one when it was accepted.
+    Counting records alone cannot answer that, and reading only the latest accepted record loses an
+    earlier DENY when a later accepted social report arrives, which is the case the ladder exists
+    to prevent. A dispute preserves a DENY and never creates one.
     """
     accepted = [record for record in records if record["state"] == "accepted"]
     latest = max(accepted, key=_latest_key) if accepted else None
@@ -100,8 +122,7 @@ def summary(records):
         "pending": sum(1 for record in records if record["state"] == "pending"),
         "contested": sum(1 for record in records if record["state"] == "contested"),
         "latest_accepted_id": latest["record_id"] if latest else None,
-        "deny": any(record["kind"] in DENY_KINDS
-                    for record in records if record["state"] in ("accepted", "contested")),
+        "deny": any(_held_deny(record) for record in records),
     }
 
 
@@ -139,13 +160,15 @@ def verdict_for(summary_row, *, allowlisted=False):
 
     One ladder, in order: DENY beats UNKNOWN, which beats no effect. The summary carries deny, so a
     subject with an accepted exploit record and a later accepted social record still denies: the
-    ladder reads every accepted and contested record, not the latest one.
+    ladder reads every accepted record and every disputed one that was accepted first, not the
+    latest record alone.
 
-    A contested report keeps its DENY with no allowlist exemption, because otherwise an accused
-    account could switch its own accepted report off by disputing it. An accepted social report
-    asks. pending asks. On an allowlisted payee an ask has no effect, so a report with a storage
-    deposit cannot stall a payment to a payee the owner already trusts; a DENY still applies,
-    because an allowlisted account can be compromised.
+    A contested report keeps the DENY it had when it was accepted, with no allowlist exemption,
+    because otherwise an accused account could switch its own accepted report off by disputing it.
+    A dispute filed against a rejected record has no DENY to keep, so it only asks. An accepted
+    social report asks. pending asks. On an allowlisted payee an ask has no effect, so a report with
+    a storage deposit cannot stall a payment to a payee the owner already trusts; a DENY still
+    applies, because an allowlisted account can be compromised.
 
     The summary is the only input, so the contract must refuse a report whose kind is outside the
     vocabulary at accept time; a stored record then always has a known kind. A summary that cannot
@@ -327,6 +350,16 @@ def validate(record):
     times = [entry["at"] for entry in timeline]
     if times != sorted(times):
         raise RecordError("timeline: entries are append only, so at never decreases")
+
+    if moderation and moderation[-1]["decision"] != record["state"]:
+        raise RecordError(f"state: {record['state']!r} is not the last decision, "
+                          f"{moderation[-1]['decision']!r}")
+    recorded = {(entry["source"]["type"], entry["source"]["ref"], entry["at"])
+                for entry in timeline}
+    for entry in moderation:
+        if ("moderation", entry["reason_sha256"], entry["decided_at"]) not in recorded:
+            raise RecordError(f"timeline: the {entry['decision']!r} decision at "
+                              f"{entry['decided_at']} has no entry with its reason as the source")
 
     supersedes = record["supersedes"]
     if supersedes is not None:
