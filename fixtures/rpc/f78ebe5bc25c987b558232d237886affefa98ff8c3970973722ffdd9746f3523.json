@@ -1,0 +1,11 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "keys": []
+  },
+  "url": "https://api-testnet.nearblocks.io/v1/account/31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540/keys",
+  "fetched_at": "2026-11-05T08:53:54Z"
+}
