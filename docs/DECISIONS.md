@@ -30,7 +30,7 @@ Why: every other check already reads unknown on a failed read, and the reports r
 
 Where: `intel/reports.py`, `gate/rules.py`, `tests/test_reports_rules.py` (`test_unset_reports_account_preserves_the_existing_checks`), `contracts/gate/src/policy.rs` (`withdraw`), `docs/LADDER.md`.
 
-Decided by: the orchestrator; the owner confirms the availability choice.
+Decided by: the orchestrator; confirmed by the owner on 6 Nov.
 
 ## 2026-11-06, entry 4: deny is decided by kind, outcome is descriptive
 
@@ -50,7 +50,7 @@ Why: refundable escrow would need a settlement path and an accounting view for e
 
 Where: `contracts/reports/src/lib.rs` (`assert_report_deposit`, the storage pin test), `contracts/reports/tests/sandbox.rs` (both deposits remain after an overturn), `docs/REPORTS.md`.
 
-Decided by: the orchestrator; the owner confirms the fee semantics.
+Decided by: the orchestrator; confirmed by the owner on 6 Nov.
 
 ## 2026-11-06, entry 6: moderation governance the contract can enforce
 
@@ -60,7 +60,7 @@ Why: a contract can enforce distinct accounts, not independent humans. With one 
 
 Where: `contracts/reports/src/lib.rs` (`moderate`, `resolve_dispute`, `dispute`), `docs/REPORTS.md`, README Trust model.
 
-Decided by: the orchestrator; the owner names the second moderator.
+Decided by: the orchestrator; confirmed by the owner on 6 Nov. The owner is the only moderator at the first deployment; the owner names the second moderator later.
 
 ## 2026-11-06, entry 7: upgrades, migrations and rollback
 
