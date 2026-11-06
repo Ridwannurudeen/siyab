@@ -8,7 +8,8 @@ stdout: anything else the code prints goes to stderr.
 
 The tools replay recorded fixtures unless GATE_FIXTURES_MODE says record or off:
 
-    check_near_payment   gate.verdict.request for one transfer, signed on ALLOW with the TEST key or the live key
+    check_near_payment   gate.verdict.request for one transfer, signed only when its action is sign
+                         with the TEST key or the live key
     check_intents_quote  gate.intents.judge_quote, the unsigned preflight on a 1Click quote
     scan_near_account    gate.scan.scan, key hygiene, verifier keys and labels of an account
 
@@ -16,11 +17,11 @@ check_near_payment binds the verdict to GATE_ACCOUNT_ID (default gate.near) and 
 into a temporary directory, removed when the server exits unless GATE_KEEP_EVIDENCE=1. By default it
 binds the verdict to the TEST agent key, judges against GATE_POLICY (JSON in the get_agent shape;
 default no allowlist and no unknown payee caps, so every ALLOW for a payee off the allowlist answers
-action: ask with REFUSED:not_allowlisted) and signs an ALLOW with the TEST key. It signs with the live
-key in VERIFIER_KEY_FILE (PyNaCl) only when
+action: ask with REFUSED:not_allowlisted) and signs only an ALLOW whose action is sign with the TEST key. It signs
+with the live key in VERIFIER_KEY_FILE (PyNaCl) only when
 GATE_LIVE_SIGNING=1, GATE_FIXTURES_MODE=off, GATE_ACCOUNT_ID ends .testnet, GATE_POLICY is unset and
 AGENT_PUB holds the agent public key: the verdict is then bound to AGENT_PUB and judged against the
-Gate's get_agent for that key, read at every call. With the flag set, any other condition missing is
+Gate's get_agent and get_policy for that key, read at every call. With the flag set, any other condition missing is
 a tool error and nothing is signed; there is no fall back to the TEST key. The result names the key
 that signed.
 """
@@ -31,7 +32,7 @@ import shutil
 import sys
 import tempfile
 
-from gate import base58, canon, ed25519, intents, rpc, rules, scan, signer, verdict
+from gate import agent, base58, canon, ed25519, intents, rpc, rules, scan, signer, verdict
 from gate.__main__ import _clients
 from intel import labels
 
@@ -43,6 +44,7 @@ DEFAULT_POLICY = '{"allowlist": [], "caps": []}'
 LIVE_FLAG = "GATE_LIVE_SIGNING"
 KEEP_EVIDENCE = "GATE_KEEP_EVIDENCE"
 NOTHING_SIGNED = "; nothing was signed"
+MAX_FRAME_LENGTH = 1048576
 TEST_KEY_NOTE = ("an ALLOW here is signed with the TEST verifier key, which is derived from a published seed "
                  "and is never registered on testnet, so no Gate pays on it")
 
@@ -130,11 +132,11 @@ def _live_signing():
 
 
 def _live_policy(client, gate, public_key):
-    """The agent's policy from the Gate's get_agent view, read live at every call."""
+    """The agent policy and Gate transfer settings, read live at every call."""
     try:
-        policy = client.call_function(gate, "get_agent", {"public_key": public_key})
+        policy = agent.read_policy_views(client, gate, public_key)
     except rules.UNAVAILABLE as error:
-        raise ToolError(f"cannot read get_agent on {gate}: {error}{NOTHING_SIGNED}") from error
+        raise ToolError(f"cannot read Gate policy on {gate}: {error}{NOTHING_SIGNED}") from error
     if policy is None:
         raise ToolError(f"the agent key {public_key} is not registered on {gate}{NOTHING_SIGNED}")
     return policy
@@ -168,7 +170,7 @@ def _check_near_payment(arguments, evidence_dir):
                  "public_key": public_key, "public_key_hex": verdict_signer.public_key_hex}
     if live is None:
         signed_by["note"] = TEST_KEY_NOTE
-    elif result["outcome"] == "ALLOW":
+    elif result["action"] == "sign":
         print(f"live ALLOW on {gate} for the agent key {agent_pub}, signed with the verifier key {public_key}",
               file=sys.stderr)
     return {**result, "gate": gate, "signer": signed_by, "agent_pk": agent_pk_hex, "policy_source": policy_source}
@@ -225,7 +227,9 @@ def handle(message, evidence_dir):
         reply["result"] = {"tools": TOOLS}
     elif method == "tools/call":
         name, arguments = params.get("name"), params.get("arguments") or {}
-        if name not in HANDLERS:
+        if not isinstance(name, str):
+            reply["error"] = {"code": -32602, "message": "tool name must be a string"}
+        elif name not in HANDLERS:
             reply["error"] = {"code": -32602, "message": f"unknown tool: {name}"}
         elif not isinstance(arguments, dict):
             reply["result"] = _content("arguments must be an object", True)
@@ -268,6 +272,9 @@ def _messages(stream):
             except (ValueError, UnicodeDecodeError) as error:
                 print(f"skipped a header that does not parse: {error}", file=sys.stderr)
         if length is None:
+            return
+        if length < 0 or length > MAX_FRAME_LENGTH:
+            print(f"skipped a Content-Length outside 0..{MAX_FRAME_LENGTH}", file=sys.stderr)
             return
         yield True, stream.read(length)
 

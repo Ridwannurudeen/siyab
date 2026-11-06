@@ -13,4 +13,5 @@
 5 Nov: WARN lane: the pay wrapper asks a human when the Gate would refuse an ALLOW as it stands. Reports contract review fixes: permanent rows and deposits, single open disputes, one-yocto owner/moderator calls, canonical body vector, and contested-inclusive subject summaries. Round 3 sorts the submission hash test fields and pins storage at 1,917 report bytes, 734 dispute bytes, and 0.023004 NEAR.
 6 Nov: R2 report summaries use the contract deny flag; accepted and contested deny reports remain denied behind later social reports, while social only and unreadable summaries stay unknown.
 5 Nov: WARN lane: the pay wrapper asks a human when the Gate would refuse an ALLOW as it stands.
+5 Nov: Added seeded fuzz properties for canonical messages, registry verification, verdict reasons, memo scanning and label rows; 685 tests passed with 7 skips and 4 expected failures; smoke 9/9.
 5 Nov: R4 alerts library, signed HTTPS webhook delivery and replay verification, alert-test CLI; 684 tests OK (7 skipped), hygiene PASS, smoke 9 of 9 PASS.

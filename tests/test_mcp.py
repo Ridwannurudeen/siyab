@@ -159,6 +159,56 @@ class McpServerTest(McpSessionCase):
         self.assertEqual(replies[0]["result"]["protocolVersion"], "2025-03-26")
         self.assertEqual(replies[1]["result"], {})
 
+    def test_the_mcp_call_site_uses_the_default_signing_policy(self):
+        source = (ROOT / "mcp" / "server.py").read_text(encoding="utf-8")
+        self.assertNotIn("sign_actions", source)
+
+    def test_negative_and_oversized_content_lengths_are_refused_before_body_read(self):
+        from mcp import server
+
+        class TrackingStream:
+            def __init__(self, data):
+                self.stream = io.BufferedReader(io.BytesIO(data))
+                self.read_calls = []
+
+            def peek(self, size):
+                return self.stream.peek(size)
+
+            def readline(self):
+                return self.stream.readline()
+
+            def read(self, size=-1):
+                self.read_calls.append(size)
+                return self.stream.read(size)
+
+        for length in (-1, 1048577):
+            with self.subTest(length=length), contextlib.redirect_stderr(io.StringIO()):
+                stream = TrackingStream(f"Content-Length: {length}\r\n\r\nbody".encode("ascii"))
+                self.assertEqual(list(server._messages(stream)), [])
+                self.assertEqual(stream.read_calls, [])
+
+    def test_the_maximum_content_length_is_accepted(self):
+        from mcp import server
+
+        class TrackingStream:
+            def __init__(self, data):
+                self.stream = io.BufferedReader(io.BytesIO(data))
+                self.read_calls = []
+
+            def peek(self, size):
+                return self.stream.peek(size)
+
+            def readline(self):
+                return self.stream.readline()
+
+            def read(self, size=-1):
+                self.read_calls.append(size)
+                return self.stream.read(size)
+
+        stream = TrackingStream(b"Content-Length: 1048576\r\n\r\n" + b"x" * 1048576)
+        self.assertEqual(list(server._messages(stream)), [(True, b"x" * 1048576)])
+        self.assertEqual(stream.read_calls, [1048576])
+
     def test_a_line_that_is_not_json_is_a_parse_error(self):
         stdout, _ = self.session([])
         self.assertEqual(stdout, b"")
@@ -210,6 +260,27 @@ class McpHandlerTest(unittest.TestCase):
                                                                                  "full"}], "isError": True})
         self.assertIn("tool scan_near_account failed: RuntimeError: disk full", errors.getvalue())
         self.assertTrue(Path(server.__file__).is_relative_to(ROOT))
+
+    def test_a_non_string_tool_name_returns_invalid_params_and_the_server_continues(self):
+        from mcp import server
+
+        messages = [
+            {"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": [], "arguments": {}}},
+            call(2, "scan_near_account", {}),
+        ]
+        stdin = io.BytesIO(b"".join(json.dumps(message).encode("utf-8") + b"\n" for message in messages))
+        stdout = io.BytesIO()
+
+        def valid_tool(arguments, evidence_dir):
+            return "valid call completed"
+
+        with (mock.patch.dict(os.environ, {"GATE_KEEP_EVIDENCE": "0"}),
+              mock.patch.dict(server.HANDLERS, {"scan_near_account": valid_tool}),
+              contextlib.redirect_stderr(io.StringIO())):
+            self.assertEqual(server.serve(stdin, stdout), 0)
+        replies = [json.loads(line) for line in stdout.getvalue().splitlines()]
+        self.assertEqual(replies[0]["error"]["code"], -32602)
+        self.assertEqual(replies[1]["result"]["content"][0]["text"], "valid call completed")
 
 
 class McpLiveSigningTest(McpSessionCase):
@@ -317,6 +388,43 @@ class McpLiveSigningTest(McpSessionCase):
         self.assertNotIn(self.seed.hex(), logged)
         self.assertNotIn(base58.encode(self.seed), logged)
 
+    def test_a_live_read_of_a_paused_gate_asks_without_a_signature(self):
+        from mcp import server
+
+        class Client:
+            def __init__(self):
+                self.calls = []
+
+            def call_function(self, gate, method, arguments):
+                self.calls.append((gate, method, arguments))
+                if method == "get_agent":
+                    return {"enabled": True, "allowlist": ["intents.near"], "unknown_caps": None}
+                if method == "get_policy":
+                    return {"paused": True, "denylist": []}
+                raise AssertionError(method)
+
+        client = Client()
+        clients = (client, rpc.Client(rpc.MAINNET_RPC_URL, mode="replay"), None,
+                   rpc.Client(rpc.ARCHIVAL_RPC_URL, mode="replay"))
+        judgement = server.rules.Judgement(verdict="ALLOW", checks=[], reasons=[], labels=[], observed={})
+        env = {key: value for key, value in self.live.items() if value is not None}
+        with (mock.patch.dict(os.environ, env),
+              mock.patch.object(server, "_live_signing", return_value=(signer.TestSigner(), self.agent_pub,
+                                                                        self.agent.hex())),
+              mock.patch.object(server, "_clients", return_value=clients),
+              mock.patch.object(server.rules, "judge", return_value=judgement),
+              mock.patch.object(server.labels, "load", return_value=None),
+              contextlib.redirect_stderr(io.StringIO())):
+            result = server._check_near_payment(PAYMENT, self.tmp)
+        self.assertEqual(result["action"], "ask")
+        self.assertEqual(result["ask"], ["the Gate is paused, so it refuses every transfer (REFUSED:paused)"])
+        self.assertIsNone(result["verdict"])
+        self.assertIsNone(result["message"])
+        document = json.loads(Path(result["evidence_path"]).read_bytes())
+        self.assertEqual([document[key] for key in ("issued_ms", "expires_ms", "verdict_id")], [None, None, None])
+        self.assertEqual(client.calls, [(LIVE_GATE, "get_agent", {"public_key": self.agent_pub}),
+                                        (LIVE_GATE, "get_policy", {})])
+
     def test_a_live_signer_that_cannot_start_is_refused_before_any_read(self):
         from mcp import server
 
@@ -333,18 +441,21 @@ class McpLiveSigningTest(McpSessionCase):
         from mcp import server
 
         class Client:
-            def __init__(self, answer):
-                self.answer, self.calls = answer, []
+            def __init__(self, answer, gate_policy=None):
+                self.answer, self.gate_policy, self.calls = answer, gate_policy or {"paused": False, "denylist": []}, []
 
             def call_function(self, contract, method, args):
                 self.calls.append((contract, method, args))
                 if isinstance(self.answer, Exception):
                     raise self.answer
-                return self.answer
+                return self.answer if method == "get_agent" else self.gate_policy
 
-        registered = Client(ALLOW_POLICY)
-        self.assertEqual(server._live_policy(registered, LIVE_GATE, self.agent_pub), ALLOW_POLICY)
-        self.assertEqual(registered.calls, [(LIVE_GATE, "get_agent", {"public_key": self.agent_pub})])
+        gate_policy = {"paused": True, "denylist": ["blocked.testnet"]}
+        registered = Client(ALLOW_POLICY, gate_policy)
+        self.assertEqual(server._live_policy(registered, LIVE_GATE, self.agent_pub),
+                         {**ALLOW_POLICY, "gate_paused": True, "gate_denylist": ["blocked.testnet"]})
+        self.assertEqual(registered.calls, [(LIVE_GATE, "get_agent", {"public_key": self.agent_pub}),
+                                            (LIVE_GATE, "get_policy", {})])
         with self.assertRaises(server.ToolError) as raised:
             server._live_policy(Client(None), LIVE_GATE, self.agent_pub)
         self.assertEqual(str(raised.exception),
@@ -355,7 +466,30 @@ class McpLiveSigningTest(McpSessionCase):
                 with self.assertRaises(server.ToolError) as raised:
                     server._live_policy(Client(error), LIVE_GATE, self.agent_pub)
                 self.assertEqual(str(raised.exception),
-                                 f"cannot read get_agent on {LIVE_GATE}: {error}" + NOTHING_SIGNED)
+                                 f"cannot read Gate policy on {LIVE_GATE}: {error}" + NOTHING_SIGNED)
+    def test_a_failed_get_policy_after_a_good_get_agent_is_refused(self):
+        from mcp import server
+
+        class Client:
+            def __init__(self, error):
+                self.error, self.calls = error, []
+
+            def call_function(self, contract, method, args):
+                self.calls.append((contract, method, args))
+                if method == "get_policy":
+                    raise self.error
+                return ALLOW_POLICY
+
+        for error in (rpc.RpcError({"name": "HANDLER_ERROR"}), rpc.TransportError("timed out"),
+                      rpc.MalformedResponse("the call_function result holds no byte list")):
+            with self.subTest(error=type(error).__name__):
+                client = Client(error)
+                with self.assertRaises(server.ToolError) as raised:
+                    server._live_policy(client, LIVE_GATE, self.agent_pub)
+                self.assertEqual(str(raised.exception),
+                                 f"cannot read Gate policy on {LIVE_GATE}: {error}" + NOTHING_SIGNED)
+                self.assertEqual(client.calls, [(LIVE_GATE, "get_agent", {"public_key": self.agent_pub}),
+                                                (LIVE_GATE, "get_policy", {})])
 
 
 if __name__ == "__main__":

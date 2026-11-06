@@ -17,7 +17,7 @@ Network: NEAR testnet. The four top level role accounts were created 29 Oct 2026
 
 ## Contracts
 
-First built with `cargo near build non-reproducible-wasm` from a clean export of `main` at `89db0c6` and deployed by `scripts/setup_testnet.sh` on 29 Oct. On 2 Nov the Gate and the registry were redeployed by `scripts/redeploy.sh` (no init call, state kept) with the reproducible wasm of `res/` (source commit `eb54c8e`, `res/BUILD.md`); the token keeps its 29 Oct build. Each `code_hash` read back from `view_account` equals base58 of sha256 of the wasm (MATCH).
+First built with `cargo near build non-reproducible-wasm` from a clean export of `main` at `89db0c6` and deployed by `scripts/setup_testnet.sh` on 29 Oct. On 2 Nov the Gate and the registry were redeployed by `scripts/redeploy.sh` (no init call, state kept) with the reproducible wasm of `res/` (source commit `eb54c8e`, `res/BUILD-gate.md`, `res/BUILD-registry.md`); the token keeps its 29 Oct build. Each `code_hash` read back from `view_account` equals base58 of sha256 of the wasm (MATCH).
 
 | Contract | Account | code_hash | Deploy transaction |
 |---|---|---|---|

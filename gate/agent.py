@@ -188,23 +188,32 @@ def _write(agent, name, document, out):
     return path
 
 
-def read_policy(agent):
+def read_policy_views(client, gate, public_key):
     """The agent policy and Gate transfer settings from their read-only views."""
-    policy = agent.clients[0].call_function(agent.gate, "get_agent", {"public_key": agent.public_key})
+    policy = client.call_function(gate, "get_agent", {"public_key": public_key})
     if policy is None:
-        raise AgentError(f"the agent key {agent.public_key} is not registered on {agent.gate}")
-    gate_policy = agent.clients[0].call_function(agent.gate, "get_policy", {})
+        return None
+    gate_policy = client.call_function(gate, "get_policy", {})
     return {**policy, "gate_paused": gate_policy["paused"], "gate_denylist": gate_policy["denylist"]}
 
 
-def _judge(agent, request, verdict_signer, out, policy=None):
+def read_policy(agent):
+    """The agent policy and Gate transfer settings from their read-only views."""
+    policy = read_policy_views(agent.clients[0], agent.gate, agent.public_key)
+    if policy is None:
+        raise AgentError(f"the agent key {agent.public_key} is not registered on {agent.gate}")
+    return policy
+
+
+def _judge(agent, request, verdict_signer, out, policy=None, sign_actions=None):
     """The verdict service's answer for the request: gate.verdict.request with the agent's policy."""
     client, nearblocks, scanner, archival = agent.clients
+    options = {} if sign_actions is None else {"sign_actions": sign_actions}
     result = verdict.request(request["kind"], request["token_id"], request["receiver_id"], request["amount"],
                              request["memo"], gate=agent.gate, agent_pk_hex=agent.public_hex,
                              policy=read_policy(agent) if policy is None else policy, store=labels.load(), rpc=client,
-                             nearblocks=nearblocks,
-                             signer=verdict_signer, injection_scanner=scanner, archival=archival)
+                             nearblocks=nearblocks, signer=verdict_signer, injection_scanner=scanner,
+                             archival=archival, **options)
     for check in result["checks"]:
         out(f"{check['status']:<7} {check['id']}: {check['detail']}")
     out(f"verdict: {result['outcome']}")
@@ -217,7 +226,7 @@ def _judge(agent, request, verdict_signer, out, policy=None):
 
 def _allow(agent, request, out):
     """A signed ALLOW for the request from the service, or AgentError naming the outcome."""
-    result = _judge(agent, request, agent.verifier(), out)
+    result = _judge(agent, request, agent.verifier(), out, sign_actions=("sign", "ask"))
     if result["outcome"] != "ALLOW":
         raise AgentError(f"the verdict is {result['outcome']}, not ALLOW; nothing was sent")
     return result["verdict"]

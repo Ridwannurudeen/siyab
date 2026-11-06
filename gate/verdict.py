@@ -1,9 +1,9 @@
-"""The verdict service: judge one transfer, write its evidence, and sign only an ALLOW.
+"""The verdict service: judge one transfer, write its evidence, and sign ALLOW actions in sign_actions.
 
 request() validates the transfer fields first, runs gate.rules.judge, measures the latency with
-time.perf_counter, writes the evidence document under its sha256, and on ALLOW alone sets
-issued_ms, expires_ms = issued_ms + ttl_ms and a random verdict_id and signs the digest of the
-canonical message. DENY and UNKNOWN carry no signature and no verdict id.
+time.perf_counter, writes the evidence document under its sha256, and sets issue time, expiry and a
+random verdict_id only when the outcome is ALLOW and its action is in sign_actions. DENY, UNKNOWN
+and ALLOW actions outside sign_actions carry no signature and no verdict id.
 """
 
 import secrets
@@ -56,18 +56,18 @@ def ask_reasons(outcome, checks, transfer, policy):
 
 
 def request(kind, token, receiver, amount, memo, *, gate, agent_pk_hex, policy, store, rpc, nearblocks,
-            signer, ttl_ms=DEFAULT_TTL_MS, injection_scanner=None, archival=None, evidence_dir=EVIDENCE_DIR,
-            clock=time.time, issuers=None):
+            signer, ttl_ms=DEFAULT_TTL_MS, sign_actions=("sign",), injection_scanner=None, archival=None,
+            evidence_dir=EVIDENCE_DIR, clock=time.time, issuers=None):
     """Judge one transfer for the agent agent_pk_hex at the Gate gate.
 
     Returns {"outcome", "action", "ask", "verdict", "request", "checks", "reasons", "evidence_hash",
     "evidence_path", "latency_ms", "message"}: "request" is the TransferRequest and "verdict" the
-    Verdict object the Gate's request_transfer takes, or None unless the outcome is ALLOW. "action"
-    is sign for an ALLOW the Gate would not refuse on the visible policy checks, refuse for DENY, or ask
-    for UNKNOWN or an ALLOW the Gate would refuse on those checks. "ask" lists the reasons for a human
-    decision. clock gives the wall time in seconds for the rules and the issue time; the latency always
-    uses time.perf_counter. issuers is the issuer table the rules read (gate.rules.issuers_for), or None
-    for no issuer_blacklist check.
+    Verdict object the Gate's request_transfer takes, or None unless the outcome is ALLOW and its action is
+    in sign_actions. "action" is sign for an ALLOW the Gate would not refuse on the visible policy checks,
+    refuse for DENY, or ask for UNKNOWN or an ALLOW the Gate would refuse on those checks. "ask" lists the
+    reasons for a human decision. clock gives the wall time in seconds for the rules and the issue time; the
+    latency always uses time.perf_counter. issuers is the issuer table the rules read (gate.rules.issuers_for),
+    or None for no issuer_blacklist check.
     """
     unknown_caps = policy.get("unknown_caps")
     if unknown_caps is not None:
@@ -83,10 +83,13 @@ def request(kind, token, receiver, amount, memo, *, gate, agent_pk_hex, policy, 
     started = time.perf_counter()
     judgement = rules.judge(transfer, policy, store, rpc, nearblocks, now_ms=int(clock() * 1000),
                             injection_scanner=injection_scanner, archival=archival, issuers=issuers)
-    allow = judgement.verdict == "ALLOW"
-    issued_ms = int(clock() * 1000) if allow else None
-    expires_ms = issued_ms + ttl_ms if allow else None
-    verdict_id = secrets.token_hex(16) if allow else None
+    ask = ask_reasons(judgement.verdict, judgement.checks, transfer, policy)
+    action = ("refuse" if judgement.verdict == "DENY" else
+              "ask" if judgement.verdict == "UNKNOWN" or ask else "sign")
+    signed = judgement.verdict == "ALLOW" and action in sign_actions
+    issued_ms = int(clock() * 1000) if signed else None
+    expires_ms = issued_ms + ttl_ms if signed else None
+    verdict_id = secrets.token_hex(16) if signed else None
     latency_ms = int((time.perf_counter() - started) * 1000)
     document = evidence.document(
         subject=evidence.subject(gate=gate, agent_pk=agent_pk_hex, kind=kind, token=token, receiver=receiver,
@@ -96,11 +99,8 @@ def request(kind, token, receiver, amount, memo, *, gate, agent_pk_hex, policy, 
         expires_ms=expires_ms, verdict_id=verdict_id, latency_ms=latency_ms)
     evidence_path = evidence.write(document, evidence_dir)
     evidence_hash = evidence_path.stem
-    ask = ask_reasons(judgement.verdict, judgement.checks, transfer, policy)
-    action = ("refuse" if judgement.verdict == "DENY" else
-              "ask" if judgement.verdict == "UNKNOWN" or ask else "sign")
     verdict, message = None, None
-    if allow:
+    if signed:
         message = canon.canonical_message(
             gate=gate, agent_pk_hex=agent_pk_hex, kind=kind, token_id=token, receiver_id=receiver,
             amount=amount, memo=memo, issued_ms=issued_ms, expires_ms=expires_ms, verdict_id=verdict_id,

@@ -54,7 +54,10 @@ def assertion_id(row):
     """sha256 hex of the row without id and superseded_by, as sorted compact UTF-8 JSON."""
     body = {key: value for key, value in row.items() if key not in ("id", "superseded_by")}
     text = json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+    try:
+        return hashlib.sha256(text.encode("utf-8")).hexdigest()
+    except UnicodeEncodeError as error:
+        raise LabelError(f"row: text is not encodable as UTF-8: {error}") from error
 
 
 def _text(row, key):
@@ -72,7 +75,7 @@ def _source_shape(source):
 def _check_source(source):
     shape = _source_shape(source)
     if shape == "document":
-        if not source["url"].startswith("https://"):
+        if not isinstance(source["url"], str) or not source["url"].startswith("https://"):
             raise LabelError("source.url: an https URL is required")
         if not _HEX64.fullmatch(str(source["content_sha256"])):
             raise LabelError("source.content_sha256: 64 lowercase hex characters are required")
