@@ -8,10 +8,11 @@ import json
 import math
 from pathlib import Path
 import re
+import ssl
 import sys
 import threading
 import time
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
@@ -70,10 +71,14 @@ class _NoRedirectHandler(HTTPRedirectHandler):
         raise HTTPError(req.full_url, code, "redirects are not followed", headers, fp)
 
 
-def _retryable(status):
-    if status is None:
-        return True
-    return status in RETRYABLE_STATUS or 500 <= status < 600
+def _retryable(status, failure=None):
+    """A status decides on its own; without one, only a transport failure is worth another go."""
+    if status is not None:
+        return status in RETRYABLE_STATUS or 500 <= status < 600
+    if isinstance(failure, URLError):
+        # urllib wraps the transport reason, so a TLS refusal arrives here too; it will not clear on a retry.
+        return not isinstance(failure.reason, ssl.SSLError)
+    return isinstance(failure, (TimeoutError, ConnectionError))
 
 
 def _retry_after(headers, now):
@@ -192,6 +197,7 @@ class WebhookSink:
             response = None
             status = None
             error = None
+            failure = None
             retry_after = None
             try:
                 response = self.opener.open(request, timeout=TIMEOUT_S)
@@ -203,6 +209,7 @@ class WebhookSink:
                     retry_after = _retry_after(headers, self.clock())
                     raise HTTPError(self.url, status, "webhook returned a non-success status", headers, None)
             except Exception as exception:
+                failure = exception
                 status = getattr(exception, "code", status)
                 error = type(exception).__name__
                 if retry_after is None:
@@ -215,7 +222,7 @@ class WebhookSink:
             self._log_attempt(attempt, ok, status, error)
             if ok:
                 return {"ok": True, "attempts": attempt, "status": status}
-            if not _retryable(status):
+            if not _retryable(status, failure):
                 return {"ok": False, "attempts": attempt, "status": status, "error": error}
             if attempt < MAX_ATTEMPTS:
                 delay = min(retry_after, MAX_RETRY_AFTER_S) if retry_after is not None else 2 ** (attempt - 1)

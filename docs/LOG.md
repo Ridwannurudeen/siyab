@@ -12,3 +12,4 @@
 5 Nov: WARN lane: the pay wrapper asks a human when the Gate would refuse an ALLOW as it stands.
 5 Nov: R4 alerts library, signed HTTPS webhook delivery and replay verification, alert-test CLI; 684 tests OK (7 skipped), hygiene PASS, smoke 9 of 9 PASS.
 5 Nov: alerts follow-up after the merge: a permanent 4xx and a refused redirect end delivery after one attempt, Retry-After is honoured up to 30 s, a secret under 32 bytes is refused before any request, and the alert fields and the 16 KiB cap are checked where the alert is built rather than inside send; 692 tests OK (7 skipped).
+6 Nov: alerts retry boundary: only a connection error or a timeout is retried; a non transport exception such as a ValueError from the opener or a refused TLS certificate ends delivery after one attempt, and tests pin both.
