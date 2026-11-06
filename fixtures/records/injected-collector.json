@@ -1,0 +1,63 @@
+{
+ "version": "1",
+ "record_id": "1534c7a1d21e63abd09e996ecb554b32ac9d996084f2e92d886b487acf8e7f63",
+ "kind": "exploit",
+ "outcome": "near_miss",
+ "state": "accepted",
+ "subjects": [
+  "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+ ],
+ "reports": [
+  {
+   "seq": 1,
+   "sha256": "f729e475ceaff4dd4f8942eecab3bedd00f9dee6b683216b0435dea7a406b307"
+  }
+ ],
+ "evidence": [
+  {
+   "sha256": "414dbe8b0e31d22001064272b368443ce0f8058dcb31a5ac144a38b4771d3fc1",
+   "url": "https://evidence.example/records/8M5NqTdAHGpLbGoRWzw9oo4M1foshWB4FkNKNer6yVMS",
+   "fetched_at": "2026-11-05T09:25:56Z"
+  }
+ ],
+ "moderation": [
+  {
+   "decision": "accepted",
+   "decided_at": "2026-11-05T09:25:56Z",
+   "reason_sha256": "75f1d692fd9f0bad0ed16055d6c02a3eb97d075a6cf9954613c97fec59934a38",
+   "reason": "synthetic example: the subject is a placeholder account, the evidence url points at the reserved documentation domain, and the blocks and times are illustrative, so this file shows the shape of such a record and is not a report about any real account or event"
+  }
+ ],
+ "timeline": [
+  {
+   "event": "first_chain_signal",
+   "at": "2026-11-05T08:53:51Z",
+   "source": {
+    "type": "chain",
+    "ref": "276319568"
+   }
+  },
+  {
+   "event": "our_record",
+   "at": "2026-11-05T09:25:56Z",
+   "source": {
+    "type": "internal",
+    "ref": "note-20261105-01"
+   }
+  },
+  {
+   "event": "moderation",
+   "at": "2026-11-05T09:25:56Z",
+   "source": {
+    "type": "moderation",
+    "ref": "75f1d692fd9f0bad0ed16055d6c02a3eb97d075a6cf9954613c97fec59934a38"
+   }
+  }
+ ],
+ "supersedes": null,
+ "publisher": "kestrelridge-main.testnet",
+ "observed": {
+  "chain": "near",
+  "first_block": 276319568
+ }
+}
