@@ -1,11 +1,11 @@
 {
  "version": "1",
- "record_id": "d228bae6259034629748ebe1c438fbef44a4ff1f437c477077365813d38455ba",
+ "record_id": "64c61a07c9757513ed72eec6615f511ba6ee946a08522056b7ae839ca2f61bcb",
  "kind": "exploit",
  "outcome": "near_miss",
  "state": "accepted",
  "subjects": [
-  "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+  "example-collector.testnet"
  ],
  "reports": [
   {

@@ -1,11 +1,11 @@
 {
  "version": "1",
- "record_id": "e38bf4414e9aef25d624e7aedff2b5db7716e2027fdb0a0453ab6cf854cfd73c",
+ "record_id": "4bdee8ca8194296a7b358d17ede25476a47faf090ed2db399d14e45ceb43b695",
  "kind": "social",
  "outcome": "attempt",
  "state": "accepted",
  "subjects": [
-  "kestrelridge-sh0p.testnet"
+  "example-subject.testnet"
  ],
  "reports": [
   {

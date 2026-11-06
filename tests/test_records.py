@@ -23,12 +23,13 @@ def load(name):
 
 
 CLEAN = {"accepted": 0, "pending": 0, "contested": 0, "latest_accepted_id": None,
-         "deny": False}
+         "latest_accepted_kind": None, "deny": False}
 
 
-def row(accepted=0, pending=0, contested=0, latest="0" * 64, deny=False):
+def row(accepted=0, pending=0, contested=0, latest=7, kind="exploit", deny=False):
     return {"accepted": accepted, "pending": pending, "contested": contested,
-            "latest_accepted_id": latest if accepted else None, "deny": deny}
+            "latest_accepted_id": latest if accepted else None,
+            "latest_accepted_kind": kind if accepted else None, "deny": deny}
 
 
 class FixtureTest(unittest.TestCase):
@@ -116,7 +117,9 @@ class VerdictTest(unittest.TestCase):
     def test_an_unreadable_summary_is_never_a_pass_and_the_allowlist_does_not_forgive_it(self):
         broken = [None, {}, CLEAN | {"extra": 1}, row(accepted=-1), row(accepted=True),
                   row(accepted=1, latest="abc"), row(accepted=1, latest=None), row(pending="1"),
-                  row(deny="yes"), row(deny=0), row(deny=None), row(deny=True)]
+                  row(deny="yes"), row(deny=0), row(deny=None), row(deny=True),
+                  row(accepted=1, latest=None, kind="social"),
+                  row(accepted=1, kind=None), row(accepted=1, kind="not_a_kind")]
         for summary_row in broken:
             with self.subTest(summary=summary_row):
                 self.assertEqual(records.verdict_for(summary_row), "UNKNOWN")
@@ -125,11 +128,11 @@ class VerdictTest(unittest.TestCase):
     def test_a_summary_whose_latest_id_disagrees_with_its_accepted_count_never_passes(self):
         """An allowlisted payee must not pass on a summary the contract could not have produced."""
         disagreed = [{"accepted": 1, "pending": 0, "contested": 0,
-                      "latest_accepted_id": None, "deny": False},
+                      "latest_accepted_id": None, "latest_accepted_kind": None, "deny": False},
                      {"accepted": 0, "pending": 0, "contested": 0,
-                      "latest_accepted_id": "a" * 64, "deny": False},
+                      "latest_accepted_id": 9, "latest_accepted_kind": "scam", "deny": False},
                      {"accepted": 1, "pending": 0, "contested": 0,
-                      "latest_accepted_id": None, "deny": True}]
+                      "latest_accepted_id": None, "latest_accepted_kind": "scam", "deny": True}]
         for summary_row in disagreed:
             with self.subTest(summary=summary_row):
                 self.assertEqual(records.verdict_for(summary_row), "UNKNOWN")
@@ -144,12 +147,17 @@ class VerdictTest(unittest.TestCase):
         holdings = [load("injected-collector.json"), load("lookalike-pending.json"),
                     load("lookalike-contested.json"), load("social-accepted.json")]
         built = records.summary(holdings)
-        self.assertEqual(built["accepted"], 2)
+        # accepted follows the contract counter: it counts the records now under dispute too, so
+        # two acceptances and one contested record make three. contested stays a separate count,
+        # which is why the same record is legitimately in both.
+        self.assertEqual(built["accepted"], 3)
         self.assertEqual(built["pending"], 1)
         self.assertEqual(built["contested"], 1)
         self.assertTrue(built["deny"])
         self.assertIn(built["latest_accepted_id"],
-                      {record["record_id"] for record in holdings if record["state"] == "accepted"})
+                      {max(entry["seq"] for entry in record["reports"])
+                       for record in holdings if record["state"] in ("accepted", "contested")})
+        self.assertEqual(built["latest_accepted_kind"], "social")
 
     def test_an_earlier_deny_kind_survives_a_later_accepted_social_report(self):
         """The case the ladder exists for: the latest accepted record is not the whole story."""
@@ -159,7 +167,8 @@ class VerdictTest(unittest.TestCase):
                               "sha256": social["reports"][0]["sha256"]}]
         social["record_id"] = records.record_id(social)
         built = records.summary([exploit, social])
-        self.assertEqual(built["latest_accepted_id"], social["record_id"])
+        self.assertEqual(built["latest_accepted_id"], max(entry["seq"] for entry in social["reports"]))
+        self.assertEqual(built["latest_accepted_kind"], "social")
         self.assertEqual(built["accepted"], 2)
         self.assertTrue(built["deny"])
         self.assertEqual(records.verdict_for(built), "DENY")
@@ -201,18 +210,48 @@ class VerdictTest(unittest.TestCase):
                 self.assertEqual(built["contested"], 1)
                 self.assertIs(built["deny"], expected)
                 self.assertEqual(records.verdict_for(built), "DENY" if expected else "UNKNOWN")
+                # A contest is an open question, so the allowlist does not silence it: an appeal
+                # against a rejection still asks, and so does a dispute against an acceptance.
+                self.assertEqual(records.verdict_for(built, allowlisted=True),
+                                 "DENY" if expected else "UNKNOWN")
 
     def test_the_latest_accepted_record_is_the_greatest_report_seq(self):
         accepted = [record for record in (load("injected-collector.json"), load("social-accepted.json"))
                     if record["state"] == "accepted"]
+        late = max(accepted, key=lambda r: max(e["seq"] for e in r["reports"]))
         self.assertEqual(records.summary(accepted)["latest_accepted_id"],
-                         max(accepted, key=lambda r: max(e["seq"] for e in r["reports"]))["record_id"])
+                         max(entry["seq"] for entry in late["reports"]))
+        self.assertEqual(records.summary(accepted)["latest_accepted_kind"], late["kind"])
 
     def test_an_empty_holding_is_a_clean_summary(self):
         self.assertEqual(records.summary([]), CLEAN)
 
 
 class TransitionTest(unittest.TestCase):
+    def setUp(self):
+        self.record = load("lookalike-contested.json")
+
+    def reseal(self, record):
+        record["record_id"] = records.record_id(record)
+        return record
+
+    def test_validation_refuses_a_moderation_history_that_cannot_happen(self):
+        """The table is enforced where a record enters, not only by its own helper."""
+        edited = copy.deepcopy(self.record)
+        edited["moderation"] = [
+            {"decision": "rejected", "decided_at": "2026-11-05T15:05:00Z",
+             "reason_sha256": edited["moderation"][0]["reason_sha256"], "reason": "a rejection"},
+            {"decision": "withdrawn", "decided_at": "2026-11-05T15:10:00Z",
+             "reason_sha256": edited["moderation"][1]["reason_sha256"], "reason": "a withdrawal"}]
+        edited["state"] = "withdrawn"
+        with self.assertRaises(records.RecordError) as caught:
+            records.validate(self.reseal(edited))
+        self.assertIn("cannot follow", str(caught.exception))
+
+    def test_validation_accepts_the_history_the_examples_already_hold(self):
+        edited = copy.deepcopy(self.record)
+        self.assertIs(records.validate(edited), edited)
+
     def test_the_transitions_match_the_spec(self):
         self.assertTrue(records.may_transition("pending", "accepted"))
         self.assertTrue(records.may_transition("accepted", "contested"))
@@ -384,7 +423,8 @@ class ShapeTest(unittest.TestCase):
 
     def test_the_summary_fields_are_the_bounded_contract_read(self):
         self.assertEqual(records.SUMMARY_FIELDS,
-                         ("accepted", "pending", "contested", "latest_accepted_id", "deny"))
+                         ("accepted", "pending", "contested", "latest_accepted_id",
+                          "latest_accepted_kind", "deny"))
 
     def test_the_canonical_bytes_do_not_depend_on_key_order(self):
         record = load("injected-collector.json")

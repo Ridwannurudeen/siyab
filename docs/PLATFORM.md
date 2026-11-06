@@ -15,6 +15,8 @@ The platform reference is the Agent API policies and limits page: https://docs.a
 
 `gate/platform.py` is the one place this mapping lives, and `tests/test_platform.py` fails if this page and that module disagree, or if a verdict ever stops agreeing with the function that judges a subject.
 
+The owner's allowlist can turn our `warn` into no effect, but only for an ask that nothing is disputing: a pending record, or an accepted `social` report. A `contested` record asks anyway, because a dispute is an open moderation question that a person has to answer. Our `block` always keeps its effect.
+
 ## The controls the platform names, and what we do with each
 
 - `frozen`: the platform's stop for every action. We do not set it. Our equivalent is the Gate's pause, which revokes the agent key and moves the balance out; the two are complementary, and an integrator should use ours for a transfer and theirs for the wallet.

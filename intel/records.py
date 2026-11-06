@@ -46,7 +46,8 @@ TRANSITIONS = {
 FIELDS = ("version", "record_id", "kind", "outcome", "state", "subjects", "reports", "evidence",
           "moderation", "timeline", "supersedes", "publisher", "observed")
 
-SUMMARY_FIELDS = ("accepted", "pending", "contested", "latest_accepted_id", "deny")
+SUMMARY_FIELDS = ("accepted", "pending", "contested", "latest_accepted_id",
+                  "latest_accepted_kind", "deny")
 REPORT_BODY_FIELDS = ("evidence_sha256", "evidence_url", "kind", "outcome", "subject", "submitter")
 
 # The kinds an accepted report may deny for. A social report is an ask, because a human was
@@ -76,6 +77,12 @@ def canonical(record):
 def record_id(record):
     """The sha256 hex of the record without its id."""
     return hashlib.sha256(canonical(record)).hexdigest()
+
+
+def _latest_seq(record):
+    """The report counter of a record's latest report, which is the identity a summary carries."""
+    seqs = [entry["seq"] for entry in record["reports"]]
+    return max(seqs) if seqs else 0
 
 
 def _latest_key(record):
@@ -108,8 +115,15 @@ def _held_deny(record):
 def summary(records):
     """The bounded subject summary the contract returns, from the records held for one subject.
 
-    The counts are per state, and latest_accepted_id is the accepted record with the greatest report
-    seq, so this mirrors subject_summary on chain rather than inventing a second ordering.
+    accepted counts every record that was accepted at some point, so it includes the records now
+    under dispute: a contract counter that increments on accept does not decrement when a dispute is
+    filed, and the page reads contested beside it. That is the contract's meaning of the number, and
+    this function matches it rather than holding a second opinion.
+
+    latest_accepted_id is the report counter of the latest of those acceptances, not a record id,
+    and latest_accepted_kind is that report's kind. Both are the fields the contract already returns
+    in subject_summary; the counter is the u64 it stores beside each report, and the sha256 record id
+    stays a field of the published record rather than part of the bounded read.
 
     deny is the one bit that keeps the ladder honest over several records: it is true when any
     accepted record holds a DENY kind, or a contested record that held one when it was accepted.
@@ -117,13 +131,14 @@ def summary(records):
     earlier DENY when a later accepted social report arrives, which is the case the ladder exists
     to prevent. A dispute preserves a DENY and never creates one.
     """
-    accepted = [record for record in records if record["state"] == "accepted"]
+    accepted = [record for record in records if record["state"] in ("accepted", "contested")]
     latest = max(accepted, key=_latest_key) if accepted else None
     return {
         "accepted": len(accepted),
         "pending": sum(1 for record in records if record["state"] == "pending"),
         "contested": sum(1 for record in records if record["state"] == "contested"),
-        "latest_accepted_id": latest["record_id"] if latest else None,
+        "latest_accepted_id": _latest_seq(latest) if latest else None,
+        "latest_accepted_kind": latest["kind"] if latest else None,
         "deny": any(_held_deny(record) for record in records),
     }
 
@@ -167,10 +182,12 @@ def verdict_for(summary_row, *, allowlisted=False):
 
     A contested report keeps the DENY it had when it was accepted, with no allowlist exemption,
     because otherwise an accused account could switch its own accepted report off by disputing it.
-    A dispute filed against a rejected record has no DENY to keep, so it only asks. An accepted
-    social report asks. pending asks. On an allowlisted payee an ask has no effect, so a report with
-    a storage deposit cannot stall a payment to a payee the owner already trusts; a DENY still
-    applies, because an allowlisted account can be compromised.
+    A contest is an open moderation question, so it asks even on an allowlisted payee: whether it was
+    accepted or rejected before the dispute, a person answers it, and neither filing nor appealing
+    can turn it into silence. An accepted social report asks. pending asks. Those two asks, with
+    nothing in dispute, have no effect on an allowlisted payee, so a report with a storage deposit
+    cannot stall a payment to a payee the owner already trusts; a DENY still applies, because an
+    allowlisted account can be compromised.
 
     The summary is the only input, so the contract must refuse a report whose kind is outside the
     vocabulary at accept time; a stored record then always has a known kind. A summary that cannot
@@ -189,8 +206,12 @@ def verdict_for(summary_row, *, allowlisted=False):
         counts.append(value)
     accepted, pending, contested = counts
     latest = summary_row["latest_accepted_id"]
-    if latest is not None and not (
-            isinstance(latest, str) and _HEX64.fullmatch(latest)):
+    if latest is not None and (isinstance(latest, bool) or not isinstance(latest, int) or latest < 0):
+        return UNREADABLE
+    latest_kind = summary_row["latest_accepted_kind"]
+    if latest_kind is not None and latest_kind not in KINDS:
+        return UNREADABLE
+    if (latest is None) != (latest_kind is None):
         return UNREADABLE
     deny = summary_row["deny"]
     if not isinstance(deny, bool):
@@ -352,6 +373,11 @@ def validate(record):
         raise RecordError("moderation: a list, empty until the first decision")
     for entry in moderation:
         _moderation(entry)
+    before = "pending"
+    for entry in moderation:
+        if not may_transition(before, entry["decision"]):
+            raise RecordError(f"moderation: {entry['decision']!r} cannot follow {before!r}")
+        before = entry["decision"]
 
     timeline = record["timeline"]
     if not isinstance(timeline, list) or not timeline:

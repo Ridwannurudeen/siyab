@@ -39,19 +39,26 @@ class DecisionTest(unittest.TestCase):
 
 class AgreementTest(unittest.TestCase):
     def test_the_view_never_disagrees_with_the_one_function_that_judges(self):
-        clean = {"accepted": 0, "pending": 0, "contested": 0, "latest_accepted_id": None, "deny": False}
-        deny_row = {"accepted": 1, "pending": 0, "contested": 0, "latest_accepted_id": "a" * 64,
-                    "deny": True}
-        social_row = {"accepted": 1, "pending": 0, "contested": 0, "latest_accepted_id": "a" * 64,
-                      "deny": False}
-        ask_row = {"accepted": 0, "pending": 1, "contested": 0, "latest_accepted_id": None, "deny": False}
+        clean = {"accepted": 0, "pending": 0, "contested": 0, "latest_accepted_id": None,
+                 "latest_accepted_kind": None, "deny": False}
+        deny_row = {"accepted": 1, "pending": 0, "contested": 0, "latest_accepted_id": 7,
+                    "latest_accepted_kind": "exploit", "deny": True}
+        social_row = {"accepted": 1, "pending": 0, "contested": 0, "latest_accepted_id": 7,
+                      "latest_accepted_kind": "social", "deny": False}
+        contested_row = {"accepted": 1, "pending": 0, "contested": 1, "latest_accepted_id": 9,
+                         "latest_accepted_kind": "phishing", "deny": False}
+        ask_row = {"accepted": 0, "pending": 1, "contested": 0, "latest_accepted_id": None,
+                   "latest_accepted_kind": None, "deny": False}
         cases = [
             (clean, False, "no effect"),
             (deny_row, False, "block"),
             (deny_row, True, "block"),
             (social_row, False, "warn"),
+            (social_row, True, "no effect"),
             (ask_row, False, "warn"),
             (ask_row, True, "no effect"),
+            (contested_row, False, "warn"),
+            (contested_row, True, "warn"),
             (None, False, "warn"),
         ]
         for summary, allowlisted, expected in cases:
@@ -68,7 +75,30 @@ class PageTest(unittest.TestCase):
         self.page = (ROOT / "docs" / "PLATFORM.md").read_text(encoding="utf-8")
         self.flat = " ".join(self.page.split())
 
-    def test_the_page_states_every_policy_line_and_the_source(self):
+    def table_rows(self):
+        """The three-column mapping rows of the page, as cells, in the order they are printed."""
+        rows = []
+        for line in self.page.splitlines():
+            line = line.strip()
+            if not line.startswith("|") or not line.endswith("|"):
+                continue
+            cells = [cell.strip() for cell in line.strip("|").split("|")]
+            if len(cells) == 3 and cells[1] in platform.POLICY:
+                rows.append(cells)
+        return rows
+
+    def test_each_row_binds_its_verdict_to_its_own_policy_line(self):
+        """A page that merely contains every sentence is not a table: each row must carry its own."""
+        rows = self.table_rows()
+        self.assertEqual([cells[1] for cells in rows], [decision for decision, _ in platform.ROWS])
+        for verdict_cell, decision, policy_cell in rows:
+            with self.subTest(decision=decision):
+                literal = dict(platform.ROWS)[decision]
+                expected = f"`{literal}`" if literal else "no verdict"
+                self.assertEqual(verdict_cell, expected)
+                self.assertEqual(policy_cell, platform.POLICY[decision])
+
+    def test_the_page_keeps_the_policy_lines_and_the_source(self):
         for decision in platform.POLICY.values():
             with self.subTest(decision=decision):
                 self.assertIn(decision, self.flat)

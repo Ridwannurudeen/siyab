@@ -14,9 +14,16 @@ the reports contract on `main`: `contracts/reports` holds `subject_summary(subje
 outcomes and states to the values in `intel/record_enums.json` (checked by
 `rust_enum_values_match_the_canonical_json`) and hashes the same six-field canonical body into
 `body_sha256` (checked by `canonical_body_hash_matches_shared_vector` against
-`fixtures/records/body-vector.json`). The record spec is therefore ahead of the contract in one
-place only: the summary carries no `deny` bit yet, so the ladder below is still ours alone. That,
-and the gate reading it, are listed under "What the contract lane still has to do" at the end.
+`fixtures/records/body-vector.json`).
+
+That summary already returns five fields, and this lane uses the same five: `accepted`, `pending`,
+`contested`, `latest_accepted_id` and `latest_accepted_kind`. `accepted` counts a contested report,
+`latest_accepted_id` is the report counter (a `u64`, not the record's hash) and
+`latest_accepted_kind` is that report's kind, with both latest fields null when nothing is accepted.
+`records.summary` reproduces those five exactly and adds one field, `deny`, which the contract does
+not carry yet. So the interface difference between this lane and the contract is the `deny` bit and
+nothing else: because of it the ladder below is still ours alone. That bit, and the gate reading it,
+are listed under "What the contract lane still has to do" at the end.
 
 ## Two axes, not one list
 
@@ -37,7 +44,7 @@ others with sorted keys.
 | Field | Meaning |
 |---|---|
 | `version` | `"1"`. |
-| `record_id` | sha256 hex of the record without this field. |
+| `record_id` | sha256 hex of the record without this field. The record's own identity, never the `latest_accepted_id` a summary returns. |
 | `kind` | The event, from the six above. |
 | `outcome` | `loss`, `attempt`, `near_miss` or `unknown`. |
 | `state` | `pending`, `accepted`, `rejected`, `withdrawn`, `contested` or `overturned`. |
@@ -103,31 +110,48 @@ Transitions: `pending` to `accepted`, `rejected` or `withdrawn`; `accepted` to `
 ## The read the payment check makes
 
 The payment path does not reread every record. It reads one bounded summary for the subject, and
-`verdict_for` takes that summary and the allowlist flag. The summary the contract must expose is
-`subject_summary(subject)` returning `{accepted, pending, contested, latest_accepted_id, deny}`,
-where `deny` is true when an accepted record holds one of the five `DENY_KINDS`, or a contested
-record held one when it was accepted. `records.summary` builds the same shape from the records held
-off chain, so the replay and the site agree with the contract rather than inventing a second
-ordering.
+`verdict_for` takes that summary and the allowlist flag. The summary the contract returns is
+`subject_summary(subject)` with `{accepted, pending, contested, latest_accepted_id,
+latest_accepted_kind}`, where `accepted` counts a contested report and the two latest fields are the
+report counter and kind of the most recent accepted report, both null when there is none. This lane
+returns those five fields plus `deny`, which is true when an accepted record holds one of the five
+`DENY_KINDS`, or a contested record held one when it was accepted. `records.summary` builds that
+shape from the records held off chain, so the replay and the site agree with the contract rather
+than inventing a second ordering, and the single extra field is the one the contract still has to
+add.
+
+A summary whose `latest_accepted_id` and `latest_accepted_kind` disagree, one being null while the
+other is set, cannot have come from the contract and reads `UNKNOWN`.
 
 `deny` is one bit because counts alone cannot answer the ladder: a subject whose latest accepted
-record is `social` would read as an ask while an earlier accepted `exploit` vanished. The contract
-sets the bit when it accepts a report of a DENY kind, or contests one it had accepted, and it
-refuses a report whose kind is outside `intel/record_enums.json` at accept time, so a stored record
-always has a known kind and `verdict_for` never needs a second call to learn it.
+record is `social` would read as an ask while an earlier accepted `exploit` vanished. When the
+contract carries the bit it will set it when it accepts a report of a DENY kind, or contests one it
+had accepted, and it already refuses a report whose kind is outside `intel/record_enums.json` at
+accept time, so a stored record always has a known kind and `verdict_for` never needs a second call
+to learn it.
 
 ### The allowlist, and why it is here
 
 An UNKNOWN costs a human an answer, so anyone with a storage deposit could file a report and stall
-payments to a vendor the owner already trusts. So `verdict_for` gives an UNKNOWN no effect when the
-payee is on the owner's allowlist. A DENY from an `accepted` record still applies, because an
+payments to a vendor the owner already trusts. So `verdict_for` gives an ask no effect when the
+payee is on the owner's allowlist, in the two cases where nothing is in dispute: a `pending` record,
+and an accepted `social` report. A DENY from an `accepted` record still applies, because an
 allowlisted account can be compromised or named in an incident, and that is exactly when the label
 has to win.
 
-A read that fails, a summary that does not match the five fields, a negative count, a `deny` bit
-that is not a boolean or that is true with no accepted or contested record, or a
-`latest_accepted_id` that is unreadable or that disagrees with the `accepted` count all read
-`UNKNOWN`, and the allowlist does not forgive them. The count check is not pedantry: a summary
+A `contested` record is the exception, and it is deliberate: it asks `UNKNOWN` even on an
+allowlisted payee. A dispute is an open moderation question, whether it was filed against an
+accepted record or against a rejected one, so a person answers it. Letting the allowlist silence a
+contested record would mean a filing, or an appeal against a rejection, could switch a question off
+without anyone deciding it. Only a moderator's `accepted`, `rejected` or `overturned` closes it, and
+`tests/test_records.py` pins both the contested-from-accepted and the contested-from-rejected cases
+with the allowlist set.
+
+A read that fails, a summary that does not match the six fields, a negative count, a `deny` bit
+that is not a boolean or that is true with no accepted or contested record, a
+`latest_accepted_kind` outside the vocabulary, or a `latest_accepted_id` that is unreadable or that
+disagrees with the `accepted` count all read `UNKNOWN`, and the allowlist does not forgive them. The
+count check is not pedantry: a summary
 with `accepted` 1 and no id, or an id with no accepted record, would otherwise fall through the
 no-effect branch and pass an allowlisted payee. A pending record that can deny is a censorship
 tool with a storage deposit; `verdict_for` is the only place the mapping lives. Where the desk pages
