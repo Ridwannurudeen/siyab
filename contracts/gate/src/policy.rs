@@ -170,6 +170,25 @@ impl Gate {
     }
 
     #[payable]
+    pub fn prune_used(&mut self, ids: Vec<String>) -> u32 {
+        self.assert_owner();
+        near_sdk::require!(ids.len() <= 50, "REFUSED:bad_request");
+        let now_ms = env::block_timestamp_ms();
+        let mut removed = 0;
+        for id in ids {
+            if self
+                .used_verdicts
+                .get(&id)
+                .is_some_and(|expires_ms| *expires_ms <= now_ms)
+            {
+                self.used_verdicts.remove(&id);
+                removed += 1;
+            }
+        }
+        removed
+    }
+
+    #[payable]
     pub fn withdraw(&mut self, asset: Asset, receiver_id: AccountId, amount: U128) -> Promise {
         self.assert_owner();
         match asset {

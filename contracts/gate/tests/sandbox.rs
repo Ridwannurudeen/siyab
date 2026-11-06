@@ -142,6 +142,10 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
     let gate_wasm = near_workspaces::compile_project(env!("CARGO_MANIFEST_DIR"))
         .await
         .unwrap();
+    let old_gate_wasm = fs::read(
+        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../res/gate.wasm"),
+    )
+    .unwrap();
     let token_path = format!("{}/../test-token", env!("CARGO_MANIFEST_DIR"));
     let token_wasm = near_workspaces::compile_project(&token_path).await.unwrap();
     token
@@ -191,7 +195,7 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         .into_result()
         .unwrap();
 
-    gate.deploy(&gate_wasm)
+    gate.deploy(&old_gate_wasm)
         .await
         .unwrap()
         .into_result()
@@ -308,6 +312,51 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         println!("happy FT outcome gas burnt: {}", outcome.gas_burnt.as_gas());
     }
 
+    // Replace the code over existing state without calling new.
+    gate.deploy(&gate_wasm)
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap();
+    let policy: Value = gate
+        .view(gate.id(), "get_policy")
+        .await
+        .unwrap()
+        .json()
+        .unwrap();
+    assert_eq!(policy["max_ttl_ms"], 300000);
+    assert_eq!(policy["paused"], false);
+    let upgraded_agent: Value = gate
+        .view(gate.id(), "get_agent")
+        .args_json(json!({"public_key": public_key.to_string()}))
+        .await
+        .unwrap()
+        .json()
+        .unwrap();
+    assert_eq!(upgraded_agent["label"], "test agent");
+    assert_eq!(upgraded_agent["enabled"], true);
+    let upgraded_used: bool = gate
+        .view(gate.id(), "is_verdict_used")
+        .args_json(json!({"verdict_id": happy["verdict_id"]}))
+        .await
+        .unwrap()
+        .json()
+        .unwrap();
+    assert!(upgraded_used);
+    let empty_memo = vector("03-memo-empty-sandbox");
+    let upgrade_transfer = agent
+        .call(gate.id(), "request_transfer")
+        .args_json(transfer_args(&empty_memo))
+        .gas(Gas::from_tgas(100))
+        .transact()
+        .await
+        .unwrap();
+    upgrade_transfer.clone().into_result().unwrap();
+    assert!(upgrade_transfer
+        .logs()
+        .iter()
+        .any(|line| line.contains("transfer_completed")));
+
     let replay_error = agent
         .call(gate.id(), "request_transfer")
         .args_json(transfer_args(&happy))
@@ -361,16 +410,6 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
     println!("deposit protocol rejection: {deposit_error:?}");
     assert!(format!("{deposit_error:?}").contains("DepositWithFunctionCall"));
 
-    let empty_memo = vector("03-memo-empty-sandbox");
-    agent
-        .call(gate.id(), "request_transfer")
-        .args_json(transfer_args(&empty_memo))
-        .gas(Gas::from_tgas(100))
-        .transact()
-        .await
-        .unwrap()
-        .into_result()
-        .unwrap();
     let unknown = vector("12-unknown-payee-sandbox");
     let unknown_result = agent
         .call(gate.id(), "request_transfer")

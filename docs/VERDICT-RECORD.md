@@ -52,7 +52,11 @@ A verdict is valid only while `expires_ms` is later than the block timestamp in 
 
 ## Verdict id and replay
 
-`verdict_id` is 16 random bytes in lowercase hex, drawn for each ALLOW. A Gate records every verdict id it accepts, with its expiry, and refuses a second use as `verdict_used`. The signature already binds the agent key, so the verdict id alone is the replay key. A used verdict stays used when the transfer then fails; the agent needs a fresh ALLOW. Ids whose expiry has passed can be pruned.
+`verdict_id` is 16 random bytes in lowercase hex, drawn for each ALLOW. A Gate records every verdict id it accepts, with its expiry, and refuses a second use as `verdict_used`. The signature already binds the agent key, so the verdict id alone is the replay key. A used verdict stays used when the transfer then fails; the agent needs a fresh ALLOW.
+
+Each accepted verdict is also appended to an expiry queue in its own `uq` storage namespace. The queue stores a head index, a tail index and entries in insertion order, outside the root contract state. At the start of `request_transfer`, the Gate removes at most four expired entries from the queue head and removes their IDs from `used_verdicts`. A live head entry stops that call's pruning. This does not weaken replay protection: the verifier rejects a verdict whose expiry is at or before the block timestamp before it checks the used ID.
+
+IDs stored before the queue was added have no queue entry. The owner can call `prune_used` with exactly one yoctoNEAR and up to 50 IDs; it removes only IDs whose stored expiry is at or before the block timestamp and returns the number removed. The queue uses a new storage namespace, so the root contract state, agent records, pending transfers and existing `used_verdicts` values keep their serialized layouts.
 
 ## The evidence document and its hash
 
