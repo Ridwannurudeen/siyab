@@ -80,9 +80,12 @@ def artifact_state(record, wasm_present):
     lines = [line for line in record.splitlines() if line.startswith("Source commit: ")]
     if len(lines) != 1:
         raise AssertionError(f"expected one Source commit line, found {len(lines)}")
-    if len([line for line in record.splitlines() if line.startswith("Deployed: ")]) != 1:
+    deployed = [line for line in record.splitlines() if line.startswith("Deployed: ")]
+    if len(deployed) != 1:
         raise AssertionError("expected one Deployed line")
     commit = lines[0].removeprefix("Source commit: ")
+    if deployed[0] != "Deployed: not deployed" and not COMMIT.fullmatch(commit):
+        raise AssertionError("a deployed or pending crate must record its source commit")
     if COMMIT.fullmatch(commit):
         if not wasm_present:
             raise AssertionError(f"source commit {commit} is recorded but the wasm is absent")
@@ -119,8 +122,12 @@ class WasmArtifactsTest(unittest.TestCase):
             artifact_state(commit + commit, True)
         with self.assertRaisesRegex(AssertionError, "one Deployed line"):
             artifact_state("Source commit: " + "a" * 40 + "\n", True)
-        with self.assertRaisesRegex(AssertionError, "neither 40 hex nor TBD"):
+        with self.assertRaisesRegex(AssertionError, "must record its source commit"):
             artifact_state("Source commit: eb54c8e\nDeployed: pending\n", True)
+        with self.assertRaisesRegex(AssertionError, "must record its source commit"):
+            artifact_state("Source commit: TBD\n\nDeployed: 2 Nov, code_hash MATCH\n", False)
+        with self.assertRaisesRegex(AssertionError, "neither 40 hex nor TBD"):
+            artifact_state("Source commit: eb54c8e\nDeployed: not deployed\n", True)
 
     def test_sha256_files_match_the_wasm_bytes(self):
         for filename in CONTRACT_EXPORTS:
