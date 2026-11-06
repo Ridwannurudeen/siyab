@@ -63,6 +63,17 @@ class DemoTest(unittest.TestCase):
             self.assertEqual(path.stem, result["evidence_hash"])
             self.assertIn(f"  evidence sha256: {result['evidence_hash']}", lines)
 
+    def test_an_allow_ask_is_printed_without_verifying_a_signature(self):
+        result = {"outcome": "ALLOW", "action": "ask", "ask": ["the Gate is paused (REFUSED:paused)"],
+                  "checks": [], "reasons": [], "verdict": None, "message": None, "evidence_hash": "a" * 64,
+                  "evidence_path": "unused", "latency_ms": 1}
+        lines = []
+        with tempfile.TemporaryDirectory() as tmp, mock.patch("gate.demo.verdict.request", return_value=result):
+            demo._run("A paused payment", demo.VENDOR, None, (None, None, None), {}, None, Path(tmp), lambda: 1,
+                      lines.append)
+        self.assertIn("  ALLOW, action ask: not signed", lines)
+        self.assertIn("  ask: the Gate is paused (REFUSED:paused)", lines)
+
     def test_the_lookalike_is_dated_by_its_oldest_access_key(self):
         results, _ = self.run_demo()
         age = check(results[1], "account_age")

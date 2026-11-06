@@ -66,7 +66,7 @@ def _run(title, receiver, note, clients, policy, store, evidence_dir, clock, out
         out(f"  offline, {note}")
     for check in result["checks"]:
         out(f"  {check['status']:<7} {check['id']}: {check['detail']}")
-    if result["outcome"] == "ALLOW":
+    if result["outcome"] == "ALLOW" and result["action"] == "sign":
         message = result["message"].encode("utf-8")
         public = bytes.fromhex(signer.TestSigner().public_key_hex)
         verified = ed25519.verify(public, canon.digest(message), bytes.fromhex(result["verdict"]["signature"]))
@@ -75,6 +75,10 @@ def _run(title, receiver, note, clients, policy, store, evidence_dir, clock, out
         out(f"  canonical message: {result['message']}")
         if not verified:
             raise RuntimeError("the TEST signature did not verify")
+    elif result["outcome"] == "ALLOW":
+        out(f"  ALLOW, action {result['action']}: not signed")
+        for reason in result["ask"]:
+            out(f"  ask: {reason}")
     elif result["outcome"] == "DENY":
         out("  " + " ".join(["DENIED."] + result["reasons"]))
     else:
