@@ -24,6 +24,14 @@ require_vars() {
   done
 }
 
+resolve_counterparty_account_id() {
+  if [[ -z "${COUNTERPARTY_ACCOUNT_ID+x}" && -n "${ATTACKER_ACCOUNT_ID+x}" ]]; then
+    COUNTERPARTY_ACCOUNT_ID=$ATTACKER_ACCOUNT_ID
+    export COUNTERPARTY_ACCOUNT_ID
+    printf 'deprecated: ATTACKER_ACCOUNT_ID is deprecated; use COUNTERPARTY_ACCOUNT_ID\n' >&2
+  fi
+}
+
 require_testnet() {
   NETWORK=${NETWORK:-testnet}
   if [[ "$NETWORK" != "testnet" ]]; then

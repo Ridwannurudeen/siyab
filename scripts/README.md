@@ -9,7 +9,7 @@ The scripts use environment variables and the near-cli-rs command lines recorded
 | `GATE_ACCOUNT_ID` | Account that holds the Gate contract. |
 | `VENDOR_ACCOUNT_ID` | Account used for the vendor payment path. |
 | `AGED_PAYEE_ACCOUNT_ID` | Account used for the aged payee path. |
-| `ATTACKER_ACCOUNT_ID` | Account that funds the lookalike receiver. |
+| `COUNTERPARTY_ACCOUNT_ID` | Our demo counterparty account; funds the lookalike receiver. |
 | `NEAR_KEYS_DIR` | Directory for `<account>.json` key files; created subaccount files are set to mode 600 on a Linux filesystem, while chmod is a no op on `/mnt/c`. |
 | `COLD_ACCOUNT_ID` | Account that `kill_switch.sh` moves the Gate's token balance to; it must be storage registered on the token. |
 | `VERIFIER_PUB` | Public verifier key passed to the Gate initializer. |
@@ -54,7 +54,7 @@ After a real compromise, register a new agent key and never the revoked key.
 
 `redeploy.sh <gate|registry|reports> <wasm> [--migrate]` deploys the wasm to the Gate, the registry or the reports account, signed with that account's key, and prints the version before and after (the reports contract has no `version` view, so its version is not read), the account summary, the wasm sha256 and its code_hash. By default it deploys without an init call, for a redeploy that keeps the state layout. `--migrate` deploys with an init call to `migrate` with args `{}` through `deploy_with_init` in `lib.sh`, for a layout change. After the deploy it asserts `EXPECT_VERSION` and `EXPECT_CODE_HASH` when they are set and exits 1 on a mismatch; a dry run prints each assertion it would make. `docs/UPGRADES.md` says when each mode applies.
 
-`make_attack_receiver.sh` creates a funded receiver account and prints the creation time.
+`make_attack_receiver.sh` creates a funded receiver account using our demo counterparty account and prints the creation time.
 
 `record_verdicts.sh` records a batch from a JSON argument file and can record labels from a second file. The labels file can be a bare JSON list of label argument objects or an object with a `labels` list; the script validates the file before submitting either transaction.
 
