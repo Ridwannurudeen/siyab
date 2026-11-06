@@ -188,6 +188,19 @@ impl Gate {
         removed
     }
 
+    pub fn used_verdicts(&self, from: u64, limit: u32) -> Vec<(String, u64)> {
+        near_sdk::require!(limit <= 50, "REFUSED:limit_too_large");
+        let Ok(from) = usize::try_from(from) else {
+            return Vec::new();
+        };
+        self.used_verdicts
+            .iter()
+            .skip(from)
+            .take(limit as usize)
+            .map(|(verdict_id, expires_ms)| (verdict_id.clone(), *expires_ms))
+            .collect()
+    }
+
     #[payable]
     pub fn withdraw(&mut self, asset: Asset, receiver_id: AccountId, amount: U128) -> Promise {
         self.assert_owner();

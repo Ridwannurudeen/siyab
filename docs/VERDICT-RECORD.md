@@ -48,15 +48,17 @@ Account ids match `^(([a-z\d]+[-_])*[a-z\d]+\.)*([a-z\d]+[-_])*[a-z\d]+$` and ar
 
 ## Expiry and ttl
 
-A verdict is valid only while `expires_ms` is later than the block timestamp in milliseconds and `expires_ms - issued_ms` is at most the Gate's `max_ttl_ms` (set by the owner, default 300000, five minutes). An expired verdict is refused as `expired`, one with a longer ttl as `ttl_too_long`. A verifier compares `expires_ms` with `issued_ms` before it subtracts, so the unsigned subtraction cannot underflow; `canonical_message` and `parse_canonical` reject an expiry earlier than the issue time.
+A verdict is valid only while `expires_ms` is later than the block timestamp in milliseconds, `issued_ms` is no more than 30,000 ms ahead of that timestamp, and `expires_ms - issued_ms` is at most the Gate's `max_ttl_ms` (set by the owner, default 300000, five minutes). An expired verdict is refused as `expired`, an issue time too far in the future as `issued_in_future`, and a longer ttl as `ttl_too_long`. A verifier compares `expires_ms` with `issued_ms` before it subtracts, so the unsigned subtraction cannot underflow; `canonical_message` and `parse_canonical` reject an expiry earlier than the issue time.
 
 ## Verdict id and replay
 
 `verdict_id` is 16 random bytes in lowercase hex, drawn for each ALLOW. A Gate records every verdict id it accepts, with its expiry, and refuses a second use as `verdict_used`. The signature already binds the agent key, so the verdict id alone is the replay key. A used verdict stays used when the transfer then fails; the agent needs a fresh ALLOW.
 
-Each accepted verdict is also appended to an expiry queue in its own `uq` storage namespace. The queue stores a head index, a tail index and entries in insertion order, outside the root contract state. At the start of `request_transfer`, the Gate removes at most four expired entries from the queue head and removes their IDs from `used_verdicts`. A live head entry stops that call's pruning. This does not weaken replay protection: the verifier rejects a verdict whose expiry is at or before the block timestamp before it checks the used ID.
+Each accepted verdict is also appended to an expiry queue in its own `uq` storage namespace. The queue stores a head index, a tail index and entries in insertion order, outside the root contract state. At the start of `request_transfer`, the Gate removes at most four expired entries from the queue head. It removes the matching `used_verdicts` row only when the row's stored expiry equals the queue entry's expiry; a stale queue entry cannot remove a newer use of the same id. A live head entry stops that call's pruning. Pruning preserves replay protection only because `verify` refuses `expires_ms <= now_ms` (`verdict.rs:66`) before `request_transfer` checks the used id. The pruning predicate must remain based on expiry, never age.
 
 IDs stored before the queue was added have no queue entry. The owner can call `prune_used` with exactly one yoctoNEAR and up to 50 IDs; it removes only IDs whose stored expiry is at or before the block timestamp and returns the number removed. The queue uses a new storage namespace, so the root contract state, agent records, pending transfers and existing `used_verdicts` values keep their serialized layouts.
+
+The `used_verdicts(from, limit)` view pages the existing map in iteration order, starting at the zero-based `from` offset. `limit` is at most 50; larger values are refused as `limit_too_large`.
 
 ## The evidence document and its hash
 

@@ -83,6 +83,7 @@ impl From<Pending> for PendingView {
 }
 
 #[near(serializers = [json, borsh])]
+#[derive(Clone)]
 pub struct TransferRequest {
     pub kind: String,
     pub token_id: Option<AccountId>,

@@ -74,6 +74,47 @@ fn transfer_args(vector: &Value) -> Value {
     })
 }
 
+async fn fresh_request(
+    worker: &near_workspaces::Worker<near_workspaces::network::Sandbox>,
+    gate_id: &near_workspaces::types::AccountId,
+    mut request: Value,
+) -> Value {
+    let issued_ms = worker.view_block().await.unwrap().timestamp() / 1_000_000;
+    let expires_ms = issued_ms + 300_000;
+    request["issued_ms"] = json!(issued_ms);
+    request["expires_ms"] = json!(expires_ms);
+
+    let token_id = request["token_id"].as_str().unwrap_or("-");
+    let memo = request["memo"]
+        .as_str()
+        .map(|memo| hex_encode(&Sha256::digest(memo.as_bytes())))
+        .unwrap_or_else(|| "-".to_owned());
+    let message = format!(
+        "GATEv1|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}",
+        gate_id,
+        request["agent_pk_hex"].as_str().unwrap(),
+        request["kind"].as_str().unwrap(),
+        token_id,
+        request["receiver_id"].as_str().unwrap(),
+        request["amount"].as_str().unwrap(),
+        memo,
+        issued_ms,
+        expires_ms,
+        request["verdict_id"].as_str().unwrap(),
+        request["evidence_sha256"].as_str().unwrap(),
+        request["key_id"].as_str().unwrap(),
+        request["literal"].as_str().unwrap(),
+    );
+    let verifier_seed: [u8; 32] = Sha256::digest(b"gate test verifier v1").into();
+    let verifier = SigningKey::from_bytes(&verifier_seed);
+    request["signature_hex"] = json!(hex_encode(
+        &verifier
+            .sign(&Sha256::digest(message.as_bytes()))
+            .to_bytes()
+    ));
+    request
+}
+
 async fn balance(account: &Account, token: &near_workspaces::types::AccountId) -> u128 {
     account
         .view(token, "ft_balance_of")
@@ -343,7 +384,7 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         .json()
         .unwrap();
     assert!(upgraded_used);
-    let empty_memo = vector("03-memo-empty-sandbox");
+    let empty_memo = fresh_request(&worker, gate.id(), vector("03-memo-empty-sandbox")).await;
     let upgrade_transfer = agent
         .call(gate.id(), "request_transfer")
         .args_json(transfer_args(&empty_memo))
@@ -359,7 +400,9 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
 
     let replay_error = agent
         .call(gate.id(), "request_transfer")
-        .args_json(transfer_args(&happy))
+        .args_json(transfer_args(
+            &fresh_request(&worker, gate.id(), happy.clone()).await,
+        ))
         .gas(Gas::from_tgas(100))
         .transact()
         .await
@@ -402,7 +445,9 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
     assert!(format!("{token_error:?}").contains("ReceiverMismatch"));
     let deposit_error = agent
         .call(gate.id(), "request_transfer")
-        .args_json(transfer_args(&happy))
+        .args_json(transfer_args(
+            &fresh_request(&worker, gate.id(), happy.clone()).await,
+        ))
         .deposit(NearToken::from_yoctonear(1))
         .transact()
         .await
@@ -410,7 +455,7 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
     println!("deposit protocol rejection: {deposit_error:?}");
     assert!(format!("{deposit_error:?}").contains("DepositWithFunctionCall"));
 
-    let unknown = vector("12-unknown-payee-sandbox");
+    let unknown = fresh_request(&worker, gate.id(), vector("12-unknown-payee-sandbox")).await;
     let unknown_result = agent
         .call(gate.id(), "request_transfer")
         .args_json(transfer_args(&unknown))
@@ -431,7 +476,8 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         .json()
         .unwrap();
     assert_eq!(unknown_agent_view["unknown_caps"][0]["spent"], "1");
-    let over_cap = vector("13-unknown-payee-over-cap-sandbox");
+    let over_cap =
+        fresh_request(&worker, gate.id(), vector("13-unknown-payee-over-cap-sandbox")).await;
     let over_cap_error = agent
         .call(gate.id(), "request_transfer")
         .args_json(transfer_args(&over_cap))
@@ -455,34 +501,11 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         .unwrap()
         .into_result()
         .unwrap();
-    let mut fresh_request = vector("01-ft-happy-sandbox");
-    fresh_request["receiver_id"] = json!(fresh.id());
-    let memo_hash = hex_encode(&Sha256::digest(
-        fresh_request["memo"].as_str().unwrap().as_bytes(),
-    ));
-    let verdict_id = hex_encode(&Sha256::digest(b"fresh unregistered receiver")[..16]);
-    let message = format!(
-        "GATEv1|{}|{}|ft|{}|{}|{}|{}|{}|{}|{}|{}|cur|ALLOW",
-        gate.id(),
-        fresh_request["agent_pk_hex"].as_str().unwrap(),
-        token.id(),
-        fresh.id(),
-        fresh_request["amount"].as_str().unwrap(),
-        memo_hash,
-        fresh_request["issued_ms"].as_u64().unwrap(),
-        fresh_request["expires_ms"].as_u64().unwrap(),
-        verdict_id,
-        fresh_request["evidence_sha256"].as_str().unwrap(),
-    );
-    let verifier_seed: [u8; 32] = Sha256::digest(b"gate test verifier v1").into();
-    let verifier = SigningKey::from_bytes(&verifier_seed);
-    let signature = hex_encode(
-        &verifier
-            .sign(&Sha256::digest(message.as_bytes()))
-            .to_bytes(),
-    );
-    fresh_request["verdict_id"] = json!(verdict_id);
-    fresh_request["signature_hex"] = json!(signature);
+    let mut fresh_vector = vector("01-ft-happy-sandbox");
+    fresh_vector["receiver_id"] = json!(fresh.id());
+    fresh_vector["verdict_id"] =
+        json!(hex_encode(&Sha256::digest(b"fresh unregistered receiver")[..16]));
+    let fresh_transfer = fresh_request(&worker, gate.id(), fresh_vector).await;
     let fresh_before: Value = gate
         .view(gate.id(), "get_agent")
         .args_json(json!({"public_key": public_key.to_string()}))
@@ -492,7 +515,7 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         .unwrap();
     let fresh_result = agent
         .call(gate.id(), "request_transfer")
-        .args_json(transfer_args(&fresh_request))
+        .args_json(transfer_args(&fresh_transfer))
         .gas(Gas::from_tgas(100))
         .transact()
         .await
@@ -514,7 +537,7 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         fresh_before["caps"][0]["spent"]
     );
 
-    let near = vector("02-near-happy-sandbox");
+    let near = fresh_request(&worker, gate.id(), vector("02-near-happy-sandbox")).await;
     let vendor_balance = vendor.view_account().await.unwrap().balance;
     let near_result = agent
         .call(gate.id(), "request_transfer")
@@ -545,7 +568,9 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         .unwrap();
     let paused_error = agent
         .call(gate.id(), "request_transfer")
-        .args_json(transfer_args(&happy))
+        .args_json(transfer_args(
+            &fresh_request(&worker, gate.id(), happy.clone()).await,
+        ))
         .gas(Gas::from_tgas(100))
         .transact()
         .await
