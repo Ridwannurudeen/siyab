@@ -172,7 +172,8 @@ class RegistryMainnetDryRunTest(RegistryMainnetTest):
         self.assertTrue(check < deploy < first_read)
 
     def test_dry_run_redeploy_deploys_without_an_init_call(self):
-        process = self.deploy_default(REDEPLOY="1", EXPECT_VERSION="0.2.0", EXPECT_CODE_HASH="Expected1111")
+        _, code_hash = self.recorded()
+        process = self.deploy_default(REDEPLOY="1", EXPECT_VERSION="0.2.0", EXPECT_CODE_HASH=code_hash)
         self.assertEqual(process.returncode, 0, process.stderr)
         key_path = f'{self.env["NEAR_KEYS_DIR"]}/{REGISTRY}.json'
         self.assertEqual(self.commands(process.stdout, "near contract deploy"), [[
@@ -180,8 +181,17 @@ class RegistryMainnetDryRunTest(RegistryMainnetTest):
             "network-config", "mainnet", "sign-with-access-key-file", key_path, "send",
         ]])
         self.assertIn(f"would assert: version of {REGISTRY} equals 0.2.0", process.stdout)
-        self.assertIn(f"would assert: code_hash of {REGISTRY} equals Expected1111", process.stdout)
+        self.assertIn(f"would assert: code_hash of {REGISTRY} equals {code_hash}", process.stdout)
         self.assertNotIn("with-init-call", process.stdout)
+
+    def test_redeploy_refuses_an_expected_code_hash_that_differs_from_the_wasm(self):
+        _, code_hash = self.recorded()
+        process = self.deploy_default(REDEPLOY="1", EXPECT_VERSION="0.2.0", EXPECT_CODE_HASH="Expected1111")
+        self.assertEqual(process.returncode, 2)
+        self.assertIn(f"EXPECT_CODE_HASH Expected1111 does not equal the code_hash of {self.wasm}, {code_hash}",
+                      process.stderr)
+        self.assertNotIn("near contract deploy", process.stdout)
+        self.assertNotIn("would check: code_hash", process.stdout)
 
     def test_dry_run_needs_no_confirmation(self):
         process = subprocess.run([BASH, f"scripts/{SCRIPT}", REGISTRY, OWNER, RECORDER, self.wasm],
@@ -196,6 +206,40 @@ class RegistryMainnetDryRunTest(RegistryMainnetTest):
         process = self.run_script(SCRIPT, REGISTRY, OWNER, RECORDER, self.wasm, "--dry-run", env=env)
         self.assertEqual(process.returncode, 0, process.stderr)
         self.assertIn("+ near contract deploy", process.stdout)
+
+
+class RegistryMainnetCodeHashReadTest(unittest.TestCase):
+    """The inline python that reads the live code hash, run offline with the RPC client replaced."""
+
+    def snippet(self):
+        script = (ROOT / "scripts" / SCRIPT).read_text(encoding="utf-8")
+        body = script.split("read_code_hash() {\n  python3 - \"$1\" <<'PY'\n", 1)[1]
+        return body.split("\nPY\n", 1)[0]
+
+    def read(self, fake):
+        code = f"from gate import rpc\nrpc.Client.code_hash = {fake}\n" + self.snippet()
+        return subprocess.run([sys.executable, "-c", code, REGISTRY], capture_output=True, cwd=ROOT,
+                              timeout=30, check=False, text=True)
+
+    def test_an_unknown_account_stops_with_one_line(self):
+        process = self.read("lambda self, account: (_ for _ in ()).throw(rpc.RpcError("
+                            "{'name': 'HANDLER_ERROR', 'cause': {'name': 'UNKNOWN_ACCOUNT'}}))")
+        self.assertEqual(process.returncode, 2)
+        self.assertEqual(process.stderr, f"registry account {REGISTRY} not found on mainnet\n")
+        self.assertEqual(process.stdout, "")
+
+    def test_another_rpc_error_stops_with_one_line(self):
+        process = self.read("lambda self, account: (_ for _ in ()).throw(rpc.RpcError("
+                            "{'name': 'HANDLER_ERROR', 'cause': {'name': 'TIMEOUT_ERROR'}}))")
+        self.assertEqual(process.returncode, 2)
+        self.assertEqual(len(process.stderr.splitlines()), 1, process.stderr)
+        self.assertIn(f"view_account of {REGISTRY} failed: ", process.stderr)
+        self.assertNotIn("Traceback", process.stderr)
+
+    def test_a_code_hash_is_printed(self):
+        process = self.read("lambda self, account: rpc.EMPTY_CODE_HASH")
+        self.assertEqual(process.returncode, 0, process.stderr)
+        self.assertEqual(process.stdout.strip(), "11111111111111111111111111111111")
 
 
 if __name__ == "__main__":

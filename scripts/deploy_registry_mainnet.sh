@@ -13,8 +13,8 @@
 # It refuses unless NETWORK=mainnet and MAINNET_DEPLOY_OK=1, the wasm sha256 equals
 # res/registry.wasm.sha256 and res/BUILD-registry.md names a 40 hex source commit. The registry
 # account must already exist; it refuses an account that holds code unless REDEPLOY=1, which deploys
-# without an init call and requires EXPECT_VERSION and EXPECT_CODE_HASH. DRY_RUN=1 prints every
-# command and assertion and makes no near call.
+# without an init call and requires EXPECT_VERSION and EXPECT_CODE_HASH, and EXPECT_CODE_HASH must
+# equal the code hash of the wasm. DRY_RUN=1 prints every command and assertion and makes no near call.
 set -euo pipefail
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 source "$ROOT_DIR/scripts/lib.sh"
@@ -73,6 +73,10 @@ fi
 printf 'source commit: %s\n' "$source_commit"
 printf 'wasm sha256: %s (equals res/registry.wasm.sha256)\n' "$wasm_sha256"
 printf 'expected code_hash: %s\n' "$code_hash"
+if [[ "$REDEPLOY" == "1" && "$EXPECT_CODE_HASH" != "$code_hash" ]]; then
+  printf 'EXPECT_CODE_HASH %s does not equal the code_hash of %s, %s\n' "$EXPECT_CODE_HASH" "$wasm" "$code_hash" >&2
+  exit 2
+fi
 
 printf '\nMAINNET registry deploy to %s\n' "$registry"
 printf 'Run this only when all six registry mainnet gates in docs/REGISTRY.md are met and the owner approves.\n'
@@ -94,7 +98,14 @@ import sys
 
 from gate import rpc
 
-print(rpc.Client(rpc.MAINNET_RPC_URL, "off").code_hash(sys.argv[1]))
+try:
+    print(rpc.Client(rpc.MAINNET_RPC_URL, "off").code_hash(sys.argv[1]))
+except rpc.RpcError as error:
+    if error.cause == "UNKNOWN_ACCOUNT":
+        print(f"registry account {sys.argv[1]} not found on mainnet", file=sys.stderr)
+    else:
+        print(f"view_account of {sys.argv[1]} failed: {error}", file=sys.stderr)
+    raise SystemExit(2)
 PY
 }
 
