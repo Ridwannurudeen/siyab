@@ -1,0 +1,63 @@
+{
+ "version": "1",
+ "record_id": "25eef6599124aed376acce1c6f1bb78abc97262c7e31f7ef35bab8cd117ad8e1",
+ "kind": "exploit",
+ "outcome": "near_miss",
+ "state": "accepted",
+ "subjects": [
+  "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+ ],
+ "reports": [
+  {
+   "seq": 1,
+   "sha256": "f729e475ceaff4dd4f8942eecab3bedd00f9dee6b683216b0435dea7a406b307"
+  }
+ ],
+ "evidence": [
+  {
+   "sha256": "414dbe8b0e31d22001064272b368443ce0f8058dcb31a5ac144a38b4771d3fc1",
+   "url": "https://evidence.example/records/8M5NqTdAHGpLbGoRWzw9oo4M1foshWB4FkNKNer6yVMS",
+   "fetched_at": "2026-11-05T09:25:56Z"
+  }
+ ],
+ "moderation": [
+  {
+   "decision": "accepted",
+   "decided_at": "2026-11-05T09:25:56Z",
+   "reason_sha256": "5412c237542620eb68f600916e696c7b1868ecb697c81d3f60136df7a8f3ad3c",
+   "reason": "synthetic example: the account is the collector named in the public rekt.news Rhea Finance report and the evidence url is a placeholder, so this file shows the shape of such a record and is not a published finding"
+  }
+ ],
+ "timeline": [
+  {
+   "event": "first_chain_signal",
+   "at": "2026-11-05T08:53:51Z",
+   "source": {
+    "type": "chain",
+    "ref": "276319568"
+   }
+  },
+  {
+   "event": "our_record",
+   "at": "2026-11-05T09:25:56Z",
+   "source": {
+    "type": "internal",
+    "ref": "note-20261105-01"
+   }
+  },
+  {
+   "event": "moderation",
+   "at": "2026-11-05T09:25:56Z",
+   "source": {
+    "type": "moderation",
+    "ref": "5412c237542620eb68f600916e696c7b1868ecb697c81d3f60136df7a8f3ad3c"
+   }
+  }
+ ],
+ "supersedes": null,
+ "publisher": "kestrelridge-main.testnet",
+ "observed": {
+  "chain": "near",
+  "first_block": 276319568
+ }
+}
