@@ -29,6 +29,9 @@ The scripts use environment variables and the near-cli-rs command lines recorded
 | `UNKNOWN_WINDOW` | Unknown payee token cap per window, in whole tokens. |
 | `AGENT_ALLOWANCE_NEAR` | Function call key allowance in NEAR, defaults to `1`. |
 | `GATE_STATE_FROZEN` | Must equal `1` to redeploy after 4 Nov. |
+| `REPORTS_ACCOUNT_ID` | Account that `redeploy.sh reports` deploys to, defaults to `reports.$GATE_ACCOUNT_ID`. |
+| `EXPECT_VERSION` | When set, `redeploy.sh` exits 1 unless the `version` view after the deploy returns this value. The reports contract has no `version` view, so setting it for `reports` exits 2. |
+| `EXPECT_CODE_HASH` | When set, `redeploy.sh` exits 1 unless the account's base58 `code_hash` from `view_account` after the deploy equals this value (the form `python -m gate codehash` prints and `res/BUILD-<crate>.md` records). |
 
 `setup_testnet.sh` checks all wasm files and the Gate balance before creating any subaccount, then creates missing accounts, recovers generated keys, deploys missing contract state and registers the token storage accounts. The balance check subtracts 3 NEAR for each missing token or registry account, 1 NEAR for a missing recorder account, and 0.00387 NEAR for the three storage deposits (0.00129 each, the token's storage_balance_bounds minimum), leaving at least 10 NEAR.
 
@@ -49,7 +52,7 @@ After a real compromise, register a new agent key and never the revoked key.
 
 `set_paused.sh <true|false>` sets the Gate's pause state with the owner account.
 
-`redeploy.sh` checks the version before and after deploying a selected Gate or registry wasm.
+`redeploy.sh <gate|registry|reports> <wasm> [--migrate]` deploys the wasm to the Gate, the registry or the reports account, signed with that account's key, and prints the version before and after (the reports contract has no `version` view, so its version is not read), the account summary, the wasm sha256 and its code_hash. By default it deploys without an init call, for a redeploy that keeps the state layout. `--migrate` deploys with an init call to `migrate` with args `{}` through `deploy_with_init` in `lib.sh`, for a layout change. After the deploy it asserts `EXPECT_VERSION` and `EXPECT_CODE_HASH` when they are set and exits 1 on a mismatch; a dry run prints each assertion it would make. `docs/UPGRADES.md` says when each mode applies.
 
 `make_attack_receiver.sh` creates a funded receiver account and prints the creation time.
 
