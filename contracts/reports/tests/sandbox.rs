@@ -139,7 +139,7 @@ async fn sandbox_submit_accept_dispute_overturn_updates_subject_summary() {
     assert_eq!(summary["pending"], 0);
     assert_eq!(summary["contested"], 0);
     assert!(summary["latest_accepted_id"].is_null());
-    assert!(summary["latest_accepted_kind"].is_null());
+    assert_eq!(summary["deny"], false);
 
     let report: Value = contract
         .view(contract.id(), "get_report")

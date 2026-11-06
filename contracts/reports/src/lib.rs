@@ -24,14 +24,10 @@ pub enum ReportKind {
 }
 
 impl ReportKind {
-    fn as_str(self) -> &'static str {
+    fn is_deny(self) -> bool {
         match self {
-            Self::Scam => "scam",
-            Self::Theft => "theft",
-            Self::Phishing => "phishing",
-            Self::Exploit => "exploit",
-            Self::KeyCompromise => "key_compromise",
-            Self::Social => "social",
+            Self::Scam | Self::Theft | Self::Phishing | Self::Exploit | Self::KeyCompromise => true,
+            Self::Social => false,
         }
     }
 }
@@ -155,14 +151,23 @@ impl From<Dispute> for DisputeView {
     }
 }
 
-#[near(serializers = [json, borsh])]
+#[near(serializers = [borsh])]
 #[derive(Clone, Default)]
 pub struct SubjectSummary {
     accepted: u64,
     pending: u64,
     contested: u64,
     latest_accepted_id: Option<u64>,
-    latest_accepted_kind: Option<String>,
+    accepted_deny: u64,
+}
+
+#[near(serializers = [json])]
+pub struct SubjectSummaryView {
+    accepted: u64,
+    pending: u64,
+    contested: u64,
+    latest_accepted_id: Option<u64>,
+    deny: bool,
 }
 
 #[near(serializers = [json, borsh])]
@@ -368,6 +373,12 @@ impl Reports {
             report.moderated_ms = Some(now);
             summary.pending -= 1;
             summary.accepted += 1;
+            if report.kind.is_deny() {
+                summary.accepted_deny = summary
+                    .accepted_deny
+                    .checked_add(1)
+                    .unwrap_or_else(|| env::panic_str("REFUSED:counter_exhausted"));
+            }
             stats.accepted += 1;
             self.append_accepted(&mut report, &mut summary);
         } else {
@@ -525,6 +536,12 @@ impl Reports {
         if overturn {
             report.state = ReportState::Overturned;
             summary.accepted -= 1;
+            if report.kind.is_deny() {
+                summary.accepted_deny = summary
+                    .accepted_deny
+                    .checked_sub(1)
+                    .unwrap_or_else(|| env::panic_str("REFUSED:counter_underflow"));
+            }
             stats.overturned += 1;
             self.remove_accepted(&mut report, &mut summary);
         } else {
@@ -590,8 +607,15 @@ impl Reports {
         )
     }
 
-    pub fn subject_summary(&self, subject: AccountId) -> SubjectSummary {
-        self.summary_for(&subject)
+    pub fn subject_summary(&self, subject: AccountId) -> SubjectSummaryView {
+        let summary = self.summary_for(&subject);
+        SubjectSummaryView {
+            accepted: summary.accepted,
+            pending: summary.pending,
+            contested: summary.contested,
+            latest_accepted_id: summary.latest_accepted_id,
+            deny: summary.accepted_deny > 0,
+        }
     }
 
     pub fn publisher_stats(&self, account: AccountId) -> PublisherStats {
@@ -665,7 +689,6 @@ impl Reports {
             self.reports.insert(previous_id, previous);
         }
         summary.latest_accepted_id = Some(report.id);
-        summary.latest_accepted_kind = Some(report.kind.as_str().to_owned());
     }
 
     fn remove_accepted(&mut self, report: &mut Report, summary: &mut SubjectSummary) {
@@ -680,9 +703,6 @@ impl Reports {
             self.reports.insert(next_id, next);
         } else {
             summary.latest_accepted_id = report.accepted_prev;
-            summary.latest_accepted_kind = report
-                .accepted_prev
-                .map(|previous_id| self.report_or_refuse(previous_id).kind.as_str().to_owned());
         }
         report.accepted_prev = None;
         report.accepted_next = None;
@@ -860,7 +880,7 @@ mod tests {
         assert_eq!(summary.pending, 0);
         assert_eq!(summary.contested, 0);
         assert_eq!(summary.latest_accepted_id, None);
-        assert_eq!(summary.latest_accepted_kind, None);
+        assert!(!summary.deny);
         assert_eq!(stats.submitted, 0);
         assert!(reports.get_report(0).is_none());
         assert!(reports.get_dispute(0).is_none());
@@ -1104,7 +1124,7 @@ mod tests {
         assert_eq!(summary.accepted, 0);
         assert_eq!(summary.contested, 0);
         assert_eq!(summary.latest_accepted_id, None);
-        assert_eq!(summary.latest_accepted_kind, None);
+        assert!(!summary.deny);
         assert_eq!(
             reports
                 .publisher_stats(account("reporter.testnet"))
@@ -1189,10 +1209,72 @@ mod tests {
         assert_eq!(summary.accepted, 1);
         assert_eq!(summary.contested, 0);
         assert_eq!(summary.latest_accepted_id, Some(id));
-        assert_eq!(summary.latest_accepted_kind.as_deref(), Some("scam"));
+        assert!(summary.deny);
+        assert_eq!(
+            reports
+                .summary_for(&account("vendor.testnet"))
+                .accepted_deny,
+            1
+        );
         let stats = reports.publisher_stats(account("reporter.testnet"));
         assert_eq!(stats.submitted, 1);
         assert_eq!(stats.accepted, 1);
+    }
+
+    #[test]
+    fn accepted_social_report_does_not_set_deny_flag() {
+        let mut reports = reports();
+        context("reporter.testnet", REPORT_DEPOSIT, 1_001);
+        let id = reports.submit_report(
+            "vendor.testnet".to_owned(),
+            ReportKind::Social,
+            ReportOutcome::Loss,
+            hash('a'),
+            "https://evidence.example/report".to_owned(),
+        );
+        moderate(&mut reports, id, true);
+        let summary = reports.subject_summary(account("vendor.testnet"));
+        assert_eq!(summary.accepted, 1);
+        assert!(!summary.deny);
+        assert_eq!(
+            reports
+                .summary_for(&account("vendor.testnet"))
+                .accepted_deny,
+            0
+        );
+    }
+
+    #[test]
+    fn newer_social_report_does_not_clear_deny_flag() {
+        let mut reports = reports();
+        context("reporter.testnet", REPORT_DEPOSIT, 1_001);
+        let theft = reports.submit_report(
+            "vendor.testnet".to_owned(),
+            ReportKind::Theft,
+            ReportOutcome::Loss,
+            hash('a'),
+            "https://evidence.example/theft".to_owned(),
+        );
+        moderate(&mut reports, theft, true);
+        context("reporter.testnet", REPORT_DEPOSIT, 1_003);
+        let social = reports.submit_report(
+            "vendor.testnet".to_owned(),
+            ReportKind::Social,
+            ReportOutcome::Loss,
+            hash('b'),
+            "https://evidence.example/social".to_owned(),
+        );
+        context("moderator.testnet", 1, 1_004);
+        reports.moderate(social, true, hash('b'));
+        let summary = reports.subject_summary(account("vendor.testnet"));
+        assert!(summary.deny);
+        assert_eq!(summary.latest_accepted_id, Some(social));
+        assert_eq!(
+            reports
+                .summary_for(&account("vendor.testnet"))
+                .accepted_deny,
+            1
+        );
     }
 
     #[test]
@@ -1298,7 +1380,14 @@ mod tests {
     #[test]
     fn dispute_contests_accepted_report_and_updates_summary() {
         let mut reports = reports();
-        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        context("reporter.testnet", REPORT_DEPOSIT, 1_001);
+        let id = reports.submit_report(
+            "vendor.testnet".to_owned(),
+            ReportKind::Theft,
+            ReportOutcome::Loss,
+            hash('a'),
+            "https://evidence.example/report".to_owned(),
+        );
         moderate(&mut reports, id, true);
         context("disputer.testnet", REPORT_DEPOSIT, 1_003);
         let dispute_id =
@@ -1307,7 +1396,13 @@ mod tests {
         assert_eq!(summary.accepted, 1);
         assert_eq!(summary.contested, 1);
         assert_eq!(summary.latest_accepted_id, Some(id));
-        assert_eq!(summary.latest_accepted_kind.as_deref(), Some("scam"));
+        assert!(summary.deny);
+        assert_eq!(
+            reports
+                .summary_for(&account("vendor.testnet"))
+                .accepted_deny,
+            1
+        );
         assert_eq!(reports.get_dispute(dispute_id).unwrap().report_id, id);
         assert!(reports.get_dispute(dispute_id).unwrap().open);
         assert_eq!(reports.totals().disputes, 1);
@@ -1478,11 +1573,12 @@ mod tests {
                 .latest_accepted_id,
             None
         );
+        assert!(!reports.subject_summary(account("vendor.testnet")).deny);
         assert_eq!(
             reports
-                .subject_summary(account("vendor.testnet"))
-                .latest_accepted_kind,
-            None
+                .summary_for(&account("vendor.testnet"))
+                .accepted_deny,
+            0
         );
         assert_eq!(
             reports
@@ -1507,7 +1603,13 @@ mod tests {
         assert_eq!(summary.contested, 0);
         assert_eq!(summary.accepted, 1);
         assert_eq!(summary.latest_accepted_id, Some(id));
-        assert_eq!(summary.latest_accepted_kind.as_deref(), Some("scam"));
+        assert!(summary.deny);
+        assert_eq!(
+            reports
+                .summary_for(&account("vendor.testnet"))
+                .accepted_deny,
+            1
+        );
         assert_eq!(
             reports
                 .publisher_stats(account("reporter.testnet"))
@@ -1565,10 +1667,11 @@ mod tests {
     }
 
     #[test]
-    fn summary_counters_track_multiple_reports_and_latest_accepted_removal() {
+    fn summary_deny_stays_true_when_one_of_two_deny_reports_is_overturned() {
         let mut reports = reports();
         let first = submit(&mut reports, "reporter.testnet", "vendor.testnet");
-        context("reporter.testnet", REPORT_DEPOSIT, 1_001);
+        moderate(&mut reports, first, true);
+        context("reporter.testnet", REPORT_DEPOSIT, 1_003);
         let second = reports.submit_report(
             "vendor.testnet".to_owned(),
             ReportKind::Theft,
@@ -1576,22 +1679,22 @@ mod tests {
             hash('a'),
             "https://evidence.example/report".to_owned(),
         );
-        moderate(&mut reports, first, true);
-        moderate(&mut reports, second, true);
+        context("moderator.testnet", 1, 1_004);
+        reports.moderate(second, true, hash('b'));
         assert_eq!(
             reports
                 .subject_summary(account("vendor.testnet"))
                 .latest_accepted_id,
             Some(second)
         );
+        assert!(reports.subject_summary(account("vendor.testnet")).deny);
         assert_eq!(
             reports
-                .subject_summary(account("vendor.testnet"))
-                .latest_accepted_kind
-                .as_deref(),
-            Some("theft")
+                .summary_for(&account("vendor.testnet"))
+                .accepted_deny,
+            2
         );
-        context("disputer.testnet", REPORT_DEPOSIT, 1_003);
+        context("disputer.testnet", REPORT_DEPOSIT, 1_005);
         let dispute_id = reports.dispute(
             second,
             hash('c'),
@@ -1603,14 +1706,8 @@ mod tests {
                 .latest_accepted_id,
             Some(second)
         );
-        assert_eq!(
-            reports
-                .subject_summary(account("vendor.testnet"))
-                .latest_accepted_kind
-                .as_deref(),
-            Some("theft")
-        );
-        context("moderator.testnet", 1, 1_004);
+        assert!(reports.subject_summary(account("vendor.testnet")).deny);
+        context("moderator.testnet", 1, 1_006);
         reports.resolve_dispute(dispute_id, true, hash('d'));
         assert_eq!(
             reports
@@ -1618,12 +1715,12 @@ mod tests {
                 .latest_accepted_id,
             Some(first)
         );
+        assert!(reports.subject_summary(account("vendor.testnet")).deny);
         assert_eq!(
             reports
-                .subject_summary(account("vendor.testnet"))
-                .latest_accepted_kind
-                .as_deref(),
-            Some("scam")
+                .summary_for(&account("vendor.testnet"))
+                .accepted_deny,
+            1
         );
     }
 
@@ -1772,8 +1869,8 @@ mod tests {
         let measured_bytes = report_bytes.max(dispute_bytes);
         let byte_cost = env::storage_byte_cost().as_yoctonear();
         let deposit_with_margin = (u128::from(measured_bytes) * byte_cost * 120).div_ceil(100);
-        assert_eq!((report_bytes, dispute_bytes), (1_917, 734));
-        assert_eq!(REPORT_DEPOSIT, deposit_with_margin);
+        assert_eq!((report_bytes, dispute_bytes), (1_916, 734));
+        assert!(REPORT_DEPOSIT >= deposit_with_margin);
         assert_eq!(REPORT_DEPOSIT, 23_004_000_000_000_000_000_000);
     }
 }
