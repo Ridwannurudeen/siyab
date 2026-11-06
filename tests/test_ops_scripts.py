@@ -14,6 +14,12 @@ BASH = shutil.which("bash")
 CURRENT_VERIFIER = "ed25519:2" + "1" * 43
 NEW_VERIFIER = "ed25519:3" + "1" * 43
 HASH = "a" * 64
+# The deposit the scripts attach is read from the contract source, as report.sh does at run time.
+REPORT_DEPOSIT = next(
+    line.split("=", 1)[1].strip().rstrip(";").replace("_", "")
+    for line in (ROOT / "contracts" / "reports" / "src" / "lib.rs").read_text(encoding="utf-8").splitlines()
+    if line.startswith("pub const REPORT_DEPOSIT: u128 = ")
+)
 
 
 @unittest.skipUnless(BASH, "bash is required for operator script tests")
@@ -96,7 +102,7 @@ class OperatorScriptTest(unittest.TestCase):
         )
         self.assert_transaction(
             process, "reports.testnet", "submit_report", args,
-            "23004000000000000000000 yoctoNEAR",
+            f"{REPORT_DEPOSIT} yoctoNEAR",
         )
 
     def test_moderate_prints_exact_call(self):
@@ -117,7 +123,7 @@ class OperatorScriptTest(unittest.TestCase):
                 "evidence_sha256": HASH,
                 "evidence_url": "https://evidence.example/appeal",
             },
-            "23004000000000000000000 yoctoNEAR",
+            f"{REPORT_DEPOSIT} yoctoNEAR",
         )
 
         process = self.run_script(
