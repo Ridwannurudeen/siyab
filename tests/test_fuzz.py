@@ -147,7 +147,6 @@ class CanonFuzzTest(unittest.TestCase):
             )).encode("utf-8")
             self.assertEqual(bytes(data), rebuilt)
 
-    @unittest.expectedFailure
     def test_parse_canonical_rejects_non_bytes_with_canon_error(self):
         with self.assertRaises(canon.CanonError):
             canon.parse_canonical("not bytes")
@@ -200,7 +199,6 @@ class VerifyFuzzTest(unittest.TestCase):
                 ok, _ = verify.verify(record_path, evidence_path)
                 self.assertFalse(ok)
 
-    @unittest.expectedFailure
     def test_non_object_evidence_is_rejected_without_crashing(self):
         with tempfile.TemporaryDirectory() as directory:
             evidence_path = Path(directory) / "evidence.json"
@@ -272,7 +270,6 @@ class LabelFuzzTest(unittest.TestCase):
             except labels.LabelError:
                 continue
 
-    @unittest.expectedFailure
     def test_non_string_document_url_is_rejected_with_label_error(self):
         row = label_row()
         row["source"]["url"] = 7
@@ -280,7 +277,6 @@ class LabelFuzzTest(unittest.TestCase):
         with self.assertRaises(labels.LabelError):
             labels.validate(row)
 
-    @unittest.expectedFailure
     def test_unencodable_row_text_is_rejected_with_label_error(self):
         row = label_row()
         row["entity"] = chr(0xD800)
