@@ -1,6 +1,6 @@
 # Alerts library
 
-`intel.alerts` provides immutable `Alert` values, a JSON stdout sink, a signed HTTPS webhook sink, and a receiver-side signature verifier. It uses only the Python standard library and is not connected to `intel/feed.py` or `gate/agent.py`.
+`intel.alerts` provides immutable `Alert` values, a JSON stdout sink, a signed HTTPS webhook sink, and a receiver-side signature verifier. It uses only the Python standard library. The feed sends an alert for each new event, and `gate pay` sends one for a DENY or a human ask on UNKNOWN.
 
 An alert has `source`, `severity`, `subject`, `ref`, `title`, `detail`, `evidence_sha256`, and `created_ms` fields. Severity is `info`, `warn`, or `critical`. Its dedupe key is `(source, subject, ref)`.
 
@@ -12,4 +12,8 @@ Webhook delivery makes at most three attempts. Failed attempts wait one second a
 
 `send(alert, sinks)` calls each sink and returns one result per sink. A sink exception is returned as a failed result and does not escape the helper. `StdoutSink` writes one JSON alert per call.
 
-Set `SHIELDBOT_ALERT_SECRET_FILE` to the webhook secret file, then run `python -m intel alert-test --url https://alerts.example.test/hook` to send one test alert.
+Alerts are off by default. To enable webhook delivery, set `SHIELDBOT_ALERT_URL_FILE` to a file containing one HTTPS URL on one line, and set `SHIELDBOT_ALERT_SECRET_FILE` to the file holding the signing secret. The secret is read when an alert is sent. If the URL file is missing, unreadable, or does not contain one valid HTTPS URL, no webhook sink is built. With only `SHIELDBOT_ALERT_STDOUT=1` set, alerts go to `StdoutSink`; this is intended for local use.
+
+Feed alerts use source `feed`, severity `warn`, the event subject and signal, the event detail, the evidence document's sha256, and the event timestamp. Replaying a block height does not create another alert, and the large transfer poll asks non-overlapping time windows. Payment alerts use source `payment`, severity `critical` for DENY and `warn` for UNKNOWN when it asks a human; each carries the verdict evidence hash. They are sent after the verdict is final. Sink failures are logged and returned by `send`; they do not change the verdict or `gate pay` exit code.
+
+Set `SHIELDBOT_ALERT_SECRET_FILE` for the webhook secret, then run `python -m intel alert-test --url https://alerts.example.test/hook` to send one test alert.
