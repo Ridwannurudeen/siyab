@@ -12,7 +12,7 @@ The scripts use environment variables and the near-cli-rs command lines recorded
 | `ATTACKER_ACCOUNT_ID` | Account that funds the lookalike receiver. |
 | `NEAR_KEYS_DIR` | Directory for `<account>.json` key files; created subaccount files are set to mode 600 on a Linux filesystem, while chmod is a no op on `/mnt/c`. |
 | `COLD_ACCOUNT_ID` | Account that `kill_switch.sh` moves the Gate's token balance to; it must be storage registered on the token. |
-| `VERIFIER_PUB` | Public verifier key passed to the Gate initializer. |
+| `VERIFIER_PUB` | Current public verifier key; `rotate_verifier.sh` keeps it as the previous key during the grace period. Update it to the new key after rotation. |
 | `AGENT_PUB` | Function call public key registered with the Gate. |
 | `AGENT_LABEL` | Label stored with the agent. |
 | `TOKEN_SYMBOL` | Token symbol, defaults to `DMT`. |
@@ -21,7 +21,7 @@ The scripts use environment variables and the near-cli-rs command lines recorded
 | `GATE_WASM` | Gate wasm path, defaults to `res/gate.wasm` and falls back to `$CARGO_TARGET_DIR/near/gate.wasm`. |
 | `REGISTRY_WASM` | Registry wasm path. |
 | `TOKEN_WASM` | Test token wasm path. |
-| `MAX_TTL_MS` | Gate verdict lifetime in milliseconds, defaults to `300000`. |
+| `MAX_TTL_MS` | Gate verdict lifetime in milliseconds, defaults to `300000`; `rotate_verifier.sh` uses the same value as the previous-key grace period and it must match the deployed Gate. |
 | `CAP_PER_CALL` | Agent token cap per call, in whole tokens. |
 | `CAP_WINDOW` | Agent token cap per window, in whole tokens. |
 | `CAP_WINDOW_MS` | Agent cap window length in milliseconds. |
@@ -51,6 +51,16 @@ After a real compromise, register a new agent key and never the revoked key.
 `set_denylist.sh <account[,account...]>` replaces the entire Gate denylist with the supplied comma separated accounts.
 
 `set_paused.sh <true|false>` sets the Gate's pause state with the owner account.
+
+`report.sh <reports_account> <subject> <kind> <outcome> <evidence_sha256> <evidence_url>` submits a report signed by `OWNER_ACCOUNT_ID`. It validates `kind` and `outcome` against `intel/record_enums.json`, and reads `REPORT_DEPOSIT` from `contracts/reports/src/lib.rs` at runtime, attaching that exact amount in yoctoNEAR.
+
+`moderate.sh <reports_account> <report_id> <accept|reject> <reason_sha256>` moderates a report with the owner key; the owner must also be configured as a moderator on the reports contract.
+
+`dispute.sh <reports_account> <report_id> <evidence_sha256> <evidence_url>` submits a dispute signed by `OWNER_ACCOUNT_ID` with the exact report deposit. `dispute.sh <reports_account> --resolve <dispute_id> <uphold|overturn> <reason_sha256>` resolves it with the owner key and 1 yoctoNEAR; the owner must be configured as a moderator.
+
+`rotate_verifier.sh <new_verifier_public_key>` sets the new key as current, moves `VERIFIER_PUB` to previous, and keeps it valid until one configured `MAX_TTL_MS` from the current time. `MAX_TTL_MS` must match the Gate's deployed setting. After a successful rotation, update `VERIFIER_PUB` to the new current key before rotating again.
+
+`rotate_recorder.sh <new_recorder_account>` calls `set_recorder` on `registry.$GATE_ACCOUNT_ID` with the owner key.
 
 `redeploy.sh <gate|registry|reports> <wasm> [--migrate]` deploys the wasm to the Gate, the registry or the reports account, signed with that account's key, and prints the version before and after (the reports contract has no `version` view, so its version is not read), the account summary, the wasm sha256 and its code_hash. By default it deploys without an init call, for a redeploy that keeps the state layout. `--migrate` deploys with an init call to `migrate` with args `{}` through `deploy_with_init` in `lib.sh`, for a layout change. After the deploy it asserts `EXPECT_VERSION` and `EXPECT_CODE_HASH` when they are set and exits 1 on a mismatch; a dry run prints each assertion it would make. `docs/UPGRADES.md` says when each mode applies.
 
