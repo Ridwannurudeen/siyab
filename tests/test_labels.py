@@ -94,7 +94,10 @@ class CommittedStoreTest(unittest.TestCase):
     def test_readme_lists_every_snapshot(self):
         readme = seed.README_PATH.read_text(encoding="utf-8")
         self.assertEqual(readme, seed.readme_text())
+        self.assertNotIn("`raw/NOTICE.md`", readme)
         for path in RAW_DIR.iterdir():
+            if path.name == "NOTICE.md":
+                continue
             digest = hashlib.sha256(path.read_bytes()).hexdigest()
             with self.subTest(snapshot=path.name):
                 self.assertIn(f"`raw/{path.name}`", readme)
