@@ -154,6 +154,8 @@ class VerdictTest(unittest.TestCase):
 class RegistryRecordTest(unittest.TestCase):
     def test_sample_allow_verifies(self):
         registry = FIXTURES / "registry"
+        data = (registry / "sample-allow-evidence.json").read_bytes()
+        self.assertEqual(evidence.canonical_bytes(json.loads(data)), data)
         for record in ("sample-allow.json", "sample-allow-event.json"):
             with self.subTest(record=record):
                 ok, lines = verify.verify(registry / record, registry / "sample-allow-evidence.json",

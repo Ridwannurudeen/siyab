@@ -14,7 +14,7 @@ These pages specify the byte formats ShieldBot for NEAR writes and reads, so tha
 
 Every format carries a version string in its own bytes: the evidence document's `version` key (`"1"`), the `GATEv1` prefix of the canonical message, the NEP-297 `version` (`1.0.0`) of the registry and reports events. A label assertion carries no version field; its version is this page set, and a change to its fields or its id rule is a new version.
 
-Each page states its version on a line of the form `Version: 1`. A change that would make a conformant implementation of the old page produce or accept different bytes is a breaking change: it gets a new version string and a new page (`evidence-v2.md` beside `evidence-v1.md`), and the old page stays, unchanged, for as long as any stored record uses it. A change that only clarifies wording, adds a vector or corrects a line reference keeps the version.
+Each page states its version on a line that begins `Version: <n>`, such as `Version: 1`, optionally followed by the version string the bytes carry in parentheses. A change that would make a conformant implementation of the old page produce or accept different bytes is a breaking change: it gets a new version string and a new page (`evidence-v2.md` beside `evidence-v1.md`), and the old page stays, unchanged, for as long as any stored record uses it. A change that only clarifies wording, adds a vector or corrects a line reference keeps the version.
 
 Where a page and the code disagree, the code is the source of truth and the page is wrong; each page names the file and line it follows.
 
