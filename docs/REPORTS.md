@@ -32,4 +32,4 @@ The `shieldbot-near` 1.0.0 NEP-297 events are `moderators_updated`, `report_subm
 
 ## Build record
 
-The reproducible build recipe and source-commit placeholder are in `res/BUILD-reports.md`. The orchestrator fills the source commit after the build. `tests/test_res.py` checks the report wasm export table when the reports artifact is present; it is skipped until that artifact is built.
+The reproducible build recipe and source-commit placeholder are in `res/BUILD-reports.md`. The orchestrator fills the source commit after the build. `tests/test_res.py` asserts the reports artifact state: while the record says TBD there is no `res/reports.wasm`, and once a source commit is recorded the wasm, its sha256 file and its export table must match.

@@ -4,6 +4,8 @@ reproducible build
 
 Source commit: TBD by the orchestrator at deploy
 
+Deployed: not deployed
+
 - cargo-near: 0.22.0.
 - The repository toolchain is Rust 1.99.1 with `wasm32-unknown-unknown`.
 - The crate manifest names the reproducible build image and build command.
