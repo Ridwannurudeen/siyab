@@ -54,10 +54,10 @@ class FixtureTest(unittest.TestCase):
 class EnumTest(unittest.TestCase):
     def test_the_vocabulary_file_holds_exactly_the_three_lists(self):
         enums = json.loads((ROOT / "intel" / "record_enums.json").read_text(encoding="utf-8"))
-        self.assertEqual(sorted(enums), ["kinds", "outcomes", "states"])
-        self.assertEqual(tuple(enums["kinds"]), records.KINDS)
-        self.assertEqual(tuple(enums["outcomes"]), records.OUTCOMES)
-        self.assertEqual(tuple(enums["states"]), records.STATES)
+        self.assertEqual(sorted(enums), ["kind", "outcome", "state"])
+        self.assertEqual(tuple(enums["kind"]), records.KINDS)
+        self.assertEqual(tuple(enums["outcome"]), records.OUTCOMES)
+        self.assertEqual(tuple(enums["state"]), records.STATES)
 
     def test_the_values_are_the_agreed_ones(self):
         self.assertEqual(records.KINDS, ("scam", "theft", "phishing", "exploit", "key_compromise", "social"))
@@ -409,6 +409,13 @@ class ReportBodyTest(unittest.TestCase):
 
     def test_the_shared_vector_hash_is_the_published_one(self):
         self.assertEqual(records.body_sha256(self.vector["report"]), self.vector["sha256"])
+
+    def test_the_contract_vector_hashes_the_same_here_as_in_rust(self):
+        contract_vector = ROOT / "fixtures" / "records" / "body-vector.json"
+        if not contract_vector.exists():
+            self.skipTest("the reports contract's vector is not in this tree")
+        vector = json.loads(contract_vector.read_text(encoding="utf-8"))
+        self.assertEqual(records.body_sha256(vector["input"]), vector["expected_sha256"])
 
     def test_the_body_has_the_six_agreed_fields_and_no_null(self):
         self.assertEqual(tuple(sorted(self.vector["report"])), records.REPORT_BODY_FIELDS)

@@ -9,11 +9,14 @@ state, and every state change is an entry in its timeline.
 holds examples and `tests/test_records.py` holds the rules. `intel/records.py` does not import
 `gate.rules` or `gate.verdict`, so the record model cannot depend on the rules that read it.
 
-This document is the spec for the contract lane, not a description of it. Nothing in this branch
-changes `contracts/gate`: there is no `subject_summary`, no `record_enums.json` read and no Rust
-test over the report body vector yet. Those are the contract change that follows this one, listed
-under "What the contract lane still has to do" at the end. Until they land, the Python model and
-the examples here are the only implementation.
+This document is the spec for the storage and reporting lane, and part of it is already shipped in
+the reports contract on `main`: `contracts/reports` holds `subject_summary(subject)`, keeps kinds,
+outcomes and states to the values in `intel/record_enums.json` (checked by
+`rust_enum_values_match_the_canonical_json`) and hashes the same six-field canonical body into
+`body_sha256` (checked by `canonical_body_hash_matches_shared_vector` against
+`fixtures/records/body-vector.json`). The record spec is therefore ahead of the contract in one
+place only: the summary carries no `deny` bit yet, so the ladder below is still ours alone. That,
+and the gate reading it, are listed under "What the contract lane still has to do" at the end.
 
 ## Two axes, not one list
 
@@ -150,20 +153,20 @@ agents should not pay, and `submitter` is the account that filed it. `evidence_u
 most 512 bytes, measured in bytes rather than characters so a multibyte url cannot pass a 512
 character check and exceed the limit; the report contract stores the hash and the url, and the record
 adds `fetched_at` off chain. `fixtures/records/report-body-vector.json` holds one body, its exact
-canonical bytes and its sha256. Today `tests/test_records.py` checks it; the Rust test that reads
-the same file lands with the contract change, and then a change on either side breaks both.
+canonical bytes and its sha256, and `tests/test_records.py` checks it. The reports contract has its
+own vector in `fixtures/records/body-vector.json`; `test_the_contract_vector_hashes_the_same_here_as_in_rust`
+hashes the Rust vector in this module too, so the two implementations are pinned to the same value
+and a change on either side breaks both.
 
 ## What the contract lane still has to do
 
-This branch defines the vocabulary and the off-chain model. The contract change that follows it has
-to, in `contracts/gate`:
+The vocabulary, the canonical body and the counts in `subject_summary` are merged in
+`contracts/reports`. What is not:
 
-- read `intel/record_enums.json` and refuse a state or a kind outside it,
-- expose `subject_summary(subject)` as exactly `{accepted, pending, contested, latest_accepted_id,
-  deny}`, setting `deny` when it accepts a report of one of the five `DENY_KINDS` and when it
-  contests a record it had accepted as one,
-- build the canonical report body and hash it into `body_sha256`,
-- and add a Rust test that reads `fixtures/records/report-body-vector.json` and reproduces its bytes
-  and sha256.
+- a `deny` bit on `subject_summary`, set when it accepts a report of one of the five `DENY_KINDS`
+  and when it contests a record it had accepted as one, and cleared only by an `overturned`,
+- and the `Gate` reading that bit, so a payment to a subject with an accepted deny record refuses on
+  chain rather than only in this repository's rules.
 
-Until each of those is merged, this document describes the intended contract, not a shipped one.
+Until both are merged, the ladder in `intel/records.py` is the only place a record becomes a
+verdict, and `contracts/gate` still decides payments without any report knowledge.

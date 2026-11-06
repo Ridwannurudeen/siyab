@@ -25,9 +25,9 @@ from pathlib import Path
 ENUMS_PATH = Path(__file__).resolve().parent / "record_enums.json"
 ENUMS = json.loads(ENUMS_PATH.read_text(encoding="utf-8"))
 
-KINDS = tuple(ENUMS["kinds"])
-OUTCOMES = tuple(ENUMS["outcomes"])
-STATES = tuple(ENUMS["states"])
+KINDS = tuple(ENUMS["kind"])
+OUTCOMES = tuple(ENUMS["outcome"])
+STATES = tuple(ENUMS["state"])
 
 VERSION = "1"
 EVENTS = ("first_chain_signal", "first_public_report", "our_record", "report_received",
@@ -132,9 +132,9 @@ def report_body(body):
     """The canonical report body the contract hashes into body_sha256.
 
     Exactly six fields, keys sorted, compact JSON, UTF-8, no nulls and no trailing newline. The
-    contract lane must build the same bytes from fixtures/records/report-body-vector.json; that
-    Rust test is part of the contract change, not this branch, so today only this module checks the
-    vector.
+    reports contract builds the same bytes and checks them against fixtures/records/body-vector.json;
+    this module checks fixtures/records/report-body-vector.json. Two vectors for one rule, so the two
+    implementations are pinned to each other by value rather than by hope.
     """
     if not isinstance(body, dict) or tuple(sorted(body)) != REPORT_BODY_FIELDS:
         raise RecordError(f"report body: exactly the fields {REPORT_BODY_FIELDS} are required")
