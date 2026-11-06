@@ -1,0 +1,11 @@
+{
+  "input": {
+    "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "evidence_url": "https://evidence.example/na\u00efve",
+    "kind": "scam",
+    "outcome": "loss",
+    "subject": "vendor.testnet",
+    "submitter": "reporter.testnet"
+  },
+  "expected_sha256": "e1b323c268b331a66c1e919835011bf5c69df5fbaddf013e3ab87431d40d703e"
+}

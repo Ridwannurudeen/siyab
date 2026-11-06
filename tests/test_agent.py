@@ -112,6 +112,7 @@ class PayTest(AgentCase):
         kwargs = service.call_args.kwargs
         self.assertEqual((kwargs["gate"], kwargs["agent_pk_hex"], kwargs["policy"]),
                          (GATE, AGENT_PK.hex(), {**POLICY, "gate_paused": False, "gate_denylist": []}))
+        self.assertNotIn("sign_actions", kwargs)
         self.assertIsInstance(kwargs["signer"], signer.TestSigner)
         self.assertEqual(self.client.calls, [
             (GATE, "get_agent", {"public_key": base58.encode_key(AGENT_PK)}),
@@ -529,6 +530,17 @@ class AttackTest(AgentCase):
         _, sent = self.run_attack("token-direct", REJECTED)
         self.assertEqual(sent[0]["args"], {"receiver_id": "vendor-shop.testnet", "amount": "1000000",
                                            "memo": "invoice 1"})
+
+    def test_the_attack_harness_requests_a_signature_for_an_allow_ask(self):
+        context = self.make(PANIC)
+        result = judged()
+        result["action"] = "ask"
+        result["ask"] = ["the Gate is paused (REFUSED:paused)"]
+        with mock.patch("gate.verdict.request", return_value=result) as service:
+            code = agent.attack("over-cap", context, self.request(), out=self.lines.append)
+        self.assertEqual(code, 0)
+        self.assertEqual(service.call_args.kwargs["sign_actions"], ("sign", "ask"))
+        self.assertEqual(self.transport.sent[0]["args"]["verdict"], result["verdict"])
 
     def verify(self, verdict_object, request, public):
         message = canon.canonical_message(

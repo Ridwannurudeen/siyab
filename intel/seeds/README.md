@@ -1,6 +1,6 @@
 # Seed snapshots
 
-Each file under `raw/` is the body a source returned, stored byte for byte and named with its fetch time in UTC. The label rows cite each snapshot by its full sha256, which is shortened here to its first and last four hex characters. `python -m intel seed <source>` rewrites this file, and `tests/test_labels.py` checks it against the snapshots and the rows.
+Each source snapshot under `raw/` is the body a source returned, stored byte for byte and named with its fetch time in UTC. The label rows cite each snapshot by its full sha256, which is shortened here to its first and last four hex characters. `python -m intel seed <source>` rewrites this file, and `tests/test_labels.py` checks it against the snapshots and the rows.
 
 | Snapshot | Source | sha256 | Fetched (UTC) | Rows |
 |---|---|---|---|---|
