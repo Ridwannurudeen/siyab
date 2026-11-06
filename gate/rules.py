@@ -381,8 +381,8 @@ def _tier1(request, policy, store, rpc, injection_scanner, issuers, reports_acco
             report_summary = rpc.call_function(reports_account, "subject_summary", {"subject": receiver})
             report_effect = reports.effect(report_summary, receiver in policy.get("allowlist", []))
             if report_effect == "deny":
-                detail = (f"accepted report {report_summary['latest_accepted_id']} for {receiver} is "
-                          f"{report_summary['latest_accepted_kind']}")
+                detail = (f"reports for {receiver} include an accepted or contested deny report; "
+                          f"the latest accepted report id is {report_summary['latest_accepted_id']}")
                 status = "signal"
             elif report_effect == "unknown":
                 detail = f"the community report summary for {receiver} is inconclusive or unreadable"

@@ -105,27 +105,30 @@ class ReportsRulesTest(unittest.TestCase):
         self.assertEqual([document[field] for field in ("issued_ms", "expires_ms", "verdict_id")],
                          [None, None, None])
 
-    def test_accepted_scam_is_denied_and_unsigned(self):
-        result, verdict_signer = self.request({"accepted": 1, "pending": 0, "contested": 0,
-                                               "latest_accepted_id": 17, "latest_accepted_kind": "scam"})
+    def test_theft_then_social_is_denied_and_unsigned(self):
+        result, verdict_signer = self.request({"accepted": 2, "pending": 0, "contested": 0,
+                                               "latest_accepted_id": 19, "deny": True})
         self.assert_unsigned(result, verdict_signer, "DENY")
         check = next(check for check in result["checks"] if check["id"] == "community_report")
         self.assertEqual(check["status"], "signal")
-        self.assertIn("report 17", check["detail"])
+        self.assertIn("deny report", check["detail"])
+        self.assertIn("report id is 19", check["detail"])
 
-    def test_contested_scam_is_denied(self):
-        result, verdict_signer = self.request({"accepted": 1, "pending": 0, "contested": 1,
-                                               "latest_accepted_id": 18, "latest_accepted_kind": "scam"})
-        self.assert_unsigned(result, verdict_signer, "DENY")
+    def test_contested_deny_is_denied_with_or_without_allowlist(self):
+        summary = {"accepted": 1, "pending": 0, "contested": 1, "latest_accepted_id": 18, "deny": True}
+        for allowlisted in (True, False):
+            with self.subTest(allowlisted=allowlisted):
+                result, verdict_signer = self.request(summary, allowlisted=allowlisted)
+                self.assert_unsigned(result, verdict_signer, "DENY")
 
-    def test_accepted_social_is_unknown_and_unsigned(self):
+    def test_social_only_is_unknown_and_unsigned(self):
         result, verdict_signer = self.request({"accepted": 1, "pending": 0, "contested": 0,
-                                               "latest_accepted_id": 19, "latest_accepted_kind": "social"})
+                                               "latest_accepted_id": 19, "deny": False})
         self.assert_unsigned(result, verdict_signer, "UNKNOWN")
 
     def test_pending_report_is_unknown_off_allowlist(self):
         result, verdict_signer = self.request({"accepted": 0, "pending": 1, "contested": 0,
-                                               "latest_accepted_id": None, "latest_accepted_kind": None},
+                                               "latest_accepted_id": None, "deny": False},
                                               allowlisted=False)
         self.assert_unsigned(result, verdict_signer, "UNKNOWN")
         checks = {check["id"]: check for check in result["checks"]}
@@ -135,7 +138,7 @@ class ReportsRulesTest(unittest.TestCase):
 
     def test_pending_report_does_not_block_allowlisted_payee(self):
         result, _ = self.request({"accepted": 0, "pending": 1, "contested": 0,
-                                  "latest_accepted_id": None, "latest_accepted_kind": None})
+                                  "latest_accepted_id": None, "deny": False})
         self.assertEqual(result["outcome"], "ALLOW")
         self.assertEqual(next(check for check in result["checks"] if check["id"] == "community_report")["status"],
                          "pass")
@@ -143,11 +146,25 @@ class ReportsRulesTest(unittest.TestCase):
 
     def test_overturned_only_summary_allows(self):
         result, _ = self.request({"accepted": 0, "pending": 0, "contested": 0,
-                                  "latest_accepted_id": None, "latest_accepted_kind": None})
+                                  "latest_accepted_id": None, "deny": False})
         self.assertEqual(result["outcome"], "ALLOW")
 
     def test_unreadable_summary_is_unknown_and_unsigned(self):
-        for summary in (None, {"accepted": 0, "pending": 0, "contested": 0}):
+        empty = {"accepted": 0, "pending": 0, "contested": 0, "latest_accepted_id": None, "deny": False}
+        summaries = (
+            None,
+            {key: value for key, value in empty.items() if key != "deny"},
+            {**empty, "deny": "false"},
+            {**empty, "deny": True},
+            {**empty, "extra": 0},
+            {"accepted": 1, "pending": 0, "contested": 0,
+             "latest_accepted_id": 17, "latest_accepted_kind": "theft"},
+            {**empty, "accepted": -1},
+            {**empty, "pending": True},
+            {**empty, "contested": 1},
+            {**empty, "accepted": 1, "latest_accepted_id": None},
+        )
+        for summary in summaries:
             with self.subTest(summary=summary):
                 result, verdict_signer = self.request(summary)
                 self.assert_unsigned(result, verdict_signer, "UNKNOWN")
