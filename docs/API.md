@@ -1,8 +1,8 @@
 # API
 
-This file is the consumer contract of the verdict interface: what `gate.verdict.request` returns, which checks can appear in it and what each status means, how `outcome` and `action` relate, one recorded answer per outcome, and the local HTTP endpoint that serves it.
+This file is the consumer contract of the verdict interface: what `gate.verdict.request` returns, which checks can appear in it and what each status means, how `outcome` and `action` relate, a recorded answer for ALLOW and for DENY, and the local HTTP endpoint that serves it.
 
-`tests/test_api_doc.py` checks the response field names and order, exact check ids, `Kind` rows against emitted near/ft check ids, and `Tier` rows against `TIER2_CHECKS` plus allowlisted and off-allowlist ft calls. It checks that `issuer_blacklist` appears only when an issuer table is passed and `community_report` only when `reports_account` is set; for CLI, MCP and HTTP it verifies `issuers_for("mainnet")` for Gate ids not ending `.testnet` and no issuer table for `.testnet`; and it checks the outcome/action rows: ALLOW is `ask` when `ask` is nonempty and otherwise `sign`, DENY is `refuse`, and UNKNOWN is `ask`. It also checks one example per outcome against its fixture with 64-hex values shortened. The meanings in the `pass`, `signal` and `unknown` check-table cells are documentation checked by review, not by a test.
+`tests/test_api_doc.py` checks the response field names and order, exact check ids, `Kind` rows against emitted near/ft check ids, and `Tier` rows against `TIER2_CHECKS` plus allowlisted and off-allowlist ft calls. It checks that `issuer_blacklist` appears only when an issuer table is passed and `community_report` only when `reports_account` is set; for CLI, MCP and HTTP it verifies `issuers_for("mainnet")` for Gate ids not ending `.testnet` and no issuer table for `.testnet`; and it checks the outcome/action rows: ALLOW is `ask` when `ask` is nonempty and otherwise `sign`, DENY is `refuse`, and UNKNOWN is `ask`. It also checks the ALLOW and DENY examples against their fixtures with 64-hex values shortened, and that no receiver judgement records UNKNOWN while the UNKNOWN example section cites no fixture. The meanings in the `pass`, `signal` and `unknown` check-table cells are documentation checked by review, not by a test.
 
 ## The verdict response
 
@@ -44,8 +44,8 @@ Tiers (`gate/rules.py:670`): tier 1 runs for every receiver; tier 2 runs only fo
 | `storage_registered` | ft | 1 | always for ft | any | `storage_balance_of` for the receiver is not null (`:369` to `:371`) | `storage_balance_of` is null: the receiver is not registered on the token (`:366` to `:368`) | the read could not run (`:372` to `:374`) |
 | `memo_injection` | near, ft | 1 | always; `SHIELDBOT_API_URL` adds the ShieldBot injection scan to the local patterns (`gate/__main__.py:48` to `:49`) | any | no memo, or no local pattern matched and the scan, when set, answered clean (`:414` to `:432`) | a local pattern matched, or the scan flagged the memo (`:416` to `:430`) | only with the scan set: the scan could not run and no local pattern matched (`:427` to `:432`) |
 | `community_report` | near, ft | 1 | `REPORTS_ACCOUNT_ID` names the reports contract (`gate/http.py:102`, `gate/__main__.py:71`, `mcp/server.py:159`); unset, the check is absent (`:377`) | any | no report, only pending reports, or accepted social reports for a payee on the allowlist (`:380` to `:385`, `intel/reports.py:45` to `:48`, `:51` to `:54`) | an accepted deny report (`intel/reports.py:39` to `:42`) | accepted social reports for a payee off the allowlist, so a human decides; or the summary is unreadable or `subject_summary` could not be read (`:381` to `:385`, `intel/reports.py:35` to `:50`) |
-| `account_age` | near, ft | 2 | always for tier 2; when NearBlocks gives no creation time, the oldest access key nonce is dated on the archival RPC (`:523` to `:524`) | any | the oldest key was created at least 7 days ago, or the oldest nonce predates block height nonces or dates to a block at least 7 days old (`:515`, `:467` to `:469`, `:488`) | the account is younger than 7 days (`MIN_AGE_DAYS`, `:34`, `:515`, `:485` to `:487`) | no creation time could be read from NearBlocks or the archival fallback (`:506` to `:509`, `:519` to `:522`, `:455` to `:464`, `:480` to `:482`) |
-| `dust_funded` | near, ft | 2 | always for tier 2 | any | the creation deposit is at least 0.1 NEAR, or is below it with no lookalike or account_age signal, or the nonce age passed with no lookalike so no deposit can change the verdict (`:559` to `:576`) | the creation deposit is below 0.1 NEAR together with a lookalike or account_age signal (`DUST_YOCTO`, `:39`, `:568` to `:570`) | the creation transaction is not known or could not be read (`:530` to `:541`) |
+| `account_age` | near, ft | 2 | always for tier 2; when NearBlocks gives no creation time, the oldest access key nonce is dated on the archival RPC (`:576` to `:578`); a receiver with no access key or none with a creation height, such as a locked contract, is instead read with `view_account` on the archival RPC at the block `7 * BLOCKS_PER_DAY_MAX` blocks before the block its own `view_account` was read at (`BLOCKS_PER_DAY_MAX`, `:46`, `:518` to `:523`, `:466` to `:472`) | any | the oldest key was created at least 7 days ago, the oldest nonce predates block height nonces or dates to a block at least 7 days old, or `view_account` finds the receiver at a block at least 7 days old (`:567`, `:526` to `:528`, `:540` to `:541`, `:491` to `:492`) | the account is younger than 7 days by its NearBlocks creation time or its oldest nonce (`MIN_AGE_DAYS`, `:35`, `:567`, `:537` to `:539`); the `view_account` read never gives a signal | no creation time could be read from NearBlocks or the archival fallbacks; the block counted back to is younger than 7 days; or the receiver did not exist at that block, which shows only that it was created after the block (`:556` to `:562`, `:572` to `:575`, `:514` to `:516`, `:532` to `:534`, `:466` to `:490`) |
+| `dust_funded` | near, ft | 2 | always for tier 2 | any | the creation deposit is at least 0.1 NEAR, or is below it with no lookalike or account_age signal, or the access key nonce or `view_account` age passed with no lookalike so no deposit can change the verdict (`:611` to `:630`) | the creation deposit is below 0.1 NEAR together with a lookalike or account_age signal (`DUST_YOCTO`, `:40`, `:622` to `:624`) | the creation transaction is not known or could not be read (`:583` to `:595`) |
 | `lookalike` | near, ft | 2 | always for tier 2 | any | no allowlisted name is contained and no allowlisted or labelled reference account is within the length scaled distance, or the receiver is itself a labelled reference account (`:549` to `:555`) | the receiver contains an allowlisted name, or is within the distance of an allowlisted or labelled reference account after confusable normalisation (`:546` to `:548`) | never: the allowlist and the label store are local |
 | `code_without_metadata` | near, ft | 2 | always for tier 2 | any | no contract code, code with `contract_source_metadata`, or code without it and no other tier 2 signal (`:590` to `:602`) | contract code without `contract_source_metadata` together with another tier 2 signal (`:599` to `:600`) | the receiver account could not be read, or `contract_source_metadata` could not be read (`:587` to `:589`, `:597` to `:598`, `:604` to `:606`) |
 
@@ -69,7 +69,7 @@ Adapters translate `action` into their host's vocabulary (pay or not, a tool res
 
 ## Examples
 
-One recorded answer per outcome, from committed fixtures. Each block is the fixture's JSON with every 64 hex value shortened to its first and last 8 hex; the fixture holds the full values. `tests/test_api_doc.py` checks that each block equals its fixture after that shortening and that the fixture records the outcome its heading names.
+One recorded answer for ALLOW and one for DENY, from committed fixtures; UNKNOWN has none (below). Each block is the fixture's JSON with every 64 hex value shortened to its first and last 8 hex; the fixture holds the full values. `tests/test_api_doc.py` checks that each block equals its fixture after that shortening and that the fixture records the outcome its heading names, and that no receiver judgement records UNKNOWN while the UNKNOWN section cites no fixture.
 
 ### ALLOW
 
@@ -137,33 +137,9 @@ Two checks could not run and two found a signal; the signals win, so the outcome
 
 ### UNKNOWN
 
-Fixture: `fixtures/receivers/judgements/liver.pool.near.json`, the `gate.rules.judge` record of a mainnet staking pool from the recorded receiver set, judged with an empty allowlist and the mainnet issuer table. A judgement record holds the `request` and what the rules return (`verdict`, `checks`, `reasons`, `labels`, `observed`); `gate.verdict.request` adds `"action": "ask"`, an `ask` that names the two checks that could not run, and the evidence fields.
+No committed fixture records an UNKNOWN answer or judgement on its own, so this section has no block. The example was `fixtures/receivers/judgements/liver.pool.near.json`, a mainnet staking pool of the recorded receiver set that read UNKNOWN on `account_age` and `dust_funded`, until the archival `view_account` read dated the receivers with no access key (`docs/SPIKES.md` S8); it now records ALLOW, and no judgement under `fixtures/receivers/judgements/` records UNKNOWN. The UNKNOWN judgements left in committed files are `rules_today` entries inside the incident page `intel/incidents/rhea.json`, which is judged without the archival client, not records of their own. An UNKNOWN answer has the fields of The verdict response with `"outcome": "UNKNOWN"`, `"action": "ask"`, an `ask` that names each check that could not run as `<id> could not run: <detail>` (Outcome and action), and `verdict` and `message` null. `tests/test_api_doc.py` fails once a receiver judgement records UNKNOWN again, so that an example is cited from it.
 
-```json
-{
- "subject": "liver.pool.near",
- "as": "receiver",
- "request": {"kind": "near", "token_id": null, "receiver_id": "liver.pool.near", "amount": "1000000000000000000000000", "memo": null},
- "verdict": "UNKNOWN",
- "checks": [
-   {"id": "receiver_exists", "status": "pass", "detail": "liver.pool.near exists", "source": {"provider": "free.rpc.fastnear.com", "request_sha256": "37ad449a...1625deb4", "fetched_at": "2026-11-03T18:57:34Z"}},
-   {"id": "label_denylist", "status": "pass", "detail": "no denylist or incident label on liver.pool.near", "source": {"provider": "label store", "request_sha256": "74c235c6...01c1133d", "fetched_at": null}},
-   {"id": "issuer_blacklist", "status": "pass", "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628...e36133a1 is_blocklisted answers false", "source": {"provider": "free.rpc.fastnear.com", "request_sha256": "2f7189ae...cb2dd2e2", "fetched_at": "2026-11-03T18:57:35Z"}},
-   {"id": "memo_injection", "status": "pass", "detail": "no memo", "source": {"provider": "local patterns", "request_sha256": null, "fetched_at": null}},
-   {"id": "account_age", "status": "unknown", "detail": "NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read", "source": {"provider": "api.nearblocks.io", "request_sha256": "d697bdbe...54544e1f", "fetched_at": "2026-11-03T18:57:43Z"}},
-   {"id": "dust_funded", "status": "unknown", "detail": "the creation transaction is not known", "source": {"provider": "nearblocks", "request_sha256": null, "fetched_at": null}},
-   {"id": "lookalike", "status": "pass", "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation", "source": {"provider": "allowlist and label store", "request_sha256": "74c235c6...01c1133d", "fetched_at": null}},
-   {"id": "code_without_metadata", "status": "pass", "detail": "contract code without contract_source_metadata; not a signal on its own", "source": {"provider": "free.rpc.fastnear.com", "request_sha256": "5c1cfb0a...8ed332f3", "fetched_at": "2026-11-03T18:57:44Z"}}
- ],
- "reasons": ["account_age could not run: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read.", "dust_funded could not run: the creation transaction is not known."],
- "labels": ["f79ba8d2...35c42b56"],
- "observed": {"block_height": 222910797, "timestamp_ms": 1793731688201}
-}
-```
-
-Kind `near`, so no token check ran; the receiver is on mainnet, so `issuer_blacklist` ran.
-
-`python -m gate demo --offline` prints one more answer of each outcome over the recorded testnet fixtures in `fixtures/demo/`. Its evidence goes to a temporary directory, and its latency, and so its evidence hash, changes from run to run, so it is not cited here.
+`python -m gate demo --offline` prints an answer of each outcome, an UNKNOWN among them, over the recorded testnet fixtures in `fixtures/demo/`. Its evidence goes to a temporary directory, and its latency, and so its evidence hash, changes from run to run, so it is not cited here.
 
 ## The verdict endpoint
 

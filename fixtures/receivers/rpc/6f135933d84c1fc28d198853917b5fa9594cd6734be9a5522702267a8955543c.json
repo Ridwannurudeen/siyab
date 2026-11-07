@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 221701073,
+      "account_id": "ledgerbyfigment.poolv1.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "1151556364403490864648153327954",
+      "block_hash": "H1RgznJTHvi32rMnyqzpHhEkoVee92b6xmuhqz2WoTbT",
+      "block_height": 221701073,
+      "code_hash": "J1arLz48fgXcGyCPVckFwLnewNH6j1uw79thsvwqGYTY",
+      "locked": "22896803128465046758990590891115",
+      "storage_paid_at": 0,
+      "storage_usage": 4742863
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-07T14:26:55Z"
+}

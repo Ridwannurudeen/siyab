@@ -264,6 +264,7 @@ class FailClosedClientTest(unittest.TestCase):
             ("view_account", ("a.near",), ["a", "list"]),
             ("view_account", ("a.near",), {"result": "oops"}),
             ("view_account", ("a.near",), {"result": {"amount": "1"}}),
+            ("view_account_at", ("a.near", 5), {"result": {"amount": "1"}}),
             ("call_function", ("t.near", "m", {}), {"result": {"result": "text"}}),
             ("call_function", ("t.near", "m", {}), {"result": {"logs": []}}),
             ("call_function", ("t.near", "m", {}), {"result": {"result": [256]}}),
@@ -272,6 +273,10 @@ class FailClosedClientTest(unittest.TestCase):
             ("final_block", (), {"result": {"chunks": []}}),
             ("final_block", (), {"result": {"header": {"height": 5}}}),
             ("block_at", (5,), {"result": {"chunks": []}}),
+            ("block_at", (5,), {"result": {"header": {"height": 5, "timestamp": True, "hash": "h"}}}),
+            ("block_at", (5,), {"result": {"header": {"height": 5, "timestamp": -1, "hash": "h"}}}),
+            ("block_at", (5,), {"result": {"header": {"height": True, "timestamp": 1, "hash": "h"}}}),
+            ("final_block", (), {"result": {"header": {"height": 5, "timestamp": False, "hash": "h"}}}),
             ("block_at", (5,), {"result": {"header": {"height": 5}}}),
         ]
         for method, args, body in cases:

@@ -87,7 +87,8 @@ class ReceiverSetTest(unittest.TestCase):
 
     def test_the_set_states_the_rule_of_the_code(self):
         self.assertEqual(self.document["rule"], intel_main.receivers_rule())
-        self.assertIn("without an earlier recording reads unknown on age", self.document["rule"])
+        self.assertIn("without an earlier recording is dated by its oldest access key nonce or an archival "
+                      "view_account alone and reads unknown on age where neither dates it", self.document["rule"])
         self.assertIn("as intel/incidents/rhea.json judges its token contracts", self.document["rule"])
 
     def test_at_most_80_receivers_had_their_age_recorded(self):
@@ -186,31 +187,50 @@ class ReceiverSetTest(unittest.TestCase):
                    f"ALLOW, {verdicts.count('DENY')} DENY, {verdicts.count('UNKNOWN')} Unknown.")
         self.assertEqual(load_counts().receivers_line(), recount)
 
-    def test_every_unknown_organisation_judgement_carries_the_locked_contract_detail(self):
-        expected = ("NearBlocks lists no access key for the account and view_account shows contract code, "
-                    "so no creation time could be read")
+    def test_every_locked_organisation_contract_is_dated_by_an_archival_view_account(self):
         organisation = [entry for entry in self.document["subjects"] if entry["cohort"] == "organisation"]
-        unknown = []
+        locked = []
         for entry in organisation:
-            judgement = json.loads((JUDGEMENTS / f"{entry['subject']}.json").read_text(encoding="utf-8"))
-            if judgement["verdict"] == "UNKNOWN":
-                unknown.append(entry["subject"])
-                age = next(check for check in judgement["checks"] if check["id"] == "account_age")
-                with self.subTest(subject=entry["subject"]):
-                    self.assertEqual(age["status"], "unknown")
-                    self.assertEqual(age["detail"], expected)
-        self.assertEqual(len(unknown), 26)
+            subject = entry["subject"]
+            judgement = json.loads((JUDGEMENTS / f"{subject}.json").read_text(encoding="utf-8"))
+            with self.subTest(subject=subject):
+                self.assertNotEqual(judgement["verdict"], "UNKNOWN")
+            keys = rpc.fixture_key(f"{rpc.NEARBLOCKS_URL}/v1/account/{subject}/keys", "GET", None)
+            account = rpc.fixture_key(rpc.MAINNET_RPC_URL, "query", {"request_type": "view_account",
+                                                                     "finality": "final", "account_id": subject})
+            listed = json.loads((intel_main.RECEIVER_RPC_DIR / f"{keys}.json").read_text(encoding="utf-8"))
+            state = json.loads((intel_main.RECEIVER_RPC_DIR / f"{account}.json").read_text(encoding="utf-8"))
+            if listed["response"]["keys"] or state["response"]["result"]["code_hash"] == rpc.EMPTY_CODE_HASH:
+                continue
+            locked.append(subject)
+            age = next(check for check in judgement["checks"] if check["id"] == "account_age")
+            with self.subTest(subject=subject):
+                self.assertEqual(age["status"], "pass")
+                self.assertTrue(age["detail"].startswith(
+                    f"no creation time from NearBlocks (keys empty); {subject} has no access key; view_account "
+                    f"finds {subject} at block "), age["detail"])
+                self.assertEqual(age["source"]["provider"], "archival-rpc.mainnet.fastnear.com")
+        self.assertEqual(len(locked), 26)
 
-    def test_a_receiver_without_a_recorded_keys_answer_reads_unknown_on_age(self):
+    def test_a_receiver_without_a_recorded_keys_answer_takes_no_age_from_nearblocks(self):
+        missing = []
         for entry in self.document["subjects"]:
             receiver = entry["request"]["receiver_id"]
             key = rpc.fixture_key(f"{rpc.NEARBLOCKS_URL}/v1/account/{receiver}/keys", "GET", None)
             if (intel_main.RECEIVER_RPC_DIR / f"{key}.json").exists():
                 continue
+            missing.append(entry["subject"])
             with self.subTest(subject=entry["subject"]):
                 judgement = json.loads((JUDGEMENTS / f"{entry['subject']}.json").read_text(encoding="utf-8"))
                 checks = {check["id"]: check for check in judgement["checks"]}
-                self.assertEqual(checks["account_age"]["status"], "unknown")
+                self.assertTrue(checks["account_age"]["detail"].startswith(
+                    "no creation time from NearBlocks (no recorded response for the request); "),
+                    checks["account_age"]["detail"])
+                self.assertNotEqual(checks["account_age"]["source"]["provider"], "api.nearblocks.io")
+                self.assertEqual(checks["account_age"]["status"], "pass")
+                self.assertEqual(checks["account_age"]["source"]["provider"], "archival-rpc.mainnet.fastnear.com")
+                self.assertIn("view_account finds", checks["account_age"]["detail"])
+        self.assertEqual(len(missing), 4)
 
 if __name__ == "__main__":
     unittest.main()

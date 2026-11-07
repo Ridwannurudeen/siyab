@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 221701317,
+      "account_id": "epic.poolv1.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "88908458357655821063685091681",
+      "block_hash": "6GMhGdNMH5zfSvpc6AxAj4vSJ8iZB6GynRK7shXL5k5J",
+      "block_height": 221701317,
+      "code_hash": "J1arLz48fgXcGyCPVckFwLnewNH6j1uw79thsvwqGYTY",
+      "locked": "11919553191305209910074886367165",
+      "storage_paid_at": 0,
+      "storage_usage": 1516377
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-07T14:27:52Z"
+}

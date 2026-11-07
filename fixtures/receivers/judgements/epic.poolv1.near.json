@@ -8,7 +8,7 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "UNKNOWN",
+  "verdict": "ALLOW",
   "checks": [
     {
       "id": "receiver_exists",
@@ -52,18 +52,18 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "status": "pass",
+      "detail": "no creation time from NearBlocks (keys empty); epic.poolv1.near has no access key; view_account finds epic.poolv1.near at block 221701317 (2026-10-26T14:32:35Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "820c63c779fdc4fcfe0e612a509db209ff20b8cbdde9fc11aade2d94b8e27861",
-        "fetched_at": "2026-11-03T18:58:51Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "811a96ff959f953757fbae004f3fa095bb4b49680d7048cbe2b6e363b938fa62",
+        "fetched_at": "2026-11-07T14:27:52Z"
       }
     },
     {
       "id": "dust_funded",
-      "status": "unknown",
-      "detail": "the creation transaction is not known",
+      "status": "pass",
+      "detail": "creation deposit not read: NearBlocks has no creation transaction for epic.poolv1.near; a deposit is a signal only with lookalike or account_age",
       "source": {
         "provider": "nearblocks",
         "request_sha256": null,
@@ -92,8 +92,8 @@
     }
   ],
   "reasons": [
-    "account_age could not run: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read.",
-    "dust_funded could not run: the creation transaction is not known."
+    "Every check ran and none found a signal.",
+    "Not on the owner's allowlist."
   ],
   "labels": [
     "cc5cf3870f74563754362313464597f8e9c2d19961900546f4686759dfd088c9"

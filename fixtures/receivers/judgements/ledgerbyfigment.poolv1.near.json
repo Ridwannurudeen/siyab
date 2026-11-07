@@ -8,7 +8,7 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "UNKNOWN",
+  "verdict": "ALLOW",
   "checks": [
     {
       "id": "receiver_exists",
@@ -52,18 +52,18 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "status": "pass",
+      "detail": "no creation time from NearBlocks (keys empty); ledgerbyfigment.poolv1.near has no access key; view_account finds ledgerbyfigment.poolv1.near at block 221701073 (2026-10-26T14:30:10Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "e475989396917da75c31150a42f7b804d59e9f0231f86f46471272fe8ebd9eb2",
-        "fetched_at": "2026-11-03T18:56:32Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "6f135933d84c1fc28d198853917b5fa9594cd6734be9a5522702267a8955543c",
+        "fetched_at": "2026-11-07T14:26:55Z"
       }
     },
     {
       "id": "dust_funded",
-      "status": "unknown",
-      "detail": "the creation transaction is not known",
+      "status": "pass",
+      "detail": "creation deposit not read: NearBlocks has no creation transaction for ledgerbyfigment.poolv1.near; a deposit is a signal only with lookalike or account_age",
       "source": {
         "provider": "nearblocks",
         "request_sha256": null,
@@ -92,8 +92,8 @@
     }
   ],
   "reasons": [
-    "account_age could not run: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read.",
-    "dust_funded could not run: the creation transaction is not known."
+    "Every check ran and none found a signal.",
+    "Not on the owner's allowlist."
   ],
   "labels": [
     "bbba292864e1c9a80bc5fa8f4d4cd65d96b69067e46377c24bb9694a0d0f229f"

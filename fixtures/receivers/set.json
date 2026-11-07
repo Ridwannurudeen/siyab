@@ -1,7 +1,7 @@
 {
   "chosen_at": "2026-11-03T18:48:08Z",
   "judged_at_ms": 1793731688201,
-  "rule": "receivers [--record] judges the recorded mainnet receiver set with gate.rules.judge in replay (an empty allowlist and the committed label store) and writes one fixtures/receivers/judgements/<subject>.json per subject of fixtures/receivers/set.json. Each subject has a cohort. The set is the last COUNTERPARTIES distinct counterparties of each account in RECEIVER_SOURCES (the FastNEAR Transfers API, newest first; implicit accounts are left out as the likeliest personal wallets, unless the label store holds them as a catalog token), less the ids the exclusion file names (cohort counterparty); then the first ORGANISATION_SUBJECTS Sputnik DAO accounts and the first ORGANISATION_SUBJECTS validator pool accounts among the organisation rows of the label store, in store order (cohort organisation); then the NEAR accounts of intel/incidents/rhea.json (cohort incident); then the first CATALOG_SUBJECTS catalog_token NEAR accounts of the label store that are not in the set yet (cohort catalog). A token subject is judged as the token of a transfer to TOKEN_RECEIVER, as intel/incidents/rhea.json judges its token contracts, and every other subject as the receiver of a NEAR transfer. --record chooses the set and fetches what is missing for the subjects new to it. The counterparties come from the transfers pages recorded under fixtures/fastnear/, read in replay, and the ids of --exclude-file (a file kept outside the repository, one account id per line) are left out after they are chosen, so no other account takes their place. A subject of the committed set is judged on its earlier recording; a new subject gets the view calls the rules make and, while fewer than AGE_SUBJECTS receivers have their age recorded, the NearBlocks keys and creation transaction (at most two NearBlocks calls each), so every later receiver without an earlier recording reads unknown on age. The view calls and NearBlocks answers live under fixtures/receivers/rpc/. Without --record nothing touches the network.",
+  "rule": "receivers [--record] judges the recorded mainnet receiver set with gate.rules.judge in replay (an empty allowlist, the committed label store and the archival RPC) and writes one fixtures/receivers/judgements/<subject>.json per subject of fixtures/receivers/set.json. Each subject has a cohort. The set is the last COUNTERPARTIES distinct counterparties of each account in RECEIVER_SOURCES (the FastNEAR Transfers API, newest first; implicit accounts are left out as the likeliest personal wallets, unless the label store holds them as a catalog token), less the ids the exclusion file names (cohort counterparty); then the first ORGANISATION_SUBJECTS Sputnik DAO accounts and the first ORGANISATION_SUBJECTS validator pool accounts among the organisation rows of the label store, in store order (cohort organisation); then the NEAR accounts of intel/incidents/rhea.json (cohort incident); then the first CATALOG_SUBJECTS catalog_token NEAR accounts of the label store that are not in the set yet (cohort catalog). A token subject is judged as the token of a transfer to TOKEN_RECEIVER, as intel/incidents/rhea.json judges its token contracts, and every other subject as the receiver of a NEAR transfer. --record chooses the set and fetches what is missing for the subjects new to it. The counterparties come from the transfers pages recorded under fixtures/fastnear/, read in replay, and the ids of --exclude-file (a file kept outside the repository, one account id per line) are left out after they are chosen, so no other account takes their place. A subject of the committed set is judged on its earlier recording; a new subject gets the view calls and archival reads the rules make and, while fewer than AGE_SUBJECTS receivers have their age recorded, the NearBlocks keys and creation transaction (at most two NearBlocks calls each), so every later receiver without an earlier recording is dated by its oldest access key nonce or an archival view_account alone and reads unknown on age where neither dates it. The view calls, archival reads and NearBlocks answers live under fixtures/receivers/rpc/. Without --record nothing touches the network.",
   "exclusion": "Named accounts whose id reads as a person's name or handle were left out by hand before publication (18 accounts); the set lists no account id for them.",
   "sources": [
     {
@@ -150,7 +150,7 @@
     },
     {
       "subject": "genesis.sputnik-dao.near",
-      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -164,7 +164,7 @@
     },
     {
       "subject": "codame.sputnik-dao.near",
-      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -178,7 +178,7 @@
     },
     {
       "subject": "pulse.sputnik-dao.near",
-      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -192,7 +192,7 @@
     },
     {
       "subject": "peter.sputnik-dao.near",
-      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -206,7 +206,7 @@
     },
     {
       "subject": "jascha.sputnik-dao.near",
-      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -220,7 +220,7 @@
     },
     {
       "subject": "hak.sputnik-dao.near",
-      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -234,7 +234,7 @@
     },
     {
       "subject": "maximum-viable-potential.sputnik-dao.near",
-      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -248,7 +248,7 @@
     },
     {
       "subject": "ref-finance.sputnik-dao.near",
-      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -262,7 +262,7 @@
     },
     {
       "subject": "mochi.sputnik-dao.near",
-      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -276,7 +276,7 @@
     },
     {
       "subject": "marmaj.sputnik-dao.near",
-      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -290,7 +290,7 @@
     },
     {
       "subject": "hype.sputnik-dao.near",
-      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -304,7 +304,7 @@
     },
     {
       "subject": "nft.sputnik-dao.near",
-      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -318,7 +318,7 @@
     },
     {
       "subject": "abra.sputnik-dao.near",
-      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -332,7 +332,7 @@
     },
     {
       "subject": "flymoon.sputnik-dao.near",
-      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -346,7 +346,7 @@
     },
     {
       "subject": "blackvirtualmap.sputnik-dao.near",
-      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -360,7 +360,7 @@
     },
     {
       "subject": "nearweek.sputnik-dao.near",
-      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -374,7 +374,7 @@
     },
     {
       "subject": "hfq.sputnik-dao.near",
-      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -388,7 +388,7 @@
     },
     {
       "subject": "nihilism_fulltime.sputnik-dao.near",
-      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -402,7 +402,7 @@
     },
     {
       "subject": "catalygraphy.sputnik-dao.near",
-      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -416,7 +416,7 @@
     },
     {
       "subject": "famjam.sputnik-dao.near",
-      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -430,7 +430,7 @@
     },
     {
       "subject": "devco.sputnik-dao.near",
-      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -444,7 +444,7 @@
     },
     {
       "subject": "yaway.sputnik-dao.near",
-      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -458,7 +458,7 @@
     },
     {
       "subject": "kindessgrocerycoop.sputnik-dao.near",
-      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -472,7 +472,7 @@
     },
     {
       "subject": "localmakermart.sputnik-dao.near",
-      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -486,7 +486,7 @@
     },
     {
       "subject": "nftbuzz.sputnik-dao.near",
-      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 Sputnik DAO accounts among the organisation rows of the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a NearBlocks key creation time and read their age like any account; ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -500,7 +500,7 @@
     },
     {
       "subject": "astro-stakers.poolv1.near",
-      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -514,7 +514,7 @@
     },
     {
       "subject": "figment.poolv1.near",
-      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -528,7 +528,7 @@
     },
     {
       "subject": "ledgerbyfigment.poolv1.near",
-      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -542,7 +542,7 @@
     },
     {
       "subject": "staked.poolv1.near",
-      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -556,7 +556,7 @@
     },
     {
       "subject": "binancenode1.poolv1.near",
-      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -570,7 +570,7 @@
     },
     {
       "subject": "bitwise_1.poolv1.near",
-      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -584,7 +584,7 @@
     },
     {
       "subject": "sumerian.poolv1.near",
-      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -598,7 +598,7 @@
     },
     {
       "subject": "zavodil.poolv1.near",
-      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -612,7 +612,7 @@
     },
     {
       "subject": "bitwise_2.poolv1.near",
-      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -626,7 +626,7 @@
     },
     {
       "subject": "liver.pool.near",
-      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -640,7 +640,7 @@
     },
     {
       "subject": "cnear-1.poolv1.near",
-      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -654,7 +654,7 @@
     },
     {
       "subject": "cnear-3.poolv1.near",
-      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -668,7 +668,7 @@
     },
     {
       "subject": "cnear-2.poolv1.near",
-      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -682,7 +682,7 @@
     },
     {
       "subject": "kiln-1.poolv1.near",
-      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -696,7 +696,7 @@
     },
     {
       "subject": "svrn-ai.poolv1.near",
-      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -710,7 +710,7 @@
     },
     {
       "subject": "svrn.pool.near",
-      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -724,7 +724,7 @@
     },
     {
       "subject": "epic.poolv1.near",
-      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -738,7 +738,7 @@
     },
     {
       "subject": "svrn-luganodes.pool.near",
-      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -752,7 +752,7 @@
     },
     {
       "subject": "nearvana.poolv1.near",
-      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -766,7 +766,7 @@
     },
     {
       "subject": "stake1.poolv1.near",
-      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -780,7 +780,7 @@
     },
     {
       "subject": "svrn_bitwise.poolv1.near",
-      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -794,7 +794,7 @@
     },
     {
       "subject": "metapool01.pool.near",
-      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -808,7 +808,7 @@
     },
     {
       "subject": "p2p-org.poolv1.near",
-      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -822,7 +822,7 @@
     },
     {
       "subject": "dragonfly.poolv1.near",
-      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {
@@ -836,7 +836,7 @@
     },
     {
       "subject": "allnodes.poolv1.near",
-      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "why": "one of the first 25 validator pool accounts among the organisation rows of the label store (the validators RPC), in store order; NearBlocks lists no access key for the account and view_account shows contract code, so its age comes from an archival view_account at a block at least 7 days back",
       "as": "receiver",
       "cohort": "organisation",
       "request": {

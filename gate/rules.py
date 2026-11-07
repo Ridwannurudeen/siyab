@@ -41,6 +41,9 @@ DUST_YOCTO = 10**23  # 0.1 NEAR
 # An access key added in block h starts at nonce (h - 1) times this; a nonce from 1 to below it
 # predates that rule.
 NONCE_PER_HEIGHT = 10**6
+# At most this many blocks a day (one every 0.5 s; the recorded mainnet reads show about 0.58 s), so
+# min_age_days days of them before a block reach a block at least min_age_days old; its time is read back.
+BLOCKS_PER_DAY_MAX = 2 * 24 * 60 * 60
 # Confusable normalisation, applied in this order to both names before any comparison.
 CONFUSABLES = (("rn", "m"), ("vv", "w"), ("0", "o"), ("1", "l"), ("i", "l"))
 NETWORK_SUFFIXES = (".near", ".testnet")
@@ -437,11 +440,64 @@ def _memo_check(memo, injection_scanner):
                           _source(injection_scanner))
 
 
-def _nonce_age(rpc, archival, receiver, now_ms, min_age_days, nearblocks_why):
+def _block_time(archival, height):
+    """(time in ms, ISO time) of block height on an archival node; a block of another height or a
+    time out of range raises MalformedResponse."""
+    header = archival.block_at(height)["header"]
+    if header["height"] != height:
+        raise MalformedResponse(f"block {height} came back as block {header['height']}")
+    block_ms = header["timestamp"] // 10**6
+    try:
+        iso = datetime.fromtimestamp(block_ms / 1000, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    except (OverflowError, OSError, ValueError) as error:
+        raise MalformedResponse(f"block {height} has a time out of range: {header['timestamp']}") from error
+    return block_ms, iso
+
+
+def _state_age(archival, receiver, account, account_source, now_ms, min_age_days, why):
+    """(the account_age check, False) when view_account on an archival node finds the receiver at a
+    block at least min_age_days old: min_age_days times BLOCKS_PER_DAY_MAX blocks before the block its
+    own view_account (account) was read at, with that block's time read back. Only _nonce_age calls
+    it, for a receiver with no access key or none with a creation height, such as a locked contract.
+    One read of each, no step down: archival view_account answered HTTP 500 at many testnet blocks
+    (docs/SPIKES.md S8), which reads unknown here. The receiver missing at that block shows only that
+    it was created after the block, not that it is younger than min_age_days, so it reads unknown too.
+    An unknown check gives None."""
+    reference = account.get("block_height")
+    if not isinstance(reference, int) or isinstance(reference, bool):
+        return evidence.check("account_age", "unknown", f"{why}; the receiver's view_account names no block "
+                              "height", account_source), None
+    height = reference - min_age_days * BLOCKS_PER_DAY_MAX
+    try:
+        block_ms, iso = _block_time(archival, height)
+    except UNAVAILABLE as error:
+        return evidence.check("account_age", "unknown", f"{why}; archival block_at could not run: {_why(error)}",
+                              _source(archival)), None
+    block = f"block {height} ({iso}) from {_source(archival)['provider']}"
+    if now_ms - block_ms < min_age_days * DAY_MS:
+        return evidence.check("account_age", "unknown", f"{why}; {block} is younger than {min_age_days} days",
+                              _source(archival)), None
+    try:
+        state = archival.view_account_at(receiver, height)
+        if state.get("block_height") != height:
+            raise MalformedResponse(f"view_account at block {height} came back at block {state.get('block_height')}")
+    except UNAVAILABLE as error:
+        if isinstance(error, RpcError) and error.cause == "UNKNOWN_ACCOUNT":
+            detail = (f"{receiver} did not exist at {block}, so it was created after that block, which is at "
+                      f"least {min_age_days} d old; whether it is younger than {min_age_days} days is not known")
+        else:
+            detail = f"archival view_account could not run: {_why(error)}"
+        return evidence.check("account_age", "unknown", f"{why}; {detail}", _source(archival)), None
+    return evidence.check("account_age", "pass", f"{why}; view_account finds {receiver} at {block}, at least "
+                          f"{min_age_days} d old", _source(archival)), False
+
+
+def _nonce_age(rpc, archival, receiver, now_ms, min_age_days, nearblocks_why, account, account_source):
     """(the account_age check, whether the receiver is younger than min_age_days) from the oldest
     access key: the account existed by the block its smallest nonce encodes, dated on an archival
     node. A key with nonce 0, or a permission other than full access or function call, carries no
-    creation height. A read that could not run gives an unknown check and None."""
+    creation height. A receiver with no access key, or none with a creation height, is dated by
+    _state_age instead. A read that could not run gives an unknown check and None."""
     prefix = f"no creation time from NearBlocks ({nearblocks_why})"
     try:
         keys = rpc.view_access_key_list(receiver)["keys"]
@@ -460,11 +516,11 @@ def _nonce_age(rpc, archival, receiver, now_ms, min_age_days, nearblocks_why):
                               f"{_why(error)}", _source(rpc)), None
     rpc_source = _source(rpc)
     if not keys:
-        return evidence.check("account_age", "unknown", f"{prefix}; {receiver} has no access key",
-                              rpc_source), None
+        return _state_age(archival, receiver, account, account_source, now_ms, min_age_days,
+                          f"{prefix}; {receiver} has no access key")
     if not nonces:
-        return evidence.check("account_age", "unknown", f"{prefix}; no access key carries a creation height",
-                              rpc_source), None
+        return _state_age(archival, receiver, account, account_source, now_ms, min_age_days,
+                          f"{prefix}; no access key carries a creation height")
     nonce = min(nonces)
     oldest = f"{prefix}; oldest access key nonce {nonce} from {rpc_source['provider']}"
     if nonce < NONCE_PER_HEIGHT:
@@ -472,14 +528,7 @@ def _nonce_age(rpc, archival, receiver, now_ms, min_age_days, nearblocks_why):
                               f"{min_age_days} d old", rpc_source), False
     height = nonce // NONCE_PER_HEIGHT + 1
     try:
-        header = archival.block_at(height)["header"]
-        if header["height"] != height:
-            raise MalformedResponse(f"block {height} came back as block {header['height']}")
-        block_ms = header["timestamp"] // 10**6
-        try:
-            iso = datetime.fromtimestamp(block_ms / 1000, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-        except (OverflowError, OSError, ValueError) as error:
-            raise MalformedResponse(f"block {height} has a time out of range: {header['timestamp']}") from error
+        block_ms, iso = _block_time(archival, height)
     except UNAVAILABLE as error:
         return evidence.check("account_age", "unknown", f"{prefix}; archival block_at could not run: "
                               f"{_why(error)}", _source(archival)), None
@@ -497,7 +546,8 @@ def _tier2(request, policy, store, account, account_source, rpc, nearblocks, now
     receiver = request["receiver_id"]
     checks, facts, matched = [], {}, []
     creation_hash = None
-    # Why NearBlocks gave no creation time, and the access key nonce age's answer when it was asked.
+    # Why NearBlocks gave no creation time, and the archival age's answer (access key nonce or block
+    # state) when it was asked.
     nearblocks_why, archival_young = None, None
     try:
         keys = nearblocks.get(f"/v1/account/{receiver}/keys")
@@ -524,7 +574,8 @@ def _tier2(request, policy, store, account, account_source, rpc, nearblocks, now
         age_check = evidence.check("account_age", "unknown", f"could not read the account keys: "
                                    f"{_why(error)}", _source(nearblocks))
     if nearblocks_why is not None and archival is not None and account is not None:
-        age_check, archival_young = _nonce_age(rpc, archival, receiver, now_ms, min_age_days, nearblocks_why)
+        age_check, archival_young = _nonce_age(rpc, archival, receiver, now_ms, min_age_days, nearblocks_why,
+                                               account, account_source)
         if archival_young:
             facts["age"] = f"less than {min_age_days} d"
     checks.append(age_check)
@@ -557,8 +608,8 @@ def _tier2(request, policy, store, account, account_source, rpc, nearblocks, now
                                          "or labelled NEAR account within the length scaled distance after "
                                          "confusable normalisation", source)
 
-    # When the access key nonce age passed and nothing is a lookalike, no creation deposit can change the
-    # verdict, so the deposit NearBlocks could not give does not hold it at UNKNOWN.
+    # When the access key nonce or block state age passed and nothing is a lookalike, no creation deposit can
+    # change the verdict, so the deposit NearBlocks could not give does not hold it at UNKNOWN.
     if archival_young is False and not hit:
         dust_check = evidence.check("dust_funded", "pass", f"creation deposit not read: NearBlocks has no creation "
                                     f"transaction for {receiver}; a deposit is a signal only with lookalike or "

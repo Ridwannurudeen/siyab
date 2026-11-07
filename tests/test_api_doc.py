@@ -5,7 +5,8 @@ calls; Kind rows against emitted near/ft check ids; Tier rows against TIER2_CHEC
 ft calls; issuer_blacklist only when an issuer table is passed and community_report only when reports_account is
 set; CLI/MCP/HTTP issuer selection as issuers_for("mainnet") for Gate ids not ending .testnet and None for
 .testnet; outcome/action rows as ALLOW to ask when ask is nonempty, otherwise sign, DENY to refuse, and UNKNOWN
-to ask; and one fixture-backed example per outcome after shortening 64-hex values.
+to ask; fixture-backed ALLOW and DENY examples after shortening 64-hex values; and an UNKNOWN example section
+that cites no fixture while no committed fixture records UNKNOWN.
 
 The pass, signal and unknown check-table meanings are documentation checked by review, not by a test.
 """
@@ -432,16 +433,30 @@ class ExamplesTest(unittest.TestCase):
     def setUp(self):
         self.text = API_DOC.read_text(encoding="utf-8")
 
-    def test_one_example_per_outcome(self):
-        self.assertEqual(sorted(examples(self.text)), sorted(OUTCOMES))
+    def test_allow_and_deny_have_examples_and_the_unknown_section_cites_none(self):
+        self.assertEqual(sorted(examples(self.text)), ["ALLOW", "DENY"])
+        unknown = section(self.text, "### UNKNOWN")
+        self.assertTrue(unknown)
+        self.assertFalse([line for line in unknown if line.startswith("Fixture: `") or line == "```json"])
+
+    def test_no_committed_fixture_records_unknown_as_the_unknown_section_says(self):
+        unknown = []
+        for path in sorted((ROOT / "fixtures").rglob("*.json")):
+            data = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(data, dict) and fixture_outcome(data) == "UNKNOWN":
+                unknown.append(path.relative_to(ROOT).as_posix())
+        self.assertEqual(unknown, [])
+        self.assertTrue(sorted((ROOT / "fixtures" / "receivers" / "judgements").glob("*.json")))
+        self.assertIn("no judgement under `fixtures/receivers/judgements/` records UNKNOWN",
+                      "\n".join(section(self.text, "### UNKNOWN")))
 
     def test_each_example_is_its_fixture_and_the_fixture_records_its_outcome(self):
         self.assertEqual(example_problems(self.text, ROOT), {})
 
     def test_a_wrong_heading_a_wrong_fixture_or_an_edited_block_is_caught(self):
-        swapped = self.text.replace("### UNKNOWN", "### ALLOW", 1).replace("### ALLOW\n\nFixture: `fixtures/runs",
-                                                                           "### UNKNOWN\n\nFixture: `fixtures/runs", 1)
-        self.assertEqual(set(example_problems(swapped, ROOT)), {"ALLOW", "UNKNOWN"})
+        swapped = self.text.replace("### ALLOW\n\nFixture: `fixtures/runs", "### DENY\n\nFixture: `fixtures/runs", 1)
+        swapped = swapped.replace("### DENY\n\nFixture: `fixtures/evidence", "### ALLOW\n\nFixture: `fixtures/evidence", 1)
+        self.assertEqual(set(example_problems(swapped, ROOT)), {"ALLOW", "DENY"})
         edited = self.text.replace('"latency_ms": 4712', '"latency_ms": 4713', 1)
         self.assertEqual(set(example_problems(edited, ROOT)), {"DENY"})
         with tempfile.TemporaryDirectory() as tmp:
@@ -451,10 +466,10 @@ class ExamplesTest(unittest.TestCase):
                     target.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copyfile(path, target)
             self.assertEqual(example_problems(self.text, Path(tmp)), {})
-            copy = Path(tmp) / "fixtures" / "receivers" / "judgements" / "liver.pool.near.json"
+            copy = Path(tmp) / examples(self.text)["ALLOW"][0]
             data = json.loads(copy.read_text(encoding="utf-8"))
-            copy.write_text(json.dumps({**data, "verdict": "ALLOW"}), encoding="utf-8")
-            self.assertIn("records ALLOW, not UNKNOWN", example_problems(self.text, Path(tmp))["UNKNOWN"])
+            copy.write_text(json.dumps({**data, "result": {**data["result"], "outcome": "UNKNOWN"}}), encoding="utf-8")
+            self.assertIn("records UNKNOWN, not ALLOW", example_problems(self.text, Path(tmp))["ALLOW"])
 
 
 if __name__ == "__main__":
