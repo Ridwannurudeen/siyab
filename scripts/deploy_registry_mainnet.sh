@@ -60,6 +60,22 @@ cd "$ROOT_DIR"
 codehash_output=$(python3 -m gate codehash "$wasm")
 wasm_sha256=$(printf '%s\n' "$codehash_output" | sed -n 's/^sha256: //p')
 code_hash=$(printf '%s\n' "$codehash_output" | sed -n 's/^code_hash: //p')
+if ! python3 - "$code_hash" <<'PY'
+import sys
+
+from gate import base58
+
+try:
+    decoded = base58.decode(sys.argv[1])
+except ValueError:
+    raise SystemExit(1)
+if len(decoded) != 32:
+    raise SystemExit(1)
+PY
+then
+  printf 'invalid code_hash from python -m gate codehash: expected base58 encoding of 32 bytes\n' >&2
+  exit 2
+fi
 recorded_sha256=$(cut -d ' ' -f 1 res/registry.wasm.sha256)
 if [[ -z "$wasm_sha256" || "$wasm_sha256" != "$recorded_sha256" ]]; then
   printf 'wasm sha256 %s does not equal res/registry.wasm.sha256 %s\n' "$wasm_sha256" "$recorded_sha256" >&2

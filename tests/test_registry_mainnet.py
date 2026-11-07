@@ -1,9 +1,18 @@
 import json
+import os
+import select
 import shlex
+import signal
 import subprocess
 import sys
+import time
 import unittest
 from pathlib import Path
+
+try:
+    import pty
+except ImportError:
+    pty = None
 
 from tests.test_redeploy import bash_path
 from tests.test_scripts import BASH, ScriptTest
@@ -14,7 +23,7 @@ REGISTRY = "registry.example.near"
 OWNER = "owner.example.near"
 RECORDER = "recorder.example.near"
 TRIP_NEAR = """#!/bin/sh
-printf 'near was called\\n' > "$NEAR_MARKER"
+printf '%s\\n' "$@" > "$NEAR_MARKER"
 exit 99
 """
 
@@ -51,6 +60,69 @@ class RegistryMainnetTest(ScriptTest):
                                capture_output=True, cwd=ROOT, check=True, text=True).stdout.splitlines()
         code_hash = next(line.split(": ", 1)[1] for line in lines if line.startswith("code_hash: "))
         return sha256, code_hash
+
+    def live_environment(self):
+        env = {**self.env}
+        env.pop("DRY_RUN")
+        stub_dir = Path(self.tempdir.name) / "rpc_stub"
+        stub_dir.mkdir()
+        _, code_hash = self.recorded()
+        (stub_dir / "sitecustomize.py").write_text(
+            "from gate import rpc\n"
+            f"rpc.Client.code_hash = lambda self, account: {code_hash!r}\n",
+            encoding="utf-8",
+        )
+        pythonpath = [str(stub_dir)]
+        if env.get("PYTHONPATH"):
+            pythonpath.append(env["PYTHONPATH"])
+        env["PYTHONPATH"] = os.pathsep.join(pythonpath)
+        return env
+
+    def run_with_tty(self, confirmation):
+        live_env = self.live_environment()
+        pid, tty_fd = pty.fork()
+        if pid == 0:
+            try:
+                os.chdir(ROOT)
+                os.execve(BASH, [BASH, f"scripts/{SCRIPT}", REGISTRY, OWNER, RECORDER, self.wasm], live_env)
+            except OSError as error:
+                os.write(2, f"could not start deploy script: {error}\n".encode())
+                os._exit(127)
+
+        output = bytearray()
+        sent = False
+        timed_out = False
+        deadline = time.monotonic() + 30
+        try:
+            while True:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    timed_out = True
+                    os.kill(pid, signal.SIGKILL)
+                    break
+                readable, _, _ = select.select([tty_fd], [], [], remaining)
+                if not readable:
+                    timed_out = True
+                    os.kill(pid, signal.SIGKILL)
+                    break
+                try:
+                    chunk = os.read(tty_fd, 4096)
+                except OSError:
+                    break
+                if not chunk:
+                    break
+                output.extend(chunk)
+                if not sent and b"type the registry account name to continue:" in output:
+                    os.write(tty_fd, f"{confirmation}\n".encode())
+                    sent = True
+        finally:
+            _, status = os.waitpid(pid, 0)
+            os.close(tty_fd)
+        if timed_out:
+            self.fail("deploy script did not finish within 30 seconds")
+        if not sent:
+            self.fail(f"deploy script did not reach the confirmation prompt: {output.decode(errors='replace')}")
+        return os.waitstatus_to_exitcode(status), output.decode(errors="replace")
 
 
 class RegistryMainnetGuardTest(RegistryMainnetTest):
@@ -97,6 +169,75 @@ class RegistryMainnetGuardTest(RegistryMainnetTest):
         self.assertEqual(process.returncode, 2)
         self.assertIn("does not equal res/registry.wasm.sha256", process.stderr)
         self.assertNotIn("+ near", process.stdout)
+
+    def test_refuses_a_missing_code_hash_from_codehash_command(self):
+        sha256, _ = self.recorded()
+        python3 = Path(self.tempdir.name) / "bin" / "python3"
+        wrapper = python3.read_text(encoding="utf-8")
+        shim = (
+            'if [ "$1" = "-m" ] && [ "$2" = "gate" ] && [ "$3" = "codehash" ]; then\n'
+            f"  printf 'sha256: %s\\n' '{sha256}'\n"
+            "  exit 0\n"
+            "fi\n"
+        )
+        python3.write_text(wrapper.replace("exec ", shim + "exec ", 1), encoding="utf-8")
+        process = self.deploy_default()
+        self.assertEqual(process.returncode, 2)
+        self.assertIn("invalid code_hash from python -m gate codehash", process.stderr)
+        self.assertNotIn("near contract deploy", process.stdout)
+
+    def test_refuses_a_nonempty_malformed_code_hash_from_codehash_command(self):
+        sha256, _ = self.recorded()
+        python3 = Path(self.tempdir.name) / "bin" / "python3"
+        wrapper = python3.read_text(encoding="utf-8")
+        for code_hash in ("not-base58!", "2"):
+            with self.subTest(code_hash=code_hash):
+                shim = (
+                    'if [ "$1" = "-m" ] && [ "$2" = "gate" ] && [ "$3" = "codehash" ]; then\n'
+                    f"  printf 'sha256: %s\\ncode_hash: %s\\n' '{sha256}' '{code_hash}'\n"
+                    "  exit 0\n"
+                    "fi\n"
+                )
+                python3.write_text(wrapper.replace("exec ", shim + "exec ", 1), encoding="utf-8")
+                process = self.deploy_default()
+                self.assertEqual(process.returncode, 2)
+                self.assertIn("invalid code_hash from python -m gate codehash", process.stderr)
+                self.assertNotIn("near contract deploy", process.stdout)
+
+    def test_live_guard_refuses_existing_code_without_redeploy(self):
+        if pty is None or os.name != "posix":
+            self.skipTest("requires POSIX pty support to answer the script's /dev/tty confirmation")
+        returncode, output = self.run_with_tty(REGISTRY)
+        self.assertEqual(returncode, 2, output)
+        self.assertIn(f"{REGISTRY} already holds code; set REDEPLOY=1", output)
+        self.assert_near_not_called()
+
+    @unittest.skipIf(os.name == "nt", "Git Bash /dev/tty cannot be isolated reliably from Windows consoles")
+    def test_live_guard_refuses_without_a_terminal(self):
+        env = self.live_environment()
+        process = subprocess.run(
+            [BASH, f"scripts/{SCRIPT}", REGISTRY, OWNER, RECORDER, self.wasm],
+            capture_output=True,
+            cwd=ROOT,
+            env=env,
+            timeout=30,
+            check=False,
+            text=True,
+            stdin=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+        self.assertNotEqual(process.returncode, 0, process.stdout + process.stderr)
+        self.assertIn("type the registry account name to continue", process.stdout)
+        self.assertIn("/dev/tty", process.stderr)
+        self.assert_near_not_called()
+
+    def test_live_guard_refuses_wrong_confirmation(self):
+        if pty is None or os.name != "posix":
+            self.skipTest("requires POSIX pty support to send wrong /dev/tty confirmation text")
+        returncode, output = self.run_with_tty("wrong-account.near")
+        self.assertEqual(returncode, 2, output)
+        self.assertIn(f"confirmation does not match {REGISTRY}, nothing was sent", output)
+        self.assert_near_not_called()
 
     def test_refuses_a_missing_wasm(self):
         process = self.deploy(REGISTRY, OWNER, RECORDER, bash_path(Path(self.tempdir.name) / "absent.wasm"))

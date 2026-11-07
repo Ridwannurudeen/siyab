@@ -34,7 +34,7 @@ The registry accepts NEAR account subjects only. The recorder is a server held a
 
 The registry is not on mainnet. Every registry record and label is on testnet (`docs/TESTNET.md`, Registry).
 
-`scripts/deploy_registry_mainnet.sh <registry_account> <owner_account> <recorder_account> <wasm>` is the mainnet deploy script. It must not be run until all six gates below are met and the owner approves. It has never been run against mainnet; its tests run it with `DRY_RUN=1` only (`tests/test_registry_mainnet.py`).
+`scripts/deploy_registry_mainnet.sh <registry_account> <owner_account> <recorder_account> <wasm>` is the mainnet deploy script. It must not be run until all six gates below are met and the owner approves. It has never been run against mainnet; offline tests cover dry-run plans and live confirmation and account-code guards with fake `near` and RPC responses (`tests/test_registry_mainnet.py`).
 
 | Gate | Status | Evidence |
 |---|---|---|
