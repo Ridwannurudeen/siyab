@@ -4,6 +4,7 @@ import io
 import json
 import os
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -112,6 +113,7 @@ class PayTest(AgentCase):
         kwargs = service.call_args.kwargs
         self.assertEqual((kwargs["gate"], kwargs["agent_pk_hex"], kwargs["policy"]),
                          (GATE, AGENT_PK.hex(), {**POLICY, "gate_paused": False, "gate_denylist": []}))
+        self.assertNotIn("sign_actions", kwargs)
         self.assertIsInstance(kwargs["signer"], signer.TestSigner)
         self.assertEqual(self.client.calls, [
             (GATE, "get_agent", {"public_key": base58.encode_key(AGENT_PK)}),
@@ -147,6 +149,68 @@ class PayTest(AgentCase):
         self.assertEqual(self.transport.sent, [])
         self.assertIn("not sent: the verdict is DENY, and the Gate pays only on a signed ALLOW", self.lines)
         self.assertFalse(self.written(f"pay-{'cd' * 32}")["submitted"])
+
+    def test_deny_alert_failure_does_not_change_the_final_verdict_or_exit_code(self):
+        context = self.make()
+        result = judged("DENY")
+        original = json.loads(json.dumps(result))
+        order = []
+
+        class SlowBrokenSink:
+            def send(self, alert):
+                order.append(("send", result["outcome"]))
+                self.alert = alert
+                time.sleep(0.01)
+                raise RuntimeError("sink failed")
+
+        sink = SlowBrokenSink()
+
+        def judge(*args, **kwargs):
+            order.append(("judge", result["outcome"]))
+            return result
+
+        with tempfile.TemporaryDirectory() as tmp:
+            url_file = Path(tmp) / "alert-url"
+            url_file.write_text("https://alerts.example.test/hook\n", encoding="utf-8")
+            environment = {"SHIELDBOT_ALERT_URL_FILE": str(url_file),
+                           "SHIELDBOT_ALERT_SECRET_FILE": str(Path(tmp) / "secret")}
+            with mock.patch.dict(os.environ, environment, clear=True), \
+                    mock.patch("gate.verdict.request", side_effect=judge), \
+                    mock.patch("intel.alerts.WebhookSink", return_value=sink) as webhook_sink, \
+                    self.assertLogs("intel.alerts", level="WARNING"):
+                code = agent.pay(context, self.request(), out=self.lines.append)
+
+        self.assertEqual(code, 1)
+        self.assertEqual(result, original)
+        self.assertEqual(order, [("judge", "DENY"), ("send", "DENY")])
+        webhook_sink.assert_called_once_with("https://alerts.example.test/hook", environment["SHIELDBOT_ALERT_SECRET_FILE"])
+        self.assertEqual(sink.alert.source, "payment")
+        self.assertEqual(sink.alert.severity, "critical")
+        self.assertEqual(sink.alert.subject, "vendor-shop.testnet")
+        self.assertEqual(sink.alert.evidence_sha256, "cd" * 32)
+        self.assertEqual(sink.alert.created_ms, NOW_S * 1000)
+        self.assertEqual(self.transport.sent, [])
+
+    def test_an_unknown_that_asks_a_human_raises_a_warn_alert(self):
+        context = self.make()
+        result = judged("UNKNOWN")
+        delivered = []
+
+        class CaptureSink:
+            def send(self, alert):
+                delivered.append(alert)
+                return {"ok": True}
+
+        with mock.patch("gate.verdict.request", return_value=result), \
+                mock.patch("intel.alerts.configured_sinks", return_value=[CaptureSink()]):
+            self.assertEqual(agent.pay(context, self.request(), out=self.lines.append), 3)
+
+        [alert] = delivered
+        self.assertEqual(alert.source, "payment")
+        self.assertEqual(alert.severity, "warn")
+        self.assertEqual(alert.subject, "vendor-shop.testnet")
+        self.assertEqual(alert.evidence_sha256, result["evidence_hash"])
+        self.assertEqual(self.transport.sent, [])
 
     def test_unknown_asks_a_human_and_sends_nothing(self):
         context = self.make()
@@ -577,6 +641,17 @@ class AttackTest(AgentCase):
         _, sent = self.run_attack("token-direct", REJECTED)
         self.assertEqual(sent[0]["args"], {"receiver_id": "vendor-shop.testnet", "amount": "1000000",
                                            "memo": "invoice 1"})
+
+    def test_the_attack_harness_requests_a_signature_for_an_allow_ask(self):
+        context = self.make(PANIC)
+        result = judged()
+        result["action"] = "ask"
+        result["ask"] = ["the Gate is paused (REFUSED:paused)"]
+        with mock.patch("gate.verdict.request", return_value=result) as service:
+            code = agent.attack("over-cap", context, self.request(), out=self.lines.append)
+        self.assertEqual(code, 0)
+        self.assertEqual(service.call_args.kwargs["sign_actions"], ("sign", "ask"))
+        self.assertEqual(self.transport.sent[0]["args"]["verdict"], result["verdict"])
 
     def verify(self, verdict_object, request, public):
         message = canon.canonical_message(

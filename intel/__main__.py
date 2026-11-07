@@ -26,14 +26,16 @@ nothing touches the network.
 """
 
 import argparse
+import hashlib
 import json
+import os
 import re
 import sys
 import time
 from pathlib import Path
 
 from gate import rpc, rules
-from intel import api, cluster, feed, issuers, labels, render, seed, trace
+from intel import alerts, api, cluster, feed, issuers, labels, render, seed, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 RECEIVERS_DIR = ROOT / "fixtures" / "receivers"
@@ -178,9 +180,10 @@ def choose(store, transfers_client, exclude=frozenset()):
     return subjects, sources, len(excluded)
 
 
-def _judge(entry, store, client, nearblocks, now_ms):
+def _judge(entry, store, client, nearblocks, now_ms, reports_account=None):
     judgement = rules.judge(entry["request"], {"allowlist": [], "caps": []}, store, client, nearblocks,
-                            now_ms=now_ms, injection_scanner=None, issuers=rules.issuers_for("mainnet"))
+                            now_ms=now_ms, injection_scanner=None, issuers=rules.issuers_for("mainnet"),
+                            reports_account=reports_account)
     return {"subject": entry["subject"], "as": entry["as"], "request": entry["request"],
             "verdict": judgement.verdict, "checks": judgement.checks, "reasons": judgement.reasons,
             "labels": judgement.labels, "observed": judgement.observed}
@@ -196,7 +199,7 @@ def receivers_rule():
     return " ".join(" ".join(__doc__.split("\n\n")[1:3]).split())
 
 
-def record_receivers(store, previous, exclude, clock=time.time):
+def record_receivers(store, previous, exclude, clock=time.time, reports_account=None):
     """Choose the set, leaving the ids of exclude out of the counterparties, and fetch what the rules read for
     the subjects previous (the subjects of the committed set) does not hold; returns the set document."""
     transfers_client = rpc.Client(TRANSFERS_URL, "replay", kind="http", fixtures_dir=FASTNEAR_DIR)
@@ -218,7 +221,7 @@ def record_receivers(store, previous, exclude, clock=time.time):
             fresh.append(receiver)
         nearblocks = rpc.Client(rpc.NEARBLOCKS_URL, "record" if receiver in fresh else "replay", kind="http",
                                 fixtures_dir=RECEIVER_RPC_DIR)
-        _judge(entry, store, client, nearblocks, now_ms)
+        _judge(entry, store, client, nearblocks, now_ms, reports_account)
     for entry in subjects:
         entry["age_recorded"] = earlier.get(entry["subject"], entry["request"]["receiver_id"] in aged)
     return {"chosen_at": time.strftime(_TIME, time.gmtime(now_ms // 1000)), "judged_at_ms": now_ms,
@@ -226,13 +229,13 @@ def record_receivers(store, previous, exclude, clock=time.time):
             "subjects": subjects}
 
 
-def judge_receivers(document, store, directory=RECEIVERS_DIR):
+def judge_receivers(document, store, directory=RECEIVERS_DIR, reports_account=None):
     """Judge every subject of the set in replay and write its judgement file; returns the judgements."""
     client = rpc.Client(rpc.MAINNET_RPC_URL, "replay", fixtures_dir=RECEIVER_RPC_DIR)
     nearblocks = rpc.Client(rpc.NEARBLOCKS_URL, "replay", kind="http", fixtures_dir=RECEIVER_RPC_DIR)
     results = []
     for entry in document["subjects"]:
-        result = _judge(entry, store, client, nearblocks, document["judged_at_ms"])
+        result = _judge(entry, store, client, nearblocks, document["judged_at_ms"], reports_account)
         _write_json(Path(directory) / "judgements" / f"{entry['subject']}.json", result)
         results.append(result)
     return results
@@ -251,6 +254,7 @@ def cohort_line(document, results):
 
 def _receivers(args):
     store = labels.load()
+    reports_account = os.environ.get("REPORTS_ACCOUNT_ID")
     set_path = RECEIVERS_DIR / "set.json"
     if args.record:
         previous = json.loads(set_path.read_text(encoding="utf-8"))["subjects"] if set_path.is_file() else []
@@ -259,13 +263,13 @@ def _receivers(args):
             exclude = {line.strip() for line in Path(args.exclude_file).read_text(encoding="utf-8").splitlines()
                        if line.strip()}
         try:
-            document = record_receivers(store, previous, exclude)
+            document = record_receivers(store, previous, exclude, reports_account=reports_account)
         except rpc.HttpError as error:
             print(f"stopped: {error}; no key is ever added", file=sys.stderr)
             return 1
         _write_json(set_path, document)
     document = json.loads(set_path.read_text(encoding="utf-8"))
-    results = judge_receivers(document, store)
+    results = judge_receivers(document, store, reports_account=reports_account)
     verdicts = [result["verdict"] for result in results]
     print(f"On {len(verdicts)} recorded mainnet receivers the rules returned {verdicts.count('ALLOW')} ALLOW, "
           f"{verdicts.count('DENY')} DENY, {verdicts.count('UNKNOWN')} Unknown.")
@@ -345,6 +349,36 @@ def _render(args):
     return 0
 
 
+def _alert_test(args):
+    secret_path = os.environ.get("SHIELDBOT_ALERT_SECRET_FILE")
+    if not secret_path:
+        print("stopped: SHIELDBOT_ALERT_SECRET_FILE is required", file=sys.stderr)
+        return 2
+    try:
+        sink = alerts.WebhookSink(args.url, secret_path)
+    except ValueError as error:
+        print(f"stopped: {error}", file=sys.stderr)
+        return 2
+    created_ms = int(time.time() * 1000)
+    detail = "A test alert was sent from the intel CLI."
+    alert = alerts.Alert(
+        source="shieldbot-cli",
+        severity="info",
+        subject="alert-test",
+        ref=f"alert-test-{created_ms}",
+        title="ShieldBot alert test",
+        detail=detail,
+        evidence_sha256=hashlib.sha256(detail.encode("utf-8")).hexdigest(),
+        created_ms=created_ms,
+    )
+    result = alerts.send(alert, [sink])[0]
+    if result["ok"]:
+        print("test alert sent")
+        return 0
+    print(f"stopped: alert delivery failed ({result.get('error', 'delivery_failed')})", file=sys.stderr)
+    return 1
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="python -m intel")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -395,6 +429,9 @@ def main(argv=None):
     rendering.add_argument("--indexable", action="store_true", help="leave the robots noindex meta out")
     rendering.set_defaults(handler=_render)
     commands.add_parser("feed-stats", help="print the feed state").set_defaults(handler=_feed_stats)
+    alert_test = commands.add_parser("alert-test", help="send one test alert to an HTTPS webhook")
+    alert_test.add_argument("--url", required=True, help="the HTTPS webhook URL")
+    alert_test.set_defaults(handler=_alert_test)
     args = parser.parse_args(argv)
     return args.handler(args)
 

@@ -516,6 +516,7 @@ def rhea(mode=None, raw_dir=RAW_DIR, client=None, nearblocks=None):
 def rhea_incident(mode=None, raw_dir=RAW_DIR, store_path=labels.STORE_PATH, client=None, nearblocks=None):
     """The incident document for intel/incidents/rhea.json; rules_today runs gate.rules.judge in replay
     over the committed fixtures and the store at store_path."""
+    reports_account = os.environ.get("REPORTS_ACCOUNT_ID")
     rows, report, facts, source = _rhea_rows(mode, raw_dir, *_clients(mode, client, nearblocks), store_path)
     ids = {}
     for row in rows:
@@ -540,7 +541,8 @@ def rhea_incident(mode=None, raw_dir=RAW_DIR, store_path=labels.STORE_PATH, clie
             request = {"kind": "near", "token_id": None, "receiver_id": subject,
                        "amount": str(rules.YOCTO_PER_NEAR), "memo": None}
         judgement = rules.judge(request, {"allowlist": [], "caps": []}, store, *replay, now_ms=now_ms,
-                                injection_scanner=None, issuers=rules.issuers_for("mainnet"))
+                                injection_scanner=None, issuers=rules.issuers_for("mainnet"),
+                                reports_account=reports_account)
         rules_today.append({"subject": subject, "as": "token" if role == "token" else "receiver",
                             "request": request, "verdict": judgement.verdict, "checks": judgement.checks,
                             "reasons": judgement.reasons, "labels": judgement.labels})
@@ -692,18 +694,20 @@ def sweat_hot(mode=None, raw_dir=RAW_DIR, client=None, nearblocks=None):
     return _sweat_hot_parts(mode, raw_dir, *_clients(mode, client, nearblocks))[0]
 
 
-def _rules_today(subject, store, now_ms):
+def _rules_today(subject, store, now_ms, reports_account=None):
     """gate.rules.judge in replay for a token subject, as the token of a transfer to intents.near."""
     replay = (rpc.Client(rpc.MAINNET_RPC_URL, "replay"), rpc.Client(rpc.NEARBLOCKS_URL, "replay", kind="http"))
     request = {"kind": "ft", "token_id": subject, "receiver_id": "intents.near", "amount": "1000000", "memo": None}
     judgement = rules.judge(request, {"allowlist": [], "caps": []}, store, *replay, now_ms=now_ms,
-                            injection_scanner=None, issuers=rules.issuers_for("mainnet"))
+                            injection_scanner=None, issuers=rules.issuers_for("mainnet"),
+                            reports_account=reports_account)
     return {"subject": subject, "as": "token", "request": request, "verdict": judgement.verdict,
             "checks": judgement.checks, "reasons": judgement.reasons, "labels": judgement.labels}
 
 
 def sweat_hot_incident(mode=None, raw_dir=RAW_DIR, store_path=labels.STORE_PATH, client=None, nearblocks=None):
     """The incident document for intel/incidents/sweat-hot.json."""
+    reports_account = os.environ.get("REPORTS_ACCOUNT_ID")
     client, nearblocks = _clients(mode, client, nearblocks)
     rows, links, facts, sources, (entry, entry_quote) = _sweat_hot_parts(mode, raw_dir, client, nearblocks)
     [(_, token, token_quote)] = [link for link in links if link[0] == "token"]
@@ -713,7 +717,7 @@ def sweat_hot_incident(mode=None, raw_dir=RAW_DIR, store_path=labels.STORE_PATH,
         rules.judge({"kind": "ft", "token_id": token, "receiver_id": "intents.near", "amount": "1000000",
                      "memo": None}, {"allowlist": [], "caps": []}, labels.load(store_path), client,
                     rpc.Client(rpc.NEARBLOCKS_URL, "replay", kind="http"), now_ms=0, injection_scanner=None,
-                    issuers=rules.issuers_for("mainnet"))
+                    issuers=rules.issuers_for("mainnet"), reports_account=reports_account)
     now_ms = int(datetime.strptime(max(f[5] for f in facts), _TIME).replace(tzinfo=UTC).timestamp() * 1000)
     return {
         "id": "sweat-hot",
@@ -731,7 +735,7 @@ def sweat_hot_incident(mode=None, raw_dir=RAW_DIR, store_path=labels.STORE_PATH,
         "onchain_facts": [{"subject": token, "method": method, "args": args, "block": block, "result_sha256": digest,
                            "summary": label} for label, _, method, args, block, _, digest in facts],
         "onchain_state": CURRENT_STATE,
-        "rules_today": [_rules_today(token, labels.load(store_path), now_ms)],
+        "rules_today": [_rules_today(token, labels.load(store_path), now_ms, reports_account)],
         "rules_today_at_ms": now_ms,
         "not_public": list(SWEAT_HOT_NOT_PUBLIC),
         "standard": INCIDENT_STANDARD,
@@ -786,11 +790,11 @@ def readme_text(store_path=labels.STORE_PATH, raw_dir=RAW_DIR):
             key = (source["content_sha256"], source["url"], source["fetched_at"])
             cited[key] = cited.get(key, 0) + 1
     files = {hashlib.sha256(path.read_bytes()).hexdigest(): path.name
-             for path in sorted(Path(raw_dir).iterdir()) if path.is_file()}
+             for path in sorted(Path(raw_dir).iterdir()) if path.is_file() and path.name != "NOTICE.md"}
     lines = [
         "# Seed snapshots",
         "",
-        ("Each file under `raw/` is the body a source returned, stored byte for byte and named with its "
+        ("Each source snapshot under `raw/` is the body a source returned, stored byte for byte and named with its "
          "fetch time in UTC. The label rows cite each snapshot by its full sha256, which is shortened "
          "here to its first and last four hex characters. `python -m intel seed <source>` rewrites this "
          "file, and `tests/test_labels.py` checks it against the snapshots and the rows."),

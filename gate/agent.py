@@ -29,7 +29,7 @@ import time
 from pathlib import Path
 
 from gate import base58, canon, rpc, rules, signer, verdict
-from intel import labels
+from intel import alerts, labels
 
 GAS = 30 * 10**12
 EXPLORER_URL = "https://testnet.nearblocks.io/txns/"
@@ -188,23 +188,32 @@ def _write(agent, name, document, out):
     return path
 
 
-def read_policy(agent):
+def read_policy_views(client, gate, public_key):
     """The agent policy and Gate transfer settings from their read-only views."""
-    policy = agent.clients[0].call_function(agent.gate, "get_agent", {"public_key": agent.public_key})
+    policy = client.call_function(gate, "get_agent", {"public_key": public_key})
     if policy is None:
-        raise AgentError(f"the agent key {agent.public_key} is not registered on {agent.gate}")
-    gate_policy = agent.clients[0].call_function(agent.gate, "get_policy", {})
+        return None
+    gate_policy = client.call_function(gate, "get_policy", {})
     return {**policy, "gate_paused": gate_policy["paused"], "gate_denylist": gate_policy["denylist"]}
 
 
-def _judge(agent, request, verdict_signer, out, policy=None):
+def read_policy(agent):
+    """The agent policy and Gate transfer settings from their read-only views."""
+    policy = read_policy_views(agent.clients[0], agent.gate, agent.public_key)
+    if policy is None:
+        raise AgentError(f"the agent key {agent.public_key} is not registered on {agent.gate}")
+    return policy
+
+
+def _judge(agent, request, verdict_signer, out, policy=None, sign_actions=None, reports_account=None):
     """The verdict service's answer for the request: gate.verdict.request with the agent's policy."""
     client, nearblocks, scanner, archival = agent.clients
+    options = {} if sign_actions is None else {"sign_actions": sign_actions}
     result = verdict.request(request["kind"], request["token_id"], request["receiver_id"], request["amount"],
                              request["memo"], gate=agent.gate, agent_pk_hex=agent.public_hex,
                              policy=read_policy(agent) if policy is None else policy, store=labels.load(), rpc=client,
-                             nearblocks=nearblocks,
-                             signer=verdict_signer, injection_scanner=scanner, archival=archival)
+                             nearblocks=nearblocks, signer=verdict_signer, injection_scanner=scanner,
+                             archival=archival, reports_account=reports_account, **options)
     for check in result["checks"]:
         out(f"{check['status']:<7} {check['id']}: {check['detail']}")
     out(f"verdict: {result['outcome']}")
@@ -215,9 +224,10 @@ def _judge(agent, request, verdict_signer, out, policy=None):
     return result
 
 
-def _allow(agent, request, out):
+def _allow(agent, request, out, reports_account=None):
     """A signed ALLOW for the request from the service, or AgentError naming the outcome."""
-    result = _judge(agent, request, agent.verifier(), out)
+    result = _judge(agent, request, agent.verifier(), out, sign_actions=("sign", "ask"),
+                    reports_account=reports_account)
     if result["outcome"] != "ALLOW":
         raise AgentError(f"the verdict is {result['outcome']}, not ALLOW; nothing was sent")
     return result["verdict"]
@@ -272,7 +282,7 @@ def _signed_allow(verdict_object):
             and bool(_SIGNATURE.fullmatch(signature)))
 
 
-def pay(agent, request, verdict_file=None, out=print):
+def pay(agent, request, verdict_file=None, out=print, reports_account=None):
     """Submit request_transfer with the service's signed ALLOW; 0 when the transaction succeeded."""
     policy = None
     result = None
@@ -283,8 +293,20 @@ def pay(agent, request, verdict_file=None, out=print):
         out(f"verdict file {verdict_file}: {outcome}, evidence {evidence_hash}")
     else:
         policy = read_policy(agent)
-        result = _judge(agent, request, agent.verifier(), out, policy=policy)
+        result = _judge(agent, request, agent.verifier(), out, policy=policy, reports_account=reports_account)
         verdict_object, outcome, evidence_hash = result["verdict"], result["outcome"], result["evidence_hash"]
+    if outcome in ("DENY", "UNKNOWN") and isinstance(evidence_hash, str) and _HEX64.fullmatch(evidence_hash):
+        severity = "critical" if outcome == "DENY" else "warn"
+        if result is None:
+            detail = f"The verdict file answered {outcome}."
+        elif outcome == "DENY":
+            detail = "; ".join(result["reasons"]) or "The verdict service refused the payment."
+        else:
+            detail = "; ".join(result["ask"]) or "The verdict service asks for human review."
+        alert = alerts.Alert("payment", severity, request["receiver_id"], evidence_hash,
+                             "Payment denied" if outcome == "DENY" else "Payment needs review", detail,
+                             evidence_hash, int(agent.clock() * 1000))
+        alerts.send(alert, alerts.configured_sinks())
     if result and result["action"] == "ask":
         if outcome == "ALLOW":
             out("not sent: the verdict is ALLOW, and the Gate refuses this transfer as it stands")
@@ -360,11 +382,11 @@ def _attack_transfer(agent, request, verdict_object):
     return action(agent.gate, "request_transfer", {"request": request, "verdict": verdict_object})
 
 
-def _attack_actions(name, agent, request, out):
+def _attack_actions(name, agent, request, out, reports_account=None):
     """(the actions to send, notes for the record) for one attack."""
     now_ms = int(agent.clock() * 1000)
     if name == "injected":
-        result = _judge(agent, request, agent.verifier(), out)
+        result = _judge(agent, request, agent.verifier(), out, reports_account=reports_account)
         if result["outcome"] != "DENY":
             outcome = result["outcome"]
             raise AgentError(f"the verdict service answered {outcome} for the injected request, not DENY; "
@@ -378,7 +400,7 @@ def _attack_actions(name, agent, request, out):
         forged = _attack_signer(agent, name, request, signer.TestSigner(), now_ms, now_ms + verdict.DEFAULT_TTL_MS)
         return [_attack_transfer(agent, request, forged)], ["signed with the TEST key, which the Gate does not trust"]
     if name == "replay":
-        allow = _allow(agent, request, out)
+        allow = _allow(agent, request, out, reports_account)
         return [_attack_transfer(agent, request, allow), _attack_transfer(agent, request, allow)], [
             "one ALLOW sent twice; the first send is a real payment, the second must be refused"]
     if name == "expired":
@@ -386,7 +408,7 @@ def _attack_actions(name, agent, request, out):
         old = _attack_signer(agent, name, request, agent.verifier(), expires_ms - verdict.DEFAULT_TTL_MS, expires_ms)
         return [_attack_transfer(agent, request, old)], ["signed with the live key, expired a day ago"]
     if name in ("over-cap", "unknown-payee", "one-yocto"):
-        sent = _attack_transfer(agent, request, _allow(agent, request, out))
+        sent = _attack_transfer(agent, request, _allow(agent, request, out, reports_account))
         if name == "one-yocto":
             sent["deposit"] = 1
         return [sent], []
@@ -409,10 +431,10 @@ def _attack_actions(name, agent, request, out):
     raise AgentError(f"no attack {name!r}; the attacks are {', '.join(ATTACKS)}")
 
 
-def attack(name, agent, request, out=print):
+def attack(name, agent, request, out=print, reports_account=None):
     """Send one attack, print each answer and write <out>/<name>.json; 0 when every send was refused."""
     out(f"attack {name}: a simulation the Gate or the protocol must refuse")
-    sends, notes = _attack_actions(name, agent, request, out)
+    sends, notes = _attack_actions(name, agent, request, out, reports_account)
     records = [_submit(agent, sent, out) for sent in sends]
     checked = records[1:] if name == "replay" else records
     refused = not any(_succeeded(record["outcome"]) for record in checked)

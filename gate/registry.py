@@ -4,9 +4,10 @@ A verdict file is what python -m gate verdict writes: the Verdict object on ALLO
 {literal, evidence_hash} for an unsigned DENY or UNKNOWN. The record's subject, kind and block
 come from the evidence document the file names, which must hash to its name. The shape is the
 registry interface: {"records": [{subject, verdict: Allow | Deny | Unknown, evidence_hash,
-observed_block, verdict_id}]}, at most 29 records per call. An unsigned verdict has no verdict id,
-so its record uses the first 32 hex of the evidence hash. An intents verdict judges an EVM
-recipient and is a preflight; the registry records NEAR accounts only, so it is refused.
+observed_block, verdict_id}]}, at most 29 records per call. A signed ALLOW uses its real verdict
+id; an unsigned DENY or UNKNOWN uses the first 32 hex of the evidence hash. An ALLOW passed to a
+human is not a decision and is refused. An intents verdict judges an EVM recipient and is a
+preflight; the registry records NEAR accounts only, so it is refused.
 """
 
 import json
@@ -58,6 +59,8 @@ def record_input(verdict_path, evidence_dir, observed_block=None):
     note = None
     if verdict["literal"] == "ALLOW":
         verdict_id = verdict.get("verdict_id")
+        if verdict_id is None:
+            raise RegistryError("an ALLOW passed to a human is not recorded; record the human's decision instead")
         if verdict_id != document["verdict_id"]:
             raise RegistryError(f"{verdict_path}: verdict_id differs from the evidence verdict_id")
     else:

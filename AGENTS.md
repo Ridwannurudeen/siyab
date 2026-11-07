@@ -10,7 +10,7 @@ Every label has a source. Every verdict has evidence. Unknown never passes. A ve
 
 ## Test
 
-Run from the repository root. Set `CARGO_TARGET_DIR` to a directory outside the repository on every cargo command (for example `$HOME/target/shieldbot-near`), except `cargo near build reproducible-wasm`, which needs it unset: its container writes `target/near` inside the crate (`res/BUILD.md`).
+Run from the repository root. Set `CARGO_TARGET_DIR` to a directory outside the repository on every cargo command (for example `$HOME/target/shieldbot-near`), except `cargo near build reproducible-wasm`, which needs it unset: its container writes `target/near` inside the crate (`res/BUILD-gate.md`).
 
 ```
 python -m unittest discover -s tests -v                       # offline
@@ -22,7 +22,7 @@ cd contracts/<crate> && cargo test --test sandbox             # network, Linux o
 cd contracts/<crate> && cargo near build reproducible-wasm    # network, Docker
 ```
 
-`<crate>` is `gate`, `registry` or `test-token` (`test-token` has no sandbox test). Both contract crates carry the reproducible build metadata; `res/BUILD.md` has the source commit and the recipe. The PyNaCl and py-near cross checks run with `~/.venvs/near/bin/python` in place of `python` and skip without it: the py-near checks print a `skipped:` line, the PyNaCl checks show their reason with `-v`.
+`<crate>` is `gate`, `registry` or `test-token` (`test-token` has no sandbox test). Both contract crates carry the reproducible build metadata; each crate's `res/BUILD-<crate>.md` has its source commit, its deploy and the recipe. The PyNaCl and py-near cross checks run with `~/.venvs/near/bin/python` in place of `python` and skip without it: the py-near checks print a `skipped:` line, the PyNaCl checks show their reason with `-v`.
 
 ## Run
 
@@ -79,7 +79,7 @@ Testnet script variables:
 - `OWNER_ACCOUNT_ID`: account authorized to configure the Gate and registry.
 - `VENDOR_ACCOUNT_ID`: account used for the vendor payment path.
 - `AGED_PAYEE_ACCOUNT_ID`: account used for the aged payee path.
-- `ATTACKER_ACCOUNT_ID`: account used to fund a lookalike receiver.
+- `COUNTERPARTY_ACCOUNT_ID`: our demo counterparty account, used to fund a lookalike receiver.
 - `NEAR_KEYS_DIR`: directory for external account key files.
 - `COLD_ACCOUNT_ID`: account `kill_switch.sh` moves the Gate's token balance to; must be storage registered on the token.
 - `VERIFIER_PUB`: public verifier key passed to the Gate initializer.

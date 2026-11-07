@@ -1,6 +1,7 @@
 import contextlib
 import hashlib
 import io
+import re
 import unittest
 from pathlib import Path
 
@@ -8,6 +9,8 @@ from gate import __main__ as gate_main
 
 ROOT = Path(__file__).resolve().parent.parent
 RES = ROOT / "res"
+CRATES = ("gate", "registry", "reports")
+COMMIT = re.compile(r"[0-9a-f]{40}")
 CONTRACT_EXPORTS = {
     "gate.wasm": [
         "__contract_abi",
@@ -19,6 +22,7 @@ CONTRACT_EXPORTS = {
         "is_verdict_used",
         "new",
         "on_transfer",
+        "prune_used",
         "register_agent",
         "request_transfer",
         "revoke_agent",
@@ -29,6 +33,7 @@ CONTRACT_EXPORTS = {
         "set_max_ttl",
         "set_paused",
         "set_verifier_keys",
+        "used_verdicts",
         "version",
         "withdraw",
     ],
@@ -49,18 +54,121 @@ CONTRACT_EXPORTS = {
         "total_subjects",
         "version",
     ],
+    "reports.wasm": [
+        "__contract_abi",
+        "contract_source_metadata",
+        "dispute",
+        "get_dispute",
+        "get_report",
+        "moderate",
+        "new",
+        "publisher_stats",
+        "reports_by_subject",
+        "reports_by_submitter",
+        "resolve_dispute",
+        "set_moderators",
+        "state_version",
+        "subject_summary",
+        "submit_report",
+        "totals",
+        "version",
+        "withdraw",
+    ],
 }
 
 
+def artifact_state(record, wasm_present):
+    """The state a build record and the presence of its wasm describe: "built" for a 40 hex source
+    commit with the wasm in res/, "unbuilt" for a TBD source commit with no wasm. Any other
+    combination raises AssertionError."""
+    lines = [line for line in record.splitlines() if line.startswith("Source commit: ")]
+    if len(lines) != 1:
+        raise AssertionError(f"expected one Source commit line, found {len(lines)}")
+    deployed = [line for line in record.splitlines() if line.startswith("Deployed: ")]
+    if len(deployed) != 1:
+        raise AssertionError("expected one Deployed line")
+    commit = lines[0].removeprefix("Source commit: ")
+    if deployed[0] != "Deployed: not deployed" and not COMMIT.fullmatch(commit):
+        raise AssertionError("a deployed or pending crate must record its source commit")
+    if COMMIT.fullmatch(commit):
+        if not wasm_present:
+            raise AssertionError(f"source commit {commit} is recorded but the wasm is absent")
+        return "built"
+    if commit.startswith("TBD"):
+        if wasm_present:
+            raise AssertionError("the source commit is TBD but the wasm is present")
+        return "unbuilt"
+    raise AssertionError(f"the source commit is neither 40 hex nor TBD: {commit!r}")
+
+
 class WasmArtifactsTest(unittest.TestCase):
+    def test_each_crate_is_built_or_unbuilt_with_matching_files(self):
+        for crate in CRATES:
+            with self.subTest(crate=crate):
+                wasm_path = RES / f"{crate}.wasm"
+                record = (RES / f"BUILD-{crate}.md").read_text(encoding="utf-8")
+                state = artifact_state(record, wasm_path.exists())
+                if state == "built":
+                    self.assertTrue((RES / f"{crate}.wasm.sha256").exists())
+                else:
+                    self.assertFalse((RES / f"{crate}.wasm.sha256").exists())
+
+    def test_mismatched_record_and_wasm_states_are_refused(self):
+        commit = "Source commit: " + "a" * 40 + "\n\nDeployed: pending\n"
+        tbd = "Source commit: TBD by the orchestrator at deploy\n\nDeployed: not deployed\n"
+        self.assertEqual(artifact_state(commit, True), "built")
+        self.assertEqual(artifact_state(tbd, False), "unbuilt")
+        with self.assertRaisesRegex(AssertionError, "wasm is absent"):
+            artifact_state(commit, False)
+        with self.assertRaisesRegex(AssertionError, "TBD but the wasm is present"):
+            artifact_state(tbd, True)
+        with self.assertRaisesRegex(AssertionError, "one Source commit line"):
+            artifact_state(commit + commit, True)
+        with self.assertRaisesRegex(AssertionError, "one Deployed line"):
+            artifact_state("Source commit: " + "a" * 40 + "\n", True)
+        with self.assertRaisesRegex(AssertionError, "must record its source commit"):
+            artifact_state("Source commit: eb54c8e\nDeployed: pending\n", True)
+        with self.assertRaisesRegex(AssertionError, "must record its source commit"):
+            artifact_state("Source commit: TBD\n\nDeployed: 2 Nov, code_hash MATCH\n", False)
+        with self.assertRaisesRegex(AssertionError, "neither 40 hex nor TBD"):
+            artifact_state("Source commit: eb54c8e\nDeployed: not deployed\n", True)
+
     def test_sha256_files_match_the_wasm_bytes(self):
         for filename in CONTRACT_EXPORTS:
             wasm_path = RES / filename
+            if not wasm_path.exists():
+                continue
             expected = f"{hashlib.sha256(wasm_path.read_bytes()).hexdigest()}  res/{filename}\n"
             self.assertEqual((RES / f"{filename}.sha256").read_text(encoding="ascii"), expected)
 
+    def test_current_and_previous_artifacts_match_their_build_record(self):
+        for crate, title in (("gate", "Gate"), ("reports", "Reports")):
+            record = (RES / f"BUILD-{crate}.md").read_text(encoding="utf-8")
+            for label, path, sha_name in (
+                (f"{title} wasm", RES / f"{crate}.wasm", f"res/{crate}.wasm"),
+                (f"Previous {crate} wasm", RES / "previous" / f"{crate}.wasm", f"res/previous/{crate}.wasm"),
+            ):
+                with self.subTest(label=label):
+                    data = path.read_bytes()
+                    digest = hashlib.sha256(data).hexdigest()
+                    recorded = re.search(
+                        rf"^- {label}: (\d+) bytes; sha256 `([0-9a-f]{{8}})\.\.\.([0-9a-f]{{8}})`",
+                        record,
+                        re.MULTILINE,
+                    )
+                    self.assertIsNotNone(recorded)
+                    self.assertEqual(len(data), int(recorded.group(1)))
+                    self.assertTrue(digest.startswith(recorded.group(2)))
+                    self.assertTrue(digest.endswith(recorded.group(3)))
+                    self.assertEqual(
+                        path.with_name(path.name + ".sha256").read_text(encoding="ascii"),
+                        f"{digest}  {sha_name}\n",
+                    )
+
     def test_exported_functions_match_each_contract_method_table(self):
         for filename, expected in CONTRACT_EXPORTS.items():
+            if not (RES / filename).exists():
+                continue
             output = io.StringIO()
             with contextlib.redirect_stdout(output):
                 result = gate_main.main(["wasm-exports", str(RES / filename)])

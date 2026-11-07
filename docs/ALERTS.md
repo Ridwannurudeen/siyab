@@ -1,0 +1,19 @@
+# Alerts library
+
+`intel.alerts` provides immutable `Alert` values, a JSON stdout sink, a signed HTTPS webhook sink, and a receiver-side signature verifier. It uses only the Python standard library. The feed sends an alert for each new event, and `gate pay` sends one for a DENY or a human ask on UNKNOWN.
+
+An alert has `source`, `severity`, `subject`, `ref`, `title`, `detail`, `evidence_sha256`, and `created_ms` fields. Severity is `info`, `warn`, or `critical`. Its dedupe key is `(source, subject, ref)`.
+
+`WebhookSink(url, secret_path)` accepts HTTPS URLs only and builds a urllib opener with a redirect handler that raises. It sends compact UTF-8 JSON with a five second timeout and rejects payloads above 16 KiB. The `X-ShieldBot-Signature` header has the form `t=<unix seconds>,v1=<hex HMAC-SHA256>`. The HMAC covers the ASCII timestamp, a period, and the exact request body bytes. The secret file is read when `send` runs; surrounding whitespace is stripped.
+
+`verify(signature_header, body, secret, now, window_s=300)` checks the same HMAC and rejects timestamps more than 300 seconds before or after `now` by default. Pass the body bytes and secret bytes used by the receiver.
+
+Webhook delivery makes at most three attempts. Failed attempts wait one second and then two seconds before the next attempt. The backoff callable can be injected into `WebhookSink` for offline tests. Each attempt appends one JSON line to the delivery log. The default path is `~/.shieldbot/alert-deliveries.jsonl`; pass `log_path` to select another path. Entries record only the HTTPS origin, attempt number, timestamp, status, result, and exception class. They omit the secret, payload, and URL query string.
+
+`send(alert, sinks)` calls each sink and returns one result per sink. A sink exception is returned as a failed result and does not escape the helper. `StdoutSink` writes one JSON alert per call.
+
+Alerts are off by default. To enable webhook delivery, set `SHIELDBOT_ALERT_URL_FILE` to a file containing one HTTPS URL on one line, and set `SHIELDBOT_ALERT_SECRET_FILE` to the file holding the signing secret. The secret is read when an alert is sent. If the URL file is missing, unreadable, or does not contain one valid HTTPS URL, no webhook sink is built. With only `SHIELDBOT_ALERT_STDOUT=1` set, alerts go to `StdoutSink`; this is intended for local use.
+
+Feed alerts use source `feed`, severity `warn`, the event subject and signal, the event detail, the evidence document's sha256, and the event timestamp. Replaying a block height does not create another alert, and the large transfer poll asks non-overlapping time windows. Payment alerts use source `payment`, severity `critical` for DENY and `warn` for UNKNOWN when it asks a human; each carries the verdict evidence hash. They are sent after the verdict is final. Sink failures are logged and returned by `send`; they do not change the verdict or `gate pay` exit code.
+
+Set `SHIELDBOT_ALERT_SECRET_FILE` for the webhook secret, then run `python -m intel alert-test --url https://alerts.example.test/hook` to send one test alert.

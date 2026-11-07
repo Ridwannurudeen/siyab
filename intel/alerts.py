@@ -1,0 +1,236 @@
+"""Local alert values and standard library delivery sinks."""
+
+from dataclasses import asdict, dataclass
+import hashlib
+import hmac
+import json
+import logging
+import math
+import os
+from pathlib import Path
+import re
+import sys
+import threading
+import time
+from urllib.error import HTTPError
+from urllib.parse import urlsplit
+from urllib.request import HTTPRedirectHandler, Request, build_opener
+
+
+MAX_PAYLOAD_BYTES = 16 * 1024
+MAX_ATTEMPTS = 3
+TIMEOUT_S = 5
+SIGNATURE_WINDOW_S = 300
+_SIGNATURE = re.compile(r"t=([0-9]+),v1=([0-9a-f]{64})")
+_STDOUT_LOCK = threading.Lock()
+_LOG = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class Alert:
+    source: str
+    severity: str
+    subject: str
+    ref: str
+    title: str
+    detail: str
+    evidence_sha256: str
+    created_ms: int
+
+    def __post_init__(self):
+        if self.severity not in {"info", "warn", "critical"}:
+            raise ValueError("severity must be info, warn or critical")
+
+    @property
+    def dedupe_key(self):
+        return self.source, self.subject, self.ref
+
+
+class _NoRedirectHandler(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise HTTPError(req.full_url, code, "redirects are not followed", headers, fp)
+
+
+def _body(alert):
+    return json.dumps(asdict(alert), ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+
+
+def _signature(timestamp, body, secret):
+    signed = str(timestamp).encode("ascii") + b"." + body
+    digest = hmac.new(secret, signed, hashlib.sha256).hexdigest()
+    return f"t={timestamp},v1={digest}"
+
+
+def verify(signature_header, body, secret, now, window_s=SIGNATURE_WINDOW_S):
+    if not isinstance(signature_header, str) or not isinstance(body, bytes):
+        return False
+    if isinstance(secret, str):
+        try:
+            secret = secret.encode("utf-8")
+        except UnicodeEncodeError:
+            return False
+    if not isinstance(secret, bytes):
+        return False
+    if isinstance(now, bool) or not isinstance(now, (int, float)):
+        return False
+    if isinstance(window_s, bool) or not isinstance(window_s, (int, float)):
+        return False
+    try:
+        now_s = float(now)
+        window = float(window_s)
+    except OverflowError:
+        return False
+    if not math.isfinite(now_s) or not math.isfinite(window) or window < 0:
+        return False
+    match = _SIGNATURE.fullmatch(signature_header)
+    if match is None:
+        return False
+    try:
+        timestamp = int(match.group(1))
+    except ValueError:
+        return False
+    if abs(now_s - timestamp) > window:
+        return False
+    expected = _signature(timestamp, body, secret).partition(",v1=")[2]
+    return hmac.compare_digest(match.group(2), expected)
+
+
+class WebhookSink:
+    def __init__(self, url, secret_path, *, log_path=None, opener=None, backoff=time.sleep, clock=time.time):
+        parsed = urlsplit(url)
+        if (parsed.scheme.lower() != "https" or not parsed.hostname or parsed.username is not None
+                or parsed.password is not None):
+            raise ValueError("webhook URL must be HTTPS and must not include credentials")
+        self.url = url
+        self.secret_path = Path(secret_path)
+        self.log_path = Path(log_path) if log_path is not None else Path.home() / ".shieldbot" / "alert-deliveries.jsonl"
+        self.opener = opener if opener is not None else build_opener(_NoRedirectHandler())
+        self.backoff = backoff
+        self.clock = clock
+        hostname = parsed.hostname
+        if ":" in hostname:
+            hostname = f"[{hostname}]"
+        port = parsed.port
+        self.endpoint = f"https://{hostname}" + (f":{port}" if port is not None and port != 443 else "")
+        self._log_lock = threading.Lock()
+
+    def _log_attempt(self, attempt, ok, status, error):
+        entry = {
+            "timestamp": int(self.clock()),
+            "endpoint": self.endpoint,
+            "attempt": attempt,
+            "ok": ok,
+            "status": status,
+            "error": error,
+        }
+        line = json.dumps(entry, separators=(",", ":"), ensure_ascii=True) + "\n"
+        self.log_path.parent.mkdir(parents=True, exist_ok=True)
+        with self._log_lock, self.log_path.open("a", encoding="utf-8") as handle:
+            handle.write(line)
+
+    def send(self, alert):
+        body = _body(alert)
+        if len(body) > MAX_PAYLOAD_BYTES:
+            return {"ok": False, "attempts": 0, "error": "payload_too_large"}
+        try:
+            secret = self.secret_path.read_bytes().strip()
+        except OSError:
+            return {"ok": False, "attempts": 0, "error": "secret_unavailable"}
+        if not secret:
+            return {"ok": False, "attempts": 0, "error": "secret_unavailable"}
+
+        timestamp = int(self.clock())
+        request = Request(
+            self.url,
+            data=body,
+            method="POST",
+            headers={
+                "Content-Type": "application/json",
+                "X-ShieldBot-Signature": _signature(timestamp, body, secret),
+            },
+        )
+        for attempt in range(1, MAX_ATTEMPTS + 1):
+            response = None
+            status = None
+            error = None
+            try:
+                response = self.opener.open(request, timeout=TIMEOUT_S)
+                status = getattr(response, "status", None)
+                if status is None:
+                    status = response.getcode()
+                if not 200 <= status < 300:
+                    raise HTTPError(self.url, status, "webhook returned a non-success status", None, None)
+            except Exception as exception:
+                status = getattr(exception, "code", status)
+                error = type(exception).__name__
+            finally:
+                if response is not None:
+                    response.close()
+
+            ok = error is None
+            self._log_attempt(attempt, ok, status, error)
+            if ok:
+                return {"ok": True, "attempts": attempt, "status": status}
+            if attempt < MAX_ATTEMPTS:
+                self.backoff(2 ** (attempt - 1))
+        return {"ok": False, "attempts": MAX_ATTEMPTS, "status": status, "error": error}
+
+
+class StdoutSink:
+    def __init__(self, stream=None):
+        self.stream = stream
+
+    def send(self, alert):
+        line = json.dumps(asdict(alert), ensure_ascii=False, separators=(",", ":"))
+        with _STDOUT_LOCK:
+            print(line, file=self.stream if self.stream is not None else sys.stdout)
+        return {"ok": True, "attempts": 1}
+
+
+def configured_sinks(environ=None):
+    environ = os.environ if environ is None else environ
+    url_file = environ.get("SHIELDBOT_ALERT_URL_FILE")
+    if url_file:
+        try:
+            url = Path(url_file).read_text(encoding="utf-8").strip()
+        except (OSError, UnicodeError, ValueError):
+            return []
+        secret_path = environ.get("SHIELDBOT_ALERT_SECRET_FILE")
+        if not url or "\n" in url or "\r" in url or not secret_path:
+            return []
+        try:
+            return [WebhookSink(url, secret_path)]
+        except ValueError:
+            return []
+    if environ.get("SHIELDBOT_ALERT_STDOUT") == "1":
+        return [StdoutSink()]
+    return []
+
+
+def send(alert, sinks):
+    results = []
+    try:
+        iterator = iter(sinks)
+    except Exception as error:
+        _LOG.warning("Alert sink list failed: %s", type(error).__name__)
+        return [{"sink": "sinks", "ok": False, "attempts": 0, "error": type(error).__name__}]
+    while True:
+        try:
+            sink = next(iterator)
+        except StopIteration:
+            return results
+        except Exception as error:
+            _LOG.warning("Alert sink list failed: %s", type(error).__name__)
+            results.append({"sink": "sinks", "ok": False, "attempts": 0, "error": type(error).__name__})
+            return results
+        name = type(sink).__name__
+        try:
+            outcome = sink.send(alert)
+            if not isinstance(outcome, dict):
+                raise TypeError("sink result must be a dictionary")
+            results.append({**outcome, "sink": name})
+            if not outcome.get("ok", False):
+                _LOG.warning("Alert sink %s failed: %s", name, outcome.get("error", "delivery_failed"))
+        except Exception as error:
+            _LOG.warning("Alert sink %s failed: %s", name, type(error).__name__)
+            results.append({"sink": name, "ok": False, "attempts": 0, "error": type(error).__name__})

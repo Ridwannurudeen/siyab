@@ -46,12 +46,13 @@ class VerdictCase(unittest.TestCase):
         self.store = labels.load()
 
     def request(self, kind="ft", token="wrap.near", receiver="intents.near", amount="1000", memo=None,
-                policy=ALLOW_POLICY, verdict_signer=None, ttl_ms=verdict.DEFAULT_TTL_MS):
+                policy=ALLOW_POLICY, verdict_signer=None, ttl_ms=verdict.DEFAULT_TTL_MS, sign_actions=None):
+        options = {} if sign_actions is None else {"sign_actions": sign_actions}
         return verdict.request(kind, token, receiver, amount, memo, gate="gate.near", agent_pk_hex=AGENT,
                                policy=policy, store=self.store, rpc=rpc.Client(rpc.MAINNET_RPC_URL, "replay"),
                                nearblocks=rpc.Client(rpc.NEARBLOCKS_URL, "replay", kind="http"),
                                signer=verdict_signer or signer.TestSigner(), ttl_ms=ttl_ms,
-                               evidence_dir=self.dir)
+                               evidence_dir=self.dir, **options)
 
 
 class AllowTest(VerdictCase):
@@ -107,21 +108,44 @@ class AllowTest(VerdictCase):
 
 
 class ActionTest(VerdictCase):
-    def request_allow(self, receiver, amount, policy, *, kind="ft", token="wrap.near"):
+    def request_allow(self, receiver, amount, policy, *, kind="ft", token="wrap.near", sign_actions=None):
         judgement = rules.Judgement(verdict="ALLOW", checks=[], reasons=[], labels=[], observed={})
         with mock.patch.object(rules, "judge", return_value=judgement):
-            return self.request(kind=kind, token=token, receiver=receiver, amount=amount, policy=policy)
+            return self.request(kind=kind, token=token, receiver=receiver, amount=amount, policy=policy,
+                                sign_actions=sign_actions)
 
     def test_an_allow_off_the_allowlist_over_the_unknown_cap_asks(self):
         policy = {"allowlist": ["intents.near"], "unknown_caps": [
             {"asset": {"Ft": "wrap.near"}, "per_call": "1000000"}]}
         result = self.request_allow("unapproved.near", "2000000", policy)
         self.assertEqual(result["outcome"], "ALLOW")
-        self.assertIsNotNone(result["verdict"]["signature"])
         self.assertEqual(result["action"], "ask")
+        self.assertIsNone(result["verdict"])
+        self.assertIsNone(result["message"])
+        document = json.loads(Path(result["evidence_path"]).read_bytes())
+        self.assertEqual([document[key] for key in ("issued_ms", "expires_ms", "verdict_id")], [None, None, None])
         self.assertEqual(len(result["ask"]), 1)
         self.assertTrue(result["ask"][0].endswith("(REFUSED:unknown_payee_cap)"))
         self.assertIn("1000000 per call", result["ask"][0])
+
+    def test_a_disabled_agent_with_an_allow_outcome_asks_without_signing(self):
+        result = self.request_allow("intents.near", "1000", {"allowlist": ["intents.near"], "enabled": False})
+        self.assertEqual((result["outcome"], result["action"]), ("ALLOW", "ask"))
+        self.assertIsNone(result["verdict"])
+        self.assertIsNone(result["message"])
+        self.assertTrue(result["ask"][0].endswith("(REFUSED:agent_disabled)"))
+        document = json.loads(Path(result["evidence_path"]).read_bytes())
+        self.assertEqual([document[key] for key in ("issued_ms", "expires_ms", "verdict_id")], [None, None, None])
+
+    def test_the_attack_signing_policy_can_sign_an_allow_with_action_ask(self):
+        policy = {"allowlist": ["intents.near"], "unknown_caps": [
+            {"asset": {"Ft": "wrap.near"}, "per_call": "999"}]}
+        result = self.request_allow("unapproved.near", "1000", policy, sign_actions=("sign", "ask"))
+        self.assertEqual(result["action"], "ask")
+        self.assertIsNotNone(result["verdict"]["signature"])
+        self.assertIsNotNone(result["message"])
+        document = json.loads(Path(result["evidence_path"]).read_bytes())
+        self.assertIsNotNone(document["verdict_id"])
 
     def test_an_allow_within_the_unknown_cap_signs(self):
         policy = {"allowlist": [], "unknown_caps": [
@@ -249,13 +273,16 @@ class ActionTest(VerdictCase):
         client = rpc.Client(rpc.MAINNET_RPC_URL, "replay")
         nearblocks = rpc.Client(rpc.NEARBLOCKS_URL, "replay", kind="http")
         common = {"caps": [{"asset": {"Ft": "wrap.near"}}]}
-        allowed = rules.judge(transfer, {**common, "allowlist": ["intents.near"]}, self.store, client, nearblocks,
-                              now_ms=1800000000000, injection_scanner=None)
-        unapproved = rules.judge(transfer, {**common, "allowlist": []}, self.store, client, nearblocks,
-                                 now_ms=1800000000000, injection_scanner=None)
+        with mock.patch.dict(os.environ):
+            os.environ.pop("REPORTS_ACCOUNT_ID", None)
+            allowed = rules.judge(transfer, {**common, "allowlist": ["intents.near"]}, self.store, client, nearblocks,
+                                  now_ms=1800000000000, injection_scanner=None)
+            unapproved = rules.judge(transfer, {**common, "allowlist": []}, self.store, client, nearblocks,
+                                     now_ms=1800000000000, injection_scanner=None)
         allowed_ids = {check["id"] for check in allowed.checks}
         unapproved_ids = {check["id"] for check in unapproved.checks}
         self.assertEqual(unapproved_ids - allowed_ids, set(rules.TIER2_CHECKS))
+        self.assertNotIn("pending_report", unapproved_ids)
 
 
 class NoSignatureTest(VerdictCase):

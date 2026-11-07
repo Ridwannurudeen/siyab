@@ -1,27 +1,29 @@
-"""docs/DEMO.md: the post text measured, the opening line the rules print, and the pitch sentence kept to it."""
+"""docs/DEMO.md: the post text measured, the line the attack shot quotes from the offline replay, and the pitch
+sentence kept to it."""
 
 import re
-import shutil
 import unittest
 from pathlib import Path
 from unittest import mock
 
-from gate import demo
+from gate import injected
 
 ROOT = Path(__file__).resolve().parent.parent
 DEMO_DOC = ROOT / "docs" / "DEMO.md"
-FIRST_LINE = ("Built at NEAR HACKATHON: security intelligence for NEAR with a source on every row. Who your agent pays "
-              "gets a verdict with evidence, the guard refuses the rest, on NEAR and at the bridge.")
+FIRST_LINE = "A poisoned invoice tells an AI agent to pay an account an exploit report names."
 URL_PLACEHOLDER = "<repo URL>"
 # The link weight and the length limit of the platform, both UNVERIFIED (docs/DEMO.md says so).
 URL_WEIGHT = 23
 LIMIT = 280
 PITCH = "security intelligence, the way the best EVM products do it, with the evidence on chain"
 POST = re.compile(r"<!-- post:start -->\n```\n(.*?)\n```\n<!-- post:end -->", re.DOTALL)
+# scripts/check_hygiene.py rejects a 64 character hex run in any .md under docs/, so the document quotes each run
+# shortened, as the README does.
+HEX64 = re.compile(r"[0-9a-fA-F]{64}")
 
 
 def no_network(*args, **kwargs):
-    raise AssertionError("the demo opened the network")
+    raise AssertionError("the replay opened the network")
 
 
 def post_text(document):
@@ -29,6 +31,12 @@ def post_text(document):
     if len(found) != 1:
         raise AssertionError(f"expected one post block, found {len(found)}")
     return found[0]
+
+
+def shortened(line):
+    """The line with every 64 character hex run cut to its leading eight characters, three dots and its trailing
+    eight."""
+    return HEX64.sub(lambda match: f"{match.group(0)[:8]}...{match.group(0)[-8:]}", line)
 
 
 class PostTest(unittest.TestCase):
@@ -39,7 +47,9 @@ class PostTest(unittest.TestCase):
     def test_the_post_starts_with_the_fixed_first_line_and_names_the_hackathon(self):
         self.assertTrue(self.post.startswith(FIRST_LINE + " "))
         self.assertIn("Built at NEAR HACKATHON", self.post)
-        self.assertIn("Track: AI Security & Defense.", self.post)
+        self.assertIn("@NEARProtocol", self.post)
+        self.assertIn("#NEARHackathon", self.post)
+        self.assertEqual(self.post.count("?"), 1)
         self.assertEqual(self.post.count(URL_PLACEHOLDER), 1)
         self.assertTrue(self.post.endswith(URL_PLACEHOLDER))
 
@@ -62,18 +72,16 @@ class PostTest(unittest.TestCase):
         self.assertIsNone(re.search(r"Shield(?!Bot)", self.post))
 
 
-class OpeningLineTest(unittest.TestCase):
-    def test_the_opening_line_is_the_line_the_offline_demo_prints_for_the_lookalike(self):
+class AttackShotTest(unittest.TestCase):
+    def test_the_attack_shot_quotes_the_line_the_offline_replay_prints(self):
         printed = []
         with mock.patch("urllib.request.urlopen", side_effect=no_network):
-            results = demo.run(out=printed.append)
-        self.addCleanup(shutil.rmtree, Path(results[0]["evidence_path"]).parent)
-        denied = [line.strip() for line in printed if line.strip().startswith(f"DENIED. {demo.LOOKALIKE} ")]
+            self.assertEqual(injected.run(out=printed.append), 0)
+        denied = [line.strip() for line in printed if line.strip().startswith("DENIED.")]
         self.assertEqual(len(denied), 1)
         document = DEMO_DOC.read_text(encoding="utf-8")
-        opening = document[document.index("### 1."):document.index("### 2.")]
-        self.assertIn("```\n" + denied[0] + "\n```", opening)
-        self.assertNotIn("deposit.", denied[0])
+        shot = document[document.index("### 4."):document.index("### 5.")]
+        self.assertIn("```\n" + shortened(denied[0]) + "\n```", shot)
 
 
 class PitchSentenceTest(unittest.TestCase):
