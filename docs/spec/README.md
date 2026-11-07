@@ -9,10 +9,11 @@ These pages specify the byte formats ShieldBot for NEAR writes and reads, so tha
 | [verdict-v1.md](verdict-v1.md) | the canonical verdict message, its Ed25519 signature and the Verdict object | 1 (prefix `GATEv1`) |
 | [registry-record-v1.md](registry-record-v1.md) | the registry's verdict record, label record and their NEP-297 events | 1 (events `1.0.0`) |
 | [report-v1.md](report-v1.md) | a community report, its body hash, its exact deposit, its state changes and moderation refusals, its events and the `subject_summary` view | 1 (events `1.0.0`) |
+| [snapshot-v1.md](snapshot-v1.md) | a label snapshot: the current label assertions a scope selects, with the store's sha256 and a content hash, for offline use, and what a consumer may infer from it | 1 (format `label-snapshot`) |
 
 ## Versioning
 
-Every format carries a version string in its own bytes: the evidence document's `version` key (`"1"`), the `GATEv1` prefix of the canonical message, the NEP-297 `version` (`1.0.0`) of the registry and reports events. The reports contract's `version()` and `state_version()` views name its crate and its stored state layout, not a format. A label assertion carries no version field; its version is this page set, and a change to its fields or its id rule is a new version.
+Every format carries a version string in its own bytes: the evidence document's `version` key (`"1"`), the `GATEv1` prefix of the canonical message, the NEP-297 `version` (`1.0.0`) of the registry and reports events. The reports contract's `version()` and `state_version()` views name its crate and its stored state layout, not a format. A label assertion carries no version field; its version is this page set, and a change to its fields or its id rule is a new version. A label snapshot carries `"format": "label-snapshot"` and `"version": "1"`.
 
 Each page states its version on a line that begins `Version: <n>`, such as `Version: 1`, optionally followed by the version string the bytes carry in parentheses. A change that would make a conformant implementation of the old page produce or accept different bytes is a breaking change: it gets a new version string and a new page (`evidence-v2.md` beside `evidence-v1.md`), and the old page stays, unchanged, for as long as any stored record uses it. A change that only clarifies wording, adds a vector or corrects a line reference keeps the version.
 
@@ -31,6 +32,7 @@ As of this commit, every format listed above is version 1. A change to any byte-
 | [verdict-v1.md](verdict-v1.md) | `tests/test_spec.py::VerdictTest.test_vectors_regenerate_and_verify`, `tests/test_spec.py::VerdictTest.test_worked_example_is_vector_04`, `tests/test_spec.py::VerdictTest.test_test_verifier_key_file` |
 | [registry-record-v1.md](registry-record-v1.md) | `tests/test_spec.py::RegistryRecordTest.test_sample_allow_verifies`, `tests/test_spec.py::RegistryRecordTest.test_testnet_records_check_against_their_evidence` |
 | [report-v1.md](report-v1.md) | `tests/test_spec.py::ReportTest.test_body_vector_reproduces`, `tests/test_spec.py::ReportTest.test_enumerations_match_the_canonical_json` |
+| [snapshot-v1.md](snapshot-v1.md) | `tests/test_spec.py::SnapshotTest.test_vectors_reproduce`, `tests/test_spec.py::SnapshotTest.test_the_vector_store_copies_store_lines_and_marks_the_rest_synthetic`, `tests/test_spec.py::SnapshotTest.test_worked_example_is_vector_1` |
 
 ## Conformance
 

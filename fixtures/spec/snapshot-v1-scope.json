@@ -1,0 +1,23 @@
+{
+  "name": "example wallet: every refusal row, and five accounts its users pay",
+  "select": [
+    {
+      "categories": [
+        "incident",
+        "denylist"
+      ]
+    },
+    {
+      "chains": [
+        "near"
+      ],
+      "subjects": [
+        "wrap.near",
+        "usdt.tether-token.near",
+        "intents.near",
+        "zec.omft.near",
+        "v2.ref-finance.near"
+      ]
+    }
+  ]
+}
