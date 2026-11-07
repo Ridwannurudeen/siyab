@@ -130,5 +130,5 @@ No fixture pins the events or the summary. They are pinned by the contract's uni
 
 ## Source of truth
 
-- `contracts/reports/src/lib.rs:195-204` the body; `:273-280` `submit_report`; `:676-686` `subject_summary`; `:708-713` the moderator membership check; `:715-720` the deposit check; `:840-857` the evidence checks; `:375-383`, `:546-591`, `:701-713` and `:807-812` the governance checks; `:248-258` the version views; `contracts/reports/src/events.rs` the event envelope.
+- `contracts/reports/src/lib.rs:195-204` the body; `:273-280` `submit_report`; `:676-686` `subject_summary`; `:708-713` the moderator membership check; `:715-720` the deposit check; `:840-846`, `:848-857` the evidence checks; `:375-383`, `:546-591`, `:701-706`, `:708-713` and `:807-812` the governance checks; `:248-250`, `:256-258` the version views; `contracts/reports/src/events.rs` the event envelope.
 - `docs/LADDER.md` the consumer rule.

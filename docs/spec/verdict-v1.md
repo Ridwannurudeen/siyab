@@ -26,7 +26,7 @@ GATEv1|<gate>|<agent_pk>|<kind>|<token>|<receiver>|<amount>|<memo>|<issued_ms>|<
 | 8 | `memo` | `-` when there is no memo; otherwise the sha256 of the memo's UTF-8 bytes as 64 lowercase hex. The empty memo is a memo and is hashed. | `gate/canon.py:59` |
 | 9 | `issued_ms` | milliseconds since the Unix epoch, an integer from 0 to 2^64 minus 1 in decimal without leading zeros | `gate/canon.py:72` |
 | 10 | `expires_ms` | the same form; not earlier than `issued_ms` | `gate/canon.py:98` |
-| 11 | `verdict_id` | 32 lowercase hex: 16 random bytes drawn for each signed ALLOW | `gate/verdict.py:92` |
+| 11 | `verdict_id` | 32 lowercase hex: 16 random bytes drawn for each signed ALLOW | `gate/verdict.py:109` |
 | 12 | `evidence_sha256` | 64 lowercase hex: the evidence hash (`evidence-v1.md`) | |
 | 13 | `key_id` | `cur` or `prev` | `gate/canon.py:24` |
 | 14 | `literal` | `ALLOW` | `gate/canon.py:22` |
@@ -46,7 +46,7 @@ digest    = sha256(message)                       32 bytes
 signature = Ed25519_sign(verifier key, digest)    64 bytes, written as 128 lowercase hex
 ```
 
-The signature is pure Ed25519 (RFC 8032 section 5.1) over the 32 byte digest; it is not Ed25519ph and the message is not signed directly (`gate/canon.py:132`, `contracts/gate/src/verdict.rs:90`). A verifier rebuilds the message, hashes it and checks the signature against the public key that `key_id` names.
+The signature is pure Ed25519 (RFC 8032 section 5.1) over the 32 byte digest; it is not Ed25519ph and the message is not signed directly (`gate/canon.py:132`, `contracts/gate/src/verdict.rs:94-95`). A verifier rebuilds the message, hashes it and checks the signature against the public key that `key_id` names.
 
 ## The Verdict object
 
@@ -72,7 +72,7 @@ The `request` argument is the TransferRequest `{"kind": "near" or "ft", "token_i
 
 ## What the Gate checks
 
-`contracts/gate/src/verdict.rs:53`, in this order, each failure refused as `REFUSED:<code>`: `not_allow` (the literal is not `ALLOW`); `expired` (`expires_ms` is not later than the block time, or is earlier than `issued_ms`); `issued_in_future` (`issued_ms` is more than 30000 ms ahead of the block time); `ttl_too_long` (`expires_ms - issued_ms` is above the Gate's `max_ttl_ms`, 300000 in the tests); `bad_key_id`; `bad_request` (`verdict_id`, `evidence_hash` or `signature` not lowercase hex of 16, 32 or 64 bytes); `bad_signature`. After the signature, a verdict id the Gate has already accepted is refused as `verdict_used` (`contracts/gate/src/lib.rs:183`).
+`contracts/gate/src/verdict.rs:53`, in this order, each failure refused as `REFUSED:<code>`: `not_allow` (the literal is not `ALLOW`); `expired` (`expires_ms` is not later than the block time, or is earlier than `issued_ms`); `issued_in_future` (`issued_ms` is more than 30000 ms ahead of the block time); `ttl_too_long` (`expires_ms - issued_ms` is above the Gate's `max_ttl_ms`, 300000 in the tests); `bad_key_id`; `bad_request` (`verdict_id`, `evidence_hash` or `signature` not lowercase hex of 16, 32 or 64 bytes); `bad_signature`. After the signature, a verdict id the Gate has already accepted is refused as `verdict_used` (`contracts/gate/src/lib.rs:208-210`).
 
 ## Worked example
 
@@ -99,4 +99,4 @@ Vector 07 has one signature bit flipped (`expect_valid` false); vector 08 is sig
 
 - `gate/canon.py:117` `canonical_message`; `:84` field validation; `:132` `digest`; `:137` `parse_canonical`; `:314` `build_vectors`.
 - `contracts/gate/src/verdict.rs:22` the contract's message; `:53` the contract's checks; `contracts/gate/src/types.rs:86` and `:96` the argument shapes.
-- `gate/ed25519.py:183` the TEST seeds; `gate/verdict.py:89` when a verdict is signed.
+- `gate/ed25519.py:183` the TEST seeds; `gate/verdict.py:106-109` when a verdict is signed.

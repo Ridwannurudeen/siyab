@@ -8,7 +8,7 @@ An evidence document records what the verdict service checked for one transfer, 
 
 ## Fields
 
-A document is a JSON object with exactly these 11 keys (`gate/evidence.py:50`), except the intents variant below, which has a twelfth.
+A document is a JSON object with exactly these 11 keys (`gate/evidence.py:50-67`), except the intents variant below, which has a twelfth.
 
 | Key | JSON type | Content |
 |---|---|---|
@@ -18,17 +18,17 @@ A document is a JSON object with exactly these 11 keys (`gate/evidence.py:50`), 
 | `labels` | array of strings | the ids of the label assertions the rules consulted (`label-assertion-v1.md`) |
 | `verdict` | string | `ALLOW`, `DENY` or `UNKNOWN` |
 | `reasons` | array of strings | the reasons for the verdict, in ShieldBot's words |
-| `observed` | object | `{"block_height": integer or null, "timestamp_ms": integer or null}`: the chain state the checks read (`gate/rules.py:680`) |
+| `observed` | object | `{"block_height": integer or null, "timestamp_ms": integer or null}`: the chain state the checks read (`gate/rules.py:737`) |
 | `issued_ms` | integer or null | milliseconds since the Unix epoch |
 | `expires_ms` | integer or null | milliseconds since the Unix epoch |
 | `verdict_id` | string or null | 32 lowercase hex |
-| `latency_ms` | integer or null | the time the judgement took, measured with a monotonic clock (`gate/verdict.py:93`) |
+| `latency_ms` | integer or null | the time the judgement took, measured with a monotonic clock (`gate/verdict.py:110`) |
 
-`issued_ms`, `expires_ms` and `verdict_id` are set only when the outcome is ALLOW and the service signs it; they are null on DENY, on UNKNOWN and on an ALLOW the service passes to a human instead of signing (`gate/verdict.py:89`). A document with these three set is the document of a signed verdict, and the same three values are in the signed message.
+`issued_ms`, `expires_ms` and `verdict_id` are set only when the outcome is ALLOW and the service signs it; they are null on DENY, on UNKNOWN and on an ALLOW the service passes to a human instead of signing (`gate/verdict.py:106-109`). A document with these three set is the document of a signed verdict, and the same three values are in the signed message.
 
 ### The subject block (kinds `near` and `ft`)
 
-`gate/evidence.py:30`. The service validates the transfer with `gate.canon.validate_transfer` before it builds the block (`gate/verdict.py:80`), so every value is already in canonical form.
+`gate/evidence.py:30-40`. The service validates the transfer with `gate.canon.validate_transfer` before it builds the block (`gate/verdict.py:96-97`), so every value is already in canonical form.
 
 | Key | JSON type | Content |
 |---|---|---|
@@ -42,30 +42,30 @@ A document is a JSON object with exactly these 11 keys (`gate/evidence.py:50`), 
 
 ### The intents variant
 
-An EVM leg preflight (`gate/intents.py:254`) writes a document whose `subject` is `{"kind": "intents", "origin_asset", "destination_asset", "amount", "recipient", "recipient_type", "quote"}`, where `quote` is `{"correlation_id", "timestamp", "amount_out", "min_amount_out"}` from the dry quote answer, or null when no quote was read (`gate/intents.py:187`), and which has a twelfth top level key, `"kind": "intents"`. It is never signed: `issued_ms`, `expires_ms`, `verdict_id`, `latency_ms` and `observed.block_height` are null, and `labels` is empty. The registry refuses to record it (`gate/registry.py:49-51`). No committed vector pins this variant.
+An EVM leg preflight (`gate/intents.py:254-260`) writes a document whose `subject` is `{"kind": "intents", "origin_asset", "destination_asset", "amount", "recipient", "recipient_type", "quote"}`, where `quote` is `{"correlation_id", "timestamp", "amount_out", "min_amount_out"}` from the dry quote answer, or null when no quote was read (`gate/intents.py:187-189`), and which has a twelfth top level key, `"kind": "intents"`. It is never signed: `issued_ms`, `expires_ms`, `verdict_id`, `latency_ms` and `observed.block_height` are null, and `labels` is empty. The registry refuses to record it (`gate/registry.py:49-51`). No committed vector pins this variant.
 
 ### A check
 
-`gate/evidence.py:43`. A check is an object with exactly four keys.
+`gate/evidence.py:43-47`. A check is an object with exactly four keys.
 
 | Key | JSON type | Content |
 |---|---|---|
 | `id` | string | the check's name, such as `receiver_exists`, `label_denylist`, `token_in_catalog`, `ft_metadata_sane`, `storage_registered`, `memo_injection`, `issuer_blacklist`, `account_age`, `dust_funded`, `lookalike`, `code_without_metadata`, or for the intents variant `quote_dry`, `destination_supported`, `recipient_theft_label`, `recipient_code`. The list is the code's current set, not a closed enumeration: a reader must accept an id it does not know. |
-| `status` | string | `pass`, `signal` or `unknown`; any other value is refused (`gate/evidence.py:27`, `:45`) |
+| `status` | string | `pass`, `signal` or `unknown`; any other value is refused (`gate/evidence.py:27`, `:45-47`) |
 | `detail` | string | what the check found, in ShieldBot's words; third party strings appear inside double quotes |
 | `source` | object | `{"provider": string, "request_sha256": string or null, "fetched_at": string or null}` |
 
-In `source`, `provider` names where the answer came from (an RPC host, `label store`, `local patterns`, `local rules`); `request_sha256` is the 64 hex key of the recorded request (`gate/rpc.py:11`) or the sha256 of the label store file, and null for a local rule; `fetched_at` is the UTC time `YYYY-MM-DDTHH:MM:SSZ` the response was fetched, or null when nothing was fetched (`gate/rpc.py:265`, `gate/rules.py:109`).
+In `source`, `provider` names where the answer came from (an RPC host, `label store`, `local patterns`, `local rules`); `request_sha256` is the 64 hex key of the recorded request (`gate/rpc.py:101-104`) or the sha256 of the label store file, and null for a local rule; `fetched_at` is the UTC time `YYYY-MM-DDTHH:MM:SSZ` the response was fetched, or null when nothing was fetched (`gate/rpc.py:305-306`, `gate/rules.py:110-111,114-115`).
 
-How check statuses become a verdict: any `signal` gives DENY; otherwise any `unknown` gives UNKNOWN; otherwise ALLOW (`gate/rules.py:678`, `gate/intents.py:252`).
+How check statuses become a verdict: any `signal` gives DENY; otherwise any `unknown` gives UNKNOWN; otherwise ALLOW (`gate/rules.py:734`, `gate/intents.py:252`).
 
 ## Canonical serialization
 
-The canonical bytes are canonical JSON (see `README.md`, shared conventions) with one restriction: every number is an integer. A float anywhere in the document, at any depth, is refused before serialization, and NaN and infinity cannot be written (`gate/evidence.py:70`, `:81`). In Python: `json.dumps(doc, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode("utf-8")`. There is no trailing newline.
+The canonical bytes are canonical JSON (see `README.md`, shared conventions) with one restriction: every number is an integer. A float anywhere in the document, at any depth, is refused before serialization, and NaN and infinity cannot be written (`gate/evidence.py:70-79`, `:81-85`). In Python: `json.dumps(doc, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode("utf-8")`. There is no trailing newline.
 
 ## Hashing and storage
 
-The evidence hash is the sha256 hex of the canonical bytes (`gate/evidence.py:88`). The document is stored as `<hash>.json` containing exactly the canonical bytes (`gate/evidence.py:93`), so `sha256sum <hash>.json` prints the file's own name. A stored file conforms when its sha256 equals its name and its bytes equal the canonical form of the JSON they parse to (`gate/evidence.check_file`, `gate/evidence.py:103`).
+The evidence hash is the sha256 hex of the canonical bytes (`gate/evidence.py:90`). The document is stored as `<hash>.json` containing exactly the canonical bytes (`gate/evidence.py:95-100`), so `sha256sum <hash>.json` prints the file's own name. A stored file conforms when its sha256 equals its name and its bytes equal the canonical form of the JSON they parse to (`gate/evidence.check_file`, `gate/evidence.py:103-112`).
 
 ## Worked example
 
@@ -96,4 +96,4 @@ The escaping and key order rules are also pinned byte for byte by `tests/test_ev
 ## Source of truth
 
 - `gate/evidence.py:30` `subject`; `:43` `check`; `:50` `document`; `:81` `canonical_bytes`; `:88` `evidence_hash`; `:93` `write`; `:103` `check_file`.
-- `gate/verdict.py:89` when the issue time, expiry and verdict id are set; `gate/intents.py:254` the intents variant.
+- `gate/verdict.py:106-109` when the issue time, expiry and verdict id are set; `gate/intents.py:254-260` the intents variant.

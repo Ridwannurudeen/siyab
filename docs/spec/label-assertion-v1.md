@@ -8,7 +8,7 @@ A label assertion states one fact about one address on one chain (who it belongs
 
 ## Fields
 
-A row is a JSON object with exactly these 13 keys, no more and no fewer (`intel/labels.py:15`, checked at `intel/labels.py:99`).
+A row is a JSON object with exactly these 13 keys, no more and no fewer (`intel/labels.py:15-16`, checked at `intel/labels.py:99`).
 
 | Field | JSON type | Constraint |
 |---|---|---|
@@ -17,7 +17,7 @@ A row is a JSON object with exactly these 13 keys, no more and no fewer (`intel/
 | `subject` | string | non empty; the address exactly as the source writes it, in any case; no account id check is made |
 | `chain` | string | matches `^[a-z0-9]+$` (`intel/labels.py:28`, `:103`) |
 | `label` | string | non empty |
-| `category` | string | one of `treasury`, `bridge`, `catalog_token`, `infrastructure`, `incident`, `denylist`, `watch`, `organisation` (`intel/labels.py:17`) |
+| `category` | string | one of `treasury`, `bridge`, `catalog_token`, `infrastructure`, `incident`, `denylist`, `watch`, `organisation` (`intel/labels.py:17-18`) |
 | `provenance` | string | one of `onchain`, `official_source`, `third_party`, `inferred`, `unknown` (`intel/labels.py:19`) |
 | `source` | object | one of the three source shapes below; never null (`intel/labels.py:109`) |
 | `observed_at` | string | matches `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$` with ASCII digits (`intel/labels.py:29`, `:120`); the pattern is all the code checks |
