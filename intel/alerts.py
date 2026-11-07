@@ -80,7 +80,7 @@ def _retryable(status, failure=None):
         return status in RETRYABLE_STATUS or 500 <= status < 600
     if isinstance(failure, URLError):
         # urllib wraps the transport reason, so a TLS refusal arrives here too; it will not clear on a retry.
-        return not isinstance(failure.reason, ssl.SSLError)
+        return isinstance(failure.reason, OSError) and not isinstance(failure.reason, ssl.SSLError)
     return isinstance(failure, (TimeoutError, ConnectionError))
 
 

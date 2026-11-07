@@ -186,6 +186,28 @@ class AlertsTests(unittest.TestCase):
             self.assertEqual(len(opener.calls), 1)
             self.assertEqual(delays, [])
 
+    def test_a_url_error_with_a_non_oserror_reason_ends_delivery_after_one_attempt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            opener = FakeOpener([URLError(ValueError("x"))])
+            delays = []
+            secret_path = Path(directory) / "webhook-secret"
+            secret_path.write_bytes(SECRET)
+            sink = WebhookSink(
+                "https://alerts.example.test/hook",
+                secret_path,
+                log_path=Path(directory) / "delivery.jsonl",
+                opener=opener,
+                backoff=delays.append,
+            )
+
+            result = sink.send(sample_alert())
+
+            self.assertFalse(result["ok"])
+            self.assertEqual(result["attempts"], 1)
+            self.assertEqual(result["error"], "URLError")
+            self.assertEqual(len(opener.calls), 1)
+            self.assertEqual(delays, [])
+
     def test_a_refused_certificate_ends_delivery_after_one_attempt(self):
         with tempfile.TemporaryDirectory() as directory:
             opener = FakeOpener([
@@ -228,6 +250,27 @@ class AlertsTests(unittest.TestCase):
 
             self.assertTrue(result["ok"])
             self.assertEqual(result["attempts"], 2)
+            self.assertEqual(delays, [1])
+
+    def test_a_url_error_with_connection_refused_reason_is_retried(self):
+        with tempfile.TemporaryDirectory() as directory:
+            opener = FakeOpener([URLError(ConnectionRefusedError()), FakeResponse(204)])
+            delays = []
+            secret_path = Path(directory) / "webhook-secret"
+            secret_path.write_bytes(SECRET)
+            sink = WebhookSink(
+                "https://alerts.example.test/hook",
+                secret_path,
+                log_path=Path(directory) / "delivery.jsonl",
+                opener=opener,
+                backoff=delays.append,
+            )
+
+            result = sink.send(sample_alert())
+
+            self.assertTrue(result["ok"])
+            self.assertEqual(result["attempts"], 2)
+            self.assertEqual(len(opener.calls), 2)
             self.assertEqual(delays, [1])
 
     def test_a_rate_limit_is_retried_and_retry_after_is_honoured(self):
@@ -318,7 +361,11 @@ class AlertsTests(unittest.TestCase):
 
     def test_retries_are_capped_and_backoff_is_injectable(self):
         with tempfile.TemporaryDirectory() as directory:
-            opener = FakeOpener([URLError("offline"), URLError("offline"), URLError("offline")])
+            opener = FakeOpener([
+                URLError(ConnectionError("offline")),
+                URLError(ConnectionError("offline")),
+                URLError(ConnectionError("offline")),
+            ])
             delays = []
             secret_path = Path(directory) / "webhook-secret"
             secret_path.write_bytes(SECRET)
