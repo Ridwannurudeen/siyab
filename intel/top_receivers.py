@@ -4,7 +4,9 @@ import hashlib
 import json
 import math
 import re
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -19,6 +21,9 @@ RANK_LIMIT = 1000
 REQUEST_INTERVAL_S = max(feed.FOLLOW_INTERVAL_S, 60 / 170)
 # A scan of about 150,000 requests meets dropped connections; each is retried after these pauses, in seconds.
 TRANSIENT_BACKOFF_S = (5, 10, 20, 40, 60, 60)
+# A block takes one to two seconds to download, so one request at a time cannot reach the request rate the gate
+# allows; this many workers share the one gate, which still spaces request starts REQUEST_INTERVAL_S apart.
+SCAN_WORKERS = 6
 AVERAGE_BLOCK_NS = 578_160_000
 INTENTS_ACCOUNT = "intents.near"
 _TIME = "%Y-%m-%dT%H:%M:%SZ"
@@ -247,11 +252,21 @@ def _block_reader(fetcher, sleep, clock, last_request_at=None):
     """A block reader that spaces requests, reads a 404 as a skipped height, and retries a transport failure or a
     5xx answer after each pause of TRANSIENT_BACKOFF_S before it gives up; any other error stops the scan."""
     last_request = [last_request_at]
+    lock = threading.Lock()
+
+    def wait_turn():
+        # Each request start is booked REQUEST_INTERVAL_S after the previous booked start, under one lock, so the
+        # workers together never exceed the gate's rate.
+        with lock:
+            now = clock()
+            start = now if last_request[0] is None else max(now, last_request[0] + REQUEST_INTERVAL_S)
+            last_request[0] = start
+        if start > now:
+            sleep(start - now)
 
     def get(path):
         for attempt in range(len(TRANSIENT_BACKOFF_S) + 1):
-            if last_request[0] is not None:
-                sleep(max(0, REQUEST_INTERVAL_S - (clock() - last_request[0])))
+            wait_turn()
             try:
                 return fetcher.get(path)
             except rpc.HttpError as error:
@@ -262,8 +277,6 @@ def _block_reader(fetcher, sleep, clock, last_request_at=None):
             except rpc.TransportError:
                 if attempt == len(TRANSIENT_BACKOFF_S):
                     raise
-            finally:
-                last_request[0] = clock()
             sleep(TRANSIENT_BACKOFF_S[attempt])
 
     return get, lambda: last_request[0], lambda value: last_request.__setitem__(0, value)
@@ -376,16 +389,17 @@ def scan_window(hours, to_height=None, record=False, data_dir=DEFAULT_DATA_DIR, 
             set_last_request_at(last_at)
         else:
             before_batch = fetcher.requests
-            heights = []
-            for height in range(batch_start, batch_end + 1):
+            def fetch(height):
                 raw = get(f"/v0/block/{height}")
                 if raw is None:
-                    heights.append({"height": height, "skipped": True})
-                else:
-                    reduction = reduce_block(raw)
-                    if reduction["height"] != height:
-                        raise TopReceiversError(f"neardata returned height {reduction['height']} for {height}")
-                    heights.append(reduction)
+                    return {"height": height, "skipped": True}
+                reduction = reduce_block(raw)
+                if reduction["height"] != height:
+                    raise TopReceiversError(f"neardata returned height {reduction['height']} for {height}")
+                return reduction
+
+            with ThreadPoolExecutor(max_workers=SCAN_WORKERS) as pool:
+                heights = list(pool.map(fetch, range(batch_start, batch_end + 1)))
             batch_requests = fetcher.requests - before_batch
             last_at = last_request_at()
             batch = {"start_height": batch_start, "end_height": batch_end, "heights": heights,

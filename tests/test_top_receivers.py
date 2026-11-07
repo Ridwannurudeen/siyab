@@ -1,6 +1,7 @@
 import json
 import tempfile
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest import mock
 
@@ -239,6 +240,20 @@ class BlockReaderRetryTest(unittest.TestCase):
         get, _ = self.reader(fetcher)
         self.assertIsNone(get("/v0/block/7"))
         self.assertEqual(fetcher.requests, 1)
+
+
+class GateSpacingTest(unittest.TestCase):
+    def test_workers_share_one_gate_so_request_starts_stay_spaced(self):
+        class Recorder:
+            requests = 0
+
+            def get(self, path):
+                return synthetic_block(int(path.rsplit("/", 1)[1]), 0)
+
+        get, last_booked, _ = top_receivers._block_reader(Recorder(), lambda seconds: None, lambda: 0.0)
+        with ThreadPoolExecutor(max_workers=top_receivers.SCAN_WORKERS) as pool:
+            list(pool.map(lambda h: get(f"/v0/block/{h}"), range(30)))
+        self.assertAlmostEqual(last_booked(), 29 * top_receivers.REQUEST_INTERVAL_S)
 
 
 class ReceiverFixtureTest(unittest.TestCase):
