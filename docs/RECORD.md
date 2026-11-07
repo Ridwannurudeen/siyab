@@ -6,9 +6,9 @@ An incident record is the off chain account of one event: what happened, what it
 
 ## Content addressing
 
-A record is immutable and named by its content. `record_id` is the sha256 hex of the canonical bytes of the record without its `record_id` field. The canonical bytes are those of `canonical_bytes` in `gate/evidence.py`: compact JSON, keys sorted, UTF-8 with non ASCII characters unescaped, no trailing newline, and no floats (a float is refused). It is the same form as the label store's id rule (`docs/LABEL-RECORD.md`) and the evidence documents' hash (`evidence_hash` in `gate/evidence.py`); there is no third canonical form.
+A record is immutable and named by its content. `record_id` is the sha256 hex of the canonical bytes of the record with its `record_id` field omitted. Those bytes use `canonical_bytes` in `gate/evidence.py`: sorted keys, compact JSON, and UTF-8 encoding, with non ASCII characters unescaped, no trailing newline, and floats refused. This is the same form as the label store's id rule (`docs/LABEL-RECORD.md`) and the evidence documents' hash (`evidence_hash` in `gate/evidence.py`); there is no third canonical form.
 
-A record is stored as `<record_id>.json` holding those canonical bytes with `record_id` added, the way `write` in `gate/evidence.py` stores an evidence document under its hash. A reader recomputes the id from the file and refuses a file whose id does not match.
+The stored file, `<record_id>.json`, is the complete object including `record_id`, serialized again with that same canonical rule. Its sha256 covers the complete object including `record_id`, so the stored file's sha256 is not its `record_id`. A reader recomputes the id from the parsed object after removing `record_id` and refuses a file whose id does not match.
 
 ## Fields
 

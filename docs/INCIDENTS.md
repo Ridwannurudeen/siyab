@@ -12,7 +12,7 @@ Three things in this repository describe an incident, and they are not the same 
 
 A verdict reads labels, never pages. The verdict service treats a current `incident` or `denylist` assertion on the receiver or the token as a signal and copies the assertion id into the evidence (`docs/LABEL-RECORD.md`, Categories). An incident page adds nothing to that: it is the human readable account of the sources the labels came from, with the ids of the labels it relies on.
 
-Each account an incident page names carries `assertion_ids`, the ids of its rows in `intel/labels.jsonl`. A page names an account only when a cited source names it or a repeatable chain read proves the fact, gives the role in the source's words (`role_as_reported`) with the quote and the source id beside it, and names no person and no motive; the `standard` field of each page says so in its own words. That is the rule of `docs/DECISIONS.md`, entry 12: an account appears in a hostile role only with its source.
+Each account an incident page names carries `assertion_ids`, the ids of its rows in `intel/labels.jsonl`. ShieldBot never names an account as a hostile party or a victim in its own words. A source's own words about an account may appear only as a quote attributed to that source, as required by `docs/LABEL-RECORD.md` under `Source strings are data`.
 
 ## What exists on main today
 

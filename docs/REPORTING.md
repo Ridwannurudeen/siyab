@@ -40,7 +40,7 @@ The reason for every decision is written as text, and `reason_sha256` is the sha
 
 ## Service times
 
-These are the times one moderator can hold. The machine readable copy is `docs/service_times.json`, and `tests/test_reporting_docs.py` fails when this table and that file disagree.
+These are the times one moderator can hold: the `acknowledge` step is 72 hours, the `decide` step is 168 hours, and the `dispute_decision` step is 168 hours. The machine readable copy is `docs/service_times.json`, and `tests/test_reporting_docs.py` fails when this prose, the table, and that file disagree.
 
 | Step | Time | What starts and stops the clock |
 |---|---|---|
