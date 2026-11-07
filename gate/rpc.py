@@ -184,6 +184,12 @@ class Client:
             raise MalformedResponse("the view_account result has no code_hash")
         return result
 
+    def view_account_at(self, account_id, height):
+        result = self.call("query", {"request_type": "view_account", "block_id": height, "account_id": account_id})
+        if not isinstance(result, dict) or not isinstance(result.get("code_hash"), str):
+            raise MalformedResponse("the view_account result has no code_hash")
+        return result
+
     def code_hash(self, account_id):
         """The account's code hash in base58; EMPTY_CODE_HASH when it has no contract."""
         return self.view_account(account_id)["code_hash"]

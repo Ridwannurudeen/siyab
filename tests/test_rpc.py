@@ -264,6 +264,7 @@ class FailClosedClientTest(unittest.TestCase):
             ("view_account", ("a.near",), ["a", "list"]),
             ("view_account", ("a.near",), {"result": "oops"}),
             ("view_account", ("a.near",), {"result": {"amount": "1"}}),
+            ("view_account_at", ("a.near", 5), {"result": {"amount": "1"}}),
             ("call_function", ("t.near", "m", {}), {"result": {"result": "text"}}),
             ("call_function", ("t.near", "m", {}), {"result": {"logs": []}}),
             ("call_function", ("t.near", "m", {}), {"result": {"result": [256]}}),
