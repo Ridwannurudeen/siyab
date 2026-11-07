@@ -1,4 +1,4 @@
-This is a synthetic report made for a recorded demonstration: its subject, `kestrelridge-mallory.testnet`, is our own demo counterparty account on NEAR testnet, nothing happened to anyone, and the report is overturned in the same recorded run.
+This is a synthetic report made for a recorded demonstration: its subject, `kestrelridge-mallory.testnet`, is our own demo counterparty account on NEAR testnet, nothing happened to anyone, and the run is designed to overturn the report before it ends; the run log under `fixtures/runs/` records whether it did.
 
 # Synthetic report: kestrelridge-mallory.testnet
 
@@ -13,7 +13,7 @@ This is a synthetic report made for a recorded demonstration: its subject, `kest
 
 ## The subject
 
-`kestrelridge-mallory.testnet` is an account the team created and controls for the testnet demonstration (`docs/TESTNET.md`, demo counterparty, ours). No theft was attempted, no money moved, no one outside the team took part. The report describes nothing that happened. It exists only to drive the reports contract through filing, acceptance, dispute and overturn in one recorded run.
+`kestrelridge-mallory.testnet` is an account the team created and controls for the testnet demonstration (`docs/TESTNET.md`, demo counterparty, ours). No theft was attempted and no payment was sent to anyone; the only funds that moved are the report and dispute deposits the contract keeps as a storage fee, paid by our own accounts. No one outside the team took part. The report describes nothing that happened. It exists only to drive the reports contract through filing, acceptance, dispute and overturn in one recorded run.
 
 ## The hash rule
 

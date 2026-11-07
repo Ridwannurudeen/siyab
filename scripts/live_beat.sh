@@ -77,8 +77,11 @@ finish() {
   rm -rf -- "$WORK_DIR"
   if [[ "$SENT" == "yes" && "$STEP" != "done" && "$status" -ne 0 ]]; then
     printf 'live beat stopped at step %s with exit %s; report id %s, dispute id %s\n' "$STEP" "$status" "$REPORT_ID" "$DISPUTE_ID" >&2
-    printf '  read subject_summary of %s and get_report %s; if the report is accepted or contested it still denies the subject:\n' "$SUBJECT" "$REPORT_ID" >&2
-    printf '  open a dispute with scripts/dispute.sh as the disputer if none is open, then resolve it with scripts/dispute.sh --resolve <dispute_id> overturn <reason_sha256>\n' >&2
+    printf '  read get_report %s first; the next step depends on its state:\n' "$REPORT_ID" >&2
+    printf '  pending: accept it with scripts/moderate.sh, or reject it and stop (a rejected report has no effect)\n' >&2
+    printf '  accepted: open a dispute with scripts/dispute.sh as the disputer, then resolve it with scripts/dispute.sh --resolve <dispute_id> overturn <reason_sha256>\n' >&2
+    printf '  contested: resolve the open dispute %s with scripts/dispute.sh --resolve %s overturn <reason_sha256>\n' "$DISPUTE_ID" "$DISPUTE_ID" >&2
+    printf '  overturned: nothing left to do\n' >&2
   fi
   exit "$status"
 }

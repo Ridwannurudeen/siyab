@@ -216,7 +216,7 @@ Undo: an upheld report can be disputed again, at most five disputes over its lif
 
 ## Live report beat
 
-When: once, for the recorded demonstration of the whole report life on testnet: a report filed, pending, accepted, disputed and overturned against our own demo counterparty account, with the verdict read back after each step. Nothing is paid; the verdict reads judge a payment and never send it.
+When: once, for the recorded demonstration of the whole report life on testnet: a report filed, pending, accepted, disputed and overturned against our own demo counterparty account, with the verdict read back after each step. No payment is sent: the verdict reads judge a payment and never send it. The report and dispute transactions do attach the exact deposit, which the contract keeps.
 
 Pending: the verdict reads need the verdict service to read `REPORTS_ACCOUNT_ID`, which lands with build/r2-rules (above). On a commit without it the verdict has no `community_report` check, and the script stops at step a, before any transaction, with "the verdict does not read the reports contract on this commit".
 
