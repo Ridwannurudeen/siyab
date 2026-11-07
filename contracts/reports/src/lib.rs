@@ -5,7 +5,7 @@ use near_sdk::{
     env, near, serde::Serialize, serde_json::json, store::LookupMap, AccountId, PanicOnDefault,
 };
 
-pub const REPORT_DEPOSIT: u128 = 23_136_000_000_000_000_000_000;
+pub const REPORT_DEPOSIT: u128 = 24_552_000_000_000_000_000_000;
 const MAX_PENDING_REPORTS: u64 = 5;
 const MAX_EVIDENCE_URL_BYTES: usize = 512;
 const MAX_PAGE_SIZE: u32 = 50;
@@ -2282,8 +2282,8 @@ mod tests {
         let measured_bytes = report_bytes.max(dispute_bytes);
         let byte_cost = env::storage_byte_cost().as_yoctonear();
         let deposit_with_margin = (u128::from(measured_bytes) * byte_cost * 120).div_ceil(100);
-        assert_eq!((report_bytes, dispute_bytes), (1_928, 734));
+        assert_eq!((report_bytes, dispute_bytes), (2_046, 734));
         assert_eq!(REPORT_DEPOSIT, deposit_with_margin);
-        assert_eq!(REPORT_DEPOSIT, 23_136_000_000_000_000_000_000);
+        assert_eq!(REPORT_DEPOSIT, 24_552_000_000_000_000_000_000);
     }
 }
