@@ -7,11 +7,12 @@ import json
 import re
 import tempfile
 import unittest
+from html.parser import HTMLParser
 from pathlib import Path
 from unittest import mock
 
 from intel import __main__ as intel_main
-from intel import cluster, feed, issuers, labels, render, trace
+from intel import cluster, feed, issuers, labels, records, render, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "demo" / "site"
@@ -67,6 +68,66 @@ def own_text(page):
     return html.unescape(re.sub(r"<[^>]+>", " ", text))
 
 
+class RecordFieldParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.values = {}
+        self.path = None
+        self.parts = []
+
+    def handle_starttag(self, tag, attrs):
+        path = dict(attrs).get("data-record-path")
+        if path is not None:
+            self.path = path
+            self.parts = []
+
+    def handle_data(self, data):
+        if self.path is not None:
+            self.parts.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "span" and self.path is not None:
+            self.values[self.path] = "".join(self.parts)
+            self.path = None
+            self.parts = []
+
+
+def record_values(value, path=""):
+    if isinstance(value, dict):
+        if not value:
+            return {path: "{}"}
+        return {child_path: text for key, child in value.items()
+                for child_path, text in record_values(child, f"{path}.{key}" if path else key).items()}
+    if isinstance(value, list):
+        if not value:
+            return {path: "[]"}
+        return {child_path: text for index, child in enumerate(value)
+                for child_path, text in record_values(child, f"{path}[{index}]").items()}
+    if value is None:
+        return {path: "null"}
+    if isinstance(value, bool):
+        return {path: "true" if value else "false"}
+    return {path: str(value)}
+
+
+def write_decision_record(directory, text):
+    source = next(path for path in sorted((ROOT / "fixtures" / "records").glob("*.json"))
+                  if path.name != "body-vector.json" and records.read(path)["supersedes"] is None)
+    record = records.read(source)
+    record.pop("record_id")
+    record["reports"] = [{"network": "testnet", "contract": "reports.synthetic.testnet", "report_id": 0,
+                          "body_sha256": "b" * 64}]
+    record["reasons"] = [{"report_id": 0, "dispute_id": None,
+                          "reason_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(), "text": text}]
+    record["timeline"] = [
+        {"at": "2026-11-07T05:17:40Z", "event": "moderated",
+         "source": {"type": "chain", "network": "testnet", "block": 1,
+                    "transaction": "synthetic-moderation-transaction"}},
+        {"at": "2026-11-07T05:17:45Z", "event": "recorded", "source": {"type": "record"}},
+    ]
+    return records.write(record, directory)
+
+
 class RenderTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -90,16 +151,83 @@ class RenderTest(unittest.TestCase):
         incidents = [p.stem for p in (ROOT / "intel" / "incidents").glob("*.json")]
         flows = [p.stem for p in (ROOT / "intel" / "flows").glob("*.json")]
         clusters = [p.stem for p in (ROOT / "intel" / "clusters").glob("*.json")]
+        record_documents = [records.read(path) for path in sorted((ROOT / "fixtures" / "records").glob("*.json"))
+                            if path.name != "body-vector.json"]
         entities = [json.loads(line)["id"] for line in (ROOT / "intel" / "entities.jsonl").read_text(
             encoding="utf-8").splitlines()]
         expected = (["index.html", "feed.html", "verify.html", "404.html", "issuers.html"]
                     + [f"incidents/{i}.html" for i in incidents]
                     + [f"entities/{name}.html" for name, _, _ in render.ENTITY_SETS] + [f"flows/{f}.html" for f in flows]
                     + [f"clusters/{c}.html" for c in clusters]
+                    + ["records/index.html"] + [f"records/{record['record_id']}.html" for record in record_documents]
                     + [f"entities/{page_name(entity)}.html" for entity in entities]
                     + [f"accounts/{page_name(subject)}.html" for subject in self.subjects]
                     + ["search.json", "style.css"])
         self.assertEqual(sorted(self.written), sorted(expected))
+
+    def test_record_pages_show_each_stored_field_value(self):
+        paths = sorted((ROOT / "fixtures" / "records").glob("*.json"))
+        index = self.pages["records/index.html"]
+        for path in (path for path in paths if path.name != "body-vector.json"):
+            record = records.read(path)
+            page = self.pages[f"records/{record['record_id']}.html"]
+            parser = RecordFieldParser()
+            parser.feed(page)
+            with self.subTest(record=record["record_id"]):
+                self.assertEqual(parser.values, record_values(record))
+                for field in record:
+                    self.assertIn(f"<dt>{field}</dt>", page)
+                self.assertIn("python -m intel record-check", page)
+                self.assertIn(f"fixtures/records/{record['record_id']}.json", page)
+                self.assertIn(f'href="{record["record_id"]}.html">{record["record_id"]}</a>', index)
+        self.assertIn('href="records/index.html"', self.pages["index.html"])
+
+    def test_committed_record_pages_render_identically_twice(self):
+        with tempfile.TemporaryDirectory() as tmp, mock.patch("urllib.request.urlopen", side_effect=no_network):
+            names = [name for name in render.render(tmp) if name.startswith("records/")]
+            first = {name: (Path(tmp) / name).read_bytes() for name in names}
+            again = [name for name in render.render(tmp) if name.startswith("records/")]
+            second = {name: (Path(tmp) / name).read_bytes() for name in again}
+        self.assertEqual(again, names)
+        self.assertEqual(second, first)
+
+    def test_record_text_is_escaped_and_keeps_the_page_inert(self):
+        text = '<img src=x onerror="alert(1)"> & source text'
+        with tempfile.TemporaryDirectory() as tmp, mock.patch("urllib.request.urlopen", side_effect=no_network):
+            records_dir = Path(tmp) / "records"
+            record_path = write_decision_record(records_dir, text)
+            with mock.patch.object(render, "RECORDS_DIR", records_dir):
+                written = render.render(Path(tmp) / "site")
+            record = records.read(record_path)
+            page = (Path(tmp) / "site" / f"records/{record_path.stem}.html").read_text(encoding="utf-8")
+        self.assertIn(html.escape(text), page)
+        self.assertNotIn(text, page)
+        self.assertNotIn("<script", page)
+        self.assertIn(f"records/{record_path.stem}.html", written)
+        parser = RecordFieldParser()
+        parser.feed(page)
+        self.assertEqual(parser.values, record_values(record))
+
+    def test_invalid_record_is_skipped_with_its_reason(self):
+        with tempfile.TemporaryDirectory() as tmp, mock.patch("urllib.request.urlopen", side_effect=no_network):
+            records_dir = Path(tmp) / "records"
+            good_path = write_decision_record(records_dir, "Synthetic moderation reason.")
+            invalid_path = records_dir / "invalid.json"
+            invalid_path.write_text("{}", encoding="utf-8")
+            output = io.StringIO()
+            with mock.patch.object(render, "RECORDS_DIR", records_dir), contextlib.redirect_stdout(output):
+                written = render.render(Path(tmp) / "site")
+            site = Path(tmp) / "site"
+        self.assertIn(f"skipped incident record {invalid_path}", output.getvalue())
+        self.assertIn("record: exactly the fields", output.getvalue())
+        self.assertIn(f"records/{good_path.stem}.html", written)
+        self.assertNotIn("records/invalid.html", written)
+        self.assertFalse((site / "records/invalid.html").exists())
+
+    def test_records_build_when_network_access_is_refused(self):
+        with tempfile.TemporaryDirectory() as tmp, mock.patch("urllib.request.urlopen", side_effect=no_network):
+            written = render.render(tmp)
+        self.assertIn("records/index.html", written)
 
     def test_search_index_covers_every_subject_and_entity(self):
         search = json.loads((self.out / "search.json").read_text(encoding="utf-8"))
