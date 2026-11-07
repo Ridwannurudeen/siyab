@@ -569,7 +569,6 @@ def main(argv=None):
     receivers.add_argument("--exclude-file", help="with --record: a file of account ids kept outside the repository, "
                            "one per line, left out of the counterparties")
     receivers.set_defaults(handler=_receivers)
-    feeding = commands.add_parser("feed", help="six signals: code_hash_matches_incident, fresh_dust_funded_pays_labelled, watch_account_key_added, labelled_account_large_transfer, deploy_on_labelled_contract, full_access_key_then_outflow")
     top = commands.add_parser("top-receivers", help="scan and rank mainnet payment receivers")
     top.add_argument("--hours", type=int, required=True, help="length of the pinned scan window in hours")
     top.add_argument("--to-height", type=int, help="pin the window end to this height instead of the final block")
@@ -581,7 +580,7 @@ def main(argv=None):
     top_judge = commands.add_parser("judge-top-receivers", help="judge the separate top receiver set")
     top_judge.add_argument("--record", action="store_true", help="record missing RPC reads before replay")
     top_judge.set_defaults(handler=_judge_top_receivers)
-    feeding = commands.add_parser("feed", help="five signals: code_hash_matches_incident, fresh_dust_funded_pays_labelled, watch_account_key_added, labelled_account_large_transfer, deploy_on_labelled_contract")
+    feeding = commands.add_parser("feed", help="six signals: code_hash_matches_incident, fresh_dust_funded_pays_labelled, watch_account_key_added, labelled_account_large_transfer, deploy_on_labelled_contract, full_access_key_then_outflow")
     feeding.add_argument("--from", dest="start", type=int, help="the first height (default: after the state)")
     feeding.add_argument("--blocks", type=int, help="how many recorded heights to walk")
     feeding.add_argument("--follow", action="store_true", help="follow finalized heights continuously")
