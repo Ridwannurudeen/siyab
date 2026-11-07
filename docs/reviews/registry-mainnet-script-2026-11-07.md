@@ -48,7 +48,7 @@ Run this only when all six registry mainnet gates in docs/REGISTRY.md are met an
 
 would check: code_hash of registry.example.near from view_account on https://free.rpc.fastnear.com equals the empty code hash 11111111111111111111111111111111
 would refuse if registry.example.near holds code, since REDEPLOY is not 1
-+ near contract deploy registry.example.near use-file /c/Users/gudma/OneDrive/Desktop/GITHUB-FILES/shieldbot-near-gates/res/registry.wasm with-init-call new json-args \{\"owner_id\":\"owner.example.near\"\,\"recorder_id\":\"recorder.example.near\"\} prepaid-gas 100.0\ Tgas attached-deposit 0\ NEAR network-config mainnet sign-with-access-key-file C:\\Users\\gudma\\AppData\\Local\\Temp\\tmpkbvrmitb\\keys/registry.example.near.json send
++ near contract deploy registry.example.near use-file <checkout>/res/registry.wasm with-init-call new json-args \{\"owner_id\":\"owner.example.near\"\,\"recorder_id\":\"recorder.example.near\"\} prepaid-gas 100.0\ Tgas attached-deposit 0\ NEAR network-config mainnet sign-with-access-key-file <tmp>\\keys/registry.example.near.json send
 + near contract call-function as-read-only registry.example.near get_recorder json-args \{\} network-config mainnet now
 + near contract call-function as-read-only registry.example.near version json-args \{\} network-config mainnet now
 would assert: get_recorder of registry.example.near equals recorder.example.near
