@@ -1,4 +1,5 @@
 import importlib.util
+import json
 import unittest
 from pathlib import Path
 
@@ -33,6 +34,62 @@ class WordRuleTest(unittest.TestCase):
                      "scripts/check_hygiene.py"):
             with self.subTest(path=path):
                 self.assertFalse(self.hygiene.check_text(path, line))
+
+
+class ParsedLabelRowTest(unittest.TestCase):
+    def setUp(self):
+        self.hygiene = load()
+
+    def check_row(self, row):
+        return self.hygiene.check_bytes("intel/labels.jsonl", (json.dumps(row) + "\n").encode())
+
+    def test_hostile_role_word_without_source_url_fails(self):
+        hits = self.check_row({"note": "listed as attacker", "category": "incident", "source": {}})
+        self.assertEqual(hits, [(1, "hostile role word without a source URL")])
+
+    def test_hostile_role_word_with_source_url_passes(self):
+        hits = self.check_row({"note": "listed as attacker", "category": "incident",
+                               "source": {"url": "https://example.com/report"}})
+        self.assertFalse(hits)
+
+    def test_hostile_role_word_in_category_fails(self):
+        hits = self.check_row({"note": "a documented event", "category": "attacker", "source": {}})
+        self.assertEqual(hits, [(1, "hostile role word without a source URL")])
+
+    def test_hostile_word_outside_note_and_category_does_not_trigger(self):
+        hits = self.check_row({"note": "a documented event", "category": "incident", "source": {},
+                               "other": "attacker"})
+        self.assertFalse(hits)
+
+    def test_invalid_json_line_fails(self):
+        hits = self.hygiene.check_bytes("intel/labels.jsonl", b"not json\n")
+        self.assertEqual(hits, [(1, "invalid JSONL")])
+
+    def test_non_json_constants_fail(self):
+        for value in ("NaN", "Infinity", "-Infinity"):
+            with self.subTest(value=value):
+                line = f'{{"amount": {value}}}\n'.encode()
+                hits = self.hygiene.check_bytes("intel/labels.jsonl", line)
+                self.assertEqual(hits, [(1, "invalid JSONL")])
+
+
+class PrivatePlanningFileTest(unittest.TestCase):
+    def setUp(self):
+        self.hygiene = load()
+
+    def test_tracked_root_fable_file_fails(self):
+        self.assertEqual(self.hygiene.check_bytes("FABLE-PLAN.md", b""),
+                         [(1, "private planning file")])
+
+    def test_tracked_docs_critique_file_fails(self):
+        self.assertEqual(self.hygiene.check_bytes("docs/CRITIQUE-x.md", b""),
+                         [(1, "private planning file")])
+
+    def test_every_private_planning_path_pattern_fails(self):
+        for path in ("shieldbot-handoff/x.md", "RUN-x.prompt.md", "AUTO-REVIEW-x.md", "VOTE-x.md",
+                     "SAINT-x.md", "x-handoff.md"):
+            with self.subTest(path=path):
+                self.assertEqual(self.hygiene.check_bytes(path, b""), [(1, "private planning file")])
 
 
 class ImageDigestTest(unittest.TestCase):

@@ -9,10 +9,13 @@ Prints file:line: reason for every hit and exits 1 on any hit, 0 otherwise.
 """
 
 import argparse
+import fnmatch
+import json
 import os
 import re
 import subprocess
 import sys
+from urllib.parse import urlparse
 
 HEX_EXTENSIONS = {".md", ".py", ".rs", ".sh", ".toml", ".yml"}
 HEX_EXEMPT_DIRS = ("fixtures/", "tests/", "intel/seeds/raw/", "res/")
@@ -50,6 +53,9 @@ PHRASES = re.compile(
     r"|ai-powered|battle-tested|trustless|100%|arkham|co-authored-by",
     re.IGNORECASE,
 )
+HOSTILE_ROLE_WORDS = re.compile(r"\b(attacker|victim|hacker|scammer|thief|exploiter)\b", re.IGNORECASE)
+PRIVATE_FILE_PATTERNS = ("FABLE-*", "CRITIQUE-*", "RUN-*.prompt.md", "AUTO-REVIEW-*", "VOTE-*", "SAINT-*",
+                         "*-handoff*")
 
 
 def git(root, *args):
@@ -93,9 +99,66 @@ def check_text(path, text):
 
 
 def check_bytes(path, data):
-    if path.endswith(".wasm") or b"\0" in data[:8192]:
-        return []
-    return check_text(path, data.decode("utf-8", errors="replace"))
+    hits = check_path(path)
+    if path.endswith(".wasm"):
+        return hits
+    is_jsonl = os.path.splitext(path)[1].lower() == ".jsonl"
+    contains_nul = b"\0" in data[:8192]
+    if contains_nul and not is_jsonl:
+        return hits
+    if not contains_nul:
+        text = data.decode("utf-8", errors="replace")
+        hits.extend(check_text(path, text))
+    if is_jsonl:
+        try:
+            jsonl_text = data.decode("utf-8")
+        except UnicodeDecodeError as error:
+            line = data[:error.start].count(b"\n") + 1
+            hits.append((line, "invalid JSONL"))
+        else:
+            hits.extend(check_jsonl(jsonl_text))
+    return hits
+
+
+def check_path(path):
+    name = os.path.basename(path)
+    if path.startswith("shieldbot-handoff/") or any(
+            fnmatch.fnmatchcase(name, pattern) for pattern in PRIVATE_FILE_PATTERNS):
+        return [(1, "private planning file")]
+    return []
+
+
+def source_has_url(source):
+    if not isinstance(source, dict):
+        return False
+    for key in ("url", "rpc"):
+        value = source.get(key)
+        if isinstance(value, str):
+            parsed = urlparse(value)
+            if parsed.scheme in ("http", "https") and parsed.netloc:
+                return True
+    return False
+
+
+def reject_json_constant(value):
+    raise ValueError(f"invalid JSON constant: {value}")
+
+
+def check_jsonl(text):
+    hits = []
+    for number, line in enumerate(text.splitlines(), start=1):
+        try:
+            row = json.loads(line, parse_constant=reject_json_constant)
+        except ValueError:
+            hits.append((number, "invalid JSONL"))
+            continue
+        if not isinstance(row, dict):
+            continue
+        role_text = " ".join(value for value in (row.get("note"), row.get("category"))
+                             if isinstance(value, str))
+        if HOSTILE_ROLE_WORDS.search(role_text) and not source_has_url(row.get("source")):
+            hits.append((number, "hostile role word without a source URL"))
+    return hits
 
 
 def staged_files(root):
