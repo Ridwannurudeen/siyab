@@ -38,6 +38,7 @@ Each storage prefix a contract writes, read from the `new` initializer in its `s
 | Reports | `pp` | `pending_by_submitter` |
 | Reports | `ss` | `subject_summaries` |
 | Reports | `ps` | `publisher_stats` |
+| Reports | `ab` | `accepting_moderator_by_report` |
 
 Prefixes are per account, so the same letter in two contracts does not collide.
 
