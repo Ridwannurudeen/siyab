@@ -144,7 +144,7 @@ def _validate_reasons(reasons, reports, report_views):
     if not isinstance(reasons, list):
         raise RecordError("reasons: a list is required")
     cited_ids = {citation["report_id"] for citation in reports}
-    reasons_by_id = {}
+    reasons_by_decision = {}
     for index, reason in enumerate(reasons):
         path = f"reasons[{index}]"
         _shape(reason, ("report_id", "dispute_id", "reason_sha256", "text"), path)
@@ -163,25 +163,120 @@ def _validate_reasons(reasons, reports, report_views):
         report_id = reason["report_id"]
         if report_id not in cited_ids:
             raise RecordError(f"{path}.report_id: does not cite a report in this record")
-        reasons_by_id.setdefault(report_id, []).append((index, reason))
+        decision = (report_id, dispute_id)
+        if decision in reasons_by_decision:
+            raise RecordError(f"reasons: more than one reason for decision {decision!r}")
+        reasons_by_decision[decision] = (index, reason)
+
     if report_views is not None:
         for report_id, views in report_views.items():
             for report_view in views:
                 if report_view["state"] in _UNDECIDED_STATES:
-                    if reasons_by_id.get(report_id):
+                    if any(decision[0] == report_id for decision in reasons_by_decision):
                         raise RecordError(f"reasons: report {report_id} is {report_view['state']} and has no decision")
                     continue
                 _hash(report_view.get("reason_sha256"), f"reports[{report_id}].reason_sha256")
-                matches = reasons_by_id.get(report_id, [])
-                if len(matches) != 1:
-                    raise RecordError(f"reasons: exactly one reason is required for non-pending report {report_id}")
-                index, reason = matches[0]
-                path = f"reasons[{index}]"
-                if reason["reason_sha256"] != report_view["reason_sha256"]:
-                    raise RecordError(f"{path}.reason_sha256: does not match report {report_id}")
+                dispute_ids = report_view["dispute_ids"]
+                resolved_disputes = dispute_ids[:-1] if report_view["state"] == "contested" else dispute_ids
+                expected_decisions = {(report_id, None)}
+                expected_decisions.update((report_id, dispute_id) for dispute_id in resolved_disputes)
+                actual_decisions = {
+                    decision for decision in reasons_by_decision if decision[0] == report_id
+                }
+                missing = expected_decisions - actual_decisions
+                if missing:
+                    decision = sorted(missing, key=repr)[0]
+                    raise RecordError(f"reasons: exactly one reason is required for decision {decision!r}")
+                unexpected = actual_decisions - expected_decisions
+                if unexpected:
+                    decision = sorted(unexpected, key=repr)[0]
+                    raise RecordError(f"reasons: decision {decision!r} does not exist for report {report_id}")
                 expected_dispute_id = _latest_resolved_dispute_id(report_view)
-                if reason["dispute_id"] != expected_dispute_id:
-                    raise RecordError(f"{path}.dispute_id: must be {expected_dispute_id!r} for report {report_id}")
+                index, reason = reasons_by_decision[(report_id, expected_dispute_id)]
+                if reason["reason_sha256"] != report_view["reason_sha256"]:
+                    raise RecordError(f"reasons[{index}].reason_sha256: does not match report {report_id}")
+    return reasons_by_decision
+
+
+def _validate_event_reasons(timeline, reasons_by_decision, event_reader):
+    transaction_events = {}
+    matched_decisions = set()
+    timeline_event_names = {"moderated": "report_moderated", "dispute_resolved": "dispute_resolved"}
+    payload_fields = ("report_id", "subject", "state", "body_sha256", "moderator", "reason_sha256")
+    for timeline_index, entry in enumerate(timeline):
+        timeline_event = entry["event"]
+        expected_event = timeline_event_names.get(timeline_event)
+        if expected_event is None:
+            continue
+        source = entry["source"]
+        transaction = source["transaction"]
+        if transaction is None:
+            raise RecordError(f"timeline[{timeline_index}].source.transaction: required to read decision events")
+        network = source["network"]
+        transaction_key = (network, transaction)
+        if transaction_key not in transaction_events:
+            events = event_reader(network, transaction)
+            if not isinstance(events, list):
+                raise RecordError(f"event_reader({network!r}, {transaction!r}): a list of events is required")
+            transaction_events[transaction_key] = events
+        events = transaction_events[transaction_key]
+        found_event = False
+        for event_index, event in enumerate(events):
+            event_path = f"event_reader({network!r}, {transaction!r})[{event_index}]"
+            if not isinstance(event, dict) or not all(
+                isinstance(event.get(field), str) for field in ("standard", "version", "event")
+            ) or not isinstance(event.get("data"), list):
+                raise RecordError(f"{event_path}: a NEP-297 event object is required")
+            if event["standard"] != "shieldbot-near" or event["event"] != expected_event:
+                continue
+            found_event = True
+            if not event["data"]:
+                raise RecordError(f"{event_path}.data: a decision event must include a payload")
+            fields = payload_fields + (("dispute_id",) if expected_event == "dispute_resolved" else ())
+            for data_index, payload in enumerate(event["data"]):
+                payload_path = f"{event_path}.data[{data_index}]"
+                _shape(payload, fields, payload_path)
+                report_id = payload["report_id"]
+                if type(report_id) is not int or report_id < 0:
+                    raise RecordError(f"{payload_path}.report_id: a non negative integer is required")
+                dispute_id = payload.get("dispute_id") if expected_event == "dispute_resolved" else None
+                if dispute_id is not None and (type(dispute_id) is not int or dispute_id < 0):
+                    raise RecordError(f"{payload_path}.dispute_id: a non negative integer is required")
+                _hash(payload["reason_sha256"], f"{payload_path}.reason_sha256")
+                decision = (report_id, dispute_id)
+                reason_entry = reasons_by_decision.get(decision)
+                if reason_entry is None:
+                    is_moderation = expected_event == "report_moderated"
+                    candidates = [
+                        key for key in reasons_by_decision
+                        if key not in matched_decisions and (key[1] is None) == is_moderation
+                    ]
+                    if len(candidates) == 1:
+                        candidate_report_id, candidate_dispute_id = candidates[0]
+                        if candidate_report_id != report_id:
+                            raise RecordError(
+                                f"{payload_path}.report_id: event report_id {report_id} does not match "
+                                f"reason report_id {candidate_report_id}"
+                            )
+                        if candidate_dispute_id != dispute_id:
+                            raise RecordError(
+                                f"{payload_path}.dispute_id: event dispute_id {dispute_id} does not match "
+                                f"reason dispute_id {candidate_dispute_id}"
+                            )
+                    raise RecordError(f"{payload_path}: event has no reason for decision {decision!r}")
+                if decision in matched_decisions:
+                    raise RecordError(f"{payload_path}: decision {decision!r} has more than one event")
+                reason_index, reason = reason_entry
+                if reason["reason_sha256"] != payload["reason_sha256"]:
+                    raise RecordError(f"reasons[{reason_index}].reason_sha256: does not match event {expected_event}")
+                matched_decisions.add(decision)
+        if not found_event:
+            raise RecordError(
+                f"timeline[{timeline_index}]: {expected_event} event cannot be found through the timeline transaction"
+            )
+    for decision, (reason_index, _) in reasons_by_decision.items():
+        if decision not in matched_decisions:
+            raise RecordError(f"reasons[{reason_index}]: event cannot be found through the timeline")
 
 
 def _validate_timeline_source(source, event, path):
@@ -242,8 +337,8 @@ def _validate_timeline(timeline):
         raise RecordError("timeline: the recorded event must be last")
 
 
-def validate(record, report_reader=None) -> None:
-    """Validate a record; without report_reader, citations are checked for shape only."""
+def validate(record, report_reader=None, event_reader=None) -> None:
+    """Validate a record; readers check cited reports and decision events when provided."""
     if not isinstance(record, dict):
         raise RecordError("record: an object is required")
     if set(record) != set(_FIELDS):
@@ -282,12 +377,14 @@ def validate(record, report_reader=None) -> None:
         report_view = _validate_report(citation, index, report_reader)
         if report_views is not None:
             report_views.setdefault(citation["report_id"], []).append(report_view)
-    _validate_reasons(record["reasons"], record["reports"], report_views)
     if not isinstance(record["assertion_ids"], list):
         raise RecordError("assertion_ids: a list is required")
     for index, assertion_id in enumerate(record["assertion_ids"]):
         _hash(assertion_id, f"assertion_ids[{index}]")
     _validate_timeline(record["timeline"])
+    reasons_by_decision = _validate_reasons(record["reasons"], record["reports"], report_views)
+    if event_reader is not None:
+        _validate_event_reasons(record["timeline"], reasons_by_decision, event_reader)
     supersedes = record["supersedes"]
     if supersedes is not None and (not isinstance(supersedes, str) or not _HEX64.fullmatch(supersedes)):
         raise RecordError("supersedes: null or 64 hex characters are required")

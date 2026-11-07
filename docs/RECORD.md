@@ -23,7 +23,7 @@ A v1 record has exactly these fields.
 | `subjects` | the accounts agents should not pay because of this event: a list of `{chain, account}`, sorted by chain then account, no duplicates; `chain` is `near` or a 1Click chain code as in `docs/LABEL-RECORD.md`. It may be empty when no cited source and no chain read names an account. A subject is never a victim. |
 | `evidence` | at least one `{url, content_sha256, fetched_at}`, the shape of a `third_party` source in `docs/LABEL-RECORD.md`; `url` is https and at most 512 bytes |
 | `reports` | the on chain reports this record rests on, each a citation (below); an empty list when it rests on none |
-| `reasons` | the readable text of each moderation reason the cited reports carry, each `{report_id, dispute_id, reason_sha256, text}` (below) |
+| `reasons` | one readable `{report_id, dispute_id, reason_sha256, text}` entry for each moderation or resolved-dispute decision of the cited reports (below) |
 | `assertion_ids` | the ids of the label store rows (`intel/labels.jsonl`) this record rests on; an empty list when it rests on none |
 | `timeline` | the entries below, with exactly one `recorded` entry, which is the last |
 | `supersedes` | null, or the `record_id` of the record this one replaces |
@@ -47,7 +47,11 @@ A record does not copy a report's state. The state changes on chain (pending, ac
 
 ## Reasons
 
-The reports contract stores only the current `reason_sha256` on each report and keeps no reason text. A record carries that text: `text` is the reason as written, and `reason_sha256` is the sha256 of its UTF-8 bytes. With a report reader, every cited report that has a decision (any state other than `pending` and `withdrawn`; a report can be withdrawn only while pending) must have exactly one reason whose hash matches the report view's current `reason_sha256`; a missing reason or a mismatch is refused, and a reason for a `pending` or `withdrawn` report is refused because there is no decision to explain. Its `dispute_id` is null if no dispute on the report has been resolved, or the id of the latest resolved dispute. The report view lists dispute ids in append order; while the report is `contested`, its final id is still open, so the preceding id is the latest resolved one, if any. Without a report reader, a reason is checked for shape and for the hash of its text only. Earlier decisions' text cannot be checked on chain: a record carries only the latest decision's reason, and a new record that supersedes it carries the next decision's reason.
+The reports contract stores only the current `reason_sha256` on each report and keeps no reason text. A record carries one entry per decision of each cited report: the moderation decision with `dispute_id` null, then one entry for each resolved dispute with its `dispute_id`. Each entry's `text` is the reason as written, and its `reason_sha256` is the sha256 of the UTF-8 bytes of that text. A pending or withdrawn report has no decision and carries no reason. Two entries for the same report and decision are refused.
+
+With a report reader, every cited report that has a decision (any state other than `pending` and `withdrawn`; a report can be withdrawn only while pending) must have one reason for its moderation decision and each resolved dispute. A missing or extra decision reason is refused. The reason for the latest decision (the latest resolved dispute, or moderation when none was resolved) must match the report view's current `reason_sha256`. The report view lists dispute ids in append order; while the report is `contested`, its final id is still open, so it is not included among the resolved disputes.
+
+With an event reader, each reason is checked against the `report_moderated` or `dispute_resolved` NEP-297 event emitted by the transaction cited in the matching `moderated` or `dispute_resolved` timeline entry. The reader receives that entry's `network` and `transaction`; its event must carry the same `report_id`, the same `dispute_id` for a resolved dispute, and the same `reason_sha256`. A reason whose event is absent from the timeline's cited transactions is refused. This checks earlier decisions against events when an event reader is supplied. Without readers, reasons are checked for shape, unique report-and-decision pairs, and the hash of their text only.
 
 ## The timeline
 
