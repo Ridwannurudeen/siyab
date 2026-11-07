@@ -1,0 +1,13 @@
+{
+  "request": {
+    "method": "GET",
+    "params": {
+      "depositAddress": "shieldbot-unissued-probe.near"
+    }
+  },
+  "response": {
+    "_gate_http_status": 404
+  },
+  "url": "https://1click.chaindefuser.com/v0/status",
+  "fetched_at": "2026-11-07T21:19:26Z"
+}

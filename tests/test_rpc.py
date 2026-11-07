@@ -14,8 +14,10 @@ from gate import rpc
 
 ROOT = Path(__file__).resolve().parent.parent
 
-INTENTS_VIEW_KEY = "aeca5be441be45abec5d698a9b5c3dd2a8b8090db3a2abc222c3e6b6463ccdd0"
-USDC = "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1"
+INTENTS_VIEW_KEY = ("aeca5be441be45abec5d698a9b5c3dd2"
+                    "a8b8090db3a2abc222c3e6b6463ccdd0")
+USDC = ("17208628f84f5d6ad33f0da3bbbeb27f"
+        "fcb398eac501a31bd6ad2011e36133a1")
 DAY = 24 * 60 * 60
 T0 = datetime(2026, 10, 29, 8, 0, tzinfo=UTC).timestamp()
 
@@ -187,6 +189,26 @@ class ModeTest(unittest.TestCase):
         self.assertIsNone(caught.exception.retry_after)
         self.assertEqual(list(Path(self.tmp.name).iterdir()), [])
 
+    def test_selected_http_error_is_recorded_and_replayed(self):
+        address = "unknown-status.near"
+        params = {"depositAddress": address}
+        error = urllib.error.HTTPError("https://rpc.example/v0/status?depositAddress=unknown-status.near",
+                                       404, "Not Found", {}, None)
+        with mock.patch("urllib.request.urlopen", side_effect=error), self.assertRaises(rpc.HttpError) as caught:
+            self.client("record", kind="http").get("/v0/status", params=params, record_http_errors=(404,))
+        self.assertEqual(caught.exception.status, 404)
+        [path] = Path(self.tmp.name).iterdir()
+        fixture = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(fixture["response"], {rpc.HTTP_STATUS_MARKER: 404})
+        fixture["synthetic"] = True
+        path.write_text(json.dumps(fixture), encoding="utf-8")
+        with mock.patch("urllib.request.urlopen", side_effect=no_network):
+            replayed = self.client("replay", kind="http")
+            with self.assertRaises(rpc.HttpError) as caught:
+                replayed.get("/v0/status", params=params, record_http_errors=(404,))
+        self.assertEqual(caught.exception.status, 404)
+        self.assertEqual(replayed.last_source["fetched_at"], fixture["fetched_at"])
+
     def test_a_429_carries_its_retry_after_header(self):
         error = urllib.error.HTTPError("https://rpc.example/x", 429, "Too Many Requests", {"Retry-After": "120"},
                                        None)
@@ -205,6 +227,22 @@ class ModeTest(unittest.TestCase):
         posted = opened.call_args_list[1].args[0]
         self.assertEqual((posted.get_method(), json.loads(posted.data)), ("POST", {"content": "m"}))
         self.assertEqual(len(list(Path(self.tmp.name).iterdir())), 2)
+
+    def test_http_get_query_params_are_recorded_separately_and_replayed(self):
+        answer = {"value": "1"}
+        with mock.patch("urllib.request.urlopen", return_value=reply(answer)) as opened:
+            client = self.client("record", kind="http")
+            self.assertEqual(client.get("/v1/resource", params={"key": "deposit.near"}), answer)
+        self.assertEqual(opened.call_args.args[0].full_url,
+                         "https://rpc.example/v1/resource?key=deposit.near")
+        [path] = Path(self.tmp.name).iterdir()
+        fixture = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(fixture["url"], "https://rpc.example/v1/resource")
+        self.assertEqual(fixture["request"], {"method": "GET", "params": {"key": "deposit.near"}})
+        with mock.patch("urllib.request.urlopen", side_effect=no_network):
+            replayed = self.client("replay", kind="http")
+            self.assertEqual(replayed.get("/v1/resource", params={"key": "deposit.near"}), answer)
+        self.assertEqual(replayed.last_source["fetched_at"], fixture["fetched_at"])
 
     def test_headers_are_sent_and_never_written(self):
         header = "Bearer test-fastnear-header"
