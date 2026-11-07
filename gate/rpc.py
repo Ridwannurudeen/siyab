@@ -119,6 +119,11 @@ def _check_url(url):
     return url
 
 
+def _uint(value):
+    """True for a non negative int that is not a bool (JSON true would otherwise pass as 1)."""
+    return type(value) is int and value >= 0
+
+
 def _timestamp(seconds):
     return datetime.fromtimestamp(seconds, UTC).strftime(_TIME_FORMAT)
 
@@ -228,7 +233,7 @@ class Client:
         if not isinstance(result, dict) or not isinstance(result.get("header"), dict):
             raise MalformedResponse("the block result has no header")
         header = result["header"]
-        if not (isinstance(header.get("height"), int) and isinstance(header.get("timestamp"), int)
+        if not (_uint(header.get("height")) and _uint(header.get("timestamp"))
                 and isinstance(header.get("hash"), str)):
             raise MalformedResponse("the block header has no int height, int timestamp or str hash")
         return result
@@ -238,7 +243,7 @@ class Client:
         if not isinstance(result, dict) or not isinstance(result.get("header"), dict):
             raise MalformedResponse("the block result has no header")
         header = result["header"]
-        if not (isinstance(header.get("height"), int) and isinstance(header.get("timestamp"), int)
+        if not (_uint(header.get("height")) and _uint(header.get("timestamp"))
                 and isinstance(header.get("hash"), str)):
             raise MalformedResponse("the block header has no int height, int timestamp or str hash")
         return result

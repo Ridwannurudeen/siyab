@@ -273,6 +273,10 @@ class FailClosedClientTest(unittest.TestCase):
             ("final_block", (), {"result": {"chunks": []}}),
             ("final_block", (), {"result": {"header": {"height": 5}}}),
             ("block_at", (5,), {"result": {"chunks": []}}),
+            ("block_at", (5,), {"result": {"header": {"height": 5, "timestamp": True, "hash": "h"}}}),
+            ("block_at", (5,), {"result": {"header": {"height": 5, "timestamp": -1, "hash": "h"}}}),
+            ("block_at", (5,), {"result": {"header": {"height": True, "timestamp": 1, "hash": "h"}}}),
+            ("final_block", (), {"result": {"header": {"height": 5, "timestamp": False, "hash": "h"}}}),
             ("block_at", (5,), {"result": {"header": {"height": 5}}}),
         ]
         for method, args, body in cases:
