@@ -99,40 +99,69 @@ jobs:
 
   reproducible:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        crate: [gate, registry, reports]
+    env:
+      CRATE: ${{ matrix.crate }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Read the build record
+        id: record
+        run: |
+          set -euo pipefail
+          record="res/BUILD-$CRATE.md"
+          wasm="res/$CRATE.wasm"
+          test "$(grep -c '^Source commit: ' "$record")" -eq 1
+          source_commit=$(sed -n 's/^Source commit: //p' "$record")
+          if [[ "$source_commit" =~ ^[0-9a-f]{40}$ ]]; then
+            if [[ ! -f "$wasm" ]]; then
+              printf '%s records source commit %s but %s is absent\n' "$record" "$source_commit" "$wasm"
+              exit 1
+            fi
+            printf 'state=build\nsource_commit=%s\n' "$source_commit" >> "$GITHUB_OUTPUT"
+          elif [[ "$source_commit" == TBD* ]]; then
+            if [[ -f "$wasm" ]]; then
+              printf '%s says the source commit is TBD but %s is present\n' "$record" "$wasm"
+              exit 1
+            fi
+            printf 'skipped: %s says the source commit is TBD and %s is absent, so there is no artifact to rebuild\n' "$record" "$wasm"
+            printf 'state=skip\n' >> "$GITHUB_OUTPUT"
+          else
+            printf '%s has a source commit that is neither 40 hex nor TBD: %s\n' "$record" "$source_commit"
+            exit 1
+          fi
       - name: Select repository toolchain
+        if: steps.record.outputs.state == 'build'
         run: rustup show
       - uses: actions/cache@v4
+        if: steps.record.outputs.state == 'build'
         with:
           path: ~/.cargo
-          key: ${{ runner.os }}-cargo-reproducible-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-reproducible-${{ matrix.crate }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Install cargo-near
+        if: steps.record.outputs.state == 'build'
         run: |
           sudo apt-get update && sudo apt-get install -y libudev-dev pkg-config
           cargo install cargo-near --version 0.22.0 --locked
       - name: Check out artifact source commit
-        run: |
-          source_commit=$(sed -n 's/^Source commit: //p' res/BUILD.md)
-          [[ "$source_commit" =~ ^[0-9a-f]{40}$ ]]
-          git worktree add --detach "$RUNNER_TEMP/repro-source" "$source_commit"
-      - name: Build gate reproducibly
-        working-directory: ${{ runner.temp }}/repro-source/contracts/gate
+        if: steps.record.outputs.state == 'build'
+        run: git worktree add --detach "$RUNNER_TEMP/repro-source" "${{ steps.record.outputs.source_commit }}"
+      - name: Build reproducibly
+        if: steps.record.outputs.state == 'build'
+        working-directory: ${{ runner.temp }}/repro-source/contracts/${{ matrix.crate }}
         run: cargo near build reproducible-wasm
-      - name: Build registry reproducibly
-        working-directory: ${{ runner.temp }}/repro-source/contracts/registry
-        run: cargo near build reproducible-wasm
-      - name: Compare wasm hashes
+      - name: Compare wasm hash
+        if: steps.record.outputs.state == 'build'
         run: |
           set -euo pipefail
-          for crate in gate registry; do
-            built=$(sha256sum "$RUNNER_TEMP/repro-source/contracts/$crate/target/near/$crate.wasm" | awk '{print $1}')
-            committed=$(awk 'NR == 1 {print $1}' "res/$crate.wasm.sha256")
-            test "$built" = "$committed"
-            printf '%s %s\n' "$crate" "$built"
-          done
+          built=$(sha256sum "$RUNNER_TEMP/repro-source/contracts/$CRATE/target/near/$CRATE.wasm" | awk '{print $1}')
+          committed=$(awk 'NR == 1 {print $1}' "res/$CRATE.wasm.sha256")
+          test "$built" = "$committed"
+          printf '%s %s\n' "$CRATE" "$built"
 
   hygiene:
     runs-on: ubuntu-latest
