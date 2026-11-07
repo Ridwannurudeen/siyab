@@ -107,7 +107,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from gate import evidence, rpc, rules, wasm
-from intel import labels
+from intel import alerts, labels
 
 ROOT = Path(__file__).resolve().parent.parent
 NEARDATA_URL = "https://mainnet.neardata.xyz"
@@ -309,7 +309,12 @@ def apply(block, state, context, source, events_dir=EVENTS_DIR):
     for event in signals(block, state, context, source):
         state["events"].setdefault(event["signal"], 0)
         state["events"][event["signal"]] += 1
-        paths.append(evidence.write(event, events_dir))
+        path = evidence.write(event, events_dir)
+        alert = alerts.Alert("feed", "warn", event["subject"], event["signal"],
+                             f"Feed event: {event['signal']}", event["detail"], path.stem,
+                             event["observed"]["timestamp_ms"])
+        alerts.send(alert, alerts.configured_sinks())
+        paths.append(path)
     stamp = datetime.fromtimestamp(int(block["timestamp_ns"]) // 10**9, UTC).strftime(_TIME)
     if state["start_height"] is None:
         state["start_height"], state["start_time"] = block["height"], stamp
@@ -416,7 +421,11 @@ def poll_transfers(client, state, state_path, context, events_dir, clock, sleep,
                  "receipt_id": transfer["receipt_id"], "block_height": height,
                  "observed": {"block_height": height, "timestamp_ms": int(transfer["block_timestamp"]) // 1_000_000},
                  "source": source}
-        evidence.write(event, events_dir)
+        path = evidence.write(event, events_dir)
+        alert = alerts.Alert("feed", "warn", event["subject"], event["signal"],
+                             f"Feed event: {event['signal']}", event["detail"], path.stem,
+                             event["observed"]["timestamp_ms"])
+        alerts.send(alert, alerts.configured_sinks())
         state["events"][SIGNALS[3]] += 1
     if caps:
         state.setdefault("large_transfer_page_caps", []).extend(caps)

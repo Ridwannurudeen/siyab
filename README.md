@@ -396,6 +396,9 @@ Copied from `docs/CLAIMS.md`; `tests/test_readme_claims.py` asserts the two tabl
 | When `pay` judges the transfer itself, the wrapper asks a human and sends nothing for an ALLOW the Gate refuses because unknown payee caps are absent (`REFUSED:not_allowlisted`), no cap covers the asset (`REFUSED:unknown_payee_cap`), the amount exceeds the per-call cap (`REFUSED:unknown_payee_cap`), the Gate is paused (`REFUSED:paused`), the agent is disabled (`REFUSED:agent_disabled`), or the receiver is denylisted (`REFUSED:denylisted`); it prints the owner's step that helps: the allowlist step for the three unknown payee cases, otherwise resuming the Gate, re-enabling the agent or reviewing the denylist. | `gate/agent.py:pay` | `tests/test_agent.py::PayTest.test_an_allow_the_gate_refuses_asks_a_human_and_sends_nothing` | offline | no |
 | When `REPORTS_ACCOUNT_ID` is set, accepted deny reports deny and cite `latest_deny_id`; accepted social reports ask for a human only off the allowlist; pending reports alone pass; and an unreadable summary or failed read returns unsigned UNKNOWN. Unsetting the variable omits the check. | `intel/reports.py:effect` | `tests/test_reports_rules.py::ReportsRulesTest.test_every_effect_outcome_flows_through_the_report_check` | offline | no |
 | The webhook sink signs the exact JSON payload bytes with a timestamp the receiver helper verifies. | `intel/alerts.py:WebhookSink.send` | `tests/test_alerts.py::AlertsTests.test_signature_format_and_verification` | `docs/ALERTS.md` | no |
+| Each new feed event sends one warning alert with the event evidence sha256; replaying the same block height sends no second alert. | `intel/feed.py:apply` | `tests/test_feed.py::SignalTest.test_a_new_feed_event_sends_one_alert_with_its_evidence_hash` | `docs/ALERTS.md` | no |
+| A payment DENY sends a critical alert after the verdict is final, and a sink failure does not change the verdict or exit code. | `gate/agent.py:pay` | `tests/test_agent.py::PayTest.test_deny_alert_failure_does_not_change_the_final_verdict_or_exit_code` | `docs/ALERTS.md` | no |
+| An UNKNOWN that asks a human sends a warning alert with the verdict evidence hash. | `gate/agent.py:pay` | `tests/test_agent.py::PayTest.test_an_unknown_that_asks_a_human_raises_a_warn_alert` | `docs/ALERTS.md` | no |
 
 ## Adversarial table
 
@@ -440,7 +443,7 @@ Copied from `docs/ATTACKS.md`. Each NEAR command is `python -m gate attack <name
 - Reproducing the hash from source needs Docker; checking it against testnet needs network.
 - The signature is pure Ed25519 over the sha256 digest, not Ed25519ph.
 - Dependencies: NEAR RPC, NearBlocks, the archival RPC, GoPlus, 1Click and the ShieldBot API; each check that needs one reads Unknown when it is down.
-- What waits: chain wide label coverage, exchange labels, the NEAR Intents SHIELD feed, alerts, numeric risk ratings, billing, chain signatures linking, any trace of an unlabelled account. The browser extension and the Telegram bot do not cover NEAR.
+- What waits: chain wide label coverage, exchange labels, the NEAR Intents SHIELD feed, numeric risk ratings, billing, chain signatures linking, any trace of an unlabelled account. Feed and payment alerts are available when configured; the browser extension and the Telegram bot do not cover NEAR.
 
 ## Relationship to other NEAR work
 
@@ -469,6 +472,8 @@ Static pages: `demo/site/`, written by `python -m intel render` from the committ
 ## Environment and working agreements
 
 Every variable the code and the scripts read is in `env.example`, with a comment each; the agreements for working in this repository are in `AGENTS.md`.
+
+The operator procedures, each with its dry run and read backs, are in `docs/RUNBOOK.md`; every key role, its holder and its rotation are in `docs/KEYS.md`.
 
 Data sources: NearBlocks (testnet explorer and account data, free tier, personal use, attribution), FastNEAR (transfers, transactions, account views), mainnet.neardata.xyz (blocks), GoPlus, 1Click.
 

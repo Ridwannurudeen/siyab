@@ -55,6 +55,51 @@ class ScriptTest(unittest.TestCase):
         return shlex.split(line[2:])
 
 
+class MakeAttackReceiverTest(ScriptTest):
+    def test_dry_run_uses_the_demo_counterparty_account(self):
+        env = {**self.env, "COUNTERPARTY_ACCOUNT_ID": "counterparty.testnet", "DRY_RUN": "1"}
+        env.pop("ATTACKER_ACCOUNT_ID", None)
+        process = self.run_script("make_attack_receiver.sh", "lookalike", env=env)
+        self.assertEqual(process.returncode, 0, process.stderr)
+        self.assertEqual(process.stderr, "")
+        args = self.command(process.stdout, "create-account")
+        self.assertEqual(args[args.index("sign-as") + 1], "counterparty.testnet")
+        self.assertEqual(
+            args[args.index("sign-with-access-key-file") + 1],
+            f'{self.env["NEAR_KEYS_DIR"]}/counterparty.testnet.json',
+        )
+
+    def test_dry_run_supports_the_legacy_variable_with_one_deprecation_line(self):
+        env = {**self.env, "ATTACKER_ACCOUNT_ID": "legacy-counterparty.testnet", "DRY_RUN": "1"}
+        env.pop("COUNTERPARTY_ACCOUNT_ID", None)
+        process = self.run_script("make_attack_receiver.sh", "lookalike", env=env)
+        self.assertEqual(process.returncode, 0, process.stderr)
+        self.assertEqual(
+            process.stderr,
+            "deprecated: ATTACKER_ACCOUNT_ID is deprecated; use COUNTERPARTY_ACCOUNT_ID\n",
+        )
+        args = self.command(process.stdout, "create-account")
+        self.assertEqual(args[args.index("sign-as") + 1], "legacy-counterparty.testnet")
+        self.assertEqual(
+            args[args.index("sign-with-access-key-file") + 1],
+            f'{self.env["NEAR_KEYS_DIR"]}/legacy-counterparty.testnet.json',
+        )
+
+    def test_legacy_variable_appears_only_in_compatibility_code_and_this_test(self):
+        matches = []
+        excluded = {".git", "fixtures", "res"}
+        text_suffixes = {".example", ".json", ".md", ".py", ".sh", ".toml", ".txt", ".yaml", ".yml"}
+        for path in ROOT.rglob("*"):
+            relative = path.relative_to(ROOT)
+            if not path.is_file() or excluded.intersection(relative.parts):
+                continue
+            if path.suffix.lower() not in text_suffixes:
+                continue
+            if "ATTACKER_ACCOUNT_ID" in path.read_text(encoding="utf-8"):
+                matches.append(relative.as_posix())
+        self.assertEqual(sorted(matches), ["scripts/lib.sh", "tests/test_scripts.py"])
+
+
 class KillSwitchTest(ScriptTest):
     def test_dry_run_prints_calls_arguments_reads_and_signer(self):
         process = self.run_script("kill_switch.sh", AGENT_PUB, "--dry-run")
