@@ -139,6 +139,27 @@ class WasmArtifactsTest(unittest.TestCase):
             expected = f"{hashlib.sha256(wasm_path.read_bytes()).hexdigest()}  res/{filename}\n"
             self.assertEqual((RES / f"{filename}.sha256").read_text(encoding="ascii"), expected)
 
+    def test_previous_reports_artifact_matches_its_build_record(self):
+        previous_path = RES / "previous" / "reports.wasm"
+        previous_sha_path = RES / "previous" / "reports.wasm.sha256"
+        current_path = RES / "reports.wasm"
+        previous_bytes = previous_path.read_bytes()
+        digest = hashlib.sha256(previous_bytes).hexdigest()
+        record = (RES / "BUILD-reports.md").read_text(encoding="utf-8")
+        recorded_wasm = re.search(
+            r"Reports wasm: (\d+) bytes; sha256 `([0-9a-f]{8})\.\.\.([0-9a-f]{8})`",
+            record,
+        )
+        self.assertIsNotNone(recorded_wasm)
+        self.assertEqual(previous_bytes, current_path.read_bytes())
+        self.assertEqual(len(previous_bytes), int(recorded_wasm.group(1)))
+        self.assertTrue(digest.startswith(recorded_wasm.group(2)))
+        self.assertTrue(digest.endswith(recorded_wasm.group(3)))
+        self.assertEqual(
+            previous_sha_path.read_text(encoding="ascii"),
+            f"{digest}  res/previous/reports.wasm\n",
+        )
+
     def test_exported_functions_match_each_contract_method_table(self):
         for filename, expected in CONTRACT_EXPORTS.items():
             if not (RES / filename).exists():

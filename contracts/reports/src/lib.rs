@@ -7,7 +7,6 @@ use near_sdk::{
 
 pub const REPORT_DEPOSIT: u128 = 23_136_000_000_000_000_000_000;
 const MAX_PENDING_REPORTS: u64 = 5;
-const MAX_DISPUTES: usize = 5;
 const MAX_EVIDENCE_URL_BYTES: usize = 512;
 const MAX_PAGE_SIZE: u32 = 50;
 
@@ -482,16 +481,12 @@ impl Reports {
         let mut report = self.report_or_refuse(report_id);
         let has_open_dispute = report
             .dispute_ids
-            .iter()
-            .any(|id| self.disputes.get(id).is_some_and(|dispute| dispute.open));
+            .last()
+            .is_some_and(|id| self.disputes.get(id).is_some_and(|dispute| dispute.open));
         near_sdk::require!(!has_open_dispute, "REFUSED:dispute_open");
         near_sdk::require!(
             report.state == ReportState::Accepted,
             "REFUSED:not_accepted"
-        );
-        near_sdk::require!(
-            usize::from(report.upheld_disputes) < MAX_DISPUTES,
-            "REFUSED:dispute_limit"
         );
 
         let id = self.next_dispute_id;
@@ -577,10 +572,7 @@ impl Reports {
             }
         } else {
             report.state = ReportState::Accepted;
-            report.upheld_disputes = report
-                .upheld_disputes
-                .checked_add(1)
-                .unwrap_or_else(|| env::panic_str("REFUSED:counter_exhausted"));
+            report.upheld_disputes = report.upheld_disputes.saturating_add(1);
             stats.accepted += 1;
         }
         report.moderator = Some(moderator.clone());
@@ -1680,87 +1672,67 @@ mod tests {
     }
 
     #[test]
-    fn upheld_disputes_are_limited_to_five_over_the_report_lifetime() {
+    fn upheld_disputes_never_cap_further_disputes() {
         let mut reports = reports();
         let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
         moderate(&mut reports, id, true);
-        for index in 0..MAX_DISPUTES {
-            context("disputer.testnet", REPORT_DEPOSIT, 1_003 + index as u64);
+        for index in 0..7 {
+            context(
+                "disputer.testnet",
+                REPORT_DEPOSIT,
+                1_003 + index as u64 * 2,
+            );
             let dispute_id =
                 reports.dispute(id, hash('c'), "https://evidence.example/dispute".to_owned());
-            context("moderator.testnet", 1, 1_004 + index as u64);
+            context("moderator.testnet", 1, 1_004 + index as u64 * 2);
             reports.resolve_dispute(dispute_id, false, hash('b'));
         }
-        assert_eq!(
-            reports.get_report(id).unwrap().dispute_ids.len(),
-            MAX_DISPUTES
-        );
-        assert_eq!(
-            reports.report_or_refuse(id).upheld_disputes,
-            MAX_DISPUTES as u8
-        );
+        assert_eq!(reports.get_report(id).unwrap().dispute_ids.len(), 7);
+        assert_eq!(reports.report_or_refuse(id).upheld_disputes, 7);
+
+        context("another.testnet", REPORT_DEPOSIT, 1_017);
+        let eighth_dispute =
+            reports.dispute(id, hash('d'), "https://evidence.example/eighth".to_owned());
+        assert_eq!(eighth_dispute, 7);
     }
 
     #[test]
-    #[should_panic(expected = "REFUSED:dispute_limit")]
-    fn sixth_upheld_dispute_is_refused() {
+    fn upheld_counter_saturates_instead_of_panicking() {
         let mut reports = reports();
         let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
         moderate(&mut reports, id, true);
-        for index in 0..MAX_DISPUTES {
-            context("disputer.testnet", REPORT_DEPOSIT, 1_003 + index as u64);
-            let dispute_id =
-                reports.dispute(id, hash('c'), "https://evidence.example/dispute".to_owned());
-            context("moderator.testnet", 1, 1_004 + index as u64);
-            reports.resolve_dispute(dispute_id, false, hash('b'));
-        }
-        context("disputer.testnet", REPORT_DEPOSIT, 1_010);
-        reports.dispute(id, hash('c'), "https://evidence.example/dispute".to_owned());
-    }
+        let mut report = reports.report_or_refuse(id);
+        report.upheld_disputes = u8::MAX;
+        reports.reports.insert(id, report);
 
-    #[test]
-    fn five_overturned_disputes_do_not_block_a_sixth_dispute() {
-        let mut reports = reports();
-        context("reporter.testnet", REPORT_DEPOSIT, 1_001);
-        let id = reports.submit_report(
-            "vendor.testnet".to_owned(),
-            ReportKind::Social,
-            ReportOutcome::Loss,
-            hash('a'),
-            "https://evidence.example/report".to_owned(),
-        );
-        moderate(&mut reports, id, true);
-        for index in 0..MAX_DISPUTES {
-            context("disputer.testnet", REPORT_DEPOSIT, 1_003 + index as u64);
+        context("disputer.testnet", REPORT_DEPOSIT, 1_003);
+        let dispute_id =
             reports.dispute(id, hash('c'), "https://evidence.example/dispute".to_owned());
-            context("moderator.testnet", 1, 1_004 + index as u64);
-            reports.resolve_dispute(index as u64, true, hash('d'));
-            assert_eq!(reports.report_or_refuse(id).upheld_disputes, 0);
+        context("moderator.testnet", 1, 1_004);
+        reports.resolve_dispute(dispute_id, false, hash('d'));
 
-            // Overturning is terminal publicly; reset this fixture to isolate the cap counter.
-            let mut report = reports.report_or_refuse(id);
-            report.state = ReportState::Accepted;
-            reports.reports.insert(id, report);
-            let mut summary = reports.summary_for(&account("vendor.testnet"));
-            summary.accepted = 1;
-            summary.latest_accepted_id = Some(id);
-            reports
-                .subject_summaries
-                .insert(account("vendor.testnet"), summary);
-            let mut stats = reports.stats_for(&account("reporter.testnet"));
-            stats.accepted = 1;
-            reports
-                .publisher_stats
-                .insert(account("reporter.testnet"), stats);
-        }
+        let report = reports.report_or_refuse(id);
+        assert_eq!(report.state, ReportState::Accepted);
+        assert_eq!(report.upheld_disputes, u8::MAX);
+    }
 
-        context("disputer.testnet", REPORT_DEPOSIT, 1_010);
-        let sixth_dispute = reports.dispute(
-            id,
-            hash('e'),
-            "https://evidence.example/sixth-dispute".to_owned(),
-        );
-        assert_eq!(sixth_dispute, MAX_DISPUTES as u64);
+    #[test]
+    #[should_panic(expected = "REFUSED:dispute_open")]
+    fn open_dispute_check_reads_the_last_dispute() {
+        let mut reports = reports();
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        moderate(&mut reports, id, true);
+
+        context("disputer.testnet", REPORT_DEPOSIT, 1_003);
+        let first_dispute =
+            reports.dispute(id, hash('c'), "https://evidence.example/first".to_owned());
+        context("moderator.testnet", 1, 1_004);
+        reports.resolve_dispute(first_dispute, false, hash('d'));
+
+        context("another.testnet", REPORT_DEPOSIT, 1_005);
+        reports.dispute(id, hash('e'), "https://evidence.example/second".to_owned());
+        context("third.testnet", REPORT_DEPOSIT, 1_006);
+        reports.dispute(id, hash('f'), "https://evidence.example/third".to_owned());
     }
 
     #[test]
@@ -1775,6 +1747,7 @@ mod tests {
         reports.resolve_dispute(dispute_id, true, hash('d'));
         let report = reports.get_report(id).unwrap();
         assert_eq!(report.state, ReportState::Overturned);
+        assert_eq!(reports.report_or_refuse(id).upheld_disputes, 0);
         assert_eq!(report.moderator, Some(account("moderator.testnet")));
         assert_eq!(
             reports.subject_summary(account("vendor.testnet")).contested,
