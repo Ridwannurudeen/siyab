@@ -89,8 +89,8 @@ class RedeployDryRunTest(RedeployTest):
                 ]])
                 self.assertNotIn("without-init-call", process.stdout)
 
-    def test_gate_and_registry_read_the_version_before_and_after_the_deploy(self):
-        for contract in ("gate", "registry"):
+    def test_each_contract_reads_the_version_before_and_after_the_deploy(self):
+        for contract in ("gate", "registry", "reports"):
             with self.subTest(contract=contract):
                 process = self.redeploy(contract, self.wasm)
                 self.assertEqual(process.returncode, 0, process.stderr)
@@ -100,12 +100,6 @@ class RedeployDryRunTest(RedeployTest):
                 deploy = next(i for i, line in enumerate(lines) if line.startswith("+ near contract deploy"))
                 reads_at = [i for i, line in enumerate(lines) if " as-read-only " in line]
                 self.assertTrue(reads_at[0] < deploy < reads_at[1])
-
-    def test_reports_reads_no_version(self):
-        process = self.redeploy("reports", self.wasm)
-        self.assertEqual(process.returncode, 0, process.stderr)
-        self.assertEqual(self.lines(process.stdout, "near contract call-function"), [])
-        self.assertIn("version before: not read, the reports contract has no version view", process.stdout)
 
     def test_expected_values_are_printed_as_planned_assertions(self):
         for contract in ("gate", "registry"):
@@ -133,12 +127,10 @@ class RedeployDryRunTest(RedeployTest):
                     self.assertEqual(process.returncode, 0, process.stderr)
                     self.assertNotIn("would assert", process.stdout)
 
-    def test_reports_refuses_an_expected_version(self):
-        process = self.redeploy("reports", self.wasm, EXPECT_VERSION="0.1.0")
-        self.assertEqual(process.returncode, 2)
-        self.assertIn("EXPECT_VERSION cannot be asserted: the reports contract has no version view",
-                      process.stderr)
-        self.assertEqual(process.stdout, "")
+    def test_reports_plans_an_expected_version_assertion(self):
+        process = self.redeploy("reports", self.wasm, EXPECT_VERSION="0.1.1")
+        self.assertEqual(process.returncode, 0, process.stderr)
+        self.assertIn("would assert: version after equals 0.1.1", process.stdout)
 
     def test_reports_account_can_be_named(self):
         process = self.redeploy("reports", self.wasm, REPORTS_ACCOUNT_ID="moderated.testnet")

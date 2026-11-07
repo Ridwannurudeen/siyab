@@ -595,6 +595,19 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         .logs()
         .iter()
         .any(|line| line.contains("transfer_completed")));
+    // Return to the candidate, the deployed end state, so every check below runs on the candidate.
+    gate.deploy(&gate_wasm)
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap();
+    let redeployed_policy: Value = gate
+        .view(gate.id(), "get_policy")
+        .await
+        .unwrap()
+        .json()
+        .unwrap();
+    assert_eq!(redeployed_policy, rollback_policy);
 
     let no_verdict = agent
         .call(gate.id(), "request_transfer")
