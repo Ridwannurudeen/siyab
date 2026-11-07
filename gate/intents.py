@@ -11,6 +11,11 @@ The firewall's answer alone never makes an ALLOW: a classification in FIREWALL_S
 signal, any other one is recorded as quoted third party data, and the verdict still needs the
 GoPlus check to have run. Every request goes through gate.rpc.Client, so fixtures replay offline:
 fixtures/intents (1Click), fixtures/goplus (GoPlus) and fixtures/evm (eth_getCode and the firewall).
+
+A dry quote has no deposit address, so the verdict binds to the quote request instead: the answer
+must echo the five BOUND_FIELDS as sent, the document records them with the quote's correlationId,
+timestamp, amountOut and minAmountOut, and verify_binding refuses a later quote request that differs.
+The quote's signature is not checked: no 1Click verifying key is recorded here.
 """
 
 import json
@@ -71,6 +76,10 @@ RECORDED_DEADLINE = "2026-10-30T00:00:00Z"
 # A check that meets one of these could not run.
 UNAVAILABLE = (rpc.FixtureMiss, rpc.HttpError, rpc.RateLimited, rpc.RpcError, rpc.TransportError, OSError,
                ValueError)
+# The request fields a quote answer must echo as sent and that verify_binding compares with a later
+# quote request, with their subject keys. The deadline is left out: 1Click echoes it with milliseconds.
+BOUND_FIELDS = (("originAsset", "origin_asset"), ("destinationAsset", "destination_asset"), ("amount", "amount"),
+                ("recipient", "recipient"), ("recipientType", "recipient_type"))
 _OMFT = ".omft.near"
 _EVM_ADDRESS = re.compile(r"0x[0-9a-fA-F]{40}")
 
@@ -162,19 +171,27 @@ def firewall(chain_id, recipient, value, *, client):
                                          "data": "0x", "chainId": chain_id})
 
 
-def _quote_check(response, recipient, chain, source):
+def _same(field, judged, named):
+    if field == "recipient":
+        return isinstance(judged, str) and isinstance(named, str) and named.lower() == judged.lower()
+    return named is not None and named == judged
+
+
+def _quote_check(response, asked, chain, source):
     quote = response.get("quote") if isinstance(response, dict) else None
     request = response.get("quoteRequest") if isinstance(response, dict) else None
     if not isinstance(quote, dict) or not isinstance(request, dict) or not quote.get("amountOut"):
         raise rpc.MalformedResponse("the quote answer has no quote, quoteRequest or amountOut")
     if request.get("dry") is not True:
         raise rpc.MalformedResponse("the quote answer does not echo dry true")
-    named = request.get("recipient")
-    if not isinstance(named, str) or named.lower() != recipient.lower():
-        return evidence.check("quote_dry", "signal", f"the dry quote names the recipient {_quoted(named)}, "
-                              f"not {recipient}", source), quote
-    return evidence.check("quote_dry", "pass", f"dry quote answered: recipient {named}, chain {chain}, "
-                          f"amountOut {quote['amountOut']}", source), quote
+    binding = {"correlation_id": response.get("correlationId"), "timestamp": response.get("timestamp"),
+               "amount_out": quote["amountOut"], "min_amount_out": quote.get("minAmountOut")}
+    differ = [field for field, _ in BOUND_FIELDS if not _same(field, asked[field], request.get(field))]
+    if differ:
+        named = "; ".join(f"{field} {_quoted(request.get(field))}, not {_quoted(asked[field])}" for field in differ)
+        return evidence.check("quote_dry", "signal", f"the dry quote names {named}", source), quote, binding
+    return evidence.check("quote_dry", "pass", f"dry quote answered: recipient {request['recipient']}, chain {chain}, "
+                          f"amountOut {quote['amountOut']}", source), quote, binding
 
 
 def judge_quote(origin_asset, destination_asset, amount, recipient, recipient_type="DESTINATION_CHAIN", *,
@@ -188,7 +205,7 @@ def judge_quote(origin_asset, destination_asset, amount, recipient, recipient_ty
     root = Path(fixtures_root)
     quote_client = rpc.Client(ONECLICK_URL, mode, kind="http", fixtures_dir=root / "intents")
     goplus_client = rpc.Client(GOPLUS_URL, mode, kind="http", fixtures_dir=root / "goplus")
-    checks, quote, chain_error = [], None, None
+    checks, quote, binding, chain_error = [], None, None, None
     try:
         chain, _ = parse_destination(destination_asset)
     except ValueError as error:
@@ -196,7 +213,8 @@ def judge_quote(origin_asset, destination_asset, amount, recipient, recipient_ty
     try:
         response = dry_quote(origin_asset, destination_asset, amount, recipient, recipient_type,
                              client=quote_client, deadline=deadline)
-        check, quote = _quote_check(response, recipient, chain, dict(quote_client.last_source))
+        asked = quote_body(origin_asset, destination_asset, amount, recipient, recipient_type, deadline)
+        check, quote, binding = _quote_check(response, asked, chain, dict(quote_client.last_source))
         checks.append(check)
     except UNAVAILABLE as error:
         checks.append(evidence.check("quote_dry", "unknown", f"could not get a dry quote: {_why(error)}",
@@ -235,13 +253,36 @@ def judge_quote(origin_asset, destination_asset, amount, recipient, recipient_ty
     reasons = _reasons(verdict, checks, recipient, goplus)
     document = evidence.document(
         subject={"kind": "intents", "origin_asset": origin_asset, "destination_asset": destination_asset,
-                 "amount": amount, "recipient": recipient, "recipient_type": recipient_type},
+                 "amount": amount, "recipient": recipient, "recipient_type": recipient_type, "quote": binding},
         checks=checks, labels=[], verdict=verdict, reasons=reasons,
         observed={"block_height": None, "timestamp_ms": int(clock() * 1000)}, issued_ms=None, expires_ms=None,
         verdict_id=None, latency_ms=None)
     document["kind"] = "intents"
     return {"verdict": verdict, "checks": checks, "reasons": reasons, "quote": quote, "document": document,
             "evidence_hash": evidence.evidence_hash(document)}
+
+
+def verify_binding(answer, quote_request):
+    """Raise ValueError unless answer, a judge_quote result or the check_intents_quote answer, is
+    intact and judged the request quote_request makes: its evidence hash recomputes from its
+    document, its verdict is the document's, and the BOUND_FIELDS of quote_request (the quoteRequest
+    of the quote the agent will deposit to) equal the judged ones. The answer is unsigned, so this
+    refuses an edited or reused answer, not one forged whole with its hash recomputed."""
+    document = answer.get("document") if isinstance(answer, dict) else None
+    if not isinstance(document, dict) or evidence.evidence_hash(document) != answer.get("evidence_hash"):
+        raise ValueError("the evidence hash does not match the answer's document")
+    subject = document.get("subject")
+    if document.get("kind") != "intents" or not isinstance(subject, dict):
+        raise ValueError("the answer is not an intents verdict")
+    if answer.get("verdict") != document.get("verdict"):
+        raise ValueError(f"the answer's verdict {_quoted(answer.get('verdict'))} is not the document's "
+                         f"{_quoted(document.get('verdict'))}")
+    if not isinstance(quote_request, dict):
+        raise ValueError("quote_request: not an object")
+    for field, key in BOUND_FIELDS:
+        if not _same(field, subject.get(key), quote_request.get(field)):
+            raise ValueError(f"{field} {_quoted(quote_request.get(field))} is not the judged "
+                             f"{_quoted(subject.get(key))}")
 
 
 def _code_check(chain, recipient, quote, root, mode, firewall_url):

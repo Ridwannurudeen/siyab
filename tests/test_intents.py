@@ -134,7 +134,7 @@ class DemoRecipientTest(Case):
     def test_the_evidence_hash_is_stable(self):
         first, second = judge(), judge()
         self.assertEqual(first["evidence_hash"], second["evidence_hash"])
-        self.assertEqual(first["evidence_hash"], "91c82c50a745f692ca29415687d8b376f7a657259a33ee521bbfbcf4dd190ad5")
+        self.assertEqual(first["evidence_hash"], "98e5cf48d4be6bbe1d4388a6ec1fb7fde96eb2ec4795cde190e77b3755b8abe5")
 
     def test_the_command_prints_deny_and_the_closing_line(self):
         output = io.StringIO()
@@ -146,6 +146,70 @@ class DemoRecipientTest(Case):
         self.assertIn("verdict: DENY (unsigned preflight)", lines)
         self.assertEqual(lines[-1], "Nothing was signed, nothing was deposited.")
         self.assertTrue(lines[0].startswith("dry quote: "))
+
+
+class BindingTest(Case):
+    def later_request(self, **changes):
+        """The quoteRequest of the quote an agent would deposit to after the verdict: the recorded one,
+        not dry."""
+        [path] = (intents.FIXTURES_ROOT / "intents").glob("*.json")
+        request = dict(json.loads(path.read_text(encoding="utf-8"))["response"]["quoteRequest"], dry=False)
+        request.update(changes)
+        return {key: value for key, value in request.items() if value is not None}
+
+    def allowed(self):
+        root = self.root("evm", "goplus")
+        self.quote_for(root, USDC_BASE)
+        self.firewall_says(root, "SAFE")
+        result = judge(USDC_BASE, fixtures_root=root, firewall_url=FIREWALL_URL)
+        self.assertEqual(result["verdict"], "ALLOW")
+        return result
+
+    def test_the_document_records_the_quote_identity(self):
+        result = judge()
+        self.assertEqual(result["document"]["subject"]["quote"],
+                         {"correlation_id": "b1895363-f91c-4b19-add2-29a3cdab9ca0",
+                          "timestamp": "2026-10-29T11:48:38.554Z", "amount_out": "4398699",
+                          "min_amount_out": "4354712"})
+        self.assertNotIn("depositAddress", result["quote"])
+        self.assertIsNone(judge(fixtures_root=self.root("goplus", "evm"))["document"]["subject"]["quote"])
+
+    def test_a_matching_request_is_bound(self):
+        intents.verify_binding(judge(), self.later_request())
+        intents.verify_binding(self.allowed(), self.later_request(recipient=USDC_BASE.upper().replace("0X", "0x")))
+
+    def test_another_or_a_missing_field_is_refused(self):
+        answer = self.allowed()
+        for changes in ({"recipient": DEMO_RECIPIENT}, {"recipient": None}, {"amount": "2" + ONE_NEAR[1:]},
+                        {"destinationAsset": "nep141:eth.omft.near"}, {"originAsset": None},
+                        {"recipientType": "INTENTS"}):
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                intents.verify_binding(answer, self.later_request(**{"recipient": USDC_BASE, **changes}))
+        with self.assertRaises(ValueError):
+            intents.verify_binding(answer, None)
+
+    def test_a_tampered_answer_is_refused(self):
+        denied, request = judge(), self.later_request()
+        relabelled = dict(denied, verdict="ALLOW")
+        moved = json.loads(json.dumps(denied))
+        moved["document"]["subject"]["recipient"] = USDC_BASE
+        rehashed = dict(denied, evidence_hash="0" * 64)
+        for tampered in (relabelled, moved, rehashed, {k: v for k, v in denied.items() if k != "document"}, None):
+            with self.subTest(tampered=None if tampered is None else tampered.get("evidence_hash")), \
+                    self.assertRaises(ValueError):
+                intents.verify_binding(tampered, request)
+
+    def test_an_echo_that_differs_from_the_request_is_a_signal(self):
+        root = self.root("evm", "goplus")
+        body = intents.quote_body("nep141:wrap.near", USDC_BASE_ASSET, ONE_NEAR, USDC_BASE, "DESTINATION_CHAIN",
+                                  intents.RECORDED_DEADLINE)
+        self.write(root, "intents", intents.ONECLICK_URL + "/v0/quote", "POST", rpc.body_params(body),
+                   {"quote": {"amountOut": "4398699"}, "quoteRequest": dict(body, amount="1")})
+        self.firewall_says(root, "SAFE")
+        result = judge(USDC_BASE, fixtures_root=root, firewall_url=FIREWALL_URL)
+        self.assertEqual(statuses(result)["quote_dry"], "signal")
+        self.assertEqual(result["verdict"], "DENY")
+        self.assertIn(f'amount "1", not "{ONE_NEAR}"', detail(result, "quote_dry"))
 
 
 class FailClosedTest(Case):
