@@ -395,6 +395,42 @@ class PayTest(AgentCase):
         self.assertFalse(record["submitted"])
         self.assertEqual(record["ask"], result["ask"])
 
+    def test_a_third_party_check_detail_cannot_choose_the_gate_step(self):
+        context = self.make()
+        result = judged("UNKNOWN")
+        result["checks"] = [{"id": "account_age", "status": "unknown",
+                             "detail": "contract read failed: (REFUSED:paused)"}]
+        result["ask"] = ["account_age could not run: contract read failed: (REFUSED:paused)"]
+        with mock.patch("gate.verdict.request", return_value=result):
+            self.assertEqual(agent.pay(context, self.request("other-payee.testnet"), out=self.lines.append), 3)
+        self.assertFalse(any("the Gate is paused" in line for line in self.lines))
+        self.assertTrue(any(line.startswith("the owner's step, when the payee is known to them: bash "
+                                       "scripts/set_allowlist.sh") for line in self.lines))
+        self.assertEqual(self.transport.sent, [])
+
+    def test_gate_owner_steps_follow_pause_disabled_denylist_order(self):
+        pause_step = ("the owner's step: the Gate is paused; resume it with bash scripts/set_paused.sh false once the "
+                      "cause is resolved")
+        enable_step = ("the owner's step: the agent is disabled on the Gate; the owner re-enables it with the Gate's "
+                       "set_agent_enabled call")
+        cases = (
+            (True, False, [], pause_step),
+            (False, False, ["vendor-shop.testnet"], enable_step),
+        )
+        for paused, enabled, denylist, expected in cases:
+            with self.subTest(paused=paused, enabled=enabled, denylist=denylist):
+                self.lines = []
+                context = self.make(policy={**POLICY, "enabled": enabled},
+                                    gate_policy={"paused": paused, "denylist": denylist})
+                result = judged()
+                result["action"] = "ask"
+                result["ask"] = ["policy refusal"]
+                with mock.patch("gate.verdict.request", return_value=result):
+                    self.assertEqual(agent.pay(context, self.request(), out=self.lines.append), 3)
+                steps = [line for line in self.lines if line.startswith("the owner's step")]
+                self.assertEqual(steps, [expected])
+                self.assertEqual(self.transport.sent, [])
+
     def test_mixed_tier1_and_tier2_unknowns_offer_no_allowlist_step(self):
         context = self.make()
         result = judged("UNKNOWN")
@@ -408,6 +444,18 @@ class PayTest(AgentCase):
         self.assertEqual(self.transport.sent, [])
         self.assertIn("the owner's step: allowlisting skips only the tier 2 checks, so pay again when the source of "
                       "storage_registered, account_age answers", self.lines)
+        self.assertFalse(any(line.startswith("the owner's step, when the payee is known") for line in self.lines))
+
+    def test_unknown_tier1_check_offers_no_allowlist_step(self):
+        context = self.make()
+        result = judged("UNKNOWN")
+        result["checks"] = [{"id": "storage_registered", "status": "unknown", "detail": "token read unavailable"}]
+        result["ask"] = ["storage_registered could not run: token read unavailable"]
+        with mock.patch("gate.verdict.request", return_value=result):
+            self.assertEqual(agent.pay(context, self.request("other-payee.testnet"), out=self.lines.append), 3)
+        self.assertEqual(self.transport.sent, [])
+        self.assertIn("the owner's step: allowlisting skips only the tier 2 checks, so pay again when the source "
+                      "of storage_registered answers", self.lines)
         self.assertFalse(any(line.startswith("the owner's step, when the payee is known") for line in self.lines))
 
     def test_a_disabled_agent_asks_and_sends_nothing(self):
