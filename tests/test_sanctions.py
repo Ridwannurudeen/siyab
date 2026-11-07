@@ -227,6 +227,11 @@ class LookupTest(unittest.TestCase):
         for chain, address in (("eth", lower), ("base", upper), ("arb", listing["address"]), ("ETH", upper)):
             self.assertIn(listing["uid"], [m["uid"] for m in self.lookup(chain, address)])
 
+    def test_bech32_case_is_ignored(self):
+        listing = next(listing for listing in self.listings
+                       if listing["asset"] == "XBT" and sanctions._is_bech32(listing["address"]))
+        self.assertIn(listing["uid"], [m["uid"] for m in self.lookup("XBT", listing["address"].upper())])
+
     def test_a_chain_code_matches_every_code_and_an_asset_code_only_its_own(self):
         codes = {}
         for listing in self.listings:
@@ -242,6 +247,15 @@ class LookupTest(unittest.TestCase):
                        if listing["asset"] == "TRX" and listing["address"].lower() not in keys)
         self.assertEqual(self.lookup("tron", listing["address"].lower()), [])
         self.assertEqual(self.lookup("TRX", listing["address"].lower()), [])
+
+    def test_one_base58_case_change_does_not_match(self):
+        listing = next(listing for listing in self.listings if listing["asset"] == "TRX")
+        address = listing["address"]
+        index = next(i for i, character in enumerate(address) if character.isalpha())
+        changed = address[:index] + address[index].swapcase() + address[index + 1:]
+        self.assertNotEqual(changed, address)
+        self.assertEqual(sanctions.normalise(changed), changed)
+        self.assertEqual(self.lookup("TRX", changed), [])
 
     def test_a_near_account_never_matches(self):
         self.assertEqual(sanctions.counts(self.document)["near"], 0)

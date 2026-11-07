@@ -2,22 +2,27 @@
 quote's ed25519 signature, which is replaced by a note, and the firewall fixture has its em dashes
 written as hyphens: both would trip the repository hygiene hook."""
 
+import base64
 import contextlib
+import hashlib
 import io
 import json
 import shutil
 import tempfile
 import unittest
+import urllib.error
 from datetime import UTC, datetime
 from pathlib import Path
 from unittest import mock
 
 from gate import __main__ as gate_main
 from gate import evidence, intents, rpc
+from intel import sanctions
 
 USDC_BASE_ASSET = "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near"
 USDC_BASE = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
 DEMO_RECIPIENT = "0x1fcdb04d0c5364fbd92c73ca8af9baa72c269107"
+DEPOSIT_ADDRESS = "deposit.near"
 ONE_NEAR = "1000000000000000000000000"
 CLOCK = datetime(2026, 11, 3, 12, 0, tzinfo=UTC).timestamp()
 FIREWALL_URL = "https://api.example"
@@ -67,14 +72,26 @@ class Case(unittest.TestCase):
     def write(self, root, directory, url, method, params, response):
         key = rpc.fixture_key(url, method, params)
         fixture = {"request": {"method": method, "params": params}, "response": response, "url": url,
-                   "fetched_at": "2026-11-03T11:00:00Z"}
+                   "fetched_at": "2026-11-03T11:00:00Z", "synthetic": True}
         (root / directory / f"{key}.json").write_text(json.dumps(fixture), encoding="utf-8")
 
-    def quote_for(self, root, recipient, amount_out="4398699"):
+    def quote_for(self, root, recipient, amount_out="4398699", timestamp="2026-11-03T11:59:59Z"):
         body = intents.quote_body("nep141:wrap.near", USDC_BASE_ASSET, ONE_NEAR, recipient, "DESTINATION_CHAIN",
                                   intents.RECORDED_DEADLINE)
-        self.write(root, "intents", intents.ONECLICK_URL + "/v0/quote", "POST", rpc.body_params(body),
-                   {"quote": {"amountOut": amount_out}, "quoteRequest": dict(body)})
+        response = {"quote": {"amountOut": amount_out}, "quoteRequest": dict(body), "timestamp": timestamp}
+        self.write(root, "intents", intents.ONECLICK_URL + "/v0/quote", "POST", rpc.body_params(body), response)
+
+    def quote_for_destination(self, root, recipient, destination):
+        body = intents.quote_body("nep141:wrap.near", destination, ONE_NEAR, recipient, "DESTINATION_CHAIN",
+                                  intents.RECORDED_DEADLINE)
+        response = {"quote": {"amountOut": "4398699"}, "quoteRequest": dict(body),
+                    "timestamp": "2026-11-03T11:59:59Z"}
+        self.write(root, "intents", intents.ONECLICK_URL + "/v0/quote", "POST", rpc.body_params(body), response)
+
+    def status_for(self, root, deposit_address, quote_request):
+        response = {"quoteResponse": {"quoteRequest": quote_request}}
+        self.write(root, "intents", intents.ONECLICK_URL + "/v0/status", "GET",
+                   {"depositAddress": deposit_address}, response)
 
     def firewall_says(self, root, classification, recipient=USDC_BASE, value="4398699"):
         body = {"from": intents.INTENTS_EVM_TREASURY, "to": recipient, "value": value, "data": "0x", "chainId": 8453}
@@ -109,8 +126,20 @@ class DryQuoteTest(Case):
                                   dry=dry)
         self.urlopen.assert_not_called()
 
+    def test_judge_quote_always_passes_dry_true(self):
+        original = intents.dry_quote
+
+        def dry_only(*args, **kwargs):
+            self.assertIs(kwargs.get("dry"), True)
+            return original(*args, **kwargs)
+
+        with mock.patch("gate.intents.dry_quote", side_effect=dry_only) as dry_quote:
+            judge()
+        dry_quote.assert_called_once()
+
     def test_the_recorded_quote_was_dry(self):
-        [path] = (intents.FIXTURES_ROOT / "intents").glob("*.json")
+        [path] = [p for p in (intents.FIXTURES_ROOT / "intents").glob("*.json")
+                  if json.loads(p.read_text(encoding="utf-8"))["url"].endswith("/v0/quote")]
         fixture = json.loads(path.read_text(encoding="utf-8"))
         self.assertIs(fixture["response"]["quoteRequest"]["dry"], True)
         self.assertNotIn("depositAddress", fixture["response"]["quote"])
@@ -120,8 +149,9 @@ class DemoRecipientTest(Case):
     def test_the_demo_recipient_is_deny_with_the_labels_and_the_fetch_time(self):
         result = judge()
         self.assertEqual(result["verdict"], "DENY")
-        self.assertEqual(statuses(result), {"quote_dry": "pass", "destination_supported": "pass",
-                                            "recipient_theft_label": "signal", "recipient_code": "pass"})
+        self.assertEqual(statuses(result), {"quote_dry": "pass", "quote_age": "unknown",
+                                            "destination_supported": "pass", "recipient_theft_label": "signal",
+                                            "recipient_code": "pass", "ofac_sanctioned": "pass"})
         [reason] = result["reasons"]
         self.assertIn("stealing_attack", reason)
         self.assertIn('"SlowMist,BlockSec"', reason)
@@ -134,7 +164,8 @@ class DemoRecipientTest(Case):
     def test_the_evidence_hash_is_stable(self):
         first, second = judge(), judge()
         self.assertEqual(first["evidence_hash"], second["evidence_hash"])
-        self.assertEqual(first["evidence_hash"], "98e5cf48d4be6bbe1d4388a6ec1fb7fde96eb2ec4795cde190e77b3755b8abe5")
+        self.assertEqual(first["evidence_hash"], base64.b64decode("GyvdStjTgvVzhV28jevNR/Ywy3ShAy/AXnXlAHUBrXY=",
+                                                                   validate=True).hex())
 
     def test_the_command_prints_deny_and_the_closing_line(self):
         output = io.StringIO()
@@ -146,13 +177,28 @@ class DemoRecipientTest(Case):
         self.assertIn("verdict: DENY (unsigned preflight)", lines)
         self.assertEqual(lines[-1], "Nothing was signed, nothing was deposited.")
         self.assertTrue(lines[0].startswith("dry quote: "))
+        self.assertIn("deposit address not checked: a dry quote has no deposit address", lines)
+
+    def test_the_command_refuses_a_different_deposit_address_with_its_reason(self):
+        output, errors = io.StringIO(), io.StringIO()
+        with mock.patch("gate.intents.bind_deposit_address", side_effect=ValueError("originAsset differs")) as bind, \
+                mock.patch.dict("os.environ", {}, clear=True), contextlib.redirect_stdout(output), \
+                contextlib.redirect_stderr(errors):
+            code = gate_main.main(["intents", "--origin", "nep141:wrap.near", "--destination", USDC_BASE_ASSET,
+                                   "--amount", ONE_NEAR, "--recipient", DEMO_RECIPIENT,
+                                   "--deposit-address", "other.near"])
+        self.assertEqual(code, 1)
+        bind.assert_called_once()
+        self.assertIn("originAsset", errors.getvalue())
+        self.assertNotIn("verdict:", output.getvalue())
 
 
 class BindingTest(Case):
     def later_request(self, **changes):
         """The quoteRequest of the quote an agent would deposit to after the verdict: the recorded one,
         not dry."""
-        [path] = (intents.FIXTURES_ROOT / "intents").glob("*.json")
+        [path] = [p for p in (intents.FIXTURES_ROOT / "intents").glob("*.json")
+                  if json.loads(p.read_text(encoding="utf-8"))["url"].endswith("/v0/quote")]
         request = dict(json.loads(path.read_text(encoding="utf-8"))["response"]["quoteRequest"], dry=False)
         request.update(changes)
         return {key: value for key, value in request.items() if value is not None}
@@ -172,6 +218,10 @@ class BindingTest(Case):
                           "timestamp": "2026-10-29T11:48:38.554Z", "amount_out": "4398699",
                           "min_amount_out": "4354712"})
         self.assertNotIn("depositAddress", result["quote"])
+        self.assertNotIn("deposit_address", result["document"]["subject"])
+        self.assertEqual(result["document"]["subject"]["quote_request"],
+                         intents.quote_body("nep141:wrap.near", USDC_BASE_ASSET, ONE_NEAR, DEMO_RECIPIENT,
+                                            "DESTINATION_CHAIN", intents.RECORDED_DEADLINE))
         self.assertIsNone(judge(fixtures_root=self.root("goplus", "evm"))["document"]["subject"]["quote"])
 
     def test_a_matching_request_is_bound(self):
@@ -187,6 +237,31 @@ class BindingTest(Case):
                 intents.verify_binding(answer, self.later_request(**{"recipient": USDC_BASE, **changes}))
         with self.assertRaises(ValueError):
             intents.verify_binding(answer, None)
+
+    def test_a_stale_quote_is_unknown_with_its_age(self):
+        root = self.root("evm", "goplus")
+        stale_timestamp = datetime.fromtimestamp(CLOCK - (intents.MAX_QUOTE_AGE_MS + 1) / 1000, UTC).isoformat(
+            timespec="milliseconds").replace("+00:00", "Z")
+        self.quote_for(root, DEMO_RECIPIENT, timestamp=stale_timestamp)
+        self.goplus_says(root, DEMO_RECIPIENT, {"code": 1, "result": {"data_source": "synthetic"}})
+        result = judge(fixtures_root=root)
+        self.assertEqual(result["verdict"], "UNKNOWN")
+        self.assertEqual(statuses(result)["quote_age"], "unknown")
+        self.assertIn(f"quote age is {intents.MAX_QUOTE_AGE_MS + 1} ms", detail(result, "quote_age"))
+        self.assertIn("quote_age could not run", result["reasons"][0])
+        with self.assertRaisesRegex(ValueError, f"UNKNOWN verdict is refused.*quote age is "
+                                    f"{intents.MAX_QUOTE_AGE_MS + 1} ms"):
+            intents.verify_binding(result, self.later_request())
+
+    def test_a_dry_quote_without_a_deposit_address_still_passes(self):
+        root = self.root("evm", "goplus")
+        self.quote_for(root, USDC_BASE)
+        self.goplus_says(root, USDC_BASE, {"code": 1, "result": {"data_source": "synthetic"}})
+        self.firewall_says(root, "SAFE")
+        result = judge(USDC_BASE, fixtures_root=root, firewall_url=FIREWALL_URL)
+        self.assertEqual(result["verdict"], "ALLOW")
+        self.assertEqual(statuses(result)["quote_dry"], "pass")
+        self.assertNotIn("depositAddress", result["quote"])
 
     def test_a_tampered_answer_is_refused(self):
         denied, request = judge(), self.later_request()
@@ -220,6 +295,69 @@ class BindingTest(Case):
         self.assertIn(f'amount "1", not "{ONE_NEAR}"', detail(result, "quote_dry"))
 
 
+class DepositAddressTest(Case):
+    def allowed(self, root):
+        self.quote_for(root, USDC_BASE)
+        self.goplus_says(root, USDC_BASE, {"code": 1, "result": {"data_source": "synthetic"}})
+        self.firewall_says(root, "SAFE")
+        result = judge(USDC_BASE, fixtures_root=root, firewall_url=FIREWALL_URL)
+        self.assertEqual(result["verdict"], "ALLOW")
+        return result
+
+    def test_a_matching_status_request_binds_the_supplied_address(self):
+        root = self.root("evm", "goplus")
+        result = self.allowed(root)
+        quote_request = dict(result["document"]["subject"]["quote_request"])
+        status_request = dict(quote_request, dry=False)
+        self.status_for(root, DEPOSIT_ADDRESS, status_request)
+        check = intents.bind_deposit_address(result, quote_request, DEPOSIT_ADDRESS, fixtures_root=root)
+        intents.verify_binding(result, quote_request)
+        self.assertEqual(check["status"], "pass")
+        self.assertEqual(statuses(result)["deposit_address_status"], "pass")
+        self.assertEqual(result["evidence_hash"], evidence.evidence_hash(result["document"]))
+        key = rpc.fixture_key(intents.ONECLICK_URL + "/v0/status", "GET", {"depositAddress": DEPOSIT_ADDRESS})
+        fixture = json.loads((root / "intents" / f"{key}.json").read_text(encoding="utf-8"))
+        self.assertIs(fixture["synthetic"], True)
+        self.assertEqual(fixture["response"], {"quoteResponse": {"quoteRequest": status_request}})
+
+    def test_each_bound_field_mismatch_is_refused_with_its_field(self):
+        mismatches = {"originAsset": "other-origin", "destinationAsset": "other-destination", "amount": "2",
+                      "recipient": "0x0000000000000000000000000000000000000001", "recipientType": "INTENTS"}
+        for field, value in mismatches.items():
+            with self.subTest(field=field):
+                root = self.root("evm", "goplus")
+                result = self.allowed(root)
+                quote_request = dict(result["document"]["subject"]["quote_request"])
+                status_request = dict(quote_request, dry=False)
+                status_request[field] = value
+                self.status_for(root, DEPOSIT_ADDRESS, status_request)
+                with self.assertRaisesRegex(ValueError, field):
+                    intents.bind_deposit_address(result, quote_request, DEPOSIT_ADDRESS, fixtures_root=root)
+
+    def test_a_404_means_the_address_is_unknown_to_1click(self):
+        result = self.allowed(self.root("evm", "goplus"))
+        quote_request = dict(result["document"]["subject"]["quote_request"])
+        error = urllib.error.HTTPError("https://1click.example/v0/status", 404, "Not Found", {}, None)
+        with mock.patch("urllib.request.urlopen", side_effect=error):
+            with self.assertRaisesRegex(ValueError, "unknown to 1Click"):
+                intents.bind_deposit_address(result, quote_request, DEPOSIT_ADDRESS, mode="off")
+
+    def test_failed_status_reads_are_unknown_and_refused(self):
+        failures = (urllib.error.HTTPError("https://1click.example/v0/status", 401, "Unauthorized", {}, None),
+                    urllib.error.HTTPError("https://1click.example/v0/status", 503, "Unavailable", {}, None),
+                    OSError("offline"))
+        for error in failures:
+            with self.subTest(error=type(error).__name__, status=getattr(error, "code", None)):
+                result = self.allowed(self.root("evm", "goplus"))
+                quote_request = dict(result["document"]["subject"]["quote_request"])
+                with mock.patch("urllib.request.urlopen", side_effect=error):
+                    check = intents.bind_deposit_address(result, quote_request, DEPOSIT_ADDRESS, mode="off")
+                self.assertEqual(check["status"], "unknown")
+                self.assertEqual(result["verdict"], "UNKNOWN")
+                with self.assertRaisesRegex(ValueError, "UNKNOWN deposit address status"):
+                    intents.verify_binding(result, quote_request)
+
+
 class FailClosedTest(Case):
     def test_a_goplus_failure_is_unknown_never_allow(self):
         root = self.root("intents", "evm")
@@ -230,6 +368,66 @@ class FailClosedTest(Case):
             with self.subTest(body=body):
                 self.goplus_says(root, DEMO_RECIPIENT, body)
                 self.assertEqual(judge(fixtures_root=root)["verdict"], "UNKNOWN")
+
+    def test_an_ofac_listed_evm_recipient_is_denied_with_entry_and_source_evidence(self):
+        document = sanctions.load()
+        listing = next(listing for listing in document["listings"]
+                       if listing["asset"] == "ETH" and listing["address"].startswith("0x"))
+        destination = "nep141:eth.omft.near"
+        root = self.root("evm")
+        self.quote_for_destination(root, listing["address"], destination)
+        self.goplus_says(root, listing["address"], {"code": 1, "result": {"data_source": "synthetic"}})
+        result = judge(listing["address"], destination=destination, fixtures_root=root)
+        self.assertEqual(result["verdict"], "DENY")
+        check = next(check for check in result["checks"] if check["id"] == "ofac_sanctioned")
+        self.assertEqual(check["status"], "signal")
+        match = next(match for match in sanctions.is_sanctioned("eth", listing["address"], document)
+                     if match["uid"] == listing["uid"])
+        reason = " ".join(result["reasons"])
+        for value in (str(match["uid"]), match["name"], *match["programs"], match["publish_date"],
+                      match["source_sha256"]):
+            self.assertIn(value, reason)
+        fixture_source = next(check for check in result["checks"] if check["id"] == "ofac_sanctioned")["source"]
+        self.assertTrue(fixture_source["provider"].startswith("fixtures/sanctions/"))
+        fixture_path = sanctions.ROOT / fixture_source["provider"]
+        self.assertEqual(fixture_source["request_sha256"], hashlib.sha256(fixture_path.read_bytes()).hexdigest())
+
+    def test_an_unlisted_recipient_passes_the_ofac_check(self):
+        document = sanctions.load()
+        self.assertEqual(sanctions.is_sanctioned("eth", DEMO_RECIPIENT, document), [])
+        destination = "nep141:eth.omft.near"
+        root = self.root("evm")
+        self.quote_for_destination(root, DEMO_RECIPIENT, destination)
+        self.goplus_says(root, DEMO_RECIPIENT, {"code": 1, "result": {"data_source": "synthetic"}})
+        result = judge(DEMO_RECIPIENT, destination=destination, fixtures_root=root)
+        check = next(check for check in result["checks"] if check["id"] == "ofac_sanctioned")
+        self.assertEqual(check["status"], "pass")
+        self.assertIn(document["publish_date"], check["detail"])
+        self.assertIn(str(sanctions.counts(document)["addresses"]), check["detail"])
+
+    def test_a_chain_without_an_ofac_code_passes_with_the_list_fact(self):
+        document = sanctions.load()
+        destination = "nep141:base.omft.near"
+        root = self.root("evm")
+        self.quote_for_destination(root, DEMO_RECIPIENT, destination)
+        self.goplus_says(root, DEMO_RECIPIENT, {"code": 1, "result": {"data_source": "synthetic"}})
+        result = judge(DEMO_RECIPIENT, destination=destination, fixtures_root=root)
+        check = next(check for check in result["checks"] if check["id"] == "ofac_sanctioned")
+        self.assertEqual(check["status"], "pass")
+        self.assertIn("publishes no address for chain base", check["detail"])
+        self.assertIn(document["publish_date"], check["detail"])
+
+    def test_a_missing_ofac_file_is_unknown(self):
+        destination = "nep141:eth.omft.near"
+        root = self.root("evm")
+        self.quote_for_destination(root, DEMO_RECIPIENT, destination)
+        self.goplus_says(root, DEMO_RECIPIENT, {"code": 1, "result": {"data_source": "synthetic"}})
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(sanctions, "FIXTURE_DIR", Path(tmp)):
+            result = judge(DEMO_RECIPIENT, destination=destination, fixtures_root=root)
+        check = next(check for check in result["checks"] if check["id"] == "ofac_sanctioned")
+        self.assertEqual(result["verdict"], "UNKNOWN")
+        self.assertEqual(check["status"], "unknown")
+        self.assertIn("no ofac-sdn-addresses", check["detail"])
 
     def test_an_unsupported_chain_is_unknown(self):
         result = judge(USDC_BASE, destination="nep141:sol.omft.near")

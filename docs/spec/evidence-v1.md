@@ -50,12 +50,12 @@ An EVM leg preflight (`gate/intents.py:254-260`) writes a document whose `subjec
 
 | Key | JSON type | Content |
 |---|---|---|
-| `id` | string | the check's name, such as `receiver_exists`, `label_denylist`, `token_in_catalog`, `ft_metadata_sane`, `storage_registered`, `memo_injection`, `issuer_blacklist`, `account_age`, `dust_funded`, `lookalike`, `code_without_metadata`, or for the intents variant `quote_dry`, `destination_supported`, `recipient_theft_label`, `recipient_code`. The list is the code's current set, not a closed enumeration: a reader must accept an id it does not know. |
+| `id` | string | the check's name, such as `receiver_exists`, `label_denylist`, `token_in_catalog`, `ft_metadata_sane`, `storage_registered`, `memo_injection`, `issuer_blacklist`, `account_age`, `dust_funded`, `lookalike`, `code_without_metadata`, or for the intents variant `quote_dry`, `destination_supported`, `ofac_sanctioned`, `recipient_theft_label`, `recipient_code`. The list is the code's current set, not a closed enumeration: a reader must accept an id it does not know. |
 | `status` | string | `pass`, `signal` or `unknown`; any other value is refused (`gate/evidence.py:27`, `:45-47`) |
 | `detail` | string | what the check found, in ShieldBot's words; third party strings appear inside double quotes |
 | `source` | object | `{"provider": string, "request_sha256": string or null, "fetched_at": string or null}` |
 
-In `source`, `provider` names where the answer came from (an RPC host, `label store`, `local patterns`, `local rules`); `request_sha256` is the 64 hex key of the recorded request (`gate/rpc.py:101-104`) or the sha256 of the label store file, and null for a local rule; `fetched_at` is the UTC time `YYYY-MM-DDTHH:MM:SSZ` the response was fetched, or null when nothing was fetched (`gate/rpc.py:305-306`, `gate/rules.py:110-111,114-115`).
+In `source`, `provider` names where the answer came from (an RPC host, `label store`, `local patterns`, `local rules`, or a committed fixture path); `request_sha256` is the 64 hex key of the recorded request (`gate/rpc.py:101-104`), the sha256 of the label store file, or for `ofac_sanctioned` the sha256 of the named fixture's JSON bytes. It is null for a local rule; `fetched_at` is the UTC time `YYYY-MM-DDTHH:MM:SSZ` the response was fetched, or null when nothing was fetched (`gate/rpc.py:305-306`, `gate/rules.py:110-111,114-115`). The OFAC check detail and match reason carry the source XML hash recorded inside that fixture.
 
 How check statuses become a verdict: any `signal` gives DENY; otherwise any `unknown` gives UNKNOWN; otherwise ALLOW (`gate/rules.py:734`, `gate/intents.py:252`).
 

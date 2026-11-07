@@ -107,17 +107,29 @@ def _http(args):
 
 
 def _intents(args):
-    mode = "off" if args.live else "replay"
-    deadline = intents.live_deadline() if args.live else intents.RECORDED_DEADLINE
+    mode = "off" if args.live else os.environ.get("GATE_FIXTURES_MODE") or "replay"
+    deadline = intents.RECORDED_DEADLINE if mode == "replay" else intents.live_deadline()
     try:
         result = intents.judge_quote(args.origin, args.destination, args.amount, args.recipient, args.recipient_type,
                                      mode=mode, firewall_url=os.environ.get("SHIELDBOT_API_URL"), deadline=deadline)
     except ValueError as error:
         print(f"invalid request: {error}", file=sys.stderr)
         return 2
+    quote_request = {"originAsset": args.origin, "destinationAsset": args.destination, "amount": args.amount,
+                     "recipient": args.recipient, "recipientType": args.recipient_type}
+    try:
+        intents.verify_binding(result, quote_request)
+        if args.deposit_address is not None:
+            intents.bind_deposit_address(result, quote_request, args.deposit_address, mode=mode)
+            intents.verify_binding(result, quote_request)
+    except ValueError as error:
+        print(f"refused: {error}", file=sys.stderr)
+        return 1
     quote = result["quote"] or {}
     print(f"dry quote: {args.amount} of {args.origin} to {args.destination}, recipient {args.recipient}, "
           f"amountOut {quote.get('amountOut', 'not known')}")
+    if args.deposit_address is None:
+        print("deposit address not checked: a dry quote has no deposit address")
     for check in result["checks"]:
         print(f"{check['status']:<7} {check['id']}: {check['detail']}")
     print(f"verdict: {result['verdict']} (unsigned preflight)")
@@ -287,6 +299,7 @@ def main(argv=None):
     leg.add_argument("--amount", required=True, help="the amount in the origin asset's base units")
     leg.add_argument("--recipient", required=True, help="the 0x recipient on the destination chain")
     leg.add_argument("--recipient-type", default="DESTINATION_CHAIN")
+    leg.add_argument("--deposit-address", help="the deposit address from the real quote to check")
     leg.add_argument("--live", action="store_true",
                      help="fetch a live dry quote and labels instead of replaying fixtures; writes nothing")
     leg.set_defaults(handler=_intents)

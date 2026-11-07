@@ -10,7 +10,7 @@ extract over a copy whose sha256 is the recorded one gives the same fixture.
 SDN_ADVANCED.XML, not SDN.CSV: the CSV remarks column stops at 1000 characters, which cuts long
 address lists short.
 
-is_sanctioned is the lookup the verdict path will call; it reads the committed fixture and never the
+is_sanctioned is called for NEAR Intents destinations; it reads the committed fixture and never the
 network. A match is a fact with a date (the entry, the list's date and the file's hash), not a score.
 """
 
@@ -38,9 +38,11 @@ TIMEOUT_S = 120
 FEATURE_PREFIX = "Digital Currency Address - "
 # The list has no NEAR code. NEAR is the coin's ticker, the form OFAC gives most codes (ETH, TRX, SOL).
 NEAR_ASSET = "NEAR"
-KEY_RULE = ("key is the address lower cased when it is 0x and 40 hex characters (an EVM address), and the "
-            "address as published otherwise")
+KEY_RULE = ("key is the address lower cased when it is 0x and 40 hex characters (an EVM address) or a "
+            "bech32 or bech32m form identified by its HRP, separator and data alphabet, and the address as "
+            "published otherwise")
 _EVM_ADDRESS = re.compile(r"0x[0-9a-fA-F]{40}")
+_BECH32_CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7"
 _SPACE = re.compile(r"\s")
 _STAMP = "%Y%m%dT%H%M%SZ"
 _TIME = "%Y-%m-%dT%H:%M:%SZ"
@@ -52,10 +54,26 @@ class SanctionsError(Exception):
 
 def normalise(address):
     """The lookup key of an address, compared the way the intents path compares a recipient
-    (gate/intents.py _same, which ignores case): an EVM address, 0x and 40 hex, lower case, since its
-    case is only the EIP-55 checksum; any other address exactly as published (base58, which most of
-    them use, is case sensitive)."""
-    return address.lower() if _EVM_ADDRESS.fullmatch(address) else address
+    (gate/intents.py _same): an EVM address, 0x and 40 hex, lower case, since its case is only the
+    EIP-55 checksum; a bech32 or bech32m form identified by its HRP, separator and data alphabet, lower case,
+    since its case is not significant; any other address exactly as published (base58, which most of them use,
+    is case sensitive)."""
+    if _EVM_ADDRESS.fullmatch(address):
+        return address.lower()
+    return address.lower() if _is_bech32(address) else address
+
+
+def _is_bech32(address):
+    lower = address.lower()
+    if len(address) > 90 or address not in (lower, address.upper()):
+        return False
+    separator = lower.rfind("1")
+    if separator < 1 or separator + 7 > len(lower):
+        return False
+    hrp, data = lower[:separator], lower[separator + 1:]
+    if any(ord(character) < 33 or ord(character) > 126 for character in hrp):
+        return False
+    return all(character in _BECH32_CHARSET for character in data)
 
 
 def _local(tag):
