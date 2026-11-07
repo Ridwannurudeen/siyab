@@ -1,54 +1,94 @@
-import contextlib
-import io
 import re
 import shlex
+import subprocess
+import sys
 import unittest
 from pathlib import Path
-from unittest import mock
-
-from gate import __main__ as gate_main
-from intel import __main__ as intel_main
 
 ROOT = Path(__file__).resolve().parent.parent
 GUIDE = ROOT / "docs" / "VERIFY.md"
 FENCES = re.compile(r"```([^\r\n]*)\r?\n(.*?)\r?\n```", re.DOTALL)
 PYTHON_SUBSTITUTION = re.compile(r'\$\(\s*python -c "([^"]*)"\s*\)')
-HEX64 = re.compile(r"[0-9a-f]{64}")
+HEX64 = re.compile(r"[0-9a-fA-F]{64}")
+PLACEHOLDER = re.compile(r"\{\{[A-Z][A-Z0-9_]*\}\}")
+SOCKET_BLOCK_WRAPPER = """
+import runpy
+import socket
+import sys
 
+def blocked(*args, **kwargs):
+    raise OSError("network disabled in verify guide test")
 
-def no_network(*args, **kwargs):
-    raise AssertionError("the test opened the network")
+socket.socket.connect = blocked
+socket.create_connection = blocked
+
+mode = sys.argv[1]
+if mode == "-m":
+    module = sys.argv[2]
+    sys.argv = [module, *sys.argv[3:]]
+    runpy.run_module(module, run_name="__main__", alter_sys=True)
+elif mode == "-c":
+    source = sys.argv[2]
+    sys.argv = ["-c", *sys.argv[3:]]
+    exec(compile(source, "<guide command>", "exec"), {"__name__": "__main__"})
+else:
+    raise SystemExit(f"unsupported python invocation: {mode}")
+"""
 
 
 def shorten_hashes(text):
     return HEX64.sub(lambda match: f"{match.group(0)[:8]}...{match.group(0)[-8:]}", text)
 
 
-class VerifyGuideTest(unittest.TestCase):
-    def run_command(self, command):
-        stdout = io.StringIO()
-        stderr = io.StringIO()
-        with mock.patch("urllib.request.urlopen", side_effect=no_network):
-            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
-                while match := PYTHON_SUBSTITUTION.search(command):
-                    expanded = io.StringIO()
-                    with contextlib.redirect_stdout(expanded):
-                        exec(compile(match.group(1), "<guide substitution>", "exec"), {"__name__": "__main__"})
-                    command = command[:match.start()] + expanded.getvalue().strip() + command[match.end():]
+def replace_named_placeholders(expected, actual):
+    pieces = []
+    placeholders = []
+    cursor = 0
+    for index, match in enumerate(PLACEHOLDER.finditer(expected)):
+        pieces.append(re.escape(expected[cursor:match.start()]))
+        group = f"placeholder_{index}"
+        pieces.append(f"(?P<{group}>[^\r\n]+?)")
+        placeholders.append((group, match.group(0)))
+        cursor = match.end()
+    pieces.append(re.escape(expected[cursor:]))
+    pattern = re.compile(r"\A" + "".join(pieces) + r"\Z")
+    matched = pattern.fullmatch(actual)
+    if matched is None:
+        return actual
 
-                self.assertNotIn("$(", command, f"unsupported substitution in {command}")
-                arguments = shlex.split(command, posix=True)
-                self.assertTrue(arguments and arguments[0] == "python", command)
-                if arguments[1:3] == ["-m", "gate"]:
-                    status = gate_main.main(arguments[3:])
-                elif arguments[1:3] == ["-m", "intel"]:
-                    status = intel_main.main(arguments[3:])
-                elif arguments[1:2] == ["-c"]:
-                    exec(compile(arguments[2], "<guide command>", "exec"), {"__name__": "__main__"})
-                    status = 0
-                else:
-                    self.fail(f"unsupported offline command: {command}")
-        return status, (stdout.getvalue() + stderr.getvalue()).replace("\\", "/")
+    for group, marker in reversed(placeholders):
+        start, end = matched.span(group)
+        actual = actual[:start] + marker + actual[end:]
+    return actual
+
+
+def output_matches(expected, actual):
+    return replace_named_placeholders(expected, actual) == expected
+
+
+class VerifyGuideTest(unittest.TestCase):
+    def run_python(self, arguments):
+        self.assertTrue(arguments and arguments[0] == "python", arguments)
+        result = subprocess.run(
+            [sys.executable, "-c", SOCKET_BLOCK_WRAPPER, *arguments[1:]],
+            cwd=ROOT,
+            capture_output=True,
+            check=False,
+            encoding="utf-8",
+            text=True,
+        )
+        return result.returncode, result.stdout + result.stderr
+
+    def run_command(self, command):
+        while match := PYTHON_SUBSTITUTION.search(command):
+            status, expanded = self.run_python(["python", "-c", match.group(1)])
+            self.assertEqual(status, 0, f"{match.group(0)}\n{expanded}")
+            command = command[:match.start()] + expanded.strip() + command[match.end():]
+
+        self.assertNotIn("$(", command, f"unsupported substitution in {command}")
+        arguments = shlex.split(command, posix=True)
+        self.assertTrue(arguments and arguments[0] == "python", command)
+        return self.run_python(arguments)
 
     def test_offline_commands_match_the_published_output(self):
         blocks = [(info.strip(), body) for info, body in FENCES.findall(GUIDE.read_text(encoding="utf-8"))]
@@ -60,18 +100,44 @@ class VerifyGuideTest(unittest.TestCase):
                 self.assertLess(index + 1, len(blocks))
                 expected_info, expected = blocks[index + 1]
                 self.assertEqual(expected_info, "text expected")
-                output = []
+                actual_parts = []
                 for command in blocks[index][1].splitlines():
                     if not command.strip():
                         continue
-                    status, actual = self.run_command(command.strip())
-                    self.assertEqual(status, 0, f"{command}\n{actual}")
-                    output.append(actual)
+                    status, output = self.run_command(command.strip())
+                    self.assertEqual(status, 0, f"{command}\n{output}")
+                    actual_parts.append(output.removesuffix("\n"))
 
-                normalized = shorten_hashes("\n".join(output))
-                for line in expected.splitlines():
-                    if line.strip():
-                        self.assertIn(line, normalized, line)
+                actual = shorten_hashes("\n".join(actual_parts))
+                self.assertTrue(
+                    output_matches(expected, actual),
+                    f"guide output block {index + 1} differs from the command output\n"
+                    f"expected:\n{expected}\nactual:\n{actual}",
+                )
+
+    def test_output_comparison_rejects_extra_or_changed_lines(self):
+        expected = "first line\nsecond line"
+        self.assertTrue(output_matches(expected, expected))
+        self.assertFalse(output_matches(expected, expected + "\nextra line"))
+        self.assertFalse(output_matches(expected, "changed line\nsecond line"))
+
+    def test_named_placeholders_replace_only_the_marked_value(self):
+        expected = "file: {{TEMP_PATH}}/evidence.json\nstatus: ok"
+        actual = "file: C:/temp/run-1/evidence.json\nstatus: ok"
+        self.assertTrue(output_matches(expected, actual))
+        self.assertFalse(output_matches(expected, actual.replace("/evidence.json", "/other.json")))
+        self.assertFalse(output_matches(expected, actual + "\nextra line"))
+
+    def test_socket_calls_fail_under_the_network_block(self):
+        attempts = (
+            "import socket; socket.socket().connect(('127.0.0.1', 9))",
+            "import socket; socket.create_connection(('127.0.0.1', 9))",
+        )
+        for source in attempts:
+            with self.subTest(source=source):
+                status, output = self.run_python(["python", "-c", source])
+                self.assertNotEqual(status, 0, output)
+                self.assertIn("network disabled in verify guide test", output)
 
 
 if __name__ == "__main__":

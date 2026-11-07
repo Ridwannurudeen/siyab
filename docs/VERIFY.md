@@ -1,6 +1,6 @@
 # Verify a NEAR testnet record offline
 
-Run these commands from the repository root with Python 3.11 or later. They read committed files and do not need RPC or key files. Every `sh offline` command below is run by `tests/test_verify_guide.py` with `urllib.request.urlopen` blocked. The output shown is from this checkout; each 64-character hex value is shortened to its first and last eight characters.
+Run these commands from the repository root with Python 3.11 or later. They read committed files and do not need RPC or key files. Every `sh offline` command below is run by `tests/test_verify_guide.py` in a subprocess with `socket.socket.connect` and `socket.create_connection` blocked. The output shown is from this checkout; each 64-character hex value is shortened to its first and last eight characters.
 
 ## 1. Compare the committed Wasm with its build records
 
