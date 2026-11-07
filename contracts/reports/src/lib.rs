@@ -1863,6 +1863,50 @@ mod tests {
     }
 
     #[test]
+    fn missing_accepting_moderator_uses_report_moderator_fallback_without_upheld_disputes() {
+        context("owner.testnet", 0, 1_000);
+        let mut reports = Reports::new(
+            account("owner.testnet"),
+            vec![
+                account("moderator-a.testnet"),
+                account("moderator-b.testnet"),
+            ],
+        );
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        context("moderator-a.testnet", 1, 1_002);
+        reports.moderate(id, true, hash('b'));
+        assert_eq!(reports.get_report(id).unwrap().state, ReportState::Accepted);
+        assert_eq!(reports.report_or_refuse(id).upheld_disputes, 0);
+        assert_eq!(
+            reports.report_or_refuse(id).moderator,
+            Some(account("moderator-a.testnet"))
+        );
+        assert_eq!(
+            LookupMap::<u64, AccountId>::new(b"ab".as_slice()).remove(&id),
+            Some(account("moderator-a.testnet"))
+        );
+
+        context("disputer.testnet", REPORT_DEPOSIT, 1_003);
+        let dispute_id =
+            reports.dispute(id, hash('c'), "https://evidence.example/dispute".to_owned());
+        context("moderator-a.testnet", 1, 1_004);
+        let refusal = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            reports.resolve_dispute(dispute_id, false, hash('d'));
+        }))
+        .unwrap_err();
+        let reason = refusal
+            .downcast_ref::<String>()
+            .map(String::as_str)
+            .or_else(|| refusal.downcast_ref::<&str>().copied());
+        assert!(reason.is_some_and(|reason| reason.contains("REFUSED:same_moderator")));
+
+        context("moderator-b.testnet", 1, 1_005);
+        reports.resolve_dispute(dispute_id, false, hash('d'));
+        assert_eq!(reports.get_report(id).unwrap().state, ReportState::Accepted);
+        assert!(!reports.get_dispute(dispute_id).unwrap().open);
+    }
+
+    #[test]
     fn accepting_moderator_cannot_resolve_after_an_upheld_dispute() {
         context("owner.testnet", 0, 1_000);
         let mut reports = Reports::new(
