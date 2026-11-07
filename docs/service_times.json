@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "policy": "docs/REPORTING.md",
+  "hours": {
+    "acknowledge": 72,
+    "decide": 168,
+    "dispute_decision": 168
+  }
+}

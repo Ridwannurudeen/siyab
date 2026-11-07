@@ -75,7 +75,7 @@ def _verdict(args):
                                  nearblocks=nearblocks, signer=verdict_signer, injection_scanner=scanner,
                                  archival=archival, evidence_dir=args.evidence_dir, issuers=issuers,
                                  reports_account=reports_account)
-    except canon.CanonError as error:
+    except ValueError as error:
         print(f"invalid request: {error}", file=sys.stderr)
         return 2
     for check in result["checks"]:

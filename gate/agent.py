@@ -208,12 +208,13 @@ def read_policy(agent):
 def _judge(agent, request, verdict_signer, out, policy=None, sign_actions=None, reports_account=None):
     """The verdict service's answer for the request: gate.verdict.request with the agent's policy."""
     client, nearblocks, scanner, archival = agent.clients
+    issuers = None if agent.gate.endswith(".testnet") else rules.issuers_for("mainnet")
     options = {} if sign_actions is None else {"sign_actions": sign_actions}
     result = verdict.request(request["kind"], request["token_id"], request["receiver_id"], request["amount"],
                              request["memo"], gate=agent.gate, agent_pk_hex=agent.public_hex,
                              policy=read_policy(agent) if policy is None else policy, store=labels.load(), rpc=client,
                              nearblocks=nearblocks, signer=verdict_signer, injection_scanner=scanner,
-                             archival=archival, reports_account=reports_account, **options)
+                             archival=archival, issuers=issuers, reports_account=reports_account, **options)
     for check in result["checks"]:
         out(f"{check['status']:<7} {check['id']}: {check['detail']}")
     out(f"verdict: {result['outcome']}")
@@ -237,26 +238,26 @@ def _print_owner_step(agent, request, policy, result, out):
     reasons = result["ask"]
     outcome = result["outcome"]
     unknown_checks = [check["id"] for check in result["checks"] if check["status"] == "unknown"]
-    gate_reasons = reasons if outcome == "ALLOW" else [reason for reason in reasons if "(REFUSED:" in reason]
 
-    if any("(REFUSED:paused)" in reason for reason in gate_reasons):
+    if policy.get("gate_paused") is True:
         out("the owner's step: the Gate is paused; resume it with bash scripts/set_paused.sh false once the cause is "
             "resolved")
         return
-    if any("(REFUSED:agent_disabled)" in reason for reason in gate_reasons):
+    if policy.get("enabled") is False:
         out("the owner's step: the agent is disabled on the Gate; the owner re-enables it with the Gate's "
             "set_agent_enabled call")
         return
-    if any("(REFUSED:denylisted)" in reason for reason in gate_reasons):
+    if request["receiver_id"] in policy.get("gate_denylist", []):
         out("the owner's step: the payee is on the Gate's denylist; remove it with scripts/set_denylist.sh only "
             "after the owner has reviewed why it was added")
         return
 
-    allowlist_refusals_only = all(
-        any(f"(REFUSED:{code})" in reason for code in ("not_allowlisted", "unknown_payee_cap"))
-        for reason in gate_reasons)
     if outcome == "ALLOW":
-        allowlist_refusals_only = bool(gate_reasons) and allowlist_refusals_only
+        allowlist_refusals_only = bool(reasons) and all(
+            any(f"(REFUSED:{code})" in reason for code in ("not_allowlisted", "unknown_payee_cap"))
+            for reason in reasons)
+    else:
+        allowlist_refusals_only = outcome == "UNKNOWN"
     tier2_unknowns_only = bool(unknown_checks) and all(check in rules.TIER2_CHECKS for check in unknown_checks)
     if (request["receiver_id"] not in policy.get("allowlist", []) and allowlist_refusals_only
             and (outcome == "ALLOW" or (outcome == "UNKNOWN" and tier2_unknowns_only))):

@@ -202,6 +202,16 @@ class ReportsRulesTest(unittest.TestCase):
                 if outcome != "ALLOW":
                     self.assert_unsigned(result, signer_spy, outcome)
 
+    def test_a_deny_report_is_the_only_signal_and_names_its_id_and_contract(self):
+        summary = {"accepted": 1, "pending": 2, "contested": 0, "latest_accepted_id": 19,
+                   "latest_deny_id": 7, "deny": True}
+        result, verdict_signer = self.request(summary)
+        self.assert_unsigned(result, verdict_signer, "DENY")
+        signals = [check["id"] for check in result["checks"] if check["status"] == "signal"]
+        self.assertEqual(signals, ["community_report"])
+        self.assertEqual(result["reasons"], [
+            "The reports contract reports.testnet accepted deny report 7 for vendor.testnet."])
+
     def test_a_deny_cites_latest_deny_even_when_a_newer_social_report_exists(self):
         summary = {"accepted": 2, "pending": 0, "contested": 1, "latest_accepted_id": 29,
                    "latest_deny_id": 17, "deny": True}

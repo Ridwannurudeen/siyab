@@ -22,49 +22,49 @@ A deny kind is any kind except `social` (`contracts/reports/src/lib.rs:27`). The
 
 ## The report body and `body_sha256`
 
-`submit_report(subject, kind, outcome, evidence_sha256, evidence_url)` (`contracts/reports/src/lib.rs:268`) checks its arguments, then hashes a body of exactly six string fields (`contracts/reports/src/lib.rs:196`, `:294`):
+`submit_report(subject, kind, outcome, evidence_sha256, evidence_url)` (`contracts/reports/src/lib.rs:267`) checks its arguments, then hashes a body of exactly six string fields (`contracts/reports/src/lib.rs:195-202`, `:293-302`):
 
 | Key | Content | Constraint at submission |
 |---|---|---|
-| `evidence_sha256` | the sha256 of the reporter's evidence | 64 lowercase hex, else `REFUSED:bad_hash` (`:830`) |
-| `evidence_url` | where the evidence is published | starts with `https://` and is at most 512 bytes, else `REFUSED:bad_evidence_url` (`:822`) |
+| `evidence_sha256` | the sha256 of the reporter's evidence | 64 lowercase hex, else `REFUSED:bad_hash` (`:837`) |
+| `evidence_url` | where the evidence is published | starts with `https://` and is at most 512 bytes, else `REFUSED:bad_evidence_url` (`:826`) |
 | `kind` | a kind value | one of the kind values (refused by argument parsing otherwise) |
 | `outcome` | an outcome value | one of the outcome values |
 | `subject` | the reported account | a valid NEAR account id, else `REFUSED:bad_subject` (`:278`) |
 | `submitter` | the account that called `submit_report` | the caller; not an argument |
 
-The body is serialized as compact JSON with the keys in exactly the order of this table, which is code point order, and no key is ever null or absent. The contract writes it with `serde_json::to_vec` over a struct whose fields are declared in that order (`:301`); the output is UTF-8 JSON with no extra whitespace, non-ASCII URL text unescaped, and quotes, backslashes, and control characters escaped. `body_sha256` is the sha256 of those bytes as 64 lowercase hex (`:302`). The URL is the only field that can hold characters that need escaping.
+The body is serialized as compact JSON with the keys in exactly the order of this table, which is code point order, and no key is ever null or absent. The contract writes it with `serde_json::to_vec` over a struct whose fields are declared in that order (`:301`); the bytes follow the canonical JSON conventions in `README.md`: non-ASCII text is unescaped UTF-8, and quotes, backslashes, and control characters are escaped. `body_sha256` is the sha256 of those bytes as 64 lowercase hex (`:302`). The URL is the only field that can hold characters that need escaping.
 
-The other submission rules: the attached deposit must be exactly `REPORT_DEPOSIT`, 24552000000000000000000 yoctoNEAR (0.024552 NEAR); any other amount, more or less, is refused as `REFUSED:bad_deposit` (`:8`, `:697`). The deposit is checked before any argument. A submitter may hold at most 5 pending reports, else `REFUSED:pending_limit` (`:9`, `:287`). Deposits are never refunded: they stay in the contract account in every state and pay for the permanent rows. The amount is the larger of the measured storage of one maximum size report through acceptance (2,046 bytes) and one maximum size dispute (734 bytes), times the storage byte cost, with a 20 percent margin; the unit test `report_and_dispute_storage_measurement_is_pinned` pins both measurements and the amount. Report ids start at 0 and increase by 1 (`:289`).
+The source contract version 0.1.2 requires the attached deposit to equal `REPORT_DEPOSIT`, 24552000000000000000000 yoctoNEAR (0.024552 NEAR); any other amount is refused as `REFUSED:bad_deposit` (`:8`, `:697-701`). Testnet still runs deployed Reports version 0.1.1 (`res/BUILD-reports.md:7`), which requires 23136000000000000000000 yoctoNEAR (0.023136 NEAR; release behavior is recorded in `docs/REPORTS.md:3`). The deposit is checked before any argument. A submitter may hold at most 5 pending reports, else `REFUSED:pending_limit` (`:9`, `:287`). Deposits are never refunded: they stay in the contract account in every state and pay for the permanent rows. For source 0.1.2, the amount is the larger of the measured storage of one maximum-size report through acceptance (2,046 bytes) and one maximum-size dispute (734 bytes), times the storage byte cost, with a 20 percent margin; `report_and_dispute_storage_measurement_is_pinned` pins both measurements and the amount. Report ids start at 0 and increase by 1 (`:289-291`).
 
 ## Stored records
 
-`get_report(id)` returns null or a report with these keys in this order (`contracts/reports/src/lib.rs:82`): `id` (number), `body_sha256` (string), `submitter`, `subject` (account ids), `kind`, `outcome`, `evidence_sha256`, `evidence_url`, `submitted_ms` (number, block time in milliseconds), `state`, `moderator` (account id or null), `reason_sha256` (64 lowercase hex or null), `moderated_ms` (number or null), `dispute_ids` (array of numbers). `moderator`, `reason_sha256` and `moderated_ms` are set by `moderate` and again by `resolve_dispute`.
+`get_report(id)` returns null or a report with these keys in this order (`contracts/reports/src/lib.rs:81-96`): `id` (number), `body_sha256` (string), `submitter`, `subject` (account ids), `kind`, `outcome`, `evidence_sha256`, `evidence_url`, `submitted_ms` (number, block time in milliseconds), `state`, `moderator` (account id or null), `reason_sha256` (64 lowercase hex or null), `moderated_ms` (number or null), `dispute_ids` (array of numbers). `moderator`, `reason_sha256` and `moderated_ms` are set by `moderate` and again by `resolve_dispute`.
 
-`get_dispute(id)` returns null or `{"id", "report_id", "submitter", "evidence_sha256", "evidence_url", "submitted_ms", "open"}` in that order, `open` a boolean (`contracts/reports/src/lib.rs:133`). A dispute needs the same exact deposit and the same evidence checks as a report (`:480`, `:481`); dispute ids are a separate counter starting at 0.
+`get_dispute(id)` returns null or `{"id", "report_id", "submitter", "evidence_sha256", "evidence_url", "submitted_ms", "open"}` in that order, `open` a boolean (`contracts/reports/src/lib.rs:131-140`). A dispute needs the same exact deposit and the same evidence checks as a report (`:481-482`); dispute ids are a separate counter starting at 0.
 
-`publisher_stats(account)` returns `{"submitted", "accepted", "rejected", "withdrawn", "overturned"}` (`:180`); `totals()` returns `{"reports", "disputes"}` (`:189`).
+`publisher_stats(account)` returns `{"submitted", "accepted", "rejected", "withdrawn", "overturned"}` (`:177-185`); `totals()` returns `{"reports", "disputes"}` (`:187-191`).
 
-The source crate version is `0.1.2` (`contracts/reports/Cargo.toml`); the deployed testnet version is `0.1.1` (`res/BUILD-reports.md`). `version()` returns the source crate version (`:246-247`), while the deployed contract reports `0.1.1`. `state_version()` returns the stored root state version, initially 1 (`:231`, `:250-251`); the unit test `version_views_return_the_crate_and_state_versions` checks the source crate and state versions. Neither is a format version: the formats on this page are versioned by this page and by the events' `1.0.0`.
+The source crate version `0.1.2` is listed in `contracts/reports/Cargo.toml`; testnet runs deployed Reports version `0.1.1` per `res/BUILD-reports.md:7`. `version()` returns the source crate version (`contracts/reports/src/lib.rs:246-247`), while the deployed contract reports `0.1.1`. `state_version()` returns the stored root state version, initially 1 (`:231`, `:250-251`); `version_views_return_the_crate_and_state_versions` checks the source crate and state versions. Source 0.1.2 and deployed 0.1.1 both have no lifetime cap on disputes (`docs/REPORTS.md:3`). Neither version view is a format version: the formats on this page are versioned by this page and by the events' `1.0.0`.
 
-### State changes
+### State changes in source 0.1.2
 
-The only transitions (`contracts/reports/src/lib.rs:369`, `:438`, `:475`, `:539`):
+The source transitions are (`contracts/reports/src/lib.rs:369`, `:438`, `:475`, `:539`):
 
 | From | To | By | Refusal otherwise |
 |---|---|---|---|
-| `pending` | `accepted` or `rejected` | `moderate(id, accept, reason_sha256)`, a moderator other than the report's submitter or subject, exactly 1 yoctoNEAR | `REFUSED:not_moderator`, `REFUSED:bad_hash`, `REFUSED:self_moderation` (`:376`), `REFUSED:not_pending` |
+| `pending` | `accepted` or `rejected` | `moderate(id, accept, reason_sha256)`, a moderator other than the report submitter or subject, exactly 1 yoctoNEAR | `REFUSED:not_moderator`, `REFUSED:bad_hash`, `REFUSED:self_moderation` (`:375-376`), `REFUSED:not_pending` |
 | `pending` | `withdrawn` | `withdraw(id)`, the submitter, exactly 1 yoctoNEAR | `REFUSED:not_submitter`, `REFUSED:not_pending` |
-| `accepted` | `contested` | `dispute(report_id, evidence_sha256, evidence_url)`, anyone, exactly the deposit | `REFUSED:bad_deposit`, `REFUSED:dispute_open`, `REFUSED:not_accepted` |
-| `contested` | `accepted` or `overturned` | `resolve_dispute(dispute_id, overturn, reason_sha256)`, a moderator, exactly 1 yoctoNEAR; while the moderator list has more than one member, not the accepting moderator stored under prefix `ab` (or `report.moderator` if the entry is absent and `upheld_disputes == 0`), the report submitter, or the dispute submitter | `REFUSED:not_moderator`, `REFUSED:bad_hash`, `REFUSED:dispute_closed`, `REFUSED:not_contested`, `REFUSED:same_moderator` (`:571-572`), `REFUSED:self_moderation` (`:566-568`) |
+| `accepted` | `contested` | `dispute(report_id, evidence_sha256, evidence_url)`, anyone, exactly the source deposit | `REFUSED:bad_deposit`, `REFUSED:dispute_open`, `REFUSED:not_accepted`; there is no lifetime dispute cap |
+| `contested` | `accepted` or `overturned` | `resolve_dispute(dispute_id, overturn, reason_sha256)`, a moderator, exactly 1 yoctoNEAR; with more than one moderator, not the original accepter stored under prefix `ab` (or `report.moderator` if that entry is absent and `upheld_disputes == 0`), the report submitter, or the dispute submitter | `REFUSED:not_moderator`, `REFUSED:bad_hash`, `REFUSED:dispute_closed`, `REFUSED:not_contested`, `REFUSED:same_moderator` (`:571-572`), `REFUSED:self_moderation` (`:566-568`) |
 
 A missing id is refused as `REFUSED:report_missing` or `REFUSED:dispute_missing`. Rows are never deleted. An upheld dispute returns the report to `accepted` and increments its upheld-dispute count, saturating at 255; `get_report` does not show that count (`:73`, `:596`).
 
-`moderate` refuses a moderator who is either the report submitter or the report subject, so a moderator cannot moderate a report about itself (`:375-376`). With multiple moderators, `resolve_dispute` checks the original accepting moderator stored under prefix `ab`; if that entry is absent and `upheld_disputes == 0`, it falls back to `report.moderator` (`:551-558`). It also refuses the report submitter and dispute submitter as resolvers. If a report from state written before version 0.1.2 has an upheld dispute but no `ab` entry, its original accepter is unknown and every resolver is refused with `REFUSED:same_moderator` while multiple moderators are configured; see `docs/REPORTS.md` for the available owner action.
+`moderate` refuses a moderator who is either the report submitter or report subject (`:375-376`). With multiple moderators, `resolve_dispute` checks the original accepter stored under prefix `ab`; it falls back to `report.moderator` only when the entry is absent and `upheld_disputes == 0` (`:551-558`). With multiple moderators, it also refuses the report submitter and dispute submitter (`:566-568`). A pre-0.1.2 report with an upheld dispute and no `ab` entry fails closed with `REFUSED:same_moderator` while multiple moderators are configured; recovery is through the owner's `set_moderators` method with a one-moderator list (`docs/REPORTS.md:35`). Testnet's deployed 0.1.1 instead refuses a moderator only for moderating their own report and checks the current `report.moderator` for multi-moderator resolution; it has no submitter refusals on resolution (`docs/REPORTS.md:3`).
 
 ### Moderators
 
-The owner sets the moderator list with `new(owner_id, moderators)` and `set_moderators(moderators)`; `set_moderators` takes exactly 1 yoctoNEAR and refuses any caller but the owner as `REFUSED:not_owner` (`:226`, `:255-258`, `:683-687`). Both refuse a list that names the same account twice as `REFUSED:duplicate_moderator` (`:227`, `:258`, `:789-793`), so the one moderator exception of `resolve_dispute` counts distinct accounts. A contract can enforce distinct accounts, not independent people (`docs/DECISIONS.md`, entry 6).
+The owner sets the moderator list with `new(owner_id, moderators)` and `set_moderators(moderators)`; `set_moderators` takes exactly 1 yoctoNEAR and refuses any caller but the owner as `REFUSED:not_owner` (`:226`, `:255-258`, `:683-687`). Both refuse a list that names the same account twice as `REFUSED:duplicate_moderator` (`:227`, `:258`, `:789-793`), so the one-moderator exception of `resolve_dispute` counts distinct accounts. A contract can enforce distinct accounts, not independent people (`docs/DECISIONS.md`, entry 6).
 
 ## Events
 
@@ -86,14 +86,13 @@ Every event is one log line: `EVENT_JSON:` followed by compact JSON with the key
 | Key | JSON type | Meaning |
 |---|---|---|
 | `accepted` | number (u64) | reports on the subject in state `accepted` or `contested` |
-| `pending` | number (u64) | reports in state `pending` |
+| `pending` | number (u64) | the count of reports in state `pending`; pending is a count only and has no verdict effect |
 | `contested` | number (u64) | reports in state `contested` |
 | `latest_accepted_id` | number or null | the id of the most recently accepted report still `accepted` or `contested`, of any kind |
 | `latest_deny_id` | number or null | the id of the most recently accepted report of a deny kind still `accepted` or `contested` |
 | `deny` | boolean | true while at least one report of a deny kind is `accepted` or `contested` |
 
 "Most recently accepted" is the order of acceptance, kept by linked lists over the reports (`append_accepted`, `append_deny`, `remove_accepted` and `remove_deny`, `contracts/reports/src/lib.rs:732`, `:743`, `:754`, `:771`); overturning a report unlinks it, and when it was the latest the previous remaining one becomes the latest. A dispute leaves a report counted in `accepted` and in the lists; only an overturn removes it. An unreported subject reads `{"accepted":0,"pending":0,"contested":0,"latest_accepted_id":null,"latest_deny_id":null,"deny":false}`.
-
 Invariants the contract keeps, and a reader must check (a summary that breaks one is unreadable, not a pass):
 
 1. `contested` is at most `accepted`.
@@ -106,7 +105,7 @@ The view's current JSON shape is the six fields listed above; any new fields wou
 
 ## The consumer rule
 
-How a summary changes a payment verdict is fixed in one place, `docs/LADDER.md`: deny beats ask, ask beats none, and an unreadable summary is its own outcome that never passes. The Python reader in `intel/reports.py` implements this mapping. A consumer that maps a summary to an outcome by any other rule does not conform to this version.
+How a summary changes a payment verdict is fixed in one place, `docs/LADDER.md`: deny beats ask, ask beats none, and an unreadable summary is its own outcome that never passes. A consumer that maps a summary to an outcome by any other rule does not conform to this version. The Python reader is implemented in `intel/reports.py`, `gate/rules.py` applies its effect when `REPORTS_ACCOUNT_ID` is set, and `tests/test_reports_rules.py` covers the ladder.
 
 ## Worked example
 
@@ -127,7 +126,7 @@ In UTF-8, `ï` is encoded as the two bytes `c3 af`. The sha256 of the bytes is `
 
 Python reproduces this vector with `gate.evidence.evidence_hash`; Rust's `canonical_body_hash_matches_shared_vector` test in `contracts/reports/src/lib.rs` serializes the same input with `CanonicalBody`, checks the bytes against the expected six-field JSON bytes, and verifies their hash against the vector.
 
-No fixture pins the events or the summary. They are pinned by the contract's unit tests in `contracts/reports/src/lib.rs`: `emits_all_five_nep_297_events_with_report_identity` (the five report and dispute events: `report_id`, `subject`, `state`, `body_sha256` and `dispute_id`; it does not assert `moderator` or `reason_sha256`) and `owner_can_set_moderators` (`moderators_updated`), `initializes_empty_counters_and_views`, `accepted_report_updates_summary_and_publisher_stats`, `dispute_contests_accepted_report_and_updates_summary`, `moderator_can_overturn_dispute`, `summary_deny_stays_true_when_one_of_two_deny_reports_is_overturned` and `overturning_middle_deny_report_relinks_deny_chain_without_changing_latest` (summary), `report_and_dispute_storage_measurement_is_pinned`, `report_requires_the_pinned_deposit` and `report_rejects_a_deposit_above_the_exact_amount` (the deposit), `report_submitter_cannot_moderate_own_report`, `accepting_moderator_cannot_resolve_with_multiple_moderators`, `missing_accepting_moderator_uses_report_moderator_fallback_without_upheld_disputes`, `same_moderator_can_resolve_when_the_moderator_list_has_one_member`, `duplicate_moderators_are_refused_by_new`, `duplicate_moderators_are_refused_by_set_moderators`, `upheld_disputes_never_cap_further_disputes` and `upheld_counter_saturates_instead_of_panicking` (governance), `version_views_return_the_crate_and_state_versions` (the version views).
+No fixture pins the events or the summary. They are pinned by the contract's unit tests in `contracts/reports/src/lib.rs`: `emits_all_five_nep_297_events_with_report_identity` (the five report and dispute events: `report_id`, `subject`, `state`, `body_sha256` and `dispute_id`; it does not assert `moderator` or `reason_sha256`) and `owner_can_set_moderators` (`moderators_updated`), `initializes_empty_counters_and_views`, `accepted_report_updates_summary_and_publisher_stats`, `dispute_contests_accepted_report_and_updates_summary`, `moderator_can_overturn_dispute`, `summary_deny_stays_true_when_one_of_two_deny_reports_is_overturned` and `overturning_middle_deny_report_relinks_deny_chain_without_changing_latest` (summary), `report_and_dispute_storage_measurement_is_pinned`, `report_requires_the_pinned_deposit` and `report_rejects_a_deposit_above_the_exact_amount` (the deposit), `report_submitter_cannot_moderate_own_report`, `report_subject_cannot_moderate_own_report`, `accepting_moderator_cannot_resolve_with_multiple_moderators`, `missing_accepting_moderator_uses_report_moderator_fallback_without_upheld_disputes`, `same_moderator_can_resolve_when_the_moderator_list_has_one_member`, `report_submitter_cannot_resolve_own_dispute`, `dispute_submitter_cannot_resolve_own_dispute`, `duplicate_moderators_are_refused_by_new`, `duplicate_moderators_are_refused_by_set_moderators`, `upheld_disputes_never_cap_further_disputes` and `upheld_counter_saturates_instead_of_panicking` (governance), `version_views_return_the_crate_and_state_versions` (the version views).
 
 ## Source of truth
 
