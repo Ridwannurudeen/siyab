@@ -31,7 +31,7 @@ Read backs:
 - Gate: view `version`, view `get_policy` (`max_ttl_ms`, `paused` false, empty denylist, `contracts/gate/src/policy.rs:224-226`), view `get_verifier_keys` (one current key, `previous` null, `policy.rs:228-233`). This is the read back `docs/TESTNET.md:32` records after setup.
 - Registry: view `version` and view `get_recorder` (`contracts/registry/src/lib.rs:243`, `:247`).
 - Token: view `ft_metadata`, and `storage_balance_of` for the Gate, the vendor and the aged payee.
-- Reports: views `version` and `totals` (`contracts/reports/src/lib.rs:246`, `:674-679`).
+- Reports: views `version`, `report_deposit` and `totals` (`contracts/reports/src/lib.rs:248`, `:252`, `:682-686`).
 - `python -m gate scan <gate account>` with `GATE_FIXTURES_MODE=off` lists the Gate's access keys and its verifier keys.
 
 Undo: an init cannot be undone. A wrong value the owner can set is corrected with its owner method (`set_verifier_keys`, `set_max_ttl`, `set_recorder`, `set_moderators`; `docs/KEYS.md`). A wrong `owner_id` cannot be corrected, because no contract has a method that changes it; deploy to a new account instead.
@@ -167,7 +167,7 @@ Undo (a drill; after a real compromise register a new agent key, never the revok
 
 When: a report is filed against a subject, and later, when it is pending and a moderator has read its evidence. The reports contract is deployed on testnet (`res/BUILD-reports.md:7`).
 
-File: `scripts/report.sh <reports_account> <subject> <kind> <outcome> <evidence_sha256> <evidence_url>` calls `submit_report` signed by `REPORTER_ACCOUNT_ID`, falling back to `OWNER_ACCOUNT_ID` with a warning when unset (`scripts/report.sh:8-10,65`). It checks `kind` and `outcome` against `intel/record_enums.json` (`:28-39`), the hash as 64 lowercase hex and the URL as `https://` of at most 512 bytes (`:26-27`, `scripts/lib.sh:48-68`), and attaches `REPORT_DEPOSIT` read from current source at run time (`contracts/reports/src/lib.rs:8`, `scripts/report.sh:53-65`), now 24552000000000000000000 yoctoNEAR (0.024552 NEAR). Testnet still runs Reports 0.1.1, whose required deposit is 23136000000000000000000 yoctoNEAR (0.023136 NEAR; `res/BUILD-reports.md:7`, `docs/REPORTS.md:3`), so this script's amount is refused with `REFUSED:bad_deposit` until Reports 0.1.2 is redeployed (`contracts/reports/src/lib.rs:697-701`).
+File: `scripts/report.sh <reports_account> <subject> <kind> <outcome> <evidence_sha256> <evidence_url>` calls `submit_report` signed by `REPORTER_ACCOUNT_ID`, falling back to `OWNER_ACCOUNT_ID` with a warning when unset (`scripts/report.sh:8-10,65`). It checks `kind` and `outcome` against `intel/record_enums.json` (`:28-39`), the hash as 64 lowercase hex and the URL as `https://` of at most 512 bytes (`:26-27`, `scripts/lib.sh:48-68`), and attaches `REPORT_DEPOSIT` read from current source at run time (`contracts/reports/src/lib.rs:9`, `scripts/report.sh:53-65`), now 30000000000000000000000 yoctoNEAR (0.03 NEAR). Testnet still runs Reports 0.1.1, whose required deposit is 23136000000000000000000 yoctoNEAR (0.023136 NEAR; `res/BUILD-reports.md:7`, `docs/REPORTS.md:3`), so the source amount is refused with `REFUSED:bad_deposit` until Reports 0.1.2 is redeployed (`contracts/reports/src/lib.rs:705-710`).
 
 ```
 DRY_RUN=1 bash scripts/report.sh <reports_account> <subject> <kind> <outcome> <evidence_sha256> <evidence_url>
@@ -191,7 +191,7 @@ Undo: a moderation is final; the only state changes are listed in `docs/REPORTS.
 
 When: a report is accepted and its acceptance is challenged; then, when the dispute is open and a moderator has read both evidence documents.
 
-Open: `scripts/dispute.sh <reports_account> <report_id> <evidence_sha256> <evidence_url>` calls `dispute` signed by `DISPUTER_ACCOUNT_ID`, falling back to `OWNER_ACCOUNT_ID` with a warning when unset (`scripts/dispute.sh:49-53,80`), and attaches `REPORT_DEPOSIT` read from current source at run time (`contracts/reports/src/lib.rs:8`, `scripts/dispute.sh:66-80`). Source 0.1.2 therefore attaches 0.024552 NEAR, while deployed testnet Reports 0.1.1 requires 0.023136 NEAR; opening a dispute is refused with `REFUSED:bad_deposit` until Reports 0.1.2 is redeployed (`docs/REPORTS.md:3`, `contracts/reports/src/lib.rs:481-482`). Anyone can open a dispute on chain.
+Open: `scripts/dispute.sh <reports_account> <report_id> <evidence_sha256> <evidence_url>` calls `dispute` signed by `DISPUTER_ACCOUNT_ID`, falling back to `OWNER_ACCOUNT_ID` with a warning when unset (`scripts/dispute.sh:49-53,80`), and attaches `REPORT_DEPOSIT` read from current source at run time (`contracts/reports/src/lib.rs:9`, `scripts/dispute.sh:66-80`). Source 0.1.2 therefore attaches 0.03 NEAR (30000000000000000000000 yoctoNEAR), while deployed testnet Reports 0.1.1 requires 0.023136 NEAR (23136000000000000000000 yoctoNEAR); opening a dispute is refused with `REFUSED:bad_deposit` until Reports 0.1.2 is redeployed (`docs/REPORTS.md:3`, `contracts/reports/src/lib.rs:487-488`). Anyone can open a dispute on chain.
 
 ```
 DRY_RUN=1 bash scripts/dispute.sh <reports_account> <report_id> <evidence_sha256> <evidence_url>

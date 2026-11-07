@@ -63,6 +63,7 @@ CONTRACT_EXPORTS = {
         "moderate",
         "new",
         "publisher_stats",
+        "report_deposit",
         "reports_by_subject",
         "reports_by_submitter",
         "resolve_dispute",

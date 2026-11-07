@@ -2,10 +2,12 @@ mod events;
 
 use events::emit;
 use near_sdk::{
-    env, near, serde::Serialize, serde_json::json, store::LookupMap, AccountId, PanicOnDefault,
+    env, json_types::U128, near, serde::Serialize, serde_json::json, store::LookupMap, AccountId,
+    PanicOnDefault,
 };
 
-pub const REPORT_DEPOSIT: u128 = 24_552_000_000_000_000_000_000;
+pub const REPORT_DEPOSIT: u128 = 30_000_000_000_000_000_000_000;
+const ACCEPTING_MODERATOR_PREFIX: &[u8] = b"ab";
 const MAX_PENDING_REPORTS: u64 = 5;
 const MAX_EVIDENCE_URL_BYTES: usize = 512;
 const MAX_PAGE_SIZE: u32 = 50;
@@ -247,6 +249,10 @@ impl Reports {
         env!("CARGO_PKG_VERSION").to_owned()
     }
 
+    pub fn report_deposit(&self) -> U128 {
+        U128(REPORT_DEPOSIT)
+    }
+
     pub fn state_version(&self) -> u8 {
         self.state_version
     }
@@ -390,7 +396,8 @@ impl Reports {
         if accept {
             report.state = ReportState::Accepted;
             report.moderator = Some(moderator.clone());
-            LookupMap::<u64, AccountId>::new(b"ab".as_slice()).insert(id, moderator.clone());
+            LookupMap::<u64, AccountId>::new(ACCEPTING_MODERATOR_PREFIX)
+                .insert(id, moderator.clone());
             report.reason_sha256 = Some(reason_sha256.clone());
             report.moderated_ms = Some(now);
             summary.pending -= 1;
@@ -544,11 +551,12 @@ impl Reports {
         let mut dispute = self.dispute_or_refuse(dispute_id);
         near_sdk::require!(dispute.open, "REFUSED:dispute_closed");
         let mut report = self.report_or_refuse(dispute.report_id);
+        near_sdk::require!(report.subject != moderator, "REFUSED:self_moderation");
         near_sdk::require!(
             report.state == ReportState::Contested,
             "REFUSED:not_contested"
         );
-        let accepting_moderator = LookupMap::<u64, AccountId>::new(b"ab".as_slice())
+        let accepting_moderator = LookupMap::<u64, AccountId>::new(ACCEPTING_MODERATOR_PREFIX)
             .get(&report.id)
             .cloned();
         let accepting_moderator = if report.upheld_disputes == 0 {
@@ -976,6 +984,15 @@ mod tests {
         let reports = reports();
         assert_eq!(reports.version(), env!("CARGO_PKG_VERSION"));
         assert_eq!(reports.state_version(), 1);
+    }
+
+    #[test]
+    fn report_deposit_view_returns_fixed_amount() {
+        let reports = reports();
+        assert_eq!(
+            reports.report_deposit(),
+            U128(30_000_000_000_000_000_000_000)
+        );
     }
 
     #[test]
@@ -1882,7 +1899,7 @@ mod tests {
             Some(account("moderator-a.testnet"))
         );
         assert_eq!(
-            LookupMap::<u64, AccountId>::new(b"ab".as_slice()).remove(&id),
+            LookupMap::<u64, AccountId>::new(ACCEPTING_MODERATOR_PREFIX).remove(&id),
             Some(account("moderator-a.testnet"))
         );
 
@@ -1961,7 +1978,7 @@ mod tests {
         reports.resolve_dispute(first_dispute, false, hash('d'));
         assert_eq!(reports.report_or_refuse(id).upheld_disputes, 1);
         assert_eq!(
-            LookupMap::<u64, AccountId>::new(b"ab".as_slice()).remove(&id),
+            LookupMap::<u64, AccountId>::new(ACCEPTING_MODERATOR_PREFIX).remove(&id),
             Some(account("moderator-a.testnet"))
         );
 
@@ -1985,6 +2002,36 @@ mod tests {
                 .or_else(|| refusal.downcast_ref::<&str>().copied());
             assert!(reason.is_some_and(|reason| reason.contains("REFUSED:same_moderator")));
         }
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:self_moderation")]
+    fn report_subject_cannot_resolve_own_dispute_with_one_moderator() {
+        let mut reports = reports();
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        moderate(&mut reports, id, true);
+        context("owner.testnet", 1, 1_003);
+        reports.set_moderators(vec![account("vendor.testnet")]);
+        context("disputer.testnet", REPORT_DEPOSIT, 1_004);
+        let dispute_id =
+            reports.dispute(id, hash('c'), "https://evidence.example/dispute".to_owned());
+        context("vendor.testnet", 1, 1_005);
+        reports.resolve_dispute(dispute_id, false, hash('d'));
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:self_moderation")]
+    fn report_subject_cannot_resolve_own_dispute_with_multiple_moderators() {
+        let mut reports = reports();
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        moderate(&mut reports, id, true);
+        context("owner.testnet", 1, 1_003);
+        reports.set_moderators(vec![account("vendor.testnet"), account("reviewer.testnet")]);
+        context("disputer.testnet", REPORT_DEPOSIT, 1_004);
+        let dispute_id =
+            reports.dispute(id, hash('c'), "https://evidence.example/dispute".to_owned());
+        context("vendor.testnet", 1, 1_005);
+        reports.resolve_dispute(dispute_id, false, hash('d'));
     }
 
     #[test]
@@ -2274,15 +2321,18 @@ mod tests {
         let mut contract = reports();
         let id = submit(&mut contract, "reporter.testnet", "vendor.testnet");
         let submitted = get_logs();
-        moderate(&mut contract, id, true);
+        let moderation_reason_sha256 = hash('b');
+        context("moderator.testnet", 1, 1_002);
+        contract.moderate(id, true, moderation_reason_sha256.clone());
         let moderated = get_logs();
         context("disputer.testnet", REPORT_DEPOSIT, 1_003);
         let dispute_id =
             contract.dispute(id, hash('c'), "https://evidence.example/dispute".to_owned());
         let disputed = get_logs();
         let body_sha256 = contract.get_report(id).unwrap().body_sha256;
+        let resolution_reason_sha256 = hash('d');
         context("moderator.testnet", 1, 1_004);
-        contract.resolve_dispute(dispute_id, true, hash('d'));
+        contract.resolve_dispute(dispute_id, true, resolution_reason_sha256.clone());
         let resolved = get_logs();
         let mut reports = reports();
         let withdraw_id = submit(&mut reports, "reporter.testnet", "withdraw.testnet");
@@ -2343,6 +2393,20 @@ mod tests {
             if event == "report_disputed" || event == "dispute_resolved" {
                 assert_eq!(data["dispute_id"], dispute_id);
             }
+            if event == "report_moderated" {
+                assert_eq!(data["moderator"], "moderator.testnet");
+                assert_eq!(
+                    data["reason_sha256"].as_str(),
+                    Some(moderation_reason_sha256.as_str())
+                );
+            }
+            if event == "dispute_resolved" {
+                assert_eq!(data["moderator"], "moderator.testnet");
+                assert_eq!(
+                    data["reason_sha256"].as_str(),
+                    Some(resolution_reason_sha256.as_str())
+                );
+            }
         }
     }
 
@@ -2383,9 +2447,10 @@ mod tests {
         assert_eq!(dispute_id, 0);
         let measured_bytes = report_bytes.max(dispute_bytes);
         let byte_cost = env::storage_byte_cost().as_yoctonear();
-        let deposit_with_margin = (u128::from(measured_bytes) * byte_cost * 120).div_ceil(100);
+        let measured_storage_cost = u128::from(measured_bytes) * byte_cost;
         assert_eq!((report_bytes, dispute_bytes), (2_046, 734));
-        assert_eq!(REPORT_DEPOSIT, deposit_with_margin);
-        assert_eq!(REPORT_DEPOSIT, 24_552_000_000_000_000_000_000);
+        assert!(measured_storage_cost * 120 / 100 <= REPORT_DEPOSIT);
+        assert!(REPORT_DEPOSIT <= measured_storage_cost * 2);
+        assert_eq!(REPORT_DEPOSIT, 30_000_000_000_000_000_000_000);
     }
 }
