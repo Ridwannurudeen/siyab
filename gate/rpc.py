@@ -119,6 +119,11 @@ def _check_url(url):
     return url
 
 
+def _uint(value):
+    """True for a non negative int that is not a bool (JSON true would otherwise pass as 1)."""
+    return type(value) is int and value >= 0
+
+
 def _timestamp(seconds):
     return datetime.fromtimestamp(seconds, UTC).strftime(_TIME_FORMAT)
 
@@ -184,6 +189,12 @@ class Client:
             raise MalformedResponse("the view_account result has no code_hash")
         return result
 
+    def view_account_at(self, account_id, height):
+        result = self.call("query", {"request_type": "view_account", "block_id": height, "account_id": account_id})
+        if not isinstance(result, dict) or not isinstance(result.get("code_hash"), str):
+            raise MalformedResponse("the view_account result has no code_hash")
+        return result
+
     def code_hash(self, account_id):
         """The account's code hash in base58; EMPTY_CODE_HASH when it has no contract."""
         return self.view_account(account_id)["code_hash"]
@@ -222,7 +233,7 @@ class Client:
         if not isinstance(result, dict) or not isinstance(result.get("header"), dict):
             raise MalformedResponse("the block result has no header")
         header = result["header"]
-        if not (isinstance(header.get("height"), int) and isinstance(header.get("timestamp"), int)
+        if not (_uint(header.get("height")) and _uint(header.get("timestamp"))
                 and isinstance(header.get("hash"), str)):
             raise MalformedResponse("the block header has no int height, int timestamp or str hash")
         return result
@@ -232,7 +243,7 @@ class Client:
         if not isinstance(result, dict) or not isinstance(result.get("header"), dict):
             raise MalformedResponse("the block result has no header")
         header = result["header"]
-        if not (isinstance(header.get("height"), int) and isinstance(header.get("timestamp"), int)
+        if not (_uint(header.get("height")) and _uint(header.get("timestamp"))
                 and isinstance(header.get("hash"), str)):
             raise MalformedResponse("the block header has no int height, int timestamp or str hash")
         return result

@@ -8,7 +8,7 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "UNKNOWN",
+  "verdict": "ALLOW",
   "checks": [
     {
       "id": "receiver_exists",
@@ -52,18 +52,18 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "status": "pass",
+      "detail": "no creation time from NearBlocks (keys empty); astro-stakers.poolv1.near has no access key; view_account finds astro-stakers.poolv1.near at block 221698918 (2026-10-26T14:09:19Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "c489449d1d5168ec8656389c1a0a0f1277d522b5056f4d1348c68194ba19dcd3",
-        "fetched_at": "2026-11-03T18:36:04Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "117be4bafb546fd66073f336ba24b9ffefe6ec8a45af47004ea66357c05fb62e",
+        "fetched_at": "2026-11-07T14:26:47Z"
       }
     },
     {
       "id": "dust_funded",
-      "status": "unknown",
-      "detail": "the creation transaction is not known",
+      "status": "pass",
+      "detail": "creation deposit not read: NearBlocks has no creation transaction for astro-stakers.poolv1.near; a deposit is a signal only with lookalike or account_age",
       "source": {
         "provider": "nearblocks",
         "request_sha256": null,
@@ -92,8 +92,8 @@
     }
   ],
   "reasons": [
-    "account_age could not run: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read.",
-    "dust_funded could not run: the creation transaction is not known."
+    "Every check ran and none found a signal.",
+    "Not on the owner's allowlist."
   ],
   "labels": [
     "ea076192637ac6f4366ccffd97472f1eb6c7b2d8cc4cc60e5f5c9ed4ddef7d11"

@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 221701333,
+      "account_id": "svrn-luganodes.pool.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "94327150501300000000",
+      "block_hash": "5dWJYYNkecnxFwuTmH6MyrUi9mdLHqRMP4JkDUDWkWzF",
+      "block_height": 221701333,
+      "code_hash": "AjD4YJaXgpiRdiArqnzyDi7Bkr1gJms9Z2w7Ev5esTKB",
+      "locked": "11438197691522367317723075528501",
+      "storage_paid_at": 0,
+      "storage_usage": 340858
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-07T14:27:57Z"
+}

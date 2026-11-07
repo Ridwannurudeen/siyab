@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 220910175,
+      "account_id": "zec.omft.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "216983261339660361603229269",
+      "block_hash": "D4PoxMiHqEZKBwnC6412DtxErm2SGKVsr6PQkyRVZqVn",
+      "block_height": 220910175,
+      "code_hash": "2akS4vNtbGMSoAPYf4FXbgyZypb4HYJDMcbVq95KYz6g",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 1832404
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-07T14:28:41Z"
+}

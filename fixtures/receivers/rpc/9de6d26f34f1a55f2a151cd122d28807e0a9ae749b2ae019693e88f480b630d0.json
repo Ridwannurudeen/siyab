@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 221701197,
+      "account_id": "liver.pool.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "675090999564150736637165894327",
+      "block_hash": "BwfRhvhzSqtEan1YdWfZP7EV5uGsEuqqihrten68Xkia",
+      "block_height": 221701197,
+      "code_hash": "AjD4YJaXgpiRdiArqnzyDi7Bkr1gJms9Z2w7Ev5esTKB",
+      "locked": "16295489228419184220885167195897",
+      "storage_paid_at": 0,
+      "storage_usage": 448273
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-07T14:27:22Z"
+}

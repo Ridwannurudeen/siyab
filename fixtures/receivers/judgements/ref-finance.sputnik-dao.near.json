@@ -8,7 +8,7 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "UNKNOWN",
+  "verdict": "ALLOW",
   "checks": [
     {
       "id": "receiver_exists",
@@ -52,18 +52,18 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "status": "pass",
+      "detail": "no creation time from NearBlocks (keys empty); ref-finance.sputnik-dao.near has no access key; view_account finds ref-finance.sputnik-dao.near at block 221700413 (2026-10-26T14:23:49Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "df422b4139a98a9d805e5583c692bc0a06c6228bcb97d026d22f6e48b8e16f94",
-        "fetched_at": "2026-11-03T18:50:21Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "d29d89b57a8226a1bfd7d79352927919081cac2f3be368d885aa0fd3c336e4fc",
+        "fetched_at": "2026-11-07T14:26:43Z"
       }
     },
     {
       "id": "dust_funded",
-      "status": "unknown",
-      "detail": "the creation transaction is not known",
+      "status": "pass",
+      "detail": "creation deposit not read: NearBlocks has no creation transaction for ref-finance.sputnik-dao.near; a deposit is a signal only with lookalike or account_age",
       "source": {
         "provider": "nearblocks",
         "request_sha256": null,
@@ -92,8 +92,8 @@
     }
   ],
   "reasons": [
-    "account_age could not run: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read.",
-    "dust_funded could not run: the creation transaction is not known."
+    "Every check ran and none found a signal.",
+    "Not on the owner's allowlist."
   ],
   "labels": [
     "83f1a8ecc426807a8f88be0bf195ea00d34ab1e112258efe36d74451958c630c"

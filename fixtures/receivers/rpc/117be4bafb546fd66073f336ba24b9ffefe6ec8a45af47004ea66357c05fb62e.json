@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 221698918,
+      "account_id": "astro-stakers.poolv1.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "870539354862139752676492903521",
+      "block_hash": "ErDQ2mpg3Xm9iMxco55hPBp5MymihTfHpvUa2BUVfLrx",
+      "block_height": 221698918,
+      "code_hash": "J1arLz48fgXcGyCPVckFwLnewNH6j1uw79thsvwqGYTY",
+      "locked": "33319641545913041898166840045406",
+      "storage_paid_at": 0,
+      "storage_usage": 10146241
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-07T14:26:47Z"
+}
