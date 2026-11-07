@@ -32,13 +32,13 @@ The seed commands are in `intel/seed.py`; in the default replay mode they read t
 
 An incident record (`docs/RECORD.md`) is the format for an event that arrives as a community report on the reports contract, or that the publisher records with on chain reports behind it. It differs from an incident page in three ways: it is content addressed and never edited, it cites on chain reports by network, contract, report id and body hash, and it carries the readable text behind each moderation reason hash.
 
-A record and a page are linked through the label store: a record's `assertion_ids` and a page's `assertion_ids` name the same kind of row. Neither replaces the other, and neither decides a verdict: labels do, through the rules, and community reports do only through `docs/LADDER.md`.
+A record and a page are linked through the label store: a record's `assertion_ids` and a page's `assertion_ids` name the same kind of row. Neither replaces the other, and neither decides a verdict: labels do, through the rules, and community reports will do only through `docs/LADDER.md`. On main today a report changes no verdict: `intel/reports.py` is not on main and `gate/rules.py` has no community report check, so the rules do not read the reports contract until that hook merges.
 
 ## What does not exist on main
 
 - No incident record in the v1 format, no record store, no validator and no renderer for one.
 - No incident page cites a community report or a record; the three pages rest on public sources and chain reads only.
-- No reports contract deployment: `res/BUILD-reports.md` reads "Deployed: not deployed", so no on chain report exists to cite.
+- No on chain report to cite. The reports contract is deployed on testnet at `reports.kestrelridge-main.testnet` (`res/BUILD-reports.md`, Deployed line; `docs/TESTNET.md`), and its read back shows 0 reports and 0 disputes: no report has been filed.
 - No page of measured service times. The published times are in `docs/REPORTING.md` and `docs/service_times.json`; until a report is filed there is nothing to measure.
 - No takedown or contact channel off chain. Corrections follow `docs/REPORTING.md`, Corrections.
 

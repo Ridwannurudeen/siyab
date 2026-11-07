@@ -1,32 +1,32 @@
 # Reporting and incident policy
 
-This page is the published policy for community reports on ShieldBot for NEAR: who can file one, what it costs, who decides it, how fast, how the account a report names asks for review, and how a mistake is corrected. The contract behind it is `contracts/reports` (`docs/REPORTS.md` lists its methods and tests). The decisions it applies are entries 5 and 6 of `docs/DECISIONS.md`. Where the contract on main does not yet enforce a decided rule, this page says so next to the rule.
+This page is the published policy for community reports on ShieldBot for NEAR: who can file one, what it costs, who decides it, how fast, how the account a report names asks for review, and how a mistake is corrected. The contract behind it is `contracts/reports` (`docs/REPORTS.md` lists its methods and tests). The decisions it applies are entries 5 and 6 of `docs/DECISIONS.md`, and each rule below names the function in `contracts/reports/src/lib.rs` that enforces it.
 
-The reports contract is not deployed: `res/BUILD-reports.md` reads "Deployed: not deployed". No report has been filed, moderated or disputed under this policy yet.
+The reports contract is deployed on testnet at `reports.kestrelridge-main.testnet`, its code hash matching the reproducible build (`res/BUILD-reports.md`, Deployed line; `docs/TESTNET.md`, the Reports rows). The read back after the deploy shows 0 reports and 0 disputes, and `kestrelridge-owner.testnet` as the only moderator (`docs/TESTNET.md`). No report has been filed, moderated or disputed under this policy yet. A report on this contract changes no verdict on main: the verdict service does not read it until the rules hook merges (see What a report does to a payment).
 
 ## Who can report, and how
 
-Anyone with a NEAR account can report. `submit_report(subject, kind, outcome, evidence_sha256, evidence_url)` in `contracts/reports/src/lib.rs` keeps no list of reporters: the caller is the submitter. The contract refuses a subject that is not a valid NEAR account id (`REFUSED:bad_subject`), an evidence URL that does not start with `https://` or is over 512 bytes (`REFUSED:bad_evidence_url`), an evidence hash that is not 64 lowercase hexadecimal characters (`REFUSED:bad_hash`), and a sixth pending report from the same submitter (`REFUSED:pending_limit`).
+Anyone with a NEAR account can report. `submit_report(subject, kind, outcome, evidence_sha256, evidence_url)` in `contracts/reports/src/lib.rs` keeps no list of reporters: the caller is the submitter. The contract refuses a deposit other than exactly `REPORT_DEPOSIT` (`REFUSED:bad_deposit`), a subject that is not a valid NEAR account id (`REFUSED:bad_subject`), an evidence URL that does not start with `https://` or is over 512 bytes (`REFUSED:bad_evidence_url`), an evidence hash that is not 64 lowercase hexadecimal characters (`REFUSED:bad_hash`), and a sixth pending report from the same submitter (`REFUSED:pending_limit`).
 
 - `subject` is the account agents should not pay. It is never the victim (`docs/REPORTS.md`).
 - `kind` and `outcome` take the values in `intel/record_enums.json`: kind is what happened, outcome is what it cost. The kind decides whether an accepted report denies; the outcome is recorded and never weighed (`docs/DECISIONS.md`, entry 4).
 - `evidence_sha256` is the sha256 of one evidence document, and `evidence_url` is where a reader fetches it.
 
-`scripts/report.sh <reports_account> <subject> <kind> <outcome> <evidence_sha256> <evidence_url>` makes the same call for the operator. It runs on testnet only (`require_testnet` in `scripts/lib.sh`), signs as `OWNER_ACCOUNT_ID`, checks kind and outcome against `intel/record_enums.json`, attaches `REPORT_DEPOSIT` read from `contracts/reports/src/lib.rs`, and takes `--dry-run`. It is the operator's tool, not the public path: a reporter calls `submit_report` from their own account with any NEAR client.
+`scripts/report.sh <reports_account> <subject> <kind> <outcome> <evidence_sha256> <evidence_url>` makes the same call for the operator. It runs on testnet only (`require_testnet` in `scripts/lib.sh`), signs as `OWNER_ACCOUNT_ID`, checks kind and outcome against `intel/record_enums.json`, attaches `REPORT_DEPOSIT` read from `contracts/reports/src/lib.rs`, and takes `--dry-run`. It is the operator's tool, not the public path: a reporter calls `submit_report` from their own account with any NEAR client. The moderator files reports from a separate account, never the moderator account; The independence rule below says why, and what `scripts/report.sh` signs as on main.
 
 A submitter can withdraw their own report while it is pending (`withdraw`, exactly 1 yoctoNEAR). After a decision it cannot be withdrawn.
 
 ## The deposit is a storage fee
 
-Filing a report or a dispute costs `REPORT_DEPOSIT`, 0.023124 NEAR today (`docs/REPORTS.md` gives the measurement it is priced from). It is a non refundable storage fee, not a bond: the contract has no refund path in any state, the rows it pays for are permanent, and an accepted report, a withdrawn one and an overturned one all keep it (`docs/DECISIONS.md`, entry 5).
+Filing a report or a dispute costs `REPORT_DEPOSIT`, 0.023136 NEAR (23136000000000000000000 yoctoNEAR) (`docs/REPORTS.md` gives the measurement it is priced from). It is a non refundable storage fee, not a bond: the contract has no refund path in any state, the rows it pays for are permanent, and an accepted report, a withdrawn one and an overturned one all keep it (`docs/DECISIONS.md`, entry 5).
 
-Decided: the deposit is attached exactly; more or less is refused. On main today `assert_report_deposit` refuses less but accepts more, and keeps the excess. `scripts/report.sh` and `scripts/dispute.sh` attach the exact amount. A reporter using another client attaches exactly `REPORT_DEPOSIT`.
+The deposit is attached exactly. `assert_report_deposit`, which `submit_report` and `dispute` call first, refuses any amount other than `REPORT_DEPOSIT`, less or more, with `REFUSED:bad_deposit`. `scripts/report.sh` and `scripts/dispute.sh` attach the exact amount. A reporter using another client attaches exactly `REPORT_DEPOSIT`.
 
 ## Who moderates
 
-There is one moderator: Ridwan, the owner (`docs/DECISIONS.md`, entry 6: "The owner is the only moderator at the first deployment"). Every accept, reject and dispute decision on this deployment is one person's decision. The contract can enforce distinct accounts, not independent humans, and with one moderator there is no second account to enforce.
+There is one moderator: Ridwan, the owner (`docs/DECISIONS.md`, entry 6: "The owner is the only moderator at the first deployment"). Every accept, reject and dispute decision on this deployment is one person's decision. The contract can enforce distinct accounts, not independent humans: `new` and `set_moderators` refuse a list that names the same account twice (`assert_distinct_moderators`, `REFUSED:duplicate_moderator`), and with one moderator there is no second account to enforce.
 
-The moderator decides with `moderate(id, accept, reason_sha256)` (exactly 1 yoctoNEAR; `scripts/moderate.sh <reports_account> <report_id> <accept|reject> <reason_sha256>`). The contract records the moderator, the reason hash and the time on the report.
+The moderator decides with `moderate(id, accept, reason_sha256)` (exactly 1 yoctoNEAR; `scripts/moderate.sh <reports_account> <report_id> <accept|reject> <reason_sha256>`). The contract records the moderator, the reason hash and the time on the report. `moderate` refuses a moderator deciding a report they submitted (`REFUSED:self_moderation`).
 
 ## What a moderator checks
 
@@ -58,6 +58,7 @@ The account a report names asks for review by filing a dispute against the accep
 
 - Only an accepted report can be disputed (`REFUSED:not_accepted`). A pending report has no effect on a payment, so there is nothing yet to review. A rejected report is final; a new report starts again.
 - One dispute is open at a time per report (`REFUSED:dispute_open`).
+- A report that has reached the dispute cap takes no more disputes (`REFUSED:dispute_limit`; see The dispute cap).
 - A disputed report stays counted as accepted until it is overturned (`docs/REPORTS.md`). Filing a dispute does not switch a report off.
 - A dispute costs the same non refundable storage fee as a report.
 - Anyone may file a dispute, not only the subject.
@@ -66,17 +67,22 @@ The moderator resolves it with `resolve_dispute(dispute_id, overturn, reason_sha
 
 ## The independence rule, and its limit
 
-Decided (`docs/DECISIONS.md`, entry 6): a moderator cannot moderate a report they submitted, and the moderator who accepted a report cannot resolve a dispute on it while the moderator list has more than one member.
+Decided (`docs/DECISIONS.md`, entry 6), and enforced in the deployed code:
 
-On main today `moderate` and `resolve_dispute` refuse neither. With one moderator the second rule would not apply anyway: the person who accepted a report is the person who decides the dispute on it. A subject who disputes is asking the same person to look again, with new evidence. That is the limit of this deployment, and it ends only when a second moderator is named.
+- A moderator cannot moderate a report they submitted. `moderate` refuses it with `REFUSED:self_moderation`, whatever the size of the moderator list.
+- The moderator who accepted a report cannot resolve a dispute on it while the moderator list has more than one member. `resolve_dispute` refuses it with `REFUSED:same_moderator`.
 
-The first rule has a consequence for the operator's script. `scripts/report.sh` signs as `OWNER_ACCOUNT_ID`, and the owner is the only moderator. Under the decided rule a report the owner files could never be decided, and under the code on main today the owner would decide their own report. The moderator therefore does not file reports from the moderator account.
+With one moderator the second rule does not apply: `resolve_dispute` lets the only moderator decide a dispute on a report they accepted. A subject who disputes is asking the same person to look again, with new evidence. That is the limit of this deployment, and it ends only when a second moderator is named.
+
+The first rule decides which account files. The only moderator is the owner, so a report filed from the owner account can never be decided: `moderate` refuses it with `REFUSED:self_moderation`. The moderator therefore files reports from a separate account. The moderator files disputes from a separate account too, so that no moderator decides a dispute they filed; that is policy, and the contract does not check it. On main, `scripts/report.sh` and `scripts/dispute.sh` still sign every call as `OWNER_ACCOUNT_ID`, so on main `scripts/report.sh` cannot file a report the moderator can decide. The variables `REPORTER_ACCOUNT_ID` and `DISPUTER_ACCOUNT_ID`, which give the filing calls their own signer, land with the branch `build/script-signers` and are not on main.
 
 ## The dispute cap
 
-Decided (`docs/DECISIONS.md`, entry 6): the cap of five disputes per report counts only disputes resolved against the disputer. On main, `dispute` refuses a sixth dispute over the report's lifetime (`REFUSED:dispute_limit`) and counts every dispute filed. The two give the same answer: a dispute is accepted only on an accepted report with no open dispute, and an overturn is terminal, so every earlier dispute on a report that can still be disputed was upheld.
+What the deployed code does: `dispute` refuses a dispute on a report whose `upheld_disputes` has reached five (`MAX_DISPUTES`, `REFUSED:dispute_limit`). `resolve_dispute` adds one to `upheld_disputes` when it upholds the report, and nothing when it overturns it; an overturned report is terminal and takes no further dispute (`REFUSED:not_accepted`). One dispute is open at a time (`REFUSED:dispute_open`). So the cap counts upheld disputes, the ones the disputer lost, and an open or overturned dispute does not count.
 
-The limit: since anyone may dispute, five upheld disputes from any accounts close review of a report for good, the subject's review included. Each costs the deposit.
+The known limit: losing disputes count, and anyone may dispute. Five upheld disputes from any accounts close review of a report for good, the subject's own review included, for five deposits. A false accept can therefore be made permanent by filing five weak disputes against it before the subject files a strong one.
+
+This rule is under review; a dated decision in `docs/DECISIONS.md` will follow.
 
 ## Corrections
 
@@ -89,7 +95,7 @@ Nothing is edited. A report row and its body hash are permanent; the contract ha
 
 ## What a report does to a payment
 
-`docs/LADDER.md` is the only statement of it, and this page does not repeat the ladder. The function that page names, `effect` in `intel/reports.py`, is not on main yet, and `gate/rules.py` on main has no community report check, so on main today a report changes no verdict.
+`docs/LADDER.md` is the only statement of it, and this page does not repeat the ladder. On main today a report changes no verdict, on the deployed contract or any other. The function the ladder names, `effect` in `intel/reports.py`, is not on main, and `gate/rules.py` on main has no community report check. Until that rules hook merges, the verdict service does not read the reports contract at all.
 
 ## What this policy does not cover
 
