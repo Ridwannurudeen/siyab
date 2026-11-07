@@ -14,6 +14,7 @@ Network: NEAR testnet. The four top level role accounts were created 29 Oct 2026
 | Token | `token.kestrelridge-main.testnet` | 3.001 |
 | Registry | `registry.kestrelridge-main.testnet` | 2.999 |
 | Recorder | `recorder.kestrelridge-main.testnet` | 1.0 |
+| Reports | `reports.kestrelridge-main.testnet` (created 7 Nov from the Gate account, 3 NEAR) | 2.998 |
 
 ## Contracts
 
@@ -24,6 +25,9 @@ First built with `cargo near build non-reproducible-wasm` from a clean export of
 | Gate | `kestrelridge-main.testnet` | `Hfdk3jGUFxQyP8wEEoejNUkZ81bE9gDmoUBfGRghR5iE` (29 Oct: `7NBhj8kM...DUW8`) | `GTHR62ER...Wik5sW` (29 Oct: `8VPBkPi2...c8EcE6`) |
 | Registry | `registry.kestrelridge-main.testnet` | `3qGvVjTHVyvYVGQjJhqQGJMzmkUHwEbTCfWqHhXnW4VX` (29 Oct: `64jBn2DD...mrLU`) | `9GzMDrYe...UPBb66` (29 Oct: `4bhQViAx...ifcJU3`) |
 | Test token (DMT, 6 decimals, supply 1000000 DMT to the Gate) | `token.kestrelridge-main.testnet` | `5uXqAX8C8fTupiJYwZQz1fC5voSnQsaD9xhxQ4R28rZw` | `A1To88Pg...s9dMs7` |
+| Reports | `reports.kestrelridge-main.testnet` | `6QcaGeoCN7QXe2ZV8VAL4ZHTRYWTURJYQmdDD2tBqBpN` (MATCH, reproducible wasm of `res/reports.wasm`, source commit in `res/BUILD-reports.md`) | `AMfe5SLG...nLCWCg` (7 Nov; account created in `Cza55oWj...gcDwKF`) |
+
+Read back after the reports deploy, 7 Nov: `version` `0.1.0`, `state_version` 1, `totals` 0 reports and 0 disputes, and `subject_summary` of `kestrelridge-shop.testnet` and of `kestrelridge-mallory.testnet` returns the six fields with zero counts, null ids and `deny` false. The owner `kestrelridge-owner.testnet` is the only moderator. No report has been filed yet, and the verdict service does not consult this contract until the rules hook merges.
 
 Read back after setup: Gate and registry `version` `0.1.0`; Gate policy `max_ttl_ms` 300000, not paused, empty denylist; one verifier key, no previous key; the registry recorder is `recorder.kestrelridge-main.testnet`; token storage registered for the Gate, the vendor and the aged payee (0.00129 NEAR each). At that point the Gate held one full access key and no agent key; `register_agent` added the agent's `request_transfer` key on 29 Oct (the Gate scan of 2 Nov, `fixtures/scan/`, shows both).
 

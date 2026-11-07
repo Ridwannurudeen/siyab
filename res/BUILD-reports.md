@@ -4,7 +4,7 @@ reproducible build
 
 Source commit: 2d647e544ccc164c14f9ad72096f8ec5cbcfcbd8
 
-Deployed: pending
+Deployed: 7 Nov, `reports.kestrelridge-main.testnet`, code_hash `6QcaGeoCN7QXe2ZV8VAL4ZHTRYWTURJYQmdDD2tBqBpN` MATCH (account created by `kestrelridge-main.testnet` with 3 NEAR, transaction `Cza55oWj...gcDwKF`; deploy with init `new(owner kestrelridge-owner.testnet, moderators [kestrelridge-owner.testnet])`, transaction `AMfe5SLG...nLCWCg`).
 
 - cargo-near: 0.22.0.
 - The repository toolchain is Rust 1.99.1 with `wasm32-unknown-unknown`.
