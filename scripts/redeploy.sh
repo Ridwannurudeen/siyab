@@ -31,11 +31,6 @@ case "$contract" in
   reports) account=${REPORTS_ACCOUNT_ID:-reports.$GATE_ACCOUNT_ID} ;;
   *) printf 'contract must be gate, registry or reports\n' >&2; exit 2 ;;
 esac
-# The reports contract has no version view, so its version can be neither read nor asserted.
-if [[ "$contract" == "reports" && -n "${EXPECT_VERSION:-}" ]]; then
-  printf 'EXPECT_VERSION cannot be asserted: the reports contract has no version view\n' >&2
-  exit 2
-fi
 if [[ "$(date -u +%F)" > "2026-11-04" && "${GATE_STATE_FROZEN:-}" != "1" ]]; then
   printf 'GATE_STATE_FROZEN=1 is required after 4 Nov\n' >&2
   exit 2
@@ -76,9 +71,7 @@ print(rpc.Client(rpc.TESTNET_RPC_URL, "off").code_hash(sys.argv[1]))
 PY
 }
 
-if [[ "$contract" == "reports" ]]; then
-  printf 'version before: not read, the reports contract has no version view\n'
-elif [[ "$DRY_RUN" == "1" ]]; then
+if [[ "$DRY_RUN" == "1" ]]; then
   run near contract call-function as-read-only "$account" version json-args "$before_args" network-config "$NETWORK" now
 else
   before=$(near contract call-function as-read-only "$account" version json-args "$before_args" network-config "$NETWORK" now)
@@ -90,18 +83,14 @@ else
   run near contract deploy "$account" use-file "$wasm" without-init-call network-config "$NETWORK" sign-with-access-key-file "$KEY_PATH" send
 fi
 if [[ "$DRY_RUN" == "1" ]]; then
-  if [[ "$contract" != "reports" ]]; then
-    run near contract call-function as-read-only "$account" version json-args "$before_args" network-config "$NETWORK" now
-  fi
+  run near contract call-function as-read-only "$account" version json-args "$before_args" network-config "$NETWORK" now
   printf 'code_hash: unavailable during dry run\n'
   printf 'wasm_sha256: '
   if command -v sha256sum >/dev/null 2>&1; then sha256sum "$wasm"; else printf 'sha256sum unavailable\n'; fi
   if python3 -m gate codehash --help >/dev/null 2>&1; then run python3 -m gate codehash "$wasm"; fi
 else
-  if [[ "$contract" != "reports" ]]; then
-    after=$(near contract call-function as-read-only "$account" version json-args "$before_args" network-config "$NETWORK" now 2>&1)
-    printf 'version after: %s\n' "$after"
-  fi
+  after=$(near contract call-function as-read-only "$account" version json-args "$before_args" network-config "$NETWORK" now 2>&1)
+  printf 'version after: %s\n' "$after"
   near account view-account-summary "$account" network-config "$NETWORK" now
   sha256sum "$wasm"
   if python3 -m gate codehash --help >/dev/null 2>&1; then python3 -m gate codehash "$wasm"; fi

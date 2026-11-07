@@ -66,6 +66,9 @@ pub fn verify(
     if verdict.expires_ms <= now_ms || verdict.expires_ms < verdict.issued_ms {
         return Err("expired");
     }
+    if verdict.issued_ms > now_ms.saturating_add(30_000) {
+        return Err("issued_in_future");
+    }
     if verdict.expires_ms.saturating_sub(verdict.issued_ms) > max_ttl_ms {
         return Err("ttl_too_long");
     }
@@ -97,6 +100,7 @@ pub fn verify(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ed25519_dalek::{Signer, SigningKey};
     use near_sdk::{json_types::U128, test_utils::VMContextBuilder, testing_env};
     use serde_json::Value;
     use std::{fs, path::PathBuf};
@@ -106,6 +110,53 @@ mod tests {
             .step_by(2)
             .map(|index| u8::from_str_radix(&value[index..index + 2], 16).unwrap())
             .collect()
+    }
+
+    fn signed_test_case(
+        issued_ms: u64,
+    ) -> (AccountId, [u8; 32], TransferRequest, Verdict, [u8; 32]) {
+        testing_env!(VMContextBuilder::new().build());
+        let vector: Value = serde_json::from_slice(
+            &fs::read(
+                PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                    .join("../../fixtures/canon/04-ft-happy-unit.json"),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let gate: AccountId = vector["gate_account_id"].as_str().unwrap().parse().unwrap();
+        let agent_pk: [u8; 32] = decode(vector["agent_pk_hex"].as_str().unwrap())
+            .try_into()
+            .unwrap();
+        let request = TransferRequest {
+            kind: vector["kind"].as_str().unwrap().to_owned(),
+            token_id: vector["token_id"]
+                .as_str()
+                .map(|value| value.parse().unwrap()),
+            receiver_id: vector["receiver_id"].as_str().unwrap().parse().unwrap(),
+            amount: U128(vector["amount"].as_str().unwrap().parse().unwrap()),
+            memo: vector["memo"].as_str().map(str::to_owned),
+        };
+        let mut verdict = Verdict {
+            literal: vector["literal"].as_str().unwrap().to_owned(),
+            issued_ms,
+            expires_ms: issued_ms + 300_000,
+            verdict_id: vector["verdict_id"].as_str().unwrap().to_owned(),
+            evidence_hash: vector["evidence_sha256"].as_str().unwrap().to_owned(),
+            key_id: vector["key_id"].as_str().unwrap().to_owned(),
+            signature: String::new(),
+        };
+        let seed: [u8; 32] = env::sha256(b"gate test verifier v1").try_into().unwrap();
+        let signing_key = SigningKey::from_bytes(&seed);
+        let message = canonical_message(&gate, &agent_pk, &request, &verdict);
+        verdict.signature = hex_encode(&signing_key.sign(&env::sha256(&message)).to_bytes());
+        (
+            gate,
+            agent_pk,
+            request,
+            verdict,
+            signing_key.verifying_key().to_bytes(),
+        )
     }
 
     #[test]
@@ -214,6 +265,45 @@ mod tests {
                 300_000,
             ),
             Err("expired")
+        );
+    }
+
+    #[test]
+    fn issue_time_at_now_plus_30001_ms_is_refused() {
+        let now_ms = 1_700_000_100_000;
+        let (gate, agent_pk, request, verdict, key) = signed_test_case(now_ms + 30_001);
+
+        assert_eq!(
+            verify(
+                &gate, &agent_pk, &request, &verdict, &key, None, now_ms, 300_000,
+            ),
+            Err("issued_in_future")
+        );
+    }
+
+    #[test]
+    fn issue_time_at_now_plus_30000_ms_is_accepted() {
+        let now_ms = 1_700_000_100_000;
+        let (gate, agent_pk, request, verdict, key) = signed_test_case(now_ms + 30_000);
+
+        assert_eq!(
+            verify(
+                &gate, &agent_pk, &request, &verdict, &key, None, now_ms, 300_000,
+            ),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn issue_time_at_now_is_accepted() {
+        let now_ms = 1_700_000_100_000;
+        let (gate, agent_pk, request, verdict, key) = signed_test_case(now_ms);
+
+        assert_eq!(
+            verify(
+                &gate, &agent_pk, &request, &verdict, &key, None, now_ms, 300_000,
+            ),
+            Ok(())
         );
     }
 }

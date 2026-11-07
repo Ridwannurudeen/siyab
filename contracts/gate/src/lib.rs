@@ -20,6 +20,63 @@ const GAS_FT_TRANSFER: Gas = Gas::from_tgas(5);
 // Callback receipt burned 1630829006859 gas, twice stays below the 5 Tgas floor.
 const GAS_CALLBACK: Gas = Gas::from_tgas(5);
 const GAS_BASE_RESERVE: Gas = Gas::from_tgas(10);
+// This queue stays outside the root state to preserve the existing Borsh layout.
+const USED_VERDICT_QUEUE_CURSOR_PREFIX: &[u8] = b"uq:c";
+const USED_VERDICT_QUEUE_ENTRY_PREFIX: &[u8] = b"uq:e";
+const USED_VERDICT_QUEUE_HEAD: u8 = 0;
+const USED_VERDICT_QUEUE_TAIL: u8 = 1;
+const USED_VERDICT_PRUNE_LIMIT: u8 = 4;
+
+fn push_used_verdict(expires_ms: u64, verdict_id: String) {
+    let mut cursors = LookupMap::<u8, u64>::new(USED_VERDICT_QUEUE_CURSOR_PREFIX);
+    let mut entries = LookupMap::<u64, (u64, String)>::new(USED_VERDICT_QUEUE_ENTRY_PREFIX);
+    let tail = cursors
+        .get(&USED_VERDICT_QUEUE_TAIL)
+        .copied()
+        .unwrap_or(0);
+    entries.insert(tail, (expires_ms, verdict_id));
+    cursors.insert(
+        USED_VERDICT_QUEUE_TAIL,
+        tail.checked_add(1).expect("used verdict queue exhausted"),
+    );
+}
+
+fn prune_expired_used_verdicts(gate: &mut Gate, now_ms: u64) -> u8 {
+    let mut cursors = LookupMap::<u8, u64>::new(USED_VERDICT_QUEUE_CURSOR_PREFIX);
+    let mut entries = LookupMap::<u64, (u64, String)>::new(USED_VERDICT_QUEUE_ENTRY_PREFIX);
+    let mut head = cursors
+        .get(&USED_VERDICT_QUEUE_HEAD)
+        .copied()
+        .unwrap_or(0);
+    let tail = cursors
+        .get(&USED_VERDICT_QUEUE_TAIL)
+        .copied()
+        .unwrap_or(0);
+    let mut removed = 0;
+
+    while head < tail && removed < USED_VERDICT_PRUNE_LIMIT {
+        let Some((expires_ms, _)) = entries.get(&head) else {
+            break;
+        };
+        if *expires_ms > now_ms {
+            break;
+        }
+        let (queued_expires_ms, verdict_id) =
+            entries.remove(&head).expect("used verdict queue entry");
+        // Replay protection holds only because verify refuses expires_ms <= now_ms (verdict.rs:66)
+        // before request_transfer checks used IDs. Keep this predicate on expiry, never age.
+        if gate.used_verdicts.get(&verdict_id).copied() == Some(queued_expires_ms) {
+            gate.used_verdicts.remove(&verdict_id);
+        }
+        head = head.checked_add(1).expect("used verdict queue exhausted");
+        removed += 1;
+    }
+
+    if removed > 0 {
+        cursors.insert(USED_VERDICT_QUEUE_HEAD, head);
+    }
+    removed
+}
 
 #[near(contract_state)]
 #[derive(PanicOnDefault)]
@@ -70,6 +127,8 @@ impl Gate {
         request: TransferRequest,
         verdict: Option<Verdict>,
     ) -> Promise {
+        let now_ms = env::block_timestamp_ms();
+        prune_expired_used_verdicts(self, now_ms);
         near_sdk::require!(!self.paused, "REFUSED:paused");
         near_sdk::require!(
             env::predecessor_account_id() == env::current_account_id(),
@@ -109,7 +168,6 @@ impl Gate {
         };
         let verdict = verdict.unwrap_or_else(|| env::panic_str("REFUSED:no_verdict"));
         near_sdk::require!(verdict.literal == "ALLOW", "REFUSED:not_allow");
-        let now_ms = env::block_timestamp_ms();
         if let Err(code) = verify(
             &env::current_account_id(),
             &agent_key_bytes(&agent_pk),
@@ -177,6 +235,7 @@ impl Gate {
         self.agents.insert(agent_pk.clone(), agent);
         self.used_verdicts
             .insert(verdict.verdict_id.clone(), verdict.expires_ms);
+        push_used_verdict(verdict.expires_ms, verdict.verdict_id.clone());
         let request_id = self.next_request_id;
         self.next_request_id = self
             .next_request_id
@@ -269,7 +328,7 @@ fn lower_hex(bytes: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ed25519_dalek::SigningKey;
+    use ed25519_dalek::{Signer, SigningKey};
     use near_sdk::{
         json_types::U128,
         test_utils::{testing_env_with_promise_results, VMContextBuilder},
@@ -452,6 +511,12 @@ mod tests {
         let _ = gate.request_transfer(request, verdict);
     }
 
+    fn seed_used_verdict(gate: &mut Gate, verdict_id: &str, expires_ms: u64) {
+        gate.used_verdicts
+            .insert(verdict_id.to_owned(), expires_ms);
+        push_used_verdict(expires_ms, verdict_id.to_owned());
+    }
+
     #[test]
     fn happy_path_debits_cap_and_emits_events() {
         let (mut gate, request, verdict, agent_pk) = prepare("04-ft-happy-unit", true);
@@ -464,6 +529,145 @@ mod tests {
             .any(|line| line.starts_with("EVENT_JSON:") && line.contains("transfer_scheduled")));
         let pending = gate.get_pending(0).unwrap();
         assert_eq!(serde_json::to_value(pending).unwrap()["amount"], "1000000");
+    }
+
+    #[test]
+    fn expired_used_verdict_is_pruned_on_next_transfer() {
+        let (mut gate, request, verdict, agent_pk) = prepare("04-ft-happy-unit", true);
+        let now_ms = env::block_timestamp_ms();
+        let expired_id = "expired-before-upgrade".to_owned();
+        seed_used_verdict(&mut gate, &expired_id, now_ms - 1);
+
+        submit(&mut gate, request, Some(verdict.clone()), agent_pk);
+
+        assert!(!gate.used_verdicts.contains_key(&expired_id));
+        assert!(gate.used_verdicts.contains_key(&verdict.verdict_id));
+    }
+
+    #[test]
+    fn live_used_verdict_is_not_pruned() {
+        let (mut gate, request, verdict, agent_pk) = prepare("04-ft-happy-unit", true);
+        let now_ms = env::block_timestamp_ms();
+        let live_id = "still-live".to_owned();
+        seed_used_verdict(&mut gate, &live_id, now_ms + 1);
+
+        submit(&mut gate, request, Some(verdict), agent_pk);
+
+        assert!(gate.used_verdicts.contains_key(&live_id));
+    }
+
+    #[test]
+    fn pruning_stops_at_four_entries_per_call() {
+        let (mut gate, _, _, _) = prepare("04-ft-happy-unit", true);
+        let now_ms = env::block_timestamp_ms();
+        for index in 0..5 {
+            seed_used_verdict(&mut gate, &format!("expired-{index}"), now_ms - 1);
+        }
+
+        assert_eq!(prune_expired_used_verdicts(&mut gate, now_ms), 4);
+        for index in 0..4 {
+            assert!(!gate
+                .used_verdicts
+                .contains_key(&format!("expired-{index}")));
+        }
+        assert!(gate.used_verdicts.contains_key(&"expired-4".to_owned()));
+    }
+
+    #[test]
+    fn non_monotonic_expiries_wait_for_the_live_queue_head() {
+        let (mut gate, _, _, _) = prepare("04-ft-happy-unit", true);
+        seed_used_verdict(&mut gate, "live-head", 100);
+        seed_used_verdict(&mut gate, "expired-next", 50);
+
+        assert_eq!(prune_expired_used_verdicts(&mut gate, 60), 0);
+        assert!(gate.used_verdicts.contains_key(&"live-head".to_owned()));
+        assert!(gate
+            .used_verdicts
+            .contains_key(&"expired-next".to_owned()));
+
+        assert_eq!(prune_expired_used_verdicts(&mut gate, 101), 2);
+        assert!(!gate.used_verdicts.contains_key(&"live-head".to_owned()));
+        assert!(!gate
+            .used_verdicts
+            .contains_key(&"expired-next".to_owned()));
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:verdict_used")]
+    fn stale_queue_entry_does_not_remove_reused_verdict_id() {
+        let (mut gate, request, mut verdict, agent_pk) = prepare("04-ft-happy-unit", true);
+        let now_ms = env::block_timestamp_ms();
+        let verdict_id = verdict.verdict_id.clone();
+        seed_used_verdict(&mut gate, "live-head", now_ms + 1);
+        seed_used_verdict(&mut gate, &verdict_id, now_ms - 1);
+
+        let owner_context = VMContextBuilder::new()
+            .current_account_id("gate.testnet".parse().unwrap())
+            .predecessor_account_id("owner.testnet".parse().unwrap())
+            .attached_deposit(NearToken::from_yoctonear(1))
+            .block_timestamp(now_ms * 1_000_000)
+            .build();
+        testing_env!(owner_context);
+        assert_eq!(gate.prune_used(vec![verdict_id.clone()]), 1);
+
+        let agent_context = VMContextBuilder::new()
+            .current_account_id("gate.testnet".parse().unwrap())
+            .predecessor_account_id("gate.testnet".parse().unwrap())
+            .signer_account_pk(agent_pk.clone())
+            .block_timestamp(now_ms * 1_000_000)
+            .prepaid_gas(Gas::from_tgas(300))
+            .build();
+        testing_env!(agent_context);
+        verdict.issued_ms = now_ms;
+        verdict.expires_ms = now_ms + 300_000;
+        let message = verdict::canonical_message(
+            &env::current_account_id(),
+            &agent_key_bytes(&agent_pk),
+            &request,
+            &verdict,
+        );
+        let verifier_seed: [u8; 32] = env::sha256(b"gate test verifier v1").try_into().unwrap();
+        let verifier = SigningKey::from_bytes(&verifier_seed);
+        verdict.signature = lower_hex(&verifier.sign(&env::sha256(&message)).to_bytes());
+        submit(
+            &mut gate,
+            request.clone(),
+            Some(verdict.clone()),
+            agent_pk.clone(),
+        );
+        assert_eq!(
+            gate.used_verdicts.get(&verdict_id).copied(),
+            Some(verdict.expires_ms)
+        );
+
+        let replay_ms = now_ms + 2;
+        assert_eq!(prune_expired_used_verdicts(&mut gate, replay_ms), 2);
+        assert_eq!(
+            gate.used_verdicts.get(&verdict_id).copied(),
+            Some(verdict.expires_ms)
+        );
+
+        let replay_context = VMContextBuilder::new()
+            .current_account_id("gate.testnet".parse().unwrap())
+            .predecessor_account_id("gate.testnet".parse().unwrap())
+            .signer_account_pk(agent_pk.clone())
+            .block_timestamp(replay_ms * 1_000_000)
+            .prepaid_gas(Gas::from_tgas(300))
+            .build();
+        testing_env!(replay_context);
+        submit(&mut gate, request, Some(verdict), agent_pk);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:expired")]
+    fn replay_of_pruned_verdict_is_still_refused_as_expired() {
+        let (mut gate, request, verdict, agent_pk) = prepare("05-expired-unit", true);
+        let now_ms = env::block_timestamp_ms();
+        seed_used_verdict(&mut gate, &verdict.verdict_id, verdict.expires_ms);
+
+        assert_eq!(prune_expired_used_verdicts(&mut gate, now_ms), 1);
+        assert!(!gate.used_verdicts.contains_key(&verdict.verdict_id));
+        submit(&mut gate, request, Some(verdict), agent_pk);
     }
 
     #[test]
@@ -693,6 +897,113 @@ mod tests {
             .build();
         testing_env!(context);
         gate.set_paused(true);
+    }
+
+    #[test]
+    #[should_panic(expected = "Requires attached deposit of exactly 1 yoctoNEAR")]
+    fn prune_used_requires_one_yocto() {
+        let (mut gate, _, _, _) = prepare("04-ft-happy-unit", true);
+        let context = VMContextBuilder::new()
+            .current_account_id("gate.testnet".parse().unwrap())
+            .predecessor_account_id("owner.testnet".parse().unwrap())
+            .build();
+        testing_env!(context);
+        gate.prune_used(Vec::new());
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:not_owner")]
+    fn prune_used_refuses_non_owner() {
+        let (mut gate, _, _, _) = prepare("04-ft-happy-unit", true);
+        let context = VMContextBuilder::new()
+            .current_account_id("gate.testnet".parse().unwrap())
+            .predecessor_account_id("stranger.testnet".parse().unwrap())
+            .attached_deposit(NearToken::from_yoctonear(1))
+            .build();
+        testing_env!(context);
+        gate.prune_used(Vec::new());
+    }
+
+    #[test]
+    fn prune_used_removes_expired_and_skips_live_ids() {
+        let (mut gate, _, _, _) = prepare("04-ft-happy-unit", true);
+        let now_ms = 100;
+        let context = VMContextBuilder::new()
+            .current_account_id("gate.testnet".parse().unwrap())
+            .predecessor_account_id("owner.testnet".parse().unwrap())
+            .attached_deposit(NearToken::from_yoctonear(1))
+            .block_timestamp(now_ms * 1_000_000)
+            .build();
+        testing_env!(context);
+        gate.used_verdicts.insert("expired-legacy".to_owned(), 99);
+        gate.used_verdicts.insert("live-legacy".to_owned(), 101);
+
+        let removed = gate.prune_used(vec![
+            "expired-legacy".to_owned(),
+            "live-legacy".to_owned(),
+            "missing-legacy".to_owned(),
+        ]);
+
+        assert_eq!(removed, 1);
+        assert!(!gate
+            .used_verdicts
+            .contains_key(&"expired-legacy".to_owned()));
+        assert!(gate
+            .used_verdicts
+            .contains_key(&"live-legacy".to_owned()));
+    }
+
+    #[test]
+    fn prune_used_accepts_fifty_expired_ids() {
+        let (mut gate, _, _, _) = prepare("04-ft-happy-unit", true);
+        let now_ms = 100;
+        let context = VMContextBuilder::new()
+            .current_account_id("gate.testnet".parse().unwrap())
+            .predecessor_account_id("owner.testnet".parse().unwrap())
+            .attached_deposit(NearToken::from_yoctonear(1))
+            .block_timestamp(now_ms * 1_000_000)
+            .build();
+        testing_env!(context);
+        let ids: Vec<_> = (0..50).map(|index| format!("legacy-{index}")).collect();
+        for id in &ids {
+            gate.used_verdicts.insert(id.clone(), now_ms - 1);
+        }
+
+        assert_eq!(gate.prune_used(ids), 50);
+    }
+
+    #[test]
+    fn used_verdicts_view_pages_in_map_order() {
+        let (mut gate, _, _, _) = prepare("04-ft-happy-unit", true);
+        seed_used_verdict(&mut gate, "first", 101);
+        seed_used_verdict(&mut gate, "second", 102);
+        seed_used_verdict(&mut gate, "third", 103);
+
+        assert_eq!(
+            gate.used_verdicts(1, 2),
+            vec![("second".to_owned(), 102), ("third".to_owned(), 103)]
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:limit_too_large")]
+    fn used_verdicts_view_rejects_limits_over_fifty() {
+        let (gate, _, _, _) = prepare("04-ft-happy-unit", true);
+
+        gate.used_verdicts(0, 51);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:bad_request")]
+    fn prune_used_rejects_more_than_fifty_ids() {
+        let (mut gate, _, _, _) = prepare("04-ft-happy-unit", true);
+        let context = VMContextBuilder::new()
+            .current_account_id("gate.testnet".parse().unwrap())
+            .predecessor_account_id("owner.testnet".parse().unwrap())
+            .attached_deposit(NearToken::from_yoctonear(1))
+            .build();
+        testing_env!(context);
+        gate.prune_used((0..51).map(|index| format!("legacy-{index}")).collect());
     }
 
     #[test]
