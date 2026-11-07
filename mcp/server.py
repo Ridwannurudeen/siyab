@@ -156,13 +156,15 @@ def _check_near_payment(arguments, evidence_dir):
     if live is not None:
         verdict_signer, agent_pub, agent_pk_hex = live
         policy, policy_source = _live_policy(client, gate, agent_pub), "get_agent"
+    reports_account = os.environ.get("REPORTS_ACCOUNT_ID")
     try:
         result = verdict.request(arguments.get("kind"), arguments.get("token"), arguments.get("receiver"),
                                  arguments.get("amount"), arguments.get("memo"), gate=gate,
                                  agent_pk_hex=agent_pk_hex, policy=policy, store=labels.load(), rpc=client,
                                  nearblocks=nearblocks, signer=verdict_signer, injection_scanner=scanner,
                                  archival=archival, evidence_dir=evidence_dir,
-                                 issuers=None if gate.endswith(".testnet") else rules.issuers_for("mainnet"))
+                                 issuers=None if gate.endswith(".testnet") else rules.issuers_for("mainnet"),
+                                 reports_account=reports_account)
     except canon.CanonError as error:
         raise ToolError(f"invalid request: {error}") from error
     public_key = base58.encode_key(bytes.fromhex(verdict_signer.public_key_hex))

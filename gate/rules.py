@@ -29,6 +29,7 @@ from gate.rpc import (
     RpcError,
     TransportError,
 )
+from intel import reports
 
 MIN_AGE_DAYS = 7
 # The checks judge runs only for a receiver off the agent's allowlist; an owner's set_allowlist call skips them.
@@ -316,7 +317,7 @@ def _issuer_check(rpc, receiver, issuers):
     return evidence.check("issuer_blacklist", status, "; ".join(parts), sources[status])
 
 
-def _tier1(request, policy, store, rpc, injection_scanner, issuers):
+def _tier1(request, policy, store, rpc, injection_scanner, issuers, reports_account):
     """Tier 1 checks; returns (checks, the receiver account or None, its source, label ids)."""
     kind, token, receiver, memo = (request["kind"], request["token_id"], request["receiver_id"],
                                    request["memo"])
@@ -373,6 +374,17 @@ def _tier1(request, policy, store, rpc, injection_scanner, issuers):
                                          f"could not read storage_balance_of: {_why(error)}", _source(rpc)))
 
     checks.append(_memo_check(memo, injection_scanner))
+    if reports_account:
+        try:
+            report_summary = rpc.call_function(reports_account, "subject_summary", {"subject": receiver})
+            report_effect = reports.effect(report_summary, receiver in policy.get("allowlist", []))
+        except UNAVAILABLE as error:
+            report_effect = {"effect": "unreadable", "report_id": None,
+                             "detail": f"subject_summary could not be read: {_why(error)}"}
+        status = {"deny": "signal", "ask": "unknown", "none": "pass", "unreadable": "unknown"}[
+            report_effect["effect"]]
+        detail = f"reports for {receiver}: {report_effect['detail']}"
+        checks.append(evidence.check("community_report", status, detail, _source(rpc)))
     return checks, account, account_source, [a.id for a in consulted]
 
 
@@ -612,7 +624,18 @@ def _reasons(verdict, checks, facts, request, tier2):
         reasons = ["Every check ran and none found a signal."]
         return reasons + (["Not on the owner's allowlist."] if tier2 else [])
     if verdict == "UNKNOWN":
-        return [f"{c['id']} could not run: {c['detail']}." for c in checks if c["status"] == "unknown"]
+        reasons = []
+        for check in checks:
+            if check["status"] != "unknown":
+                continue
+            if check["id"] == "community_report":
+                reason = ("community reports need a human decision"
+                          if "; a human decides; " in check["detail"]
+                          else "community reports could not be checked")
+                reasons.append(reason)
+            else:
+                reasons.append(f"{check['id']} could not run: {check['detail']}.")
+        return reasons
     signals = {c["id"]: c for c in checks if c["status"] == "signal"}
     reasons = []
     if "lookalike" in signals:
@@ -632,16 +655,17 @@ def _reasons(verdict, checks, facts, request, tier2):
 
 
 def judge(request, policy, store, rpc, nearblocks, *, now_ms, injection_scanner, min_age_days=MIN_AGE_DAYS,
-          archival=None, issuers=None):
+          archival=None, issuers=None, reports_account=None):
     """Judge one TransferRequest for the agent whose policy (allowlist and caps, in the get_agent
     shape) is given; store is the label store, rpc the NEAR JSON-RPC client, nearblocks the
     NearBlocks client, injection_scanner the ShieldBot API client or None and archival the archival
     JSON-RPC client that dates the receiver when NearBlocks gives no creation time, or None.
     issuers is the list of issuer entries (issuers_for) the issuer_blacklist check reads; None or an
-    empty list adds no check. A receiver that is not a valid account id raises canon.CanonError, a
-    ValueError, before any request."""
+    empty list adds no check. reports_account is the reports contract account or None to omit its
+    check. A receiver that is not a valid account id raises canon.CanonError, a ValueError, before any request."""
     canon.account_id(request["receiver_id"], "receiver_id")
-    tier1_checks, account, account_source, labels = _tier1(request, policy, store, rpc, injection_scanner, issuers)
+    tier1_checks, account, account_source, labels = _tier1(
+        request, policy, store, rpc, injection_scanner, issuers, reports_account)
     block_height = account.get("block_height") if account else None
     tier2 = request["receiver_id"] not in policy.get("allowlist", [])
     checks, facts = list(tier1_checks), {}

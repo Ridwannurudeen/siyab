@@ -6,6 +6,8 @@ The scripts use environment variables and the near-cli-rs command lines recorded
 |---|---|
 | `NETWORK` | Testnet only, defaults to `testnet`. |
 | `OWNER_ACCOUNT_ID` | Account authorized to configure the Gate and registry. |
+| `REPORTER_ACCOUNT_ID` | Optional account that signs submitted reports; defaults to `OWNER_ACCOUNT_ID` with a warning. |
+| `DISPUTER_ACCOUNT_ID` | Optional account that signs opened disputes; defaults to `OWNER_ACCOUNT_ID` with a warning. |
 | `GATE_ACCOUNT_ID` | Account that holds the Gate contract. |
 | `VENDOR_ACCOUNT_ID` | Account used for the vendor payment path. |
 | `AGED_PAYEE_ACCOUNT_ID` | Account used for the aged payee path. |
@@ -52,13 +54,13 @@ After a real compromise, register a new agent key and never the revoked key.
 
 `set_paused.sh <true|false>` sets the Gate's pause state with the owner account.
 
-`report.sh <reports_account> <subject> <kind> <outcome> <evidence_sha256> <evidence_url>` submits a report signed by `OWNER_ACCOUNT_ID`. It validates `kind` and `outcome` against `intel/record_enums.json`, and reads `REPORT_DEPOSIT` from `contracts/reports/src/lib.rs` at runtime, attaching that exact amount in yoctoNEAR.
+`report.sh <reports_account> <subject> <kind> <outcome> <evidence_sha256> <evidence_url>` submits a report signed by `REPORTER_ACCOUNT_ID`; if unset, it falls back to `OWNER_ACCOUNT_ID` and prints a warning, because the owner is the moderator and the contract refuses moderation of a report the moderator filed. It validates `kind` and `outcome` against `intel/record_enums.json`, and reads `REPORT_DEPOSIT` from `contracts/reports/src/lib.rs` at runtime, attaching that exact amount in yoctoNEAR.
 
 `moderate.sh <reports_account> <report_id> <accept|reject> <reason_sha256>` moderates a report with the owner key; the owner must also be configured as a moderator on the reports contract.
 
-`dispute.sh <reports_account> <report_id> <evidence_sha256> <evidence_url>` submits a dispute signed by `OWNER_ACCOUNT_ID` with the exact report deposit. `dispute.sh <reports_account> --resolve <dispute_id> <uphold|overturn> <reason_sha256>` resolves it with the owner key and 1 yoctoNEAR; the owner must be configured as a moderator.
+`dispute.sh <reports_account> <report_id> <evidence_sha256> <evidence_url>` submits a dispute signed by `DISPUTER_ACCOUNT_ID`; if unset, it falls back to `OWNER_ACCOUNT_ID` and prints a warning: disputes are filed from an account separate from the moderator by policy, which the contract does not enforce. It attaches the exact report deposit. `dispute.sh <reports_account> --resolve <dispute_id> <uphold|overturn> <reason_sha256>` resolves it with the owner key and 1 yoctoNEAR; the owner must be configured as a moderator.
 
-`rotate_verifier.sh <new_verifier_public_key>` sets the new key as current, moves `VERIFIER_PUB` to previous, and keeps it valid until one configured `MAX_TTL_MS` from the current time. `MAX_TTL_MS` must match the Gate's deployed setting. After a successful rotation, update `VERIFIER_PUB` to the new current key before rotating again.
+For a scheduled rotation, `rotate_verifier.sh <new_verifier_public_key>` sets the new key as current and keeps `VERIFIER_PUB` as the previous key for one configured `MAX_TTL_MS`; that value must match the Gate's deployed setting. For a key exposure, pause the Gate first with `set_paused.sh true`, then run `rotate_verifier.sh --revoke-previous <new_verifier_public_key>` to set the new key as current with no previous key, revoking the old key immediately. After either rotation, update `VERIFIER_PUB` to the new current key before rotating again.
 
 `rotate_recorder.sh <new_recorder_account>` calls `set_recorder` on `registry.$GATE_ACCOUNT_ID` with the owner key.
 
