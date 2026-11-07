@@ -3,6 +3,7 @@ import hmac
 import io
 import json
 import os
+import ssl
 import tempfile
 import unittest
 from pathlib import Path
@@ -48,6 +49,9 @@ class RedirectOpener:
                                              "https://other.example.test/next")
 
 
+SECRET = b"test-webhook-secret-0123456789abcdef"
+
+
 def sample_alert(detail="Receiver requires review"):
     return Alert(
         source="near-feed",
@@ -69,7 +73,7 @@ class AlertsTests(unittest.TestCase):
     def test_signature_format_and_verification(self):
         with tempfile.TemporaryDirectory() as directory:
             secret_path = Path(directory) / "webhook-secret"
-            secret_path.write_bytes(b"test webhook secret")
+            secret_path.write_bytes(SECRET)
             opener = FakeOpener()
             sink = WebhookSink(
                 "https://alerts.example.test/hook?auth=query-secret",
@@ -87,13 +91,13 @@ class AlertsTests(unittest.TestCase):
             signature = next(value for key, value in request.header_items()
                              if key.lower() == "x-shieldbot-signature")
             body = request.data
-            expected = hmac.new(b"test webhook secret", b"1700000000." + body, hashlib.sha256).hexdigest()
+            expected = hmac.new(SECRET, b"1700000000." + body, hashlib.sha256).hexdigest()
             self.assertEqual(signature, f"t=1700000000,v1={expected}")
-            self.assertTrue(verify(signature, body, b"test webhook secret", 1700000000))
+            self.assertTrue(verify(signature, body, SECRET, 1700000000))
 
     def test_verify_rejects_a_replay_outside_the_window(self):
         body = b'{"event":"alert"}'
-        secret = b"test webhook secret"
+        secret = SECRET
         digest = hmac.new(secret, b"1700000000." + body, hashlib.sha256).hexdigest()
         signature = f"t=1700000000,v1={digest}"
 
@@ -104,7 +108,7 @@ class AlertsTests(unittest.TestCase):
     def test_redirect_is_refused_by_the_opener_handler(self):
         with tempfile.TemporaryDirectory() as directory:
             secret_path = Path(directory) / "webhook-secret"
-            secret_path.write_bytes(b"test webhook secret")
+            secret_path.write_bytes(SECRET)
             fake_openers = []
 
             def build_fake_opener(*handlers):
@@ -122,18 +126,208 @@ class AlertsTests(unittest.TestCase):
                 result = sink.send(sample_alert())
 
             self.assertFalse(result["ok"])
-            self.assertEqual(result["attempts"], 3)
-            self.assertEqual(len(fake_openers[0].calls), 3)
+            self.assertEqual(result["attempts"], 1)
+            self.assertEqual(len(fake_openers[0].calls), 1)
 
     def test_http_url_is_refused(self):
         with self.assertRaises(ValueError):
             WebhookSink("http://alerts.example.test/hook", "secret")
 
-    def test_payload_cap_prevents_a_request(self):
+    def test_payload_cap_refuses_an_oversized_alert_at_construction(self):
+        from dataclasses import replace
+
+        self.assertLessEqual(len(alerts._body(sample_alert())), alerts.MAX_PAYLOAD_BYTES)
+        with self.assertRaises(ValueError):
+            sample_alert("x" * (16 * 1024))
+        with self.assertRaises(ValueError):
+            replace(sample_alert(), detail="x" * (16 * 1024))
+
+    def test_a_forbidden_answer_is_not_retried(self):
+        with tempfile.TemporaryDirectory() as directory:
+            opener = FakeOpener([HTTPError("https://alerts.example.test/hook", 403, "Forbidden", {}, None)])
+            delays = []
+            secret_path = Path(directory) / "webhook-secret"
+            secret_path.write_bytes(SECRET)
+            sink = WebhookSink(
+                "https://alerts.example.test/hook",
+                secret_path,
+                log_path=Path(directory) / "delivery.jsonl",
+                opener=opener,
+                backoff=delays.append,
+            )
+
+            result = sink.send(sample_alert())
+
+            self.assertFalse(result["ok"])
+            self.assertEqual(result["attempts"], 1)
+            self.assertEqual(result["status"], 403)
+            self.assertEqual(len(opener.calls), 1)
+            self.assertEqual(delays, [])
+
+    def test_a_non_transport_failure_ends_delivery_after_one_attempt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            opener = FakeOpener([ValueError("opener misconfigured")])
+            delays = []
+            secret_path = Path(directory) / "webhook-secret"
+            secret_path.write_bytes(SECRET)
+            sink = WebhookSink(
+                "https://alerts.example.test/hook",
+                secret_path,
+                log_path=Path(directory) / "delivery.jsonl",
+                opener=opener,
+                backoff=delays.append,
+            )
+
+            result = sink.send(sample_alert())
+
+            self.assertFalse(result["ok"])
+            self.assertEqual(result["attempts"], 1)
+            self.assertEqual(result["error"], "ValueError")
+            self.assertEqual(len(opener.calls), 1)
+            self.assertEqual(delays, [])
+
+    def test_a_url_error_with_a_non_oserror_reason_ends_delivery_after_one_attempt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            opener = FakeOpener([URLError(ValueError("x"))])
+            delays = []
+            secret_path = Path(directory) / "webhook-secret"
+            secret_path.write_bytes(SECRET)
+            sink = WebhookSink(
+                "https://alerts.example.test/hook",
+                secret_path,
+                log_path=Path(directory) / "delivery.jsonl",
+                opener=opener,
+                backoff=delays.append,
+            )
+
+            result = sink.send(sample_alert())
+
+            self.assertFalse(result["ok"])
+            self.assertEqual(result["attempts"], 1)
+            self.assertEqual(result["error"], "URLError")
+            self.assertEqual(len(opener.calls), 1)
+            self.assertEqual(delays, [])
+
+    def test_a_refused_certificate_ends_delivery_after_one_attempt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            opener = FakeOpener([
+                URLError(ssl.SSLCertVerificationError(1, "certificate verify failed")),
+            ])
+            delays = []
+            secret_path = Path(directory) / "webhook-secret"
+            secret_path.write_bytes(SECRET)
+            sink = WebhookSink(
+                "https://alerts.example.test/hook",
+                secret_path,
+                log_path=Path(directory) / "delivery.jsonl",
+                opener=opener,
+                backoff=delays.append,
+            )
+
+            result = sink.send(sample_alert())
+
+            self.assertFalse(result["ok"])
+            self.assertEqual(result["attempts"], 1)
+            self.assertEqual(result["error"], "URLError")
+            self.assertEqual(len(opener.calls), 1)
+            self.assertEqual(delays, [])
+
+    def test_a_timeout_is_still_retried(self):
+        with tempfile.TemporaryDirectory() as directory:
+            opener = FakeOpener([TimeoutError("timed out"), FakeResponse(204)])
+            delays = []
+            secret_path = Path(directory) / "webhook-secret"
+            secret_path.write_bytes(SECRET)
+            sink = WebhookSink(
+                "https://alerts.example.test/hook",
+                secret_path,
+                log_path=Path(directory) / "delivery.jsonl",
+                opener=opener,
+                backoff=delays.append,
+            )
+
+            result = sink.send(sample_alert())
+
+            self.assertTrue(result["ok"])
+            self.assertEqual(result["attempts"], 2)
+            self.assertEqual(delays, [1])
+
+    def test_a_url_error_with_connection_refused_reason_is_retried(self):
+        with tempfile.TemporaryDirectory() as directory:
+            opener = FakeOpener([URLError(ConnectionRefusedError()), FakeResponse(204)])
+            delays = []
+            secret_path = Path(directory) / "webhook-secret"
+            secret_path.write_bytes(SECRET)
+            sink = WebhookSink(
+                "https://alerts.example.test/hook",
+                secret_path,
+                log_path=Path(directory) / "delivery.jsonl",
+                opener=opener,
+                backoff=delays.append,
+            )
+
+            result = sink.send(sample_alert())
+
+            self.assertTrue(result["ok"])
+            self.assertEqual(result["attempts"], 2)
+            self.assertEqual(len(opener.calls), 2)
+            self.assertEqual(delays, [1])
+
+    def test_a_rate_limit_is_retried_and_retry_after_is_honoured(self):
+        with tempfile.TemporaryDirectory() as directory:
+            opener = FakeOpener([
+                HTTPError("https://alerts.example.test/hook", 429, "Too Many Requests",
+                          {"Retry-After": "7"}, None),
+                FakeResponse(204),
+            ])
+            delays = []
+            secret_path = Path(directory) / "webhook-secret"
+            secret_path.write_bytes(SECRET)
+            sink = WebhookSink(
+                "https://alerts.example.test/hook",
+                secret_path,
+                log_path=Path(directory) / "delivery.jsonl",
+                opener=opener,
+                backoff=delays.append,
+                clock=lambda: 1700000000,
+            )
+
+            result = sink.send(sample_alert())
+
+            self.assertTrue(result["ok"])
+            self.assertEqual(result["attempts"], 2)
+            self.assertEqual(delays, [7.0])
+
+    def test_a_server_fault_is_retried_with_plain_backoff(self):
+        with tempfile.TemporaryDirectory() as directory:
+            opener = FakeOpener([
+                HTTPError("https://alerts.example.test/hook", 503, "Unavailable", {}, None),
+                HTTPError("https://alerts.example.test/hook", 500, "Server Error", {}, None),
+                FakeResponse(202),
+            ])
+            delays = []
+            secret_path = Path(directory) / "webhook-secret"
+            secret_path.write_bytes(SECRET)
+            sink = WebhookSink(
+                "https://alerts.example.test/hook",
+                secret_path,
+                log_path=Path(directory) / "delivery.jsonl",
+                opener=opener,
+                backoff=delays.append,
+                clock=lambda: 1700000000,
+            )
+
+            result = sink.send(sample_alert())
+
+            self.assertTrue(result["ok"])
+            self.assertEqual(result["attempts"], 3)
+            self.assertEqual(delays, [1, 2])
+
+    def test_a_short_secret_is_refused_before_any_request(self):
         with tempfile.TemporaryDirectory() as directory:
             opener = FakeOpener()
             secret_path = Path(directory) / "webhook-secret"
-            secret_path.write_bytes(b"test webhook secret")
+            secret_path.write_bytes(b"one byte secret")
             sink = WebhookSink(
                 "https://alerts.example.test/hook",
                 secret_path,
@@ -141,18 +335,40 @@ class AlertsTests(unittest.TestCase):
                 opener=opener,
             )
 
-            result = sink.send(sample_alert("x" * (16 * 1024)))
+            result = sink.send(sample_alert())
 
             self.assertFalse(result["ok"])
             self.assertEqual(result["attempts"], 0)
+            self.assertEqual(result["error"], "secret_too_short")
             self.assertEqual(opener.calls, [])
+
+    def test_an_alert_carries_a_usable_evidence_hash_and_named_fields(self):
+        from dataclasses import replace
+
+        for field, value in (
+            ("evidence_sha256", "not-a-hash"),
+            ("evidence_sha256", "A" * 64),
+            ("source", ""),
+            ("subject", "  "),
+            ("ref", ""),
+            ("title", ""),
+            ("created_ms", -5),
+            ("created_ms", True),
+        ):
+            with self.subTest(field=field, value=value):
+                with self.assertRaises(ValueError):
+                    replace(sample_alert(), **{field: value})
 
     def test_retries_are_capped_and_backoff_is_injectable(self):
         with tempfile.TemporaryDirectory() as directory:
-            opener = FakeOpener([URLError("offline"), URLError("offline"), URLError("offline")])
+            opener = FakeOpener([
+                URLError(ConnectionError("offline")),
+                URLError(ConnectionError("offline")),
+                URLError(ConnectionError("offline")),
+            ])
             delays = []
             secret_path = Path(directory) / "webhook-secret"
-            secret_path.write_bytes(b"test webhook secret")
+            secret_path.write_bytes(SECRET)
             sink = WebhookSink(
                 "https://alerts.example.test/hook",
                 secret_path,
@@ -173,7 +389,7 @@ class AlertsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             log_path = Path(directory) / "delivery.jsonl"
             secret_path = Path(directory) / "webhook-secret"
-            secret_path.write_bytes(b"private test secret")
+            secret_path.write_bytes(b"private-test-secret-0123456789abcdef")
             sink = WebhookSink(
                 "https://alerts.example.test/hook?token=query-secret",
                 secret_path,
@@ -188,7 +404,7 @@ class AlertsTests(unittest.TestCase):
 
             self.assertTrue(result["ok"])
             self.assertEqual(entry["attempt"], 1)
-            self.assertNotIn("private test secret", log)
+            self.assertNotIn("private-test-secret", log)
             self.assertNotIn("query-secret", log)
             self.assertNotIn("?token=", log)
 

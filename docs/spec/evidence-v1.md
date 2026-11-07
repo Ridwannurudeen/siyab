@@ -18,7 +18,7 @@ A document is a JSON object with exactly these 11 keys (`gate/evidence.py:50`), 
 | `labels` | array of strings | the ids of the label assertions the rules consulted (`label-assertion-v1.md`) |
 | `verdict` | string | `ALLOW`, `DENY` or `UNKNOWN` |
 | `reasons` | array of strings | the reasons for the verdict, in ShieldBot's words |
-| `observed` | object | `{"block_height": integer or null, "timestamp_ms": integer or null}`: the chain state the checks read (`gate/rules.py:656`) |
+| `observed` | object | `{"block_height": integer or null, "timestamp_ms": integer or null}`: the chain state the checks read (`gate/rules.py:680`) |
 | `issued_ms` | integer or null | milliseconds since the Unix epoch |
 | `expires_ms` | integer or null | milliseconds since the Unix epoch |
 | `verdict_id` | string or null | 32 lowercase hex |
@@ -42,7 +42,7 @@ A document is a JSON object with exactly these 11 keys (`gate/evidence.py:50`), 
 
 ### The intents variant
 
-An EVM leg preflight (`gate/intents.py:236`) writes a document whose `subject` is `{"kind": "intents", "origin_asset", "destination_asset", "amount", "recipient", "recipient_type"}` and which has a twelfth top level key, `"kind": "intents"`. It is never signed: `issued_ms`, `expires_ms`, `verdict_id`, `latency_ms` and `observed.block_height` are null, and `labels` is empty. The registry refuses to record it (`gate/registry.py:48`). No committed vector pins this variant.
+An EVM leg preflight (`gate/intents.py:236`) writes a document whose `subject` is `{"kind": "intents", "origin_asset", "destination_asset", "amount", "recipient", "recipient_type"}` and which has a twelfth top level key, `"kind": "intents"`. It is never signed: `issued_ms`, `expires_ms`, `verdict_id`, `latency_ms` and `observed.block_height` are null, and `labels` is empty. The registry refuses to record it (`gate/registry.py:49-51`). No committed vector pins this variant.
 
 ### A check
 
@@ -57,7 +57,7 @@ An EVM leg preflight (`gate/intents.py:236`) writes a document whose `subject` i
 
 In `source`, `provider` names where the answer came from (an RPC host, `label store`, `local patterns`, `local rules`); `request_sha256` is the 64 hex key of the recorded request (`gate/rpc.py:11`) or the sha256 of the label store file, and null for a local rule; `fetched_at` is the UTC time `YYYY-MM-DDTHH:MM:SSZ` the response was fetched, or null when nothing was fetched (`gate/rpc.py:265`, `gate/rules.py:109`).
 
-How check statuses become a verdict: any `signal` gives DENY; otherwise any `unknown` gives UNKNOWN; otherwise ALLOW (`gate/rules.py:654`, `gate/intents.py:234`).
+How check statuses become a verdict: any `signal` gives DENY; otherwise any `unknown` gives UNKNOWN; otherwise ALLOW (`gate/rules.py:678`, `gate/intents.py:234`).
 
 ## Canonical serialization
 

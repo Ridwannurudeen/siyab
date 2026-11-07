@@ -22,7 +22,7 @@ The registry contract (`contracts/registry`) keeps the latest verdict for each N
 | `observed_block` | number | a u64: the block height the checks read |
 | `verdict_id` | string | at most 64 bytes, else `REFUSED:bad_verdict_id` (`contracts/registry/src/lib.rs:261`) |
 
-The contract checks nothing else; in particular it does not check that the evidence document exists or that the verdict id matches it. ShieldBot's recorder builds the input from a verdict file and its evidence document (`gate/registry.py:27`): `subject` is the evidence subject's `receiver`, `observed_block` is `observed.block_height` unless given, and `verdict_id` is the Verdict's id for an ALLOW, or the first 32 hex characters of the evidence hash for an unsigned DENY or UNKNOWN (`gate/registry.py:64`). It refuses an intents document.
+The contract does not check that the evidence document exists or that the verdict id matches it. ShieldBot's recorder builds the input from a verdict file and its evidence document (`gate/registry.py:28`): `subject` is the evidence subject's `receiver`, and `observed_block` is `observed.block_height` unless given. For ALLOW, it requires a verdict id and checks it against the evidence; a plain unsigned ALLOW passed to a human has no verdict id and is refused (`gate/registry.py:60-65`). An unsigned DENY or UNKNOWN uses the first 32 hex characters of the evidence hash (`:66-69`). It refuses an intents document.
 
 A second record for the same subject replaces the first. `total_records` counts every record written; `total_subjects` counts distinct subjects.
 
@@ -86,4 +86,4 @@ The contract side is pinned by its unit tests: `record_upserts_without_inflating
 ## Source of truth
 
 - `contracts/registry/src/lib.rs:12` the verdict code; `:20` the input; `:39` the view; `:72` the label view; `:260` `record_one`; `:293` `parse_hash`; `contracts/registry/src/events.rs` the event envelope.
-- `gate/registry.py:27` how ShieldBot builds a record; `gate/verify.py:51` and `:93` how a record is checked.
+- `gate/registry.py:28` how ShieldBot builds a record; `gate/verify.py:51` and `:93` how a record is checked.

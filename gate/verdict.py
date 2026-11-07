@@ -6,6 +6,7 @@ random verdict_id only when the outcome is ALLOW and its action is in sign_actio
 and ALLOW actions outside sign_actions carry no signature and no verdict id.
 """
 
+import re
 import secrets
 import time
 from pathlib import Path
@@ -19,6 +20,8 @@ DEFAULT_TTL_MS = 300000
 def ask_reasons(outcome, checks, transfer, policy):
     """Reasons a human must decide before pay signs or sends.
 
+    The paused and denylist predictions need the `gate_paused` and `gate_denylist` keys, which only `read_policy`
+    adds.
     The Gate still checks the window part of every cap, the per call and window caps of an allowlisted payee
     (REFUSED:per_call_cap, REFUSED:window_cap), and the verdict signature, expiry and replay checks.
     """
@@ -77,6 +80,19 @@ def request(kind, token, receiver, amount, memo, *, gate, agent_pk_hex, policy, 
             missing = [field for field in ("asset", "per_call") if field not in cap]
             if missing:
                 raise ValueError(f"unknown_caps[{index}] is missing {', '.join(missing)}")
+            asset = cap["asset"]
+            if asset != "Near":
+                if not isinstance(asset, dict) or set(asset) != {"Ft"}:
+                    raise ValueError(f"unknown_caps[{index}].asset must be 'Near' or an Ft asset object")
+                canon.account_id(asset["Ft"], f"unknown_caps[{index}].asset.Ft")
+            per_call = cap["per_call"]
+            valid_decimal = (isinstance(per_call, str) and len(per_call) <= len(str(canon.U128_MAX))
+                             and re.fullmatch(r"0|[1-9][0-9]*", per_call)
+                             and int(per_call) <= canon.U128_MAX)
+            valid_integer = (type(per_call) is int and 0 <= per_call <= canon.U128_MAX)
+            if not (valid_decimal or valid_integer):
+                raise ValueError(f"unknown_caps[{index}].per_call must be a non-negative u128 integer or "
+                                 "decimal string")
     amount = canon.validate_transfer(gate=gate, agent_pk_hex=agent_pk_hex, kind=kind, token_id=token,
                                      receiver_id=receiver, amount=amount, memo=memo)
     transfer = {"kind": kind, "token_id": token, "receiver_id": receiver, "amount": amount, "memo": memo}

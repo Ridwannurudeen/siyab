@@ -253,6 +253,29 @@ class ActionTest(VerdictCase):
                 self.request(policy={"allowlist": [], "unknown_caps": [cap]})
         self.assertEqual(list(self.dir.iterdir()), [])
 
+    def test_invalid_unknown_cap_assets_are_rejected_before_judging_or_writing(self):
+        for asset in (None, {"Other": "x"}, {"Ft": "bad account"}):
+            policy = {"allowlist": [], "unknown_caps": [{"asset": asset, "per_call": "1000"}]}
+            with self.subTest(asset=asset), mock.patch("gate.rules.judge", side_effect=AssertionError("judged")), \
+                    self.assertRaisesRegex(ValueError, r"unknown_caps\[0\]\.asset"):
+                self.request(policy=policy)
+            self.assertEqual(list(self.dir.iterdir()), [])
+
+    def test_invalid_unknown_cap_values_are_rejected_before_judging_or_writing(self):
+        invalid = (None, True, -1, "", "01", "-1", "1.0", str(canon.U128_MAX + 1))
+        for per_call in invalid:
+            policy = {"allowlist": [], "unknown_caps": [{"asset": {"Ft": "wrap.near"}, "per_call": per_call}]}
+            with self.subTest(per_call=per_call), mock.patch("gate.rules.judge", side_effect=AssertionError("judged")), \
+                    self.assertRaisesRegex(ValueError, r"unknown_caps\[0\]\.per_call"):
+                self.request(policy=policy)
+        self.assertEqual(list(self.dir.iterdir()), [])
+
+    def test_unknown_cap_accepts_zero_and_u128_integer_values(self):
+        for per_call in (0, canon.U128_MAX, "0", str(canon.U128_MAX)):
+            with self.subTest(per_call=per_call):
+                self.request(policy={"allowlist": ["intents.near"], "unknown_caps": [
+                    {"asset": {"Ft": "wrap.near"}, "per_call": per_call}]})
+
     def test_judge_adds_exact_tier_two_check_ids_only_off_the_allowlist(self):
         transfer = {"kind": "ft", "token_id": "wrap.near", "receiver_id": "intents.near", "amount": "1000",
                     "memo": None}
@@ -396,6 +419,22 @@ class CommandTest(VerdictCase):
             "  ask: intents.near is not on the agent's allowlist and the agent has no unknown payee caps, "
             "so the Gate refuses the transfer (REFUSED:not_allowlisted)"))
 
+    def test_verdict_passes_reports_account_from_the_environment(self):
+        result = {"checks": [], "outcome": "UNKNOWN", "reasons": [], "action": "ask",
+                  "evidence_hash": "cd" * 32, "latency_ms": 1, "verdict": None}
+        with mock.patch("gate.verdict.request", return_value=result) as service:
+            code, _, errors = self.run_command(environment={"REPORTS_ACCOUNT_ID": "reports.near"})
+        self.assertEqual(code, 0, errors)
+        self.assertEqual(service.call_args.kwargs["reports_account"], "reports.near")
+
+    def test_verdict_passes_none_when_reports_account_is_unset(self):
+        result = {"checks": [], "outcome": "UNKNOWN", "reasons": [], "action": "ask",
+                  "evidence_hash": "cd" * 32, "latency_ms": 1, "verdict": None}
+        with mock.patch("gate.verdict.request", return_value=result) as service:
+            code, _, errors = self.run_command()
+        self.assertEqual(code, 0, errors)
+        self.assertIsNone(service.call_args.kwargs["reports_account"])
+
     def test_action_follows_the_verdict_reasons(self):
         result = {"checks": [], "outcome": "DENY", "reasons": ["the receiver carries a label"],
                   "action": "refuse", "evidence_hash": "evidence", "latency_ms": 1, "verdict": None}
@@ -424,6 +463,23 @@ class CommandTest(VerdictCase):
         code, _, errors = self.run_command("--live", environment={"VERIFIER_KEY_FILE": missing})
         self.assertEqual(code, 2)
         self.assertIn("no signer:", errors)
+
+    def test_malformed_unknown_cap_exits_two_without_a_traceback(self):
+        policy = '{"allowlist": [], "unknown_caps": [{"asset": {"Ft": "wrap.near"}}]}'
+        code, output, errors = self.run_command("--policy", policy)
+        self.assertEqual(code, 2)
+        self.assertEqual(output, "")
+        self.assertEqual(errors, "invalid request: unknown_caps[0] is missing per_call\n")
+        self.assertEqual(list(self.dir.iterdir()), [])
+
+    def test_null_unknown_cap_exits_two_without_writing_evidence(self):
+        policy = '{"allowlist": [], "unknown_caps": [{"asset": {"Ft": "wrap.near"}, "per_call": null}]}'
+        code, output, errors = self.run_command("--policy", policy)
+        self.assertEqual(code, 2)
+        self.assertEqual(output, "")
+        self.assertEqual(errors, "invalid request: unknown_caps[0].per_call must be a non-negative u128 integer "
+                                  "or decimal string\n")
+        self.assertEqual(list(self.dir.iterdir()), [])
 
     def test_help_says_where_the_files_land(self):
         output = io.StringIO()

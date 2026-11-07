@@ -1,6 +1,7 @@
 """Local alert values and standard library delivery sinks."""
 
 from dataclasses import asdict, dataclass
+from email.utils import parsedate_to_datetime
 import hashlib
 import hmac
 import json
@@ -9,21 +10,31 @@ import math
 import os
 from pathlib import Path
 import re
+import ssl
 import sys
 import threading
 import time
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 
 MAX_PAYLOAD_BYTES = 16 * 1024
 MAX_ATTEMPTS = 3
+MAX_RETRY_AFTER_S = 30
+MIN_SECRET_BYTES = 32
 TIMEOUT_S = 5
 SIGNATURE_WINDOW_S = 300
+# A timeout, a rate limit or a server fault is worth another go; every other 4xx is the receiver saying no.
+RETRYABLE_STATUS = frozenset({408, 425, 429})
 _SIGNATURE = re.compile(r"t=([0-9]+),v1=([0-9a-f]{64})")
+_HEX64 = re.compile(r"[0-9a-f]{64}")
 _STDOUT_LOCK = threading.Lock()
 _LOG = logging.getLogger(__name__)
+
+
+def _body(alert):
+    return json.dumps(asdict(alert), ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
 
 @dataclass(frozen=True)
@@ -40,6 +51,18 @@ class Alert:
     def __post_init__(self):
         if self.severity not in {"info", "warn", "critical"}:
             raise ValueError("severity must be info, warn or critical")
+        for name in ("source", "subject", "ref", "title"):
+            value = getattr(self, name)
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(f"{name} must be a non empty string")
+        if not isinstance(self.detail, str):
+            raise ValueError("detail must be a string")
+        if not isinstance(self.evidence_sha256, str) or _HEX64.fullmatch(self.evidence_sha256) is None:
+            raise ValueError("evidence_sha256 must be 64 lowercase hex characters")
+        if isinstance(self.created_ms, bool) or not isinstance(self.created_ms, int) or self.created_ms < 0:
+            raise ValueError("created_ms must be a non negative integer")
+        if len(_body(self)) > MAX_PAYLOAD_BYTES:
+            raise ValueError(f"alert payload exceeds {MAX_PAYLOAD_BYTES} bytes; shorten detail")
 
     @property
     def dedupe_key(self):
@@ -51,8 +74,32 @@ class _NoRedirectHandler(HTTPRedirectHandler):
         raise HTTPError(req.full_url, code, "redirects are not followed", headers, fp)
 
 
-def _body(alert):
-    return json.dumps(asdict(alert), ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+def _retryable(status, failure=None):
+    """A status decides on its own; without one, only a transport failure is worth another go."""
+    if status is not None:
+        return status in RETRYABLE_STATUS or 500 <= status < 600
+    if isinstance(failure, URLError):
+        # urllib wraps the transport reason, so a TLS refusal arrives here too; it will not clear on a retry.
+        return isinstance(failure.reason, OSError) and not isinstance(failure.reason, ssl.SSLError)
+    return isinstance(failure, (TimeoutError, ConnectionError))
+
+
+def _retry_after(headers, now):
+    if headers is None:
+        return None
+    try:
+        value = headers.get("Retry-After")
+    except Exception:
+        return None
+    if value is None:
+        return None
+    value = str(value).strip()
+    if value.isdigit():
+        return float(int(value))
+    try:
+        return max(0.0, parsedate_to_datetime(value).timestamp() - now)
+    except (AttributeError, TypeError, ValueError, OverflowError):
+        return None
 
 
 def _signature(timestamp, body, secret):
@@ -130,14 +177,14 @@ class WebhookSink:
 
     def send(self, alert):
         body = _body(alert)
-        if len(body) > MAX_PAYLOAD_BYTES:
-            return {"ok": False, "attempts": 0, "error": "payload_too_large"}
         try:
             secret = self.secret_path.read_bytes().strip()
         except OSError:
             return {"ok": False, "attempts": 0, "error": "secret_unavailable"}
         if not secret:
             return {"ok": False, "attempts": 0, "error": "secret_unavailable"}
+        if len(secret) < MIN_SECRET_BYTES:
+            return {"ok": False, "attempts": 0, "error": "secret_too_short"}
 
         timestamp = int(self.clock())
         request = Request(
@@ -153,16 +200,23 @@ class WebhookSink:
             response = None
             status = None
             error = None
+            failure = None
+            retry_after = None
             try:
                 response = self.opener.open(request, timeout=TIMEOUT_S)
                 status = getattr(response, "status", None)
                 if status is None:
                     status = response.getcode()
                 if not 200 <= status < 300:
-                    raise HTTPError(self.url, status, "webhook returned a non-success status", None, None)
+                    headers = getattr(response, "headers", None)
+                    retry_after = _retry_after(headers, self.clock())
+                    raise HTTPError(self.url, status, "webhook returned a non-success status", headers, None)
             except Exception as exception:
+                failure = exception
                 status = getattr(exception, "code", status)
                 error = type(exception).__name__
+                if retry_after is None:
+                    retry_after = _retry_after(getattr(exception, "headers", None), self.clock())
             finally:
                 if response is not None:
                     response.close()
@@ -171,8 +225,11 @@ class WebhookSink:
             self._log_attempt(attempt, ok, status, error)
             if ok:
                 return {"ok": True, "attempts": attempt, "status": status}
+            if not _retryable(status, failure):
+                return {"ok": False, "attempts": attempt, "status": status, "error": error}
             if attempt < MAX_ATTEMPTS:
-                self.backoff(2 ** (attempt - 1))
+                delay = min(retry_after, MAX_RETRY_AFTER_S) if retry_after is not None else 2 ** (attempt - 1)
+                self.backoff(delay)
         return {"ok": False, "attempts": MAX_ATTEMPTS, "status": status, "error": error}
 
 
