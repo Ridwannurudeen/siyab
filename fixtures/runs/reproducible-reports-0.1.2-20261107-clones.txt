@@ -1,0 +1,10 @@
+Two independent clones of source commit 5abc782 built reports.wasm with cargo near build reproducible-wasm on 7 Nov 2026; the lines below are as captured, except that each 64 hex value is shortened to its first and last 8 characters (the full sha256 is in res/reports.wasm.sha256). The build output of each clone is in reproducible-reports-0.1.2-20261107-clone1.txt and reproducible-reports-0.1.2-20261107-clone2.txt, where the two clone directories, which differ, are written <clone1> and <clone2>. The line byte identical: yes is printed by cmp, which exits 0 only when the two files are byte for byte equal.
+clone 1: commit 5abc782b2126ac4cc91001b20ecb89e78fca11f8
+clone 1: ba2551dc...7f8b7705  target/near/reports.wasm
+clone 1: 202972 bytes
+clone 1: build tool line: • Parsing `[package.metadata.near.reproducible_build]` section of contract's `Cargo.toml` ...
+clone 2: commit 5abc782b2126ac4cc91001b20ecb89e78fca11f8
+clone 2: ba2551dc...7f8b7705  target/near/reports.wasm
+clone 2: 202972 bytes
+clone 2: build tool line: • Parsing `[package.metadata.near.reproducible_build]` section of contract's `Cargo.toml` ...
+byte identical: yes
