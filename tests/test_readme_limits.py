@@ -205,7 +205,11 @@ class FirstScreenVersionTest(unittest.TestCase):
             res, contracts = self.copy_tree(tmp)
             manifest = contracts / "gate" / "Cargo.toml"
             text = manifest.read_text(encoding="utf-8")
-            manifest.write_text(text.replace('version = "0.2.0"', 'version = "0.3.0"', 1), encoding="utf-8")
+            current_version = tomllib.loads(text)["package"]["version"]
+            manifest.write_text(
+                text.replace(f'version = "{current_version}"', 'version = "0.3.0"', 1),
+                encoding="utf-8",
+            )
             errors = version_errors(README.read_text(encoding="utf-8"), res, contracts)
         self.assertEqual(len(errors), 1)
         self.assertIn("Cargo.toml says 0.3.0", errors[0])

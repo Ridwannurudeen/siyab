@@ -413,7 +413,7 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         .unwrap()
         .json()
         .unwrap();
-    assert_eq!(version, "0.2.0");
+    assert_eq!(version, env!("CARGO_PKG_VERSION"));
     let upgraded_agent: Value = gate
         .view(gate.id(), "get_agent")
         .args_json(json!({"public_key": public_key.to_string()}))
