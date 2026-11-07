@@ -1,6 +1,6 @@
 # Community report
 
-Version: 1 (events `shieldbot-near` `1.0.0`)
+Version: 1 (events `shieldbot-near` `1.1.0`)
 
 ## Purpose
 
@@ -45,7 +45,7 @@ Testnet runs deployed Reports version `0.1.2`, which requires the attached depos
 
 `publisher_stats(account)` returns `{"submitted", "accepted", "rejected", "withdrawn", "overturned"}` (`:181-187`); `totals()` returns `{"reports", "disputes"}` (`:189-193`).
 
-The source crate version `0.1.2` is listed in `contracts/reports/Cargo.toml`; testnet runs deployed Reports version `0.1.2` per `res/BUILD-reports.md:7`. `version()` returns the source crate version (`contracts/reports/src/lib.rs:248-250`), and the deployed contract reports the same version. `state_version()` returns the stored root state version, initially 1 (`:233`, `:256-258`); `version_views_return_the_crate_and_state_versions` checks the source crate and state versions. Reports version 0.1.2 has no lifetime cap on disputes (`docs/REPORTS.md:3`). Neither version view is a format version: the formats on this page are versioned by this page and by the events' `1.0.0`.
+The source crate version `0.1.3` is listed in `contracts/reports/Cargo.toml`; testnet runs deployed Reports version `0.1.2` per `res/BUILD-reports.md:7`. `version()` returns the source crate version (`contracts/reports/src/lib.rs:248-250`), while the deployed contract still reports `0.1.2`. `state_version()` returns the stored root state version, initially 1 (`:233`, `:256-258`); `version_views_return_the_crate_and_state_versions` checks the source crate and state versions. Reports version 0.1.2 has no lifetime cap on disputes (`docs/REPORTS.md:3`). Neither version view is a format version: the formats on this page are versioned by this page and by the events' `1.1.0`.
 
 ### State changes in source 0.1.2
 
@@ -66,9 +66,19 @@ A missing id is refused as `REFUSED:report_missing` or `REFUSED:dispute_missing`
 
 The owner sets the moderator list with `new(owner_id, moderators)` and `set_moderators(moderators)`; `set_moderators` takes exactly 1 yoctoNEAR and refuses any caller but the owner as `REFUSED:not_owner` (`:228-246`, `:261-270`, `:701-706`). Both refuse a list that names the same account twice as `REFUSED:duplicate_moderator` (`:229`, `:264`, `:807-812`), so the one-moderator exception of `resolve_dispute` counts distinct accounts. A contract can enforce distinct accounts, not independent people (`docs/DECISIONS.md`, entry 6).
 
+### Approvals in source 0.1.3
+
+`approvals_required()` returns the threshold as a `u32`; the new threshold key is absent by default, which reads as 1. `set_approvals_required(n)` is owner-only, requires exactly 1 yoctoNEAR, accepts values from 1 through the current moderator count, and emits `approvals_required_updated` with `previous` and `current`. It never transitions a report. `new` and `set_moderators` refuse more than 7 moderators as `REFUSED:too_many_moderators`. `set_moderators` refuses a list shorter than the threshold as `REFUSED:threshold_above_moderators`, so the owner lowers the threshold before shrinking the list.
+
+With threshold 1, `moderate` behaves as before, emits no `report_vote`, and writes no vote entry. With a higher threshold, it stores one vote per moderator and report, replacing that moderator's earlier vote on a repeat call. Each entry has `moderator`, `side` (`accept` or `reject`) and `reason_sha256`. A tally runs only during `moderate` and counts only voters on the current list; a removed moderator's vote stops counting and counts again if re-added. `report_votes(id)` returns the stored vote entries. When one side reaches the threshold, the deciding moderator and reason hash are written on the report, followed by the existing `report_moderated` event. Every threshold vote emits `report_vote` with `report_id`, `moderator`, `side`, `reason_sha256`, `accept_votes`, `reject_votes` and `approvals_required`. Vote storage is paid from the contract balance, not the report deposit.
+
+Testnet still runs deployed Reports version `0.1.2` with one moderator. The threshold remains 1 until a second moderator exists and the owner deploys source `0.1.3`. The root state and existing stored records are unchanged, and `state_version()` remains 1.
+
+With more than one moderator, `resolve_dispute` also refuses any resolver with a recorded accept vote on the report as `REFUSED:same_moderator`, in addition to refusing the accepting moderator stored under `ab`. One moderator key can still overturn an accepted report. A threshold above 1 is not deployed until `resolve_dispute` requires the same threshold to overturn. The owner can set the threshold to 1 and the list to one account; the threshold defends against a moderator key that is not the owner's.
+
 ## Events
 
-Every event is one log line: `EVENT_JSON:` followed by compact JSON with the keys in the order `standard`, `version`, `event`, `data`; `standard` is `shieldbot-near`, `version` is `1.0.0`, `data` a one element array (`contracts/reports/src/events.rs`). Keys are written in the order listed here, not sorted: the contract's `serde_json` keeps insertion order (`contracts/reports/Cargo.lock` pulls `indexmap` into `serde_json`). `state` is a state value.
+Every event is one log line: `EVENT_JSON:` followed by compact JSON with the keys in the order `standard`, `version`, `event`, `data`; `standard` is `shieldbot-near`, `version` is `1.1.0`, `data` a one element array (`contracts/reports/src/events.rs`). Keys are written in the order listed here, not sorted: the contract's `serde_json` keeps insertion order (`contracts/reports/Cargo.lock` pulls `indexmap` into `serde_json`). `state` is a state value.
 
 | Event | `data[0]` keys, in order | Emitted at |
 |---|---|---|
@@ -78,6 +88,8 @@ Every event is one log line: `EVENT_JSON:` followed by compact JSON with the key
 | `report_withdrawn` | `report_id`, `subject`, `state`, `body_sha256` | `:471-479` |
 | `report_disputed` | `report_id`, `dispute_id`, `subject`, `state`, `body_sha256` | `:533-540` |
 | `dispute_resolved` | `report_id`, `dispute_id`, `subject`, `state`, `body_sha256`, `moderator`, `reason_sha256` | `:628-637` |
+| `approvals_required_updated` | `previous`, `current` | `set_approvals_required` |
+| `report_vote` | `report_id`, `moderator`, `side`, `reason_sha256`, `accept_votes`, `reject_votes`, `approvals_required` | `moderate` |
 
 ## The `subject_summary` view
 

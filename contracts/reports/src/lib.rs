@@ -8,6 +8,9 @@ use near_sdk::{
 
 pub const REPORT_DEPOSIT: u128 = 30_000_000_000_000_000_000_000;
 const ACCEPTING_MODERATOR_PREFIX: &[u8] = b"ab";
+const APPROVALS_REQUIRED_KEY: &[u8] = b"mt";
+const REPORT_VOTES_PREFIX: &[u8] = b"mv";
+const MAX_MODERATORS: usize = 7;
 const MAX_PENDING_REPORTS: u64 = 5;
 const MAX_EVIDENCE_URL_BYTES: usize = 512;
 const MAX_PAGE_SIZE: u32 = 50;
@@ -53,6 +56,22 @@ pub enum ReportState {
     Withdrawn,
     Contested,
     Overturned,
+}
+
+#[near(serializers = [json, borsh])]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum VoteSide {
+    Accept,
+    Reject,
+}
+
+#[near(serializers = [json, borsh])]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ReportVote {
+    moderator: AccountId,
+    side: VoteSide,
+    reason_sha256: String,
 }
 
 #[near(serializers = [borsh])]
@@ -257,11 +276,35 @@ impl Reports {
         self.state_version
     }
 
+    pub fn approvals_required(&self) -> u32 {
+        self.current_approvals_required()
+    }
+
+    #[payable]
+    pub fn set_approvals_required(&mut self, required: u32) {
+        self.assert_owner();
+        near_sdk::assert_one_yocto();
+        near_sdk::require!(
+            required >= 1 && required as usize <= self.moderators.len(),
+            "REFUSED:bad_threshold"
+        );
+        let previous = self.current_approvals_required();
+        env::storage_write(APPROVALS_REQUIRED_KEY, &required.to_le_bytes());
+        emit(
+            "approvals_required_updated",
+            json!({"previous": previous, "current": required}),
+        );
+    }
+
     #[payable]
     pub fn set_moderators(&mut self, moderators: Vec<AccountId>) {
         self.assert_owner();
         near_sdk::assert_one_yocto();
         assert_distinct_moderators(&moderators);
+        near_sdk::require!(
+            moderators.len() >= self.current_approvals_required() as usize,
+            "REFUSED:threshold_above_moderators"
+        );
         self.moderators = moderators;
         emit(
             "moderators_updated",
@@ -381,6 +424,72 @@ impl Reports {
         near_sdk::require!(report.submitter != moderator, "REFUSED:self_moderation");
         near_sdk::require!(report.subject != moderator, "REFUSED:self_moderation");
         near_sdk::require!(report.state == ReportState::Pending, "REFUSED:not_pending");
+
+        let mut decision_accept = accept;
+        let mut decision_moderator = moderator.clone();
+        let mut decision_reason_sha256 = reason_sha256.clone();
+        let approvals_required = self.current_approvals_required();
+        if approvals_required > 1 {
+            let mut vote_map = LookupMap::<u64, Vec<ReportVote>>::new(REPORT_VOTES_PREFIX);
+            let mut votes = vote_map.get(&id).cloned().unwrap_or_default();
+            if let Some(index) = votes.iter().position(|vote| vote.moderator == moderator) {
+                votes.remove(index);
+            }
+            votes.push(ReportVote {
+                moderator: moderator.clone(),
+                side: if accept {
+                    VoteSide::Accept
+                } else {
+                    VoteSide::Reject
+                },
+                reason_sha256: reason_sha256.clone(),
+            });
+            vote_map.insert(id, votes.clone());
+            vote_map.flush();
+
+            let (accept_votes, reject_votes) = votes
+                .iter()
+                .filter(|vote| self.moderators.contains(&vote.moderator))
+                .fold((0_u32, 0_u32), |(accepts, rejects), vote| match vote.side {
+                    VoteSide::Accept => (accepts + 1, rejects),
+                    VoteSide::Reject => (accepts, rejects + 1),
+                });
+            emit(
+                "report_vote",
+                json!({
+                    "report_id": id,
+                    "moderator": moderator,
+                    "side": if accept { VoteSide::Accept } else { VoteSide::Reject },
+                    "reason_sha256": reason_sha256,
+                    "accept_votes": accept_votes,
+                    "reject_votes": reject_votes,
+                    "approvals_required": approvals_required
+                }),
+            );
+            let accept_met = accept_votes >= approvals_required;
+            let reject_met = reject_votes >= approvals_required;
+            // Neither side at the threshold, or both (after the owner lowered it): the report stays
+            // pending, so no single call settles a contested report; a moderator changing sides decides it.
+            if accept_met == reject_met {
+                return;
+            }
+            decision_accept = accept_met;
+            let deciding_side = if decision_accept {
+                VoteSide::Accept
+            } else {
+                VoteSide::Reject
+            };
+            let deciding_vote = votes
+                .iter()
+                .rev()
+                .find(|vote| {
+                    self.moderators.contains(&vote.moderator) && vote.side == deciding_side
+                })
+                .unwrap();
+            decision_moderator = deciding_vote.moderator.clone();
+            decision_reason_sha256 = deciding_vote.reason_sha256.clone();
+        }
+
         let now = env::block_timestamp_ms();
         let mut summary = self.summary_for(&report.subject);
         let mut stats = self.stats_for(&report.submitter);
@@ -393,12 +502,12 @@ impl Reports {
         self.pending_by_submitter
             .insert(report.submitter.clone(), pending);
 
-        if accept {
+        if decision_accept {
             report.state = ReportState::Accepted;
-            report.moderator = Some(moderator.clone());
+            report.moderator = Some(decision_moderator.clone());
             LookupMap::<u64, AccountId>::new(ACCEPTING_MODERATOR_PREFIX)
-                .insert(id, moderator.clone());
-            report.reason_sha256 = Some(reason_sha256.clone());
+                .insert(id, decision_moderator.clone());
+            report.reason_sha256 = Some(decision_reason_sha256.clone());
             report.moderated_ms = Some(now);
             summary.pending -= 1;
             summary.accepted += 1;
@@ -415,8 +524,8 @@ impl Reports {
             }
         } else {
             report.state = ReportState::Rejected;
-            report.moderator = Some(moderator.clone());
-            report.reason_sha256 = Some(reason_sha256.clone());
+            report.moderator = Some(decision_moderator.clone());
+            report.reason_sha256 = Some(decision_reason_sha256.clone());
             report.moderated_ms = Some(now);
             summary.pending -= 1;
             stats.rejected += 1;
@@ -433,10 +542,10 @@ impl Reports {
             json!({
                 "report_id": id,
                 "subject": subject,
-                "state": if accept { ReportState::Accepted } else { ReportState::Rejected },
+                "state": if decision_accept { ReportState::Accepted } else { ReportState::Rejected },
                 "body_sha256": body_sha256,
-                "moderator": moderator,
-                "reason_sha256": reason_sha256
+                "moderator": decision_moderator,
+                "reason_sha256": decision_reason_sha256
             }),
         );
     }
@@ -582,6 +691,15 @@ impl Reports {
             self.moderators.len() <= 1 || accepting_moderator.as_ref() != Some(&moderator),
             "REFUSED:same_moderator"
         );
+        let holds_accept_vote = self.moderators.len() > 1
+            && LookupMap::<u64, Vec<ReportVote>>::new(REPORT_VOTES_PREFIX)
+                .get(&report.id)
+                .is_some_and(|votes| {
+                    votes
+                        .iter()
+                        .any(|vote| vote.moderator == moderator && vote.side == VoteSide::Accept)
+                });
+        near_sdk::require!(!holds_accept_vote, "REFUSED:same_moderator");
 
         if report.upheld_disputes == 0 && stored_accepting_moderator.is_none() {
             if let Some(accepting_moderator) = accepting_moderator.as_ref() {
@@ -642,6 +760,13 @@ impl Reports {
         self.reports.get(&id).cloned().map(ReportView::from)
     }
 
+    pub fn report_votes(&self, id: u64) -> Vec<ReportVote> {
+        LookupMap::<u64, Vec<ReportVote>>::new(REPORT_VOTES_PREFIX)
+            .get(&id)
+            .cloned()
+            .unwrap_or_default()
+    }
+
     pub fn get_dispute(&self, id: u64) -> Option<DisputeView> {
         self.disputes.get(&id).cloned().map(DisputeView::from)
     }
@@ -698,6 +823,12 @@ impl Reports {
 }
 
 impl Reports {
+    fn current_approvals_required(&self) -> u32 {
+        env::storage_read(APPROVALS_REQUIRED_KEY)
+            .map(|bytes| u32::from_le_bytes(bytes.try_into().unwrap()))
+            .unwrap_or(1)
+    }
+
     fn assert_owner(&self) {
         near_sdk::require!(
             env::predecessor_account_id() == self.owner_id,
@@ -805,6 +936,10 @@ impl Reports {
 }
 
 fn assert_distinct_moderators(moderators: &[AccountId]) {
+    near_sdk::require!(
+        moderators.len() <= MAX_MODERATORS,
+        "REFUSED:too_many_moderators"
+    );
     let mut seen = std::collections::BTreeSet::new();
     for moderator in moderators {
         near_sdk::require!(seen.insert(moderator), "REFUSED:duplicate_moderator");
@@ -925,6 +1060,30 @@ mod tests {
         reports.moderate(id, accept, hash('b'));
     }
 
+    fn configure_threshold(reports: &mut Reports, moderators: &[&str], required: u32) {
+        context("owner.testnet", 1, 1_000);
+        reports.set_moderators(
+            moderators
+                .iter()
+                .map(|moderator| account(moderator))
+                .collect(),
+        );
+        context("owner.testnet", 1, 1_001);
+        reports.set_approvals_required(required);
+    }
+
+    fn cast_vote(
+        reports: &mut Reports,
+        id: u64,
+        moderator: &str,
+        accept: bool,
+        reason: char,
+        timestamp_ms: u64,
+    ) {
+        context(moderator, 1, timestamp_ms);
+        reports.moderate(id, accept, hash(reason));
+    }
+
     fn report_in_state(state: ReportState) -> (Reports, u64) {
         let mut reports = reports();
         let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
@@ -969,6 +1128,7 @@ mod tests {
         reports.pending_by_submitter.flush();
         reports.subject_summaries.flush();
         reports.publisher_stats.flush();
+        LookupMap::<u64, Vec<ReportVote>>::new(REPORT_VOTES_PREFIX).flush();
     }
 
     #[test]
@@ -1141,7 +1301,7 @@ mod tests {
             near_sdk::serde_json::from_str(event_line.strip_prefix("EVENT_JSON:").unwrap())
                 .unwrap();
         assert_eq!(event["standard"], "shieldbot-near");
-        assert_eq!(event["version"], "1.0.0");
+        assert_eq!(event["version"], "1.1.0");
         assert_eq!(event["data"][0]["moderators"][0], "next.testnet");
         context("reporter.testnet", REPORT_DEPOSIT, 1_001);
         let id = reports.submit_report(
@@ -1154,6 +1314,403 @@ mod tests {
         context("next.testnet", 1, 1_002);
         reports.moderate(id, false, hash('b'));
         assert_eq!(reports.get_report(id).unwrap().state, ReportState::Rejected);
+    }
+
+    #[test]
+    fn approvals_required_defaults_to_one_and_emits_an_update() {
+        let mut reports = reports();
+        assert_eq!(reports.approvals_required(), 1);
+        assert_eq!(reports.state_version(), 1);
+        context("owner.testnet", 1, 1_000);
+        reports.set_approvals_required(1);
+        let event_line = get_logs()
+            .into_iter()
+            .find(|line| line.contains("\"event\":\"approvals_required_updated\""))
+            .unwrap();
+        let event: Value =
+            near_sdk::serde_json::from_str(event_line.strip_prefix("EVENT_JSON:").unwrap())
+                .unwrap();
+        assert_eq!(event["version"], "1.1.0");
+        assert_eq!(event["data"][0]["previous"], 1);
+        assert_eq!(event["data"][0]["current"], 1);
+        assert_eq!(
+            event["data"][0]
+                .as_object()
+                .unwrap()
+                .keys()
+                .map(String::as_str)
+                .collect::<Vec<_>>(),
+            vec!["previous", "current"]
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:not_owner")]
+    fn non_owner_cannot_set_approvals_required() {
+        let mut reports = reports();
+        context("stranger.testnet", 1, 1_000);
+        reports.set_approvals_required(1);
+    }
+
+    #[test]
+    fn setting_approvals_required_needs_exactly_one_yocto() {
+        let mut reports = reports();
+        for deposit in [0, 2] {
+            context("owner.testnet", deposit, 1_000);
+            assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                reports.set_approvals_required(1);
+            }))
+            .is_err());
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:bad_threshold")]
+    fn zero_approvals_required_is_refused() {
+        let mut reports = reports();
+        context("owner.testnet", 1, 1_000);
+        reports.set_approvals_required(0);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:bad_threshold")]
+    fn approvals_required_above_moderator_count_is_refused() {
+        let mut reports = reports();
+        context("owner.testnet", 1, 1_000);
+        reports.set_approvals_required(2);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:threshold_above_moderators")]
+    fn moderator_list_cannot_be_shorter_than_approvals_required() {
+        let mut reports = reports();
+        configure_threshold(
+            &mut reports,
+            &[
+                "moderator-a.testnet",
+                "moderator-b.testnet",
+                "moderator-c.testnet",
+            ],
+            2,
+        );
+        context("owner.testnet", 1, 1_002);
+        reports.set_moderators(vec![account("moderator-a.testnet")]);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:too_many_moderators")]
+    fn new_refuses_more_than_seven_moderators() {
+        let moderators = (0..8)
+            .map(|index| account(&format!("moderator-{index}.testnet")))
+            .collect();
+        context("owner.testnet", 0, 1_000);
+        Reports::new(account("owner.testnet"), moderators);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:too_many_moderators")]
+    fn set_moderators_refuses_more_than_seven_moderators() {
+        let mut reports = reports();
+        let moderators = (0..8)
+            .map(|index| account(&format!("moderator-{index}.testnet")))
+            .collect();
+        context("owner.testnet", 1, 1_000);
+        reports.set_moderators(moderators);
+    }
+
+    #[test]
+    fn two_of_three_accepting_moderators_accept_a_report() {
+        let mut reports = reports();
+        configure_threshold(
+            &mut reports,
+            &[
+                "moderator-a.testnet",
+                "moderator-b.testnet",
+                "moderator-c.testnet",
+            ],
+            2,
+        );
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+
+        cast_vote(&mut reports, id, "moderator-a.testnet", true, 'b', 1_002);
+        assert_eq!(reports.get_report(id).unwrap().state, ReportState::Pending);
+        cast_vote(&mut reports, id, "moderator-b.testnet", true, 'c', 1_003);
+
+        let report = reports.get_report(id).unwrap();
+        assert_eq!(report.state, ReportState::Accepted);
+        assert_eq!(report.moderator, Some(account("moderator-b.testnet")));
+        assert_eq!(report.reason_sha256, Some(hash('c')));
+        assert_eq!(
+            LookupMap::<u64, AccountId>::new(ACCEPTING_MODERATOR_PREFIX)
+                .get(&id)
+                .cloned(),
+            Some(account("moderator-b.testnet"))
+        );
+        assert_eq!(reports.report_votes(id).len(), 2);
+    }
+
+    #[test]
+    fn split_threshold_votes_leave_the_report_pending() {
+        let mut reports = reports();
+        configure_threshold(
+            &mut reports,
+            &[
+                "moderator-a.testnet",
+                "moderator-b.testnet",
+                "moderator-c.testnet",
+            ],
+            2,
+        );
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        cast_vote(&mut reports, id, "moderator-a.testnet", true, 'b', 1_002);
+        cast_vote(&mut reports, id, "moderator-b.testnet", false, 'c', 1_003);
+
+        assert_eq!(reports.get_report(id).unwrap().state, ReportState::Pending);
+        assert_eq!(reports.report_votes(id).len(), 2);
+        assert_eq!(reports.report_votes(id)[0].side, VoteSide::Accept);
+        assert_eq!(reports.report_votes(id)[1].side, VoteSide::Reject);
+    }
+
+    #[test]
+    fn repeat_vote_replaces_the_old_vote_and_re_tallies() {
+        let mut reports = reports();
+        configure_threshold(
+            &mut reports,
+            &[
+                "moderator-a.testnet",
+                "moderator-b.testnet",
+                "moderator-c.testnet",
+            ],
+            2,
+        );
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        cast_vote(&mut reports, id, "moderator-a.testnet", true, 'b', 1_002);
+        cast_vote(&mut reports, id, "moderator-b.testnet", false, 'c', 1_003);
+        cast_vote(&mut reports, id, "moderator-a.testnet", false, 'd', 1_004);
+
+        let report = reports.get_report(id).unwrap();
+        assert_eq!(report.state, ReportState::Rejected);
+        assert_eq!(report.moderator, Some(account("moderator-a.testnet")));
+        assert_eq!(report.reason_sha256, Some(hash('d')));
+        let votes = reports.report_votes(id);
+        assert_eq!(votes.len(), 2);
+        assert_eq!(votes[0].moderator, account("moderator-b.testnet"));
+        assert_eq!(votes[0].side, VoteSide::Reject);
+        assert_eq!(votes[1].moderator, account("moderator-a.testnet"));
+        assert_eq!(votes[1].side, VoteSide::Reject);
+        assert_eq!(votes[1].reason_sha256, hash('d'));
+    }
+
+    #[test]
+    fn lowering_threshold_then_repeating_a_vote_finishes_the_report() {
+        let mut reports = reports();
+        configure_threshold(
+            &mut reports,
+            &[
+                "moderator-a.testnet",
+                "moderator-b.testnet",
+                "moderator-c.testnet",
+            ],
+            3,
+        );
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        cast_vote(&mut reports, id, "moderator-a.testnet", true, 'b', 1_002);
+        cast_vote(&mut reports, id, "moderator-b.testnet", false, 'c', 1_003);
+        cast_vote(&mut reports, id, "moderator-c.testnet", true, 'd', 1_004);
+        assert_eq!(reports.get_report(id).unwrap().state, ReportState::Pending);
+
+        context("owner.testnet", 1, 1_005);
+        reports.set_approvals_required(2);
+        cast_vote(&mut reports, id, "moderator-a.testnet", true, 'e', 1_006);
+
+        let report = reports.get_report(id).unwrap();
+        assert_eq!(report.state, ReportState::Accepted);
+        assert_eq!(report.moderator, Some(account("moderator-a.testnet")));
+        assert_eq!(report.reason_sha256, Some(hash('e')));
+    }
+
+    #[test]
+    fn both_sides_at_a_lowered_threshold_stay_pending_until_a_moderator_changes_side() {
+        let mut reports = reports();
+        configure_threshold(
+            &mut reports,
+            &[
+                "moderator-a.testnet",
+                "moderator-b.testnet",
+                "moderator-c.testnet",
+                "moderator-d.testnet",
+            ],
+            3,
+        );
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        cast_vote(&mut reports, id, "moderator-a.testnet", true, 'b', 1_002);
+        cast_vote(&mut reports, id, "moderator-b.testnet", true, 'c', 1_003);
+        cast_vote(&mut reports, id, "moderator-c.testnet", false, 'd', 1_004);
+        cast_vote(&mut reports, id, "moderator-d.testnet", false, 'e', 1_005);
+
+        context("owner.testnet", 1, 1_006);
+        reports.set_approvals_required(2);
+        cast_vote(&mut reports, id, "moderator-a.testnet", true, 'f', 1_007);
+        cast_vote(&mut reports, id, "moderator-c.testnet", false, 'a', 1_008);
+        assert_eq!(reports.get_report(id).unwrap().state, ReportState::Pending);
+
+        cast_vote(&mut reports, id, "moderator-d.testnet", true, 'b', 1_009);
+        let report = reports.get_report(id).unwrap();
+        assert_eq!(report.state, ReportState::Accepted);
+        assert_eq!(report.moderator, Some(account("moderator-d.testnet")));
+        assert_eq!(report.reason_sha256, Some(hash('b')));
+    }
+
+    #[test]
+    fn a_removed_moderators_vote_stops_counting_at_threshold_two() {
+        let mut reports = reports();
+        configure_threshold(
+            &mut reports,
+            &[
+                "moderator-a.testnet",
+                "moderator-b.testnet",
+                "moderator-c.testnet",
+            ],
+            3,
+        );
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        cast_vote(&mut reports, id, "moderator-a.testnet", true, 'b', 1_002);
+        cast_vote(&mut reports, id, "moderator-b.testnet", true, 'c', 1_003);
+
+        context("owner.testnet", 1, 1_004);
+        reports.set_approvals_required(2);
+        context("owner.testnet", 1, 1_005);
+        reports.set_moderators(vec![
+            account("moderator-b.testnet"),
+            account("moderator-c.testnet"),
+        ]);
+
+        assert_eq!(reports.get_report(id).unwrap().state, ReportState::Pending);
+        assert_eq!(reports.report_votes(id).len(), 2);
+    }
+
+    #[test]
+    fn a_readded_moderators_vote_counts_on_the_next_tally() {
+        let mut reports = reports();
+        configure_threshold(
+            &mut reports,
+            &[
+                "moderator-a.testnet",
+                "moderator-b.testnet",
+                "moderator-c.testnet",
+            ],
+            3,
+        );
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        cast_vote(&mut reports, id, "moderator-a.testnet", true, 'b', 1_002);
+        cast_vote(&mut reports, id, "moderator-b.testnet", true, 'c', 1_003);
+
+        context("owner.testnet", 1, 1_004);
+        reports.set_approvals_required(2);
+        context("owner.testnet", 1, 1_005);
+        reports.set_moderators(vec![
+            account("moderator-b.testnet"),
+            account("moderator-c.testnet"),
+        ]);
+        assert_eq!(reports.get_report(id).unwrap().state, ReportState::Pending);
+        context("owner.testnet", 1, 1_006);
+        reports.set_moderators(vec![
+            account("moderator-b.testnet"),
+            account("moderator-c.testnet"),
+            account("moderator-a.testnet"),
+        ]);
+        assert_eq!(reports.get_report(id).unwrap().state, ReportState::Pending);
+
+        cast_vote(&mut reports, id, "moderator-c.testnet", false, 'd', 1_007);
+
+        let report = reports.get_report(id).unwrap();
+        assert_eq!(report.state, ReportState::Accepted);
+        assert_eq!(report.moderator, Some(account("moderator-b.testnet")));
+        assert_eq!(report.reason_sha256, Some(hash('c')));
+    }
+
+    #[test]
+    fn threshold_one_moderation_keeps_legacy_events_and_stores_no_vote() {
+        let mut reports = reports();
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        cast_vote(&mut reports, id, "moderator.testnet", true, 'b', 1_002);
+
+        let logs = get_logs();
+        assert_eq!(logs.len(), 1);
+        assert!(logs[0].contains("\"event\":\"report_moderated\""));
+        assert!(!logs[0].contains("report_vote"));
+        assert!(reports.report_votes(id).is_empty());
+        assert_eq!(reports.get_report(id).unwrap().state, ReportState::Accepted);
+    }
+
+    #[test]
+    fn threshold_vote_and_moderation_events_have_the_required_key_order() {
+        let mut reports = reports();
+        configure_threshold(
+            &mut reports,
+            &["moderator-a.testnet", "moderator-b.testnet"],
+            2,
+        );
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        cast_vote(&mut reports, id, "moderator-a.testnet", true, 'b', 1_002);
+        cast_vote(&mut reports, id, "moderator-b.testnet", true, 'c', 1_003);
+        let logs = get_logs();
+        let parse_event = |name: &str| {
+            let line = logs
+                .iter()
+                .find(|line| line.contains(&format!("\"event\":\"{name}\"")))
+                .unwrap();
+            near_sdk::serde_json::from_str::<Value>(line.strip_prefix("EVENT_JSON:").unwrap())
+                .unwrap()
+        };
+        let vote = parse_event("report_vote");
+        assert_eq!(vote["version"], "1.1.0");
+        assert_eq!(vote["data"][0]["report_id"], id);
+        assert_eq!(vote["data"][0]["moderator"], "moderator-b.testnet");
+        assert_eq!(vote["data"][0]["side"], "accept");
+        assert_eq!(vote["data"][0]["reason_sha256"], hash('c'));
+        assert_eq!(vote["data"][0]["accept_votes"], 2);
+        assert_eq!(vote["data"][0]["reject_votes"], 0);
+        assert_eq!(vote["data"][0]["approvals_required"], 2);
+        assert_eq!(
+            vote["data"][0]
+                .as_object()
+                .unwrap()
+                .keys()
+                .map(String::as_str)
+                .collect::<Vec<_>>(),
+            vec![
+                "report_id",
+                "moderator",
+                "side",
+                "reason_sha256",
+                "accept_votes",
+                "reject_votes",
+                "approvals_required"
+            ]
+        );
+
+        let moderated = parse_event("report_moderated");
+        assert_eq!(moderated["version"], "1.1.0");
+        assert_eq!(moderated["data"][0]["state"], "accepted");
+        assert_eq!(moderated["data"][0]["moderator"], "moderator-b.testnet");
+        assert_eq!(moderated["data"][0]["reason_sha256"], hash('c'));
+        assert_eq!(
+            moderated["data"][0]
+                .as_object()
+                .unwrap()
+                .keys()
+                .map(String::as_str)
+                .collect::<Vec<_>>(),
+            vec![
+                "report_id",
+                "subject",
+                "state",
+                "body_sha256",
+                "moderator",
+                "reason_sha256"
+            ]
+        );
     }
 
     #[test]
@@ -1874,6 +2431,29 @@ mod tests {
 
     #[test]
     #[should_panic(expected = "REFUSED:same_moderator")]
+    fn accept_voter_cannot_resolve_when_not_the_deciding_voter() {
+        let mut reports = reports();
+        configure_threshold(
+            &mut reports,
+            &[
+                "moderator-a.testnet",
+                "moderator-b.testnet",
+                "resolver.testnet",
+            ],
+            2,
+        );
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        cast_vote(&mut reports, id, "moderator-a.testnet", true, 'b', 1_002);
+        cast_vote(&mut reports, id, "moderator-b.testnet", true, 'c', 1_003);
+        context("disputer.testnet", REPORT_DEPOSIT, 1_004);
+        let dispute_id =
+            reports.dispute(id, hash('d'), "https://evidence.example/dispute".to_owned());
+        context("moderator-a.testnet", 1, 1_005);
+        reports.resolve_dispute(dispute_id, true, hash('e'));
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:same_moderator")]
     fn accepting_moderator_cannot_resolve_with_multiple_moderators() {
         context("reporter.testnet", 1, 1_000);
         let mut reports = Reports::new(
@@ -2498,7 +3078,7 @@ mod tests {
                 near_sdk::serde_json::from_str(line.strip_prefix("EVENT_JSON:").unwrap()).unwrap();
             let data = &value["data"][0];
             assert_eq!(value["standard"], "shieldbot-near");
-            assert_eq!(value["version"], "1.0.0");
+            assert_eq!(value["version"], "1.1.0");
             assert_eq!(data["report_id"], id);
             assert_eq!(data["subject"], subject);
             assert_eq!(data["state"], state);
@@ -2546,6 +3126,7 @@ mod tests {
         reports.moderate(report_id, true, hash('c'));
         flush_storage(&mut reports);
         let report_bytes = env::storage_usage() - before_report;
+        assert!(reports.report_votes(report_id).is_empty());
 
         let disputer = "c".repeat(64);
         let before_dispute = env::storage_usage();
@@ -2565,5 +3146,37 @@ mod tests {
         assert!(measured_storage_cost * 120 / 100 <= REPORT_DEPOSIT);
         assert!(REPORT_DEPOSIT <= measured_storage_cost * 2);
         assert_eq!(REPORT_DEPOSIT, 30_000_000_000_000_000_000_000);
+    }
+
+    #[test]
+    fn one_threshold_vote_storage_measurement_is_pinned() {
+        let moderator = "m".repeat(64);
+        let second_moderator = "n".repeat(64);
+        context("owner.testnet", 0, 999);
+        let mut reports = Reports::new(
+            account("owner.testnet"),
+            vec![account(&moderator), account(&second_moderator)],
+        );
+        context("owner.testnet", 1, 1_000);
+        reports.set_approvals_required(2);
+
+        let subject = "a".repeat(64);
+        let submitter = "b".repeat(64);
+        context(&submitter, REPORT_DEPOSIT, 1_001);
+        let report_id = reports.submit_report(
+            subject,
+            ReportKind::Scam,
+            ReportOutcome::Loss,
+            hash('a'),
+            format!("https://{}", "x".repeat(MAX_EVIDENCE_URL_BYTES - 8)),
+        );
+        flush_storage(&mut reports);
+        let before_vote = env::storage_usage();
+        context_with_storage(&moderator, 1, 1_002, before_vote);
+        reports.moderate(report_id, true, hash('c'));
+        flush_storage(&mut reports);
+
+        assert_eq!(reports.report_votes(report_id).len(), 1);
+        assert_eq!(env::storage_usage() - before_vote, 151);
     }
 }
