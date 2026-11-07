@@ -86,12 +86,23 @@ class LabelAssertionTest(unittest.TestCase):
 
     def test_registry_label_events_name_store_rows(self):
         events = load_json(FIXTURES / "registry" / "labels-20261103.json")
-        self.assertIn(f"{len(events)} `label_recorded` events", page("label-assertion-v1.md"))
+        shown = page("label-assertion-v1.md")
+        self.assertIn(f"{len(events)} `label_recorded` events", shown)
+        envelope = re.search(
+            r"For each event in `fixtures/registry/labels-20261103.json`, `standard` is `([^`]+)`, "
+            r"`version` is `([^`]+)`, `event` is `([^`]+)`, and `data` contains exactly one item\.",
+            shown,
+        )
+        if envelope is None:
+            self.fail("label event envelope is not specified in label-assertion-v1.md")
+        expected_envelope = envelope.groups()
         by_id = {assertion.id: assertion for assertion in self.store.assertions}
         for event in events:
+            self.assertEqual(len(event["data"]), 1)
             data = event["data"][0]
             with self.subTest(assertion_hash=data["assertion_hash"]):
                 self.assertEqual(list(event), EVENT_KEYS)
+                self.assertEqual((event["standard"], event["version"], event["event"]), expected_envelope)
                 self.assertEqual(list(data), ["subject", "chain", "label", "category", "provenance", "assertion_hash"])
                 assertion = by_id[data["assertion_hash"]]
                 self.assertIsNone(assertion.superseded_by)
@@ -193,6 +204,8 @@ class ReportTest(unittest.TestCase):
         self.assertEqual(list(body), ["evidence_sha256", "evidence_url", "kind", "outcome", "subject", "submitter"])
         self.assertTrue(all(isinstance(value, str) for value in body.values()))
         self.assertIn("naïve".encode("utf-8"), evidence.canonical_bytes(body))
+        # Rust's `canonical_body_hash_matches_shared_vector` test in
+        # `contracts/reports/src/lib.rs` pins these bytes through `CanonicalBody`.
         self.assertEqual(evidence.evidence_hash(body), vector["expected_sha256"])
         self.assertIn(f"`{vector['expected_sha256'][:8]}...`", page("report-v1.md"))
 

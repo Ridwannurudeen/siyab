@@ -22,7 +22,7 @@ A row is a JSON object with exactly these 13 keys, no more and no fewer (`intel/
 | `source` | object | one of the three source shapes below; never null (`intel/labels.py:109`) |
 | `observed_at` | string | matches `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$` with ASCII digits (`intel/labels.py:29`, `:120`); the pattern is all the code checks |
 | `confidence` | number | integer or float from 0 to 1 inclusive; `true` and `false` are refused (`intel/labels.py:122`) |
-| `rule_id` | string or null | for provenance `inferred`, equal to `source.rule_id`; null for every other provenance (`intel/labels.py:115`) |
+| `rule_id` | string or null | for provenance `inferred`, a writer MUST provide a string equal to `source.rule_id`; null for every other provenance |
 | `superseded_by` | string or null | null, or 64 lowercase hex (`intel/labels.py:125`) |
 | `note` | string | non empty |
 
@@ -30,11 +30,13 @@ A row is a JSON object with exactly these 13 keys, no more and no fewer (`intel/
 
 The shape is chosen by the exact key set of `source` (`intel/labels.py:20`, `:68`).
 
-| Shape | Keys | Constraints (`intel/labels.py:75`) |
+| Shape | Keys | Writer requirements |
 |---|---|---|
-| document | `url`, `content_sha256`, `fetched_at` | `url` a string starting `https://`; `content_sha256` 64 lowercase hex; `fetched_at` the same time pattern as `observed_at` |
+| document | `url`, `content_sha256`, `fetched_at` | `url` a string starting `https://`; a writer MUST provide `content_sha256` as a string of 64 lowercase hex; `fetched_at` the same time pattern as `observed_at` |
 | onchain | `rpc`, `method`, `args`, `block` | `block` an integer of at least 1 (not a boolean); `rpc` starting `https://`; `method` non empty; `args` an object |
-| inferred | `rule_id`, `inputs` | `rule_id` non empty; `inputs` a non empty list |
+| inferred | `rule_id`, `inputs` | a writer MUST provide a non empty string `rule_id`; `inputs` a non empty list |
+
+Reference validator behavior today: `intel/labels.py:80` applies the hex check to `str(value)`, so a JSON integer with 64 decimal digits passes despite the writer requirement. For inferred `rule_id`, `intel/labels.py:92` checks the source value for truthiness and `:116` checks equality with the row value, but the validator does not check either value's type. These type checks are gaps between the writer requirements and what the reference validator enforces.
 
 Provenance `official_source` and `third_party` need the document shape, `onchain` the onchain shape, `inferred` the inferred shape, and `unknown` accepts any of the three (`intel/labels.py:25`, `:112`).
 
@@ -64,6 +66,8 @@ The `onchain-store-row` vector is line 353 of the store. Its canonical body, the
 Its sha256, and so its `id`, is `5fc8db8f...` (the full value is `id` of that vector). In the store line the source keys keep their written order `rpc`, `method`, `args`, `block`; in the canonical body they are sorted.
 
 The `synthetic-non-ascii-unknown-provenance` vector is not in the store. It pins non ASCII text (`Café Example Øst`, `€`), an escaped quote, `\n` and `\t` inside a string, a float confidence of `0.75` and provenance `unknown` with the document shape.
+
+For each event in `fixtures/registry/labels-20261103.json`, `standard` is `shieldbot-near`, `version` is `1.0.0`, `event` is `label_recorded`, and `data` contains exactly one item.
 
 ## Vectors
 
