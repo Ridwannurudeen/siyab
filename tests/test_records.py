@@ -155,13 +155,15 @@ class RecordValidationTest(unittest.TestCase):
 
         def reader(*args):
             calls.append(args)
-            return {"body_sha256": "b" * 64}
+            return {"body_sha256": "b" * 64, "state": "pending", "reason_sha256": None,
+                    "dispute_ids": []}
 
         records.validate(base_record(reports=[citation]), report_reader=reader)
         self.assertEqual(calls, [("testnet", "reports.kestrelridge-main.testnet", 3)])
         with self.assertRaisesRegex(records.RecordError, "does not match report 3"):
             records.validate(base_record(reports=[citation]),
-                             report_reader=lambda *args: {"body_sha256": "c" * 64})
+                             report_reader=lambda *args: {"body_sha256": "c" * 64, "state": "pending",
+                                                          "reason_sha256": None, "dispute_ids": []})
         with self.assertRaisesRegex(records.RecordError, "report 3 is missing"):
             records.validate(base_record(reports=[citation]), report_reader=lambda *args: None)
 
@@ -178,31 +180,67 @@ class RecordValidationTest(unittest.TestCase):
         self.rejects(base_record(reports=[citation], reasons=[dict(reason, dispute_id=True)]),
                      "dispute_id: null or")
 
-    def test_moderation_reason_hash_must_match_the_report_reader(self):
-        text = "Synthetic moderation reason."
+    def test_report_reader_requires_exactly_one_reason_for_a_non_pending_report(self):
+        text = "Synthetic current moderation reason."
         reason_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
         citation = {"network": "testnet", "contract": "reports.kestrelridge-main.testnet", "report_id": 0,
                     "body_sha256": "b" * 64}
+        report = {"body_sha256": "b" * 64, "state": "accepted", "reason_sha256": reason_hash,
+                  "dispute_ids": []}
         reason = {"report_id": 0, "dispute_id": None, "reason_sha256": reason_hash, "text": text}
+        with self.assertRaisesRegex(records.RecordError, "exactly one reason is required"):
+            records.validate(base_record(reports=[citation]), report_reader=lambda *args: report)
+        with self.assertRaisesRegex(records.RecordError, "exactly one reason is required"):
+            records.validate(base_record(reports=[citation], reasons=[reason, reason]),
+                             report_reader=lambda *args: report)
 
-        records.validate(base_record(reports=[citation], reasons=[reason]),
-                         report_reader=lambda *args: {"body_sha256": "b" * 64,
-                                                      "reason_sha256": reason_hash})
-        with self.assertRaisesRegex(records.RecordError, "does not match report 0"):
-            records.validate(base_record(reports=[citation], reasons=[reason]),
-                             report_reader=lambda *args: {"body_sha256": "b" * 64,
-                                                          "reason_sha256": "c" * 64})
-
-    def test_dispute_reason_is_refused_when_reader_cannot_verify_its_hash(self):
-        text = "Synthetic dispute resolution reason."
-        reason = {"report_id": 0, "dispute_id": 4,
-                  "reason_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(), "text": text}
+    def test_report_reader_rejects_a_reason_from_an_older_decision_after_resolution(self):
+        text = "Synthetic earlier moderation reason."
+        earlier_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        latest_hash = hashlib.sha256("Synthetic later resolution reason.".encode("utf-8")).hexdigest()
         citation = {"network": "testnet", "contract": "reports.kestrelridge-main.testnet", "report_id": 0,
                     "body_sha256": "b" * 64}
-        with self.assertRaisesRegex(records.RecordError, "get_dispute does not expose it"):
+        reason = {"report_id": 0, "dispute_id": 4, "reason_sha256": earlier_hash, "text": text}
+        report = {"body_sha256": "b" * 64, "state": "accepted", "reason_sha256": latest_hash,
+                  "dispute_ids": [4]}
+        with self.assertRaisesRegex(records.RecordError, "does not match report 0"):
             records.validate(base_record(reports=[citation], reasons=[reason]),
-                             report_reader=lambda *args: {"body_sha256": "b" * 64,
-                                                          "reason_sha256": reason["reason_sha256"]})
+                             report_reader=lambda *args: report)
+
+    def test_report_reader_accepts_the_current_reason_after_resolution(self):
+        text = "Synthetic current resolution reason."
+        reason_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        citation = {"network": "testnet", "contract": "reports.kestrelridge-main.testnet", "report_id": 0,
+                    "body_sha256": "b" * 64}
+        reason = {"report_id": 0, "dispute_id": 4, "reason_sha256": reason_hash, "text": text}
+        report = {"body_sha256": "b" * 64, "state": "accepted", "reason_sha256": reason_hash,
+                  "dispute_ids": [4]}
+        records.validate(base_record(reports=[citation], reasons=[reason]),
+                         report_reader=lambda *args: report)
+
+    def test_report_reader_checks_the_latest_resolved_dispute_id(self):
+        text = "Synthetic latest decision reason."
+        reason_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        citation = {"network": "testnet", "contract": "reports.kestrelridge-main.testnet", "report_id": 0,
+                    "body_sha256": "b" * 64}
+        cases = (
+            ("accepted", [], None),
+            ("contested", [4], None),
+            ("contested", [2, 4], 2),
+            ("accepted", [2, 4], 4),
+        )
+        for state, dispute_ids, expected_dispute_id in cases:
+            with self.subTest(state=state, dispute_ids=dispute_ids):
+                reason = {"report_id": 0, "dispute_id": expected_dispute_id,
+                          "reason_sha256": reason_hash, "text": text}
+                report = {"body_sha256": "b" * 64, "state": state, "reason_sha256": reason_hash,
+                          "dispute_ids": dispute_ids}
+                records.validate(base_record(reports=[citation], reasons=[reason]),
+                                 report_reader=lambda *args: report)
+                wrong_reason = dict(reason, dispute_id=4 if expected_dispute_id != 4 else None)
+                with self.assertRaisesRegex(records.RecordError, "dispute_id: must be"):
+                    records.validate(base_record(reports=[citation], reasons=[wrong_reason]),
+                                     report_reader=lambda *args: report)
 
     def test_assertion_ids_must_be_sha256_ids(self):
         self.rejects(base_record(assertion_ids=["not-an-id"]), "assertion_ids[0]")
@@ -276,9 +314,9 @@ class RecordValidationTest(unittest.TestCase):
         timeline[0]["event"] = "first_public_report"
         records.validate(base_record(timeline=timeline))
 
-    def test_supersedes_is_null_or_64_hex(self):
-        document = base_record(supersedes="A" * 64)
-        records.validate(document)
+    def test_supersedes_is_null_or_64_lowercase_hex(self):
+        records.validate(base_record(supersedes="a" * 64))
+        self.rejects(base_record(supersedes="A" * 64), "supersedes: null or 64 hex")
         self.rejects(base_record(supersedes="g" * 64), "supersedes: null or 64 hex")
 
     def test_publisher_must_be_a_near_account(self):
@@ -305,6 +343,20 @@ class RecordFilesAndCliTest(unittest.TestCase):
             self.assertEqual(data, records.canonical_bytes(json.loads(data)))
             self.assertEqual(records.read(path), json.loads(data))
             self.assertEqual(records.write(source, directory), path)
+
+    def test_read_refuses_pretty_printed_json(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = records.write(base_record(), directory)
+            path.write_text(json.dumps(json.loads(path.read_text(encoding="utf-8")), indent=2), encoding="utf-8")
+            with self.assertRaisesRegex(records.RecordError, "canonical_bytes"):
+                records.read(path)
+
+    def test_read_refuses_duplicate_json_object_keys(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = records.write(base_record(), directory)
+            path.write_text('{"version":1,"version":1}', encoding="utf-8")
+            with self.assertRaisesRegex(records.RecordError, "duplicate JSON object key"):
+                records.read(path)
 
     def test_write_refuses_to_overwrite_a_different_file_with_same_name(self):
         with tempfile.TemporaryDirectory() as directory:

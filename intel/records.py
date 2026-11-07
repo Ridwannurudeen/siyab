@@ -16,7 +16,7 @@ _FIELDS = (
 )
 _ENUMS = json.loads((Path(__file__).resolve().parent / "record_enums.json").read_text(encoding="utf-8"))
 _HEX64 = re.compile(r"[0-9a-f]{64}", re.ASCII)
-_HEX64_ANYCASE = re.compile(r"[0-9a-fA-F]{64}", re.ASCII)
+_REPORT_STATES = frozenset(("pending", "accepted", "rejected", "withdrawn", "contested", "overturned"))
 _CHAIN = re.compile(r"[a-z0-9]+", re.ASCII)
 _TIME = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z", re.ASCII)
 _EVENTS = frozenset((
@@ -119,12 +119,31 @@ def _validate_report(citation, index, report_reader):
         raise RecordError(f"{path}: report {report_id} is missing")
     if report["body_sha256"] != citation["body_sha256"]:
         raise RecordError(f"{path}.body_sha256: does not match report {report_id}")
+    state = report.get("state")
+    if not isinstance(state, str) or state not in _REPORT_STATES:
+        raise RecordError(f"{path}.state: report {report_id} has an invalid state")
+    dispute_ids = report.get("dispute_ids")
+    if not isinstance(dispute_ids, list) or any(
+        type(dispute_id) is not int or dispute_id < 0 for dispute_id in dispute_ids
+    ):
+        raise RecordError(f"{path}.dispute_ids: a list of non negative integers is required")
+    if report["state"] == "contested" and not dispute_ids:
+        raise RecordError(f"{path}.dispute_ids: a contested report must list its open dispute")
     return report
+
+
+def _latest_resolved_dispute_id(report):
+    dispute_ids = report["dispute_ids"]
+    if report["state"] == "contested":
+        return dispute_ids[-2] if len(dispute_ids) > 1 else None
+    return dispute_ids[-1] if dispute_ids else None
 
 
 def _validate_reasons(reasons, reports, report_views):
     if not isinstance(reasons, list):
         raise RecordError("reasons: a list is required")
+    cited_ids = {citation["report_id"] for citation in reports}
+    reasons_by_id = {}
     for index, reason in enumerate(reasons):
         path = f"reasons[{index}]"
         _shape(reason, ("report_id", "dispute_id", "reason_sha256", "text"), path)
@@ -141,14 +160,25 @@ def _validate_reasons(reasons, reports, report_views):
         if reason["reason_sha256"] != text_hash:
             raise RecordError(f"{path}.reason_sha256: does not match the UTF-8 text")
         report_id = reason["report_id"]
-        if report_id not in {citation["report_id"] for citation in reports}:
+        if report_id not in cited_ids:
             raise RecordError(f"{path}.report_id: does not cite a report in this record")
-        if report_views is not None:
-            if dispute_id is not None:
-                raise RecordError(f"{path}: cannot verify the dispute resolution reason hash; get_dispute does not expose it")
-            for report_view in report_views[report_id]:
-                if report_view.get("reason_sha256") != reason["reason_sha256"]:
+        reasons_by_id.setdefault(report_id, []).append((index, reason))
+    if report_views is not None:
+        for report_id, views in report_views.items():
+            for report_view in views:
+                if report_view["state"] == "pending":
+                    continue
+                _hash(report_view.get("reason_sha256"), f"reports[{report_id}].reason_sha256")
+                matches = reasons_by_id.get(report_id, [])
+                if len(matches) != 1:
+                    raise RecordError(f"reasons: exactly one reason is required for non-pending report {report_id}")
+                index, reason = matches[0]
+                path = f"reasons[{index}]"
+                if reason["reason_sha256"] != report_view["reason_sha256"]:
                     raise RecordError(f"{path}.reason_sha256: does not match report {report_id}")
+                expected_dispute_id = _latest_resolved_dispute_id(report_view)
+                if reason["dispute_id"] != expected_dispute_id:
+                    raise RecordError(f"{path}.dispute_id: must be {expected_dispute_id!r} for report {report_id}")
 
 
 def _validate_timeline_source(source, event, path):
@@ -256,7 +286,7 @@ def validate(record, report_reader=None) -> None:
         _hash(assertion_id, f"assertion_ids[{index}]")
     _validate_timeline(record["timeline"])
     supersedes = record["supersedes"]
-    if supersedes is not None and (not isinstance(supersedes, str) or not _HEX64_ANYCASE.fullmatch(supersedes)):
+    if supersedes is not None and (not isinstance(supersedes, str) or not _HEX64.fullmatch(supersedes)):
         raise RecordError("supersedes: null or 64 hex characters are required")
     _near_account(record["publisher"], "publisher")
     record_id = record["record_id"]
@@ -286,14 +316,26 @@ def write(record, directory) -> Path:
     return path
 
 
+def _unique_json_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON object key {key!r}")
+        result[key] = value
+    return result
+
+
 def read(path, report_reader=None) -> dict:
     """Read and validate a record; without report_reader, citations are checked for shape only."""
     path = Path(path)
     try:
-        record = json.loads(path.read_bytes().decode("utf-8"))
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+        data = path.read_bytes()
+        record = json.loads(data.decode("utf-8"), object_pairs_hook=_unique_json_object)
+    except (OSError, UnicodeDecodeError, ValueError) as error:
         raise RecordError(f"{path}: cannot read a UTF-8 JSON record: {error}") from error
     validate(record, report_reader=report_reader)
+    if data != canonical_bytes(record):
+        raise RecordError(f"{path}: file bytes do not match canonical_bytes of the complete record")
     expected_name = f"{record['record_id']}.json"
     if path.name != expected_name:
         raise RecordError(f"{path}: filename must be {expected_name}")
