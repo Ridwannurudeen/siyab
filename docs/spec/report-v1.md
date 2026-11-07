@@ -18,7 +18,7 @@ In JSON every enumeration value is a lowercase string (`contracts/reports/src/li
 | outcome | `loss`, `attempt`, `near_miss`, `unknown` |
 | state | `pending`, `accepted`, `rejected`, `withdrawn`, `contested`, `overturned` |
 
-A deny kind is any kind except `social` (`contracts/reports/src/lib.rs:27`). The outcome is recorded and never weighed.
+A deny kind is any kind except `social` (`contracts/reports/src/lib.rs:28-33`). The outcome is recorded and never weighed.
 
 ## The report body and `body_sha256`
 
