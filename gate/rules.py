@@ -492,13 +492,12 @@ def _state_age(archival, receiver, account, account_source, now_ms, min_age_days
                           f"{min_age_days} d old", _source(archival)), False
 
 
-def _nonce_age(rpc, archival, receiver, now_ms, min_age_days, nearblocks_why, account, account_source):
+def _nonce_age(rpc, archival, receiver, now_ms, min_age_days, account, account_source):
     """(the account_age check, whether the receiver is younger than min_age_days) from the oldest
     access key: the account existed by the block its smallest nonce encodes, dated on an archival
     node. A key with nonce 0, or a permission other than full access or function call, carries no
     creation height. A receiver with no access key, or none with a creation height, is dated by
     _state_age instead. A read that could not run gives an unknown check and None."""
-    prefix = f"no creation time from NearBlocks ({nearblocks_why})"
     try:
         keys = rpc.view_access_key_list(receiver)["keys"]
         nonces = []
@@ -512,17 +511,17 @@ def _nonce_age(rpc, archival, receiver, now_ms, min_age_days, nearblocks_why, ac
                           or isinstance(permission, dict) and "FunctionCall" in permission):
                 nonces.append(nonce)
     except UNAVAILABLE as error:
-        return evidence.check("account_age", "unknown", f"{prefix}; view_access_key_list could not run: "
+        return evidence.check("account_age", "unknown", f"view_access_key_list could not run: "
                               f"{_why(error)}", _source(rpc)), None
     rpc_source = _source(rpc)
     if not keys:
         return _state_age(archival, receiver, account, account_source, now_ms, min_age_days,
-                          f"{prefix}; {receiver} has no access key")
+                          f"{receiver} has no access key")
     if not nonces:
         return _state_age(archival, receiver, account, account_source, now_ms, min_age_days,
-                          f"{prefix}; no access key carries a creation height")
+                          "no access key carries a creation height")
     nonce = min(nonces)
-    oldest = f"{prefix}; oldest access key nonce {nonce} from {rpc_source['provider']}"
+    oldest = f"oldest access key nonce {nonce} from {rpc_source['provider']}"
     if nonce < NONCE_PER_HEIGHT:
         return evidence.check("account_age", "pass", f"{oldest} predates block height nonces, at least "
                               f"{min_age_days} d old", rpc_source), False
@@ -530,7 +529,7 @@ def _nonce_age(rpc, archival, receiver, now_ms, min_age_days, nearblocks_why, ac
     try:
         block_ms, iso = _block_time(archival, height)
     except UNAVAILABLE as error:
-        return evidence.check("account_age", "unknown", f"{prefix}; archival block_at could not run: "
+        return evidence.check("account_age", "unknown", f"archival block_at could not run: "
                               f"{_why(error)}", _source(archival)), None
     archival_source = _source(archival)
     block = f"block {height} ({iso}) from {archival_source['provider']}"
@@ -546,38 +545,41 @@ def _tier2(request, policy, store, account, account_source, rpc, nearblocks, now
     receiver = request["receiver_id"]
     checks, facts, matched = [], {}, []
     creation_hash = None
-    # Why NearBlocks gave no creation time, and the archival age's answer (access key nonce or block
-    # state) when it was asked.
-    nearblocks_why, archival_young = None, None
-    try:
-        keys = nearblocks.get(f"/v1/account/{receiver}/keys")
-        oldest = _oldest_creation(keys)
-        if oldest is None:
-            nearblocks_why = "no key carries a creation time" if keys["keys"] else "keys empty"
-            # NearBlocks lists no access key and view_account shows contract code; these are the observed reads.
-            locked = not keys["keys"] and account is not None and account.get("code_hash") != EMPTY_CODE_HASH
-            age_check = evidence.check("account_age", "unknown",
-                                       "NearBlocks lists no access key for the account and view_account shows "
-                                       "contract code, so no creation time could be read" if locked
-                                       else f"no key of {receiver} carries a creation time", _source(nearblocks))
-        else:
-            created_ns, creation_hash = oldest
-            age_ms = now_ms - created_ns // 1_000_000
-            facts["age"] = _age_text(age_ms)
-            young = age_ms < min_age_days * DAY_MS
-            age_check = evidence.check("account_age", "signal" if young else "pass",
-                                       f"created {facts['age']} ago"
-                                       + (f", younger than {min_age_days} days" if young else ""),
-                                       _source(nearblocks))
-    except UNAVAILABLE as error:
-        nearblocks_why = _why(error)
-        age_check = evidence.check("account_age", "unknown", f"could not read the account keys: "
-                                   f"{_why(error)}", _source(nearblocks))
-    if nearblocks_why is not None and archival is not None and account is not None:
-        age_check, archival_young = _nonce_age(rpc, archival, receiver, now_ms, min_age_days, nearblocks_why,
+    archival_detail, archival_young = None, None
+    if archival is not None and account is not None:
+        age_check, archival_young = _nonce_age(rpc, archival, receiver, now_ms, min_age_days,
                                                account, account_source)
-        if archival_young:
-            facts["age"] = f"less than {min_age_days} d"
+        if age_check["status"] == "unknown":
+            archival_detail = age_check["detail"]
+    if archival is None or account is None or archival_detail is not None:
+        try:
+            keys = nearblocks.get(f"/v1/account/{receiver}/keys")
+            oldest = _oldest_creation(keys)
+            if oldest is None:
+                # NearBlocks lists no access key and view_account shows contract code; these are the observed reads.
+                locked = not keys["keys"] and account is not None and account.get("code_hash") != EMPTY_CODE_HASH
+                age_check = evidence.check("account_age", "unknown",
+                                           "NearBlocks lists no access key for the account and view_account shows "
+                                           "contract code, so no creation time could be read" if locked
+                                           else f"no key of {receiver} carries a creation time", _source(nearblocks))
+            else:
+                created_ns, creation_hash = oldest
+                age_ms = now_ms - created_ns // 1_000_000
+                facts["age"] = _age_text(age_ms)
+                young = age_ms < min_age_days * DAY_MS
+                age_check = evidence.check("account_age", "signal" if young else "pass",
+                                           f"created {facts['age']} ago"
+                                           + (f", younger than {min_age_days} days" if young else ""),
+                                           _source(nearblocks))
+        except UNAVAILABLE as error:
+            age_check = evidence.check("account_age", "unknown", f"could not read the account keys: "
+                                       f"{_why(error)}", _source(nearblocks))
+        if archival_detail is not None:
+            age_check = evidence.check("account_age", age_check["status"],
+                                       f"no archival age ({archival_detail}); {age_check['detail']}",
+                                       age_check["source"])
+    if archival_young:
+        facts["age"] = f"less than {min_age_days} d"
     checks.append(age_check)
 
     dust = None
@@ -611,9 +613,8 @@ def _tier2(request, policy, store, account, account_source, rpc, nearblocks, now
     # When the access key nonce or block state age passed and nothing is a lookalike, no creation deposit can
     # change the verdict, so the deposit NearBlocks could not give does not hold it at UNKNOWN.
     if archival_young is False and not hit:
-        dust_check = evidence.check("dust_funded", "pass", f"creation deposit not read: NearBlocks has no creation "
-                                    f"transaction for {receiver}; a deposit is a signal only with lookalike or "
-                                    "account_age", _local("nearblocks"))
+        dust_check = evidence.check("dust_funded", "pass", "creation deposit not read: a deposit is a signal "
+                                    "only with lookalike or account_age", _local("nearblocks"))
 
     # A dust creation deposit is the ordinary wallet pattern, so it is a signal only together with a
     # lookalike or a young account (DISPOSITION-dust option A).
@@ -715,7 +716,7 @@ def judge(request, policy, store, rpc, nearblocks, *, now_ms, injection_scanner,
     """Judge one TransferRequest for the agent whose policy (allowlist and caps, in the get_agent
     shape) is given; store is the label store, rpc the NEAR JSON-RPC client, nearblocks the
     NearBlocks client, injection_scanner the ShieldBot API client or None and archival the archival
-    JSON-RPC client that dates the receiver when NearBlocks gives no creation time, or None.
+    JSON-RPC client that dates the receiver before NearBlocks is used as a fallback, or None.
     issuers is the list of issuer entries (issuers_for) the issuer_blacklist check reads; None or an
     empty list adds no check. reports_account is the reports contract account or None to omit its
     check. A receiver that is not a valid account id raises canon.CanonError, a ValueError, before any request."""

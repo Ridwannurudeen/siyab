@@ -94,6 +94,12 @@ COUNT_PROSE = (
                 f"{_count(m['r'], 'recorded run')}.")),
     (re.compile(r"Latency, payee off the allowlist: not measured\."),
      lambda m: "Verdict latency for a payee off the allowlist is not measured."),
+    (re.compile(r"Latency, payee off the allowlist, NearBlocks fallback: p50 (?P<p50>\d+) ms, "
+                r"p95 (?P<p95>\d+) ms over (?P<r>\d+) verdict runs\."),
+     lambda m: (f"Verdict latency for the NearBlocks fallback path: p50 {m['p50']} ms, "
+                f"p95 {m['p95']} ms over {_count(m['r'], 'recorded run')}.")),
+    (re.compile(r"Latency, payee off the allowlist, NearBlocks fallback: not measured\."),
+     lambda m: "Verdict latency for the NearBlocks fallback path is not measured."),
 )
 DROP_ORDER = (
     ("the protocol refusals", ("refused by the protocol",)),

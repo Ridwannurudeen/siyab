@@ -332,7 +332,8 @@ class RenderTest(unittest.TestCase):
         self.assertLess(page.index("</h1>"), page.index(sentence))
         self.assertLess(page.index(sentence), page.index('<div class="card">'))
         tier2 = (ROOT / "fixtures" / "latency" / "verdict-runs-tier2.json").is_file()
-        self.assertEqual(len(render._counts_lines()), 8 if tier2 else 7)
+        fallback = (ROOT / "fixtures" / "latency" / "verdict-runs-tier2-fallback.json").is_file()
+        self.assertEqual(len(render._counts_lines()), 7 + tier2 + fallback)
         for words in ("recorded mainnet receivers the rules judged", "by cohort", "label store", "provenance class",
                       "incident pages", "feed", "exit traces", "verdict latency runs", "payee off the allowlist"):
             self.assertIn(words, render.COUNTS_OF)

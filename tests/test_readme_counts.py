@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parent.parent
 README = ROOT / "README.md"
 COUNTS = ROOT / "scripts" / "counts.py"
 TIER2_LATENCY_RUNS = ROOT / "fixtures" / "latency" / "verdict-runs-tier2.json"
+TIER2_FALLBACK_LATENCY_RUNS = ROOT / "fixtures" / "latency" / "verdict-runs-tier2-fallback.json"
 RECEIVER_SET = ROOT / "fixtures" / "receivers" / "set.json"
 
 
@@ -36,7 +37,8 @@ class ReadmeCountsTest(unittest.TestCase):
         text = README.read_text(encoding="utf-8")
         start, end = text.index("<!-- counts:start -->"), text.index("<!-- counts:end -->")
         block = [line for line in text[start:end].splitlines()[1:] if line]
-        self.assertEqual(len(printed), 8 if TIER2_LATENCY_RUNS.is_file() else 7)
+        self.assertEqual(len(printed), 7 + TIER2_LATENCY_RUNS.is_file()
+                         + TIER2_FALLBACK_LATENCY_RUNS.is_file())
         self.assertEqual(block, printed)
 
     def test_the_receivers_paragraph_states_the_first_line_count_and_the_exclusion_of_the_set_file(self):

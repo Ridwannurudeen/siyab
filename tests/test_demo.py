@@ -88,8 +88,8 @@ class DemoTest(unittest.TestCase):
         results, lines = self.run_demo()
         age = check(results[2], "account_age")
         self.assertEqual(age["status"], "unknown")
-        self.assertTrue(age["detail"].endswith("archival block_at could not run: no recorded response for the "
-                                               "request"))
+        self.assertEqual(age["detail"], "no archival age (archival block_at could not run: no recorded response "
+                         "for the request); no key of lindenvale.testnet carries a creation time")
         key = rpc.fixture_key(rpc.ARCHIVAL_TESTNET_RPC_URL, "block", {"block_id": 275336351})
         self.assertFalse((demo.DEMO_DIR / f"{key}.json").exists())
         self.assertTrue(any("left out of fixtures/demo" in line for line in lines))

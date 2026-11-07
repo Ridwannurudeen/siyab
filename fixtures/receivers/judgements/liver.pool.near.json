@@ -53,7 +53,7 @@
     {
       "id": "account_age",
       "status": "pass",
-      "detail": "no creation time from NearBlocks (keys empty); liver.pool.near has no access key; view_account finds liver.pool.near at block 221701197 (2026-10-26T14:31:24Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
+      "detail": "liver.pool.near has no access key; view_account finds liver.pool.near at block 221701197 (2026-10-26T14:31:24Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
       "source": {
         "provider": "archival-rpc.mainnet.fastnear.com",
         "request_sha256": "9de6d26f34f1a55f2a151cd122d28807e0a9ae749b2ae019693e88f480b630d0",
@@ -63,7 +63,7 @@
     {
       "id": "dust_funded",
       "status": "pass",
-      "detail": "creation deposit not read: NearBlocks has no creation transaction for liver.pool.near; a deposit is a signal only with lookalike or account_age",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
       "source": {
         "provider": "nearblocks",
         "request_sha256": null,

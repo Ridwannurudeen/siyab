@@ -411,14 +411,22 @@ class TierTwoTest(RulesCase):
         with mock.patch("urllib.request.urlopen", side_effect=error):
             return self.judge(request("stranger.testnet"), archival=archival)
 
-    def test_nearblocks_429_with_archival_passes_on_the_key_nonce_age(self):
+    def test_the_key_nonce_age_passes_without_a_nearblocks_request(self):
+        self.fx.account("stranger.testnet")
+        self.token_ok("stranger.testnet")
         self.fx.access_keys("stranger.testnet", KEY_NONCE)
         self.fx.block_at(KEY_HEIGHT, OLD_NS)
-        judgement = self.nearblocks_429(self.archival)
+        self.nearblocks = rpc.Client(NEARBLOCKS_URL, "record", kind="http",
+                                     fixtures_dir=self.fx.directory)
+        with mock.patch.object(self.nearblocks, "get", wraps=self.nearblocks.get) as nearblocks_get:
+            judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+        nearblocks_get.assert_not_called()
+        self.assertEqual(self.status(judgement, "account_age"), "pass")
         self.assertEqual(self.detail(judgement, "account_age"),
-                         "no creation time from NearBlocks (HTTP 429); oldest access key nonce 275336350000000 "
-                         "from rpc.example: existed by block 275336351 (2026-10-22T11:50:00Z) from "
-                         "archival.example, at least 7 d old")
+                         "oldest access key nonce 275336350000000 from rpc.example: existed by block 275336351 "
+                         "(2026-10-22T11:50:00Z) from archival.example, at least 7 d old")
+        self.assertEqual(self.detail(judgement, "dust_funded"),
+                         "creation deposit not read: a deposit is a signal only with lookalike or account_age")
         self.assertEqual(self.status(judgement, "dust_funded"), "pass")
         self.assertEqual(judgement.verdict, "ALLOW")
 
@@ -458,8 +466,7 @@ class TierTwoTest(RulesCase):
 
 
 class NonceAgeTest(RulesCase):
-    """account_age from the oldest access key nonce, dated on an archival node, when NearBlocks gives
-    no creation time."""
+    """account_age from the oldest access key nonce, with NearBlocks as a fallback when archival age is unknown."""
 
     def unaged(self, name="stranger.testnet", *created_ns):
         """A receiver that exists now with no key NearBlocks dates."""
@@ -477,13 +484,11 @@ class NonceAgeTest(RulesCase):
         judgement = self.judge(request("stranger.testnet"), archival=self.archival)
         self.assertEqual(self.status(judgement, "account_age"), "pass")
         self.assertEqual(self.detail(judgement, "account_age"),
-                         "no creation time from NearBlocks (keys empty); oldest access key nonce 275336350000000 "
-                         "from rpc.example: existed by block 275336351 (2026-10-22T11:50:00Z) from "
-                         "archival.example, at least 7 d old")
+                         "oldest access key nonce 275336350000000 from rpc.example: existed by block 275336351 "
+                         "(2026-10-22T11:50:00Z) from archival.example, at least 7 d old")
         self.assertEqual(self.status(judgement, "dust_funded"), "pass")
         self.assertEqual(self.detail(judgement, "dust_funded"),
-                         "creation deposit not read: NearBlocks has no creation transaction for "
-                         "stranger.testnet; a deposit is a signal only with lookalike or account_age")
+                         "creation deposit not read: a deposit is a signal only with lookalike or account_age")
         self.assertEqual(judgement.verdict, "ALLOW")
         providers = {c["id"]: c["source"]["provider"] for c in judgement.checks}
         self.assertEqual(providers["account_age"], "archival.example")
@@ -496,8 +501,7 @@ class NonceAgeTest(RulesCase):
         judgement = self.judge(request("stranger.testnet"), archival=self.archival)
         self.assertEqual(self.status(judgement, "account_age"), "signal")
         self.assertEqual(self.detail(judgement, "account_age"),
-                         "no creation time from NearBlocks (no key carries a creation time); oldest access key "
-                         "nonce 275336350000001 from rpc.example: existed by block 275336351 "
+                         "oldest access key nonce 275336350000001 from rpc.example: existed by block 275336351 "
                          "(2026-10-28T12:00:00Z) from archival.example, younger than 7 days")
         self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
         self.assertEqual(self.detail(judgement, "dust_funded"), "the creation transaction is not known")
@@ -510,9 +514,8 @@ class NonceAgeTest(RulesCase):
         self.fx.block_at(KEY_HEIGHT, OLD_NS)
         judgement = self.judge(request("stranger.testnet"), archival=self.archival)
         self.assertEqual(self.detail(judgement, "account_age"),
-                         "no creation time from NearBlocks (keys empty); oldest access key nonce 275336350000005 "
-                         "from rpc.example: existed by block 275336351 (2026-10-22T11:50:00Z) from "
-                         "archival.example, at least 7 d old")
+                         "oldest access key nonce 275336350000005 from rpc.example: existed by block 275336351 "
+                         "(2026-10-22T11:50:00Z) from archival.example, at least 7 d old")
         self.assertEqual(judgement.verdict, "ALLOW")
 
     def test_nonce_zero_and_other_permissions_are_left_out_of_the_minimum(self):
@@ -527,9 +530,8 @@ class NonceAgeTest(RulesCase):
         self.fx.block_at(KEY_HEIGHT, OLD_NS)
         judgement = self.judge(request("stranger.testnet"), archival=self.archival)
         self.assertEqual(self.detail(judgement, "account_age"),
-                         "no creation time from NearBlocks (keys empty); oldest access key nonce 275336350000000 "
-                         "from rpc.example: existed by block 275336351 (2026-10-22T11:50:00Z) from "
-                         "archival.example, at least 7 d old")
+                         "oldest access key nonce 275336350000000 from rpc.example: existed by block 275336351 "
+                         "(2026-10-22T11:50:00Z) from archival.example, at least 7 d old")
         self.assertEqual(judgement.verdict, "ALLOW")
 
     def test_no_key_with_a_creation_height_reads_unknown(self):
@@ -541,9 +543,9 @@ class NonceAgeTest(RulesCase):
         judgement = self.judge(request("stranger.testnet"), archival=self.archival)
         self.assertEqual(self.status(judgement, "account_age"), "unknown")
         self.assertEqual(self.detail(judgement, "account_age"),
-                         "no creation time from NearBlocks (keys empty); no access key carries a creation height; "
-                         "archival block_at could not run: no recorded response for the request")
-        self.assertEqual(self.age_provider(judgement), "archival.example")
+                         "no archival age (no access key carries a creation height; archival block_at could not run: "
+                         "no recorded response for the request); no key of stranger.testnet carries a creation time")
+        self.assertEqual(self.age_provider(judgement), "nearblocks.example")
         self.assertEqual(judgement.verdict, "UNKNOWN")
 
     def test_a_nonce_from_before_height_nonces_passes_without_an_archival_read(self):
@@ -554,8 +556,7 @@ class NonceAgeTest(RulesCase):
         self.assertEqual(archival.method_calls, [])
         self.assertEqual(self.status(judgement, "account_age"), "pass")
         self.assertEqual(self.detail(judgement, "account_age"),
-                         "no creation time from NearBlocks (keys empty); oldest access key nonce 2 from "
-                         "rpc.example predates block height nonces, at least 7 d old")
+                         "oldest access key nonce 2 from rpc.example predates block height nonces, at least 7 d old")
         self.assertEqual(self.age_provider(judgement), "rpc.example")
         self.assertEqual(self.status(judgement, "dust_funded"), "pass")
         self.assertEqual(judgement.verdict, "ALLOW")
@@ -566,9 +567,9 @@ class NonceAgeTest(RulesCase):
         judgement = self.judge(request("stranger.testnet"), archival=self.archival)
         self.assertEqual(self.status(judgement, "account_age"), "unknown")
         self.assertEqual(self.detail(judgement, "account_age"),
-                         "no creation time from NearBlocks (keys empty); stranger.testnet has no access key; "
-                         "archival block_at could not run: no recorded response for the request")
-        self.assertEqual(self.age_provider(judgement), "archival.example")
+                         "no archival age (stranger.testnet has no access key; archival block_at could not run: "
+                         "no recorded response for the request); no key of stranger.testnet carries a creation time")
+        self.assertEqual(self.age_provider(judgement), "nearblocks.example")
         self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
         self.assertEqual(judgement.verdict, "UNKNOWN")
 
@@ -581,8 +582,9 @@ class NonceAgeTest(RulesCase):
                 judgement = self.judge(request("stranger.testnet"), archival=self.archival)
                 self.assertEqual(self.status(judgement, "account_age"), "unknown")
                 self.assertEqual(self.detail(judgement, "account_age"),
-                                 "no creation time from NearBlocks (keys empty); view_access_key_list could not "
-                                 "run: MalformedResponse: an access key has no non negative int nonce")
+                                 "no archival age (view_access_key_list could not run: MalformedResponse: an "
+                                 "access key has no non negative int nonce); no key of stranger.testnet carries a "
+                                 "creation time")
                 self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
                 self.assertEqual(judgement.verdict, "UNKNOWN")
 
@@ -591,9 +593,9 @@ class NonceAgeTest(RulesCase):
         self.fx.rpc_error(self.fx.key_list_params("stranger.testnet"), "TOO_MANY_ACCESS_KEYS")
         judgement = self.judge(request("stranger.testnet"), archival=self.archival)
         self.assertEqual(self.detail(judgement, "account_age"),
-                         "no creation time from NearBlocks (keys empty); view_access_key_list could not run: "
-                         "RPC error TOO_MANY_ACCESS_KEYS")
-        self.assertEqual(self.age_provider(judgement), "rpc.example")
+                         "no archival age (view_access_key_list could not run: RPC error TOO_MANY_ACCESS_KEYS); "
+                         "no key of stranger.testnet carries a creation time")
+        self.assertEqual(self.age_provider(judgement), "nearblocks.example")
         self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
         self.assertEqual(judgement.verdict, "UNKNOWN")
 
@@ -603,9 +605,9 @@ class NonceAgeTest(RulesCase):
         self.fx.block_missing(KEY_HEIGHT)
         judgement = self.judge(request("stranger.testnet"), archival=self.archival)
         self.assertEqual(self.detail(judgement, "account_age"),
-                         "no creation time from NearBlocks (keys empty); archival block_at could not run: "
-                         "RPC error UNKNOWN_BLOCK")
-        self.assertEqual(self.age_provider(judgement), "archival.example")
+                         "no archival age (archival block_at could not run: RPC error UNKNOWN_BLOCK); "
+                         "no key of stranger.testnet carries a creation time")
+        self.assertEqual(self.age_provider(judgement), "nearblocks.example")
         self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
         self.assertEqual(judgement.verdict, "UNKNOWN")
 
@@ -617,8 +619,8 @@ class NonceAgeTest(RulesCase):
                       {"jsonrpc": "2.0", "id": "gate", "result": {"header": header}})
         judgement = self.judge(request("stranger.testnet"), archival=self.archival)
         self.assertEqual(self.detail(judgement, "account_age"),
-                         "no creation time from NearBlocks (keys empty); archival block_at could not run: "
-                         "MalformedResponse: block 275336351 came back as block 275336352")
+                         "no archival age (archival block_at could not run: MalformedResponse: block 275336351 "
+                         "came back as block 275336352); no key of stranger.testnet carries a creation time")
         self.assertEqual(judgement.verdict, "UNKNOWN")
 
     def test_a_block_time_out_of_range_reads_unknown(self):
@@ -631,8 +633,9 @@ class NonceAgeTest(RulesCase):
                               {"jsonrpc": "2.0", "id": "gate", "result": {"header": header}})
                 judgement = self.judge(request("stranger.testnet"), archival=self.archival)
                 self.assertEqual(self.detail(judgement, "account_age"),
-                                 "no creation time from NearBlocks (keys empty); archival block_at could not run: "
-                                 f"MalformedResponse: block 275336351 has a time out of range: {timestamp_ns}")
+                                 "no archival age (archival block_at could not run: "
+                                 f"MalformedResponse: block 275336351 has a time out of range: {timestamp_ns}); "
+                                 "no key of stranger.testnet carries a creation time")
                 self.assertEqual(judgement.verdict, "UNKNOWN")
 
     def test_no_archival_fixture_reads_unknown_never_a_pass(self):
@@ -641,8 +644,8 @@ class NonceAgeTest(RulesCase):
         judgement = self.judge(request("stranger.testnet"), archival=self.archival)
         self.assertEqual(self.status(judgement, "account_age"), "unknown")
         self.assertEqual(self.detail(judgement, "account_age"),
-                         "no creation time from NearBlocks (keys empty); archival block_at could not run: no "
-                         "recorded response for the request")
+                         "no archival age (archival block_at could not run: no recorded response for the request); "
+                         "no key of stranger.testnet carries a creation time")
         self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
         self.assertEqual(judgement.verdict, "UNKNOWN")
 
@@ -653,21 +656,56 @@ class NonceAgeTest(RulesCase):
         self.fx.block_at(KEY_HEIGHT, OLD_NS)
         judgement = self.judge(request(implicit), archival=self.archival)
         self.assertEqual(self.detail(judgement, "account_age"),
-                         "no creation time from NearBlocks (keys empty); oldest access key nonce 275336350000000 "
-                         "from rpc.example: existed by block 275336351 (2026-10-22T11:50:00Z) from "
-                         "archival.example, at least 7 d old")
+                         "oldest access key nonce 275336350000000 from rpc.example: existed by block 275336351 "
+                         "(2026-10-22T11:50:00Z) from archival.example, at least 7 d old")
         self.assertEqual(judgement.verdict, "ALLOW")
 
-    def test_a_nearblocks_creation_time_never_reads_the_key_nonces(self):
+    def test_nearblocks_dates_the_account_when_the_archival_read_cannot(self):
         self.stranger("stranger.testnet")
-        archival = mock.Mock(spec=rpc.Client)
-        with mock.patch.object(self.rpc, "view_access_key_list") as key_list:
-            judgement = self.judge(request("stranger.testnet"), archival=archival)
-        key_list.assert_not_called()
-        self.assertEqual(archival.method_calls, [])
-        self.assertEqual(self.detail(judgement, "account_age"), "created 30 d ago")
+        self.fx.access_keys("stranger.testnet", KEY_NONCE)
+        self.fx.block_missing(KEY_HEIGHT)
+        with (mock.patch.object(self.nearblocks, "get", wraps=self.nearblocks.get) as nearblocks_get,
+              mock.patch.object(self.archival, "block_at", wraps=self.archival.block_at) as block_at):
+            judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+        self.assertEqual(nearblocks_get.call_args_list, [
+            mock.call("/v1/account/stranger.testnet/keys"),
+            mock.call("/v1/txns/CreationTx"),
+        ])
+        self.assertEqual(block_at.call_args_list, [mock.call(KEY_HEIGHT)])
+        self.assertEqual(self.detail(judgement, "account_age"),
+                         "no archival age (archival block_at could not run: RPC error UNKNOWN_BLOCK); "
+                         "created 30 d ago")
+        self.assertEqual(self.age_provider(judgement), "nearblocks.example")
         self.assertEqual(self.detail(judgement, "dust_funded"), "created by a 0.5 NEAR deposit")
         self.assertEqual(judgement.verdict, "ALLOW")
+
+    def test_a_young_archival_account_is_denied_without_a_nearblocks_request(self):
+        self.unaged("stranger.testnet", None)
+        self.fx.access_keys("stranger.testnet", KEY_NONCE + 1)
+        self.fx.block_at(KEY_HEIGHT, NOW_MS * 10**6 - DAY_NS)
+        with mock.patch.object(self.nearblocks, "get", wraps=self.nearblocks.get) as nearblocks_get:
+            judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+        nearblocks_get.assert_not_called()
+        self.assertEqual(self.status(judgement, "account_age"), "signal")
+        self.assertEqual(judgement.verdict, "DENY")
+
+    def test_failed_archival_and_nearblocks_reads_leave_age_unknown_with_both_reasons(self):
+        self.unaged()
+        self.fx.access_keys("stranger.testnet", KEY_NONCE)
+        self.fx.block_missing(KEY_HEIGHT)
+        self.nearblocks = rpc.Client(NEARBLOCKS_URL, "record", kind="http",
+                                     fixtures_dir=self.fx.directory / "nearblocks")
+        error = urllib.error.HTTPError("https://nearblocks.example", 410, "Gone", {}, None)
+        with mock.patch("urllib.request.urlopen", side_effect=error) as fetch:
+            judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+        fetch.assert_called_once()
+        detail = ("no archival age (archival block_at could not run: RPC error UNKNOWN_BLOCK); "
+                  "could not read the account keys: HTTP 410")
+        self.assertEqual(self.status(judgement, "account_age"), "unknown")
+        self.assertEqual(self.detail(judgement, "account_age"), detail)
+        self.assertEqual(self.age_provider(judgement), "nearblocks.example")
+        self.assertIn(f"account_age could not run: {detail}.", judgement.reasons)
+        self.assertEqual(judgement.verdict, "UNKNOWN")
 
     def test_a_missing_receiver_is_not_probed(self):
         self.fx.missing("gone.testnet")
@@ -705,7 +743,7 @@ class StateAgeTest(RulesCase):
     """account_age from view_account at a block at least 7 days old on an archival node, for a receiver no
     access key nonce dates, over synthetic fixtures in the recorded JSON-RPC shapes."""
 
-    PREFIX = "no creation time from NearBlocks (keys empty); pool.testnet has no access key; "
+    PREFIX = "pool.testnet has no access key; "
 
     def locked(self, name="pool.testnet", block_height=ACCOUNT_HEIGHT):
         """A receiver with contract code and no access key, listed by NearBlocks with no key."""
@@ -732,8 +770,7 @@ class StateAgeTest(RulesCase):
                                              "pool.testnet", STATE_HEIGHT))})
         self.assertEqual(self.status(judgement, "dust_funded"), "pass")
         self.assertEqual(self.detail(judgement, "dust_funded"),
-                         "creation deposit not read: NearBlocks has no creation transaction for "
-                         "pool.testnet; a deposit is a signal only with lookalike or account_age")
+                         "creation deposit not read: a deposit is a signal only with lookalike or account_age")
         self.assertEqual(self.status(judgement, "code_without_metadata"), "pass")
         self.assertEqual(judgement.verdict, "ALLOW")
         self.assertEqual(judgement.reasons, ["Every check ran and none found a signal.", "Not on the owner's allowlist."])
@@ -763,9 +800,8 @@ class StateAgeTest(RulesCase):
         self.fx.account_at("stranger.testnet", STATE_HEIGHT)
         judgement = self.judge(request("stranger.testnet"), archival=self.archival)
         self.assertEqual(self.detail(judgement, "account_age"),
-                         "no creation time from NearBlocks (keys empty); no access key carries a creation height; "
-                         "view_account finds stranger.testnet at block 221701472 (2026-10-22T11:50:00Z) from "
-                         "archival.example, at least 7 d old")
+                         "no access key carries a creation height; view_account finds stranger.testnet at block "
+                         "221701472 (2026-10-22T11:50:00Z) from archival.example, at least 7 d old")
         self.assertEqual(self.status(judgement, "dust_funded"), "pass")
         self.assertEqual(judgement.verdict, "ALLOW")
 
@@ -775,10 +811,13 @@ class StateAgeTest(RulesCase):
         self.fx.account_missing_at("pool.testnet", STATE_HEIGHT)
         judgement = self.judge(request("pool.testnet"), archival=self.archival)
         self.assertEqual(self.status(judgement, "account_age"), "unknown")
-        self.assertEqual(self.detail(judgement, "account_age"), self.PREFIX + "pool.testnet did not exist at block "
+        self.assertEqual(self.detail(judgement, "account_age"),
+                         "no archival age (pool.testnet has no access key; pool.testnet did not exist at block "
                          "221701472 (2026-10-22T11:50:00Z) from archival.example, so it was created after that "
-                         "block, which is at least 7 d old; whether it is younger than 7 days is not known")
-        self.assertEqual(self.age(judgement)["source"]["provider"], "archival.example")
+                         "block, which is at least 7 d old; whether it is younger than 7 days is not known); "
+                         "NearBlocks lists no access key for the account and view_account shows contract code, "
+                         "so no creation time could be read")
+        self.assertEqual(self.age(judgement)["source"]["provider"], "nearblocks.example")
         self.assertEqual(self.detail(judgement, "dust_funded"), "the creation transaction is not known")
         self.assertEqual(judgement.verdict, "UNKNOWN")
 
@@ -788,8 +827,11 @@ class StateAgeTest(RulesCase):
         with mock.patch.object(self.archival, "view_account_at") as state_read:
             judgement = self.judge(request("pool.testnet"), archival=self.archival)
         state_read.assert_not_called()
-        self.assertEqual(self.detail(judgement, "account_age"), self.PREFIX + "block 221701472 "
-                         "(2026-10-22T12:10:00Z) from archival.example is younger than 7 days")
+        self.assertEqual(self.detail(judgement, "account_age"),
+                         "no archival age (pool.testnet has no access key; block 221701472 "
+                         "(2026-10-22T12:10:00Z) from archival.example is younger than 7 days); "
+                         "NearBlocks lists no access key for the account and view_account shows contract code, "
+                         "so no creation time could be read")
         self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
         self.assertEqual(judgement.verdict, "UNKNOWN")
 
@@ -798,8 +840,10 @@ class StateAgeTest(RulesCase):
         self.fx.block_missing(STATE_HEIGHT)
         judgement = self.judge(request("pool.testnet"), archival=self.archival)
         self.assertEqual(self.detail(judgement, "account_age"),
-                         self.PREFIX + "archival block_at could not run: RPC error UNKNOWN_BLOCK")
-        self.assertEqual(self.age(judgement)["source"]["provider"], "archival.example")
+                         "no archival age (pool.testnet has no access key; archival block_at could not run: "
+                         "RPC error UNKNOWN_BLOCK); NearBlocks lists no access key for the account and "
+                         "view_account shows contract code, so no creation time could be read")
+        self.assertEqual(self.age(judgement)["source"]["provider"], "nearblocks.example")
         self.assertEqual(judgement.verdict, "UNKNOWN")
 
     def test_a_state_of_another_block_reads_unknown(self):
@@ -807,24 +851,32 @@ class StateAgeTest(RulesCase):
         self.fx.block_at(STATE_HEIGHT, OLD_NS)
         self.fx.account_at("pool.testnet", STATE_HEIGHT, block_height=STATE_HEIGHT + 1)
         judgement = self.judge(request("pool.testnet"), archival=self.archival)
-        self.assertEqual(self.detail(judgement, "account_age"), self.PREFIX + "archival view_account could not run: "
-                         "MalformedResponse: view_account at block 221701472 came back at block 221701473")
+        self.assertEqual(self.detail(judgement, "account_age"),
+                         "no archival age (pool.testnet has no access key; archival view_account could not run: "
+                         "MalformedResponse: view_account at block 221701472 came back at block 221701473); "
+                         "NearBlocks lists no access key for the account and view_account shows contract code, "
+                         "so no creation time could be read")
         self.assertEqual(judgement.verdict, "UNKNOWN")
 
     def test_a_state_read_that_could_not_run_reads_unknown(self):
         self.locked()
         self.fx.block_at(STATE_HEIGHT, OLD_NS)
-        failed = self.PREFIX + "archival view_account could not run: "
+        failed = "pool.testnet has no access key; archival view_account could not run: "
+        fallback = ("; NearBlocks lists no access key for the account and view_account shows contract code, "
+                    "so no creation time could be read")
         judgement = self.judge(request("pool.testnet"), archival=self.archival)
-        self.assertEqual(self.detail(judgement, "account_age"), failed + "no recorded response for the request")
+        self.assertEqual(self.detail(judgement, "account_age"),
+                         "no archival age (" + failed + "no recorded response for the request)" + fallback)
         self.assertEqual(judgement.verdict, "UNKNOWN")
         with mock.patch.object(self.archival, "view_account_at", side_effect=rpc.HttpError(500, ARCHIVAL_URL)):
             judgement = self.judge(request("pool.testnet"), archival=self.archival)
-        self.assertEqual(self.detail(judgement, "account_age"), failed + "HTTP 500")
+        self.assertEqual(self.detail(judgement, "account_age"),
+                         "no archival age (" + failed + "HTTP 500)" + fallback)
         self.assertEqual(judgement.verdict, "UNKNOWN")
         self.fx.archival_error("query", self.fx.state_params("pool.testnet", STATE_HEIGHT), "UNKNOWN_BLOCK")
         judgement = self.judge(request("pool.testnet"), archival=self.archival)
-        self.assertEqual(self.detail(judgement, "account_age"), failed + "RPC error UNKNOWN_BLOCK")
+        self.assertEqual(self.detail(judgement, "account_age"),
+                         "no archival age (" + failed + "RPC error UNKNOWN_BLOCK)" + fallback)
         self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
         self.assertEqual(judgement.verdict, "UNKNOWN")
 
@@ -836,8 +888,10 @@ class StateAgeTest(RulesCase):
                 judgement = self.judge(request("pool.testnet"), archival=archival)
                 self.assertEqual(archival.method_calls, [])
                 self.assertEqual(self.detail(judgement, "account_age"),
-                                 self.PREFIX + "the receiver's view_account names no block height")
-                self.assertEqual(self.age(judgement)["source"]["provider"], "rpc.example")
+                                 "no archival age (pool.testnet has no access key; the receiver's view_account "
+                                 "names no block height); NearBlocks lists no access key for the account and "
+                                 "view_account shows contract code, so no creation time could be read")
+                self.assertEqual(self.age(judgement)["source"]["provider"], "nearblocks.example")
                 self.assertEqual(judgement.verdict, "UNKNOWN")
 
     def test_a_failed_nonce_path_read_never_reaches_the_state_read(self):
@@ -855,8 +909,8 @@ class StateAgeTest(RulesCase):
             judgement = self.judge(request("stranger.testnet"), archival=self.archival)
         state_read.assert_not_called()
         self.assertEqual(self.detail(judgement, "account_age"),
-                         "no creation time from NearBlocks (keys empty); archival block_at could not run: "
-                         "RPC error UNKNOWN_BLOCK")
+                         "no archival age (archival block_at could not run: RPC error UNKNOWN_BLOCK); "
+                         "no key of stranger.testnet carries a creation time")
         self.assertEqual(judgement.verdict, "UNKNOWN")
 
     def test_a_lookalike_keeps_the_unread_deposit_unknown(self):
@@ -1407,12 +1461,13 @@ class IssuerBlacklistTest(RulesCase):
                                           'get_blacklist_status answers "Banned"; '))
         self.assertIn(f"{collector} is banned by a token issuer ({detail}).", recorded["reasons"])
         client = rpc.Client(rpc.MAINNET_RPC_URL, "replay", fixtures_dir=ROOT / "fixtures" / "receivers" / "rpc")
-        nearblocks = rpc.Client(rpc.NEARBLOCKS_URL, "replay", kind="http",
-                                fixtures_dir=ROOT / "fixtures" / "receivers" / "rpc")
+        receiver_fixtures = ROOT / "fixtures" / "receivers" / "rpc"
+        nearblocks = rpc.Client(rpc.NEARBLOCKS_URL, "replay", kind="http", fixtures_dir=receiver_fixtures)
+        archival = rpc.Client(rpc.ARCHIVAL_RPC_URL, "replay", fixtures_dir=receiver_fixtures)
         set_document = json.loads((ROOT / "fixtures" / "receivers" / "set.json").read_text(encoding="utf-8"))
         judgement = rules.judge(recorded["request"], {"allowlist": [], "caps": []}, labels.load(), client, nearblocks,
                                 now_ms=set_document["judged_at_ms"], injection_scanner=None,
-                                issuers=rules.issuers_for("mainnet"))
+                                archival=archival, issuers=rules.issuers_for("mainnet"))
         self.assertEqual(judgement.checks, recorded["checks"])
         rhea = json.loads((ROOT / "intel" / "incidents" / "rhea.json").read_text(encoding="utf-8"))
         [today] = [entry for entry in rhea["rules_today"] if entry["subject"] == collector]

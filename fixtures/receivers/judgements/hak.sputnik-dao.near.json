@@ -53,7 +53,7 @@
     {
       "id": "account_age",
       "status": "pass",
-      "detail": "created 1966 d ago",
+      "detail": "no archival age (view_access_key_list could not run: no recorded response for the request); created 1966 d ago",
       "source": {
         "provider": "api.nearblocks.io",
         "request_sha256": "9d10d5a7700097f9cd01736b5dac1b308929441151f795ad58a0c8a8a497d908",
