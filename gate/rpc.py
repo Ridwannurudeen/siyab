@@ -132,6 +132,22 @@ def _seconds(timestamp):
     return datetime.strptime(timestamp, _TIME_FORMAT).replace(tzinfo=UTC).timestamp()
 
 
+def trim_block_response(response):
+    """Keep only the block header fields callers read in a successful RPC response."""
+    if not isinstance(response, dict) or "error" in response:
+        return response
+    result = response.get("result")
+    if not isinstance(result, dict):
+        return response
+    header = result.get("header")
+    if not isinstance(header, dict) or not all(key in header for key in ("hash", "height", "timestamp")):
+        return response
+    if not all(key in response for key in ("jsonrpc", "id")):
+        return response
+    return {"jsonrpc": response["jsonrpc"], "id": response["id"],
+            "result": {"header": {key: header[key] for key in ("hash", "height", "timestamp")}}}
+
+
 class Client:
     """One endpoint: kind "rpc" for NEAR JSON-RPC at url, kind "http" for JSON over HTTP.
 
@@ -287,7 +303,9 @@ class Client:
         fetched_at = _timestamp(self.clock())
         self.last_source["fetched_at"] = fetched_at
         if self.mode == "record":
-            fixture = {"request": {"method": method, "params": params}, "response": response,
+            recorded_response = (trim_block_response(response)
+                                 if self.kind == "rpc" and method == "block" else response)
+            fixture = {"request": {"method": method, "params": params}, "response": recorded_response,
                        "url": url, "fetched_at": fetched_at}
             self.fixtures_dir.mkdir(parents=True, exist_ok=True)
             path.write_bytes((json.dumps(fixture, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
