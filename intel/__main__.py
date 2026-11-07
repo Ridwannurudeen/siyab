@@ -24,6 +24,20 @@ transaction (at most two NearBlocks calls each), so every later receiver without
 recording is dated by its oldest access key nonce or an archival view_account alone and reads
 unknown on age where neither dates it. The view calls, archival reads and NearBlocks answers live
 under fixtures/receivers/rpc/. Without --record nothing touches the network.
+
+top-receivers --hours N [--to-height H] [--record] [--data-dir DIR] scans the pinned window ending
+at neardata's final block, or at H, and bisects for the first height at or after the start time.
+It stores only reduced heights in resumable batches outside the repository; a null height is marked
+skipped. Successful native Transfer actions with a positive deposit count unless their predecessor
+is system, and successful EVENT_JSON nep141 ft_transfer events count from old_owner_id to
+new_owner_id with the token contract as the asset; failed receipts and self transfers are dropped.
+nep245 mt_transfer events from intents.near stay in a separate cohort. Receivers are ordered by
+distinct payer count descending, transfer count descending, then account id ascending. Implicit
+account ids are left out unless the label store has a current catalog_token row. The named-account
+exclusions stated by set.json are applied after selecting the first 1,000, without replacement.
+fixtures/receivers/top.json records the pinned heights and timestamps, fetched and skipped heights,
+the sha256 of the concatenated reductions, and the exclusions. The data directory defaults to
+~/.cache/shieldbot-near/top-receivers and never contains raw blocks.
 """
 
 import argparse
@@ -36,13 +50,15 @@ import time
 from pathlib import Path
 
 from gate import rpc, rules
-from intel import alerts, api, cluster, feed, issuers, labels, records, render, reports, sanctions, seed, snapshot, trace
+from intel import alerts, api, cluster, feed, issuers, labels, records, render, reports, sanctions, seed, snapshot, top_receivers, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 RECEIVERS_DIR = ROOT / "fixtures" / "receivers"
 FASTNEAR_DIR = ROOT / "fixtures" / "fastnear"
 # The view calls and NearBlocks answers the receiver judgements read, kept apart from fixtures/rpc/.
 RECEIVER_RPC_DIR = RECEIVERS_DIR / "rpc"
+TOP_RECEIVERS_PATH = top_receivers.RANKING_PATH
+TOP_RECEIVERS_DIR = RECEIVERS_DIR / "top"
 RHEA_INCIDENT = ROOT / "intel" / "incidents" / "rhea.json"
 TRANSFERS_URL = "https://transfers.main.fastnear.com"
 # The public accounts whose counterparties join the set, each with its role.
@@ -229,6 +245,11 @@ def receivers_rule():
     return " ".join(" ".join(__doc__.split("\n\n")[1:3]).split())
 
 
+def top_receivers_rule():
+    """The top receiver rule from the third receiver paragraph of this docstring."""
+    return " ".join(__doc__.split("\n\n")[3].split())
+
+
 def record_receivers(store, previous, exclude, clock=time.time, reports_account=None):
     """Choose the set, leaving the ids of exclude out of the counterparties, and fetch what the rules read for
     the subjects previous (the subjects of the committed set) does not hold; returns the set document."""
@@ -306,6 +327,80 @@ def _receivers(args):
     print(f"On {len(verdicts)} recorded mainnet receivers the rules returned {verdicts.count('ALLOW')} ALLOW, "
           f"{verdicts.count('DENY')} DENY, {verdicts.count('UNKNOWN')} Unknown.")
     print(cohort_line(document, results))
+    return 0
+
+
+def top_receiver_exclusions(store):
+    """The manually excluded counterparties recorded by the existing receiver set."""
+    set_document = json.loads((RECEIVERS_DIR / "set.json").read_text(encoding="utf-8"))
+    recorded = {entry["subject"] for entry in set_document["subjects"] if entry["cohort"] == "counterparty"}
+    transfers_client = rpc.Client(TRANSFERS_URL, "replay", kind="http", fixtures_dir=FASTNEAR_DIR)
+    chosen, _, _ = choose(store, transfers_client)
+    candidates = {entry["subject"] for entry in chosen if entry["cohort"] == "counterparty"}
+    excluded = candidates - recorded
+    stated_count = re.search(r"\((\d+) accounts\)", set_document["exclusion"])
+    if stated_count is None or len(excluded) != int(stated_count.group(1)):
+        raise ValueError("the receiver-set exclusion count does not match its recorded candidates")
+    return excluded
+
+
+def record_top_receiver_judgements(document, store, reports_account=None):
+    """Record missing RPC reads for the top set, using the existing age lookup limit."""
+    client = rpc.Client(rpc.MAINNET_RPC_URL, "record", fixtures_dir=RECEIVER_RPC_DIR)
+    archival = rpc.Client(rpc.ARCHIVAL_RPC_URL, "record", fixtures_dir=RECEIVER_RPC_DIR)
+    for entry in document["subjects"]:
+        nearblocks = rpc.Client(rpc.NEARBLOCKS_URL, "record" if entry["age_recorded"] else "replay",
+                                kind="http", fixtures_dir=RECEIVER_RPC_DIR)
+        _judge(entry, store, client, nearblocks, document["judged_at_ms"], archival, reports_account)
+
+
+def top_receivers_coverage_line(document, results):
+    """Count outcomes and each unknown check across the separate top receiver judgement set."""
+    expected = len(document["subjects"])
+    verdicts = [result["verdict"] for result in results]
+    causes = {}
+    for result in results:
+        if result["verdict"] != "UNKNOWN":
+            continue
+        found = [check["id"] for check in result["checks"] if check["status"] == "unknown"]
+        for cause in found or ["unspecified"]:
+            causes[cause] = causes.get(cause, 0) + 1
+    cause_text = ", ".join(f"{cause} {count}" for cause, count in sorted(causes.items())) or "none"
+    return (f"Top receiver coverage: judged {len(verdicts)}/{expected}; "
+            f"ALLOW {verdicts.count('ALLOW')}/{expected}; DENY {verdicts.count('DENY')}/{expected}; "
+            f"UNKNOWN {verdicts.count('UNKNOWN')}/{expected}; UNKNOWN causes: {cause_text}.")
+
+
+def _top_receivers(args):
+    store = labels.load()
+    try:
+        state = top_receivers.scan_window(args.hours, args.to_height, args.record, args.data_dir)
+        exclusions = top_receiver_exclusions(store)
+        document = top_receivers.build_ranking(
+            args.data_dir, state, top_receivers_rule(), catalog_accounts(store), exclusions,
+            EXCLUSION.format(len(exclusions)), AGE_SUBJECTS)
+    except (feed.FeedError, rpc.FixtureMiss, rpc.HttpError, rpc.RateLimited, rpc.TransportError,
+            top_receivers.TopReceiversError, OSError) as error:
+        print(f"stopped: {error}", file=sys.stderr)
+        return 1
+    _write_json(TOP_RECEIVERS_PATH, document)
+    print(f"Wrote {len(document['subjects'])} ranked receivers to fixtures/receivers/top.json.")
+    return 0
+
+
+def _judge_top_receivers(args):
+    store = labels.load()
+    try:
+        document = json.loads(TOP_RECEIVERS_PATH.read_text(encoding="utf-8"))
+        if args.record:
+            record_top_receiver_judgements(document, store, os.environ.get("REPORTS_ACCOUNT_ID"))
+        results = judge_receivers(document, store, TOP_RECEIVERS_DIR,
+                                  reports_account=os.environ.get("REPORTS_ACCOUNT_ID"))
+    except (feed.FeedError, rpc.FixtureMiss, rpc.HttpError, rpc.RateLimited, rpc.TransportError,
+            OSError, ValueError) as error:
+        print(f"stopped: {error}", file=sys.stderr)
+        return 1
+    print(top_receivers_coverage_line(document, results))
     return 0
 
 
@@ -475,6 +570,18 @@ def main(argv=None):
                            "one per line, left out of the counterparties")
     receivers.set_defaults(handler=_receivers)
     feeding = commands.add_parser("feed", help="six signals: code_hash_matches_incident, fresh_dust_funded_pays_labelled, watch_account_key_added, labelled_account_large_transfer, deploy_on_labelled_contract, full_access_key_then_outflow")
+    top = commands.add_parser("top-receivers", help="scan and rank mainnet payment receivers")
+    top.add_argument("--hours", type=int, required=True, help="length of the pinned scan window in hours")
+    top.add_argument("--to-height", type=int, help="pin the window end to this height instead of the final block")
+    top.add_argument("--record", action="store_true", help="fetch blocks and resume the reduced scan")
+    top.add_argument("--data-dir", type=Path, default=top_receivers.DEFAULT_DATA_DIR,
+                     help=f"outside-repository reductions and checkpoint (default: "
+                          f"{top_receivers.DEFAULT_DATA_DIR})")
+    top.set_defaults(handler=_top_receivers)
+    top_judge = commands.add_parser("judge-top-receivers", help="judge the separate top receiver set")
+    top_judge.add_argument("--record", action="store_true", help="record missing RPC reads before replay")
+    top_judge.set_defaults(handler=_judge_top_receivers)
+    feeding = commands.add_parser("feed", help="five signals: code_hash_matches_incident, fresh_dust_funded_pays_labelled, watch_account_key_added, labelled_account_large_transfer, deploy_on_labelled_contract")
     feeding.add_argument("--from", dest="start", type=int, help="the first height (default: after the state)")
     feeding.add_argument("--blocks", type=int, help="how many recorded heights to walk")
     feeding.add_argument("--follow", action="store_true", help="follow finalized heights continuously")
