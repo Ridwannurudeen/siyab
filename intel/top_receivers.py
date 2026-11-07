@@ -18,7 +18,10 @@ RANKING_PATH = ROOT / "fixtures" / "receivers" / "top.json"
 DEFAULT_DATA_DIR = Path.home() / ".cache" / "shieldbot-near" / "top-receivers"
 BATCH_SIZE = 1000
 RANK_LIMIT = 1000
-REQUEST_INTERVAL_S = max(feed.FOLLOW_INTERVAL_S, 60 / 170)
+# neardata answers /v0/block/<height> with a redirect, so each block costs two requests against its published limit
+# of 180 a minute per IP for keyless callers; 80 blocks a minute (160 requests) stays under it. Measured on
+# 7 Nov 2026: at 170 blocks a minute every request answered 429.
+REQUEST_INTERVAL_S = 60 / 80
 # A scan of about 150,000 requests meets dropped connections; each is retried after these pauses, in seconds.
 TRANSIENT_BACKOFF_S = (5, 10, 20, 40, 60, 60)
 # A block takes one to two seconds to download, so one request at a time cannot reach the request rate the gate
