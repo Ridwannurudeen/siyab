@@ -233,7 +233,7 @@ class SignalTest(unittest.TestCase):
     def test_signal_order_and_stats_lines_include_the_new_feed_signals(self):
         self.assertEqual(feed.SIGNALS, ("code_hash_matches_incident", "fresh_dust_funded_pays_labelled",
                                        "watch_account_key_added", "labelled_account_large_transfer",
-                                       "deploy_on_labelled_contract"))
+                                       "deploy_on_labelled_contract", "full_access_key_then_outflow"))
         state = feed.new_state()
         state.update(mode="follow", started_at="2026-11-03T00:00:00Z", last_height=1,
                      last_time="2026-11-03T00:00:01Z", lag_blocks=0)

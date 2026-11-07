@@ -217,16 +217,15 @@ class Client:
         """The account's code hash in base58; EMPTY_CODE_HASH when it has no contract."""
         return self.view_account(account_id)["code_hash"]
 
-    def call_function(self, contract, method, args):
-        """The parsed JSON a view method returns."""
+    def call_function(self, contract, method, args, *, block_id=None):
+        """The parsed JSON a view method returns, optionally pinned to a block height."""
         encoded = json.dumps(args, sort_keys=True, separators=(",", ":")).encode("utf-8")
-        result = self.call("query", {
-            "request_type": "call_function",
-            "finality": "final",
-            "account_id": contract,
-            "method_name": method,
-            "args_base64": base64.b64encode(encoded).decode("ascii"),
-        })
+        if block_id is not None and (type(block_id) is not int or block_id < 0):
+            raise ValueError("block_id must be a non negative integer")
+        params = {"request_type": "call_function", "account_id": contract, "method_name": method,
+                  "args_base64": base64.b64encode(encoded).decode("ascii")}
+        params["finality" if block_id is None else "block_id"] = "final" if block_id is None else block_id
+        result = self.call("query", params)
         if not isinstance(result, dict):
             raise MalformedResponse("the call_function result is not an object")
         if "error" in result:

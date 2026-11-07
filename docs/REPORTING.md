@@ -101,3 +101,9 @@ If `REPORTS_ACCOUNT_ID` is unset, `gate/rules.py` makes no `subject_summary` cal
 ## What this policy does not cover
 
 A report says an account should not be paid, with evidence. It does not say who controls the account, and it is not a finding that anyone committed a crime. No document under this policy names an account as a hostile party or a victim without a cited source (`docs/DECISIONS.md`, entry 12); every example in these pages is synthetic and says so. There is no contact channel off chain on main: the contract calls above are the only intake.
+
+## Pending count recordings
+
+`python -m intel reports-pending-counts` reads `REPORTS_ACCOUNT_ID` through `gate.rpc.Client` and appends one JSON line to `fixtures/reports/pending-counts.jsonl`. Each line records the UTC time, the block height, contract `totals`, and each subject's pending count from its reports. No view lists subjects, so the recorder walks `get_report(id)` from id 0 and checks each distinct subject with `subject_summary`; it records both pending counts and flags any mismatch. The scan is capped at 500 report ids and marks a truncated scan in the row.
+
+The testnet contract holds no reports, so these lines are expected to read zero until outside reporters exist. Two weeks of lines are the data for the pending policy decision in `docs/LADDER.md`; no decision has been taken yet. Empty lines may not be used as evidence for a value threshold.
