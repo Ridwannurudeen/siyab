@@ -109,4 +109,4 @@ Every account, URL and hash below is synthetic. The accounts are placeholders, n
 
 ## What this format does not do
 
-It names no person and gives no motive. It does not decide a verdict: `docs/LADDER.md` does, from the contract's `subject_summary`. It does not hold a report's state, which is read from the chain. It is not built: when a validator and a renderer are written, they implement this page, and a change to the format is a version 2 with its own page section, not an edit of v1.
+It names no person and gives no motive. It does not decide a verdict: `docs/LADDER.md` does, from the contract's `subject_summary`. It does not hold a report's state, which is read from the chain. A change to the format is a version 2 with its own page section, not an edit of v1.

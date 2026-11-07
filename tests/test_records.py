@@ -116,6 +116,14 @@ class RecordValidationTest(unittest.TestCase):
         evidence[0]["url"] = "http://example.test/report"
         self.rejects(base_record(evidence=evidence), "evidence[0].url: an https URL is required")
 
+    def test_evidence_url_requires_a_parseable_non_empty_hostname(self):
+        for url, message in (("https://", "hostname"), ("https://@", "hostname"),
+                             ("https://[", "could not be parsed")):
+            with self.subTest(url=url):
+                evidence = copy.deepcopy(base_record()["evidence"])
+                evidence[0]["url"] = url
+                self.rejects(base_record(evidence=evidence), message)
+
     def test_evidence_url_must_fit_in_512_utf8_bytes(self):
         evidence = copy.deepcopy(base_record()["evidence"])
         evidence[0]["url"] = "https://" + "x" * 505
@@ -157,14 +165,44 @@ class RecordValidationTest(unittest.TestCase):
         with self.assertRaisesRegex(records.RecordError, "report 3 is missing"):
             records.validate(base_record(reports=[citation]), report_reader=lambda *args: None)
 
-    def test_reasons_must_have_valid_shape_and_matching_utf8_hash(self):
+    def test_reasons_must_cite_a_report_and_have_a_matching_utf8_hash(self):
         text = "Synthetic review reason: caf?."
         reason = {"report_id": 0, "dispute_id": None,
                   "reason_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(), "text": text}
-        records.validate(base_record(reasons=[reason]))
-        self.rejects(base_record(reasons=[dict(reason, reason_sha256="c" * 64)]),
+        citation = {"network": "testnet", "contract": "reports.kestrelridge-main.testnet", "report_id": 0,
+                    "body_sha256": "b" * 64}
+        records.validate(base_record(reports=[citation], reasons=[reason]))
+        self.rejects(base_record(reasons=[reason]), "does not cite a report")
+        self.rejects(base_record(reports=[citation], reasons=[dict(reason, reason_sha256="c" * 64)]),
                      "reason_sha256: does not match")
-        self.rejects(base_record(reasons=[dict(reason, dispute_id=True)]), "dispute_id: null or")
+        self.rejects(base_record(reports=[citation], reasons=[dict(reason, dispute_id=True)]),
+                     "dispute_id: null or")
+
+    def test_moderation_reason_hash_must_match_the_report_reader(self):
+        text = "Synthetic moderation reason."
+        reason_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        citation = {"network": "testnet", "contract": "reports.kestrelridge-main.testnet", "report_id": 0,
+                    "body_sha256": "b" * 64}
+        reason = {"report_id": 0, "dispute_id": None, "reason_sha256": reason_hash, "text": text}
+
+        records.validate(base_record(reports=[citation], reasons=[reason]),
+                         report_reader=lambda *args: {"body_sha256": "b" * 64,
+                                                      "reason_sha256": reason_hash})
+        with self.assertRaisesRegex(records.RecordError, "does not match report 0"):
+            records.validate(base_record(reports=[citation], reasons=[reason]),
+                             report_reader=lambda *args: {"body_sha256": "b" * 64,
+                                                          "reason_sha256": "c" * 64})
+
+    def test_dispute_reason_is_refused_when_reader_cannot_verify_its_hash(self):
+        text = "Synthetic dispute resolution reason."
+        reason = {"report_id": 0, "dispute_id": 4,
+                  "reason_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(), "text": text}
+        citation = {"network": "testnet", "contract": "reports.kestrelridge-main.testnet", "report_id": 0,
+                    "body_sha256": "b" * 64}
+        with self.assertRaisesRegex(records.RecordError, "get_dispute does not expose it"):
+            records.validate(base_record(reports=[citation], reasons=[reason]),
+                             report_reader=lambda *args: {"body_sha256": "b" * 64,
+                                                          "reason_sha256": reason["reason_sha256"]})
 
     def test_assertion_ids_must_be_sha256_ids(self):
         self.rejects(base_record(assertion_ids=["not-an-id"]), "assertion_ids[0]")

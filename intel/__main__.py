@@ -82,12 +82,26 @@ def _counts(args):
 
 
 def _record_check(args):
-    failed = False
+    results = []
+    superseders = {}
     for path in args.paths:
         try:
-            records.read(path)
+            record = records.read(path)
         except records.RecordError as error:
+            results.append((path, None, error))
+        else:
+            results.append((path, record, None))
+            if record["supersedes"] is not None:
+                superseders.setdefault(record["supersedes"], set()).add(record["record_id"])
+
+    conflicts = {record_id for record_id, ids in superseders.items() if len(ids) > 1}
+    failed = False
+    for path, record, error in results:
+        if error is not None:
             print(f"refused {path}: {error}")
+            failed = True
+        elif record["supersedes"] in conflicts:
+            print(f"refused {path}: multiple records supersede {record['supersedes']}")
             failed = True
         else:
             print(f"valid {path}")

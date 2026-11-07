@@ -5,6 +5,7 @@ import json
 import re
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from gate.canon import CanonError, account_id
 from gate.evidence import canonical_bytes
@@ -65,8 +66,16 @@ def _utc_time(value, path):
 
 
 def _https_url(value, path, max_bytes=None):
-    if not isinstance(value, str) or not value.startswith("https://"):
+    if not isinstance(value, str):
         raise RecordError(f"{path}: an https URL is required")
+    try:
+        parsed = urlsplit(value)
+    except ValueError as error:
+        raise RecordError(f"{path}: the URL could not be parsed") from error
+    if parsed.scheme != "https":
+        raise RecordError(f"{path}: an https URL is required")
+    if not parsed.hostname:
+        raise RecordError(f"{path}: an https URL with a hostname is required")
     try:
         size = len(value.encode("utf-8"))
     except UnicodeEncodeError as error:
@@ -104,15 +113,16 @@ def _validate_report(citation, index, report_reader):
         raise RecordError(f"{path}.report_id: a non negative integer is required")
     _hash(citation["body_sha256"], f"{path}.body_sha256")
     if report_reader is None:
-        return
+        return None
     report = report_reader(citation["network"], citation["contract"], report_id)
     if not isinstance(report, dict) or "body_sha256" not in report:
         raise RecordError(f"{path}: report {report_id} is missing")
     if report["body_sha256"] != citation["body_sha256"]:
         raise RecordError(f"{path}.body_sha256: does not match report {report_id}")
+    return report
 
 
-def _validate_reasons(reasons):
+def _validate_reasons(reasons, reports, report_views):
     if not isinstance(reasons, list):
         raise RecordError("reasons: a list is required")
     for index, reason in enumerate(reasons):
@@ -130,6 +140,15 @@ def _validate_reasons(reasons):
             raise RecordError(f"{path}.text: valid UTF-8 text is required") from error
         if reason["reason_sha256"] != text_hash:
             raise RecordError(f"{path}.reason_sha256: does not match the UTF-8 text")
+        report_id = reason["report_id"]
+        if report_id not in {citation["report_id"] for citation in reports}:
+            raise RecordError(f"{path}.report_id: does not cite a report in this record")
+        if report_views is not None:
+            if dispute_id is not None:
+                raise RecordError(f"{path}: cannot verify the dispute resolution reason hash; get_dispute does not expose it")
+            for report_view in report_views[report_id]:
+                if report_view.get("reason_sha256") != reason["reason_sha256"]:
+                    raise RecordError(f"{path}.reason_sha256: does not match report {report_id}")
 
 
 def _validate_timeline_source(source, event, path):
@@ -225,9 +244,12 @@ def validate(record, report_reader=None) -> None:
     _validate_evidence(record["evidence"])
     if not isinstance(record["reports"], list):
         raise RecordError("reports: a list is required")
+    report_views = {} if report_reader is not None else None
     for index, citation in enumerate(record["reports"]):
-        _validate_report(citation, index, report_reader)
-    _validate_reasons(record["reasons"])
+        report_view = _validate_report(citation, index, report_reader)
+        if report_views is not None:
+            report_views.setdefault(citation["report_id"], []).append(report_view)
+    _validate_reasons(record["reasons"], record["reports"], report_views)
     if not isinstance(record["assertion_ids"], list):
         raise RecordError("assertion_ids: a list is required")
     for index, assertion_id in enumerate(record["assertion_ids"]):
