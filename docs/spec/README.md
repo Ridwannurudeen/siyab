@@ -18,6 +18,20 @@ Each page states its version on a line that begins `Version: <n>`, such as `Vers
 
 Where a page and the code disagree, the code is the source of truth and the page is wrong; each page names the file and line it follows.
 
+## Version 1 freeze
+
+As of this commit, every format listed above is version 1. A change to any byte-level rule requires a new v2 page beside the v1 page; do not edit a v1 page to change the bytes a conforming writer emits or reader accepts. Clarifications, added vectors and corrected references that leave the byte rules unchanged do not change the version.
+
+`tests/test_spec.py` pins the page vectors with these tests:
+
+| Page | Vector tests |
+|---|---|
+| [label-assertion-v1.md](label-assertion-v1.md) | `tests/test_spec.py::LabelAssertionTest.test_vectors_reproduce`, `tests/test_spec.py::LabelAssertionTest.test_registry_label_events_name_store_rows` |
+| [evidence-v1.md](evidence-v1.md) | `tests/test_spec.py::EvidenceTest.test_stored_documents_check`, `tests/test_spec.py::EvidenceTest.test_worked_example_is_vector_04` |
+| [verdict-v1.md](verdict-v1.md) | `tests/test_spec.py::VerdictTest.test_vectors_regenerate_and_verify`, `tests/test_spec.py::VerdictTest.test_worked_example_is_vector_04`, `tests/test_spec.py::VerdictTest.test_test_verifier_key_file` |
+| [registry-record-v1.md](registry-record-v1.md) | `tests/test_spec.py::RegistryRecordTest.test_sample_allow_verifies`, `tests/test_spec.py::RegistryRecordTest.test_testnet_records_check_against_their_evidence` |
+| [report-v1.md](report-v1.md) | `tests/test_spec.py::ReportTest.test_body_vector_reproduces`, `tests/test_spec.py::ReportTest.test_enumerations_match_the_canonical_json` |
+
 ## Conformance
 
 An implementation conforms to a page when it reproduces every vector that page names byte for byte: the same serialized bytes, the same hashes and the same signatures, and the same acceptance or refusal for every vector that says what is expected. Reproducing a hash by another route (for example by reading it from the fixture) is not conformance; the bytes must be built from the vector's inputs.
