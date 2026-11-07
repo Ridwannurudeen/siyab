@@ -23,7 +23,9 @@ REGISTRY = Path("fixtures/registry")
 REGISTRY_READBACK = Path("fixtures/runs/registry-readback-20261105.txt")
 CLAIMS = Path("docs/CLAIMS.md")
 SCORECARD = Path("docs/SCORECARD.md")
-TEST_CITATION = re.compile(r"(?:\.test_[A-Za-z0-9_]+|::tests::[A-Za-z0-9_]+)")
+TEST_CITATION = re.compile(
+    r"(?:\.test_[A-Za-z0-9_]+|::tests::[A-Za-z0-9_]+|/tests/[^`\s|]+\.rs::[A-Za-z0-9_]+)"
+)
 
 
 def read_json(path):
