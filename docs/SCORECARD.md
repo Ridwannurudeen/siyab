@@ -8,11 +8,9 @@ These counts are not a precision or recall measurement against any outside groun
 
 | Measure | Numerator / denominator | Source |
 | --- | --- | --- |
-| Receiver ALLOW | 43 / 84 receivers | fixtures/receivers/set.json; fixtures/receivers/judgements/*.json |
+| Receiver ALLOW | 70 / 84 receivers | fixtures/receivers/set.json; fixtures/receivers/judgements/*.json |
 | Receiver DENY | 14 / 84 receivers | fixtures/receivers/set.json; fixtures/receivers/judgements/*.json |
-| Receiver UNKNOWN | 27 / 84 receivers | fixtures/receivers/set.json; fixtures/receivers/judgements/*.json |
-| UNKNOWN cause: account_age | 27 / 27 UNKNOWN judgements; causes can overlap | fixtures/receivers/set.json; fixtures/receivers/judgements/*.json |
-| UNKNOWN cause: dust_funded | 27 / 27 UNKNOWN judgements; causes can overlap | fixtures/receivers/set.json; fixtures/receivers/judgements/*.json |
+| Receiver UNKNOWN | 0 / 84 receivers | fixtures/receivers/set.json; fixtures/receivers/judgements/*.json |
 | Label assertions | 3,266 / 3,266 committed assertion rows | intel/labels.jsonl |
 | Hostile assertions (incident and denylist) | 47 / 3,266 assertions | intel/labels.jsonl; intel/incidents/*.json |
 | Reference assertions (all other categories) | 3,219 / 3,266 assertions | intel/labels.jsonl |
@@ -23,11 +21,12 @@ These counts are not a precision or recall measurement against any outside groun
 | Feed events since start | 0 / 64,697 followed blocks | intel/feed/follow-snapshot.json |
 | Feed snapshot interval | 2026-11-03T18:55:31Z to 2026-11-04T05:22:06Z | intel/feed/follow-snapshot.json |
 | Feed basis | snapshot, not live | intel/feed/follow-snapshot.json |
-| Claims rows | 48 / 48 parsed claim rows | docs/CLAIMS.md |
-| Claims citing a test | 43 / 48 claim rows | docs/CLAIMS.md |
+| Claims rows | 49 / 49 parsed claim rows | docs/CLAIMS.md |
+| Claims citing a test | 44 / 49 claim rows | docs/CLAIMS.md |
 
 ## Not measured
 
 | Measure | Reason | Source |
 | --- | --- | --- |
+| Receiver UNKNOWN causes | Not measured: judgement files record no unknown-status check IDs | fixtures/receivers/set.json; fixtures/receivers/judgements/*.json |
 | Test method count | Not measured: scripts/counts.py does not count test methods | scripts/counts.py |
