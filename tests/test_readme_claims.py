@@ -3,7 +3,7 @@ first screen states what is enforced and where.
 
 Each table is compared line for line with its source, and every file, function, test and fixture the
 README copy names must exist in the repository. The first screen is the headline, the one line and the
-paragraph before the first second level heading.
+blocks before the first second level heading; the full description is the paragraph under What it is.
 """
 
 import re
@@ -124,16 +124,18 @@ class ShippedRowsTest(unittest.TestCase):
 
 class FirstScreenTest(unittest.TestCase):
     def setUp(self):
-        self.blocks = first_screen(README.read_text(encoding="utf-8"))
+        text = README.read_text(encoding="utf-8")
+        self.blocks = first_screen(text)
+        self.description = text.split("\n## What it is\n\n", 1)[1].split("\n\n", 1)[0]
 
     def test_the_headline_and_the_one_line_open_the_readme_before_the_layers(self):
         self.assertEqual(self.blocks[:2], [HEADLINE, ONE_LINE])
-        self.assertTrue(self.blocks[2].startswith("ShieldBot for NEAR is a security intelligence layer for NEAR: a "
-                                                  "label store in which every assertion names its provenance class "
-                                                  "and its source"))
+        self.assertTrue(self.description.startswith("ShieldBot for NEAR is a security intelligence layer for NEAR: "
+                                                    "a label store in which every assertion names its provenance "
+                                                    "class and its source"))
 
     def test_the_guard_sentence_says_what_is_enforced_on_chain_and_where(self):
-        guard = re.search(r"Its first consumer is a guard: [^.]*\.", self.blocks[2]).group(0)
+        guard = re.search(r"Its first consumer is a guard: [^.]*\.", self.description).group(0)
         for words in ("in a preflight before signing", "a NEAR contract on testnet",
                       "pays only on a signed ALLOW bound to that exact transfer"):
             with self.subTest(words=words):
@@ -142,14 +144,14 @@ class FirstScreenTest(unittest.TestCase):
 
     def test_the_registry_sentence_states_the_testnet_total_and_the_payments_without_a_record(self):
         total = re.findall(r"`total_records` (\d+)", TESTNET.read_text(encoding="utf-8"))[-1]
-        self.assertIn(f"The testnet registry holds {total} verdict records: ", self.blocks[2])
+        self.assertIn(f"The testnet registry holds {total} verdict records: ", self.description)
         self.assertIn(
             "the DENYs of the lookalike, the aged payee and the collector account named in the Rhea Lend "
             "incident report",
-            self.blocks[2],
+            self.description,
         )
         self.assertIn("the first payment and the replay attack's first send have no record, because their evidence "
-                      "documents were not kept", self.blocks[2])
+                      "documents were not kept", self.description)
 
     def test_the_first_screen_states_no_rank_and_names_no_host(self):
         screen = "\n\n".join(self.blocks).lower()
