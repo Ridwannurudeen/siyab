@@ -6,11 +6,21 @@ parse_dry_run "$@"
 require_testnet
 require_vars OWNER_ACCOUNT_ID GATE_ACCOUNT_ID NEAR_KEYS_DIR VERIFIER_PUB
 MAX_TTL_MS=${MAX_TTL_MS:-300000}
-if [[ "${#SCRIPT_ARGS[@]}" -ne 1 ]]; then
-  printf 'usage: rotate_verifier.sh <new_verifier_public_key> [--dry-run]\n' >&2
-  exit 2
+revoke_previous=0
+if [[ "${SCRIPT_ARGS[0]:-}" == "--revoke-previous" ]]; then
+  if [[ "${#SCRIPT_ARGS[@]}" -ne 2 ]]; then
+    printf 'usage: rotate_verifier.sh [--revoke-previous] <new_verifier_public_key> [--dry-run]\n' >&2
+    exit 2
+  fi
+  revoke_previous=1
+  new_verifier=${SCRIPT_ARGS[1]}
+else
+  if [[ "${#SCRIPT_ARGS[@]}" -ne 1 ]]; then
+    printf 'usage: rotate_verifier.sh [--revoke-previous] <new_verifier_public_key> [--dry-run]\n' >&2
+    exit 2
+  fi
+  new_verifier=${SCRIPT_ARGS[0]}
 fi
-new_verifier=${SCRIPT_ARGS[0]}
 require_account_id "$OWNER_ACCOUNT_ID" "owner account"
 require_account_id "$GATE_ACCOUNT_ID" "Gate account"
 require_ed25519_public_key "$VERIFIER_PUB" "current verifier public key"
@@ -19,12 +29,25 @@ if [[ "$new_verifier" == "$VERIFIER_PUB" ]]; then
   printf 'new verifier public key must differ from VERIFIER_PUB\n' >&2
   exit 2
 fi
-require_u64 "$MAX_TTL_MS" "MAX_TTL_MS"
-if [[ "$MAX_TTL_MS" == "0" ]]; then
-  printf 'MAX_TTL_MS must be greater than zero\n' >&2
-  exit 2
-fi
-ARGS=$(python3 - "$new_verifier" "$VERIFIER_PUB" "$MAX_TTL_MS" <<'PY'
+if [[ "$revoke_previous" == "1" ]]; then
+  ARGS=$(python3 - "$new_verifier" <<'PY'
+import json
+import sys
+
+print(json.dumps({
+    "current": sys.argv[1],
+    "previous": None,
+    "previous_valid_until_ms": 0,
+}, separators=(",", ":")))
+PY
+  )
+else
+  require_u64 "$MAX_TTL_MS" "MAX_TTL_MS"
+  if [[ "$MAX_TTL_MS" == "0" ]]; then
+    printf 'MAX_TTL_MS must be greater than zero\n' >&2
+    exit 2
+  fi
+  ARGS=$(python3 - "$new_verifier" "$VERIFIER_PUB" "$MAX_TTL_MS" <<'PY'
 import json
 import sys
 import time
@@ -40,6 +63,7 @@ print(json.dumps({
     "previous_valid_until_ms": valid_until_ms,
 }, separators=(",", ":")))
 PY
-)
+  )
+fi
 call_transaction "$GATE_ACCOUNT_ID" set_verifier_keys "$ARGS" "$OWNER_ACCOUNT_ID" "$(account_key "$OWNER_ACCOUNT_ID")" '1 yoctoNEAR'
 summary_block "$GATE_ACCOUNT_ID"
