@@ -227,6 +227,9 @@ class ReceiverSetTest(unittest.TestCase):
                     "no creation time from NearBlocks (no recorded response for the request); "),
                     checks["account_age"]["detail"])
                 self.assertNotEqual(checks["account_age"]["source"]["provider"], "api.nearblocks.io")
+                self.assertEqual(checks["account_age"]["status"], "pass")
+                self.assertEqual(checks["account_age"]["source"]["provider"], "archival-rpc.mainnet.fastnear.com")
+                self.assertIn("view_account finds", checks["account_age"]["detail"])
         self.assertEqual(len(missing), 4)
 
 if __name__ == "__main__":
