@@ -65,9 +65,11 @@ CONTRACT_EXPORTS = {
         "reports_by_submitter",
         "resolve_dispute",
         "set_moderators",
+        "state_version",
         "subject_summary",
         "submit_report",
         "totals",
+        "version",
         "withdraw",
     ],
 }

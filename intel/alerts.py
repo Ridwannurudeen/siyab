@@ -4,7 +4,9 @@ from dataclasses import asdict, dataclass
 import hashlib
 import hmac
 import json
+import logging
 import math
+import os
 from pathlib import Path
 import re
 import sys
@@ -21,6 +23,7 @@ TIMEOUT_S = 5
 SIGNATURE_WINDOW_S = 300
 _SIGNATURE = re.compile(r"t=([0-9]+),v1=([0-9a-f]{64})")
 _STDOUT_LOCK = threading.Lock()
+_LOG = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -184,11 +187,32 @@ class StdoutSink:
         return {"ok": True, "attempts": 1}
 
 
+def configured_sinks(environ=None):
+    environ = os.environ if environ is None else environ
+    url_file = environ.get("SHIELDBOT_ALERT_URL_FILE")
+    if url_file:
+        try:
+            url = Path(url_file).read_text(encoding="utf-8").strip()
+        except (OSError, UnicodeError, ValueError):
+            return []
+        secret_path = environ.get("SHIELDBOT_ALERT_SECRET_FILE")
+        if not url or "\n" in url or "\r" in url or not secret_path:
+            return []
+        try:
+            return [WebhookSink(url, secret_path)]
+        except ValueError:
+            return []
+    if environ.get("SHIELDBOT_ALERT_STDOUT") == "1":
+        return [StdoutSink()]
+    return []
+
+
 def send(alert, sinks):
     results = []
     try:
         iterator = iter(sinks)
     except Exception as error:
+        _LOG.warning("Alert sink list failed: %s", type(error).__name__)
         return [{"sink": "sinks", "ok": False, "attempts": 0, "error": type(error).__name__}]
     while True:
         try:
@@ -196,6 +220,7 @@ def send(alert, sinks):
         except StopIteration:
             return results
         except Exception as error:
+            _LOG.warning("Alert sink list failed: %s", type(error).__name__)
             results.append({"sink": "sinks", "ok": False, "attempts": 0, "error": type(error).__name__})
             return results
         name = type(sink).__name__
@@ -204,5 +229,8 @@ def send(alert, sinks):
             if not isinstance(outcome, dict):
                 raise TypeError("sink result must be a dictionary")
             results.append({**outcome, "sink": name})
+            if not outcome.get("ok", False):
+                _LOG.warning("Alert sink %s failed: %s", name, outcome.get("error", "delivery_failed"))
         except Exception as error:
+            _LOG.warning("Alert sink %s failed: %s", name, type(error).__name__)
             results.append({"sink": name, "ok": False, "attempts": 0, "error": type(error).__name__})

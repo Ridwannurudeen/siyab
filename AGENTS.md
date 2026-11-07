@@ -79,7 +79,7 @@ Testnet script variables:
 - `OWNER_ACCOUNT_ID`: account authorized to configure the Gate and registry.
 - `VENDOR_ACCOUNT_ID`: account used for the vendor payment path.
 - `AGED_PAYEE_ACCOUNT_ID`: account used for the aged payee path.
-- `ATTACKER_ACCOUNT_ID`: account used to fund a lookalike receiver.
+- `COUNTERPARTY_ACCOUNT_ID`: our demo counterparty account, used to fund a lookalike receiver.
 - `NEAR_KEYS_DIR`: directory for external account key files.
 - `COLD_ACCOUNT_ID`: account `kill_switch.sh` moves the Gate's token balance to; must be storage registered on the token.
 - `VERIFIER_PUB`: public verifier key passed to the Gate initializer.

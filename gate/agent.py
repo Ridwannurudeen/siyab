@@ -29,7 +29,7 @@ import time
 from pathlib import Path
 
 from gate import base58, canon, rpc, rules, signer, verdict
-from intel import labels
+from intel import alerts, labels
 
 GAS = 30 * 10**12
 EXPLORER_URL = "https://testnet.nearblocks.io/txns/"
@@ -294,6 +294,18 @@ def pay(agent, request, verdict_file=None, out=print):
         policy = read_policy(agent)
         result = _judge(agent, request, agent.verifier(), out, policy=policy)
         verdict_object, outcome, evidence_hash = result["verdict"], result["outcome"], result["evidence_hash"]
+    if outcome in ("DENY", "UNKNOWN") and isinstance(evidence_hash, str) and _HEX64.fullmatch(evidence_hash):
+        severity = "critical" if outcome == "DENY" else "warn"
+        if result is None:
+            detail = f"The verdict file answered {outcome}."
+        elif outcome == "DENY":
+            detail = "; ".join(result["reasons"]) or "The verdict service refused the payment."
+        else:
+            detail = "; ".join(result["ask"]) or "The verdict service asks for human review."
+        alert = alerts.Alert("payment", severity, request["receiver_id"], evidence_hash,
+                             "Payment denied" if outcome == "DENY" else "Payment needs review", detail,
+                             evidence_hash, int(agent.clock() * 1000))
+        alerts.send(alert, alerts.configured_sinks())
     if result and result["action"] == "ask":
         if outcome == "ALLOW":
             out("not sent: the verdict is ALLOW, and the Gate refuses this transfer as it stands")
