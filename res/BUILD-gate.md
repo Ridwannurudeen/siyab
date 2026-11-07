@@ -4,9 +4,9 @@ reproducible build
 
 Source commit: c2d42c02d1942d39fa0fa2651d3d1652875ffdcc
 
-Deployed: pending
+Deployed: 7 Nov, `kestrelridge-main.testnet`, version 0.2.1, code_hash `8EGqzorvbx5PiPCnLJCbi79p9HWsie93iwgCT6GjStL5` MATCH (layout preserving redeploy without an init call over the 0.1.0 state, transaction `2N6HEK3d...EBW9R1`; `version` read 0.1.0 before and 0.2.1 after; policy, verifier key, agent and used verdict ids read back unchanged).
 
-Previous deploy, version 0.1.0 from source commit eb54c8e11c2916201af1d13ce7b92e1c8c8c473b, now `res/previous/gate.wasm` and still the code on testnet: 2 Nov, `kestrelridge-main.testnet`, code_hash `Hfdk3jGUFxQyP8wEEoejNUkZ81bE9gDmoUBfGRghR5iE` MATCH (transaction `GTHR62ER...Wik5sW`, `scripts/redeploy.sh`, without an init call, state kept).
+Previous deploy, version 0.1.0 from source commit eb54c8e11c2916201af1d13ce7b92e1c8c8c473b, now `res/previous/gate.wasm` and the rollback for 0.2.1: 2 Nov, `kestrelridge-main.testnet`, code_hash `Hfdk3jGUFxQyP8wEEoejNUkZ81bE9gDmoUBfGRghR5iE` MATCH (transaction `GTHR62ER...Wik5sW`, `scripts/redeploy.sh`, without an init call, state kept).
 
 The source link embedded by NEP-330 is `https://github.com/Ridwannurudeen/shieldbot-near/tree/c2d42c02d1942d39fa0fa2651d3d1652875ffdcc`.
 

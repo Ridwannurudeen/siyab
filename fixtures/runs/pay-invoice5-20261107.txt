@@ -1,0 +1,21 @@
+70f0e056
+pass    receiver_exists: kestrelridge-shop.testnet exists
+pass    label_denylist: no denylist or incident label on kestrelridge-shop.testnet or token.kestrelridge-main.testnet
+pass    token_in_catalog: token.kestrelridge-main.testnet is a cap asset of the agent
+pass    ft_metadata_sane: symbol "DMT", 6 decimals
+pass    storage_registered: kestrelridge-shop.testnet is registered on token.kestrelridge-main.testnet
+pass    memo_injection: local patterns: no match
+pass    community_report: reports for kestrelridge-shop.testnet: no community report; pending 0
+verdict: ALLOW
+  Every check ran and none found a signal.
+evidence: 5cd25837...64aaf7d6
+latency: 2351 ms
+sent: request_transfer to kestrelridge-main.testnet as kestrelridge-main.testnet, deposit 0 yoctoNEAR, gas 30 Tgas
+args: {"request": {"kind": "ft", "token_id": "token.kestrelridge-main.testnet", "receiver_id": "kestrelridge-shop.testnet", "amount": "10000000", "memo": "invoice 5"}, "verdict": {"literal": "ALLOW", "issued_ms": 1794042103216, "expires_ms": 1794042403216, "verdict_id": "2ca8969f5e38f9140025e91f981a095f", "evidence_hash": "5cd25837...64aaf7d6", "key_id": "cur", "signature": "e2289918...e90b64792ea6c381...42272800"}}
+transaction: 7VA6sppGP4PPg6pDm7GYDBrrs427RSxrLp8u4T3xCrUB
+explorer: https://testnet.nearblocks.io/txns/7VA6sppGP4PPg6pDm7GYDBrrs427RSxrLp8u4T3xCrUB
+log: EVENT_JSON:{"standard":"shieldbot-near","version":"1.0.0","event":"transfer_scheduled","data":[{"request_id":6,"agent_pk":"fc5b49a7...06e5bba9","kind":"ft","token":"token.kestrelridge-main.testnet","receiver":"kestrelridge-shop.testnet","amount":"10000000","verdict_id":"2ca8969f5e38f9140025e91f981a095f","evidence_hash":"5cd25837...64aaf7d6"}]}
+log: EVENT_JSON:{"standard":"nep141","version":"1.0.0","event":"ft_transfer","data":[{"old_owner_id":"kestrelridge-main.testnet","new_owner_id":"kestrelridge-shop.testnet","amount":"10000000","memo":"invoice 5"}]}
+log: EVENT_JSON:{"standard":"shieldbot-near","version":"1.0.0","event":"transfer_completed","data":[{"request_id":6}]}
+status: {"SuccessValue": ""}
+wrote <out>/pay-2ca8969f5e38f9140025e91f981a095f.json
