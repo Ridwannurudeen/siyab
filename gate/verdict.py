@@ -80,6 +80,11 @@ def request(kind, token, receiver, amount, memo, *, gate, agent_pk_hex, policy, 
             missing = [field for field in ("asset", "per_call") if field not in cap]
             if missing:
                 raise ValueError(f"unknown_caps[{index}] is missing {', '.join(missing)}")
+            asset = cap["asset"]
+            if asset != "Near":
+                if not isinstance(asset, dict) or set(asset) != {"Ft"}:
+                    raise ValueError(f"unknown_caps[{index}].asset must be 'Near' or an Ft asset object")
+                canon.account_id(asset["Ft"], f"unknown_caps[{index}].asset.Ft")
             per_call = cap["per_call"]
             valid_decimal = (isinstance(per_call, str) and len(per_call) <= len(str(canon.U128_MAX))
                              and re.fullmatch(r"0|[1-9][0-9]*", per_call)
