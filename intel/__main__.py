@@ -35,7 +35,7 @@ import time
 from pathlib import Path
 
 from gate import rpc, rules
-from intel import alerts, api, cluster, feed, issuers, labels, render, seed, trace
+from intel import alerts, api, cluster, feed, issuers, labels, records, render, seed, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 RECEIVERS_DIR = ROOT / "fixtures" / "receivers"
@@ -79,6 +79,19 @@ _TIME = "%Y-%m-%dT%H:%M:%SZ"
 def _counts(args):
     print(labels.counts_line(labels.load().counts()))
     return 0
+
+
+def _record_check(args):
+    failed = False
+    for path in args.paths:
+        try:
+            records.read(path)
+        except records.RecordError as error:
+            print(f"refused {path}: {error}")
+            failed = True
+        else:
+            print(f"valid {path}")
+    return 1 if failed else 0
 
 
 def _seed(args):
@@ -383,6 +396,9 @@ def main(argv=None):
     parser = argparse.ArgumentParser(prog="python -m intel")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("counts", help="print the label store counts").set_defaults(handler=_counts)
+    record_check = commands.add_parser("record-check", help="validate incident records")
+    record_check.add_argument("paths", nargs="+")
+    record_check.set_defaults(handler=_record_check)
     seeding = commands.add_parser("seed", help="seed the label store from one source")
     seeding.add_argument("source", choices=seed.SOURCES)
     seeding.set_defaults(handler=_seed)
