@@ -8,7 +8,7 @@ The format of a ShieldBot for NEAR verdict: the canonical message the verifier s
 - DENY: a check found a signal. A signal wins over a check that could not run.
 - UNKNOWN: a required check could not run and none found a signal, or an accepted social report requires a human decision for a payee off the allowlist, with reason text "community reports need a human decision". An unreadable community report summary, including a failed `subject_summary` read, yields UNKNOWN with reason text "community reports could not be checked"; its check detail records why the summary could not be read. Pending reports alone do not affect the verdict.
 
-Only ALLOW is signed. DENY and UNKNOWN carry no signature and no verdict id, so a refused verdict and an unreachable service look the same to the contract: no signature, no transfer. ALLOW is the absence of a known scam signal, not proof of identity.
+Only ALLOW is signed. DENY and UNKNOWN carry no signature and no verdict id, so a refused verdict and an unreachable service look the same to the contract: no signature, no transfer. An ALLOW is signed only when its action is `sign`; an ALLOW the Gate would refuse on the visible policy checks gets the action `ask`, is passed to a human, and carries no signature, issue time, expiry or verdict id either (`gate/verdict.py:89`). ALLOW is the absence of a known scam signal, not proof of identity.
 
 ## The canonical message
 
@@ -50,9 +50,11 @@ Account ids match `^(([a-z\d]+[-_])*[a-z\d]+\.)*([a-z\d]+[-_])*[a-z\d]+$` and ar
 
 A verdict is valid only while `expires_ms` is later than the block timestamp in milliseconds and `expires_ms - issued_ms` is at most the Gate's `max_ttl_ms` (set by the owner, default 300000, five minutes). An expired verdict is refused as `expired`, one with a longer ttl as `ttl_too_long`. A verifier compares `expires_ms` with `issued_ms` before it subtracts, so the unsigned subtraction cannot underflow; `canonical_message` and `parse_canonical` reject an expiry earlier than the issue time.
 
+The Gate's verdict check (`verify` in `contracts/gate/src/verdict.rs:53`) refuses, in this order: `not_allow`, `expired`, `ttl_too_long`, then `bad_key_id` when the key id is neither `cur` nor `prev`, or is `prev` with no previous key or after its deadline (`verdict.rs:72` to `:83`), then `bad_request` when `verdict_id`, `evidence_hash` or `signature` is not lowercase hex of 16, 32 or 64 bytes (`verdict.rs:14`, `:18`, `:88`), then `bad_signature`. `request_transfer` also refuses a malformed transfer request as `bad_request` before the verdict is checked (`contracts/gate/src/lib.rs:98` to `:108`). `docs/spec/verdict-v1.md` lists the same order.
+
 ## Verdict id and replay
 
-`verdict_id` is 16 random bytes in lowercase hex, drawn for each ALLOW. A Gate records every verdict id it accepts, with its expiry, and refuses a second use as `verdict_used`. The signature already binds the agent key, so the verdict id alone is the replay key. A used verdict stays used when the transfer then fails; the agent needs a fresh ALLOW. Ids whose expiry has passed can be pruned.
+`verdict_id` is 16 random bytes in lowercase hex, drawn for each signed ALLOW (`gate/verdict.py:92`). A Gate records every verdict id it accepts, with its expiry, and refuses a second use as `verdict_used`. The signature already binds the agent key, so the verdict id alone is the replay key. A used verdict stays used when the transfer then fails; the agent needs a fresh ALLOW. Ids whose expiry has passed can be pruned.
 
 ## The evidence document and its hash
 
@@ -67,14 +69,16 @@ A verdict's evidence is a JSON document (`gate/evidence.py`):
 | `verdict` | `ALLOW`, `DENY` or `UNKNOWN` |
 | `reasons` | the reasons for the verdict |
 | `observed` | `{block_height, timestamp_ms}` of the chain state the checks read |
-| `issued_ms`, `expires_ms`, `verdict_id` | set on ALLOW, null otherwise |
+| `issued_ms`, `expires_ms`, `verdict_id` | set only when an ALLOW is signed; null for DENY, UNKNOWN and an ALLOW passed to a human (`gate/verdict.py:89` to `:92`) |
 | `latency_ms` | the time the verdict took: the time the checks took; the evidence write and the signature are outside it |
+
+The EVM leg writes a separate shape of evidence document, the intents variant (`gate/intents.py:236`): its `subject` is `{kind: "intents", origin_asset, destination_asset, amount, recipient, recipient_type}`, it has a twelfth top level key, `kind`, set to `intents`, and it is never signed, so `issued_ms`, `expires_ms`, `verdict_id`, `latency_ms` and `observed.block_height` are null and `labels` is empty. `docs/spec/evidence-v1.md` defines it. It is not a payment verdict: no message is built from it and the registry refuses to record it (`gate/registry.py:48`).
 
 The canonical bytes are JSON written so that any language can reproduce them: object keys sorted by Unicode code point; no whitespace outside strings; non ASCII characters written as themselves in UTF-8, not escaped; inside strings, `"` and `\` escaped as `\"` and `\\`, and the control characters U+0000 to U+001F escaped as `\n`, `\t`, `\r`, `\b`, `\f` or `\u00XX` (lowercase hex); numbers are integers only, so no float, NaN or infinity ever appears; no trailing newline. In Python this is `json.dumps(doc, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False)` encoded as UTF-8, and `canonical_bytes` refuses a document that holds a float. The evidence hash is the sha256 hex of those bytes. `write` stores the document as `<hash>.json` holding exactly those bytes, so `sha256sum <hash>.json` prints the file's own name, and `check_file` recomputes the hash and the canonical form. The hash is a field of the signed message, so changing one byte of the document breaks the link between the document and the signature.
 
 ## Contract argument shapes
 
-The agent calls `request_transfer(request, verdict)` with these JSON objects; the verdict is passed through exactly as the service produced it. `gate.verdict.request` returns both under the keys `request` and `verdict` (the latter null unless the outcome is ALLOW), and `python -m gate verdict` prints the checks, the outcome, the evidence hash, the latency and the Verdict object, which it also writes to `<verdict_id>.verdict.json` (for DENY or UNKNOWN, an unsigned `{"literal", "evidence_hash"}` record named by the evidence hash).
+The agent calls `request_transfer(request, verdict)` with these JSON objects; the verdict is passed through exactly as the service produced it. `gate.verdict.request` returns both under the keys `request` and `verdict` (the latter null unless the outcome is ALLOW and it is signed), and `python -m gate verdict` prints the checks, the outcome, the evidence hash, the latency and the Verdict object, which it also writes to `<verdict_id>.verdict.json` (when nothing was signed, for DENY, UNKNOWN or an ALLOW passed to a human, an unsigned `{"literal", "evidence_hash"}` record named by the evidence hash; `gate/__main__.py:90`).
 
 ```
 TransferRequest {"kind": "near" | "ft", "token_id": <account id or null>, "receiver_id": <account id>,
@@ -124,7 +128,7 @@ The registry contract keeps the latest record per subject (a receiver or a token
 | `evidence_hash` | the sha256 of the evidence document, as 64 lowercase hex characters or 32 bytes |
 | `observed_block` | the block height the checks read |
 | `recorded_ms` | when the record was written, in milliseconds (the `latest` view only) |
-| `verdict_id` | the verdict id of an ALLOW |
+| `verdict_id` | the verdict id of a signed ALLOW; for an unsigned DENY or UNKNOWN, which has none, the first 32 hex characters of the evidence hash (`gate/registry.py:64`) |
 
 `latest(subject)` returns `{verdict, evidence_hash, observed_block, recorded_ms, verdict_id}`. Each `record` emits a NEP-297 event, `EVENT_JSON:{"standard": "shieldbot-near", "version": "1.0.0", "event": "verdict_recorded", "data": [{subject, verdict, evidence_hash, observed_block, verdict_id}]}`.
 
