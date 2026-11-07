@@ -18,7 +18,7 @@ A document is a JSON object with exactly these 11 keys (`gate/evidence.py:50-67`
 | `labels` | array of strings | the ids of the label assertions the rules consulted (`label-assertion-v1.md`) |
 | `verdict` | string | `ALLOW`, `DENY` or `UNKNOWN` |
 | `reasons` | array of strings | the reasons for the verdict, in ShieldBot's words |
-| `observed` | object | `{"block_height": integer or null, "timestamp_ms": integer or null}`: the chain state the checks read (`gate/rules.py:737`) |
+| `observed` | object | `{"block_height": integer or null, "timestamp_ms": integer or null}`: the chain state the checks read (`gate/rules.py:738`) |
 | `issued_ms` | integer or null | milliseconds since the Unix epoch |
 | `expires_ms` | integer or null | milliseconds since the Unix epoch |
 | `verdict_id` | string or null | 32 lowercase hex |
@@ -57,7 +57,7 @@ An EVM leg preflight (`gate/intents.py:254-260`) writes a document whose `subjec
 
 In `source`, `provider` names where the answer came from (an RPC host, `label store`, `local patterns`, `local rules`); `request_sha256` is the 64 hex key of the recorded request (`gate/rpc.py:101-104`) or the sha256 of the label store file, and null for a local rule; `fetched_at` is the UTC time `YYYY-MM-DDTHH:MM:SSZ` the response was fetched, or null when nothing was fetched (`gate/rpc.py:305-306`, `gate/rules.py:110-111,114-115`).
 
-How check statuses become a verdict: any `signal` gives DENY; otherwise any `unknown` gives UNKNOWN; otherwise ALLOW (`gate/rules.py:734`, `gate/intents.py:252`).
+How check statuses become a verdict: any `signal` gives DENY; otherwise any `unknown` gives UNKNOWN; otherwise ALLOW (`gate/rules.py:735`, `gate/intents.py:252`).
 
 ## Canonical serialization
 

@@ -53,7 +53,7 @@
     {
       "id": "account_age",
       "status": "pass",
-      "detail": "no creation time from NearBlocks (no recorded response for the request); rhea000462.multica.near has no access key; view_account finds rhea000462.multica.near at block 220910171 (2026-10-21T06:34:59Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
+      "detail": "rhea000462.multica.near has no access key; view_account finds rhea000462.multica.near at block 220910171 (2026-10-21T06:34:59Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
       "source": {
         "provider": "archival-rpc.mainnet.fastnear.com",
         "request_sha256": "a1539b9e05928bdaa8517f1e0696b63bebb1b1549894058aeca04d7af7dee019",
@@ -63,7 +63,7 @@
     {
       "id": "dust_funded",
       "status": "pass",
-      "detail": "creation deposit not read: NearBlocks has no creation transaction for rhea000462.multica.near; a deposit is a signal only with lookalike or account_age",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
       "source": {
         "provider": "nearblocks",
         "request_sha256": null,

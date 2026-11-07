@@ -28,6 +28,8 @@ FORMATS = (
     r"Flows: \d+ exit traces, \d+ hops, depth \d+ of \d+, (complete|stopped while reading (the subject|an account \d+ hops? from the subject))\.",
     r"Latency: (not measured|p50 \d+ ms, p95 \d+ ms over \d+ verdict runs)\.",
     r"Latency, payee off the allowlist: (not measured|p50 \d+ ms, p95 \d+ ms over \d+ verdict runs)\.",
+    r"Latency, payee off the allowlist, NearBlocks fallback: (not measured|p50 \d+ ms, p95 \d+ ms over "
+    r"\d+ verdict runs)\.",
 )
 
 
@@ -52,7 +54,8 @@ class CountsTest(unittest.TestCase):
         code, output = self.run_main()
         self.assertEqual(code, 0)
         printed = output.splitlines()
-        self.assertEqual(len(printed), len(FORMATS) if self.counts.TIER2_LATENCY_RUNS.is_file() else len(FORMATS) - 1)
+        self.assertEqual(len(printed), len(FORMATS) - 2 + self.counts.TIER2_LATENCY_RUNS.is_file()
+                         + self.counts.TIER2_FALLBACK_LATENCY_RUNS.is_file())
         for line, pattern in zip(printed, FORMATS):
             with self.subTest(line=line):
                 self.assertRegex(line, "^" + pattern + "$")
@@ -157,7 +160,7 @@ class CountsTest(unittest.TestCase):
             self.counts.LATENCY_RUNS, self.counts.TIER2_LATENCY_RUNS = first, second
             self.assertIsNone(self.counts.tier2_latency_line(second))
             without = self.counts.lines()
-            self.assertEqual(len(without), len(FORMATS) - 1)
+            self.assertEqual(len(without), len(FORMATS) - 2)
             for line, pattern in zip(without, FORMATS):
                 with self.subTest(line=line):
                     self.assertRegex(line, "^" + pattern + "$")
@@ -167,13 +170,31 @@ class CountsTest(unittest.TestCase):
                                            "path": "tier 1 and 2, account age from the access key nonce"}
                                           for n in range(1, 21)]), encoding="utf-8")
             printed = self.counts.lines()
-            self.assertEqual(len(printed), len(FORMATS))
+            self.assertEqual(len(printed), len(FORMATS) - 1)
             for line, pattern in zip(printed, FORMATS):
                 with self.subTest(line=line):
                     self.assertRegex(line, "^" + pattern + "$")
             self.assertEqual(printed[:-1], without)
             self.assertEqual(printed[-1], "Latency, payee off the allowlist: p50 1000 ms, p95 1900 ms over 20 verdict "
                                           "runs.")
+
+    def test_the_fallback_latency_line_is_optional_and_uses_its_own_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            first = Path(tmp) / "verdict-runs.json"
+            second = Path(tmp) / "verdict-runs-tier2.json"
+            fallback = Path(tmp) / "verdict-runs-tier2-fallback.json"
+            first.write_text(json.dumps([1]), encoding="utf-8")
+            second.write_text(json.dumps([2]), encoding="utf-8")
+            self.counts.LATENCY_RUNS = first
+            self.counts.TIER2_LATENCY_RUNS = second
+            self.counts.TIER2_FALLBACK_LATENCY_RUNS = fallback
+            self.assertIsNone(self.counts.tier2_fallback_latency_line(fallback))
+            self.assertEqual(len(self.counts.lines()), len(FORMATS) - 1)
+            fallback.write_text(json.dumps([]), encoding="utf-8")
+            printed = self.counts.lines()
+            self.assertEqual(len(printed), len(FORMATS))
+            self.assertRegex(printed[-1], "^" + FORMATS[-1] + "$")
+            self.assertEqual(printed[-1], "Latency, payee off the allowlist, NearBlocks fallback: not measured.")
 
     def test_readme_rewrites_only_the_marked_block(self):
         with tempfile.TemporaryDirectory() as tmp:

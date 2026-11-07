@@ -53,7 +53,7 @@
     {
       "id": "account_age",
       "status": "pass",
-      "detail": "no creation time from NearBlocks (keys empty); dragonfly.poolv1.near has no access key; view_account finds dragonfly.poolv1.near at block 221701439 (2026-10-26T14:33:45Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
+      "detail": "dragonfly.poolv1.near has no access key; view_account finds dragonfly.poolv1.near at block 221701439 (2026-10-26T14:33:45Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
       "source": {
         "provider": "archival-rpc.mainnet.fastnear.com",
         "request_sha256": "025d198d74c3e31b33be94d421c42ed4b1b3dea660d42618cb60773fdcdc2f7e",
@@ -63,7 +63,7 @@
     {
       "id": "dust_funded",
       "status": "pass",
-      "detail": "creation deposit not read: NearBlocks has no creation transaction for dragonfly.poolv1.near; a deposit is a signal only with lookalike or account_age",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
       "source": {
         "provider": "nearblocks",
         "request_sha256": null,

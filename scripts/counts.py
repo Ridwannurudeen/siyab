@@ -4,8 +4,8 @@ Usage:
   python scripts/counts.py                    print the lines
   python scripts/counts.py --readme README.md rewrite the block between the counts markers
 
-The lines, in this order (every number is counted from the files named); the last one is printed only
-while its file exists, so there are seven lines or eight:
+The lines, in this order (every number is counted from the files named); the two off-allowlist lines are
+printed only while their files exist, so there are seven to nine:
 
   On N recorded mainnet receivers the rules returned A ALLOW, D DENY, U Unknown.
       fixtures/receivers/judgements/*.json, one judgement per subject
@@ -38,6 +38,9 @@ while its file exists, so there are seven lines or eight:
   Latency, payee off the allowlist: p50 X ms, p95 Y ms over R verdict runs.
       fixtures/latency/verdict-runs-tier2.json in the same form and the same way; no line while the file
       does not exist
+  Latency, payee off the allowlist, NearBlocks fallback: p50 X ms, p95 Y ms over R verdict runs.
+      fixtures/latency/verdict-runs-tier2-fallback.json in the same form and the same way; no line while
+      the file does not exist
 
 --readme replaces everything between the lines <!-- counts:start --> and <!-- counts:end --> with the
 lines, each followed by a blank line so each renders as its own paragraph, and exits 2 when the file
@@ -64,6 +67,7 @@ FEED_SNAPSHOT = ROOT / "intel" / "feed" / "follow-snapshot.json"
 FLOWS_DIR = ROOT / "intel" / "flows"
 LATENCY_RUNS = ROOT / "fixtures" / "latency" / "verdict-runs.json"
 TIER2_LATENCY_RUNS = ROOT / "fixtures" / "latency" / "verdict-runs-tier2.json"
+TIER2_FALLBACK_LATENCY_RUNS = ROOT / "fixtures" / "latency" / "verdict-runs-tier2-fallback.json"
 START, END = "<!-- counts:start -->", "<!-- counts:end -->"
 
 
@@ -146,10 +150,17 @@ def tier2_latency_line(path=TIER2_LATENCY_RUNS):
     return _latency("Latency, payee off the allowlist", path) if Path(path).is_file() else None
 
 
+def tier2_fallback_latency_line(path=TIER2_FALLBACK_LATENCY_RUNS):
+    """The latency line for the NearBlocks fallback path, or None while its file does not exist."""
+    return (_latency("Latency, payee off the allowlist, NearBlocks fallback", path)
+            if Path(path).is_file() else None)
+
+
 def lines():
     tier2 = tier2_latency_line(TIER2_LATENCY_RUNS)
+    fallback = tier2_fallback_latency_line(TIER2_FALLBACK_LATENCY_RUNS)
     return ([receivers_line(), cohorts_line(), labels_line(), incidents_line(), feed_line(), flows_line(),
-             latency_line(LATENCY_RUNS)] + ([tier2] if tier2 else []))
+             latency_line(LATENCY_RUNS)] + ([tier2] if tier2 else []) + ([fallback] if fallback else []))
 
 
 def readme_block(count_lines):

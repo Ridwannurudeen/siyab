@@ -53,7 +53,7 @@
     {
       "id": "account_age",
       "status": "pass",
-      "detail": "no creation time from NearBlocks (keys empty); bitwise_1.poolv1.near has no access key; view_account finds bitwise_1.poolv1.near at block 221701123 (2026-10-26T14:30:40Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
+      "detail": "bitwise_1.poolv1.near has no access key; view_account finds bitwise_1.poolv1.near at block 221701123 (2026-10-26T14:30:40Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
       "source": {
         "provider": "archival-rpc.mainnet.fastnear.com",
         "request_sha256": "0bdeebde173bfe36cc3d2d831e7bbce906673ec0112d2fd567a1a0c1415f1d97",
@@ -63,7 +63,7 @@
     {
       "id": "dust_funded",
       "status": "pass",
-      "detail": "creation deposit not read: NearBlocks has no creation transaction for bitwise_1.poolv1.near; a deposit is a signal only with lookalike or account_age",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
       "source": {
         "provider": "nearblocks",
         "request_sha256": null,
