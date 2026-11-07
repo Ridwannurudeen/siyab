@@ -123,7 +123,7 @@ Flows: 1 exit traces, 1708 hops, depth 2 of 3, stopped while reading an account 
 
 Latency: p50 1843 ms, p95 2300 ms over 20 verdict runs.
 
-Latency, payee off the allowlist: p50 16219 ms, p95 17484 ms over 20 verdict runs.
+Latency, payee off the allowlist: p50 2148 ms, p95 2765 ms over 20 verdict runs.
 
 <!-- counts:end -->
 
