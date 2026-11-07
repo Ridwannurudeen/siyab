@@ -1,6 +1,6 @@
-Console record of storage_deposit for examples.testnet on the test token, 2 Nov 2026. The record holds no transaction Signature line, so nothing was removed; every line is kept byte for byte.
+Console record of storage_deposit for examples.testnet on the test token, 2 Nov 2026. The record holds no transaction Signature line, so nothing was removed; every line is kept byte for byte, except that the builder's home directory is written <home> and the key directory <keys> (edited 7 Nov 2026).
 Migrating config.toml from V4 to V5...
-Note: `near` CLI configuration is stored in "/home/gudman/.config/near-cli/config.toml"
+Note: `near` CLI configuration is stored in "<home>/.config/near-cli/config.toml"
 ├  Unsigned transaction:
 │    signer_id:    kestrelridge-main.testnet
 │    receiver_id:  token.kestrelridge-main.testnet
@@ -42,5 +42,5 @@ The "storage_deposit" call to <token.kestrelridge-main.testnet> on behalf of <ke
 
 
 Here is your console command if you need to script it or re-run:
-    near contract call-function as-transaction token.kestrelridge-main.testnet storage_deposit json-args '{"account_id":"examples.testnet","registration_only":false}' prepaid-gas '100.0 Tgas' attached-deposit '0.00129 NEAR' sign-as kestrelridge-main.testnet network-config testnet sign-with-access-key-file /home/gudman/.near-keys/shieldbot-near/kestrelridge-main.testnet.json send
+    near contract call-function as-transaction token.kestrelridge-main.testnet storage_deposit json-args '{"account_id":"examples.testnet","registration_only":false}' prepaid-gas '100.0 Tgas' attached-deposit '0.00129 NEAR' sign-as kestrelridge-main.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-main.testnet.json send
 

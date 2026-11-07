@@ -2,7 +2,8 @@
   "attack": "service-down",
   "gate": "kestrelridge-main.testnet",
   "notes": [
-    "the verdict service could not start its signer (/mnt/c/Users/gudma/OneDrive/Desktop/GITHUB-FILES/shieldbot-handoff/near-hackathon-2026-11/testnet-runs/attacks/service-down/service-down/no-verifier-key.json: cannot read a key file), so the agent submits without a verdict"
+    "the verdict service could not start its signer (<out>/attacks/service-down/service-down/no-verifier-key.json: cannot read a key file), so the agent submits without a verdict",
+    "edited 7 Nov 2026: the operator's run output directory, outside the repository, is written <out>; nothing else changed"
   ],
   "refused": true,
   "submissions": [
