@@ -48,9 +48,9 @@ It translates only the verdict's `action`; it never decides anything itself:
 
 OutLayer has no review vote. Its human review path is the approvals page, where a pending approval waits for the other approvers until `expires_at`. So `ask` abstains: the adapter casts no vote and the decision stays with the people the policy lists. It is not mapped to reject, because a reject vote from a listed approver cancels the request outright.
 
-Every other `request_type`, any `ft_transfer` deposit other than 1 yoctoNEAR (the verdict does not judge attached NEAR), any field in `request_data` or `args` the adapter does not read, an approval whose `status` is not `pending`, and a transfer whose fields have no canonical form all abstain without a verdict. A detail that is not an object, or lacks `id`, `request_type`, `request_data`, `status`, `request_hash` or `wallet_pubkey`, raises `ApprovalError`.
+Every other `request_type`, any `ft_transfer` deposit other than 1 yoctoNEAR (the verdict does not judge attached NEAR), any field in `request_data` or `args` the adapter does not read (a call's `gas` is accepted without being judged, since gas moves no funds), an approval whose `status` is not `pending`, and a transfer whose fields have no canonical form all abstain without a verdict. A detail that is not an object, or lacks `id`, `request_type`, `request_data`, `status`, `request_hash` or `wallet_pubkey`, raises `ApprovalError`.
 
-The adapter signs nothing, sends nothing, opens no connection and reads no key. The returned `message` is for the approver's own key to sign as a NEP-413 message and post, outside this repository.
+The adapter signs nothing, sends nothing and reads no key. It opens no connection of its own; the verdict it asks for reads the chain through the same clients `gate/http.py` uses, so with `GATE_FIXTURES_MODE=off` those reads go to the network, as the HTTP endpoint's do. The returned `message` is for the approver's own key to sign as a NEP-413 message and post, outside this repository.
 
 ## Tests
 
