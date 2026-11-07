@@ -202,6 +202,26 @@ class AlertsTests(unittest.TestCase):
         self.assertEqual(len(result), 1)
         self.assertFalse(result[0]["ok"])
 
+    def test_configured_sinks_are_off_by_default(self):
+        with patch.dict(os.environ, {}, clear=True):
+            with patch.object(alerts, "WebhookSink") as webhook_sink, \
+                    patch.object(alerts, "StdoutSink") as stdout_sink:
+                self.assertEqual(alerts.configured_sinks(), [])
+
+        webhook_sink.assert_not_called()
+        stdout_sink.assert_not_called()
+
+    def test_stdout_flag_configures_the_stdout_sink(self):
+        import contextlib
+
+        output = io.StringIO()
+        with patch.dict(os.environ, {"SHIELDBOT_ALERT_STDOUT": "1"}, clear=True):
+            with contextlib.redirect_stdout(output):
+                result = send(sample_alert(), alerts.configured_sinks())
+
+        self.assertTrue(result[0]["ok"])
+        self.assertEqual(json.loads(output.getvalue())["subject"], "vendor.testnet")
+
     def test_alert_test_cli_sends_one_alert_through_the_webhook_sink(self):
         import contextlib
 
@@ -233,6 +253,13 @@ class AlertsTests(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertEqual(json.loads(output.getvalue())["subject"], "vendor.testnet")
 
+
+class ConfiguredSinksTest(unittest.TestCase):
+    def test_a_url_file_path_that_cannot_be_opened_gives_no_sink_and_no_error(self):
+        for path in ("bad\x00path", "missing/does-not-exist.url"):
+            with self.subTest(path=path):
+                environ = {"SHIELDBOT_ALERT_URL_FILE": path, "SHIELDBOT_ALERT_SECRET_FILE": "secret"}
+                self.assertEqual(alerts.configured_sinks(environ), [])
 
 if __name__ == "__main__":
     unittest.main()

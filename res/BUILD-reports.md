@@ -2,12 +2,15 @@ reproducible build
 
 ## Source and build environment
 
-Source commit: TBD by the orchestrator at deploy
+Source commit: 2d647e544ccc164c14f9ad72096f8ec5cbcfcbd8
+
+Deployed: 7 Nov, `reports.kestrelridge-main.testnet`, code_hash `6QcaGeoCN7QXe2ZV8VAL4ZHTRYWTURJYQmdDD2tBqBpN` MATCH (account created by `kestrelridge-main.testnet` with 3 NEAR, transaction `Cza55oWj...gcDwKF`; deploy with init `new(owner kestrelridge-owner.testnet, moderators [kestrelridge-owner.testnet])`, transaction `AMfe5SLG...nLCWCg`).
 
 - cargo-near: 0.22.0.
 - The repository toolchain is Rust 1.99.1 with `wasm32-unknown-unknown`.
 - The crate manifest names the reproducible build image and build command.
 - Reproducing the wasm needs Docker and the cargo-near build image.
+- Reports wasm: 198649 bytes; sha256 `50570436...f4e19763` (full value in `res/reports.wasm.sha256`); code_hash `6QcaGeoCN7QXe2ZV8VAL4ZHTRYWTURJYQmdDD2tBqBpN`. Two independent clones at the source commit built byte identical wasm on 7 Nov.
 
 ## Verification recipe
 

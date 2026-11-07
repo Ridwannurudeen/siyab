@@ -98,10 +98,13 @@ def verify(record_path, evidence_path, verdict_path=None, key=None):
     data = Path(evidence_path).read_bytes()
     document = json.loads(data)
     computed = hashlib.sha256(data).hexdigest()
-    results = [("evidence sha256 equals the record's evidence_hash", computed == record["evidence_hash"]),
-               ("evidence verdict equals the record's verdict", document.get("verdict") == record["verdict"])]
     lines = [f"record shape: {record['shape']}", f"evidence sha256: {computed}",
              f"record evidence_hash: {record['evidence_hash']}"]
+    if not isinstance(document, dict):
+        lines += ["FAIL evidence is a JSON object", "not verified"]
+        return False, lines
+    results = [("evidence sha256 equals the record's evidence_hash", computed == record["evidence_hash"]),
+               ("evidence verdict equals the record's verdict", document.get("verdict") == record["verdict"])]
     if verdict_path is not None:
         verdict_object = json.loads(Path(verdict_path).read_text(encoding="utf-8"))
         public = base58.decode_key(key)

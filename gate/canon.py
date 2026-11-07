@@ -141,6 +141,8 @@ def parse_canonical(message):
     upper case literal is accepted and returned as written, by design, so a test vector signed
     over DENY parses too; only canonical_message is restricted to ALLOW.
     """
+    if not isinstance(message, bytes):
+        raise CanonError("message: not bytes")
     try:
         text = message.decode("utf-8")
     except UnicodeDecodeError as error:

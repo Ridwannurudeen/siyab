@@ -26,6 +26,7 @@ The server has no caller authentication: whoever can start it and call its tools
 
 - `GATE_FIXTURES_MODE`: `replay` (default), `record` or `off`.
 - `GATE_ACCOUNT_ID`: the Gate the payment verdict is bound to; default `gate.near`. A `.testnet` id selects the testnet RPC, NearBlocks and archival RPC endpoints.
+- `REPORTS_ACCOUNT_ID`: the reports contract whose `subject_summary` is checked for the payee; unset disables community report checks.
 - `GATE_POLICY`: the agent policy as JSON in the `get_agent` shape; default `{"allowlist": [], "caps": []}`, so every receiver also gets the checks for a payee off the allowlist. Must be unset for live signing.
 - `GATE_LIVE_SIGNING`: `1` turns on live signing, which then needs every condition in the signing paragraph; any other value leaves the TEST key.
 - `VERIFIER_KEY_FILE`: the live verifier key file (near-cli shape), kept outside the repository; read only with `GATE_LIVE_SIGNING=1`.
