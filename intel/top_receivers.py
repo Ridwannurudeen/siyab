@@ -17,6 +17,8 @@ DEFAULT_DATA_DIR = Path.home() / ".cache" / "shieldbot-near" / "top-receivers"
 BATCH_SIZE = 1000
 RANK_LIMIT = 1000
 REQUEST_INTERVAL_S = max(feed.FOLLOW_INTERVAL_S, 60 / 170)
+# A scan of about 150,000 requests meets dropped connections; each is retried after these pauses, in seconds.
+TRANSIENT_BACKOFF_S = (5, 10, 20, 40, 60, 60)
 AVERAGE_BLOCK_NS = 578_160_000
 INTENTS_ACCOUNT = "intents.near"
 _TIME = "%Y-%m-%dT%H:%M:%SZ"
@@ -242,19 +244,27 @@ def bisect_start_height(end_height, end_timestamp_ns, target_timestamp_ns, fetch
 
 
 def _block_reader(fetcher, sleep, clock, last_request_at=None):
+    """A block reader that spaces requests, reads a 404 as a skipped height, and retries a transport failure or a
+    5xx answer after each pause of TRANSIENT_BACKOFF_S before it gives up; any other error stops the scan."""
     last_request = [last_request_at]
 
     def get(path):
-        if last_request[0] is not None:
-            sleep(max(0, REQUEST_INTERVAL_S - (clock() - last_request[0])))
-        try:
-            return fetcher.get(path)
-        except rpc.HttpError as error:
-            if error.status != 404:
-                raise
-            return None
-        finally:
-            last_request[0] = clock()
+        for attempt in range(len(TRANSIENT_BACKOFF_S) + 1):
+            if last_request[0] is not None:
+                sleep(max(0, REQUEST_INTERVAL_S - (clock() - last_request[0])))
+            try:
+                return fetcher.get(path)
+            except rpc.HttpError as error:
+                if error.status == 404:
+                    return None
+                if error.status < 500 or attempt == len(TRANSIENT_BACKOFF_S):
+                    raise
+            except rpc.TransportError:
+                if attempt == len(TRANSIENT_BACKOFF_S):
+                    raise
+            finally:
+                last_request[0] = clock()
+            sleep(TRANSIENT_BACKOFF_S[attempt])
 
     return get, lambda: last_request[0], lambda value: last_request.__setitem__(0, value)
 

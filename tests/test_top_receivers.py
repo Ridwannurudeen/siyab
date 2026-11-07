@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from gate import rpc
 from intel import __main__ as intel_main
 from intel import labels, top_receivers
 
@@ -186,6 +187,58 @@ class ScanTest(unittest.TestCase):
             batch = json.loads((Path(tmp) / "batches" / "3-4.json").read_text(encoding="utf-8"))
             self.assertNotIn("block", batch["heights"][0])
             self.assertNotIn("shards", batch["heights"][0])
+
+
+class FlakyFetcher:
+    def __init__(self, errors, block):
+        self.errors = list(errors)
+        self.block = block
+        self.requests = 0
+
+    def get(self, path):
+        self.requests += 1
+        if self.errors:
+            raise self.errors.pop(0)
+        return self.block
+
+
+class BlockReaderRetryTest(unittest.TestCase):
+    def reader(self, fetcher):
+        pauses = []
+        now = [0.0]
+
+        def sleep(seconds):
+            pauses.append(seconds)
+            now[0] += seconds
+
+        get, _, _ = top_receivers._block_reader(fetcher, sleep, lambda: now[0])
+        return get, pauses
+
+    def test_a_dropped_connection_is_retried_after_its_pause(self):
+        block = synthetic_block(7, 0)
+        fetcher = FlakyFetcher([rpc.TransportError("IncompleteRead from x"), rpc.HttpError(503, "x")], block)
+        get, pauses = self.reader(fetcher)
+        self.assertEqual(get("/v0/block/7"), block)
+        self.assertEqual(fetcher.requests, 3)
+        self.assertIn(top_receivers.TRANSIENT_BACKOFF_S[0], pauses)
+        self.assertIn(top_receivers.TRANSIENT_BACKOFF_S[1], pauses)
+
+    def test_a_failure_that_outlasts_every_pause_stops_the_scan(self):
+        attempts = len(top_receivers.TRANSIENT_BACKOFF_S) + 1
+        fetcher = FlakyFetcher([rpc.TransportError("x")] * attempts, synthetic_block(7, 0))
+        get, _ = self.reader(fetcher)
+        with self.assertRaises(rpc.TransportError):
+            get("/v0/block/7")
+        self.assertEqual(fetcher.requests, attempts)
+
+    def test_a_client_error_is_not_retried_and_a_404_is_a_skipped_height(self):
+        get, _ = self.reader(FlakyFetcher([rpc.HttpError(400, "x")], None))
+        with self.assertRaises(rpc.HttpError):
+            get("/v0/block/7")
+        fetcher = FlakyFetcher([rpc.HttpError(404, "x")], None)
+        get, _ = self.reader(fetcher)
+        self.assertIsNone(get("/v0/block/7"))
+        self.assertEqual(fetcher.requests, 1)
 
 
 class ReceiverFixtureTest(unittest.TestCase):
