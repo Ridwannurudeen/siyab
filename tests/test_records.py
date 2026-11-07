@@ -49,6 +49,47 @@ def base_record(**changes):
     return identified(document)
 
 
+def reason_entry(report_id, dispute_id, text):
+    return {
+        "report_id": report_id,
+        "dispute_id": dispute_id,
+        "reason_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+        "text": text,
+    }
+
+
+def reports_event(event, report_id, reason_sha256, dispute_id=None):
+    payload = {
+        "report_id": report_id,
+        "subject": "kestrelridge-mallory.testnet",
+        "state": "accepted",
+        "body_sha256": "b" * 64,
+        "moderator": "kestrelridge-owner.testnet",
+        "reason_sha256": reason_sha256,
+    }
+    if event == "dispute_resolved":
+        payload["dispute_id"] = dispute_id
+    return {
+        "standard": "shieldbot-near",
+        "version": "1.0.0",
+        "event": event,
+        "data": [payload],
+    }
+
+
+def timeline_decision(event, transaction):
+    return {
+        "at": "2026-11-07T05:12:01Z",
+        "event": event,
+        "source": {
+            "type": "chain",
+            "network": "testnet",
+            "block": 2,
+            "transaction": transaction,
+        },
+    }
+
+
 class RecordValidationTest(unittest.TestCase):
     def rejects(self, document, message=None):
         with self.assertRaises(records.RecordError) as caught:
@@ -180,17 +221,16 @@ class RecordValidationTest(unittest.TestCase):
         self.rejects(base_record(reports=[citation], reasons=[dict(reason, dispute_id=True)]),
                      "dispute_id: null or")
 
-    def test_report_reader_requires_exactly_one_reason_for_a_non_pending_report(self):
+    def test_report_reader_requires_each_decision_reason_and_rejects_duplicates(self):
         text = "Synthetic current moderation reason."
-        reason_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        reason = reason_entry(0, None, text)
         citation = {"network": "testnet", "contract": "reports.kestrelridge-main.testnet", "report_id": 0,
                     "body_sha256": "b" * 64}
-        report = {"body_sha256": "b" * 64, "state": "accepted", "reason_sha256": reason_hash,
+        report = {"body_sha256": "b" * 64, "state": "accepted", "reason_sha256": reason["reason_sha256"],
                   "dispute_ids": []}
-        reason = {"report_id": 0, "dispute_id": None, "reason_sha256": reason_hash, "text": text}
-        with self.assertRaisesRegex(records.RecordError, "exactly one reason is required"):
+        with self.assertRaisesRegex(records.RecordError, "exactly one reason is required for decision"):
             records.validate(base_record(reports=[citation]), report_reader=lambda *args: report)
-        with self.assertRaisesRegex(records.RecordError, "exactly one reason is required"):
+        with self.assertRaisesRegex(records.RecordError, "more than one reason for decision"):
             records.validate(base_record(reports=[citation], reasons=[reason, reason]),
                              report_reader=lambda *args: report)
 
@@ -208,53 +248,153 @@ class RecordValidationTest(unittest.TestCase):
                     records.validate(base_record(reports=[citation], reasons=[reason]),
                                      report_reader=lambda *args: report)
 
-    def test_report_reader_rejects_a_reason_from_an_older_decision_after_resolution(self):
-        text = "Synthetic earlier moderation reason."
-        earlier_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
-        latest_hash = hashlib.sha256("Synthetic later resolution reason.".encode("utf-8")).hexdigest()
+    def test_report_reader_checks_the_current_reason_after_earlier_decisions(self):
+        moderation = reason_entry(0, None, "Synthetic earlier moderation reason.")
+        resolution = reason_entry(0, 4, "Synthetic later resolution reason.")
         citation = {"network": "testnet", "contract": "reports.kestrelridge-main.testnet", "report_id": 0,
                     "body_sha256": "b" * 64}
-        reason = {"report_id": 0, "dispute_id": 4, "reason_sha256": earlier_hash, "text": text}
-        report = {"body_sha256": "b" * 64, "state": "accepted", "reason_sha256": latest_hash,
-                  "dispute_ids": [4]}
+        report = {"body_sha256": "b" * 64, "state": "accepted",
+                  "reason_sha256": resolution["reason_sha256"], "dispute_ids": [4]}
+        document = base_record(reports=[citation], reasons=[moderation, resolution])
+        records.validate(document, report_reader=lambda *args: report)
+        wrong_latest = dict(resolution, reason_sha256=moderation["reason_sha256"])
+        wrong_latest["text"] = moderation["text"]
         with self.assertRaisesRegex(records.RecordError, "does not match report 0"):
-            records.validate(base_record(reports=[citation], reasons=[reason]),
+            records.validate(base_record(reports=[citation], reasons=[moderation, wrong_latest]),
                              report_reader=lambda *args: report)
 
     def test_report_reader_accepts_the_current_reason_after_resolution(self):
-        text = "Synthetic current resolution reason."
-        reason_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        moderation = reason_entry(0, None, "Synthetic moderation reason.")
+        resolution = reason_entry(0, 4, "Synthetic current resolution reason.")
         citation = {"network": "testnet", "contract": "reports.kestrelridge-main.testnet", "report_id": 0,
                     "body_sha256": "b" * 64}
-        reason = {"report_id": 0, "dispute_id": 4, "reason_sha256": reason_hash, "text": text}
-        report = {"body_sha256": "b" * 64, "state": "accepted", "reason_sha256": reason_hash,
-                  "dispute_ids": [4]}
-        records.validate(base_record(reports=[citation], reasons=[reason]),
+        report = {"body_sha256": "b" * 64, "state": "accepted",
+                  "reason_sha256": resolution["reason_sha256"], "dispute_ids": [4]}
+        records.validate(base_record(reports=[citation], reasons=[moderation, resolution]),
                          report_reader=lambda *args: report)
 
-    def test_report_reader_checks_the_latest_resolved_dispute_id(self):
-        text = "Synthetic latest decision reason."
-        reason_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    def test_report_reader_checks_every_resolved_dispute_id(self):
         citation = {"network": "testnet", "contract": "reports.kestrelridge-main.testnet", "report_id": 0,
                     "body_sha256": "b" * 64}
         cases = (
-            ("accepted", [], None),
-            ("contested", [4], None),
-            ("contested", [2, 4], 2),
-            ("accepted", [2, 4], 4),
+            ("accepted", [], [None]),
+            ("contested", [4], [None]),
+            ("contested", [2, 4], [None, 2]),
+            ("accepted", [2, 4], [None, 2, 4]),
         )
-        for state, dispute_ids, expected_dispute_id in cases:
+        for state, dispute_ids, expected_decisions in cases:
             with self.subTest(state=state, dispute_ids=dispute_ids):
-                reason = {"report_id": 0, "dispute_id": expected_dispute_id,
-                          "reason_sha256": reason_hash, "text": text}
-                report = {"body_sha256": "b" * 64, "state": state, "reason_sha256": reason_hash,
-                          "dispute_ids": dispute_ids}
-                records.validate(base_record(reports=[citation], reasons=[reason]),
+                reasons = [reason_entry(0, dispute_id, f"Synthetic decision reason {dispute_id}.")
+                           for dispute_id in expected_decisions]
+                report = {"body_sha256": "b" * 64, "state": state,
+                          "reason_sha256": reasons[-1]["reason_sha256"], "dispute_ids": dispute_ids}
+                records.validate(base_record(reports=[citation], reasons=reasons),
                                  report_reader=lambda *args: report)
-                wrong_reason = dict(reason, dispute_id=4 if expected_dispute_id != 4 else None)
-                with self.assertRaisesRegex(records.RecordError, "dispute_id: must be"):
-                    records.validate(base_record(reports=[citation], reasons=[wrong_reason]),
+                wrong_reasons = copy.deepcopy(reasons)
+                wrong_reasons[-1]["dispute_id"] = 99
+                with self.assertRaisesRegex(records.RecordError, "exactly one reason is required for decision"):
+                    records.validate(base_record(reports=[citation], reasons=wrong_reasons),
                                      report_reader=lambda *args: report)
+
+    def test_event_reader_requires_a_reason_for_each_timeline_decision(self):
+        text = "Synthetic moderation decision."
+        reason_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        citation = {"network": "testnet", "contract": "reports.kestrelridge-main.testnet", "report_id": 0,
+                    "body_sha256": "b" * 64}
+        timeline = [timeline_decision("moderated", "synthetic-moderation-tx"), base_record()["timeline"][0]]
+        events = [reports_event("report_moderated", 0, reason_hash)]
+        with self.assertRaisesRegex(records.RecordError, "has no reason for decision"):
+            records.validate(base_record(reports=[citation], timeline=timeline),
+                             event_reader=lambda network, transaction: events)
+
+    def test_event_reader_rejects_two_reasons_for_one_decision(self):
+        text = "Synthetic duplicate moderation reason."
+        reason = reason_entry(0, None, text)
+        citation = {"network": "testnet", "contract": "reports.kestrelridge-main.testnet", "report_id": 0,
+                    "body_sha256": "b" * 64}
+        timeline = [timeline_decision("moderated", "synthetic-moderation-tx"), base_record()["timeline"][0]]
+        with self.assertRaisesRegex(records.RecordError, "more than one reason for decision"):
+            records.validate(base_record(reports=[citation], reasons=[reason, reason], timeline=timeline),
+                             event_reader=lambda network, transaction: [
+                                 reports_event("report_moderated", 0, reason["reason_sha256"])
+                             ])
+
+    def test_event_reader_requires_each_reason_to_be_found_through_the_timeline(self):
+        citation = {"network": "testnet", "contract": "reports.kestrelridge-main.testnet", "report_id": 0,
+                    "body_sha256": "b" * 64}
+        reason = reason_entry(0, None, "Synthetic unlinked moderation reason.")
+        with self.assertRaisesRegex(records.RecordError, "event cannot be found through the timeline"):
+            records.validate(base_record(reports=[citation], reasons=[reason]),
+                             event_reader=lambda network, transaction: self.fail("reader should not be called"))
+
+    def test_event_reader_compares_reason_hash_with_the_event(self):
+        citation = {"network": "testnet", "contract": "reports.kestrelridge-main.testnet", "report_id": 0,
+                    "body_sha256": "b" * 64}
+        reason = reason_entry(0, None, "Synthetic moderation reason.")
+        timeline = [timeline_decision("moderated", "synthetic-moderation-tx"), base_record()["timeline"][0]]
+        with self.assertRaisesRegex(records.RecordError, "does not match event"):
+            records.validate(base_record(reports=[citation], reasons=[reason], timeline=timeline),
+                             event_reader=lambda network, transaction: [
+                                 reports_event("report_moderated", 0, "c" * 64)
+                             ])
+
+    def test_event_reader_requires_event_report_and_dispute_ids_to_match(self):
+        citation = {"network": "testnet", "contract": "reports.kestrelridge-main.testnet", "report_id": 0,
+                    "body_sha256": "b" * 64}
+        moderation = reason_entry(0, None, "Synthetic moderation reason.")
+        resolution = reason_entry(0, 4, "Synthetic dispute reason.")
+        moderation_timeline = [timeline_decision("moderated", "synthetic-moderation-tx"),
+                               base_record()["timeline"][0]]
+        with self.assertRaisesRegex(records.RecordError, "event report_id 1 does not match reason report_id 0"):
+            records.validate(base_record(reports=[citation], reasons=[moderation], timeline=moderation_timeline),
+                             event_reader=lambda network, transaction: [
+                                 reports_event("report_moderated", 1, moderation["reason_sha256"])
+                             ])
+        resolution_timeline = [timeline_decision("dispute_resolved", "synthetic-resolution-tx"),
+                               base_record()["timeline"][0]]
+        with self.assertRaisesRegex(records.RecordError, "event dispute_id 5 does not match reason dispute_id 4"):
+            records.validate(base_record(reports=[citation], reasons=[resolution], timeline=resolution_timeline),
+                             event_reader=lambda network, transaction: [
+                                 reports_event("dispute_resolved", 0, resolution["reason_sha256"], 5)
+                             ])
+
+    def test_event_reader_refuses_a_dispute_resolved_event_without_a_dispute_id(self):
+        citation = {"network": "testnet", "contract": "reports.kestrelridge-main.testnet", "report_id": 0,
+                    "body_sha256": "b" * 64}
+        moderation = reason_entry(0, None, "Synthetic moderation reason.")
+        timeline = [timeline_decision("dispute_resolved", "synthetic-resolution-tx"), base_record()["timeline"][0]]
+        with self.assertRaisesRegex(records.RecordError, "dispute_id: a non negative integer is required"):
+            records.validate(base_record(reports=[citation], reasons=[moderation], timeline=timeline),
+                             event_reader=lambda network, transaction: [
+                                 reports_event("dispute_resolved", 0, moderation["reason_sha256"], None)
+                             ])
+
+    def test_event_reader_checks_earlier_decisions_through_their_timeline_transactions(self):
+        moderation = reason_entry(0, None, "Synthetic moderation reason.")
+        resolution = reason_entry(0, 4, "Synthetic resolution reason.")
+        citation = {"network": "testnet", "contract": "reports.kestrelridge-main.testnet", "report_id": 0,
+                    "body_sha256": "b" * 64}
+        timeline = [
+            timeline_decision("moderated", "synthetic-moderation-tx"),
+            dict(timeline_decision("dispute_resolved", "synthetic-resolution-tx"), at="2026-11-07T05:12:02Z"),
+            base_record()["timeline"][0],
+        ]
+        events_by_transaction = {
+            "synthetic-moderation-tx": [reports_event("report_moderated", 0, moderation["reason_sha256"])],
+            "synthetic-resolution-tx": [reports_event("dispute_resolved", 0, resolution["reason_sha256"], 4)],
+        }
+        calls = []
+
+        def event_reader(network, transaction):
+            calls.append((network, transaction))
+            return events_by_transaction[transaction]
+
+        report = {"body_sha256": "b" * 64, "state": "accepted",
+                  "reason_sha256": resolution["reason_sha256"], "dispute_ids": [4]}
+        records.validate(base_record(reports=[citation], reasons=[moderation, resolution], timeline=timeline),
+                         report_reader=lambda *args: report, event_reader=event_reader)
+        self.assertEqual(calls, [("testnet", "synthetic-moderation-tx"),
+                                 ("testnet", "synthetic-resolution-tx")])
 
     def test_assertion_ids_must_be_sha256_ids(self):
         self.rejects(base_record(assertion_ids=["not-an-id"]), "assertion_ids[0]")
