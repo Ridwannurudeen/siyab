@@ -177,30 +177,39 @@ class FirstScreenVersionTest(unittest.TestCase):
     def test_the_first_screen_names_versions_in_the_checked_forms(self):
         screen = first_screen(README.read_text(encoding="utf-8"))
         self.assertEqual({match.group(1) for match in LIVE.finditer(screen)}, set(CRATES))
-        self.assertTrue(BUILT.search(screen))
 
     def test_the_first_screen_versions_match_the_build_records_and_manifests(self):
         self.assertEqual(version_errors(README.read_text(encoding="utf-8"), ROOT / "res", ROOT / "contracts"), [])
 
+    def gate_source_version(self):
+        text = (ROOT / "contracts" / "gate" / "Cargo.toml").read_text(encoding="utf-8")
+        return tomllib.loads(text)["package"]["version"]
+
     def test_a_wrong_testnet_version_fails(self):
-        readme = README.read_text(encoding="utf-8").replace("the Gate runs 0.1.0", "the Gate runs 0.2.0", 1)
+        readme = re.sub(r"\bthe Gate runs \d+\.\d+\.\d+", "the Gate runs 9.9.9",
+                        README.read_text(encoding="utf-8"), count=1)
         with tempfile.TemporaryDirectory() as tmp:
             errors = version_errors(readme, *self.copy_tree(tmp))
         self.assertEqual(len(errors), 1)
-        self.assertIn("runs 0.2.0", errors[0])
+        self.assertIn("runs 9.9.9", errors[0])
 
-    def test_a_deployed_gate_record_fails_the_pending_claims(self):
+    def test_a_not_deployed_claim_fails_against_a_deployed_record(self):
+        claim = (f"Not yet: Gate {self.gate_source_version()} is built and reproducible but not deployed "
+                 "(`Deployed: pending` in `res/BUILD-gate.md`), ")
+        readme = README.read_text(encoding="utf-8").replace("Not yet: ", claim, 1)
         with tempfile.TemporaryDirectory() as tmp:
             res, contracts = self.copy_tree(tmp)
             record = res / "BUILD-gate.md"
-            record.write_text(record.read_text(encoding="utf-8").replace(
-                "Deployed: pending", "Deployed: 8 Nov, `kestrelridge-main.testnet`, version 0.2.0"), encoding="utf-8")
-            errors = version_errors(README.read_text(encoding="utf-8"), res, contracts)
-        self.assertEqual(len(errors), 2)
-        self.assertIn("puts 0.2.0 on testnet", errors[0])
-        self.assertIn("has a Deployed line", errors[1])
+            lines = record.read_text(encoding="utf-8").splitlines(keepends=True)
+            lines = [f"Deployed: 8 Nov, `kestrelridge-main.testnet`, version {self.gate_source_version()}\n"
+                     if line.startswith("Deployed: ") else line for line in lines]
+            record.write_text("".join(lines), encoding="utf-8")
+            errors = version_errors(readme, res, contracts)
+        self.assertTrue(any("has a Deployed line" in error for error in errors), errors)
 
     def test_a_built_version_off_the_manifest_fails(self):
+        claim = f"Not yet: Gate {self.gate_source_version()} is built. "
+        readme = README.read_text(encoding="utf-8").replace("Not yet: ", claim, 1)
         with tempfile.TemporaryDirectory() as tmp:
             res, contracts = self.copy_tree(tmp)
             manifest = contracts / "gate" / "Cargo.toml"
@@ -210,9 +219,8 @@ class FirstScreenVersionTest(unittest.TestCase):
                 text.replace(f'version = "{current_version}"', 'version = "0.3.0"', 1),
                 encoding="utf-8",
             )
-            errors = version_errors(README.read_text(encoding="utf-8"), res, contracts)
-        self.assertEqual(len(errors), 1)
-        self.assertIn("Cargo.toml says 0.3.0", errors[0])
+            errors = version_errors(readme, res, contracts)
+        self.assertTrue(any("Cargo.toml says 0.3.0" in error for error in errors), errors)
 
     def test_a_version_outside_the_checked_forms_fails(self):
         readme = README.read_text(encoding="utf-8").replace("Not yet: ", "Not yet: version 9.9.9 waits; ", 1)

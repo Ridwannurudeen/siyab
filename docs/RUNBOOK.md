@@ -6,7 +6,7 @@ Every script this runbook uses calls `require_testnet` and so refuses any networ
 
 ## Current implementation state
 
-The verdict service reads `subject_summary` and applies `intel/reports.py` when `REPORTS_ACCOUNT_ID` is set (`gate/rules.py`, `docs/LADDER.md`). Current Reports source is 0.1.1; testnet runs deployed Reports version `0.1.1` (`res/BUILD-reports.md`). Current Gate source is 0.2.1 while testnet still runs Gate 0.1.0 (`res/BUILD-gate.md`). Gate and Reports have sandbox round-trip tests and previous artifacts; the Registry has no previous artifact (`docs/UPGRADES.md:16`).
+The verdict service reads `subject_summary` and applies `intel/reports.py` when `REPORTS_ACCOUNT_ID` is set (`gate/rules.py`, `docs/LADDER.md`). Current Reports source is 0.1.1; testnet runs deployed Reports version `0.1.1` (`res/BUILD-reports.md`). Current Gate source is 0.2.1 and testnet runs Gate 0.2.1 (`res/BUILD-gate.md`). Gate and Reports have sandbox round-trip tests and previous artifacts; the Registry has no previous artifact (`docs/UPGRADES.md:16`).
 
 The read backs below use the near-cli-rs view form `near contract call-function as-read-only <account> <method> json-args '<json>' network-config testnet now` (the form `scripts/lib.sh:178` uses), written here as "view `<method>`". Every transaction below goes through `call_transaction` (`scripts/lib.sh:241-244`) and ends with the summary block (`scripts/lib.sh:143-162`), which prints the account summary with its `code_hash` and the shortened transaction hashes.
 
@@ -74,7 +74,7 @@ When: a layout preserving redeploy went wrong and the previous code must run aga
 
 Command: the redeploy procedure above, with `res/previous/<crate>.wasm` as `<wasm>` and the previous version and code hash as `EXPECT_VERSION` and `EXPECT_CODE_HASH` (`docs/UPGRADES.md:62`), and the same read backs: the state reads back unchanged.
 
-Gate and Reports have previous artifacts in `res/previous/` and sandbox round-trip tests (`docs/UPGRADES.md:16`). Testnet runs deployed Reports version `0.1.1` (`res/BUILD-reports.md`) and still runs Gate 0.1.0 (`res/BUILD-gate.md`); their current source is Gate 0.2.1 and Reports 0.1.1. The Registry has no previous artifact, so no Registry rollback is available (`res/BUILD-registry.md`, `docs/UPGRADES.md:16`).
+Gate and Reports have previous artifacts in `res/previous/` and sandbox round-trip tests (`docs/UPGRADES.md:16`). Testnet runs deployed Reports version `0.1.1` (`res/BUILD-reports.md`) and runs Gate 0.2.1 (`res/BUILD-gate.md`); their current source is Gate 0.2.1 and Reports 0.1.1. The Registry has no previous artifact, so no Registry rollback is available (`res/BUILD-registry.md`, `docs/UPGRADES.md:16`).
 
 ## Rotate the verifier
 
