@@ -1,0 +1,10 @@
+Two independent clones of source commit c2d42c0 built gate.wasm with cargo near build reproducible-wasm on 7 Nov 2026; the lines below are as captured, except that each 64 hex value is shortened to its first and last 8 characters (the full sha256 is in res/gate.wasm.sha256). The build output of each clone is in reproducible-gate-0.2.1-20261107-clone1.txt and reproducible-gate-0.2.1-20261107-clone2.txt, where the two clone directories, which differ, are written <clone1> and <clone2>. The line byte identical: yes is as captured; the record does not name the command that compared the two wasm files, and the two sha256 lines below are equal.
+clone 1: commit c2d42c02d1942d39fa0fa2651d3d1652875ffdcc
+clone 1: 6b684655...9d000aa6  target/near/gate.wasm
+clone 1: 264073 bytes
+clone 1: build tool line: • Parsing `[package.metadata.near.reproducible_build]` section of contract's `Cargo.toml` ...
+clone 2: commit c2d42c02d1942d39fa0fa2651d3d1652875ffdcc
+clone 2: 6b684655...9d000aa6  target/near/gate.wasm
+clone 2: 264073 bytes
+clone 2: build tool line: • Parsing `[package.metadata.near.reproducible_build]` section of contract's `Cargo.toml` ...
+byte identical: yes

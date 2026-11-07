@@ -1,0 +1,7 @@
+Read only views of reports.kestrelridge-main.testnet after the 7 Nov redeploy to 0.1.1, from the console capture of the read script. The capture printed every value twice because the script's filter matched each output line twice; each value is written once here. The code checksum is shortened to its first and last 8 hex; the full value is in res/reports.wasm.sha256 at the 0.1.1 build.
+version: "0.1.1"
+state_version: 1
+totals: {"disputes": 0, "reports": 0}
+subject_summary kestrelridge-sh0p.testnet: {"accepted": 0, "contested": 0, "deny": false, "latest_accepted_id": null, "latest_deny_id": null, "pending": 0}
+subject_summary kestrelridge-mallory.testnet: {"accepted": 0, "contested": 0, "deny": false, "latest_accepted_id": null, "latest_deny_id": null, "pending": 0}
+account view at block #276582313: local contract SHA-256 checksum e28ac3fc...b4737134

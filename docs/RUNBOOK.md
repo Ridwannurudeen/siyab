@@ -38,7 +38,7 @@ Undo: an init cannot be undone. A wrong value the owner can set is corrected wit
 
 ## Redeploy, layout preserving
 
-When: new code whose root struct and every stored type are unchanged, so the existing state reads back under the new code. On 2 Nov this ran for the Gate and the registry with the reproducible wasm of `res/` (`docs/TESTNET.md:21`). A change to the stored layout is a migration, below; never run it through this procedure. `docs/UPGRADES.md` records the sandbox round trip required by rule 2, now completed for Gate and Reports.
+When: new code whose root struct and every stored type are unchanged, so the existing state reads back under the new code. On 2 Nov this ran for the Gate and the registry with the reproducible wasm then in `res/` (for the Gate now `res/previous/gate.wasm`, source commit `eb54c8e`; `docs/TESTNET.md:21`). A change to the stored layout is a migration, below; never run it through this procedure. `docs/UPGRADES.md` records the sandbox round trip required by rule 2, now completed for Gate and Reports (`fixtures/runs/cargo-gate-0.2.1-sandbox-20261107.txt`, `fixtures/runs/cargo-reports-0.1.1-20261107.txt`).
 
 Command and dry run (`<contract>` is `gate`, `registry` or `reports`, `scripts/redeploy.sh:28-33`; `<version>` is the crate's new `version` and `<code_hash>` the base58 value `python -m gate codehash <wasm>` prints and `res/BUILD-<crate>.md` records):
 

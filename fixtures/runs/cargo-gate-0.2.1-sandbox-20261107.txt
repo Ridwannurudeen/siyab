@@ -1,0 +1,9 @@
+The Gate sandbox test (contracts/gate/tests/sandbox.rs) for Gate 0.2.1, 7 Nov 2026, with test output shown: the old, candidate, old, candidate round trip that build commit 0492c2d records as run on the exact res/gate.wasm artifact; this log does not itself show which wasm the candidate was: it records neither the checkout's commit nor whether GATE_CANDIDATE_WASM was set. Kept from the console record: the header naming the crate, the test name and result lines and the GAS lines; everything else is left out. The checkout is written <checkout> and the shared cargo target directory <target>. Left out here: the per receipt gas lines, the refusal text and the three protocol rejection texts.
+   Compiling gate v0.2.1 (<checkout>/contracts/gate)
+
+     Running tests/sandbox.rs (<target>/debug/deps/sandbox-1f2d449c81eed33f)
+running 1 test
+GAS request_transfer_prune4=10932211180585
+GAS prune_used_50=18694117396416
+test sandbox_transfer_policy_and_protocol_boundary ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 78.69s
