@@ -256,6 +256,51 @@ class FailClosedClientTest(unittest.TestCase):
         self.addCleanup(rpc._NEARBLOCKS_USE.clear)
         rpc._NEARBLOCKS_USE.clear()
 
+    def test_recorded_block_is_trimmed_replayed_and_hygienic(self):
+        header = {"hash": "block-hash", "height": 7, "timestamp": 1,
+                  "prev_hash": "previous-hash"}
+        full_response = {"jsonrpc": "2.0", "id": "gate", "result": {"header": header,
+                         "chunks": [{"signature": "ed25519:" + "1" * 88}]}}
+        expected = {"jsonrpc": "2.0", "id": "gate",
+                    "result": {"header": {"hash": "block-hash", "height": 7, "timestamp": 1}}}
+        client = rpc.Client("https://rpc.example", "record", fixtures_dir=self.tmp.name)
+        with mock.patch("urllib.request.urlopen", return_value=reply(full_response)):
+            self.assertEqual(client.block_at(7)["header"]["height"], 7)
+        [path] = Path(self.tmp.name).iterdir()
+        fixture = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(fixture["response"], expected)
+        with mock.patch("urllib.request.urlopen", side_effect=no_network):
+            replayed = rpc.Client("https://rpc.example", "replay", fixtures_dir=self.tmp.name)
+            self.assertEqual(replayed.block_at(7), expected["result"])
+        spec = importlib.util.spec_from_file_location("check_hygiene", ROOT / "scripts" / "check_hygiene.py")
+        hygiene = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(hygiene)
+        self.assertFalse(hygiene.check_bytes(f"fixtures/rpc/{path.name}", path.read_bytes()))
+
+    def test_block_error_response_is_not_trimmed(self):
+        error = {"jsonrpc": "2.0", "id": "gate", "error": {"code": -32000, "message": "UNKNOWN_BLOCK"},
+                 "result": {"header": {"hash": "h", "height": 7, "timestamp": 1}}}
+        client = rpc.Client("https://rpc.example", "record", fixtures_dir=self.tmp.name)
+        with (mock.patch("urllib.request.urlopen", return_value=reply(error)),
+              self.assertRaises(rpc.RpcError)):
+            client.block_at(7)
+        [path] = Path(self.tmp.name).iterdir()
+        self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["response"], error)
+    def test_malformed_block_response_is_recorded_unchanged(self):
+        for header in ({"hash": "h", "height": 7, "timestamp": True},
+                       {"hash": 5, "height": 7, "timestamp": 1},
+                       {"hash": "h", "height": -1, "timestamp": 1}):
+            with self.subTest(header=header):
+                for stale in Path(self.tmp.name).iterdir():
+                    stale.unlink()
+                malformed = {"jsonrpc": "2.0", "id": "gate", "result": {"header": header, "chunks": []}}
+                client = rpc.Client("https://rpc.example", "record", fixtures_dir=self.tmp.name)
+                with (mock.patch("urllib.request.urlopen", return_value=reply(malformed)),
+                      self.assertRaises(rpc.MalformedResponse)):
+                    client.block_at(7)
+                [path] = Path(self.tmp.name).iterdir()
+                self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["response"], malformed)
+
     def test_malformed_bodies_raise_malformed_response(self):
         client = rpc.Client("https://rpc.example", "off")
         cases = [
