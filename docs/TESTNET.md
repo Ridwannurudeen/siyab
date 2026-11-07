@@ -9,8 +9,8 @@ Network: NEAR testnet. The four top level role accounts were created 29 Oct 2026
 | Owner | `kestrelridge-owner.testnet` | 4.0 |
 | Gate | `kestrelridge-main.testnet` | 13.973 |
 | Vendor | `kestrelridge-shop.testnet` | 5.0 |
-| Attacker | `kestrelridge-mallory.testnet` | 8.992 |
-| Aged payee | `lindenvale.testnet` (created 29 Oct from the attacker account, 1 NEAR) | 1.0 |
+| Demo counterparty, ours | `kestrelridge-mallory.testnet` | 8.992 |
+| Aged payee | `lindenvale.testnet` (created 29 Oct from the demo counterparty account, 1 NEAR) | 1.0 |
 | Token | `token.kestrelridge-main.testnet` | 3.001 |
 | Registry | `registry.kestrelridge-main.testnet` | 2.999 |
 | Recorder | `recorder.kestrelridge-main.testnet` | 1.0 |
@@ -56,7 +56,7 @@ Each emitted `transfer_scheduled`, the token's `ft_transfer` and `transfer_compl
 | unknown-payee, 2 Nov (2 DMT to `examples.testnet`, not on the allowlist, ALLOW from the service, unknown payee cap 1 DMT per call) | Gate, `REFUSED:unknown_payee_cap` | `H6WqJYSb...aLe416` |
 | injected, 5 Nov (scripted agent; testnet verdict DENY) | Gate, `REFUSED:no_verdict` | `8M5NqTdA...r6yVMS` |
 
-The unknown payee attack ran on 2 Nov against `examples.testnet`, an account with no contract code created 1825 days before the run, because the accounts the team controls, `lindenvale.testnet` among them, were created 29 Oct and were under 7 days old. Its verdict was ALLOW in 13477 ms, every check run and none with a signal (evidence `9471fea5...66112f27`); nothing was sent to it. Before the attack the Gate registered `examples.testnet` on the token with `storage_deposit`, 0.00129 NEAR from the Gate's balance, as setup did for the vendor and the aged payee (transaction `Bd62DYEp...7gtz49`, `fixtures/runs/storage_deposit-examples-20261102T134415Z.txt`). The live verdict for the lookalike is DENY: a lookalike of the vendor, not on the allowlist, not registered on the token.
+The unknown payee attack ran on 2 Nov with `examples.testnet` as the receiver, an account with no contract code created 1825 days before the run, because the accounts the team controls, `lindenvale.testnet` among them, were created 29 Oct and were under 7 days old. Its verdict was ALLOW in 13477 ms, every check run and none with a signal (evidence `9471fea5...66112f27`); nothing was sent to it. Before the attack the Gate registered `examples.testnet` on the token with `storage_deposit`, 0.00129 NEAR from the Gate's balance, as setup did for the vendor and the aged payee (transaction `Bd62DYEp...7gtz49`, `fixtures/runs/storage_deposit-examples-20261102T134415Z.txt`). The live verdict for the lookalike is DENY: a lookalike of the vendor, not on the allowlist, not registered on the token.
 
 On 5 Nov the scripted agent followed an instruction planted in a vendor message and submitted a transfer to the collector account named in the Rhea Lend incident report without a verdict. The Gate refused it with `REFUSED:no_verdict` in transaction `8M5NqTdA...r6yVMS`; the testnet verdict's first signal was that the account does not exist on testnet.
 
