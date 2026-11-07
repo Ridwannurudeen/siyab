@@ -1,6 +1,6 @@
 # Incident record, format v1
 
-This is a format specification. The repository has no validator, store, reader, writer or renderer for it yet, and no committed record in this format. The incident pages that exist today are a different file, described in `docs/INCIDENTS.md`.
+This is a format specification. The validator, reader and writer are in `intel/records.py` and `python -m intel record-check`; no store or renderer exists, and the two committed records are synthetic. The incident pages that exist today are a different file, described in `docs/INCIDENTS.md`.
 
 An incident record is the off chain account of one event: what happened, what it cost, which accounts agents should not pay because of it, the evidence, the on chain reports behind it, and a timeline whose every timestamp names where it came from. It carries the readable text behind the reason hashes the reports contract stores.
 
@@ -47,7 +47,7 @@ A record does not copy a report's state. The state changes on chain (pending, ac
 
 ## Reasons
 
-The reports contract stores a `reason_sha256` for each decision and keeps no text. A record carries the text: `text` is the reason as written, and `reason_sha256` is the sha256 of its UTF-8 bytes, which a reader compares with the hash on chain. `dispute_id` is null for a moderation decision and the dispute id for a dispute decision. A reason whose hash does not match is refused. Publishing a reason for a later decision is a new record that supersedes the old one.
+The reports contract stores only the current `reason_sha256` on each report and keeps no reason text. A record carries that text: `text` is the reason as written, and `reason_sha256` is the sha256 of its UTF-8 bytes. With a report reader, every cited report whose state is not `pending` must have exactly one reason whose hash matches the report view's current `reason_sha256`; a missing reason or a mismatch is refused. Its `dispute_id` is null if no dispute on the report has been resolved, or the id of the latest resolved dispute. The report view lists dispute ids in append order; while the report is `contested`, its final id is still open, so the preceding id is the latest resolved one, if any. Without a report reader, a reason is checked for shape and for the hash of its text only. Earlier decisions' text cannot be checked on chain: a record carries only the latest decision's reason, and a new record that supersedes it carries the next decision's reason.
 
 ## The timeline
 
@@ -109,4 +109,4 @@ Every account, URL and hash below is synthetic. The accounts are placeholders, n
 
 ## What this format does not do
 
-It names no person and gives no motive. It does not decide a verdict: `docs/LADDER.md` does, from the contract's `subject_summary`. It does not hold a report's state, which is read from the chain. It is not built: when a validator and a renderer are written, they implement this page, and a change to the format is a version 2 with its own page section, not an edit of v1.
+It names no person and gives no motive. It does not decide a verdict: `docs/LADDER.md` does, from the contract's `subject_summary`. It does not hold a report's state, which is read from the chain. A change to the format is a version 2 with its own page section, not an edit of v1.
