@@ -6,14 +6,14 @@ How a contract in this repository is redeployed or migrated, what proves the ste
 
 1. Every deploy bumps `version` in the crate's `Cargo.toml`. `scripts/redeploy.sh` asserts after the deploy that the `version` view returns `EXPECT_VERSION` and that the account's `code_hash` equals `EXPECT_CODE_HASH`, and exits 1 otherwise.
 2. A layout preserving redeploy, where the root struct and every stored type are unchanged, is deployed without an init call. It will be allowed only when a sandbox round trip proves it and `res/previous/<crate>.wasm` plus its sha256 are committed. The required round trip: deploy `res/previous/<crate>.wasm`, initialize, write state, redeploy the candidate without an init call, read the old state back, exercise one new call, redeploy the previous artifact again, read the state and make one more call. The candidate is the source build by default and the exact artifact when `<CRATE>_CANDIDATE_WASM` names it. The test must assert that the previous file's sha256 equals `res/previous/<crate>.wasm.sha256`.
-3. Rollback is the previous artifact redeployed over the same state, and is claimed only for a rule 2 redeploy. Entries the candidate wrote under new prefixes are harmless to the old code, which never reads them (the old Gate never reads `uq:c` or `uq:e`).
+3. Rollback is the previous artifact redeployed over the same state, and is claimed only for a rule 2 redeploy. Entries the candidate writes under new prefixes are harmless to the previous artifact, which does not read them (the previous Gate does not read `uq:c` or `uq:e`).
 4. A layout change ships a `#[init(ignore_state)] migrate()` that first asserts the layout it expects, then transforms the state and bumps the version. It asserts the stored `state_version` where the contract keeps one; a contract with no such field asserts the layout of the source commit its build record names, and its first migration adds the field. Reports stores `state_version: 1`. The migration runs through `scripts/redeploy.sh --migrate`, which deploys with an init call to `migrate` with args `{}` through `deploy_with_init` in `scripts/lib.sh`, signed by the contract account's key. It is rehearsed in the sandbox on state written by the previous artifact. Recovery is a tested reverse migration or a forward fix, also rehearsed in the sandbox; without one there is no rollback claim.
 5. New state lives under new prefixes, and every prefix is listed in the registry below before the code that writes it is deployed.
 6. The previous artifact lives at `res/previous/<crate>.wasm` with its `.sha256`, copied in the commit that swaps `res/<crate>.wasm`. That crate's `res/BUILD-<crate>.md` then names both source commits.
 7. Each crate has one build record: `res/BUILD-gate.md`, `res/BUILD-registry.md`, `res/BUILD-reports.md`. Each has one `Source commit:` line (40 hex, or TBD before the first build) and one `Deployed:` line (`not deployed`, `pending`, or the transaction and MATCH). A record whose source commit is TBD has no `res/<crate>.wasm`, and a record with a source commit has the wasm and its `.sha256`; `tests/test_res.py` asserts this state for every crate. The `reproducible` job in `.github/workflows/ci.yml` runs once per crate: it reads the record, rebuilds the crate at that commit with `cargo near build reproducible-wasm` and compares the sha256 with `res/<crate>.wasm.sha256`. It skips only a crate whose record says TBD and whose wasm is absent, and fails on any other mismatch between the record and `res/`.
 8. Provenance: no wasm in `res/` whose source commit is not on main, and no deployed code hash that no commit on main records. Between the commit that adds an artifact and the commit that records its MATCH, the record says `Deployed: pending`.
 
-Reports has its rule 2 round trip in `contracts/reports/tests/sandbox.rs` and its previous artifact in `res/previous/`. A crate without both its previous artifact and sandbox round trip does not qualify under rule 2, and no rollback is claimed for it.
+Gate and Reports have their rule 2 round trips in `contracts/gate/tests/sandbox.rs` and `contracts/reports/tests/sandbox.rs`, with previous artifacts in `res/previous/`. Gate source is `0.2.0` while testnet still runs `0.1.0` per `res/BUILD-gate.md`; Reports source is `0.1.1` while testnet still runs `0.1.0` per `res/BUILD-reports.md`. A crate without both its previous artifact and sandbox round trip does not qualify under rule 2, and no rollback is claimed for it.
 
 ## Prefix registry
 
@@ -25,8 +25,8 @@ Each storage prefix a contract writes, read from the `new` initializer in its `s
 | Gate | `d` | `denylist` |
 | Gate | `v` | `used_verdicts` |
 | Gate | `p` | `pending` |
-| Gate | `uq:c` | used verdict expiry queue cursor (reserved for the prune; not on main yet) |
-| Gate | `uq:e` | used verdict expiry queue entries (reserved for the prune; not on main yet) |
+| Gate | `uq:c` | used verdict expiry queue cursor in source version `0.2.0` |
+| Gate | `uq:e` | used verdict expiry queue entries in source version `0.2.0` |
 | Registry | `r` | `latest` |
 | Registry | `l` | `labels` |
 | Reports | `r` | `reports` |

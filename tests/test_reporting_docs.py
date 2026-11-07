@@ -130,5 +130,58 @@ class ReportClaimsTest(unittest.TestCase):
         self.assertIn("no validator, store, reader, writer or renderer for it yet", first_paragraph)
 
 
+    def test_report_docs_do_not_repeat_pre_merge_claims(self):
+        docs = ROOT / "docs"
+        stale_intel = re.compile(
+            r"(?:not on main)[\s\S]{0,120}intel/reports\.py|"
+            r"intel/reports\.py[\s\S]{0,120}(?:not on main)",
+            re.IGNORECASE,
+        )
+        stale_signer = re.compile(
+            r"(?:signs as `OWNER_ACCOUNT_ID`)[\s\S]{0,120}report\.sh|"
+            r"report\.sh[\s\S]{0,120}(?:signs as `OWNER_ACCOUNT_ID`)",
+            re.IGNORECASE,
+        )
+        for path in sorted(docs.rglob("*.md")):
+            if path in {docs / "LOG.md", docs / "DECISIONS.md"}:
+                continue
+            page = path.read_text(encoding="utf-8")
+            with self.subTest(page=path.relative_to(ROOT)):
+                self.assertNotIn("until the rules hook merges", page.casefold())
+                self.assertIsNone(stale_intel.search(page))
+                self.assertIsNone(stale_signer.search(page))
+
+    def test_report_pages_say_pending_is_a_count_only(self):
+        paths = (
+            "README.md",
+            "docs/CLAIMS.md",
+            "docs/INCIDENTS.md",
+            "docs/LADDER.md",
+            "docs/REPORTING.md",
+            "docs/REPORTS.md",
+            "docs/TESTNET.md",
+            "docs/VERDICT-RECORD.md",
+            "docs/spec/report-v1.md",
+        )
+        for relative in paths:
+            page = (ROOT / relative).read_text(encoding="utf-8")
+            with self.subTest(page=relative):
+                self.assertRegex(page, r"(?i)pending[^\n]{0,120}count only")
+
+    def test_report_spec_names_the_manifest_source_version(self):
+        manifest = (ROOT / "contracts" / "reports" / "Cargo.toml").read_text(
+            encoding="utf-8"
+        )
+        version_match = re.search(
+            r'^version\s*=\s*"([^"]+)"$', manifest, re.MULTILINE
+        )
+        self.assertIsNotNone(version_match)
+        spec = (ROOT / "docs" / "spec" / "report-v1.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(f"source crate version `{version_match.group(1)}`", spec)
+        self.assertIn("contracts/reports/Cargo.toml", spec)
+
+
 if __name__ == "__main__":
     unittest.main()

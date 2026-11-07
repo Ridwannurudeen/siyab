@@ -2,7 +2,7 @@
 
 This page is the published policy for community reports on ShieldBot for NEAR: who can file one, what it costs, who decides it, how fast, how the account a report names asks for review, and how a mistake is corrected. The contract behind it is `contracts/reports` (`docs/REPORTS.md` lists its methods and tests). The decisions it applies are entries 5 and 6 of `docs/DECISIONS.md`, and each rule below names the function in `contracts/reports/src/lib.rs` that enforces it.
 
-The reports contract is deployed on testnet at `reports.kestrelridge-main.testnet`, its code hash matching the reproducible build (`res/BUILD-reports.md`, Deployed line; `docs/TESTNET.md`, the Reports rows). The read back after the deploy shows 0 reports and 0 disputes, and `kestrelridge-owner.testnet` as the only moderator (`docs/TESTNET.md`). No report has been filed, moderated or disputed under this policy yet. Whether the verdict service reads reports is controlled by `REPORTS_ACCOUNT_ID` (see What a report does to a payment).
+The reports contract is deployed on testnet at `reports.kestrelridge-main.testnet`, its code hash matching the reproducible build (`res/BUILD-reports.md`, Deployed line; `docs/TESTNET.md`, the Reports rows). The read back after the deploy shows 0 reports and 0 disputes, and `kestrelridge-owner.testnet` as the only moderator (`docs/TESTNET.md`). No report has been filed, moderated or disputed under this policy yet. The source crate is version `0.1.1` (`contracts/reports/Cargo.toml`); testnet still runs `0.1.0` per `res/BUILD-reports.md`. Whether the verdict service reads reports is controlled by `REPORTS_ACCOUNT_ID` (see What a report does to a payment).
 
 ## Who can report, and how
 
@@ -12,7 +12,7 @@ Anyone with a NEAR account can report. `submit_report(subject, kind, outcome, ev
 - `kind` and `outcome` take the values in `intel/record_enums.json`: kind is what happened, outcome is what it cost. The kind decides whether an accepted report denies; the outcome is recorded and never weighed (`docs/DECISIONS.md`, entry 4).
 - `evidence_sha256` is the sha256 of one evidence document, and `evidence_url` is where a reader fetches it.
 
-`scripts/report.sh <reports_account> <subject> <kind> <outcome> <evidence_sha256> <evidence_url>` makes the same call for the operator. It runs on testnet only (`require_testnet` in `scripts/lib.sh`), signs as `OWNER_ACCOUNT_ID`, checks kind and outcome against `intel/record_enums.json`, attaches `REPORT_DEPOSIT` read from `contracts/reports/src/lib.rs`, and takes `--dry-run`. It is the operator's tool, not the public path: a reporter calls `submit_report` from their own account with any NEAR client. The moderator files reports from a separate account, never the moderator account; The independence rule below says why, and what `scripts/report.sh` signs as on main.
+`scripts/report.sh <reports_account> <subject> <kind> <outcome> <evidence_sha256> <evidence_url>` makes the same call for the operator. It runs on testnet only (`require_testnet` in `scripts/lib.sh`), signs as `REPORTER_ACCOUNT_ID`, checks kind and outcome against `intel/record_enums.json`, attaches `REPORT_DEPOSIT` read from `contracts/reports/src/lib.rs`, and takes `--dry-run`. If `REPORTER_ACCOUNT_ID` is unset, it falls back to `OWNER_ACCOUNT_ID` and prints a warning (`scripts/report.sh:8-10,65`). It is the operator's tool, not the public path: a reporter can call `submit_report` from their own account with any NEAR client. The moderator should file reports from a separate account, never the moderator account; the independence rule below explains why.
 
 A submitter can withdraw their own report while it is pending (`withdraw`, exactly 1 yoctoNEAR). After a decision it cannot be withdrawn.
 
@@ -80,9 +80,9 @@ The first rule decides which account files. The only moderator is the owner, so 
 
 ## The dispute cap
 
-The source has no dispute cap: `dispute` refuses only a report that is not accepted (`REFUSED:not_accepted`), a second open dispute (`REFUSED:dispute_open`, `contracts/reports/src/lib.rs:486`) and a deposit that is not exact (`REFUSED:bad_deposit`). `resolve_dispute` adds one to `upheld_disputes` when it upholds the report, saturating at 255, and keeps it only as a statistic (`contracts/reports/src/lib.rs:575`). An overturned report is terminal. The reason is in `docs/DECISIONS.md` (2026-11-07 note): a cap on upheld disputes counted exactly the baseless ones and let five of them close review of a report for good.
+The source has no dispute cap: `dispute` refuses only a report that is not accepted (`REFUSED:not_accepted`), a second open dispute (`REFUSED:dispute_open`, `contracts/reports/src/lib.rs:486`) and a deposit that is not exact (`REFUSED:bad_deposit`). `resolve_dispute` adds one to `upheld_disputes` when it upholds the report, saturating at 255, and keeps it only as a statistic (`contracts/reports/src/lib.rs:575`). Testnet's deployed 0.1.0 still has the five-upheld-dispute cap recorded in `res/BUILD-reports.md`; source 0.1.1 removes it. An overturned report is terminal. The reason is in `docs/DECISIONS.md` (2026-11-07 note): a cap on upheld disputes counted exactly the baseless ones and let five of them close review of a report for good.
 
-The reports contract deployed on testnet is the earlier build recorded in `res/BUILD-reports.md`, which still refuses a dispute once a report has five upheld disputes, until the redeploy that `docs/UPGRADES.md` describes.
+Source version `0.1.1` has no dispute cap. Testnet still runs version `0.1.0` per `res/BUILD-reports.md`; that deployed code refuses a dispute once the report has five upheld disputes, until redeploy.
 
 ## Corrections
 
@@ -95,7 +95,7 @@ Nothing is edited. A report row and its body hash are permanent; the contract ha
 
 ## What a report does to a payment
 
-If `REPORTS_ACCOUNT_ID` is unset, `gate/rules.py` makes no `subject_summary` call and adds no `community_report` check. The verdict CLI, agent commands and MCP server pass this setting into verdict requests (`gate/__main__.py`, `gate/agent.py`, `mcp/server.py`). When it is set, `gate/rules.py` reads `subject_summary` for the receiver and applies `effect` in `intel/reports.py`. An accepted or contested deny report yields a signal and `DENY`; an accepted social report asks for human review (`UNKNOWN`) off the allowlist and has no report effect on it. Pending reports appear in the count only, and a pending-only summary has no effect. A failed or unreadable summary yields `UNKNOWN` (`gate/rules.py`, `intel/reports.py`; see `docs/LADDER.md` for the effect ladder).
+If `REPORTS_ACCOUNT_ID` is unset, `gate/rules.py` makes no `subject_summary` call and adds no `community_report` check. The verdict CLI, agent commands and MCP server pass this setting into verdict requests (`gate/__main__.py`, `gate/agent.py`, `mcp/server.py`). When it is set, `gate/rules.py` reads `subject_summary` for the receiver and applies `effect` in `intel/reports.py`. An accepted or contested deny report yields a signal and `DENY`; an accepted social report asks for human review (`UNKNOWN`) off the allowlist and has no report effect on it. The `pending` field is a count only and a pending-only summary has no effect. A failed or unreadable summary yields `UNKNOWN` (`gate/rules.py`, `intel/reports.py`; see `docs/LADDER.md` for the effect ladder).
 
 ## What this policy does not cover
 

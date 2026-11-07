@@ -32,7 +32,7 @@ The seed commands are in `intel/seed.py`; in the default replay mode they read t
 
 An incident record (`docs/RECORD.md`) is the format for an event that arrives as a community report on the reports contract, or that the publisher records with on chain reports behind it. It differs from an incident page in three ways: it is content addressed and never edited, it cites on chain reports by network, contract, report id and body hash, and it carries the readable text behind each moderation reason hash.
 
-A record and a page are linked through the label store: a record's `assertion_ids` and a page's `assertion_ids` name the same kind of row. Neither replaces the other or decides a verdict. The verdict service reads labels in `gate/rules.py`; for community reports, it reads `subject_summary` and applies `intel/reports.py`'s `effect` only when `REPORTS_ACCOUNT_ID` is set. When it is unset, no community report check runs. See `docs/REPORTING.md` for the report effects.
+A record and a page are linked through the label store: a record's `assertion_ids` and a page's `assertion_ids` name the same kind of row. Neither replaces the other or decides a verdict. The verdict service reads labels in `gate/rules.py`; for community reports, it reads `subject_summary` and applies `intel/reports.py`'s `effect` only when `REPORTS_ACCOUNT_ID` is set. The `pending` field is a count only and has no verdict effect. When the variable is unset, no community report check runs. See `docs/REPORTING.md` for the report effects.
 
 ## What does not exist on main
 
