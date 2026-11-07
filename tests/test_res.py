@@ -22,6 +22,7 @@ CONTRACT_EXPORTS = {
         "is_verdict_used",
         "new",
         "on_transfer",
+        "prune_used",
         "register_agent",
         "request_transfer",
         "revoke_agent",
@@ -32,6 +33,7 @@ CONTRACT_EXPORTS = {
         "set_max_ttl",
         "set_paused",
         "set_verifier_keys",
+        "used_verdicts",
         "version",
         "withdraw",
     ],
@@ -139,50 +141,29 @@ class WasmArtifactsTest(unittest.TestCase):
             expected = f"{hashlib.sha256(wasm_path.read_bytes()).hexdigest()}  res/{filename}\n"
             self.assertEqual((RES / f"{filename}.sha256").read_text(encoding="ascii"), expected)
 
-    def test_previous_gate_wasm_matches_its_build_record(self):
-        previous_bytes = (RES / "previous" / "gate.wasm").read_bytes()
-        digest = hashlib.sha256(previous_bytes).hexdigest()
-        record = (RES / "BUILD-gate.md").read_text(encoding="utf-8")
-        recorded_wasm = re.search(
-            r"Gate wasm: (\d+) bytes; sha256 `([0-9a-f]{8})\.\.\.([0-9a-f]{8})`",
-            record,
-        )
-        self.assertIsNotNone(recorded_wasm)
-        self.assertEqual(previous_bytes, (RES / "gate.wasm").read_bytes())
-        self.assertEqual(len(previous_bytes), int(recorded_wasm.group(1)))
-        self.assertTrue(digest.startswith(recorded_wasm.group(2)))
-        self.assertTrue(digest.endswith(recorded_wasm.group(3)))
-        self.assertEqual(
-            (RES / "gate.wasm.sha256").read_text(encoding="ascii"),
-            f"{digest}  res/gate.wasm\n",
-        )
-        self.assertEqual(
-            (RES / "previous" / "gate.wasm.sha256").read_text(encoding="ascii"),
-            f"{digest}  res/previous/gate.wasm\n",
-        )
-
-    def test_reports_artifacts_match_their_build_record(self):
-        record = (RES / "BUILD-reports.md").read_text(encoding="utf-8")
-        for label, path, sha_name in (
-            ("Reports wasm", RES / "reports.wasm", "res/reports.wasm"),
-            ("Previous reports wasm", RES / "previous" / "reports.wasm", "res/previous/reports.wasm"),
-        ):
-            with self.subTest(label=label):
-                data = path.read_bytes()
-                digest = hashlib.sha256(data).hexdigest()
-                recorded = re.search(
-                    rf"^- {label}: (\d+) bytes; sha256 `([0-9a-f]{{8}})\.\.\.([0-9a-f]{{8}})`",
-                    record,
-                    re.MULTILINE,
-                )
-                self.assertIsNotNone(recorded)
-                self.assertEqual(len(data), int(recorded.group(1)))
-                self.assertTrue(digest.startswith(recorded.group(2)))
-                self.assertTrue(digest.endswith(recorded.group(3)))
-                self.assertEqual(
-                    path.with_name(path.name + ".sha256").read_text(encoding="ascii"),
-                    f"{digest}  {sha_name}\n",
-                )
+    def test_current_and_previous_artifacts_match_their_build_record(self):
+        for crate, title in (("gate", "Gate"), ("reports", "Reports")):
+            record = (RES / f"BUILD-{crate}.md").read_text(encoding="utf-8")
+            for label, path, sha_name in (
+                (f"{title} wasm", RES / f"{crate}.wasm", f"res/{crate}.wasm"),
+                (f"Previous {crate} wasm", RES / "previous" / f"{crate}.wasm", f"res/previous/{crate}.wasm"),
+            ):
+                with self.subTest(label=label):
+                    data = path.read_bytes()
+                    digest = hashlib.sha256(data).hexdigest()
+                    recorded = re.search(
+                        rf"^- {label}: (\d+) bytes; sha256 `([0-9a-f]{{8}})\.\.\.([0-9a-f]{{8}})`",
+                        record,
+                        re.MULTILINE,
+                    )
+                    self.assertIsNotNone(recorded)
+                    self.assertEqual(len(data), int(recorded.group(1)))
+                    self.assertTrue(digest.startswith(recorded.group(2)))
+                    self.assertTrue(digest.endswith(recorded.group(3)))
+                    self.assertEqual(
+                        path.with_name(path.name + ".sha256").read_text(encoding="ascii"),
+                        f"{digest}  {sha_name}\n",
+                    )
 
     def test_exported_functions_match_each_contract_method_table(self):
         for filename, expected in CONTRACT_EXPORTS.items():

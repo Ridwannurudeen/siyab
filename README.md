@@ -171,8 +171,8 @@ Python 3.11 or later, from the repository root. Steps 3, 5 and 6 show POSIX shel
    `python -m gate codehash res/gate.wasm`, then `python -m gate codehash res/registry.wasm`:
 
    ```
-   sha256: f7a09b28...fd14a107
-   code_hash: Hfdk3jGUFxQyP8wEEoejNUkZ81bE9gDmoUBfGRghR5iE
+   sha256: 63224c4f...644690a8
+   code_hash: 7fyhLcFm4nsof4gbfS5zN77cartyrjCBdKBtYRnSV3u9
    sha256: 2a154191...f0ec0cfa
    code_hash: 3qGvVjTHVyvYVGQjJhqQGJMzmkUHwEbTCfWqHhXnW4VX
    ```
