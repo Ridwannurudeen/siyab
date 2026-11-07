@@ -60,7 +60,7 @@ The account a report names asks for review by filing a dispute against the accep
 
 - Only an accepted report can be disputed (`REFUSED:not_accepted`). A pending report has no effect on a payment, so there is nothing yet to review. A rejected report is final; a new report starts again.
 - One dispute is open at a time per report (`REFUSED:dispute_open`).
-- A report that has reached the dispute cap takes no more disputes (`REFUSED:dispute_limit`; see The dispute cap).
+- There is no lifetime cap on disputes in the source (see The dispute cap).
 - A disputed report stays counted as accepted until it is overturned (`docs/REPORTS.md`). Filing a dispute does not switch a report off.
 - A dispute costs the same non refundable storage fee as a report.
 - Anyone may file a dispute, not only the subject.
@@ -76,15 +76,13 @@ Decided (`docs/DECISIONS.md`, entry 6), and enforced in the deployed code:
 
 With one moderator the second rule does not apply: `resolve_dispute` lets the only moderator decide a dispute on a report they accepted. A subject who disputes is asking the same person to look again, with new evidence. That is the limit of this deployment, and it ends only when a second moderator is named.
 
-The first rule decides which account files. The only moderator is the owner, so a report filed from the owner account can never be decided: `moderate` refuses it with `REFUSED:self_moderation`. The moderator therefore files reports from a separate account. The moderator files disputes from a separate account too, so that no moderator decides a dispute they filed; that is policy, and the contract does not check it. On main, `scripts/report.sh` and `scripts/dispute.sh` still sign every call as `OWNER_ACCOUNT_ID`, so on main `scripts/report.sh` cannot file a report the moderator can decide. The variables `REPORTER_ACCOUNT_ID` and `DISPUTER_ACCOUNT_ID`, which give the filing calls their own signer, land with the branch `build/script-signers` and are not on main.
+The first rule decides which account files. The only moderator is the owner, so a report filed from the owner account can never be decided: `moderate` refuses it with `REFUSED:self_moderation`. The moderator therefore files reports from a separate account. The moderator files disputes from a separate account too, so that no moderator decides a dispute they filed; that is policy, and the contract does not check it. `scripts/report.sh` signs as `REPORTER_ACCOUNT_ID` and `scripts/dispute.sh` opens a dispute as `DISPUTER_ACCOUNT_ID`; each falls back to `OWNER_ACCOUNT_ID` with a warning when unset (`scripts/report.sh:8-10`, `scripts/dispute.sh:49-51`), and a report filed that way cannot be moderated by the owner.
 
 ## The dispute cap
 
-What the deployed code does: `dispute` refuses a dispute on a report whose `upheld_disputes` has reached five (`MAX_DISPUTES`, `REFUSED:dispute_limit`). `resolve_dispute` adds one to `upheld_disputes` when it upholds the report, and nothing when it overturns it; an overturned report is terminal and takes no further dispute (`REFUSED:not_accepted`). One dispute is open at a time (`REFUSED:dispute_open`). So the cap counts upheld disputes, the ones the disputer lost, and an open or overturned dispute does not count.
+The source has no dispute cap: `dispute` refuses only a report that is not accepted (`REFUSED:not_accepted`), a second open dispute (`REFUSED:dispute_open`, `contracts/reports/src/lib.rs:486`) and a deposit that is not exact (`REFUSED:bad_deposit`). `resolve_dispute` adds one to `upheld_disputes` when it upholds the report, saturating at 255, and keeps it only as a statistic (`contracts/reports/src/lib.rs:575`). An overturned report is terminal. The reason is in `docs/DECISIONS.md` (2026-11-07 note): a cap on upheld disputes counted exactly the baseless ones and let five of them close review of a report for good.
 
-The known limit: losing disputes count, and anyone may dispute. Five upheld disputes from any accounts close review of a report for good, the subject's own review included, for five deposits. A false accept can therefore be made permanent by filing five weak disputes against it before the subject files a strong one.
-
-This rule is under review; a dated decision in `docs/DECISIONS.md` will follow.
+The reports contract deployed on testnet is the earlier build recorded in `res/BUILD-reports.md`, which still refuses a dispute once a report has five upheld disputes, until the redeploy that `docs/UPGRADES.md` describes.
 
 ## Corrections
 

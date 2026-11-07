@@ -55,7 +55,7 @@ The only transitions (`contracts/reports/src/lib.rs:370`, `:437`, `:474`, `:542`
 |---|---|---|---|
 | `pending` | `accepted` or `rejected` | `moderate(id, accept, reason_sha256)`, a moderator other than the report's submitter, exactly 1 yoctoNEAR | `REFUSED:not_moderator`, `REFUSED:bad_hash`, `REFUSED:self_moderation` (`:376`), `REFUSED:not_pending` |
 | `pending` | `withdrawn` | `withdraw(id)`, the submitter, exactly 1 yoctoNEAR | `REFUSED:not_submitter`, `REFUSED:not_pending` |
-| `accepted` | `contested` | `dispute(report_id, evidence_sha256, evidence_url)`, anyone, exactly the deposit | `REFUSED:bad_deposit`, `REFUSED:dispute_open`, `REFUSED:not_accepted`, `REFUSED:dispute_limit` (`:492`: a report takes at most 5 upheld disputes over its lifetime, that is disputes resolved against the disputer; open and overturned disputes do not count) |
+| `accepted` | `contested` | `dispute(report_id, evidence_sha256, evidence_url)`, anyone, exactly the deposit | `REFUSED:bad_deposit`, `REFUSED:dispute_open`, `REFUSED:not_accepted`; there is no lifetime dispute cap |
 | `contested` | `accepted` or `overturned` | `resolve_dispute(dispute_id, overturn, reason_sha256)`, a moderator, exactly 1 yoctoNEAR; while the moderator list has more than one member, not the moderator recorded on the report | `REFUSED:not_moderator`, `REFUSED:bad_hash`, `REFUSED:dispute_closed`, `REFUSED:not_contested`, `REFUSED:same_moderator` (`:554`) |
 
 A missing id is refused as `REFUSED:report_missing` or `REFUSED:dispute_missing`. Rows are never deleted. An upheld dispute returns the report to `accepted` and adds 1 to its count of upheld disputes, which `get_report` does not show (`:74`, `:580`).
