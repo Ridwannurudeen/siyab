@@ -46,13 +46,14 @@ class VerdictCase(unittest.TestCase):
         self.store = labels.load()
 
     def request(self, kind="ft", token="wrap.near", receiver="intents.near", amount="1000", memo=None,
-                policy=ALLOW_POLICY, verdict_signer=None, ttl_ms=verdict.DEFAULT_TTL_MS, sign_actions=None):
+                policy=ALLOW_POLICY, verdict_signer=None, ttl_ms=verdict.DEFAULT_TTL_MS, sign_actions=None,
+                issuers=None, reports_account=None):
         options = {} if sign_actions is None else {"sign_actions": sign_actions}
         return verdict.request(kind, token, receiver, amount, memo, gate="gate.near", agent_pk_hex=AGENT,
                                policy=policy, store=self.store, rpc=rpc.Client(rpc.MAINNET_RPC_URL, "replay"),
                                nearblocks=rpc.Client(rpc.NEARBLOCKS_URL, "replay", kind="http"),
                                signer=verdict_signer or signer.TestSigner(), ttl_ms=ttl_ms,
-                               evidence_dir=self.dir, **options)
+                               evidence_dir=self.dir, issuers=issuers, reports_account=reports_account, **options)
 
 
 class AllowTest(VerdictCase):
