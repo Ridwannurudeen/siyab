@@ -2,6 +2,28 @@
 
 **Every label has a source. Every verdict has evidence. Unknown never passes.**
 
+What it is: a verdict service that judges an agent payment on NEAR before the agent signs, and a Gate contract that holds the agent's funds and pays only on a signed ALLOW bound to that exact transfer.
+
+Who it is for: teams that let an AI agent pay from a NEAR account; the agent's only credential is a function call key to the Gate, so the protocol refuses it a direct transfer, a deposit or a call to the token.
+
+Live on testnet: the Gate runs 0.1.0, the registry runs 0.1.0 and holds 7 verdict records, and the reports contract runs 0.1.1, which the verdict service consults only when `REPORTS_ACCOUNT_ID` is set (`docs/TESTNET.md`).
+
+Not yet: Gate 0.2.0 is built and reproducible but not deployed (`Deployed: pending` in `res/BUILD-gate.md`), no report has been filed on the reports contract, and there is no mainnet deployment.
+
+Shown on testnet: a scripted agent told by a planted instruction to pay an account named in a public incident report gets DENY from the verdict service, and the Gate refuses its submission with `REFUSED:no_verdict`.
+
+**Try it in 60 seconds**, offline: Python 3.11 or later, from the repository root, no network and no keys. Each command exits 0 and reads only committed fixtures.
+
+```
+python -m gate injected
+python -m gate demo --offline
+python -m gate codehash res/previous/gate.wasm
+python -m intel counts
+python -m gate incident rhea
+```
+
+## What it is
+
 ShieldBot for NEAR is a security intelligence layer for NEAR: a label store in which every assertion names its provenance class and its source, covering the NEAR Intents token catalog and the treasury accounts its documentation lists, the Sputnik DAO factory, the current validators, the Ref Finance whitelist and the Rainbow Bridge token factory, incident pages built from those assertions, a fund flow trace whose every hop carries its transaction hash and block, a clustering tool whose every edge carries its heuristic and its provenance, issuer blacklist facts read from the token contracts and from the issuer's own transactions, and a block feed that follows finalized mainnet blocks for the hosted copy. Its first consumer is a guard: a verdict service judges the receiver, the token, the amount and the memo of an agent payment, and the destination recipient of one that leaves NEAR through NEAR Intents in a preflight before signing; a NEAR contract on testnet holds the agent's funds and pays only on a signed ALLOW bound to that exact transfer; and a NEAR registry on testnet records verdicts with their evidence hashes. The agent's only credential is a function call key to the guard, so the protocol itself refuses it a transfer, a deposit or a call to the token. Inferred attributions are shown as hypotheses with their inputs and never add a subject to the refusal set; a check that cannot run reads Unknown, and Unknown is refused. It is unrelated to NEAR Intents SHIELD; built for NEAR HACKATHON track 06 with the hints AGENT SECURITY and FUNCTION CALL KEYS; ShieldBot's EVM engine, its registries on other chains and its SDKs are pre existing baseline, everything under `contracts/`, `gate/`, `intel/` and `mcp/` was built in the hackathon window, and the baseline commit is linked in New in this hackathon vs reused. The testnet registry holds 7 verdict records: the ALLOWs of the second, third and fourth payments, the ALLOW the verdict service gave the unknown payee attack, which the Gate then refused on its cap, and the DENYs of the lookalike, the aged payee and the collector account named in the Rhea Lend incident report, which source `rekt-rhea` describes as the attacker's NEAR wallet; the first payment and the replay attack's first send have no record, because their evidence documents were not kept (`docs/TESTNET.md`). A prompt injected agent that follows a planted instruction to pay an account named in a public incident report is refused twice: the verdict service answers DENY with the label, the memo patterns and the evidence, and the guard refuses the transfer the agent then submits without a signed ALLOW; the log is replayed offline by `python -m gate injected`.
 
 ## A prompt injected agent, stopped

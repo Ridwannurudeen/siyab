@@ -64,7 +64,7 @@ Decided by: the orchestrator; confirmed by the owner on 6 Nov. The owner is the 
 
 2026-11-07 note: the upheld only dispute cap is withdrawn. A counted dispute is by definition one the moderator judged baseless, and an overturn is terminal, so the cap counted exactly the frivolous disputes and let five of them, 0.11568 NEAR in total and fileable by the reporter's allies, close review of a report for ever. A subject exemption does not repair it: a contract with its keys removed cannot dispute from its own account. `MAX_DISPUTES` and `REFUSED:dispute_limit` are removed; the brakes are one open dispute per report and the exact deposit per dispute. The moderator may leave a baseless dispute open at no cost to the signal, since `deny` holds while the report is contested. `upheld_disputes` stays stored as a statistic and saturates at 255. Layout preserving; redeployed under UPGRADES rule 2 once `res/previous/` and the round trip test exist. Raised by the builder on 7 Nov.
 
-Decided by: Fable proposed, Opus (interface owner) agreed on 7 Nov; Codex reviews the change.
+Decided by: proposed by the plan reviewer and agreed by the interface owner on 7 Nov; the change is reviewed independently before merge.
 
 ## 2026-11-06, entry 7: upgrades, migrations and rollback
 
