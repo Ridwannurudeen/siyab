@@ -42,15 +42,16 @@ The reason for every decision is written as text, and `reason_sha256` is the sha
 
 ## Service times
 
-These are the times one moderator can hold: the `acknowledge` step is 72 hours, the `decide` step is 168 hours, and the `dispute_decision` step is 168 hours. The machine readable copy is `docs/service_times.json`, and `tests/test_reporting_docs.py` fails when this prose, the table, and that file disagree.
+The `acknowledge` step is 72 hours, the `decide` step is 168 hours, and the `dispute_decision` step is 168 hours for the one moderator. The `correction` step is 72 hours for the single registry operator. The machine readable copy is `docs/service_times.json`, and `tests/test_reporting_docs.py` fails when this prose, the table, and that file disagree.
 
 | Step | Time | What starts and stops the clock |
 |---|---|---|
 | `acknowledge` | 72 hours | From the report's `submitted_ms` to a dated line in `docs/LOG.md` naming the report id. |
+| `correction` | 72 hours | From the dated `docs/LOG.md` line that records confirmation to the correcting transaction or commit. |
 | `decide` | 168 hours | From the report's `submitted_ms` to its `report_moderated` event. |
 | `dispute_decision` | 168 hours | From the dispute's `submitted_ms` to its `dispute_resolved` event. |
 
-Each time is measured from an on chain timestamp and the log, so a reader can check it. The clock runs on calendar hours, every day, and there is no faster lane: with one moderator, nothing on this page promises a same day answer. When a decision will miss its time, the log says so before the time runs out, and a miss stays in the log as a miss.
+Report times use the on-chain timestamps and log entries in their rows; a correction uses the dated confirmation line and correcting transaction or commit. The windows run on calendar hours, every day. There is one moderator and one correction operator; there is no faster lane or same-day promise. When a report decision will miss its time, the log says so before the time runs out, and a miss stays in the log as a miss.
 
 `resolve_dispute` overwrites the report's `moderated_ms` with the time of the dispute decision, so the time of the first decision is read from the `report_moderated` event, not from `get_report`.
 

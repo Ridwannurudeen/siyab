@@ -2,6 +2,7 @@ import json
 import os
 import select
 import shlex
+import shutil
 import signal
 import subprocess
 import sys
@@ -14,6 +15,7 @@ try:
 except ImportError:
     pty = None
 
+from gate import rpc
 from tests.test_redeploy import bash_path
 from tests.test_scripts import BASH, ScriptTest
 
@@ -35,6 +37,7 @@ class RegistryMainnetTest(ScriptTest):
         (bin_dir / "near").write_bytes(TRIP_NEAR.encode("utf-8"))
         (bin_dir / "near").chmod(0o755)
         self.marker = Path(self.tempdir.name) / "near-called"
+        self.allow_near_calls = False
         self.addCleanup(self.assert_near_not_called)
         self.wasm = bash_path(ROOT / "res" / "registry.wasm")
         self.env = {**self.env, "NETWORK": "mainnet", "MAINNET_DEPLOY_OK": "1", "DRY_RUN": "1",
@@ -43,7 +46,8 @@ class RegistryMainnetTest(ScriptTest):
             self.env.pop(name, None)
 
     def assert_near_not_called(self):
-        self.assertFalse(self.marker.exists(), "near was invoked")
+        if not self.allow_near_calls:
+            self.assertFalse(self.marker.exists(), "near was invoked")
 
     def deploy(self, *args, **extra):
         return self.run_script(SCRIPT, *args, env={**self.env, **extra})
@@ -61,6 +65,26 @@ class RegistryMainnetTest(ScriptTest):
         code_hash = next(line.split(": ", 1)[1] for line in lines if line.startswith("code_hash: "))
         return sha256, code_hash
 
+    def deploy_with_build_record(self, build_record):
+        root = Path(self.tempdir.name) / "isolated-root"
+        scripts = root / "scripts"
+        res = root / "res"
+        scripts.mkdir(parents=True)
+        res.mkdir()
+        shutil.copyfile(ROOT / "scripts" / SCRIPT, scripts / SCRIPT)
+        shutil.copyfile(ROOT / "scripts" / "lib.sh", scripts / "lib.sh")
+        shutil.copyfile(ROOT / "res" / "registry.wasm.sha256", res / "registry.wasm.sha256")
+        (res / "BUILD-registry.md").write_text(build_record, encoding="utf-8")
+        env = {**self.env}
+        pythonpath = [str(ROOT)]
+        if env.get("PYTHONPATH"):
+            pythonpath.append(env["PYTHONPATH"])
+        env["PYTHONPATH"] = os.pathsep.join(pythonpath)
+        return subprocess.run(
+            [BASH, bash_path(scripts / SCRIPT), REGISTRY, OWNER, RECORDER, self.wasm],
+            capture_output=True, cwd=root, env=env, timeout=30, check=False, text=True,
+        )
+
     def live_environment(self):
         env = {**self.env}
         env.pop("DRY_RUN")
@@ -72,14 +96,16 @@ class RegistryMainnetTest(ScriptTest):
             f"rpc.Client.code_hash = lambda self, account: {code_hash!r}\n",
             encoding="utf-8",
         )
-        pythonpath = [str(stub_dir)]
+        # sitecustomize runs before python -m puts the working directory on sys.path, so the stub
+        # can import gate only when the repository root is on PYTHONPATH.
+        pythonpath = [str(stub_dir), str(ROOT)]
         if env.get("PYTHONPATH"):
             pythonpath.append(env["PYTHONPATH"])
         env["PYTHONPATH"] = os.pathsep.join(pythonpath)
         return env
 
-    def run_with_tty(self, confirmation):
-        live_env = self.live_environment()
+    def run_with_tty(self, confirmation, live_env=None):
+        live_env = self.live_environment() if live_env is None else live_env
         pid, tty_fd = pty.fork()
         if pid == 0:
             try:
@@ -161,6 +187,20 @@ class RegistryMainnetGuardTest(RegistryMainnetTest):
                 self.assertEqual(process.returncode, 2)
                 self.assertIn("MAINNET_DEPLOY_OK=1 is required", process.stderr)
                 self.assertEqual(process.stdout, "")
+
+    def test_refuses_without_near_keys_dir(self):
+        env = {**self.env}
+        env.pop("NEAR_KEYS_DIR")
+        process = self.run_script(SCRIPT, REGISTRY, OWNER, RECORDER, self.wasm, env=env)
+        self.assertEqual(process.returncode, 2)
+        self.assertIn("missing required environment variable: NEAR_KEYS_DIR", process.stderr)
+        self.assertEqual(process.stdout, "")
+
+    def test_refuses_a_build_record_without_a_40_hex_source_commit(self):
+        process = self.deploy_with_build_record("Source commit: not-a-commit\n")
+        self.assertEqual(process.returncode, 2)
+        self.assertIn("res/BUILD-registry.md has no 40 hex Source commit line", process.stderr)
+        self.assertNotIn("near contract deploy", process.stdout)
 
     def test_refuses_a_wasm_whose_sha256_does_not_match(self):
         other = Path(self.tempdir.name) / "other.wasm"
@@ -347,6 +387,145 @@ class RegistryMainnetDryRunTest(RegistryMainnetTest):
         process = self.run_script(SCRIPT, REGISTRY, OWNER, RECORDER, self.wasm, "--dry-run", env=env)
         self.assertEqual(process.returncode, 0, process.stderr)
         self.assertIn("+ near contract deploy", process.stdout)
+
+
+REGISTRY_NEAR = r"""#!/bin/sh
+printf '%s\n' "$*" >> "$REGISTRY_NEAR_LOG"
+if [ "$2" = "view-account-summary" ]; then
+  printf 'account summary\n'
+  exit 0
+fi
+if [ "$2" = "deploy" ]; then
+  printf 'Transaction ID: 4QkqgW9n6rN8yP7LhXmVv3dEzC2bA1uT5sR6qJ8kH9gS\n'
+  exit 0
+fi
+if [ "$3" = "as-read-only" ]; then
+  case "$5" in
+    get_recorder) value=$RECORDER_VALUE ;;
+    version) value=$VERSION_VALUE ;;
+    *) printf 'unexpected read request\n' >&2; exit 42 ;;
+  esac
+  printf 'Function execution return value (printed to stdout):\n%s\n\n\n' "$value"
+  printf 'Here is your console command if you need to script it or re-run:\n'
+  exit 0
+fi
+printf 'unexpected request\n' >&2
+exit 42
+"""
+
+
+class RegistryMainnetLiveAssertionTest(RegistryMainnetTest):
+    def setUp(self):
+        super().setUp()
+        self.allow_near_calls = True
+        bin_dir = Path(self.tempdir.name) / "bin"
+        near = bin_dir / "near"
+        near.write_text(REGISTRY_NEAR, encoding="utf-8")
+        near.chmod(0o755)
+        sleep = bin_dir / "sleep"
+        sleep.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+        sleep.chmod(0o755)
+        self.near_log = Path(self.tempdir.name) / "registry-near.log"
+        self.rpc_marker = Path(self.tempdir.name) / "rpc-read"
+        self.expected_code_hash = self.recorded()[1]
+        self.env = {
+            **self.env,
+            "REGISTRY_NEAR_LOG": bash_path(self.near_log),
+            "CODEHASH_MARKER": bash_path(self.rpc_marker),
+            "INITIAL_CODE_HASH": rpc.EMPTY_CODE_HASH,
+            "POST_CODE_HASH": self.expected_code_hash,
+            "RECORDER_VALUE": json.dumps(RECORDER),
+            "VERSION_VALUE": json.dumps("0.1.0"),
+            "DRY_RUN": "0",
+        }
+
+    def set_code_hash_rpc(self, initial=None, after=None, missing=False, live_env=None):
+        live_env = self.live_environment() if live_env is None else live_env
+        sitecustomize = Path(live_env["PYTHONPATH"].split(os.pathsep)[0]) / "sitecustomize.py"
+        if missing:
+            code = (
+                "from gate import rpc\n"
+                "def missing(self, account):\n"
+                "    raise rpc.RpcError({'name': 'HANDLER_ERROR', "
+                "'cause': {'name': 'UNKNOWN_ACCOUNT'}})\n"
+                "rpc.Client.code_hash = missing\n"
+            )
+        else:
+            if self.rpc_marker.exists():
+                self.rpc_marker.unlink()
+            live_env["INITIAL_CODE_HASH"] = initial
+            live_env["POST_CODE_HASH"] = after
+            code = (
+                "import os\n"
+                "from pathlib import Path\n"
+                "from gate import rpc\n"
+                "marker = Path(os.environ['CODEHASH_MARKER'])\n"
+                "def code_hash(self, account):\n"
+                "    if not marker.exists():\n"
+                "        marker.write_text('initial', encoding='utf-8')\n"
+                "        return os.environ['INITIAL_CODE_HASH']\n"
+                "    return os.environ['POST_CODE_HASH']\n"
+                "rpc.Client.code_hash = code_hash\n"
+            )
+        sitecustomize.write_text(code, encoding="utf-8")
+        return live_env
+
+    def run_live(self, confirmation=REGISTRY, initial=None, after=None, missing=False, **environment):
+        if pty is None or os.name != "posix":
+            self.skipTest("requires POSIX pty support to answer the script's /dev/tty confirmation")
+        env = self.live_environment()
+        env.update(self.env)
+        env.update(environment)
+        env = self.set_code_hash_rpc(initial=initial, after=after, missing=missing, live_env=env)
+        return self.run_with_tty(confirmation, env)
+
+    def test_live_first_deploy_asserts_recorder_and_code_hash(self):
+        returncode, output = self.run_live(initial=rpc.EMPTY_CODE_HASH, after=self.expected_code_hash)
+        self.assertEqual(returncode, 0, output)
+        self.assertIn(f"asserted: get_recorder of {REGISTRY} equals {RECORDER}", output)
+        self.assertIn(f"asserted: code_hash of {REGISTRY} equals {self.expected_code_hash}", output)
+        self.assertIn("contract deploy", self.near_log.read_text(encoding="utf-8"))
+
+    def test_live_first_deploy_refuses_a_different_recorder(self):
+        self.env["RECORDER_VALUE"] = json.dumps("wrong.example.near")
+        returncode, output = self.run_live(initial=rpc.EMPTY_CODE_HASH, after=self.expected_code_hash)
+        self.assertEqual(returncode, 1, output)
+        self.assertIn(f"get_recorder of {REGISTRY} is wrong.example.near, expected {RECORDER}", output)
+        self.assertNotIn(f"asserted: code_hash of {REGISTRY}", output)
+
+    def test_live_redeploy_refuses_an_empty_registry(self):
+        returncode, output = self.run_live(
+            initial=rpc.EMPTY_CODE_HASH, after=self.expected_code_hash, REDEPLOY="1",
+            EXPECT_VERSION="0.1.0", EXPECT_CODE_HASH=self.expected_code_hash,
+        )
+        self.assertEqual(returncode, 2, output)
+        self.assertIn(f"{REGISTRY} holds no code, so there is nothing to redeploy", output)
+        self.assertFalse(self.near_log.exists())
+
+    def test_live_redeploy_refuses_a_version_mismatch(self):
+        returncode, output = self.run_live(
+            initial="existing-code-hash", after=self.expected_code_hash, REDEPLOY="1",
+            EXPECT_VERSION="0.2.0", EXPECT_CODE_HASH=self.expected_code_hash,
+        )
+        self.assertEqual(returncode, 1, output)
+        self.assertIn(f"version of {REGISTRY} is 0.1.0, expected 0.2.0", output)
+
+    def test_live_first_deploy_refuses_a_code_hash_mismatch(self):
+        returncode, output = self.run_live(initial=rpc.EMPTY_CODE_HASH, after="different-code-hash")
+        self.assertEqual(returncode, 1, output)
+        self.assertIn(
+            f"code_hash of {REGISTRY} is different-code-hash, expected {self.expected_code_hash}",
+            output,
+        )
+
+    def test_live_deploy_refuses_a_missing_registry_account(self):
+        if pty is None or os.name != "posix":
+            self.skipTest("requires POSIX pty support to answer the script's /dev/tty confirmation")
+        env = self.set_code_hash_rpc(missing=True)
+        returncode, output = self.run_with_tty(REGISTRY, env)
+        self.assertEqual(returncode, 2, output)
+        self.assertIn(f"registry account {REGISTRY} not found on mainnet", output)
+        self.assertFalse(self.near_log.exists())
 
 
 class RegistryMainnetCodeHashReadTest(unittest.TestCase):

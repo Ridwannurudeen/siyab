@@ -32,11 +32,17 @@ class ServiceTimesTest(unittest.TestCase):
         self.assertEqual(set(self.times), {"version", "policy", "hours"})
         self.assertEqual(self.times["version"], 1)
         self.assertEqual(self.times["policy"], "docs/REPORTING.md")
-        self.assertEqual(set(self.times["hours"]), {"acknowledge", "decide", "dispute_decision"})
+        self.assertEqual(set(self.times["hours"]), {"acknowledge", "correction", "decide", "dispute_decision"})
         for step, hours in self.times["hours"].items():
             with self.subTest(step=step):
                 self.assertIs(type(hours), int)
                 self.assertGreater(hours, 0)
+
+    def test_the_correction_clock_names_confirmation_and_publication(self):
+        row = next(line for line in self.policy.splitlines() if line.startswith("| `correction` |"))
+        self.assertIn("72 hours", row)
+        self.assertIn("dated `docs/LOG.md` line that records confirmation", row)
+        self.assertIn("correcting transaction or commit", row)
 
     def test_the_policy_table_equals_the_json(self):
         table = {step: int(hours) for step, hours in ROW.findall(self.policy)}
