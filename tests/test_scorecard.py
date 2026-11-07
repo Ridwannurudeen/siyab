@@ -17,6 +17,13 @@ from scripts import scorecard
 
 
 class ScorecardTest(unittest.TestCase):
+    def test_rust_sandbox_citations_count_as_test_references(self):
+        citation = (
+            "contracts/reports/tests/sandbox.rs::"
+            "sandbox_submit_accept_dispute_overturn_updates_subject_summary"
+        )
+        self.assertIsNotNone(scorecard.TEST_CITATION.search(citation))
+
     def test_check_passes_on_the_committed_page(self):
         result = subprocess.run(
             [sys.executable, str(ROOT / "scripts" / "scorecard.py"), "--check"],

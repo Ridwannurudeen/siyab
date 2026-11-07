@@ -1,6 +1,6 @@
 # Scripts: testnet, and one mainnet deploy script behind explicit guards
 
-The scripts use environment variables and the near-cli-rs command lines recorded in `docs/SPIKES.md`. Set `DRY_RUN=1` or pass `--dry-run` to print the planned command lines; neither mode reads key contents or submits a transaction. The environment example file at the repository root (RUN-N9) will show these values. No script contains or prints a key.
+The scripts use environment variables and the near-cli-rs command lines recorded in `docs/SPIKES.md`. Set `DRY_RUN=1` or pass `--dry-run` to print the planned command lines; neither mode reads key contents or submits a transaction. The repository's `env.example` documents the environment variables used by these scripts. No script contains or prints a key.
 
 | Variable | Use |
 |---|---|

@@ -424,8 +424,8 @@ class OutcomeActionTest(VerdictCase):
         self.assertEqual(action_problems(API_DOC.read_text(encoding="utf-8"), results), [])
 
         broken = API_DOC.read_text(encoding="utf-8").replace(
-            "| `DENY` | always empty (`gate/verdict.py:25` to `:26`) | `refuse` |",
-            "| `DENY` | always empty (`gate/verdict.py:25` to `:26`) | `sign` |", 1)
+            "| `DENY` | always empty (`gate/verdict.py:28-29`) | `refuse` |",
+            "| `DENY` | always empty (`gate/verdict.py:28-29`) | `sign` |", 1)
         self.assertTrue(action_problems(broken, results))
 
 

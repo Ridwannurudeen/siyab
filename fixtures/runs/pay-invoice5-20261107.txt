@@ -1,3 +1,4 @@
+Run wrapper checkout commit:
 70f0e056
 pass    receiver_exists: kestrelridge-shop.testnet exists
 pass    label_denylist: no denylist or incident label on kestrelridge-shop.testnet or token.kestrelridge-main.testnet
