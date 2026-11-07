@@ -5,6 +5,10 @@ source "$ROOT_DIR/scripts/lib.sh"
 parse_dry_run "$@"
 require_testnet
 require_vars OWNER_ACCOUNT_ID NEAR_KEYS_DIR
+if [[ -z "${REPORTER_ACCOUNT_ID+x}" ]]; then
+  REPORTER_ACCOUNT_ID=$OWNER_ACCOUNT_ID
+  printf 'the owner is the moderator and cannot moderate a report it filed; set REPORTER_ACCOUNT_ID\n' >&2
+fi
 if [[ "${#SCRIPT_ARGS[@]}" -ne 6 ]]; then
   printf 'usage: report.sh <reports_account> <subject> <kind> <outcome> <evidence_sha256> <evidence_url> [--dry-run]\n' >&2
   exit 2
@@ -16,6 +20,7 @@ outcome=${SCRIPT_ARGS[3]}
 evidence_sha256=${SCRIPT_ARGS[4]}
 evidence_url=${SCRIPT_ARGS[5]}
 require_account_id "$OWNER_ACCOUNT_ID" "owner account"
+require_account_id "$REPORTER_ACCOUNT_ID" "reporter account"
 require_account_id "$reports_account" "reports account"
 require_account_id "$subject" "subject"
 require_sha256 "$evidence_sha256" "evidence hash"
@@ -57,5 +62,5 @@ if match is None:
 print(f"{match.group(1).replace('_', '')} yoctoNEAR")
 PY
 )
-call_transaction "$reports_account" submit_report "$ARGS" "$OWNER_ACCOUNT_ID" "$(account_key "$OWNER_ACCOUNT_ID")" "$DEPOSIT"
+call_transaction "$reports_account" submit_report "$ARGS" "$REPORTER_ACCOUNT_ID" "$(account_key "$REPORTER_ACCOUNT_ID")" "$DEPOSIT"
 summary_block "$reports_account"
