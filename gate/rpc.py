@@ -140,7 +140,9 @@ def trim_block_response(response):
     if not isinstance(result, dict):
         return response
     header = result.get("header")
-    if not isinstance(header, dict) or not all(key in header for key in ("hash", "height", "timestamp")):
+    if not (isinstance(header, dict) and isinstance(header.get("hash"), str) and _uint(header.get("height"))
+            and _uint(header.get("timestamp"))):
+        # A malformed header is stored as it came, so replay raises the same MalformedResponse.
         return response
     if not all(key in response for key in ("jsonrpc", "id")):
         return response

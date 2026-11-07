@@ -286,6 +286,21 @@ class FailClosedClientTest(unittest.TestCase):
             client.block_at(7)
         [path] = Path(self.tmp.name).iterdir()
         self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["response"], error)
+    def test_malformed_block_response_is_recorded_unchanged(self):
+        for header in ({"hash": "h", "height": 7, "timestamp": True},
+                       {"hash": 5, "height": 7, "timestamp": 1},
+                       {"hash": "h", "height": -1, "timestamp": 1}):
+            with self.subTest(header=header):
+                for stale in Path(self.tmp.name).iterdir():
+                    stale.unlink()
+                malformed = {"jsonrpc": "2.0", "id": "gate", "result": {"header": header, "chunks": []}}
+                client = rpc.Client("https://rpc.example", "record", fixtures_dir=self.tmp.name)
+                with (mock.patch("urllib.request.urlopen", return_value=reply(malformed)),
+                      self.assertRaises(rpc.MalformedResponse)):
+                    client.block_at(7)
+                [path] = Path(self.tmp.name).iterdir()
+                self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["response"], malformed)
+
     def test_malformed_bodies_raise_malformed_response(self):
         client = rpc.Client("https://rpc.example", "off")
         cases = [
