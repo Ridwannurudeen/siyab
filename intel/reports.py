@@ -1,4 +1,5 @@
 SUMMARY_FIELDS = frozenset(("accepted", "pending", "contested", "latest_accepted_id", "latest_deny_id", "deny"))
+U64_MAX = (1 << 64) - 1
 
 
 def _readable(summary):
@@ -7,7 +8,7 @@ def _readable(summary):
     if summary.keys() != SUMMARY_FIELDS:
         return False
     counts = (summary.get("accepted"), summary.get("pending"), summary.get("contested"))
-    if any(type(count) is not int or count < 0 for count in counts):
+    if any(type(count) is not int or not 0 <= count <= U64_MAX for count in counts):
         return False
     accepted, _, contested = counts
     if contested > accepted:
@@ -20,10 +21,10 @@ def _readable(summary):
     if accepted == 0:
         if latest_id is not None or deny:
             return False
-    elif type(latest_id) is not int or latest_id < 0:
+    elif type(latest_id) is not int or not 0 <= latest_id <= U64_MAX:
         return False
     if deny:
-        if accepted == 0 or type(latest_deny_id) is not int or latest_deny_id < 0:
+        if accepted == 0 or type(latest_deny_id) is not int or not 0 <= latest_deny_id <= U64_MAX:
             return False
     elif latest_deny_id is not None:
         return False

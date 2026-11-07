@@ -299,5 +299,17 @@ class ReportsRulesTest(unittest.TestCase):
         self.assertIsNone(inspect.signature(verdict.request).parameters["reports_account"].default)
 
 
+class U64RangeTest(unittest.TestCase):
+    def test_counts_and_ids_above_u64_are_unreadable(self):
+        from intel import reports
+        good = {"accepted": 1, "pending": 0, "contested": 0, "latest_accepted_id": 3, "latest_deny_id": 3, "deny": True}
+        self.assertEqual(reports.effect(good, False)["effect"], "deny")
+        for field in ("accepted", "pending", "latest_accepted_id", "latest_deny_id"):
+            with self.subTest(field=field):
+                row = dict(good, **{field: reports.U64_MAX + 1})
+                self.assertEqual(reports.effect(row, False)["effect"], "unreadable")
+        edge = dict(good, accepted=reports.U64_MAX, latest_accepted_id=reports.U64_MAX, latest_deny_id=reports.U64_MAX)
+        self.assertEqual(reports.effect(edge, False)["effect"], "deny")
+
 if __name__ == "__main__":
     unittest.main()
