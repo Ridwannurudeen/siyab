@@ -175,11 +175,20 @@ class ReportClaimsTest(unittest.TestCase):
         build_record = (ROOT / "res" / "BUILD-reports.md").read_text(
             encoding="utf-8"
         )
-        deployed_match = re.search(
-            r"^Deployed:.*\bversion ([0-9]+(?:\.[0-9]+){2}),",
-            build_record,
-            re.MULTILINE,
-        )
+        # While a new build waits for its deploy, the Deployed line says pending and the code on testnet is
+        # the one the "Previous deploy" line names.
+        if re.search(r"^Deployed: pending", build_record, re.MULTILINE):
+            deployed_match = re.search(
+                r"^Previous deploy, version ([0-9]+(?:\.[0-9]+){2}) ",
+                build_record,
+                re.MULTILINE,
+            )
+        else:
+            deployed_match = re.search(
+                r"^Deployed:.*\bversion ([0-9]+(?:\.[0-9]+){2}),",
+                build_record,
+                re.MULTILINE,
+            )
         self.assertIsNotNone(deployed_match)
         deployed_version = deployed_match.group(1)
 
