@@ -10,9 +10,9 @@ The endpoint never signs. It reads no signing key, builds no verdict signer and 
 
 ### Keys and rate
 
-`SHIELDBOT_API_KEYS_FILE` names a file of API keys, one per line; blank lines and lines starting with `#` are skipped, and each line is stripped of surrounding whitespace. Without that variable, with a file that cannot be read or with a file that holds no key, the server prints `not started: ` and the reason and exits 2: there is no open mode. A caller sends `Authorization: Bearer <key>`; the key is compared with `hmac.compare_digest` against every key in the file.
+`SHIELDBOT_API_KEYS_FILE` names a file of API keys, one per line; blank lines and lines starting with `#` are skipped, and each line is stripped of surrounding whitespace. Without that variable, with a file that cannot be read or with a file that holds no key, the server prints `not started: ` and the reason and exits 2: there is no open mode. A caller sends `Authorization: Bearer <key>`; SHA-256 digests of the presented key and every key in the file are compared with `hmac.compare_digest`.
 
-Each key gets `SHIELDBOT_API_RATE` requests a minute (default 60, at least 1), counted in the process in fixed 60 second windows; the count starts again when the process restarts. A request past the budget is answered 429 with `Retry-After` in whole seconds until the next window. `GET /health` needs no key and is not counted.
+Each key gets `SHIELDBOT_API_RATE` requests a minute (default 60, at least 1), counted in the process in fixed 60 second windows; the count starts again when the process restarts. A request past the budget is answered 429 with `Retry-After` in whole seconds until the next window. Each connection has a 10 second socket timeout. At most eight requests are in flight; excess requests are answered 503 without reading their bodies. `GET /health` needs no key and is not counted.
 
 ### Mode
 
@@ -47,7 +47,6 @@ The answer is the `gate.verdict.request` result:
 | `checks` | one object per check, as `gate/evidence.py` defines it: `id`, `status` (`pass`, `signal` or `unknown`), `detail`, and `source` (`provider`, `request_sha256`, `fetched_at`) |
 | `reasons` | the reasons for the outcome, as strings |
 | `evidence_hash` | the sha256 hex of the evidence document |
-| `evidence_path` | where the server wrote that document |
 | `latency_ms` | the time the verdict took |
 | `message` | always null |
 | `signing` | the unsigned rule above |
@@ -60,7 +59,7 @@ An ALLOW over the recorded fixtures, with `intents.near` allowlisted and checks 
  "checks": [{"id": "receiver_exists", "status": "pass", "detail": "intents.near exists",
              "source": {"provider": "free.rpc.fastnear.com", "request_sha256": "aeca5be4...", "fetched_at": "2026-10-29T09:20:50Z"}}],
  "reasons": ["Every check ran and none found a signal."], "evidence_hash": "56f5882f...",
- "evidence_path": "/tmp/shieldbot-near-http-.../56f5882f....json", "latency_ms": 1, "message": null,
+ "latency_ms": 1, "message": null,
  "signing": "this endpoint does not sign; a signed verdict needs the verifier key, which is never on this server"}
 ```
 
@@ -74,13 +73,14 @@ Every answer is JSON with `Cache-Control: no-store`; an error is `{"error": "<te
 
 | Status | When |
 |---|---|
-| 400 | the body is not JSON, not an object, has a field other than the five, or holds a transfer `gate/canon.py` refuses (`invalid request: ` and the `CanonError` text); a `Content-Length` that is not a byte count |
+| 400 | the body is not JSON, not an object, has a field other than the five, or holds a transfer `gate/canon.py` refuses (`invalid request: ` and the `CanonError` text); a `Content-Length` that is not a byte count or is longer than 10 digits |
 | 401 | no `Authorization: Bearer` header, or a key not in the file (with `WWW-Authenticate: Bearer`) |
-| 404 | any path but `/verdict` and `/health` |
-| 405 | any method but `POST` on `/verdict` or `GET` on `/health` (with `Allow`) |
+| 404 | `GET` or `POST` to any path but `/verdict` and `/health` |
+| 405 | any method other than `GET` and `POST` (with `Allow: GET, POST`), or `GET`/`POST` on a known path that does not accept it (with the route's `Allow`) |
 | 411 | no `Content-Length` |
 | 413 | a `Content-Length` over 65536, answered before the body is read |
 | 429 | the key is past its budget for the minute (with `Retry-After`) |
 | 500 | the verdict failed for another reason; the body is `{"error": "internal error"}`, and the exception type and text go to stderr, never a traceback in the body |
+| 503 | all eight request slots are occupied; the request body is not read |
 
-The order is path, method, key, budget, `Content-Length`, body. The tests are in `tests/test_http.py`.
+Unsupported methods are rejected before path, in-flight capacity and key checks. Supported requests then hit the in-flight cap, path, route method and, for `POST /verdict`, key, budget, `Content-Length` and body. The tests are in `tests/test_http.py`.

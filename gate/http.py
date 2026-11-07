@@ -8,13 +8,14 @@ Routes:
     GET  /health    {"ok": true, "mode": "replay" or "live"}, without a key
 
 POST /verdict needs Authorization: Bearer <key> with a key from the file SHIELDBOT_API_KEYS_FILE names (one
-per line; blank lines and lines starting with # are skipped), compared with hmac.compare_digest against every
-key. Without that file, or with no key in it, the server does not start. Each key gets SHIELDBOT_API_RATE
-requests (default 60) per fixed minute window, counted in this process; past that the answer is 429 with
-Retry-After. Other answers: 400 for a body that is not a JSON object of those fields or a transfer gate.canon
-refuses, 401 without a known key, 404 for any other path, 405 with Allow for any other method, 411 without
-a Content-Length, 413 when the Content-Length is over MAX_BODY (the body is not read), and 500 with no
-traceback. Every answer is JSON and carries Cache-Control: no-store.
+per line; blank lines and lines starting with # are skipped), compared as fixed-length digests with
+hmac.compare_digest against every key. Without that file, or with no key in it, the server does not start.
+Each key gets SHIELDBOT_API_RATE requests (default 60) per fixed minute window, counted in this process; past
+that the answer is 429 with Retry-After. Connections have a 10 second socket timeout, and at most eight
+requests may be in flight. Other answers: 400 for an invalid body or Content-Length, 401 without a known key,
+404 for any other path, 405 with Allow for any other method, 411 without a Content-Length, 413 when the
+Content-Length is over MAX_BODY (the body is not read), 503 when all request slots are occupied (the body is
+not read), and 500 with no traceback. Every answer is JSON and carries Cache-Control: no-store.
 
 The transfer is judged as check_near_payment judges it without live signing: bound to GATE_ACCOUNT_ID
 (default gate.near) and the TEST agent key, against GATE_POLICY (default the MCP server's DEFAULT_POLICY),
@@ -26,6 +27,7 @@ proxy in front of it. Evidence documents go to a temporary directory, removed wh
 GATE_KEEP_EVIDENCE=1.
 """
 
+import hashlib
 import hmac
 import json
 import math
@@ -48,6 +50,8 @@ RATE = "SHIELDBOT_API_RATE"
 DEFAULT_RATE = 60
 WINDOW_S = 60
 MAX_BODY = 65536
+REQUEST_TIMEOUT_S = 10
+MAX_IN_FLIGHT = 8
 FIELDS = ("kind", "token", "receiver", "amount", "memo")
 ROUTES = {"/verdict": "POST", "/health": "GET"}
 JSON_TYPE = "application/json; charset=utf-8"
@@ -109,15 +113,16 @@ class RateLimit:
 
     def retry_after(self, key):
         """None when the key may make this request, which is then counted; else the seconds to wait."""
-        now = self.clock()
-        window = math.floor(now / WINDOW_S)
         with self.lock:
+            now = self.clock()
+            window = math.floor(now / WINDOW_S)
             start, count = self.counts.get(key, (window, 0))
-            if start != window:
+            if window > start:
                 count = 0
+                start = window
             if count >= self.rate:
-                return max(1, math.ceil((window + 1) * WINDOW_S - now))
-            self.counts[key] = (window, count + 1)
+                return max(1, math.ceil((start + 1) * WINDOW_S - now))
+            self.counts[key] = (start, count + 1)
             return None
 
 
@@ -125,15 +130,16 @@ def _key(header, keys):
     """The key a Bearer header names, compared against every key, or None."""
     if not header or not header.startswith("Bearer "):
         return None
-    presented = header[len("Bearer "):].encode("utf-8")
+    presented = hashlib.sha256(header[len("Bearer "):].encode("utf-8")).digest()
     found = None
     for key in keys:
-        if hmac.compare_digest(presented, key.encode("utf-8")):
+        if hmac.compare_digest(presented, hashlib.sha256(key.encode("utf-8")).digest()):
             found = key
     return found
 
 
-def make_server(host, port, config, evidence_dir, store=None, clock=time.monotonic):
+def make_server(host, port, config, evidence_dir, store=None, clock=time.monotonic, request_timeout=REQUEST_TIMEOUT_S,
+                max_in_flight=MAX_IN_FLIGHT):
     """A ThreadingHTTPServer for the endpoint; port 0 picks a free port. clock drives the rate windows."""
     store = store or labels.load()
     gate, policy = config["gate"], config["policy"]
@@ -142,6 +148,7 @@ def make_server(host, port, config, evidence_dir, store=None, clock=time.monoton
     issuers = None if gate.endswith(".testnet") else rules.issuers_for("mainnet")
     limit = RateLimit(config["rate"], clock)
     judging = threading.Lock()
+    requests = threading.BoundedSemaphore(max_in_flight)
 
     def judge(body):
         with judging:
@@ -150,21 +157,36 @@ def make_server(host, port, config, evidence_dir, store=None, clock=time.monoton
                                      store=store, rpc=client, nearblocks=nearblocks, signer=None,
                                      sign_actions=(), injection_scanner=scanner, archival=archival,
                                      evidence_dir=evidence_dir, issuers=issuers)
+        result.pop("evidence_path")
         return {**result, "verdict": None, "message": None, "signing": SIGNING}
 
     class Handler(BaseHTTPRequestHandler):
         def _dispatch(self):
-            path = self.path.split("?", 1)[0]
-            if path not in ROUTES:
-                self._send(404, {"error": "not found"})
-            elif self.command != ROUTES[path]:
-                self._send(405, {"error": f"{path} takes {ROUTES[path]} only"}, {"Allow": ROUTES[path]})
-            elif path == "/health":
-                self._send(200, {"ok": True, "mode": config["mode"]})
-            else:
-                self._verdict()
+            if self.command not in ("GET", "POST"):
+                self.close_connection = True
+                self._send(405, {"error": "method not allowed"}, {"Allow": "GET, POST"})
+                return
+            if not requests.acquire(blocking=False):
+                self.close_connection = True
+                self._send(503, {"error": "server busy"})
+                return
+            try:
+                path = self.path.split("?", 1)[0]
+                if path not in ROUTES:
+                    self._send(404, {"error": "not found"})
+                elif self.command != ROUTES[path]:
+                    self._send(405, {"error": f"{path} takes {ROUTES[path]} only"}, {"Allow": ROUTES[path]})
+                elif path == "/health":
+                    self._send(200, {"ok": True, "mode": config["mode"]})
+                else:
+                    self._verdict()
+            finally:
+                requests.release()
 
-        do_GET = do_POST = do_PUT = do_DELETE = do_PATCH = do_HEAD = do_OPTIONS = _dispatch
+        def __getattr__(self, name):
+            if name.startswith("do_"):
+                return self._dispatch
+            raise AttributeError(name)
 
         def _verdict(self):
             key = _key(self.headers.get("Authorization"), config["keys"])
@@ -182,13 +204,21 @@ def make_server(host, port, config, evidence_dir, store=None, clock=time.monoton
                 self._send(411, {"error": "a Content-Length is required"})
                 return
             if not (length.isascii() and length.isdigit()):
-                self._send(400, {"error": f"Content-Length is not a byte count: {length}"})
+                self._send(400, {"error": "Content-Length is not a byte count"})
                 return
-            if int(length) > MAX_BODY:
+            if len(length) > 10:
+                self._send(400, {"error": "Content-Length must not exceed 10 digits"})
+                return
+            try:
+                length = int(length)
+            except ValueError:
+                self._send(400, {"error": "Content-Length is not a byte count"})
+                return
+            if length > MAX_BODY:
                 self._send(413, {"error": f"the body is over {MAX_BODY} bytes"})
                 return
             try:
-                body = json.loads(self.rfile.read(int(length)))
+                body = json.loads(self.rfile.read(length))
             except ValueError as error:
                 self._send(400, {"error": f"the body is not JSON: {error}"})
                 return
@@ -219,10 +249,15 @@ def make_server(host, port, config, evidence_dir, store=None, clock=time.monoton
             for name, value in (headers or {}).items():
                 self.send_header(name, value)
             self.end_headers()
-            if self.command != "HEAD":
-                self.wfile.write(data)
+            self.wfile.write(data)
 
-    return ThreadingHTTPServer((host, port), Handler)
+    class Server(ThreadingHTTPServer):
+        def get_request(self):
+            request, client_address = super().get_request()
+            request.settimeout(request_timeout)
+            return request, client_address
+
+    return Server((host, port), Handler)
 
 
 def serve(host, port):

@@ -4,12 +4,13 @@ import http.client
 import io
 import json
 import os
+import socket
 import subprocess
 import sys
 import tempfile
 import threading
 import unittest
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from unittest import mock
 
 from gate import __main__ as cli
@@ -77,6 +78,24 @@ class EndpointCase(unittest.TestCase):
         self.assertEqual(reply.getheader("Cache-Control"), "no-store")
         return reply.status, dict(reply.getheaders()), json.loads(body)
 
+    def raw_call(self, method, path, headers=None):
+        connection = socket.create_connection(self.server.server_address, timeout=3)
+        self.addCleanup(connection.close)
+        request_headers = {"Host": "localhost", "Connection": "close"}
+        request_headers.update(headers or {})
+        request = f"{method} {path} HTTP/1.0\r\n" + "".join(
+            f"{name}: {value}\r\n" for name, value in request_headers.items()) + "\r\n"
+        connection.sendall(request.encode("ascii"))
+        response = bytearray()
+        while chunk := connection.recv(4096):
+            response.extend(chunk)
+        head, body = bytes(response).split(b"\r\n\r\n", 1)
+        status_line, *header_lines = head.decode("iso-8859-1").split("\r\n")
+        status = int(status_line.split()[1])
+        response_headers = {name.lower(): value.strip() for name, value in
+                            (line.split(":", 1) for line in header_lines)}
+        return status, response_headers, json.loads(body)
+
     def call(self, method, path, body=None, key="key-one"):
         """(status, headers, JSON body) of one request; a dict body is sent as JSON, bytes as they are."""
         headers = {"Authorization": f"Bearer {key}"} if key else {}
@@ -116,8 +135,20 @@ class VerdictRouteTest(EndpointCase):
                 for check in result["checks"]:
                     self.assertEqual(sorted(check), ["detail", "id", "source", "status"])
                     self.assertIn(check["status"], evidence.STATUSES)
-                document = json.loads(Path(result["evidence_path"]).read_bytes())
-                self.assertTrue(Path(result["evidence_path"]).is_relative_to(self.evidence_dir))
+                values = [result]
+                while values:
+                    value = values.pop()
+                    if isinstance(value, dict):
+                        self.assertNotIn("evidence_path", value)
+                        values.extend(value.values())
+                    elif isinstance(value, list):
+                        values.extend(value)
+                    elif isinstance(value, str):
+                        self.assertFalse(PurePosixPath(value).is_absolute(), value)
+                        self.assertFalse(PureWindowsPath(value).is_absolute(), value)
+                document_path = self.evidence_dir / f"{result['evidence_hash']}.json"
+                self.assertTrue(document_path.is_relative_to(self.evidence_dir))
+                document = json.loads(document_path.read_bytes())
                 self.assertEqual(document["verdict"], outcome)
                 self.assertEqual([document[k] for k in ("issued_ms", "expires_ms", "verdict_id")], [None, None, None])
         self.assertEqual(sorted(path.name for path in EVIDENCE_DIR.iterdir()), before)
@@ -133,11 +164,27 @@ class VerdictRouteTest(EndpointCase):
     def test_an_unknown_path_is_404_and_a_wrong_method_is_405(self):
         self.assertEqual(self.call("GET", "/verdicts")[::2], (404, {"error": "not found"}))
         self.assertEqual(self.call("POST", "/", ALLOW)[0], 404)
-        for method, path, allowed in (("GET", "/verdict", "POST"), ("PUT", "/verdict", "POST"),
-                                      ("DELETE", "/verdict", "POST"), ("POST", "/health", "GET")):
+        for method, path, allowed in (("GET", "/verdict", "POST"), ("PUT", "/verdict", "GET, POST"),
+                                      ("DELETE", "/verdict", "GET, POST"), ("POST", "/health", "GET")):
             with self.subTest(method=method, path=path):
                 status, headers, _ = self.call(method, path, b"{}")
                 self.assertEqual((status, headers["Allow"]), (405, allowed))
+
+    def test_an_unknown_method_on_an_unknown_path_is_405_before_path_lookup(self):
+        status, headers, body = self.raw_call("TRACE", "/not-found")
+        self.assertEqual(status, 405)
+        self.assertEqual(headers["allow"], "GET, POST")
+        self.assertEqual(headers["content-type"], endpoint.JSON_TYPE)
+        self.assertIn("error", body)
+
+    def test_every_method_other_than_get_and_post_is_405_with_json(self):
+        for method in ("TRACE", "MADEUP", "CONNECT", "PATCH", "PUT", "DELETE", "OPTIONS", "HEAD"):
+            with self.subTest(method=method):
+                status, headers, body = self.raw_call(method, "/verdict")
+                self.assertEqual(status, 405)
+                self.assertEqual(headers["allow"], "GET, POST")
+                self.assertEqual(headers["content-type"], endpoint.JSON_TYPE)
+                self.assertIn("error", body)
 
     def test_a_body_that_is_not_a_transfer_is_400(self):
         for body, words in ((b"{not json", "not JSON"), (b"[1]", "a JSON object"), (b"\xff", "not JSON"),
@@ -171,6 +218,14 @@ class VerdictRouteTest(EndpointCase):
                 connection.endheaders()
                 self.assertEqual(self.answer(connection)[0], expected)
 
+    def test_a_5000_digit_content_length_is_400_json(self):
+        status, headers, body = self.raw_call("POST", "/verdict", {
+            "Authorization": "Bearer key-one", "Content-Length": "9" * 5000,
+        })
+        self.assertEqual(status, 400)
+        self.assertEqual(headers["content-type"], endpoint.JSON_TYPE)
+        self.assertIn("Content-Length", body["error"])
+
     def test_an_internal_failure_is_500_without_a_traceback(self):
         stderr = io.StringIO()
         with mock.patch.object(verdict, "request", side_effect=RuntimeError("boom in /opt/private/path")), \
@@ -195,6 +250,101 @@ class RateTest(EndpointCase):
         self.assertEqual(self.call("POST", "/verdict", b"[]")[1]["Retry-After"], "1")
         self.now[0] = 60.0
         self.assertEqual(self.call("POST", "/verdict", b"[]")[0], 400)
+
+    def test_a_clock_going_backwards_does_not_reset_a_later_window(self):
+        readings = iter((120.0, 60.0))
+        limit = endpoint.RateLimit(1, lambda: next(readings))
+        self.assertIsNone(limit.retry_after("key-one"))
+        self.assertEqual(limit.retry_after("key-one"), 120)
+
+
+class SocketLimitsTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.keys_file = Path(self.tmp.name) / "api-keys.txt"
+        self.keys_file.write_text(KEYS, encoding="utf-8")
+        self.entered = threading.Event()
+        environ = replay_environ(self.keys_file)
+        self.config = endpoint.settings(environ)
+        self.network = mock.patch("urllib.request.urlopen", side_effect=no_network)
+        self.network.start()
+        self.addCleanup(self.network.stop)
+
+    def start_server(self, request_timeout, max_in_flight=8):
+        def clock():
+            self.entered.set()
+            return 0.0
+
+        self.server = endpoint.make_server(
+            "127.0.0.1", 0, self.config, Path(self.tmp.name) / "evidence", store=labels.load(), clock=clock,
+            request_timeout=request_timeout, max_in_flight=max_in_flight,
+        )
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+        self.addCleanup(self.thread.join)
+        self.addCleanup(self.server.server_close)
+        self.addCleanup(self.server.shutdown)
+
+    def open_incomplete_verdict(self):
+        connection = socket.create_connection(self.server.server_address, timeout=3)
+        self.addCleanup(connection.close)
+        connection.sendall(b"POST /verdict HTTP/1.1\r\nHost: localhost\r\nAuthorization: Bearer key-one\r\n"
+                           b"Content-Length: 1\r\nConnection: close\r\n\r\n")
+        return connection
+
+    def receive_all(self, connection):
+        response = bytearray()
+        while chunk := connection.recv(4096):
+            response.extend(chunk)
+        return bytes(response)
+
+    def test_a_request_with_a_body_that_never_arrives_is_closed_after_the_socket_timeout(self):
+        self.start_server(request_timeout=0.15)
+        connection = self.open_incomplete_verdict()
+        self.assertTrue(self.entered.wait(1))
+        self.assertEqual(self.receive_all(connection), b"")
+
+    def test_requests_over_the_in_flight_cap_get_503_without_reading_their_body(self):
+        self.start_server(request_timeout=2, max_in_flight=1)
+        first = self.open_incomplete_verdict()
+        self.assertTrue(self.entered.wait(1))
+        second = socket.create_connection(self.server.server_address, timeout=3)
+        self.addCleanup(second.close)
+        second.sendall(b"POST /verdict HTTP/1.1\r\nHost: localhost\r\nAuthorization: Bearer key-one\r\n"
+                       b"Content-Length: 1\r\nConnection: close\r\n\r\n")
+        response = self.receive_all(second)
+        head, body = response.split(b"\r\n\r\n", 1)
+        self.assertIn(b" 503 ", head.split(b"\r\n", 1)[0])
+        headers = head.decode("iso-8859-1").lower()
+        self.assertIn(f"content-type: {endpoint.JSON_TYPE}".lower(), headers)
+        self.assertEqual(json.loads(body), {"error": "server busy"})
+
+        trace = socket.create_connection(self.server.server_address, timeout=3)
+        self.addCleanup(trace.close)
+        trace.sendall(b"TRACE /not-found HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
+        trace_response = self.receive_all(trace)
+        trace_head, trace_body = trace_response.split(b"\r\n\r\n", 1)
+        self.assertIn(b" 405 ", trace_head.split(b"\r\n", 1)[0])
+        trace_headers = trace_head.decode("iso-8859-1").lower()
+        self.assertIn("allow: get, post", trace_headers)
+        self.assertIn(f"content-type: {endpoint.JSON_TYPE}".lower(), trace_headers)
+        self.assertIn("error", json.loads(trace_body))
+        self.assertEqual(self.receive_all(first), b"")
+
+
+class KeyComparisonTest(unittest.TestCase):
+    def test_keys_are_compared_as_fixed_length_digests(self):
+        lengths = []
+        compare = endpoint.hmac.compare_digest
+
+        def record(left, right):
+            lengths.append((len(left), len(right)))
+            return compare(left, right)
+
+        with mock.patch.object(endpoint.hmac, "compare_digest", side_effect=record):
+            self.assertEqual(endpoint._key("Bearer key-two", ("a much longer key", "key-two")), "key-two")
+        self.assertEqual(lengths, [(32, 32), (32, 32)])
 
 
 class StartTest(unittest.TestCase):
