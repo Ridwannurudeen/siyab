@@ -36,7 +36,7 @@ import time
 from pathlib import Path
 
 from gate import rpc, rules
-from intel import alerts, api, cluster, feed, issuers, labels, records, render, seed, trace
+from intel import alerts, api, cluster, feed, issuers, labels, records, render, sanctions, seed, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 RECEIVERS_DIR = ROOT / "fixtures" / "receivers"
@@ -464,6 +464,8 @@ def main(argv=None):
     rendering.add_argument("--indexable", action="store_true", help="leave the robots noindex meta out")
     rendering.set_defaults(handler=_render)
     commands.add_parser("feed-stats", help="print the feed state").set_defaults(handler=_feed_stats)
+    commands.add_parser("sanctions-fetch", help="download the OFAC SDN list and write its digital currency addresses "
+                        "to fixtures/sanctions/").set_defaults(handler=lambda args: sanctions.main())
     alert_test = commands.add_parser("alert-test", help="send one test alert to an HTTPS webhook")
     alert_test.add_argument("--url", required=True, help="the HTTPS webhook URL")
     alert_test.set_defaults(handler=_alert_test)
