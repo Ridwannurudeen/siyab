@@ -1,6 +1,6 @@
 # Sanctions
 
-ShieldBot reads one sanctions source: the Specially Designated Nationals and Blocked Persons list (the SDN list) of the US Treasury's Office of Foreign Assets Control (OFAC), and from it only the digital currency addresses. Nothing calls the lookup yet. Wiring it into the verdicts is a later step; this page says what a match will mean when it is.
+ShieldBot reads one sanctions source: the Specially Designated Nationals and Blocked Persons list (the SDN list) of the US Treasury's Office of Foreign Assets Control (OFAC), and from it only the digital currency addresses. The list is applied to the destination recipient of NEAR Intents quotes in the EVM preflight. The NEAR payment checks remain separate because OFAC publishes no NEAR account.
 
 ## Source
 
@@ -22,7 +22,7 @@ Each listing is one Digital Currency Address of one SDN entry, as published:
 | `programs` | the Program codes of the entry's SDN List sanctions entry, such as `CYBER2` or `SDGT` |
 | `asset` | OFAC's code after `Digital Currency Address - `, such as `XBT`, `ETH`, `TRX` or `USDT` |
 | `address` | the address as published |
-| `key` | the comparison key: the address lower cased when it is `0x` and 40 hex characters (an EVM address, whose case is only its checksum; `gate/intents.py` compares a recipient the same way), and the address as published otherwise |
+| `key` | the comparison key: the address lower cased when it is `0x` and 40 hex characters (an EVM address, whose case is only its checksum), or when it is a bech32 or bech32m form identified by its human readable prefix, separator and data alphabet (case insensitive); the address as published otherwise |
 
 The fixture of the list issued 2026-11-06, fetched 2026-11-07T20:44:17Z (SHA-256 6069...805f), as the command printed it:
 
@@ -32,14 +32,20 @@ The fixture of the list issued 2026-11-06, fetched 2026-11-07T20:44:17Z (SHA-256
 
 ## Matching
 
-`intel.sanctions.is_sanctioned(chain_or_asset, address)` reads the fixture, never the network, and returns one match per listing of the address: `uid`, `name`, `programs`, `asset`, `address` as published, `publish_date` (the list's date of issue) and `source_sha256` (the file's SHA-256). The address is compared by its key.
+`intel.sanctions.is_sanctioned(chain_or_asset, address)` reads the fixture, never the network, and returns one match per listing of the address: `uid`, `name`, `programs`, `asset`, `address` as published, `publish_date` (the list's date of issue) and `source_sha256` (the source XML file's SHA-256). The address is compared by its key.
 
 - An upper case argument is an OFAC code (`XBT`, `ETH`, `USDT`) and matches only the listings under that code. A lower case argument is a chain code as 1Click writes it (`eth`, `base`, `btc`, `tron`, `sol`, `near`), so `ETH` and `eth` differ.
 - Any chain code but `near` matches every listing whose key equals the address's key, whatever code OFAC filed it under, and the match names that code. The address is what the list names: one key holds the same EVM address on every EVM chain, Omni USDT and XBT share Bitcoin addresses, and the list itself files one Tron shaped address under XBT. These are kept as published.
 - `near` matches only a listing under a code `NEAR`, and the list has none, so no NEAR account matches: not a 64 hex implicit account (one XMR listing is 64 hex characters), and not an account written like an EVM address.
 
-## What a match will mean
+## NEAR Intents destinations
 
-A sanctions match is a fact with a date, never a score: no confidence, no threshold, no weighing against other checks. When the verdict path calls the lookup, a match will mean DENY, and the reason will name the SDN entry (its uid, name and programs), the code and the address as OFAC lists them, and the list's date of issue with the file's SHA-256. No match says only that the list of that date does not name the address; it passes nothing else.
+The Intents check maps the destination chain code to the OFAC asset codes published for it, then calls `is_sanctioned` with the lower case 1Click chain code so an address listed under any OFAC asset code can match. The mapped chains are `eth` (ETH), `arb` (ARB), `bsc` (BNB and BSC), `btc` (XBT), `sol` (SOL), `dash` (DASH), `doge` (DOGE), `xrp` (XRP), `zec` (ZEC), `tron` (TRX), `ltc` (LTC) and `bch` (BCH).
+
+The 1Click chain codes with no address code in this SDN publication are `near`, `base`, `ton`, `gnosis`, `bera`, `pol`, `sui`, `movement`, `op`, `avax`, `stellar`, `aptos`, `cardano`, `xlayer`, `monad`, `adi`, `plasma`, `scroll`, `starknet`, `aleo`, `hypercore`, `fogo`, `hood` and `hlevm`. The check passes these chains with detail saying the list publishes no address for that chain. A missing or unreadable fixture is UNKNOWN. Its evidence source names the committed fixture and hashes its JSON bytes; a match reason carries the source XML hash.
+
+## What a match means
+
+A sanctions match is a fact with a date, never a score: no confidence, no threshold, no weighing against other checks. For an Intents destination with a mapped OFAC code, a match means DENY, and the reason names the SDN entry (its uid, name and programs), the code and the address as OFAC lists them, the list's date of issue and the source XML file's SHA-256. No match says only that the list of that date does not name the address; it passes nothing else.
 
 As of the fetch of 2026-11-07T20:44:17Z, the list issued 2026-11-06 has no NEAR code and no NEAR account: none of its 1064 distinct addresses is on NEAR.

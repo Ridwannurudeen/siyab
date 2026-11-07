@@ -19,6 +19,7 @@ An old timestamp reads UNKNOWN.
 The quote's signature is not checked: no 1Click verifying key is recorded here.
 """
 
+import hashlib
 import json
 import re
 import time
@@ -26,11 +27,26 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from gate import evidence, rpc
+from intel import sanctions
 
 FIXTURES_ROOT = Path(__file__).resolve().parent.parent / "fixtures"
 ONECLICK_URL = "https://1click.chaindefuser.com"
 GOPLUS_URL = "https://api.gopluslabs.io"
 CHAIN_IDS = {"eth": 1, "bsc": 56, "base": 8453, "arb": 42161, "op": 10, "pol": 137, "hood": 4663}
+INTENTS_OFAC_ASSETS = {
+    "arb": ("ARB",),
+    "bch": ("BCH",),
+    "bsc": ("BNB", "BSC"),
+    "btc": ("XBT",),
+    "dash": ("DASH",),
+    "doge": ("DOGE",),
+    "eth": ("ETH",),
+    "ltc": ("LTC",),
+    "sol": ("SOL",),
+    "tron": ("TRX",),
+    "xrp": ("XRP",),
+    "zec": ("ZEC",),
+}
 # Public JSON-RPC endpoints for eth_getCode. Base is the one the recorded fixtures use; the others
 # are the chains' published public endpoints and are UNVERIFIED until a fixture is recorded on them.
 EVM_RPC_URLS = {
@@ -234,6 +250,8 @@ def judge_quote(origin_asset, destination_asset, amount, recipient, recipient_ty
         checks.append(evidence.check("destination_supported", "pass", f"{chain}, chain id {CHAIN_IDS[chain]}",
                                      local))
 
+    checks.append(_ofac_check(chain, recipient, chain_error))
+
     goplus = goplus_address(recipient, client=goplus_client)
     fetched = goplus["source"]["fetched_at"]
     if goplus["status"] != "ok":
@@ -386,6 +404,41 @@ def _code_check(chain, recipient, quote, root, mode, firewall_url):
                           source)
 
 
+def _ofac_check(chain, recipient, chain_error):
+    local = {"provider": "fixtures/sanctions/ofac-sdn-addresses-*.json", "request_sha256": None, "fetched_at": None}
+    if chain is None:
+        return evidence.check("ofac_sanctioned", "unknown", f"could not identify the destination chain: "
+                              f"{chain_error}", local)
+    try:
+        document = sanctions.load()
+        source_document = document["source"]
+        fetched_at = source_document["fetched_at"]
+        fixture_name = (f"{sanctions.FIXTURE_NAME}-"
+                        f"{fetched_at.replace('-', '').replace(':', '')}.json")
+        fixture_path = sanctions.FIXTURE_DIR / fixture_name
+        source = {"provider": f"fixtures/sanctions/{fixture_name}",
+                  "request_sha256": hashlib.sha256(fixture_path.read_bytes()).hexdigest(),
+                  "fetched_at": fetched_at}
+        list_counts = sanctions.counts(document)
+        ofac_codes = [code for code in INTENTS_OFAC_ASSETS.get(chain, ()) if code in list_counts["assets"]]
+        if not ofac_codes:
+            return evidence.check("ofac_sanctioned", "pass", f"the OFAC list publishes no address for chain "
+                                  f"{chain}; list published {document['publish_date']}", source)
+        matches = sanctions.is_sanctioned(chain, recipient, document)
+    except (sanctions.SanctionsError, OSError, ValueError, KeyError, TypeError, AttributeError) as error:
+        return evidence.check("ofac_sanctioned", "unknown", f"could not read the local OFAC sanctions fixture: "
+                              f"{type(error).__name__}: {error}", local)
+    if matches:
+        detail = "; ".join(f"SDN entry uid {match['uid']}, name {_quoted(match['name'])}, programs "
+                            f"{', '.join(match['programs'])}, asset {match['asset']} address "
+                            f"{_quoted(match['address'])}; list published {match['publish_date']}; "
+                            f"source file SHA-256 {match['source_sha256']}" for match in matches)
+        return evidence.check("ofac_sanctioned", "signal", detail, source)
+    return evidence.check("ofac_sanctioned", "pass", f"no address match using chain code {chain}; checked "
+                          f"{list_counts['addresses']} distinct addresses; list published "
+                          f"{document['publish_date']}", source)
+
+
 def _reasons(verdict, checks, recipient, goplus):
     by_id = {check["id"]: check for check in checks}
     when = f"GoPlus data_source {_quoted(goplus['data_source'])}, fetched {goplus['source']['fetched_at']}"
@@ -400,6 +453,8 @@ def _reasons(verdict, checks, recipient, goplus):
                        f"({when}).")
     if by_id["recipient_code"]["status"] == "signal":
         reasons.append(f"ShieldBot's firewall refuses a transfer to {recipient}: {by_id['recipient_code']['detail']}.")
+    if by_id["ofac_sanctioned"]["status"] == "signal":
+        reasons.append(f"The OFAC SDN list names {recipient}: {by_id['ofac_sanctioned']['detail']}.")
     if by_id["quote_dry"]["status"] == "signal":
         reasons.append(f"{by_id['quote_dry']['detail']}.")
     return reasons

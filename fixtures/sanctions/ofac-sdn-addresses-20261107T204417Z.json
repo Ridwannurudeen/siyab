@@ -6,7 +6,7 @@
   },
   "publish_date": "2026-11-06",
   "command": "python -m intel sanctions-fetch",
-  "key_rule": "key is the address lower cased when it is 0x and 40 hex characters (an EVM address), and the address as published otherwise",
+  "key_rule": "key is the address lower cased when it is 0x and 40 hex characters (an EVM address) or a bech32 or bech32m form identified by its HRP, separator and data alphabet, and the address as published otherwise",
   "listings": [
     {
       "uid": 4632,

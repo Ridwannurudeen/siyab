@@ -2,7 +2,9 @@
 quote's ed25519 signature, which is replaced by a note, and the firewall fixture has its em dashes
 written as hyphens: both would trip the repository hygiene hook."""
 
+import base64
 import contextlib
+import hashlib
 import io
 import json
 import shutil
@@ -15,6 +17,7 @@ from unittest import mock
 
 from gate import __main__ as gate_main
 from gate import evidence, intents, rpc
+from intel import sanctions
 
 USDC_BASE_ASSET = "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near"
 USDC_BASE = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
@@ -76,6 +79,13 @@ class Case(unittest.TestCase):
         body = intents.quote_body("nep141:wrap.near", USDC_BASE_ASSET, ONE_NEAR, recipient, "DESTINATION_CHAIN",
                                   intents.RECORDED_DEADLINE)
         response = {"quote": {"amountOut": amount_out}, "quoteRequest": dict(body), "timestamp": timestamp}
+        self.write(root, "intents", intents.ONECLICK_URL + "/v0/quote", "POST", rpc.body_params(body), response)
+
+    def quote_for_destination(self, root, recipient, destination):
+        body = intents.quote_body("nep141:wrap.near", destination, ONE_NEAR, recipient, "DESTINATION_CHAIN",
+                                  intents.RECORDED_DEADLINE)
+        response = {"quote": {"amountOut": "4398699"}, "quoteRequest": dict(body),
+                    "timestamp": "2026-11-03T11:59:59Z"}
         self.write(root, "intents", intents.ONECLICK_URL + "/v0/quote", "POST", rpc.body_params(body), response)
 
     def status_for(self, root, deposit_address, quote_request):
@@ -141,7 +151,7 @@ class DemoRecipientTest(Case):
         self.assertEqual(result["verdict"], "DENY")
         self.assertEqual(statuses(result), {"quote_dry": "pass", "quote_age": "unknown",
                                             "destination_supported": "pass", "recipient_theft_label": "signal",
-                                            "recipient_code": "pass"})
+                                            "recipient_code": "pass", "ofac_sanctioned": "pass"})
         [reason] = result["reasons"]
         self.assertIn("stealing_attack", reason)
         self.assertIn('"SlowMist,BlockSec"', reason)
@@ -154,8 +164,8 @@ class DemoRecipientTest(Case):
     def test_the_evidence_hash_is_stable(self):
         first, second = judge(), judge()
         self.assertEqual(first["evidence_hash"], second["evidence_hash"])
-        self.assertEqual(first["evidence_hash"], "2d6c59ee667f1629aa728a0a961ff7fe"
-                         "2e84dce6d27cde06cc845ab09c0e1893")
+        self.assertEqual(first["evidence_hash"], base64.b64decode("GyvdStjTgvVzhV28jevNR/Ywy3ShAy/AXnXlAHUBrXY=",
+                                                                   validate=True).hex())
 
     def test_the_command_prints_deny_and_the_closing_line(self):
         output = io.StringIO()
@@ -358,6 +368,66 @@ class FailClosedTest(Case):
             with self.subTest(body=body):
                 self.goplus_says(root, DEMO_RECIPIENT, body)
                 self.assertEqual(judge(fixtures_root=root)["verdict"], "UNKNOWN")
+
+    def test_an_ofac_listed_evm_recipient_is_denied_with_entry_and_source_evidence(self):
+        document = sanctions.load()
+        listing = next(listing for listing in document["listings"]
+                       if listing["asset"] == "ETH" and listing["address"].startswith("0x"))
+        destination = "nep141:eth.omft.near"
+        root = self.root("evm")
+        self.quote_for_destination(root, listing["address"], destination)
+        self.goplus_says(root, listing["address"], {"code": 1, "result": {"data_source": "synthetic"}})
+        result = judge(listing["address"], destination=destination, fixtures_root=root)
+        self.assertEqual(result["verdict"], "DENY")
+        check = next(check for check in result["checks"] if check["id"] == "ofac_sanctioned")
+        self.assertEqual(check["status"], "signal")
+        match = next(match for match in sanctions.is_sanctioned("eth", listing["address"], document)
+                     if match["uid"] == listing["uid"])
+        reason = " ".join(result["reasons"])
+        for value in (str(match["uid"]), match["name"], *match["programs"], match["publish_date"],
+                      match["source_sha256"]):
+            self.assertIn(value, reason)
+        fixture_source = next(check for check in result["checks"] if check["id"] == "ofac_sanctioned")["source"]
+        self.assertTrue(fixture_source["provider"].startswith("fixtures/sanctions/"))
+        fixture_path = sanctions.ROOT / fixture_source["provider"]
+        self.assertEqual(fixture_source["request_sha256"], hashlib.sha256(fixture_path.read_bytes()).hexdigest())
+
+    def test_an_unlisted_recipient_passes_the_ofac_check(self):
+        document = sanctions.load()
+        self.assertEqual(sanctions.is_sanctioned("eth", DEMO_RECIPIENT, document), [])
+        destination = "nep141:eth.omft.near"
+        root = self.root("evm")
+        self.quote_for_destination(root, DEMO_RECIPIENT, destination)
+        self.goplus_says(root, DEMO_RECIPIENT, {"code": 1, "result": {"data_source": "synthetic"}})
+        result = judge(DEMO_RECIPIENT, destination=destination, fixtures_root=root)
+        check = next(check for check in result["checks"] if check["id"] == "ofac_sanctioned")
+        self.assertEqual(check["status"], "pass")
+        self.assertIn(document["publish_date"], check["detail"])
+        self.assertIn(str(sanctions.counts(document)["addresses"]), check["detail"])
+
+    def test_a_chain_without_an_ofac_code_passes_with_the_list_fact(self):
+        document = sanctions.load()
+        destination = "nep141:base.omft.near"
+        root = self.root("evm")
+        self.quote_for_destination(root, DEMO_RECIPIENT, destination)
+        self.goplus_says(root, DEMO_RECIPIENT, {"code": 1, "result": {"data_source": "synthetic"}})
+        result = judge(DEMO_RECIPIENT, destination=destination, fixtures_root=root)
+        check = next(check for check in result["checks"] if check["id"] == "ofac_sanctioned")
+        self.assertEqual(check["status"], "pass")
+        self.assertIn("publishes no address for chain base", check["detail"])
+        self.assertIn(document["publish_date"], check["detail"])
+
+    def test_a_missing_ofac_file_is_unknown(self):
+        destination = "nep141:eth.omft.near"
+        root = self.root("evm")
+        self.quote_for_destination(root, DEMO_RECIPIENT, destination)
+        self.goplus_says(root, DEMO_RECIPIENT, {"code": 1, "result": {"data_source": "synthetic"}})
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(sanctions, "FIXTURE_DIR", Path(tmp)):
+            result = judge(DEMO_RECIPIENT, destination=destination, fixtures_root=root)
+        check = next(check for check in result["checks"] if check["id"] == "ofac_sanctioned")
+        self.assertEqual(result["verdict"], "UNKNOWN")
+        self.assertEqual(check["status"], "unknown")
+        self.assertIn("no ofac-sdn-addresses", check["detail"])
 
     def test_an_unsupported_chain_is_unknown(self):
         result = judge(USDC_BASE, destination="nep141:sol.omft.near")
