@@ -1,7 +1,7 @@
 """Command line: python -m intel <command>.
 
 receivers [--record] judges the recorded mainnet receiver set with gate.rules.judge in replay (an
-empty allowlist and the committed label store) and writes one
+empty allowlist, the committed label store and the archival RPC) and writes one
 fixtures/receivers/judgements/<subject>.json per subject of fixtures/receivers/set.json. Each subject
 has a cohort. The set is the last COUNTERPARTIES distinct counterparties of each account in
 RECEIVER_SOURCES (the FastNEAR Transfers API, newest first; implicit accounts are left out as the
@@ -18,11 +18,12 @@ the receiver of a NEAR transfer.
 come from the transfers pages recorded under fixtures/fastnear/, read in replay, and the ids of
 --exclude-file (a file kept outside the repository, one account id per line) are left out after
 they are chosen, so no other account takes their place. A subject of the committed set is judged
-on its earlier recording; a new subject gets the view calls the rules make and, while fewer than
-AGE_SUBJECTS receivers have their age recorded, the NearBlocks keys and creation transaction (at
-most two NearBlocks calls each), so every later receiver without an earlier recording reads unknown
-on age. The view calls and NearBlocks answers live under fixtures/receivers/rpc/. Without --record
-nothing touches the network.
+on its earlier recording; a new subject gets the view calls and archival reads the rules make and,
+while fewer than AGE_SUBJECTS receivers have their age recorded, the NearBlocks keys and creation
+transaction (at most two NearBlocks calls each), so every later receiver without an earlier
+recording is dated by its oldest access key nonce or an archival view_account alone and reads
+unknown on age where neither dates it. The view calls, archival reads and NearBlocks answers live
+under fixtures/receivers/rpc/. Without --record nothing touches the network.
 """
 
 import argparse
@@ -61,10 +62,12 @@ ORGANISATION_SOURCES = (
                       "the label store (sputnik-dao.near get_dao_list), in store order; most DAO accounts have a "
                       "NearBlocks key creation time and read their age like any account; "
                       "ref-finance.sputnik-dao.near reads as the pools do: NearBlocks lists no access key for the "
-                      "account and view_account shows contract code, so no creation time could be read")),
+                      "account and view_account shows contract code, so its age comes from an archival "
+                      "view_account at a block at least 7 days back")),
     ("validators", (f"one of the first {ORGANISATION_SUBJECTS} validator pool accounts among the organisation rows of "
                     "the label store (the validators RPC), in store order; NearBlocks lists no access key for the "
-                    "account and view_account shows contract code, so no creation time could be read")),
+                    "account and view_account shows contract code, so its age comes from an archival "
+                    "view_account at a block at least 7 days back")),
 )
 # Each cohort with the words the cohort summary uses for it, in its order.
 COHORTS = (("counterparty", "ordinary counterparties"), ("organisation", "organisations from registries"),
@@ -207,10 +210,10 @@ def choose(store, transfers_client, exclude=frozenset()):
     return subjects, sources, len(excluded)
 
 
-def _judge(entry, store, client, nearblocks, now_ms, reports_account=None):
+def _judge(entry, store, client, nearblocks, now_ms, archival, reports_account=None):
     judgement = rules.judge(entry["request"], {"allowlist": [], "caps": []}, store, client, nearblocks,
-                            now_ms=now_ms, injection_scanner=None, issuers=rules.issuers_for("mainnet"),
-                            reports_account=reports_account)
+                            now_ms=now_ms, injection_scanner=None, archival=archival,
+                            issuers=rules.issuers_for("mainnet"), reports_account=reports_account)
     return {"subject": entry["subject"], "as": entry["as"], "request": entry["request"],
             "verdict": judgement.verdict, "checks": judgement.checks, "reasons": judgement.reasons,
             "labels": judgement.labels, "observed": judgement.observed}
@@ -233,6 +236,7 @@ def record_receivers(store, previous, exclude, clock=time.time, reports_account=
     subjects, sources, excluded = choose(store, transfers_client, exclude)
     now_ms = int(clock() * 1000)
     client = rpc.Client(rpc.MAINNET_RPC_URL, "record", fixtures_dir=RECEIVER_RPC_DIR)
+    archival = rpc.Client(rpc.ARCHIVAL_RPC_URL, "record", fixtures_dir=RECEIVER_RPC_DIR)
     earlier = {entry["subject"]: entry["age_recorded"] for entry in previous}
     aged = []
     for entry in subjects:
@@ -248,7 +252,7 @@ def record_receivers(store, previous, exclude, clock=time.time, reports_account=
             fresh.append(receiver)
         nearblocks = rpc.Client(rpc.NEARBLOCKS_URL, "record" if receiver in fresh else "replay", kind="http",
                                 fixtures_dir=RECEIVER_RPC_DIR)
-        _judge(entry, store, client, nearblocks, now_ms, reports_account)
+        _judge(entry, store, client, nearblocks, now_ms, archival, reports_account)
     for entry in subjects:
         entry["age_recorded"] = earlier.get(entry["subject"], entry["request"]["receiver_id"] in aged)
     return {"chosen_at": time.strftime(_TIME, time.gmtime(now_ms // 1000)), "judged_at_ms": now_ms,
@@ -260,9 +264,10 @@ def judge_receivers(document, store, directory=RECEIVERS_DIR, reports_account=No
     """Judge every subject of the set in replay and write its judgement file; returns the judgements."""
     client = rpc.Client(rpc.MAINNET_RPC_URL, "replay", fixtures_dir=RECEIVER_RPC_DIR)
     nearblocks = rpc.Client(rpc.NEARBLOCKS_URL, "replay", kind="http", fixtures_dir=RECEIVER_RPC_DIR)
+    archival = rpc.Client(rpc.ARCHIVAL_RPC_URL, "replay", fixtures_dir=RECEIVER_RPC_DIR)
     results = []
     for entry in document["subjects"]:
-        result = _judge(entry, store, client, nearblocks, document["judged_at_ms"], reports_account)
+        result = _judge(entry, store, client, nearblocks, document["judged_at_ms"], archival, reports_account)
         _write_json(Path(directory) / "judgements" / f"{entry['subject']}.json", result)
         results.append(result)
     return results

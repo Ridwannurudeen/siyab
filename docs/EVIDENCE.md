@@ -16,7 +16,7 @@ The committed fixture `fixtures/latency/verdict-runs-tier2.json` contains 20 run
 
 ## Receiver cohorts
 
-The receiver lines of the counts block are a replay of the recorded mainnet receiver set, not testnet evidence: the second splits the verdicts by cohort with `cohort_line` in `intel/__main__.py`, the function `python -m intel receivers` prints. Every Unknown of the organisation cohort carries the `account_age` detail "NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read" (`fixtures/receivers/judgements/`).
+The receiver lines of the counts block are a replay of the recorded mainnet receiver set, not testnet evidence: the second splits the verdicts by cohort with `cohort_line` in `intel/__main__.py`, the function `python -m intel receivers` prints. No judgement of the set reads Unknown. Each locked contract of the organisation cohort, whose NearBlocks keys list is empty and whose `view_account` shows contract code, passes `account_age` on one archival `view_account` read at a block at least 7 days back, recorded on 7 Nov with its block and access key list under `fixtures/receivers/rpc/` (`fixtures/receivers/judgements/`, `docs/SPIKES.md` S8).
 
 ## Refused receipt
 

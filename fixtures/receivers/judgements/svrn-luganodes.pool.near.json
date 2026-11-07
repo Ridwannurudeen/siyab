@@ -8,7 +8,7 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "UNKNOWN",
+  "verdict": "ALLOW",
   "checks": [
     {
       "id": "receiver_exists",
@@ -52,18 +52,18 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read",
+      "status": "pass",
+      "detail": "no creation time from NearBlocks (keys empty); svrn-luganodes.pool.near has no access key; view_account finds svrn-luganodes.pool.near at block 221701333 (2026-10-26T14:32:44Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "b31e522a4e439359004f4d377091a5bc8fba861029551402b596b8905c08d9c8",
-        "fetched_at": "2026-11-03T18:58:59Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "1218eabe02e32b115c86f35e10ec153c51c6c51690e93d037acabf53c382422d",
+        "fetched_at": "2026-11-07T14:27:57Z"
       }
     },
     {
       "id": "dust_funded",
-      "status": "unknown",
-      "detail": "the creation transaction is not known",
+      "status": "pass",
+      "detail": "creation deposit not read: NearBlocks has no creation transaction for svrn-luganodes.pool.near; a deposit is a signal only with lookalike or account_age",
       "source": {
         "provider": "nearblocks",
         "request_sha256": null,
@@ -92,8 +92,8 @@
     }
   ],
   "reasons": [
-    "account_age could not run: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read.",
-    "dust_funded could not run: the creation transaction is not known."
+    "Every check ran and none found a signal.",
+    "Not on the owner's allowlist."
   ],
   "labels": [
     "4ef25c4317cddd2dc8a517d1bd1875337bc1af72ce1c8f703fb907078332fbef"
