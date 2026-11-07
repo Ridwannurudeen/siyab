@@ -72,7 +72,7 @@ The `request` argument is the TransferRequest `{"kind": "near" or "ft", "token_i
 
 ## What the Gate checks
 
-`contracts/gate/src/verdict.rs:53`, in this order, each failure refused as `REFUSED:<code>`: `not_allow` (the literal is not `ALLOW`); `expired` (`expires_ms` is not later than the block time, or is earlier than `issued_ms`); `ttl_too_long` (`expires_ms - issued_ms` is above the Gate's `max_ttl_ms`, 300000 in the tests); `bad_key_id`; `bad_request` (`verdict_id`, `evidence_hash` or `signature` not lowercase hex of 16, 32 or 64 bytes); `bad_signature`. After the signature, a verdict id the Gate has already accepted is refused as `verdict_used` (`contracts/gate/src/lib.rs:126`).
+`contracts/gate/src/verdict.rs:53`, in this order, each failure refused as `REFUSED:<code>`: `not_allow` (the literal is not `ALLOW`); `expired` (`expires_ms` is not later than the block time, or is earlier than `issued_ms`); `issued_in_future` (`issued_ms` is more than 30000 ms ahead of the block time); `ttl_too_long` (`expires_ms - issued_ms` is above the Gate's `max_ttl_ms`, 300000 in the tests); `bad_key_id`; `bad_request` (`verdict_id`, `evidence_hash` or `signature` not lowercase hex of 16, 32 or 64 bytes); `bad_signature`. After the signature, a verdict id the Gate has already accepted is refused as `verdict_used` (`contracts/gate/src/lib.rs:183`).
 
 ## Worked example
 
