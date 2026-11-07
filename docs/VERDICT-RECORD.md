@@ -116,6 +116,8 @@ Verdict records on NEAR hash with sha256 because `env::sha256` is on chain and t
 
 The registry contract keeps the latest record per subject (a receiver or a token account). The shape below is the one PLAN-v3 section 3b specifies, and `docs/REGISTRY.md` is the contract's interface. The testnet `latest` view writes the verdict by name (`Allow`, `Deny`) and the hash as 64 lowercase hex characters (`fixtures/registry/testnet-vendor.json`, `fixtures/registry/testnet-lookalike.json`); `verify` also accepts the other forms listed.
 
+`gate/registry.py` builds a record for an ALLOW only when the verdict file carries a verdict id that matches its evidence document (the service writes one only for an ALLOW it signed; the registry step checks the id, not the signature, which the Gate checks at payment), and for DENY or UNKNOWN with the first 32 hex of the evidence hash; an ALLOW passed to a human carries no verdict id and is not recorded.
+
 | Field | Content |
 |---|---|
 | `verdict` | `Unknown` (0), `Allow` (1) or `Deny` (2); UNKNOWN is the zero value, so an unrecorded subject never reads as allowed |

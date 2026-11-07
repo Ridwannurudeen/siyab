@@ -109,6 +109,17 @@ require_testnet() {
   fi
 }
 
+require_mainnet_deploy_ok() {
+  if [[ "${NETWORK:-}" != "mainnet" ]]; then
+    printf 'NETWORK must be mainnet for this script\n' >&2
+    exit 2
+  fi
+  if [[ "${MAINNET_DEPLOY_OK:-}" != "1" ]]; then
+    printf 'MAINNET_DEPLOY_OK=1 is required: set it only after every mainnet gate is met and the owner approves\n' >&2
+    exit 2
+  fi
+}
+
 run() {
   printf '+ '
   printf '%q ' "$@"

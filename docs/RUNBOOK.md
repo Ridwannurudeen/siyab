@@ -26,7 +26,7 @@ DRY_RUN=1 bash scripts/deploy_reports.sh <reports_account> <wasm> <moderator[,mo
 bash scripts/deploy_reports.sh <reports_account> <wasm> <moderator[,moderator...]>
 ```
 
-`setup_testnet.sh` checks every wasm file and that the Gate keeps at least 10 NEAR after the planned spend before it creates anything (`scripts/setup_testnet.sh:28-74`). `report.sh`, `moderate.sh` and `dispute.sh` all sign as `OWNER_ACCOUNT_ID`, so the reports moderator list passed to `deploy_reports.sh` must include the owner account for them to moderate.
+`setup_testnet.sh` checks every wasm file and that the Gate keeps at least 10 NEAR after the planned spend before it creates anything (`scripts/setup_testnet.sh:28-74`). `moderate.sh` and `dispute.sh --resolve` sign as `OWNER_ACCOUNT_ID`, so the reports moderator list passed to `deploy_reports.sh` must include the owner account. `report.sh` signs as `REPORTER_ACCOUNT_ID` and opening a dispute signs as `DISPUTER_ACCOUNT_ID`; each falls back to the owner with a warning when unset (`scripts/report.sh:8-10`, `scripts/dispute.sh:49-51`), and the contract refuses a moderator who moderates their own report.
 
 Read backs:
 
@@ -34,7 +34,7 @@ Read backs:
 - Gate: view `version`, view `get_policy` (`max_ttl_ms`, `paused` false, empty denylist, `contracts/gate/src/policy.rs:192`), view `get_verifier_keys` (one current key, `previous` null, `policy.rs:196`). This is the read back `docs/TESTNET.md:28` records for 29 Oct.
 - Registry: view `version` and view `get_recorder` (`contracts/registry/src/lib.rs:243`, `:247`).
 - Token: view `ft_metadata`, and `storage_balance_of` for the Gate, the vendor and the aged payee.
-- Reports: view `totals` (`contracts/reports/src/lib.rs:638`); the reports contract has no `version` view.
+- Reports: views `version` and `totals` (`contracts/reports/src/lib.rs:246`, `:653`).
 - `python -m gate scan <gate account>` with `GATE_FIXTURES_MODE=off` lists the Gate's access keys and its verifier keys.
 
 Undo: an init cannot be undone. A wrong value the owner can set is corrected with its owner method (`set_verifier_keys`, `set_max_ttl`, `set_recorder`, `set_moderators`; `docs/KEYS.md`). A wrong `owner_id` cannot be corrected, because no contract has a method that changes it; deploy to a new account instead.
@@ -50,7 +50,7 @@ DRY_RUN=1 GATE_STATE_FROZEN=1 EXPECT_VERSION=<version> EXPECT_CODE_HASH=<code_ha
 GATE_STATE_FROZEN=1 EXPECT_VERSION=<version> EXPECT_CODE_HASH=<code_hash> bash scripts/redeploy.sh <contract> <wasm>
 ```
 
-For `reports` leave `EXPECT_VERSION` unset: the reports contract has no `version` view and the script exits 2 when it is set (`scripts/redeploy.sh:34-38`). The reports account is `REPORTS_ACCOUNT_ID`, or `reports.$GATE_ACCOUNT_ID` when that is unset (`scripts/redeploy.sh:31`); the reports contract is not deployed on testnet (`res/BUILD-reports.md:7`), so `redeploy.sh reports` has no target until `deploy_reports.sh` has run. After 4 Nov the script refuses without `GATE_STATE_FROZEN=1` (`scripts/redeploy.sh:39-42`). It deploys without an init call, signed by the contract account's own key (`scripts/redeploy.sh:43`, `:90`). The dry run prints the version view, the deploy line, the wasm sha256 and the codehash line, then one `would assert` line for each of `EXPECT_VERSION` and `EXPECT_CODE_HASH` that is set, and exits 0 (`scripts/redeploy.sh:92-99`, `:111-118`).
+The reports contract has a `version` view, so `EXPECT_VERSION` applies to `reports` as it does to the Gate and the registry. The reports account is `REPORTS_ACCOUNT_ID`, or `reports.$GATE_ACCOUNT_ID` when that is unset (`scripts/redeploy.sh:31`); it is deployed on testnet (`res/BUILD-reports.md:7`). After 4 Nov the script refuses without `GATE_STATE_FROZEN=1` (`scripts/redeploy.sh:34-35`). It deploys without an init call, signed by the contract account's own key (`scripts/redeploy.sh:38`, `:83`). The dry run prints the version view, the deploy line, the wasm sha256 and the codehash line, then one `would assert` line for each of `EXPECT_VERSION` and `EXPECT_CODE_HASH` that is set, and exits 0 (`scripts/redeploy.sh:85-90`, `:100-107`).
 
 Read backs: the script prints `version before` and `version after`, the account summary with its `code_hash`, the wasm sha256 and the `python -m gate codehash` line (`scripts/redeploy.sh:79-109`). With `EXPECT_VERSION` set it exits 1 unless the `version` view after the deploy returns it (`scripts/redeploy.sh:120-130`); with `EXPECT_CODE_HASH` set it reads the account's `code_hash` from `view_account` up to five times, 2 s apart, and exits 1 unless it matches (`scripts/redeploy.sh:131-147`). Each passing assertion prints an `asserted:` line. Then read the state back: for the Gate, view `get_policy`, view `get_verifier_keys` and view `get_agent` for the agent key, each unchanged; for the registry, view `total_records`, `total_subjects`, `total_labels` and `get_recorder`, each unchanged (the 5 Nov values are in `docs/TESTNET.md:75`); for the reports contract, view `totals` unchanged.
 
@@ -168,9 +168,9 @@ Undo (a drill; after a real compromise register a new agent key, never the revok
 
 ## File and moderate a report
 
-When: a report is filed against a subject, and later, when it is pending and a moderator has read its evidence. The reports contract is not deployed on testnet (`res/BUILD-reports.md:7`).
+When: a report is filed against a subject, and later, when it is pending and a moderator has read its evidence. The reports contract is deployed on testnet (`res/BUILD-reports.md:7`).
 
-File: `scripts/report.sh <reports_account> <subject> <kind> <outcome> <evidence_sha256> <evidence_url>` calls `submit_report` signed by `OWNER_ACCOUNT_ID` (`scripts/report.sh:8-17`, `:60`). It checks `kind` and `outcome` against `intel/record_enums.json` (`:23-34`), the hash as 64 lowercase hex and the URL as `https://` of at most 512 bytes (`:21-22`, `scripts/lib.sh:48-68`), and attaches `REPORT_DEPOSIT` read from `contracts/reports/src/lib.rs:8` at run time, today 23124000000000000000000 yoctoNEAR, 0.023124 NEAR (`scripts/report.sh:48-59`).
+File: `scripts/report.sh <reports_account> <subject> <kind> <outcome> <evidence_sha256> <evidence_url>` calls `submit_report` signed by `REPORTER_ACCOUNT_ID` (`scripts/report.sh:8-23`, `:65`). It checks `kind` and `outcome` against `intel/record_enums.json` (`:28-39`), the hash as 64 lowercase hex and the URL as `https://` of at most 512 bytes (`:26-27`, `scripts/lib.sh:48-68`), and attaches `REPORT_DEPOSIT` read from `contracts/reports/src/lib.rs:8` at run time, today 23136000000000000000000 yoctoNEAR, 0.023136 NEAR (`scripts/report.sh:53-64`).
 
 ```
 DRY_RUN=1 bash scripts/report.sh <reports_account> <subject> <kind> <outcome> <evidence_sha256> <evidence_url>
@@ -212,7 +212,7 @@ Before resolving read view `get_dispute` (`contracts/reports/src/lib.rs:591`): i
 
 Read backs: after opening, view `get_report` shows `contested` and the transaction carries `report_disputed`; after resolving, view `get_dispute` shows it closed, view `get_report` shows `accepted` (upheld) or `overturned`, the transaction carries `dispute_resolved`, and view `subject_summary` shows `deny`, `latest_accepted_id` and `latest_deny_id` as expected (`docs/REPORTS.md:23`).
 
-Undo: an upheld report can be disputed again, at most five disputes over its lifetime (`docs/REPORTS.md:18`). An overturn is final.
+Undo: an upheld report can be disputed again; there is no lifetime cap, one dispute may be open at a time, and each costs the deposit (`docs/REPORTS.md`, the `dispute` row). An overturn is final.
 
 ## Live report beat
 
