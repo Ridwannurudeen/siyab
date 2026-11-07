@@ -24,10 +24,98 @@ require_vars() {
   done
 }
 
+require_account_id() {
+  local value=$1 label=${2:-account id}
+  if [[ ${#value} -lt 2 || ${#value} -gt 64 || ! "$value" =~ ^(([a-z0-9]+[-_])*[a-z0-9]+\.)*([a-z0-9]+[-_])*[a-z0-9]+$ ]]; then
+    printf 'invalid %s: %s\n' "$label" "$value" >&2
+    exit 2
+  fi
+}
+
+require_u64() {
+  local value=$1 label=${2:-integer}
+  if [[ ! "$value" =~ ^(0|[1-9][0-9]*)$ ]] || ! python3 - "$value" <<'PY'
+import sys
+
+raise SystemExit(0 if int(sys.argv[1]) <= (1 << 64) - 1 else 1)
+PY
+  then
+    printf 'invalid %s: %s\n' "$label" "$value" >&2
+    exit 2
+  fi
+}
+
+require_sha256() {
+  local value=$1 label=${2:-sha256}
+  if [[ ! "$value" =~ ^[0-9a-f]{64}$ ]]; then
+    printf 'invalid %s: expected 64 lowercase hexadecimal characters\n' "$label" >&2
+    exit 2
+  fi
+}
+
+require_https_url() {
+  local value=$1 label=${2:-URL}
+  if ! python3 - "$value" <<'PY'
+import sys
+
+value = sys.argv[1]
+raise SystemExit(0 if value.startswith("https://") and len(value.encode("utf-8")) <= 512 else 1)
+PY
+  then
+    printf 'invalid %s: expected https:// URL of at most 512 bytes\n' "$label" >&2
+    exit 2
+  fi
+}
+
+require_ed25519_public_key() {
+  local value=$1 label=${2:-public key}
+  if ! python3 - "$value" <<'PY'
+import sys
+
+alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+value = sys.argv[1]
+prefix = "ed25519:"
+if not value.startswith(prefix):
+    raise SystemExit(1)
+encoded = value[len(prefix):]
+number = 0
+for character in encoded:
+    if character not in alphabet:
+        raise SystemExit(1)
+    number = number * 58 + alphabet.index(character)
+leading_zeroes = len(encoded) - len(encoded.lstrip("1"))
+decoded = b"\x00" * leading_zeroes + number.to_bytes((number.bit_length() + 7) // 8, "big")
+raise SystemExit(0 if len(decoded) == 32 else 1)
+PY
+  then
+    printf 'invalid %s: expected ed25519 public key with 32 decoded bytes\n' "$label" >&2
+    exit 2
+  fi
+}
+
+resolve_counterparty_account_id() {
+  if [[ -z "${COUNTERPARTY_ACCOUNT_ID+x}" && -n "${ATTACKER_ACCOUNT_ID+x}" ]]; then
+    COUNTERPARTY_ACCOUNT_ID=$ATTACKER_ACCOUNT_ID
+    export COUNTERPARTY_ACCOUNT_ID
+    printf 'deprecated: ATTACKER_ACCOUNT_ID is deprecated; use COUNTERPARTY_ACCOUNT_ID\n' >&2
+  fi
+}
+
 require_testnet() {
   NETWORK=${NETWORK:-testnet}
   if [[ "$NETWORK" != "testnet" ]]; then
     printf 'NETWORK must be testnet\n' >&2
+    exit 2
+  fi
+}
+
+require_mainnet_deploy_ok() {
+  if [[ "${NETWORK:-}" != "mainnet" ]]; then
+    printf 'NETWORK must be mainnet for this script\n' >&2
+    exit 2
+  fi
+  if [[ "${MAINNET_DEPLOY_OK:-}" != "1" ]]; then
+    printf 'MAINNET_DEPLOY_OK=1 is required: set it only after every mainnet gate is met and the owner approves\n' >&2
     exit 2
   fi
 }

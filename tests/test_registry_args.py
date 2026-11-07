@@ -58,6 +58,16 @@ class RegistryArgsTest(unittest.TestCase):
                                              "verdict_id": SAMPLE_ID}])
         self.assertEqual(list(batch["records"][0]), RECORD_KEYS)
 
+    def test_an_unsigned_allow_passed_to_a_human_is_not_recorded(self):
+        unsigned_allow, _ = self.unsigned(document("ft", "ALLOW"), "unsigned-allow.verdict.json")
+        with self.assertRaises(registry.RegistryError) as raised:
+            registry.record_batch([unsigned_allow], self.dir)
+        message = "an ALLOW passed to a human is not recorded; record the human's decision instead"
+        self.assertEqual(str(raised.exception), message)
+        code, output, errors = self.run_command(unsigned_allow)
+        self.assertEqual((code, output), (2, ""))
+        self.assertEqual(errors, f"refused: {message}\n")
+
     def test_unsigned_deny_and_unknown_use_the_evidence_hash_as_the_id_and_say_so(self):
         deny, deny_hash = self.unsigned(document("ft", "DENY"), "deny.verdict.json")
         unknown, unknown_hash = self.unsigned(document("near", "UNKNOWN", receiver="supplier.testnet"),

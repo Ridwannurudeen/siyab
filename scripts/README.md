@@ -1,18 +1,20 @@
-# Testnet scripts
+# Scripts: testnet, and one mainnet deploy script behind explicit guards
 
 The scripts use environment variables and the near-cli-rs command lines recorded in `docs/SPIKES.md`. Set `DRY_RUN=1` or pass `--dry-run` to print the planned command lines; neither mode reads key contents or submits a transaction. The environment example file at the repository root (RUN-N9) will show these values. No script contains or prints a key.
 
 | Variable | Use |
 |---|---|
-| `NETWORK` | Testnet only, defaults to `testnet`. |
+| `NETWORK` | Testnet only, defaults to `testnet`; `deploy_registry_mainnet.sh` alone requires `mainnet`. |
 | `OWNER_ACCOUNT_ID` | Account authorized to configure the Gate and registry. |
+| `REPORTER_ACCOUNT_ID` | Optional account that signs submitted reports; defaults to `OWNER_ACCOUNT_ID` with a warning. |
+| `DISPUTER_ACCOUNT_ID` | Optional account that signs opened disputes; defaults to `OWNER_ACCOUNT_ID` with a warning. |
 | `GATE_ACCOUNT_ID` | Account that holds the Gate contract. |
 | `VENDOR_ACCOUNT_ID` | Account used for the vendor payment path. |
 | `AGED_PAYEE_ACCOUNT_ID` | Account used for the aged payee path. |
-| `ATTACKER_ACCOUNT_ID` | Account that funds the lookalike receiver. |
+| `COUNTERPARTY_ACCOUNT_ID` | Our demo counterparty account; funds the lookalike receiver. |
 | `NEAR_KEYS_DIR` | Directory for `<account>.json` key files; created subaccount files are set to mode 600 on a Linux filesystem, while chmod is a no op on `/mnt/c`. |
 | `COLD_ACCOUNT_ID` | Account that `kill_switch.sh` moves the Gate's token balance to; it must be storage registered on the token. |
-| `VERIFIER_PUB` | Public verifier key passed to the Gate initializer. |
+| `VERIFIER_PUB` | Current public verifier key; `rotate_verifier.sh` keeps it as the previous key during the grace period. Update it to the new key after rotation. |
 | `AGENT_PUB` | Function call public key registered with the Gate. |
 | `AGENT_LABEL` | Label stored with the agent. |
 | `TOKEN_SYMBOL` | Token symbol, defaults to `DMT`. |
@@ -21,7 +23,7 @@ The scripts use environment variables and the near-cli-rs command lines recorded
 | `GATE_WASM` | Gate wasm path, defaults to `res/gate.wasm` and falls back to `$CARGO_TARGET_DIR/near/gate.wasm`. |
 | `REGISTRY_WASM` | Registry wasm path. |
 | `TOKEN_WASM` | Test token wasm path. |
-| `MAX_TTL_MS` | Gate verdict lifetime in milliseconds, defaults to `300000`. |
+| `MAX_TTL_MS` | Gate verdict lifetime in milliseconds, defaults to `300000`; `rotate_verifier.sh` uses the same value as the previous-key grace period and it must match the deployed Gate. |
 | `CAP_PER_CALL` | Agent token cap per call, in whole tokens. |
 | `CAP_WINDOW` | Agent token cap per window, in whole tokens. |
 | `CAP_WINDOW_MS` | Agent cap window length in milliseconds. |
@@ -29,6 +31,11 @@ The scripts use environment variables and the near-cli-rs command lines recorded
 | `UNKNOWN_WINDOW` | Unknown payee token cap per window, in whole tokens. |
 | `AGENT_ALLOWANCE_NEAR` | Function call key allowance in NEAR, defaults to `1`. |
 | `GATE_STATE_FROZEN` | Must equal `1` to redeploy after 4 Nov. |
+| `REPORTS_ACCOUNT_ID` | Account that `redeploy.sh reports` deploys to, defaults to `reports.$GATE_ACCOUNT_ID`. |
+| `EXPECT_VERSION` | When set, `redeploy.sh` exits 1 unless the `version` view after the deploy returns this value. |
+| `EXPECT_CODE_HASH` | When set, `redeploy.sh` exits 1 unless the account's base58 `code_hash` from `view_account` after the deploy equals this value (the form `python -m gate codehash` prints and `res/BUILD-<crate>.md` records). |
+| `MAINNET_DEPLOY_OK` | Must equal `1`, with `NETWORK=mainnet`, for `deploy_registry_mainnet.sh` to run; set it only after the six registry mainnet gates in `docs/REGISTRY.md` are met and the owner approves. |
+| `REDEPLOY` | When `1`, `deploy_registry_mainnet.sh` deploys over a registry account that already holds code, without an init call, and requires `EXPECT_VERSION` and `EXPECT_CODE_HASH`. |
 
 `setup_testnet.sh` checks all wasm files and the Gate balance before creating any subaccount, then creates missing accounts, recovers generated keys, deploys missing contract state and registers the token storage accounts. The balance check subtracts 3 NEAR for each missing token or registry account, 1 NEAR for a missing recorder account, and 0.00387 NEAR for the three storage deposits (0.00129 each, the token's storage_balance_bounds minimum), leaving at least 10 NEAR.
 
@@ -49,9 +56,21 @@ After a real compromise, register a new agent key and never the revoked key.
 
 `set_paused.sh <true|false>` sets the Gate's pause state with the owner account.
 
-`redeploy.sh` checks the version before and after deploying a selected Gate or registry wasm.
+`report.sh <reports_account> <subject> <kind> <outcome> <evidence_sha256> <evidence_url>` submits a report signed by `REPORTER_ACCOUNT_ID`; if unset, it falls back to `OWNER_ACCOUNT_ID` and prints a warning, because the owner is the moderator and the contract refuses moderation of a report the moderator filed. It validates `kind` and `outcome` against `intel/record_enums.json`, and reads `REPORT_DEPOSIT` from `contracts/reports/src/lib.rs` at runtime, attaching that exact amount in yoctoNEAR.
 
-`make_attack_receiver.sh` creates a funded receiver account and prints the creation time.
+`moderate.sh <reports_account> <report_id> <accept|reject> <reason_sha256>` moderates a report with the owner key; the owner must also be configured as a moderator on the reports contract.
+
+`dispute.sh <reports_account> <report_id> <evidence_sha256> <evidence_url>` submits a dispute signed by `DISPUTER_ACCOUNT_ID`; if unset, it falls back to `OWNER_ACCOUNT_ID` and prints a warning: disputes are filed from an account separate from the moderator by policy, which the contract does not enforce. It attaches the exact report deposit. `dispute.sh <reports_account> --resolve <dispute_id> <uphold|overturn> <reason_sha256>` resolves it with the owner key and 1 yoctoNEAR; the owner must be configured as a moderator.
+
+For a scheduled rotation, `rotate_verifier.sh <new_verifier_public_key>` sets the new key as current and keeps `VERIFIER_PUB` as the previous key for one configured `MAX_TTL_MS`; that value must match the Gate's deployed setting. For a key exposure, pause the Gate first with `set_paused.sh true`, then run `rotate_verifier.sh --revoke-previous <new_verifier_public_key>` to set the new key as current with no previous key, revoking the old key immediately. After either rotation, update `VERIFIER_PUB` to the new current key before rotating again.
+
+`rotate_recorder.sh <new_recorder_account>` calls `set_recorder` on `registry.$GATE_ACCOUNT_ID` with the owner key.
+
+`redeploy.sh <gate|registry|reports> <wasm> [--migrate]` deploys the wasm to the Gate, the registry or the reports account, signed with that account's key, and prints the version before and after, the account summary, the wasm sha256 and its code_hash. By default it deploys without an init call, for a redeploy that keeps the state layout. `--migrate` deploys with an init call to `migrate` with args `{}` through `deploy_with_init` in `lib.sh`, for a layout change. After the deploy it asserts `EXPECT_VERSION` and `EXPECT_CODE_HASH` when they are set and exits 1 on a mismatch; a dry run prints each assertion it would make. `docs/UPGRADES.md` says when each mode applies.
+
+`deploy_registry_mainnet.sh <registry_account> <owner_account> <recorder_account> <wasm>` deploys the registry to mainnet and initializes it with `new`, signed with the registry account's key. It is the one script that does not call `require_testnet`: it exits 2 unless `NETWORK=mainnet` and `MAINNET_DEPLOY_OK=1`, unless every account is a named `.near` account and the recorder differs from the owner, and unless the wasm sha256 equals `res/registry.wasm.sha256` and `res/BUILD-registry.md` names a source commit. It refuses a registry account that already holds code unless `REDEPLOY=1`, asks for the registry account name on the terminal outside a dry run, and after the deploy asserts `get_recorder` and the code_hash. It has never been run against mainnet and must not be until the gates in `docs/REGISTRY.md` (Mainnet) are met and the owner approves.
+
+`make_attack_receiver.sh` creates a funded receiver account using our demo counterparty account and prints the creation time.
 
 `record_verdicts.sh` records a batch from a JSON argument file and can record labels from a second file. The labels file can be a bare JSON list of label argument objects or an object with a `labels` list; the script validates the file before submitting either transaction.
 

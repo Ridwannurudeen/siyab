@@ -68,11 +68,13 @@ def _verdict(args):
         return 2
     client, nearblocks, scanner, archival = _clients(args.gate)
     issuers = None if args.gate.endswith(".testnet") else rules.issuers_for("mainnet")
+    reports_account = os.environ.get("REPORTS_ACCOUNT_ID")
     try:
         result = verdict.request(args.kind, args.token, args.receiver, args.amount, args.memo, gate=args.gate,
                                  agent_pk_hex=args.agent_pk, policy=policy, store=labels.load(), rpc=client,
                                  nearblocks=nearblocks, signer=verdict_signer, injection_scanner=scanner,
-                                 archival=archival, evidence_dir=args.evidence_dir, issuers=issuers)
+                                 archival=archival, evidence_dir=args.evidence_dir, issuers=issuers,
+                                 reports_account=reports_account)
     except canon.CanonError as error:
         print(f"invalid request: {error}", file=sys.stderr)
         return 2
@@ -96,6 +98,12 @@ def _verdict(args):
     print(json.dumps(body))
     print(f"wrote {path.as_posix()}")
     return 0
+
+
+def _http(args):
+    # gate.http imports _clients from this module, so it is imported here and not with the others.
+    from gate import http
+    return http.serve(args.host, args.port)
 
 
 def _intents(args):
@@ -134,6 +142,7 @@ def _verify(args):
 def _agent(args):
     """pay and attack: the agent key on GATE_ACCOUNT_ID, testnet only."""
     gate, key_file = os.environ.get("GATE_ACCOUNT_ID"), os.environ.get("AGENT_KEY_FILE")
+    reports_account = os.environ.get("REPORTS_ACCOUNT_ID")
     try:
         if args.command == "attack" and args.name == "injected":
             if not args.message:
@@ -169,8 +178,8 @@ def _agent(args):
         context = agent.Agent(gate=gate, public_hex=public_hex, public_key=public_key, transport=transport,
                               clients=_clients(gate), verifier=agent.live_signer, out_dir=Path(args.out))
         if args.command == "pay":
-            return agent.pay(context, request, args.verdict_file)
-        return agent.attack(args.name, context, request)
+            return agent.pay(context, request, args.verdict_file, reports_account=reports_account)
+        return agent.attack(args.name, context, request, reports_account=reports_account)
     except rpc.FixtureMiss:
         print("not sent: pay reads the Gate live: set GATE_FIXTURES_MODE=record or off", file=sys.stderr)
         return 2
@@ -251,6 +260,12 @@ def main(argv=None):
                        help="where the verdict file goes: <verdict_id>.verdict.json on ALLOW, "
                             "<evidence hash>.verdict.json otherwise (default the current directory)")
     judge.set_defaults(handler=_verdict)
+
+    endpoint = commands.add_parser("http", help="serve unsigned verdicts on loopback behind API keys "
+                                                 "(SHIELDBOT_API_KEYS_FILE); signs nothing")
+    endpoint.add_argument("--host", default="127.0.0.1")
+    endpoint.add_argument("--port", type=int, default=8788)
+    endpoint.set_defaults(handler=_http)
 
     injected_demo = commands.add_parser(
         "injected",
