@@ -79,6 +79,20 @@ class WasmArtifactsTest(unittest.TestCase):
             expected = f"{hashlib.sha256(wasm_path.read_bytes()).hexdigest()}  res/{filename}\n"
             self.assertEqual((RES / f"{filename}.sha256").read_text(encoding="ascii"), expected)
 
+    def test_previous_gate_wasm_matches_the_pinned_artifact(self):
+        gate_bytes = (RES / "gate.wasm").read_bytes()
+        previous_path = RES / "previous" / "gate.wasm"
+        previous_bytes = previous_path.read_bytes()
+        self.assertEqual(previous_bytes, gate_bytes)
+        expected = (
+            f"{hashlib.sha256(previous_bytes).hexdigest()}  "
+            "res/previous/gate.wasm\n"
+        )
+        self.assertEqual(
+            (RES / "previous" / "gate.wasm.sha256").read_text(encoding="ascii"),
+            expected,
+        )
+
     def test_exported_functions_match_each_contract_method_table(self):
         for filename, expected in CONTRACT_EXPORTS.items():
             if filename == "reports.wasm" and not (RES / filename).exists():

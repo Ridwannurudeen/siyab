@@ -78,9 +78,10 @@ async fn fresh_request(
     worker: &near_workspaces::Worker<near_workspaces::network::Sandbox>,
     gate_id: &near_workspaces::types::AccountId,
     mut request: Value,
+    ttl_ms: u64,
 ) -> Value {
     let issued_ms = worker.view_block().await.unwrap().timestamp() / 1_000_000;
-    let expires_ms = issued_ms + 300_000;
+    let expires_ms = issued_ms + ttl_ms;
     request["issued_ms"] = json!(issued_ms);
     request["expires_ms"] = json!(expires_ms);
 
@@ -180,13 +181,28 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         .into_result()
         .unwrap();
 
-    let gate_wasm = near_workspaces::compile_project(env!("CARGO_MANIFEST_DIR"))
-        .await
-        .unwrap();
-    let old_gate_wasm = fs::read(
-        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../res/gate.wasm"),
-    )
-    .unwrap();
+    let previous_gate_path =
+        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../res/previous/gate.wasm");
+    let old_gate_wasm = fs::read(&previous_gate_path).unwrap();
+    let old_gate_sha256 = format!(
+        "{}  res/previous/gate.wasm",
+        hex_encode(&Sha256::digest(&old_gate_wasm))
+    );
+    assert_eq!(
+        fs::read_to_string(
+            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("../../res/previous/gate.wasm.sha256")
+        )
+        .unwrap()
+        .trim(),
+        old_gate_sha256
+    );
+    let gate_wasm = match std::env::var_os("GATE_CANDIDATE_WASM") {
+        Some(path) => fs::read(path).unwrap(),
+        None => near_workspaces::compile_project(env!("CARGO_MANIFEST_DIR"))
+            .await
+            .unwrap(),
+    };
     let token_path = format!("{}/../test-token", env!("CARGO_MANIFEST_DIR"));
     let token_wasm = near_workspaces::compile_project(&token_path).await.unwrap();
     token
@@ -321,7 +337,7 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
     assert!(key_record.contains("allowance: Some"));
 
     let agent = Account::from_secret_key(gate.id().clone(), secret_key, &worker);
-    let happy = vector("01-ft-happy-sandbox");
+    let happy = fresh_request(&worker, gate.id(), vector("01-ft-happy-sandbox"), 10_000).await;
     let before = balance(&vendor, token.id()).await;
     let happy_result = agent
         .call(gate.id(), "request_transfer")
@@ -353,20 +369,42 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         println!("happy FT outcome gas burnt: {}", outcome.gas_burnt.as_gas());
     }
 
+    let original_policy: Value = gate
+        .view(gate.id(), "get_policy")
+        .await
+        .unwrap()
+        .json()
+        .unwrap();
+    let original_agent: Value = gate
+        .view(gate.id(), "get_agent")
+        .args_json(json!({"public_key": public_key.to_string()}))
+        .await
+        .unwrap()
+        .json()
+        .unwrap();
+
     // Replace the code over existing state without calling new.
     gate.deploy(&gate_wasm)
         .await
         .unwrap()
         .into_result()
         .unwrap();
-    let policy: Value = gate
+    let upgraded_policy: Value = gate
         .view(gate.id(), "get_policy")
         .await
         .unwrap()
         .json()
         .unwrap();
-    assert_eq!(policy["max_ttl_ms"], 300000);
-    assert_eq!(policy["paused"], false);
+    assert_eq!(upgraded_policy, original_policy);
+    assert_eq!(upgraded_policy["max_ttl_ms"], 300000);
+    assert_eq!(upgraded_policy["paused"], false);
+    let version: String = gate
+        .view(gate.id(), "version")
+        .await
+        .unwrap()
+        .json()
+        .unwrap();
+    assert_eq!(version, "0.2.0");
     let upgraded_agent: Value = gate
         .view(gate.id(), "get_agent")
         .args_json(json!({"public_key": public_key.to_string()}))
@@ -374,17 +412,11 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         .unwrap()
         .json()
         .unwrap();
+    assert_eq!(upgraded_agent, original_agent);
     assert_eq!(upgraded_agent["label"], "test agent");
     assert_eq!(upgraded_agent["enabled"], true);
-    let upgraded_used: bool = gate
-        .view(gate.id(), "is_verdict_used")
-        .args_json(json!({"verdict_id": happy["verdict_id"]}))
-        .await
-        .unwrap()
-        .json()
-        .unwrap();
-    assert!(upgraded_used);
-    let empty_memo = fresh_request(&worker, gate.id(), vector("03-memo-empty-sandbox")).await;
+    let empty_memo =
+        fresh_request(&worker, gate.id(), vector("03-memo-empty-sandbox"), 10_000).await;
     let upgrade_transfer = agent
         .call(gate.id(), "request_transfer")
         .args_json(transfer_args(&empty_memo))
@@ -397,11 +429,40 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         .logs()
         .iter()
         .any(|line| line.contains("transfer_completed")));
+    let happy_used: bool = gate
+        .view(gate.id(), "is_verdict_used")
+        .args_json(json!({"verdict_id": happy["verdict_id"]}))
+        .await
+        .unwrap()
+        .json()
+        .unwrap();
+    assert!(happy_used);
+    let upgrade_used: bool = gate
+        .view(gate.id(), "is_verdict_used")
+        .args_json(json!({"verdict_id": empty_memo["verdict_id"]}))
+        .await
+        .unwrap()
+        .json()
+        .unwrap();
+    assert!(upgrade_used);
+    let used_verdicts: Vec<(String, u64)> = gate
+        .view(gate.id(), "used_verdicts")
+        .args_json(json!({"from": 0, "limit": 50}))
+        .await
+        .unwrap()
+        .json()
+        .unwrap();
+    assert!(used_verdicts
+        .iter()
+        .any(|(verdict_id, _)| verdict_id == happy["verdict_id"].as_str().unwrap()));
+    assert!(used_verdicts
+        .iter()
+        .any(|(verdict_id, _)| verdict_id == empty_memo["verdict_id"].as_str().unwrap()));
 
     let replay_error = agent
         .call(gate.id(), "request_transfer")
         .args_json(transfer_args(
-            &fresh_request(&worker, gate.id(), happy.clone()).await,
+            &fresh_request(&worker, gate.id(), happy.clone(), 300_000).await,
         ))
         .gas(Gas::from_tgas(100))
         .transact()
@@ -416,6 +477,118 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         .unwrap();
     println!("sandbox refusal text: {panic_text}");
     assert_eq!(panic_text, "Smart contract panicked: REFUSED:verdict_used");
+
+    let mut expired_head_ids = Vec::with_capacity(4);
+    let mut expired_head_expires = vec![empty_memo["expires_ms"].as_u64().unwrap()];
+    for index in 0..4 {
+        let mut expired = vector("03-memo-empty-sandbox");
+        expired["amount"] = json!("1");
+        expired["verdict_id"] = json!(hex_encode(
+            &Sha256::digest(format!("expired-head-{index}").as_bytes())[..16]
+        ));
+        let expired = fresh_request(&worker, gate.id(), expired, 10_000).await;
+        let result = agent
+            .call(gate.id(), "request_transfer")
+            .args_json(transfer_args(&expired))
+            .gas(Gas::from_tgas(100))
+            .transact()
+            .await
+            .unwrap();
+        result.clone().into_result().unwrap();
+        assert!(result
+            .logs()
+            .iter()
+            .any(|line| line.contains("transfer_completed")));
+        expired_head_ids.push(expired["verdict_id"].as_str().unwrap().to_owned());
+        expired_head_expires.push(expired["expires_ms"].as_u64().unwrap());
+    }
+    worker.fast_forward(400).await.unwrap();
+    let now_ms = worker.view_block().await.unwrap().timestamp() / 1_000_000;
+    assert!(expired_head_expires
+        .iter()
+        .all(|expires_ms| *expires_ms <= now_ms));
+    let mut gas_probe_vector = vector("03-memo-empty-sandbox");
+    gas_probe_vector["amount"] = json!("1");
+    gas_probe_vector["verdict_id"] = json!(hex_encode(
+        &Sha256::digest(b"request-transfer-prune4-probe")[..16]
+    ));
+    let gas_probe = fresh_request(&worker, gate.id(), gas_probe_vector, 300_000).await;
+    let gas_probe_result = agent
+        .call(gate.id(), "request_transfer")
+        .args_json(transfer_args(&gas_probe))
+        .gas(Gas::from_tgas(100))
+        .transact()
+        .await
+        .unwrap();
+    gas_probe_result.clone().into_result().unwrap();
+    assert!(gas_probe_result
+        .logs()
+        .iter()
+        .any(|line| line.contains("transfer_completed")));
+    let request_prune4_gas = gas_probe_result.total_gas_burnt.as_gas();
+    assert!(request_prune4_gas < Gas::from_tgas(100).as_gas());
+    println!("GAS request_transfer_prune4={request_prune4_gas}");
+    let mut pruned_ids = vec![empty_memo["verdict_id"].as_str().unwrap().to_owned()];
+    pruned_ids.extend(expired_head_ids.iter().take(2).cloned());
+    for verdict_id in &pruned_ids {
+        let used: bool = gate
+            .view(gate.id(), "is_verdict_used")
+            .args_json(json!({"verdict_id": verdict_id}))
+            .await
+            .unwrap()
+            .json()
+            .unwrap();
+        assert!(!used);
+    }
+
+    let candidate_policy_after_transfer: Value = gate
+        .view(gate.id(), "get_policy")
+        .await
+        .unwrap()
+        .json()
+        .unwrap();
+    let candidate_agent_after_transfer: Value = gate
+        .view(gate.id(), "get_agent")
+        .args_json(json!({"public_key": public_key.to_string()}))
+        .await
+        .unwrap()
+        .json()
+        .unwrap();
+    gate.deploy(&old_gate_wasm)
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap();
+    let rollback_policy: Value = gate
+        .view(gate.id(), "get_policy")
+        .await
+        .unwrap()
+        .json()
+        .unwrap();
+    assert_eq!(rollback_policy, candidate_policy_after_transfer);
+    let rollback_agent: Value = gate
+        .view(gate.id(), "get_agent")
+        .args_json(json!({"public_key": public_key.to_string()}))
+        .await
+        .unwrap()
+        .json()
+        .unwrap();
+    assert_eq!(rollback_agent, candidate_agent_after_transfer);
+    let rollback_transfer = agent
+        .call(gate.id(), "request_transfer")
+        .args_json(transfer_args(
+            &fresh_request(&worker, gate.id(), vector("02-near-happy-sandbox"), 300_000).await,
+        ))
+        .gas(Gas::from_tgas(100))
+        .transact()
+        .await
+        .unwrap();
+    rollback_transfer.clone().into_result().unwrap();
+    assert!(rollback_transfer
+        .logs()
+        .iter()
+        .any(|line| line.contains("transfer_completed")));
+
     let no_verdict = agent
         .call(gate.id(), "request_transfer")
         .args_json(json!({"request": transfer_args(&happy)["request"], "verdict": null}))
@@ -446,7 +619,7 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
     let deposit_error = agent
         .call(gate.id(), "request_transfer")
         .args_json(transfer_args(
-            &fresh_request(&worker, gate.id(), happy.clone()).await,
+            &fresh_request(&worker, gate.id(), happy.clone(), 300_000).await,
         ))
         .deposit(NearToken::from_yoctonear(1))
         .transact()
@@ -455,7 +628,13 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
     println!("deposit protocol rejection: {deposit_error:?}");
     assert!(format!("{deposit_error:?}").contains("DepositWithFunctionCall"));
 
-    let unknown = fresh_request(&worker, gate.id(), vector("12-unknown-payee-sandbox")).await;
+    let unknown = fresh_request(
+        &worker,
+        gate.id(),
+        vector("12-unknown-payee-sandbox"),
+        300_000,
+    )
+    .await;
     let unknown_result = agent
         .call(gate.id(), "request_transfer")
         .args_json(transfer_args(&unknown))
@@ -476,8 +655,13 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         .json()
         .unwrap();
     assert_eq!(unknown_agent_view["unknown_caps"][0]["spent"], "1");
-    let over_cap =
-        fresh_request(&worker, gate.id(), vector("13-unknown-payee-over-cap-sandbox")).await;
+    let over_cap = fresh_request(
+        &worker,
+        gate.id(),
+        vector("13-unknown-payee-over-cap-sandbox"),
+        300_000,
+    )
+    .await;
     let over_cap_error = agent
         .call(gate.id(), "request_transfer")
         .args_json(transfer_args(&over_cap))
@@ -503,9 +687,10 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         .unwrap();
     let mut fresh_vector = vector("01-ft-happy-sandbox");
     fresh_vector["receiver_id"] = json!(fresh.id());
-    fresh_vector["verdict_id"] =
-        json!(hex_encode(&Sha256::digest(b"fresh unregistered receiver")[..16]));
-    let fresh_transfer = fresh_request(&worker, gate.id(), fresh_vector).await;
+    fresh_vector["verdict_id"] = json!(hex_encode(
+        &Sha256::digest(b"fresh unregistered receiver")[..16]
+    ));
+    let fresh_transfer = fresh_request(&worker, gate.id(), fresh_vector, 300_000).await;
     let fresh_before: Value = gate
         .view(gate.id(), "get_agent")
         .args_json(json!({"public_key": public_key.to_string()}))
@@ -537,7 +722,7 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         fresh_before["caps"][0]["spent"]
     );
 
-    let near = fresh_request(&worker, gate.id(), vector("02-near-happy-sandbox")).await;
+    let near = fresh_request(&worker, gate.id(), vector("02-near-happy-sandbox"), 300_000).await;
     let vendor_balance = vendor.view_account().await.unwrap().balance;
     let near_result = agent
         .call(gate.id(), "request_transfer")
@@ -557,6 +742,48 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         );
     }
 
+    let mut prune_batch_ids = Vec::with_capacity(50);
+    let mut prune_batch_expires = Vec::with_capacity(50);
+    for index in 0..50 {
+        let mut batch_vector = vector("01-ft-happy-sandbox");
+        batch_vector["amount"] = json!("1");
+        batch_vector["verdict_id"] = json!(hex_encode(
+            &Sha256::digest(format!("prune-batch-{index}").as_bytes())[..16]
+        ));
+        let batch_request = fresh_request(&worker, gate.id(), batch_vector, 300_000).await;
+        let batch_result = agent
+            .call(gate.id(), "request_transfer")
+            .args_json(transfer_args(&batch_request))
+            .gas(Gas::from_tgas(100))
+            .transact()
+            .await
+            .unwrap();
+        batch_result.clone().into_result().unwrap();
+        assert!(batch_result
+            .logs()
+            .iter()
+            .any(|line| line.contains("transfer_completed")));
+        prune_batch_ids.push(batch_request["verdict_id"].as_str().unwrap().to_owned());
+        prune_batch_expires.push(batch_request["expires_ms"].as_u64().unwrap());
+    }
+    worker.fast_forward(400).await.unwrap();
+    let now_ms = worker.view_block().await.unwrap().timestamp() / 1_000_000;
+    assert!(prune_batch_expires
+        .iter()
+        .all(|expires_ms| *expires_ms <= now_ms));
+    let prune_used_result = owner
+        .call(gate.id(), "prune_used")
+        .args_json(json!({"ids": prune_batch_ids}))
+        .deposit(NearToken::from_yoctonear(1))
+        .gas(Gas::from_tgas(100))
+        .transact()
+        .await
+        .unwrap();
+    let prune_used_gas = prune_used_result.total_gas_burnt.as_gas();
+    assert!(prune_used_gas < Gas::from_tgas(100).as_gas());
+    println!("GAS prune_used_50={prune_used_gas}");
+    assert_eq!(prune_used_result.json::<u32>().unwrap(), 50);
+
     owner
         .call(gate.id(), "set_paused")
         .args_json(json!({"paused": true}))
@@ -569,7 +796,7 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
     let paused_error = agent
         .call(gate.id(), "request_transfer")
         .args_json(transfer_args(
-            &fresh_request(&worker, gate.id(), happy.clone()).await,
+            &fresh_request(&worker, gate.id(), happy.clone(), 300_000).await,
         ))
         .gas(Gas::from_tgas(100))
         .transact()
