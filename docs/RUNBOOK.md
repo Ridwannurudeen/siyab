@@ -212,7 +212,7 @@ Before resolving read view `get_dispute` (`contracts/reports/src/lib.rs:591`): i
 
 Read backs: after opening, view `get_report` shows `contested` and the transaction carries `report_disputed`; after resolving, view `get_dispute` shows it closed, view `get_report` shows `accepted` (upheld) or `overturned`, the transaction carries `dispute_resolved`, and view `subject_summary` shows `deny`, `latest_accepted_id` and `latest_deny_id` as expected (`docs/REPORTS.md:23`).
 
-Undo: an upheld report can be disputed again, at most five disputes over its lifetime (`docs/REPORTS.md:18`). An overturn is final.
+Undo: an upheld report can be disputed again; there is no lifetime cap, one dispute may be open at a time, and each costs the deposit (`docs/REPORTS.md`, the `dispute` row). An overturn is final.
 
 ## The reports off switch
 
