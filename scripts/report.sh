@@ -7,7 +7,7 @@ require_testnet
 require_vars OWNER_ACCOUNT_ID NEAR_KEYS_DIR
 if [[ -z "${REPORTER_ACCOUNT_ID+x}" ]]; then
   REPORTER_ACCOUNT_ID=$OWNER_ACCOUNT_ID
-  printf 'the owner cannot moderate a report it filed\n' >&2
+  printf 'the owner is the moderator and cannot moderate a report it filed; set REPORTER_ACCOUNT_ID\n' >&2
 fi
 if [[ "${#SCRIPT_ARGS[@]}" -ne 6 ]]; then
   printf 'usage: report.sh <reports_account> <subject> <kind> <outcome> <evidence_sha256> <evidence_url> [--dry-run]\n' >&2
