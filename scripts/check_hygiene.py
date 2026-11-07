@@ -134,8 +134,12 @@ def source_has_url(source):
     for key in ("url", "rpc"):
         value = source.get(key)
         if isinstance(value, str):
-            parsed = urlparse(value)
-            if parsed.scheme in ("http", "https") and parsed.hostname:
+            try:
+                parsed = urlparse(value)
+                hostname = parsed.hostname
+            except ValueError:
+                continue
+            if parsed.scheme in ("http", "https") and hostname:
                 return True
     return False
 

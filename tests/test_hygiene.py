@@ -66,7 +66,7 @@ class ParsedLabelRowTest(unittest.TestCase):
         self.assertFalse(hits)
 
     def test_hostile_role_word_with_a_url_without_a_host_fails(self):
-        for url in ("https://@", "https://user@", "https://"):
+        for url in ("https://@", "https://user@", "https://", "https://["):
             hits = self.check_row({"label": "attacker", "source": {"url": url}})
             self.assertEqual(hits, [(1, "hostile role word without a source URL")], url)
 
