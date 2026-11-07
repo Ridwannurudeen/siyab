@@ -14,7 +14,6 @@ with another tier 2 signal (account_age, dust_funded or lookalike); alone it is 
 
 import dataclasses
 import json
-import os
 import re
 from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
@@ -34,7 +33,7 @@ from intel import reports
 
 MIN_AGE_DAYS = 7
 # The checks judge runs only for a receiver off the agent's allowlist; an owner's set_allowlist call skips them.
-TIER2_CHECKS = ("account_age", "dust_funded", "lookalike", "code_without_metadata", "pending_report")
+TIER2_CHECKS = ("account_age", "dust_funded", "lookalike", "code_without_metadata")
 DAY_MS = 24 * 60 * 60 * 1000
 YOCTO_PER_NEAR = 10**24
 DUST_YOCTO = 10**23  # 0.1 NEAR
@@ -375,28 +374,18 @@ def _tier1(request, policy, store, rpc, injection_scanner, issuers, reports_acco
                                          f"could not read storage_balance_of: {_why(error)}", _source(rpc)))
 
     checks.append(_memo_check(memo, injection_scanner))
-    report_summary, report_source, report_effect = None, None, None
     if reports_account:
         try:
             report_summary = rpc.call_function(reports_account, "subject_summary", {"subject": receiver})
             report_effect = reports.effect(report_summary, receiver in policy.get("allowlist", []))
-            if report_effect == "deny":
-                detail = (f"reports for {receiver} include an accepted or contested deny report; "
-                          f"the latest accepted report id is {report_summary['latest_accepted_id']}")
-                status = "signal"
-            elif report_effect == "unknown":
-                detail = f"the community report summary for {receiver} is inconclusive or unreadable"
-                status = "unknown"
-            else:
-                detail = f"no community report requires review for {receiver}"
-                status = "pass"
         except UNAVAILABLE as error:
-            report_effect = "unknown"
-            status = "unknown"
-            detail = f"could not read subject_summary on {reports_account}: {_why(error)}"
-        report_source = _source(rpc)
-        checks.append(evidence.check("community_report", status, detail, report_source))
-    return checks, account, account_source, [a.id for a in consulted], report_summary, report_source, report_effect
+            report_effect = {"effect": "unreadable", "report_id": None,
+                             "detail": f"subject_summary could not be read: {_why(error)}"}
+        status = {"deny": "signal", "ask": "unknown", "none": "pass", "unreadable": "unknown"}[
+            report_effect["effect"]]
+        detail = f"reports for {receiver}: {report_effect['detail']}"
+        checks.append(evidence.check("community_report", status, detail, _source(rpc)))
+    return checks, account, account_source, [a.id for a in consulted]
 
 
 def _ft_metadata_check(rpc, token):
@@ -500,8 +489,7 @@ def _nonce_age(rpc, archival, receiver, now_ms, min_age_days, nearblocks_why):
                           archival_source), False
 
 
-def _tier2(request, policy, store, account, account_source, rpc, nearblocks, now_ms, min_age_days, archival,
-            reports_account, report_summary, report_source, report_effect):
+def _tier2(request, policy, store, account, account_source, rpc, nearblocks, now_ms, min_age_days, archival):
     """Tier 2 checks; returns (checks, facts for the reasons, matched catalog assertion ids)."""
     receiver = request["receiver_id"]
     checks, facts, matched = [], {}, []
@@ -592,18 +580,6 @@ def _tier2(request, policy, store, account, account_source, rpc, nearblocks, now
     # only together with another tier 2 signal (PLAN-v4 B6).
     checks.append(_code_check(rpc, receiver, account, account_source,
                               any(check["status"] == "signal" for check in checks)))
-    if reports_account:
-        pending = report_summary.get("pending") if isinstance(report_summary, dict) else None
-        pending_unknown = (report_effect == "unknown" and (type(pending) is not int or pending > 0))
-        if pending_unknown:
-            detail = (f"pending reports for {receiver} await review"
-                      if type(pending) is int and pending > 0
-                      else f"could not determine pending report status for {receiver}")
-            status = "unknown"
-        else:
-            detail = f"no pending report requires review for {receiver}"
-            status = "pass"
-        checks.append(evidence.check("pending_report", status, detail, report_source))
     return checks, facts, matched
 
 
@@ -648,7 +624,18 @@ def _reasons(verdict, checks, facts, request, tier2):
         reasons = ["Every check ran and none found a signal."]
         return reasons + (["Not on the owner's allowlist."] if tier2 else [])
     if verdict == "UNKNOWN":
-        return [f"{c['id']} could not run: {c['detail']}." for c in checks if c["status"] == "unknown"]
+        reasons = []
+        for check in checks:
+            if check["status"] != "unknown":
+                continue
+            if check["id"] == "community_report":
+                reason = ("community reports need a human decision"
+                          if "; a human decides; " in check["detail"]
+                          else "community reports could not be checked")
+                reasons.append(reason)
+            else:
+                reasons.append(f"{check['id']} could not run: {check['detail']}.")
+        return reasons
     signals = {c["id"]: c for c in checks if c["status"] == "signal"}
     reasons = []
     if "lookalike" in signals:
@@ -668,25 +655,23 @@ def _reasons(verdict, checks, facts, request, tier2):
 
 
 def judge(request, policy, store, rpc, nearblocks, *, now_ms, injection_scanner, min_age_days=MIN_AGE_DAYS,
-          archival=None, issuers=None):
+          archival=None, issuers=None, reports_account=None):
     """Judge one TransferRequest for the agent whose policy (allowlist and caps, in the get_agent
     shape) is given; store is the label store, rpc the NEAR JSON-RPC client, nearblocks the
     NearBlocks client, injection_scanner the ShieldBot API client or None and archival the archival
     JSON-RPC client that dates the receiver when NearBlocks gives no creation time, or None.
     issuers is the list of issuer entries (issuers_for) the issuer_blacklist check reads; None or an
-    empty list adds no check. A receiver that is not a valid account id raises canon.CanonError, a
-    ValueError, before any request."""
+    empty list adds no check. reports_account is the reports contract account or None to omit its
+    check. A receiver that is not a valid account id raises canon.CanonError, a ValueError, before any request."""
     canon.account_id(request["receiver_id"], "receiver_id")
-    reports_account = os.environ.get("REPORTS_ACCOUNT_ID")
-    (tier1_checks, account, account_source, labels, report_summary, report_source,
-     report_effect) = _tier1(request, policy, store, rpc, injection_scanner, issuers, reports_account)
+    tier1_checks, account, account_source, labels = _tier1(
+        request, policy, store, rpc, injection_scanner, issuers, reports_account)
     block_height = account.get("block_height") if account else None
     tier2 = request["receiver_id"] not in policy.get("allowlist", [])
     checks, facts = list(tier1_checks), {}
     if tier2:
         tier2_checks, facts, matched = _tier2(request, policy, store, account, account_source, rpc,
-                                              nearblocks, now_ms, min_age_days, archival, reports_account,
-                                              report_summary, report_source, report_effect)
+                                              nearblocks, now_ms, min_age_days, archival)
         checks += tier2_checks
         labels += [assertion_id for assertion_id in matched if assertion_id not in labels]
     statuses = {check["status"] for check in checks}

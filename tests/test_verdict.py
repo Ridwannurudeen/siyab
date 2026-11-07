@@ -266,7 +266,7 @@ class ActionTest(VerdictCase):
                                      now_ms=1800000000000, injection_scanner=None)
         allowed_ids = {check["id"] for check in allowed.checks}
         unapproved_ids = {check["id"] for check in unapproved.checks}
-        self.assertEqual(unapproved_ids - allowed_ids, set(rules.TIER2_CHECKS) - {"pending_report"})
+        self.assertEqual(unapproved_ids - allowed_ids, set(rules.TIER2_CHECKS))
         self.assertNotIn("pending_report", unapproved_ids)
 
 

@@ -1,8 +1,10 @@
+SUMMARY_FIELDS = frozenset(("accepted", "pending", "contested", "latest_accepted_id", "latest_deny_id", "deny"))
+
+
 def _readable(summary):
     if not isinstance(summary, dict):
         return False
-    fields = {"accepted", "pending", "contested", "latest_accepted_id", "deny"}
-    if summary.keys() != fields:
+    if summary.keys() != SUMMARY_FIELDS:
         return False
     counts = (summary.get("accepted"), summary.get("pending"), summary.get("contested"))
     if any(type(count) is not int or count < 0 for count in counts):
@@ -10,21 +12,42 @@ def _readable(summary):
     accepted, _, contested = counts
     if contested > accepted:
         return False
-    latest_id, deny = summary.get("latest_accepted_id"), summary.get("deny")
+    latest_id = summary.get("latest_accepted_id")
+    latest_deny_id = summary.get("latest_deny_id")
+    deny = summary.get("deny")
     if type(deny) is not bool:
         return False
     if accepted == 0:
-        return latest_id is None and not deny
-    return type(latest_id) is int and latest_id >= 0
+        if latest_id is not None or deny:
+            return False
+    elif type(latest_id) is not int or latest_id < 0:
+        return False
+    if deny:
+        if accepted == 0 or type(latest_deny_id) is not int or latest_deny_id < 0:
+            return False
+    elif latest_deny_id is not None:
+        return False
+    return True
 
 
-def effect(summary, payee_on_allowlist) -> str:
+def effect(summary, payee_on_allowlist):
     if not _readable(summary):
-        return "unknown"
+        return {"effect": "unreadable", "report_id": None,
+                "detail": "the summary is not in the fixed shape; pending unknown"}
+    accepted, pending, contested = summary["accepted"], summary["pending"], summary["contested"]
     if summary["deny"]:
-        return "deny"
-    if summary["accepted"] > 0:
-        return "unknown"
-    if summary["pending"] > 0 and not payee_on_allowlist:
-        return "unknown"
-    return "none"
+        report_id = summary["latest_deny_id"]
+        detail = f"deny report {report_id} is accepted; {contested} under dispute; pending {pending}"
+        return {"effect": "deny", "report_id": report_id, "detail": detail}
+    if accepted > 0:
+        report_id = summary["latest_accepted_id"]
+        if payee_on_allowlist:
+            detail = (f"{accepted} accepted social report(s), latest id {report_id}; the payee is on the allowlist, "
+                      f"so no ask; pending {pending}")
+            return {"effect": "none", "report_id": report_id, "detail": detail}
+        detail = f"{accepted} accepted social report(s), latest id {report_id}; a human decides; pending {pending}"
+        return {"effect": "ask", "report_id": report_id, "detail": detail}
+    if pending > 0:
+        return {"effect": "none", "report_id": None,
+                "detail": f"{pending} pending report(s) await moderation; no effect"}
+    return {"effect": "none", "report_id": None, "detail": "no community report; pending 0"}
