@@ -1,5 +1,168 @@
 # API
 
+This file is the consumer contract of the verdict interface: what `gate.verdict.request` returns, which checks can appear in it and what each status means, how `outcome` and `action` relate, one recorded answer per outcome, and the local HTTP endpoint that serves it. `tests/test_api_doc.py` fails when the field list, the check table or an example's fixture no longer agrees with the code.
+
+## The verdict response
+
+`gate.verdict.request` (`gate/verdict.py:58`) judges one transfer and returns a dict with exactly these keys, in this order (`gate/verdict.py:118` to `:130`). Every adapter (the CLI `python -m gate verdict`, the MCP tool `check_near_payment`, the HTTP endpoint, the pay wrapper) starts from this dict.
+
+### Fields
+
+| Field | Type | Meaning | Code |
+|---|---|---|---|
+| `outcome` | string | `ALLOW`, `DENY` or `UNKNOWN`, the verdict of `gate.rules.judge` | `gate/verdict.py:119`, `gate/rules.py:678` |
+| `action` | string | `sign`, `ask` or `refuse`: what the caller does with the outcome (see Outcome and action) | `gate/verdict.py:120`, `:88` to `:89` |
+| `ask` | list of strings | the reasons a human must decide before anything is signed or sent; empty for DENY | `gate/verdict.py:121`, `:19` to `:55` |
+| `verdict` | object or null | the Verdict object the Gate's `request_transfer` takes: `literal`, `issued_ms`, `expires_ms`, `verdict_id`, `evidence_hash`, `key_id`, `signature`; null unless the outcome is ALLOW and the action is in the caller's `sign_actions` | `gate/verdict.py:122`, `:90`, `:104` to `:117` |
+| `request` | object | the TransferRequest judged: `kind`, `token_id`, `receiver_id`, `amount` (the canonical decimal string), `memo` (string or null) | `gate/verdict.py:123`, `:80` to `:82` |
+| `checks` | list of objects | one object per check that ran, `{id, status, detail, source}`, in the order the rules ran them (see Checks) | `gate/verdict.py:124`, `gate/evidence.py:43` |
+| `reasons` | list of strings | the reasons for the outcome | `gate/verdict.py:125`, `gate/rules.py:621` |
+| `evidence_hash` | string | the sha256 hex of the canonical bytes of the evidence document, which is also its file name | `gate/verdict.py:126`, `:101` to `:102` |
+| `evidence_path` | string | where the evidence document was written, `<evidence_dir>/<evidence_hash>.json` | `gate/verdict.py:127`, `gate/evidence.py:93` |
+| `latency_ms` | integer | whole milliseconds of `time.perf_counter` from just before the rules ran to just after the verdict id was drawn; it leaves out the request validation, the evidence write and the signature | `gate/verdict.py:128`, `:83`, `:94` |
+| `message` | string or null | the canonical message the signature covers (`docs/VERDICT-RECORD.md`), or null when `verdict` is null | `gate/verdict.py:129`, `:105` to `:108` |
+
+The adapters change the dict in two places only. The HTTP endpoint drops `evidence_path`, sets `verdict` and `message` to null and adds `signing` (`gate/http.py:163` to `:164`). The MCP tool adds `gate`, `signer`, `agent_pk` and `policy_source` (`mcp/server.py:177`).
+
+### Checks
+
+Each check is `{"id", "status", "detail", "source"}` (`gate/evidence.py:43` to `:47`). `status` is `pass`, `signal` or `unknown` (`gate/evidence.py:27`); `evidence.check` raises on any other value, and there is no `not_run` status: a check that did not run is absent from `checks`. `detail` is text for a human. `source` is `{"provider", "request_sha256", "fetched_at"}` (`docs/VERDICT-RECORD.md`): the RPC or HTTP host with the replay key of the request and its fetch time, or for a local read a local provider name (`label store`, `local patterns`, `allowlist and label store`, or `nearblocks` when no request was made) with `fetched_at` null (`gate/rules.py:106` to `:111`).
+
+Tiers (`gate/rules.py:670`): tier 1 runs for every receiver; tier 2 runs only for a receiver that is not on the agent's `allowlist` in the policy (`TIER2_CHECKS`, `gate/rules.py:36`). Kind `near` runs no token check; kind `ft` adds the three token checks and also looks the token up in the label store (`gate/rules.py:340`, `:354` to `:374`).
+
+### Check table
+
+| Check id | Kind | Tier | Enabled by | Network | pass | signal | unknown |
+|---|---|---|---|---|---|---|---|
+| `receiver_exists` | near, ft | 1 | always | any | `view_account` answered (`gate/rules.py:326` to `:328`) | the RPC answers `UNKNOWN_ACCOUNT`: the receiver does not exist (`:330`) | any other RPC error, or a read that could not run (`:330` to `:336`) |
+| `label_denylist` | near, ft | 1 | always | any | no current `denylist` or `incident` label on the receiver, or on the token for ft (`:346` to `:349`) | a current `denylist` or `incident` label on the receiver or, for ft, the token (`:342` to `:345`) | never: the label store is local |
+| `issuer_blacklist` | near, ft | 1 | the caller passes the issuer table of `intel/issuers.json` (`:351` to `:352`) | mainnet Gate only: the CLI, the MCP tool and the HTTP endpoint pass `issuers_for("mainnet")` for a Gate not ending `.testnet` (`gate/__main__.py:70`, `mcp/server.py:166`, `gate/http.py:150`), and the testnet table is empty | every issuer view answers a value other than its banned one, or the token has no such view (`:305`, `:308` to `:309`) | an issuer's view answers its banned value for the receiver (`:302` to `:304`) | a read could not run and no issuer answered banned (`:310` to `:316`) |
+| `token_in_catalog` | ft | 1 | always for ft | any | the token is a cap asset of the agent or a `catalog_token` in the label store (`:355` to `:359`) | neither (`:360` to `:362`) | never: the policy and the label store are local |
+| `ft_metadata_sane` | ft | 1 | always for ft | any | `ft_metadata` has a non empty name and symbol and decimals from 0 to 24 (`:402` to `:409`) | the token has no code or no `ft_metadata` method, or the metadata fails that shape (`:395`, `:405` to `:407`) | any other RPC error, or a read that could not run (`:395` to `:401`) |
+| `storage_registered` | ft | 1 | always for ft | any | `storage_balance_of` for the receiver is not null (`:369` to `:371`) | `storage_balance_of` is null: the receiver is not registered on the token (`:366` to `:368`) | the read could not run (`:372` to `:374`) |
+| `memo_injection` | near, ft | 1 | always; `SHIELDBOT_API_URL` adds the ShieldBot injection scan to the local patterns (`gate/__main__.py:48` to `:49`) | any | no memo, or no local pattern matched and the scan, when set, answered clean (`:414` to `:432`) | a local pattern matched, or the scan flagged the memo (`:416` to `:430`) | only with the scan set: the scan could not run and no local pattern matched (`:427` to `:432`) |
+| `community_report` | near, ft | 1 | `REPORTS_ACCOUNT_ID` names the reports contract (`gate/http.py:102`, `gate/__main__.py:71`, `mcp/server.py:159`); unset, the check is absent (`:377`) | any | no report, only pending reports, or accepted social reports for a payee on the allowlist (`:380` to `:385`, `intel/reports.py:45` to `:48`, `:51` to `:54`) | an accepted deny report (`intel/reports.py:39` to `:42`) | accepted social reports for a payee off the allowlist, so a human decides; or the summary is unreadable or `subject_summary` could not be read (`:381` to `:385`, `intel/reports.py:35` to `:50`) |
+| `account_age` | near, ft | 2 | always for tier 2; when NearBlocks gives no creation time, the oldest access key nonce is dated on the archival RPC (`:523` to `:524`) | any | the oldest key was created at least 7 days ago, or the oldest nonce predates block height nonces or dates to a block at least 7 days old (`:515`, `:467` to `:469`, `:488`) | the account is younger than 7 days (`MIN_AGE_DAYS`, `:34`, `:515`, `:485` to `:487`) | no creation time could be read from NearBlocks or the archival fallback (`:506` to `:509`, `:519` to `:522`, `:455` to `:464`, `:480` to `:482`) |
+| `dust_funded` | near, ft | 2 | always for tier 2 | any | the creation deposit is at least 0.1 NEAR, or is below it with no lookalike or account_age signal, or the nonce age passed with no lookalike so no deposit can change the verdict (`:559` to `:576`) | the creation deposit is below 0.1 NEAR together with a lookalike or account_age signal (`DUST_YOCTO`, `:39`, `:568` to `:570`) | the creation transaction is not known or could not be read (`:530` to `:541`) |
+| `lookalike` | near, ft | 2 | always for tier 2 | any | no allowlisted name is contained and no allowlisted or labelled reference account is within the length scaled distance, or the receiver is itself a labelled reference account (`:549` to `:555`) | the receiver contains an allowlisted name, or is within the distance of an allowlisted or labelled reference account after confusable normalisation (`:546` to `:548`) | never: the allowlist and the label store are local |
+| `code_without_metadata` | near, ft | 2 | always for tier 2 | any | no contract code, code with `contract_source_metadata`, or code without it and no other tier 2 signal (`:590` to `:602`) | contract code without `contract_source_metadata` together with another tier 2 signal (`:599` to `:600`) | the receiver account could not be read, or `contract_source_metadata` could not be read (`:587` to `:589`, `:597` to `:598`, `:604` to `:606`) |
+
+Line numbers without a file are `gate/rules.py`. `tests/test_api_doc.py` reads the check ids from `gate/rules.py` and fails when this table and the code disagree in either direction.
+
+### Outcome and action
+
+`outcome` comes from the statuses alone (`gate/rules.py:677` to `:678`): DENY when any check is `signal`, else UNKNOWN when any check is `unknown`, else ALLOW. A signal wins over a check that could not run.
+
+`action` comes from `outcome` and `ask` (`gate/verdict.py:87` to `:89`):
+
+| `outcome` | `ask` | `action` |
+|---|---|---|
+| `DENY` | always empty (`gate/verdict.py:25` to `:26`) | `refuse` |
+| `UNKNOWN` | each check that could not run, as `<id> could not run: <detail>`, then any Gate policy refusal below (`gate/verdict.py:35` to `:37`) | `ask` |
+| `ALLOW` | a Gate policy refusal the verdict service can see: the Gate is paused, the agent is disabled, the receiver is on the Gate denylist, or the receiver is off the allowlist with no unknown payee caps, no cap for the asset, or an amount over that cap's per call limit (`gate/verdict.py:28` to `:55`) | `ask` when `ask` is not empty, else `sign` |
+
+`sign_actions` decides only which actions are signed, never the action itself (`gate/verdict.py:90`): the default `("sign",)` signs an ALLOW whose action is `sign`, the pay wrapper passes `("sign", "ask")` (`gate/agent.py:229`) and the HTTP endpoint passes `()` (`gate/http.py:160`). DENY and UNKNOWN are never signed. The Gate itself still checks the window part of every cap, the caps of an allowlisted payee, and the verdict signature, expiry and replay (`gate/verdict.py:22` to `:23`).
+
+Adapters translate `action` into their host's vocabulary (pay or not, a tool result, an HTTP body) and never decide again: `mcp/server.py:175` and `gate/agent.py:310` read `result["action"]` as it came back.
+
+## Examples
+
+One recorded answer per outcome, from committed fixtures. Each block is the fixture's JSON with every 64 hex value shortened to its first and last 8 hex; the fixture holds the full values. `tests/test_api_doc.py` checks that each block equals its fixture after that shortening and that the fixture records the outcome its heading names.
+
+### ALLOW
+
+Fixture: `fixtures/runs/mcp-live-check_near_payment-20261102T134819Z.json`, the `result` of the live MCP `check_near_payment` call of 2 Nov on testnet, signed with the live verifier key. It was recorded before `action` and `ask` were added to the response (5 Nov), so it lacks them; the same answer today carries `"action": "sign"` and `"ask": []`. Its keys `gate`, `signer`, `agent_pk` and `policy_source` are the MCP tool's (`mcp/server.py:177`). The fixture itself already shortens the signature.
+
+```json
+{
+ "outcome": "ALLOW",
+ "verdict": {"literal": "ALLOW", "issued_ms": 1793627303425, "expires_ms": 1793627603425, "verdict_id": "652c1e0ebd165a413dd0489dea6a75ea", "evidence_hash": "4b99f7ed...fc84bf29", "key_id": "cur", "signature": "7231c2b4...103bd30d"},
+ "request": {"kind": "ft", "token_id": "token.kestrelridge-main.testnet", "receiver_id": "kestrelridge-shop.testnet", "amount": "10000000", "memo": "invoice 4"},
+ "checks": [
+   {"id": "receiver_exists", "status": "pass", "detail": "kestrelridge-shop.testnet exists", "source": {"provider": "test.rpc.fastnear.com", "request_sha256": "91918b33...38f7836c", "fetched_at": "2026-11-02T13:48:22Z"}},
+   {"id": "label_denylist", "status": "pass", "detail": "no denylist or incident label on kestrelridge-shop.testnet or token.kestrelridge-main.testnet", "source": {"provider": "label store", "request_sha256": "7e09fcc1...00959782", "fetched_at": null}},
+   {"id": "token_in_catalog", "status": "pass", "detail": "token.kestrelridge-main.testnet is a cap asset of the agent", "source": {"provider": "label store", "request_sha256": "7e09fcc1...00959782", "fetched_at": null}},
+   {"id": "ft_metadata_sane", "status": "pass", "detail": "symbol \"DMT\", 6 decimals", "source": {"provider": "test.rpc.fastnear.com", "request_sha256": "1f6d0279...79a6e27c", "fetched_at": "2026-11-02T13:48:22Z"}},
+   {"id": "storage_registered", "status": "pass", "detail": "kestrelridge-shop.testnet is registered on token.kestrelridge-main.testnet", "source": {"provider": "test.rpc.fastnear.com", "request_sha256": "e0bfb9ac...a9881575", "fetched_at": "2026-11-02T13:48:23Z"}},
+   {"id": "memo_injection", "status": "pass", "detail": "local patterns: no match", "source": {"provider": "local patterns", "request_sha256": null, "fetched_at": null}}
+ ],
+ "reasons": ["Every check ran and none found a signal."],
+ "evidence_hash": "4b99f7ed...fc84bf29",
+ "evidence_path": "/tmp/shieldbot-near-mcp-s_iuokre/4b99f7ed...fc84bf29.json",
+ "latency_ms": 1972,
+ "message": "GATEv1|kestrelridge-main.testnet|fc5b49a7...06e5bba9|ft|token.kestrelridge-main.testnet|kestrelridge-shop.testnet|10000000|040ed37c...ca267acd|1793627303425|1793627603425|652c1e0ebd165a413dd0489dea6a75ea|4b99f7ed...fc84bf29|cur|ALLOW",
+ "gate": "kestrelridge-main.testnet",
+ "signer": {"kind": "live", "key_id": "cur", "public_key": "ed25519:9SVNJQqQjSKFo6LXpSJJXWKEjV65V93mHUsXGhmokyb5", "public_key_hex": "7d651730...172eb230"},
+ "agent_pk": "fc5b49a7...06e5bba9",
+ "policy_source": "get_agent"
+}
+```
+
+The receiver is on the allowlist, so only tier 1 ran; the Gate is on testnet, so `issuer_blacklist` is absent; `REPORTS_ACCOUNT_ID` was unset, so `community_report` is absent.
+
+### DENY
+
+Fixture: `fixtures/evidence/c5d02152*.json` (`c5d02152...c94297b7`, also in `docs/EVIDENCE.md`), the evidence document of the testnet lookalike `kestrelridge-sh0p.testnet`, a receiver off the allowlist. An evidence document is not the response: it keys the outcome as `verdict`, keeps the memo only as its hash and has no `action`, `ask` or `request`. Its file name is the response's `evidence_hash`, and the response carried the same `checks` and `reasons` with `"action": "refuse"` and `"ask": []`.
+
+```json
+{
+ "checks": [
+   {"detail": "kestrelridge-sh0p.testnet exists", "id": "receiver_exists", "source": {"fetched_at": "2026-10-29T20:08:57Z", "provider": "test.rpc.fastnear.com", "request_sha256": "5832df73...bf1a70a2"}, "status": "pass"},
+   {"detail": "no denylist or incident label on kestrelridge-sh0p.testnet or token.kestrelridge-main.testnet", "id": "label_denylist", "source": {"fetched_at": null, "provider": "label store", "request_sha256": "7e09fcc1...00959782"}, "status": "pass"},
+   {"detail": "token.kestrelridge-main.testnet is a cap asset of the agent", "id": "token_in_catalog", "source": {"fetched_at": null, "provider": "label store", "request_sha256": "7e09fcc1...00959782"}, "status": "pass"},
+   {"detail": "symbol \"DMT\", 6 decimals", "id": "ft_metadata_sane", "source": {"fetched_at": "2026-10-29T20:08:58Z", "provider": "test.rpc.fastnear.com", "request_sha256": "1f6d0279...79a6e27c"}, "status": "pass"},
+   {"detail": "receiver_not_registered: kestrelridge-sh0p.testnet is not registered on token.kestrelridge-main.testnet", "id": "storage_registered", "source": {"fetched_at": "2026-10-29T20:08:59Z", "provider": "test.rpc.fastnear.com", "request_sha256": "f6304cd5...98c23d1f"}, "status": "signal"},
+   {"detail": "local patterns: no match", "id": "memo_injection", "source": {"fetched_at": null, "provider": "local patterns", "request_sha256": null}, "status": "pass"},
+   {"detail": "no key of kestrelridge-sh0p.testnet carries a creation time", "id": "account_age", "source": {"fetched_at": "2026-10-29T20:09:01Z", "provider": "api-testnet.nearblocks.io", "request_sha256": "0f644f90...ab936275"}, "status": "unknown"},
+   {"detail": "the creation transaction is not known", "id": "dust_funded", "source": {"fetched_at": null, "provider": "nearblocks", "request_sha256": null}, "status": "unknown"},
+   {"detail": "lookalike of kestrelridge-shop.testnet: first label kestrelridge-sh0p against kestrelridge-shop, distance 0 after confusable normalisation", "id": "lookalike", "source": {"fetched_at": null, "provider": "allowlist and label store", "request_sha256": "7e09fcc1...00959782"}, "status": "signal"},
+   {"detail": "no contract code", "id": "code_without_metadata", "source": {"fetched_at": "2026-10-29T20:08:57Z", "provider": "test.rpc.fastnear.com", "request_sha256": "5832df73...bf1a70a2"}, "status": "pass"}
+ ],
+ "expires_ms": null,
+ "issued_ms": null,
+ "labels": [],
+ "latency_ms": 4712,
+ "observed": {"block_height": 275347643, "timestamp_ms": 1793304536793},
+ "reasons": ["kestrelridge-sh0p.testnet is a lookalike of kestrelridge-shop.testnet.", "Not on the owner's allowlist.", "Not registered on the token."],
+ "subject": {"agent_pk": "fc5b49a7...06e5bba9", "amount": "10000000", "gate": "kestrelridge-main.testnet", "kind": "ft", "memo_sha256": "ca602dac...bb4ac33c", "receiver": "kestrelridge-sh0p.testnet", "token": "token.kestrelridge-main.testnet"},
+ "verdict": "DENY",
+ "verdict_id": null,
+ "version": "1"
+}
+```
+
+Two checks could not run and two found a signal; the signals win, so the outcome is DENY, not UNKNOWN.
+
+### UNKNOWN
+
+Fixture: `fixtures/receivers/judgements/liver.pool.near.json`, the `gate.rules.judge` record of a mainnet staking pool from the recorded receiver set, judged with an empty allowlist and the mainnet issuer table. A judgement record holds the `request` and what the rules return (`verdict`, `checks`, `reasons`, `labels`, `observed`); `gate.verdict.request` adds `"action": "ask"`, an `ask` that names the two checks that could not run, and the evidence fields.
+
+```json
+{
+ "subject": "liver.pool.near",
+ "as": "receiver",
+ "request": {"kind": "near", "token_id": null, "receiver_id": "liver.pool.near", "amount": "1000000000000000000000000", "memo": null},
+ "verdict": "UNKNOWN",
+ "checks": [
+   {"id": "receiver_exists", "status": "pass", "detail": "liver.pool.near exists", "source": {"provider": "free.rpc.fastnear.com", "request_sha256": "37ad449a...1625deb4", "fetched_at": "2026-11-03T18:57:34Z"}},
+   {"id": "label_denylist", "status": "pass", "detail": "no denylist or incident label on liver.pool.near", "source": {"provider": "label store", "request_sha256": "74c235c6...01c1133d", "fetched_at": null}},
+   {"id": "issuer_blacklist", "status": "pass", "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628...e36133a1 is_blocklisted answers false", "source": {"provider": "free.rpc.fastnear.com", "request_sha256": "2f7189ae...cb2dd2e2", "fetched_at": "2026-11-03T18:57:35Z"}},
+   {"id": "memo_injection", "status": "pass", "detail": "no memo", "source": {"provider": "local patterns", "request_sha256": null, "fetched_at": null}},
+   {"id": "account_age", "status": "unknown", "detail": "NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read", "source": {"provider": "api.nearblocks.io", "request_sha256": "d697bdbe...54544e1f", "fetched_at": "2026-11-03T18:57:43Z"}},
+   {"id": "dust_funded", "status": "unknown", "detail": "the creation transaction is not known", "source": {"provider": "nearblocks", "request_sha256": null, "fetched_at": null}},
+   {"id": "lookalike", "status": "pass", "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation", "source": {"provider": "allowlist and label store", "request_sha256": "74c235c6...01c1133d", "fetched_at": null}},
+   {"id": "code_without_metadata", "status": "pass", "detail": "contract code without contract_source_metadata; not a signal on its own", "source": {"provider": "free.rpc.fastnear.com", "request_sha256": "5c1cfb0a...8ed332f3", "fetched_at": "2026-11-03T18:57:44Z"}}
+ ],
+ "reasons": ["account_age could not run: NearBlocks lists no access key for the account and view_account shows contract code, so no creation time could be read.", "dust_funded could not run: the creation transaction is not known."],
+ "labels": ["f79ba8d2...35c42b56"],
+ "observed": {"block_height": 222910797, "timestamp_ms": 1793731688201}
+}
+```
+
+Kind `near`, so no token check ran; the receiver is on mainnet, so `issuer_blacklist` ran.
+
+`python -m gate demo --offline` prints one more answer of each outcome over the recorded testnet fixtures in `fixtures/demo/`. Its evidence goes to a temporary directory, and its latency, and so its evidence hash, changes from run to run, so it is not cited here.
+
 ## The verdict endpoint
 
 `python -m gate http` serves `gate.verdict.request` over HTTP from `gate/http.py`, on the Python standard library server. It is local: it binds `127.0.0.1` by default (`--host`, `--port`, default port 8788) and speaks plain HTTP. It is not hosted anywhere and it is not paid. TLS is the job of a reverse proxy in front of it; the process itself has no certificate.
@@ -35,33 +198,7 @@ curl -s http://127.0.0.1:8788/verdict -H "Authorization: Bearer $KEY" \
   -d '{"kind": "ft", "token": "wrap.near", "receiver": "intents.near", "amount": "1000", "memo": "invoice 7"}'
 ```
 
-The answer is the `gate.verdict.request` result:
-
-| Field | Value |
-|---|---|
-| `outcome` | `ALLOW`, `DENY` or `UNKNOWN` |
-| `action` | `sign` for an ALLOW the Gate would not refuse on the visible policy checks, `refuse` for DENY, `ask` for UNKNOWN or an ALLOW the Gate would refuse |
-| `ask` | the reasons a human must decide, as strings |
-| `verdict` | always null |
-| `request` | the TransferRequest: `kind`, `token_id`, `receiver_id`, `amount`, `memo` |
-| `checks` | one object per check, as `gate/evidence.py` defines it: `id`, `status` (`pass`, `signal` or `unknown`), `detail`, and `source` (`provider`, `request_sha256`, `fetched_at`) |
-| `reasons` | the reasons for the outcome, as strings |
-| `evidence_hash` | the sha256 hex of the evidence document |
-| `latency_ms` | the time the verdict took |
-| `message` | always null |
-| `signing` | the unsigned rule above |
-
-An ALLOW over the recorded fixtures, with `intents.near` allowlisted and checks cut to one (the hashes shortened):
-
-```
-{"outcome": "ALLOW", "action": "sign", "ask": [], "verdict": null,
- "request": {"kind": "ft", "token_id": "wrap.near", "receiver_id": "intents.near", "amount": "1000", "memo": "invoice 7"},
- "checks": [{"id": "receiver_exists", "status": "pass", "detail": "intents.near exists",
-             "source": {"provider": "free.rpc.fastnear.com", "request_sha256": "aeca5be4...", "fetched_at": "2026-10-29T09:20:50Z"}}],
- "reasons": ["Every check ran and none found a signal."], "evidence_hash": "56f5882f...",
- "latency_ms": 1, "message": null,
- "signing": "this endpoint does not sign; a signed verdict needs the verifier key, which is never on this server"}
-```
+The answer is the `gate.verdict.request` result described in The verdict response, with three changes (`gate/http.py:163` to `:164`): `evidence_path` is removed, `verdict` and `message` are always null, and `signing` is added with the unsigned rule above. `action` is passed through unchanged, so an ALLOW whose action is `sign` still says `sign` although nothing was signed. The default Gate `gate.near` does not end `.testnet`, so the endpoint runs `issuer_blacklist` (`gate/http.py:150`); with `intents.near` allowlisted and a `wrap.near` cap in `GATE_POLICY`, the body above answers ALLOW with the seven tier 1 checks `receiver_exists`, `label_denylist`, `issuer_blacklist`, `token_in_catalog`, `ft_metadata_sane`, `storage_registered` and `memo_injection`. The recorded examples are under Examples.
 
 ### GET /health
 
