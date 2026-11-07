@@ -42,7 +42,7 @@ A document is a JSON object with exactly these 11 keys (`gate/evidence.py:50`), 
 
 ### The intents variant
 
-An EVM leg preflight (`gate/intents.py:236`) writes a document whose `subject` is `{"kind": "intents", "origin_asset", "destination_asset", "amount", "recipient", "recipient_type"}` and which has a twelfth top level key, `"kind": "intents"`. It is never signed: `issued_ms`, `expires_ms`, `verdict_id`, `latency_ms` and `observed.block_height` are null, and `labels` is empty. The registry refuses to record it (`gate/registry.py:49-51`). No committed vector pins this variant.
+An EVM leg preflight (`gate/intents.py:254`) writes a document whose `subject` is `{"kind": "intents", "origin_asset", "destination_asset", "amount", "recipient", "recipient_type", "quote"}`, where `quote` is `{"correlation_id", "timestamp", "amount_out", "min_amount_out"}` from the dry quote answer, or null when no quote was read (`gate/intents.py:187`), and which has a twelfth top level key, `"kind": "intents"`. It is never signed: `issued_ms`, `expires_ms`, `verdict_id`, `latency_ms` and `observed.block_height` are null, and `labels` is empty. The registry refuses to record it (`gate/registry.py:49-51`). No committed vector pins this variant.
 
 ### A check
 
@@ -57,7 +57,7 @@ An EVM leg preflight (`gate/intents.py:236`) writes a document whose `subject` i
 
 In `source`, `provider` names where the answer came from (an RPC host, `label store`, `local patterns`, `local rules`); `request_sha256` is the 64 hex key of the recorded request (`gate/rpc.py:11`) or the sha256 of the label store file, and null for a local rule; `fetched_at` is the UTC time `YYYY-MM-DDTHH:MM:SSZ` the response was fetched, or null when nothing was fetched (`gate/rpc.py:265`, `gate/rules.py:109`).
 
-How check statuses become a verdict: any `signal` gives DENY; otherwise any `unknown` gives UNKNOWN; otherwise ALLOW (`gate/rules.py:678`, `gate/intents.py:234`).
+How check statuses become a verdict: any `signal` gives DENY; otherwise any `unknown` gives UNKNOWN; otherwise ALLOW (`gate/rules.py:678`, `gate/intents.py:252`).
 
 ## Canonical serialization
 
@@ -96,4 +96,4 @@ The escaping and key order rules are also pinned byte for byte by `tests/test_ev
 ## Source of truth
 
 - `gate/evidence.py:30` `subject`; `:43` `check`; `:50` `document`; `:81` `canonical_bytes`; `:88` `evidence_hash`; `:93` `write`; `:103` `check_file`.
-- `gate/verdict.py:89` when the issue time, expiry and verdict id are set; `gate/intents.py:236` the intents variant.
+- `gate/verdict.py:89` when the issue time, expiry and verdict id are set; `gate/intents.py:254` the intents variant.

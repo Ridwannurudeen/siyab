@@ -188,7 +188,7 @@ def _check_intents_quote(arguments, evidence_dir):
                                      deadline=intents.RECORDED_DEADLINE if replay else intents.live_deadline())
     except ValueError as error:
         raise ToolError(f"invalid request: {error}") from error
-    return {key: result[key] for key in ("verdict", "checks", "reasons", "quote", "evidence_hash")}
+    return {key: result[key] for key in ("verdict", "checks", "reasons", "quote", "document", "evidence_hash")}
 
 
 def _scan_near_account(arguments, evidence_dir):
