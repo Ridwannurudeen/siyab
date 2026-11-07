@@ -10,7 +10,7 @@ The reports contract (`contracts/reports`) stores community reports about NEAR a
 
 ## Enumerations
 
-In JSON every enumeration value is a lowercase string (`contracts/reports/src/lib.rs:17`, `:38`, `:48`; the canonical list is `intel/record_enums.json`, compared with the contract by the unit test `rust_enum_values_match_the_canonical_json`).
+In JSON every enumeration value is a lowercase string (`contracts/reports/src/lib.rs:21-28`, `:42-47`, `:52-59`; the canonical list is `intel/record_enums.json`, compared with the contract by the unit test `rust_enum_values_match_the_canonical_json`).
 
 | Name | Values |
 |---|---|
@@ -18,11 +18,11 @@ In JSON every enumeration value is a lowercase string (`contracts/reports/src/li
 | outcome | `loss`, `attempt`, `near_miss`, `unknown` |
 | state | `pending`, `accepted`, `rejected`, `withdrawn`, `contested`, `overturned` |
 
-A deny kind is any kind except `social` (`contracts/reports/src/lib.rs:28-33`). The outcome is recorded and never weighed.
+A deny kind is any kind except `social` (`contracts/reports/src/lib.rs:31-35`). The outcome is recorded and never weighed.
 
 ## The report body and `body_sha256`
 
-`submit_report(subject, kind, outcome, evidence_sha256, evidence_url)` (`contracts/reports/src/lib.rs:273-280`) checks its arguments, then hashes a body of exactly six string fields (`contracts/reports/src/lib.rs:195-204`, `:299-308`):
+`submit_report(subject, kind, outcome, evidence_sha256, evidence_url)` (`contracts/reports/src/lib.rs:316-323`) checks its arguments, then hashes a body of exactly six string fields (`contracts/reports/src/lib.rs:214-223`, `:342-351`):
 
 | Key | Content | Constraint at submission |
 |---|---|---|
@@ -39,17 +39,17 @@ Testnet runs deployed Reports version `0.1.2`, which requires the attached depos
 
 ## Stored records
 
-`get_report(id)` returns null or a report with these keys in this order (`contracts/reports/src/lib.rs:83-98`): `id` (number), `body_sha256` (string), `submitter`, `subject` (account ids), `kind`, `outcome`, `evidence_sha256`, `evidence_url`, `submitted_ms` (number, block time in milliseconds), `state`, `moderator` (account id or null), `reason_sha256` (64 lowercase hex or null), `moderated_ms` (number or null), `dispute_ids` (array of numbers). `moderator`, `reason_sha256` and `moderated_ms` are set by `moderate` and again by `resolve_dispute`.
+`get_report(id)` returns null or a report with these keys in this order (`contracts/reports/src/lib.rs:102-117`): `id` (number), `body_sha256` (string), `submitter`, `subject` (account ids), `kind`, `outcome`, `evidence_sha256`, `evidence_url`, `submitted_ms` (number, block time in milliseconds), `state`, `moderator` (account id or null), `reason_sha256` (64 lowercase hex or null), `moderated_ms` (number or null), `dispute_ids` (array of numbers). `moderator`, `reason_sha256` and `moderated_ms` are set by `moderate` and again by `resolve_dispute`.
 
-`get_dispute(id)` returns null or `{"id", "report_id", "submitter", "evidence_sha256", "evidence_url", "submitted_ms", "open"}` in that order, `open` a boolean (`contracts/reports/src/lib.rs:134-142`). A dispute needs the same exact deposit and the same evidence checks as a report (`:482-489`); dispute ids are a separate counter starting at 0.
+`get_dispute(id)` returns null or `{"id", "report_id", "submitter", "evidence_sha256", "evidence_url", "submitted_ms", "open"}` in that order, `open` a boolean (`contracts/reports/src/lib.rs:152-161`). A dispute needs the same exact deposit and the same evidence checks as a report (`:591-599`); dispute ids are a separate counter starting at 0.
 
 `publisher_stats(account)` returns `{"submitted", "accepted", "rejected", "withdrawn", "overturned"}` (`:181-187`); `totals()` returns `{"reports", "disputes"}` (`:189-193`).
 
-The source crate version `0.1.3` is listed in `contracts/reports/Cargo.toml`; testnet runs deployed Reports version `0.1.2` per `res/BUILD-reports.md:7`. `version()` returns the source crate version (`contracts/reports/src/lib.rs:248-250`), while the deployed contract still reports `0.1.2`. `state_version()` returns the stored root state version, initially 1 (`:233`, `:256-258`); `version_views_return_the_crate_and_state_versions` checks the source crate and state versions. Reports version 0.1.2 has no lifetime cap on disputes (`docs/REPORTS.md:3`). Neither version view is a format version: the formats on this page are versioned by this page and by the events' `1.1.0`.
+The source crate version `0.1.3` is listed in `contracts/reports/Cargo.toml`; testnet runs deployed Reports version `0.1.2` per `res/BUILD-reports.md:7`. `version()` returns the source crate version (`contracts/reports/src/lib.rs:267-269`), while the deployed contract still reports `0.1.2`. `state_version()` returns the stored root state version, initially 1 (`:233`, `:275-277`); `version_views_return_the_crate_and_state_versions` checks the source crate and state versions. Reports version 0.1.2 has no lifetime cap on disputes (`docs/REPORTS.md:3`). Neither version view is a format version: the formats on this page are versioned by this page and by the events' `1.1.0`.
 
 ### State changes in source 0.1.2
 
-The source transitions are (`contracts/reports/src/lib.rs:375`, `:445`, `:482`, `:546`):
+The source transitions are (`contracts/reports/src/lib.rs:418`, `:554`, `:591`, `:655`):
 
 | From | To | By | Refusal otherwise |
 |---|---|---|---|
@@ -93,7 +93,7 @@ Every event is one log line: `EVENT_JSON:` followed by compact JSON with the key
 
 ## The `subject_summary` view
 
-`subject_summary(subject)` (`contracts/reports/src/lib.rs:676`, shape at `:170-177`) returns exactly these six keys in this order:
+`subject_summary(subject)` (`contracts/reports/src/lib.rs:801`, shape at `:188-196`) returns exactly these six keys in this order:
 
 | Key | JSON type | Meaning |
 |---|---|---|
@@ -104,7 +104,7 @@ Every event is one log line: `EVENT_JSON:` followed by compact JSON with the key
 | `latest_deny_id` | number or null | the id of the most recently accepted report of a deny kind still `accepted` or `contested` |
 | `deny` | boolean | true while at least one report of a deny kind is `accepted` or `contested` |
 
-"Most recently accepted" is the order of acceptance, kept by linked lists over the reports (`append_accepted`, `append_deny`, `remove_accepted` and `remove_deny`, `contracts/reports/src/lib.rs:750`, `:761`, `:772`, `:789`); overturning a report unlinks it, and when it was the latest the previous remaining one becomes the latest. A dispute leaves a report counted in `accepted` and in the lists; only an overturn removes it. An unreported subject reads `{"accepted":0,"pending":0,"contested":0,"latest_accepted_id":null,"latest_deny_id":null,"deny":false}`.
+"Most recently accepted" is the order of acceptance, kept by linked lists over the reports (`append_accepted`, `append_deny`, `remove_accepted` and `remove_deny`, `contracts/reports/src/lib.rs:881`, `:892`, `:903`, `:920`); overturning a report unlinks it, and when it was the latest the previous remaining one becomes the latest. A dispute leaves a report counted in `accepted` and in the lists; only an overturn removes it. An unreported subject reads `{"accepted":0,"pending":0,"contested":0,"latest_accepted_id":null,"latest_deny_id":null,"deny":false}`.
 Invariants the contract keeps, and a reader must check (a summary that breaks one is unreadable, not a pass):
 
 1. `contested` is at most `accepted`.
@@ -142,5 +142,5 @@ No fixture pins the events or the summary. They are pinned by the contract's uni
 
 ## Source of truth
 
-- `contracts/reports/src/lib.rs:195-204` the body; `:273-280` `submit_report`; `:676-686` `subject_summary`; `:708-713` the moderator membership check; `:715-720` the deposit check; `:840-846`, `:848-857` the evidence checks; `:375-383`, `:546-591`, `:701-706`, `:708-713` and `:807-812` the governance checks; `:248-250`, `:256-258` the version views; `contracts/reports/src/events.rs` the event envelope.
+- `contracts/reports/src/lib.rs:214-223` the body; `:342-351` `submit_report`; `:801-811` `subject_summary`; `:839-844` the moderator membership check; `:846-851` the deposit check; `:975-981`, `:983-992` the evidence checks; `:418-426`, `:655-702`, `:832-837`, `:839-844` and `:938-947` the governance checks; `:267-269`, `:275-277` the version views; `contracts/reports/src/events.rs` the event envelope.
 - `docs/LADDER.md` the consumer rule.
