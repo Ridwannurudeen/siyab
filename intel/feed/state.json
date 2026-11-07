@@ -17,11 +17,22 @@
       "height": 222139100
     }
   },
+  "pending_key_additions": {},
+  "receipts": 6383,
+  "candidates": {
+    "code_hash_matches_incident": 0,
+    "fresh_dust_funded_pays_labelled": 0,
+    "watch_account_key_added": 0,
+    "labelled_account_large_transfer": 0,
+    "deploy_on_labelled_contract": 0,
+    "full_access_key_then_outflow": 0
+  },
   "events": {
     "code_hash_matches_incident": 0,
     "fresh_dust_funded_pays_labelled": 0,
     "watch_account_key_added": 0,
     "labelled_account_large_transfer": 0,
-    "deploy_on_labelled_contract": 0
+    "deploy_on_labelled_contract": 0,
+    "full_access_key_then_outflow": 0
   }
 }

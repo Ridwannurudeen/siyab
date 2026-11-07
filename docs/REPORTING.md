@@ -113,3 +113,9 @@ With a threshold of 1, `moderate` retains its existing behavior and events, and 
 Moderation vote storage is paid from the contract balance, not the reporter's deposit, so the operator funds moderation storage. Testnet still runs deployed Reports version `0.1.2` with one moderator. The threshold remains 1 until a second moderator exists and the owner deploys source `0.1.3`. Events use version `1.1.0` in source `0.1.3`.
 
 Disputes keep single moderator resolution in this lane. With more than one moderator, `resolve_dispute` also refuses a moderator who has a recorded accept vote on the report, with `REFUSED:same_moderator`, in addition to refusing the accepting moderator under `ab`. One moderator key can still overturn an accepted report. A threshold above 1 is not deployed until resolve_dispute requires the same threshold to overturn. The owner can set the threshold to 1 and the list to one account; the threshold defends against a moderator key that is not the owner's.
+
+## Pending count recordings
+
+`python -m intel reports-pending-counts` reads `REPORTS_ACCOUNT_ID` through `gate.rpc.Client` and appends one JSON line to `fixtures/reports/pending-counts.jsonl`. Each line records the UTC time, the block height, contract `totals`, and each subject's pending count from its reports. No view lists subjects, so the recorder walks `get_report(id)` from id 0 and checks each distinct subject with `subject_summary`; it records both pending counts and flags any mismatch. The scan is capped at 500 report ids and marks a truncated scan in the row.
+
+The testnet contract holds no reports, so these lines are expected to read zero until outside reporters exist. Two weeks of lines are the data for the pending policy decision in `docs/LADDER.md`; no decision has been taken yet. Empty lines may not be used as evidence for a value threshold.

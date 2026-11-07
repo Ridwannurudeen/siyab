@@ -36,7 +36,7 @@ import time
 from pathlib import Path
 
 from gate import rpc, rules
-from intel import alerts, api, cluster, feed, issuers, labels, records, render, sanctions, seed, snapshot, trace
+from intel import alerts, api, cluster, feed, issuers, labels, records, render, reports, sanctions, seed, snapshot, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 RECEIVERS_DIR = ROOT / "fixtures" / "receivers"
@@ -367,6 +367,33 @@ def _feed_stats(args):
     return 0
 
 
+def _feed_fprate(args):
+    try:
+        feed.fprate(args.events, args.state, args.since, args.until, args.review)
+    except (feed.FeedError, OSError, ValueError) as error:
+        print(f"stopped: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def _reports_pending_counts(args):
+    reports_account = os.environ.get("REPORTS_ACCOUNT_ID")
+    if not reports_account:
+        print("stopped: REPORTS_ACCOUNT_ID is not set", file=sys.stderr)
+        return 2
+    client = rpc.Client(os.environ.get("NEAR_RPC_URL") or rpc.TESTNET_RPC_URL,
+                        fixtures_dir=Path(__file__).resolve().parent.parent / "fixtures" / "reports")
+    try:
+        row = reports.record_pending_counts(client, reports_account)
+    except (rpc.FixtureMiss, rpc.RpcError, rpc.HttpError, rpc.TransportError, OSError, ValueError) as error:
+        print(f"stopped: {error}", file=sys.stderr)
+        return 1
+    scan = row["report_scan"]
+    print(f"appended block {row['block_height']}: {len(row['subjects'])} subjects, mismatch "
+          f"{str(row['mismatch']).lower()}, scanned {scan['ids_scanned']} report ids (cap {scan['id_limit']})")
+    return 0
+
+
 def _flow(args):
     try:
         return trace.main(args.subject, args.depth, args.max, args.name, args.record)
@@ -447,7 +474,7 @@ def main(argv=None):
     receivers.add_argument("--exclude-file", help="with --record: a file of account ids kept outside the repository, "
                            "one per line, left out of the counterparties")
     receivers.set_defaults(handler=_receivers)
-    feeding = commands.add_parser("feed", help="five signals: code_hash_matches_incident, fresh_dust_funded_pays_labelled, watch_account_key_added, labelled_account_large_transfer, deploy_on_labelled_contract")
+    feeding = commands.add_parser("feed", help="six signals: code_hash_matches_incident, fresh_dust_funded_pays_labelled, watch_account_key_added, labelled_account_large_transfer, deploy_on_labelled_contract, full_access_key_then_outflow")
     feeding.add_argument("--from", dest="start", type=int, help="the first height (default: after the state)")
     feeding.add_argument("--blocks", type=int, help="how many recorded heights to walk")
     feeding.add_argument("--follow", action="store_true", help="follow finalized heights continuously")
@@ -481,6 +508,15 @@ def main(argv=None):
     commands.add_parser("feed-stats", help="print the feed state").set_defaults(handler=_feed_stats)
     commands.add_parser("sanctions-fetch", help="download the OFAC SDN list and write its digital currency addresses "
                         "to fixtures/sanctions/").set_defaults(handler=lambda args: sanctions.main())
+    feed_review = commands.add_parser("feed-fprate", help="review the full access key outflow signal")
+    feed_review.add_argument("--events", required=True, help="the feed events directory")
+    feed_review.add_argument("--state", required=True, help="the feed state JSON file")
+    feed_review.add_argument("--since", type=int, help="include events from this height")
+    feed_review.add_argument("--until", type=int, help="include events through this height")
+    feed_review.add_argument("--review", help="review CSV to create or update")
+    feed_review.set_defaults(handler=_feed_fprate)
+    commands.add_parser("reports-pending-counts", help="append testnet pending report counts") \
+        .set_defaults(handler=_reports_pending_counts)
     alert_test = commands.add_parser("alert-test", help="send one test alert to an HTTPS webhook")
     alert_test.add_argument("--url", required=True, help="the HTTPS webhook URL")
     alert_test.set_defaults(handler=_alert_test)

@@ -52,3 +52,13 @@ The EVM leg is a preflight before signing; no transaction was sent on any chain.
 - The block stream reports successful contract deployments on current catalog token, infrastructure, bridge, treasury, organisation and watch accounts, including the deployed code hash.
 
 The signature is pure Ed25519 over the sha256 digest of the canonical message; it is not Ed25519ph.
+
+## Full access key outflow review
+
+`full_access_key_then_outflow` is a candidate signal that needs no label. It fires when a successful full access `AddKey` is added to an account outside `fresh_accounts`, in a receipt without `CreateAccount`, and a successful native `Transfer` of at least 1 NEAR or `DeleteAccount` follows from that account within 10 minutes. The window uses block timestamp milliseconds. Pending key additions persist across blocks and are pruned by timestamp, so skipped heights do not extend the window. The signal stays off the alert path while its false positive rate is unmeasured.
+
+The event destination class is `fresh_dust_funded` when the destination is in `fresh_accounts`, meaning it was created within 24 hours with a deposit below 0.1 NEAR; `implicit` for a 64 hex account id; and `other` otherwise. The class is review metadata and does not affect whether the event fires. Events also record the key, drain kind, whether a different key was removed during the window, amount in yoctoNEAR (null for `DeleteAccount`), block, receipt and source mode.
+
+The reduced block retains `DeleteKey` public keys and `DeleteAccount` beneficiaries. Reduced fixtures from before action reducer version 2 cannot raise this signal. Function call arguments are not retained, so token drains through `ft_transfer` are not visible. The source mode is `replay` for recorded runs and `follow` for the follower.
+
+Run `python -m intel feed-fprate --events <dir> --state <state.json> [--since <height>] [--until <height>] [--review <csv>]` to create or update the review CSV. Event rows and review rates use the selected height range; funnel totals come from the supplied state. Re-running preserves each filled review. Mark `true_positive` only with corroboration: the subject or destination later receives a label, a public incident page names it, or the account holder confirms it. Mark `false_positive` only with a visible benign explanation: the earlier key remains and activity is normal for seven days, or the funds were returned. Otherwise mark `unclear`. For each reviewed stratum, the lower false positive rate is `false_positive / reviewed`; the upper rate adds `unclear` to the numerator. The destination strata include `fresh_dust_funded`, `implicit` and `other`.

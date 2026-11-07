@@ -400,7 +400,7 @@ Copied from `docs/CLAIMS.md`; `tests/test_readme_claims.py` asserts the two tabl
 | On mainnet a receiver that a token issuer's blacklist view answers as banned reads DENY, with that answer quoted. | `gate/rules.py:_issuer_check` | `tests/test_rules.py::IssuerBlacklistTest.test_the_collector_is_refused_on_the_issuer_word_in_replay` | `intel/issuers.json`, `fixtures/receivers/judgements/` | yes |
 | A flow trace is complete only when every account within its depth bound was read in full; otherwise it names the account, the depth and the reason where the walk stopped. | `intel/trace.py:trace` | `tests/test_trace.py::WalkTest.test_completeness_names_the_account_and_depth_where_the_walk_stopped` | `intel/flows/rhea-collector.json` | no |
 | Each cluster edge names its heuristic and its provenance class; a full access key edge rests on an RPC read of each account at a block. | `intel/cluster.py:build_cluster` | `tests/test_cluster.py::ClusterTest.test_full_access_key_edges_are_confirmed_by_rpc_and_carry_both_blocks` | `intel/clusters/rhea.json`, `docs/CLUSTER.md` | yes |
-| In follow mode the block feed walks finalized mainnet heights in order and writes each event of its five signals with the block it came from. | `intel/feed.py:follow` | `tests/test_feed.py::FollowModeTest.test_follow_writes_the_event_block_and_points_the_event_source_at_it` | `deploy/shieldbot-near-feed.service` | no |
+| In follow mode the block feed walks finalized mainnet heights in order and writes each event of its six signals with the block it came from. | `intel/feed.py:follow` | `tests/test_feed.py::FollowModeTest.test_follow_writes_the_event_block_and_points_the_event_source_at_it` | `deploy/shieldbot-near-feed.service` | no |
 | Every subject with a current label store row gets a search entry and an account page, and a subject without one gets neither. | `intel/render.py:account_pages` | `tests/test_render.py::RenderTest.test_no_account_page_for_a_subject_without_a_row` | `demo/site/search.json`, `demo/site/accounts/` | no |
 | The registry records a label once per assertion hash; on testnet it holds the Rhea incident rows as labels beside its verdict records. | `contracts/registry/src/lib.rs:record_label` | `contracts/registry/src/lib.rs::tests::record_label_is_once_per_assertion_hash` | `fixtures/registry/labels-20261103.json`, `docs/TESTNET.md` | yes |
 | The receiver rules check available evidence and return Unknown when a required check cannot run. | `gate/rules.py:judge` | `tests/test_rules.py::OutputsTest.test_missing_fixture_is_unknown_never_a_pass` | offline | yes |
@@ -525,3 +525,7 @@ The operator procedures, each with its dry run and read backs, are in `docs/RUNB
 Data sources: NearBlocks (testnet explorer and account data, free tier, personal use, attribution), FastNEAR (transfers, transactions, account views), mainnet.neardata.xyz (blocks), GoPlus, 1Click.
 
 Raw source copies: [provenance, licensing and removal notice](intel/seeds/raw/NOTICE.md).
+
+## Feed signal review
+
+`full_access_key_then_outflow` is the sixth feed signal; it needs no label, stays off the alert path, and its false positive rate is not yet measured.
