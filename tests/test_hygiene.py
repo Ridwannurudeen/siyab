@@ -56,6 +56,20 @@ class ParsedLabelRowTest(unittest.TestCase):
         hits = self.check_row({"note": "a documented event", "category": "attacker", "source": {}})
         self.assertEqual(hits, [(1, "hostile role word without a source URL")])
 
+    def test_hostile_role_word_in_label_without_source_url_fails(self):
+        hits = self.check_row({"label": "attacker", "source": {}})
+        self.assertEqual(hits, [(1, "hostile role word without a source URL")])
+
+    def test_hostile_role_word_in_label_with_source_url_passes(self):
+        hits = self.check_row({"label": "attacker",
+                               "source": {"url": "https://example.com/report"}})
+        self.assertFalse(hits)
+
+    def test_hostile_role_word_with_a_url_without_a_host_fails(self):
+        for url in ("https://@", "https://user@", "https://"):
+            hits = self.check_row({"label": "attacker", "source": {"url": url}})
+            self.assertEqual(hits, [(1, "hostile role word without a source URL")], url)
+
     def test_hostile_word_outside_note_and_category_does_not_trigger(self):
         hits = self.check_row({"note": "a documented event", "category": "incident", "source": {},
                                "other": "attacker"})

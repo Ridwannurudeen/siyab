@@ -135,7 +135,7 @@ def source_has_url(source):
         value = source.get(key)
         if isinstance(value, str):
             parsed = urlparse(value)
-            if parsed.scheme in ("http", "https") and parsed.netloc:
+            if parsed.scheme in ("http", "https") and parsed.hostname:
                 return True
     return False
 
@@ -154,7 +154,7 @@ def check_jsonl(text):
             continue
         if not isinstance(row, dict):
             continue
-        role_text = " ".join(value for value in (row.get("note"), row.get("category"))
+        role_text = " ".join(value for value in (row.get("label"), row.get("note"), row.get("category"))
                              if isinstance(value, str))
         if HOSTILE_ROLE_WORDS.search(role_text) and not source_has_url(row.get("source")):
             hits.append((number, "hostile role word without a source URL"))
