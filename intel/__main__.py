@@ -36,7 +36,7 @@ import time
 from pathlib import Path
 
 from gate import rpc, rules
-from intel import alerts, api, cluster, feed, issuers, labels, records, render, sanctions, seed, trace
+from intel import alerts, api, cluster, feed, issuers, labels, records, render, sanctions, seed, snapshot, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 RECEIVERS_DIR = ROOT / "fixtures" / "receivers"
@@ -411,6 +411,21 @@ def _alert_test(args):
     return 1
 
 
+def _snapshot(args):
+    try:
+        scope = snapshot.read_scope(args.scope)
+    except (OSError, ValueError) as error:
+        print(f"stopped: {args.scope}: {error}", file=sys.stderr)
+        return 2
+    document = snapshot.build(labels.load(), scope)
+    snapshot.write(document, args.out)
+    subjects = {(row["chain"], row["subject"]) for row in document["rows"]}
+    print(f"{len(document['rows'])} rows over {len(subjects)} subjects written to {args.out}")
+    print(f"store_sha256 {document['store_sha256']}")
+    print(f"content_sha256 {document['content_sha256']}")
+    return 0
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="python -m intel")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -469,6 +484,11 @@ def main(argv=None):
     alert_test = commands.add_parser("alert-test", help="send one test alert to an HTTPS webhook")
     alert_test.add_argument("--url", required=True, help="the HTTPS webhook URL")
     alert_test.set_defaults(handler=_alert_test)
+    snapshotting = commands.add_parser("snapshot", help="write the current label rows a scope selects, for "
+                                       "offline use (docs/spec/snapshot-v1.md)")
+    snapshotting.add_argument("--scope", required=True, help="the scope file: a JSON object of name and select")
+    snapshotting.add_argument("--out", required=True, help="the snapshot file to write")
+    snapshotting.set_defaults(handler=_snapshot)
     args = parser.parse_args(argv)
     return args.handler(args)
 
