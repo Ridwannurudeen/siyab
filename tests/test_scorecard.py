@@ -1,3 +1,5 @@
+import contextlib
+import io
 import json
 import re
 import shutil
@@ -5,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -23,6 +26,18 @@ class ScorecardTest(unittest.TestCase):
             check=False,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_check_fails_on_a_stale_page(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            page = Path(tmp) / scorecard.SCORECARD
+            page.parent.mkdir(parents=True)
+            page.write_text(scorecard.render() + "stale\n", encoding="utf-8")
+            with mock.patch.object(scorecard, "ROOT", Path(tmp)):
+                with contextlib.redirect_stderr(io.StringIO()):
+                    self.assertEqual(scorecard.main(["--check"]), 1)
+                page.unlink()
+                with contextlib.redirect_stderr(io.StringIO()):
+                    self.assertEqual(scorecard.main(["--check"]), 1)
 
     def test_registry_counts_distinct_verdict_ids_and_shows_readback_mismatches(self):
         registry_dir = ROOT / scorecard.REGISTRY
