@@ -46,6 +46,11 @@ else
   report_id=${SCRIPT_ARGS[1]}
   evidence_sha256=${SCRIPT_ARGS[2]}
   evidence_url=${SCRIPT_ARGS[3]}
+  if [[ -z "${DISPUTER_ACCOUNT_ID+x}" ]]; then
+    DISPUTER_ACCOUNT_ID=$OWNER_ACCOUNT_ID
+    printf 'the owner cannot moderate a report it filed\n' >&2
+  fi
+  require_account_id "$DISPUTER_ACCOUNT_ID" "disputer account"
   require_u64 "$report_id" "report id"
   require_sha256 "$evidence_sha256" "evidence hash"
   require_https_url "$evidence_url" "evidence URL"
@@ -72,6 +77,6 @@ if match is None:
 print(f"{match.group(1).replace('_', '')} yoctoNEAR")
 PY
   )
-  call_transaction "$reports_account" dispute "$ARGS" "$OWNER_ACCOUNT_ID" "$(account_key "$OWNER_ACCOUNT_ID")" "$DEPOSIT"
+  call_transaction "$reports_account" dispute "$ARGS" "$DISPUTER_ACCOUNT_ID" "$(account_key "$DISPUTER_ACCOUNT_ID")" "$DEPOSIT"
 fi
 summary_block "$reports_account"
