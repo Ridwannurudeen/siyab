@@ -53,12 +53,14 @@ The only transitions (`contracts/reports/src/lib.rs:370`, `:437`, `:474`, `:542`
 
 | From | To | By | Refusal otherwise |
 |---|---|---|---|
-| `pending` | `accepted` or `rejected` | `moderate(id, accept, reason_sha256)`, a moderator other than the report's submitter, exactly 1 yoctoNEAR | `REFUSED:not_moderator`, `REFUSED:bad_hash`, `REFUSED:self_moderation` (`:376`), `REFUSED:not_pending` |
+| `pending` | `accepted` or `rejected` | `moderate(id, accept, reason_sha256)`, a moderator other than the report's submitter or subject, exactly 1 yoctoNEAR | `REFUSED:not_moderator`, `REFUSED:bad_hash`, `REFUSED:self_moderation` (`:376`), `REFUSED:not_pending` |
 | `pending` | `withdrawn` | `withdraw(id)`, the submitter, exactly 1 yoctoNEAR | `REFUSED:not_submitter`, `REFUSED:not_pending` |
 | `accepted` | `contested` | `dispute(report_id, evidence_sha256, evidence_url)`, anyone, exactly the deposit | `REFUSED:bad_deposit`, `REFUSED:dispute_open`, `REFUSED:not_accepted`, `REFUSED:dispute_limit` (`:492`: a report takes at most 5 upheld disputes over its lifetime, that is disputes resolved against the disputer; open and overturned disputes do not count) |
-| `contested` | `accepted` or `overturned` | `resolve_dispute(dispute_id, overturn, reason_sha256)`, a moderator, exactly 1 yoctoNEAR; while the moderator list has more than one member, not the moderator recorded on the report | `REFUSED:not_moderator`, `REFUSED:bad_hash`, `REFUSED:dispute_closed`, `REFUSED:not_contested`, `REFUSED:same_moderator` (`:554`) |
+| `contested` | `accepted` or `overturned` | `resolve_dispute(dispute_id, overturn, reason_sha256)`, a moderator, exactly 1 yoctoNEAR; while the moderator list has more than one member, not the accepting moderator stored under prefix `ab`, the report submitter, or the dispute submitter | `REFUSED:not_moderator`, `REFUSED:bad_hash`, `REFUSED:dispute_closed`, `REFUSED:not_contested`, `REFUSED:same_moderator` (`:572`), `REFUSED:self_moderation` (`:568`) |
 
 A missing id is refused as `REFUSED:report_missing` or `REFUSED:dispute_missing`. Rows are never deleted. An upheld dispute returns the report to `accepted` and adds 1 to its count of upheld disputes, which `get_report` does not show (`:74`, `:580`).
+
+`moderate` refuses a moderator who is either the report submitter or the report subject, so a moderator cannot moderate a report about itself (`:376`). With multiple moderators, `resolve_dispute` checks the original accepting moderator stored under prefix `ab`, and also refuses the report submitter and dispute submitter as resolvers. If a report from state written before version 0.1.2 has an upheld dispute but no `ab` entry, its original accepter is unknown and every resolver is refused with `REFUSED:same_moderator`; see `docs/REPORTS.md` for the owner recovery paths.
 
 ### Moderators
 

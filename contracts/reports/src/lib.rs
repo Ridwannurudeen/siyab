@@ -550,8 +550,18 @@ impl Reports {
         );
         let accepting_moderator = LookupMap::<u64, AccountId>::new(b"ab".as_slice())
             .get(&report.id)
-            .cloned()
-            .or(report.moderator.clone());
+            .cloned();
+        let accepting_moderator = if report.upheld_disputes == 0 {
+            accepting_moderator.or(report.moderator.clone())
+        } else {
+            accepting_moderator
+        };
+        near_sdk::require!(
+            self.moderators.len() <= 1
+                || report.upheld_disputes == 0
+                || accepting_moderator.is_some(),
+            "REFUSED:same_moderator"
+        );
         near_sdk::require!(
             self.moderators.len() <= 1
                 || (report.submitter != moderator && dispute.submitter != moderator),
@@ -1883,6 +1893,54 @@ mod tests {
         context("moderator-b.testnet", 1, 1_007);
         reports.resolve_dispute(second_dispute, false, hash('f'));
         assert!(!reports.get_dispute(second_dispute).unwrap().open);
+    }
+
+    #[test]
+    fn legacy_upheld_report_without_accepting_moderator_refuses_every_resolver() {
+        context("owner.testnet", 0, 1_000);
+        let mut reports = Reports::new(
+            account("owner.testnet"),
+            vec![
+                account("moderator-a.testnet"),
+                account("moderator-b.testnet"),
+                account("reporter.testnet"),
+                account("disputer.testnet"),
+            ],
+        );
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        context("moderator-a.testnet", 1, 1_002);
+        reports.moderate(id, true, hash('b'));
+        context("disputer.testnet", REPORT_DEPOSIT, 1_003);
+        let first_dispute =
+            reports.dispute(id, hash('c'), "https://evidence.example/dispute".to_owned());
+        context("moderator-b.testnet", 1, 1_004);
+        reports.resolve_dispute(first_dispute, false, hash('d'));
+        assert_eq!(reports.report_or_refuse(id).upheld_disputes, 1);
+        assert_eq!(
+            LookupMap::<u64, AccountId>::new(b"ab".as_slice()).remove(&id),
+            Some(account("moderator-a.testnet"))
+        );
+
+        context("disputer.testnet", REPORT_DEPOSIT, 1_005);
+        let second_dispute =
+            reports.dispute(id, hash('e'), "https://evidence.example/dispute-2".to_owned());
+        for resolver in [
+            "moderator-a.testnet",
+            "moderator-b.testnet",
+            "reporter.testnet",
+            "disputer.testnet",
+        ] {
+            context(resolver, 1, 1_006);
+            let refusal = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                reports.resolve_dispute(second_dispute, false, hash('f'));
+            }))
+            .unwrap_err();
+            let reason = refusal
+                .downcast_ref::<String>()
+                .map(String::as_str)
+                .or_else(|| refusal.downcast_ref::<&str>().copied());
+            assert!(reason.is_some_and(|reason| reason.contains("REFUSED:same_moderator")));
+        }
     }
 
     #[test]
