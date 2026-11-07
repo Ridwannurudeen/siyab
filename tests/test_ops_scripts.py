@@ -137,7 +137,7 @@ class OperatorScriptTest(unittest.TestCase):
             "report.sh", "reports.testnet", "subject.testnet", "scam", "loss",
             HASH, "https://evidence.example/report", env=env,
         )
-        self.assertEqual(process.stderr.splitlines(), ["the owner cannot moderate a report it filed"])
+        self.assertEqual(process.stderr.splitlines(), ["the owner is the moderator and cannot moderate a report it filed; set REPORTER_ACCOUNT_ID"])
         self.assert_transaction(
             process, "reports.testnet", "submit_report", args,
             f"{REPORT_DEPOSIT} yoctoNEAR",
@@ -183,7 +183,7 @@ class OperatorScriptTest(unittest.TestCase):
             "dispute.sh", "reports.testnet", "7", HASH, "https://evidence.example/appeal",
             env=env,
         )
-        self.assertEqual(process.stderr.splitlines(), ["the owner cannot moderate a report it filed"])
+        self.assertEqual(process.stderr.splitlines(), ["the owner is the moderator; file disputes from a separate account by setting DISPUTER_ACCOUNT_ID"])
         self.assert_transaction(
             process, "reports.testnet", "dispute",
             {

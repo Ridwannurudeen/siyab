@@ -48,7 +48,7 @@ else
   evidence_url=${SCRIPT_ARGS[3]}
   if [[ -z "${DISPUTER_ACCOUNT_ID+x}" ]]; then
     DISPUTER_ACCOUNT_ID=$OWNER_ACCOUNT_ID
-    printf 'the owner cannot moderate a report it filed\n' >&2
+    printf 'the owner is the moderator; file disputes from a separate account by setting DISPUTER_ACCOUNT_ID\n' >&2
   fi
   require_account_id "$DISPUTER_ACCOUNT_ID" "disputer account"
   require_u64 "$report_id" "report id"
