@@ -20,12 +20,33 @@ const GAS_FT_TRANSFER: Gas = Gas::from_tgas(5);
 // Callback receipt burned 1630829006859 gas, twice stays below the 5 Tgas floor.
 const GAS_CALLBACK: Gas = Gas::from_tgas(5);
 const GAS_BASE_RESERVE: Gas = Gas::from_tgas(10);
+const MAX_ALLOWED_TTL_MS: u64 = 3_600_000;
 // This queue stays outside the root state to preserve the existing Borsh layout.
 const USED_VERDICT_QUEUE_CURSOR_PREFIX: &[u8] = b"uq:c";
 const USED_VERDICT_QUEUE_ENTRY_PREFIX: &[u8] = b"uq:e";
+const CAP_GENERATION_PREFIX: &[u8] = b"cg";
+const PENDING_GENERATION_PREFIX: &[u8] = b"pg";
 const USED_VERDICT_QUEUE_HEAD: u8 = 0;
 const USED_VERDICT_QUEUE_TAIL: u8 = 1;
 const USED_VERDICT_PRUNE_LIMIT: u8 = 4;
+
+fn cap_generation(agent_pk: &PublicKey) -> u64 {
+    LookupMap::<PublicKey, u64>::new(CAP_GENERATION_PREFIX)
+        .get(agent_pk)
+        .copied()
+        .unwrap_or(0)
+}
+
+fn increment_cap_generation(agent_pk: &PublicKey) {
+    let mut generations = LookupMap::<PublicKey, u64>::new(CAP_GENERATION_PREFIX);
+    let generation = generations
+        .get(agent_pk)
+        .copied()
+        .unwrap_or(0)
+        .checked_add(1)
+        .expect("cap generation exhausted");
+    generations.insert(agent_pk.clone(), generation);
+}
 
 fn push_used_verdict(expires_ms: u64, verdict_id: String) {
     let mut cursors = LookupMap::<u8, u64>::new(USED_VERDICT_QUEUE_CURSOR_PREFIX);
@@ -101,7 +122,10 @@ impl Gate {
             verifier_key.curve_type() == CurveType::ED25519,
             "REFUSED:bad_request"
         );
-        near_sdk::require!(max_ttl_ms > 0, "REFUSED:bad_request");
+        near_sdk::require!(
+            max_ttl_ms > 0 && max_ttl_ms <= MAX_ALLOWED_TTL_MS,
+            "REFUSED:bad_request"
+        );
         let mut key = [0; 32];
         key.copy_from_slice(&verifier_key.as_bytes()[1..]);
         Self {
@@ -144,6 +168,7 @@ impl Gate {
             .get(&agent_pk)
             .cloned()
             .unwrap_or_else(|| env::panic_str("REFUSED:unknown_agent"));
+        let request_generation = cap_generation(&agent_pk);
         near_sdk::require!(agent.enabled, "REFUSED:agent_disabled");
         near_sdk::require!(
             !self.denylist.contains(&request.receiver_id),
@@ -251,6 +276,8 @@ impl Gate {
                 window_start_ms,
             },
         );
+        LookupMap::<u64, u64>::new(PENDING_GENERATION_PREFIX)
+            .insert(request_id, request_generation);
         let agent_hex = lower_hex(&agent_key_bytes(&agent_pk));
         emit(
             "transfer_scheduled",
@@ -283,26 +310,32 @@ impl Gate {
 
     #[private]
     pub fn on_transfer(&mut self, request_id: u64) {
+        let pending_generation = LookupMap::<u64, u64>::new(PENDING_GENERATION_PREFIX)
+            .remove(&request_id)
+            .unwrap_or(0);
         let pending = self
             .pending
             .remove(&request_id)
             .expect("pending request missing");
         if matches!(env::promise_result_checked(0, 0), Err(PromiseError::Failed)) {
             let mut restored = false;
-            if let Some(mut agent) = self.agents.get(&pending.agent_pk).cloned() {
-                let caps = if pending.unknown_payee {
-                    agent.unknown_caps.as_mut()
-                } else {
-                    Some(&mut agent.caps)
-                };
-                if let Some(cap) = caps.and_then(|caps| {
-                    caps.iter_mut().find(|cap| {
-                        cap.asset == pending.asset && cap.window_start_ms == pending.window_start_ms
-                    })
-                }) {
-                    cap.spent = cap.spent.saturating_sub(pending.amount);
-                    self.agents.insert(pending.agent_pk, agent);
-                    restored = true;
+            if pending_generation == cap_generation(&pending.agent_pk) {
+                if let Some(mut agent) = self.agents.get(&pending.agent_pk).cloned() {
+                    let caps = if pending.unknown_payee {
+                        agent.unknown_caps.as_mut()
+                    } else {
+                        Some(&mut agent.caps)
+                    };
+                    if let Some(cap) = caps.and_then(|caps| {
+                        caps.iter_mut().find(|cap| {
+                            cap.asset == pending.asset
+                                && cap.window_start_ms == pending.window_start_ms
+                        })
+                    }) {
+                        cap.spent = cap.spent.saturating_sub(pending.amount);
+                        self.agents.insert(pending.agent_pk, agent);
+                        restored = true;
+                    }
                 }
             }
             emit(
@@ -336,7 +369,7 @@ mod tests {
     };
     use serde_json::Value;
     use std::{fs, path::PathBuf, str::FromStr};
-    use types::{Agent, AssetCap};
+    use types::{Agent, AssetCap, AssetCapInput};
 
     fn read_vector(name: &str) -> Value {
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -375,6 +408,61 @@ mod tests {
 
     fn public_key(bytes: &[u8]) -> PublicKey {
         PublicKey::from_str(&format!("ed25519:{}", base58_encode(bytes))).unwrap()
+    }
+
+    fn additional_agent_pk() -> PublicKey {
+        let seed: [u8; 32] = env::sha256(b"gate test agent v2").try_into().unwrap();
+        let public_bytes = SigningKey::from_bytes(&seed)
+            .verifying_key()
+            .to_bytes();
+        public_key(&public_bytes)
+    }
+
+    fn cap_input(
+        asset: Asset,
+        per_call: u128,
+        window_cap: u128,
+        window_ms: u64,
+        window_start_ms: u64,
+        spent: u128,
+    ) -> AssetCapInput {
+        AssetCapInput {
+            asset,
+            per_call: U128(per_call),
+            window_cap: U128(window_cap),
+            window_ms,
+            window_start_ms,
+            spent: U128(spent),
+        }
+    }
+
+    fn set_owner_context() {
+        let context = VMContextBuilder::new()
+            .current_account_id("gate.testnet".parse().unwrap())
+            .predecessor_account_id("owner.testnet".parse().unwrap())
+            .attached_deposit(NearToken::from_yoctonear(1))
+            .build();
+        testing_env!(context);
+    }
+
+    fn set_callback_context(promise_result: PromiseResult) {
+        let context = VMContextBuilder::new()
+            .current_account_id("gate.testnet".parse().unwrap())
+            .predecessor_account_id("gate.testnet".parse().unwrap())
+            .build();
+        testing_env_with_promise_results(context, promise_result);
+    }
+
+    fn register_agent_with_caps(caps: Vec<AssetCapInput>) {
+        let (mut gate, _, _, _) = prepare("04-ft-happy-unit", true);
+        set_owner_context();
+        let _ = gate.register_agent(
+            additional_agent_pk(),
+            "new agent".to_owned(),
+            caps,
+            None,
+            U128(1),
+        );
     }
 
     fn prepare(
@@ -1038,6 +1126,157 @@ mod tests {
     }
 
     #[test]
+    fn max_ttl_accepts_one_hour() {
+        let (mut gate, _, _, _) = prepare("04-ft-happy-unit", true);
+        let initialized = Gate::new(
+            gate.owner_id.clone(),
+            public_key(&gate.verifier_current),
+            MAX_ALLOWED_TTL_MS,
+        );
+        assert_eq!(initialized.max_ttl_ms, MAX_ALLOWED_TTL_MS);
+
+        set_owner_context();
+        gate.set_max_ttl(MAX_ALLOWED_TTL_MS);
+        assert_eq!(gate.max_ttl_ms, MAX_ALLOWED_TTL_MS);
+
+        assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            Gate::new(
+                gate.owner_id.clone(),
+                public_key(&gate.verifier_current),
+                MAX_ALLOWED_TTL_MS + 1,
+            )
+        }))
+        .is_err());
+        assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            gate.set_max_ttl(MAX_ALLOWED_TTL_MS + 1)
+        }))
+        .is_err());
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:bad_request")]
+    fn initialization_rejects_ttl_above_one_hour() {
+        let (gate, _, _, _) = prepare("04-ft-happy-unit", true);
+        let _ = Gate::new(
+            gate.owner_id.clone(),
+            public_key(&gate.verifier_current),
+            MAX_ALLOWED_TTL_MS + 1,
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:bad_request")]
+    fn set_max_ttl_rejects_value_above_one_hour() {
+        let (mut gate, _, _, _) = prepare("04-ft-happy-unit", true);
+        set_owner_context();
+        gate.set_max_ttl(MAX_ALLOWED_TTL_MS + 1);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:bad_request")]
+    fn set_caps_rejects_zero_window() {
+        let (mut gate, _, _, agent_pk) = prepare("04-ft-happy-unit", true);
+        set_owner_context();
+        gate.set_caps(
+            agent_pk,
+            vec![cap_input(Asset::Near, 1, 1, 0, 0, 0)],
+            None,
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:bad_request")]
+    fn set_caps_rejects_duplicate_assets() {
+        let (mut gate, _, _, agent_pk) = prepare("04-ft-happy-unit", true);
+        let asset = Asset::Ft("token.testnet".parse().unwrap());
+        set_owner_context();
+        gate.set_caps(
+            agent_pk,
+            vec![
+                cap_input(asset.clone(), 1, 1, 1, 0, 0),
+                cap_input(asset, 1, 1, 1, 0, 0),
+            ],
+            None,
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:bad_request")]
+    fn set_caps_rejects_per_call_above_window_cap() {
+        let (mut gate, _, _, agent_pk) = prepare("04-ft-happy-unit", true);
+        set_owner_context();
+        gate.set_caps(
+            agent_pk,
+            vec![cap_input(Asset::Near, 2, 1, 1, 0, 0)],
+            None,
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:bad_request")]
+    fn set_caps_rejects_invalid_unknown_caps() {
+        let (mut gate, _, _, agent_pk) = prepare("04-ft-happy-unit", true);
+        set_owner_context();
+        gate.set_caps(
+            agent_pk,
+            Vec::new(),
+            Some(vec![cap_input(Asset::Near, 1, 1, 0, 0, 0)]),
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:bad_request")]
+    fn register_agent_rejects_zero_window() {
+        register_agent_with_caps(vec![cap_input(Asset::Near, 1, 1, 0, 0, 0)]);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:bad_request")]
+    fn register_agent_rejects_duplicate_assets() {
+        let asset = Asset::Ft("token.testnet".parse().unwrap());
+        register_agent_with_caps(vec![
+            cap_input(asset.clone(), 1, 1, 1, 0, 0),
+            cap_input(asset, 1, 1, 1, 0, 0),
+        ]);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:bad_request")]
+    fn register_agent_rejects_per_call_above_window_cap() {
+        register_agent_with_caps(vec![cap_input(Asset::Near, 2, 1, 1, 0, 0)]);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:bad_request")]
+    fn register_agent_rejects_invalid_unknown_caps() {
+        let (mut gate, _, _, _) = prepare("04-ft-happy-unit", true);
+        set_owner_context();
+        let _ = gate.register_agent(
+            additional_agent_pk(),
+            "new agent".to_owned(),
+            Vec::new(),
+            Some(vec![cap_input(Asset::Near, 1, 1, 0, 0, 0)]),
+            U128(1),
+        );
+    }
+
+    #[test]
+    fn register_agent_starts_a_cap_generation() {
+        let (mut gate, _, _, _) = prepare("04-ft-happy-unit", true);
+        let agent_pk = additional_agent_pk();
+        set_owner_context();
+        let _ = gate.register_agent(
+            agent_pk.clone(),
+            "new agent".to_owned(),
+            Vec::new(),
+            None,
+            U128(1),
+        );
+
+        assert_eq!(cap_generation(&agent_pk), 1);
+    }
+
+    #[test]
     fn failed_transfer_restores_the_debited_cap() {
         let (mut gate, request, verdict, agent_pk) = prepare_with_result(
             "04-ft-happy-unit",
@@ -1046,12 +1285,95 @@ mod tests {
             PromiseResult::Failed,
         );
         submit(&mut gate, request, Some(verdict), agent_pk.clone());
+        assert_eq!(
+            LookupMap::<u64, u64>::new(PENDING_GENERATION_PREFIX)
+                .get(&0)
+                .copied(),
+            Some(0)
+        );
         gate.on_transfer(0);
         assert_eq!(gate.agents.get(&agent_pk).unwrap().caps[0].spent, 0);
         assert!(gate.pending.get(&0).is_none());
+        assert!(LookupMap::<u64, u64>::new(PENDING_GENERATION_PREFIX)
+            .get(&0)
+            .is_none());
         assert!(near_sdk::test_utils::get_logs()
             .iter()
-            .any(|line| line.contains("transfer_failed") && line.contains("true")));
+            .any(|line| line.contains("\"event\":\"transfer_failed\"")
+                && line.contains("\"restored\":true")));
+    }
+
+    #[test]
+    fn replaced_caps_are_not_refunded_by_a_stale_callback() {
+        let (mut gate, request, verdict, agent_pk) = prepare_with_result(
+            "04-ft-happy-unit",
+            true,
+            Gas::from_tgas(300),
+            PromiseResult::Failed,
+        );
+        let asset = gate.agents.get(&agent_pk).unwrap().caps[0].asset.clone();
+        let window_start_ms = gate.agents.get(&agent_pk).unwrap().caps[0].window_start_ms;
+        submit(&mut gate, request, Some(verdict), agent_pk.clone());
+        assert_eq!(
+            LookupMap::<u64, u64>::new(PENDING_GENERATION_PREFIX)
+                .get(&0)
+                .copied(),
+            Some(0)
+        );
+
+        set_owner_context();
+        gate.set_caps(
+            agent_pk.clone(),
+            vec![cap_input(
+                asset,
+                10_000_000,
+                50_000_000,
+                86_400_000,
+                window_start_ms,
+                0,
+            )],
+            None,
+        );
+        assert_eq!(cap_generation(&agent_pk), 1);
+
+        set_callback_context(PromiseResult::Failed);
+        gate.on_transfer(0);
+        assert_eq!(gate.agents.get(&agent_pk).unwrap().caps[0].spent, 0);
+        assert!(LookupMap::<u64, u64>::new(PENDING_GENERATION_PREFIX)
+            .get(&0)
+            .is_none());
+        assert!(near_sdk::test_utils::get_logs()
+            .iter()
+            .any(|line| line.contains("\"event\":\"transfer_failed\"")
+                && line.contains("\"restored\":false")));
+    }
+
+    #[test]
+    fn legacy_pending_refunds_when_generation_entries_are_missing() {
+        let (mut gate, request, _, agent_pk) = prepare("04-ft-happy-unit", true);
+        let cap = &mut gate.agents.get_mut(&agent_pk).unwrap().caps[0];
+        cap.spent = request.amount.0;
+        let pending = Pending {
+            agent_pk: agent_pk.clone(),
+            asset: cap.asset.clone(),
+            amount: request.amount.0,
+            unknown_payee: false,
+            window_start_ms: cap.window_start_ms,
+        };
+        gate.pending.insert(0, pending);
+        assert_eq!(cap_generation(&agent_pk), 0);
+        assert!(LookupMap::<u64, u64>::new(PENDING_GENERATION_PREFIX)
+            .get(&0)
+            .is_none());
+
+        set_callback_context(PromiseResult::Failed);
+        gate.on_transfer(0);
+
+        assert_eq!(gate.agents.get(&agent_pk).unwrap().caps[0].spent, 0);
+        assert!(near_sdk::test_utils::get_logs()
+            .iter()
+            .any(|line| line.contains("\"event\":\"transfer_failed\"")
+                && line.contains("\"restored\":true")));
     }
 
     fn assert_failed_unrestored(gate: &Gate) {
@@ -1128,8 +1450,17 @@ mod tests {
     fn successful_transfer_keeps_the_debit() {
         let (mut gate, request, verdict, agent_pk) = prepare("04-ft-happy-unit", true);
         submit(&mut gate, request, Some(verdict), agent_pk.clone());
+        assert_eq!(
+            LookupMap::<u64, u64>::new(PENDING_GENERATION_PREFIX)
+                .get(&0)
+                .copied(),
+            Some(0)
+        );
         gate.on_transfer(0);
         assert_eq!(gate.agents.get(&agent_pk).unwrap().caps[0].spent, 1_000_000);
         assert!(gate.pending.get(&0).is_none());
+        assert!(LookupMap::<u64, u64>::new(PENDING_GENERATION_PREFIX)
+            .get(&0)
+            .is_none());
     }
 }

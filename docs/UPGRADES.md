@@ -6,7 +6,7 @@ How a contract in this repository is redeployed or migrated, what proves the ste
 
 1. Every deploy bumps `version` in the crate's `Cargo.toml`. `scripts/redeploy.sh` asserts after the deploy that the `version` view returns `EXPECT_VERSION` and that the account's `code_hash` equals `EXPECT_CODE_HASH`, and exits 1 otherwise.
 2. A layout preserving redeploy, where the root struct and every stored type are unchanged, is deployed without an init call. It will be allowed only when a sandbox round trip proves it and `res/previous/<crate>.wasm` plus its sha256 are committed. The required round trip: deploy `res/previous/<crate>.wasm`, initialize, write state, redeploy the candidate without an init call, read the old state back, exercise one new call, redeploy the previous artifact again, read the state and make one more call. The candidate is the source build by default and the exact artifact when `<CRATE>_CANDIDATE_WASM` names it. The test must assert that the previous file's sha256 equals `res/previous/<crate>.wasm.sha256`.
-3. Rollback is the previous artifact redeployed over the same state, and is claimed only for a rule 2 redeploy. Entries the candidate wrote under new prefixes are harmless to the old code, which never reads them (the old Gate never reads `uq:c` or `uq:e`).
+3. Rollback is the previous artifact redeployed over the same state, and is claimed only for a rule 2 redeploy. Entries the candidate wrote under new prefixes are harmless to the old code, which never reads them (the old Gate never reads `uq:c`, `uq:e`, `cg` or `pg`).
 4. A layout change ships a `#[init(ignore_state)] migrate()` that first asserts the layout it expects, then transforms the state and bumps the version. It asserts the stored `state_version` where the contract keeps one; a contract with no such field asserts the layout of the source commit its build record names, and its first migration adds the field. Reports stores `state_version: 1`. The migration runs through `scripts/redeploy.sh --migrate`, which deploys with an init call to `migrate` with args `{}` through `deploy_with_init` in `scripts/lib.sh`, signed by the contract account's key. It is rehearsed in the sandbox on state written by the previous artifact. Recovery is a tested reverse migration or a forward fix, also rehearsed in the sandbox; without one there is no rollback claim.
 5. New state lives under new prefixes, and every prefix is listed in the registry below before the code that writes it is deployed.
 6. The previous artifact lives at `res/previous/<crate>.wasm` with its `.sha256`, copied in the commit that swaps `res/<crate>.wasm`. That crate's `res/BUILD-<crate>.md` then names both source commits.
@@ -27,6 +27,8 @@ Each storage prefix a contract writes, read from the `new` initializer in its `s
 | Gate | `p` | `pending` |
 | Gate | `uq:c` | used verdict expiry queue cursor (reserved for the prune; not on main yet) |
 | Gate | `uq:e` | used verdict expiry queue entries (reserved for the prune; not on main yet) |
+| Gate | `cg` | agent cap generations |
+| Gate | `pg` | pending request cap generations |
 | Registry | `r` | `latest` |
 | Registry | `l` | `labels` |
 | Reports | `r` | `reports` |

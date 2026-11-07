@@ -8,7 +8,7 @@ Who it is for: teams that let an AI agent pay from a NEAR account; the agent's o
 
 Live on testnet: the Gate runs 0.1.0, the registry runs 0.1.0 and holds 7 verdict records, and the reports contract runs 0.1.1, which the verdict service consults only when `REPORTS_ACCOUNT_ID` is set (`docs/TESTNET.md`).
 
-Not yet: Gate 0.2.0 is built and reproducible but not deployed (`Deployed: pending` in `res/BUILD-gate.md`), no report has been filed on the reports contract, and there is no mainnet deployment.
+Not yet: Gate 0.2.1 is built and reproducible but not deployed (`Deployed: pending` in `res/BUILD-gate.md`), no report has been filed on the reports contract, and there is no mainnet deployment.
 
 Shown on testnet: a scripted agent told by a planted instruction to pay an account named in a public incident report gets DENY from the verdict service, and the Gate refuses its submission with `REFUSED:no_verdict`.
 

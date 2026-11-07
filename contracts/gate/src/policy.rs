@@ -1,7 +1,7 @@
 use crate::{
     events,
     types::{Agent, AgentView, Asset, AssetCap, AssetCapInput, PendingView},
-    Gate, GateExt,
+    increment_cap_generation, Gate, GateExt, MAX_ALLOWED_TTL_MS,
 };
 use near_sdk::{
     assert_one_yocto, env, json_types::U128, near, serde_json::json, AccountId, Allowance,
@@ -10,6 +10,19 @@ use near_sdk::{
 
 fn hex_encode(bytes: &[u8]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+
+fn validate_caps(caps: &[AssetCapInput]) {
+    for (index, cap) in caps.iter().enumerate() {
+        near_sdk::require!(cap.window_ms > 0, "REFUSED:bad_request");
+        near_sdk::require!(cap.per_call.0 <= cap.window_cap.0, "REFUSED:bad_request");
+        near_sdk::require!(
+            !caps[..index]
+                .iter()
+                .any(|existing| existing.asset == cap.asset),
+            "REFUSED:bad_request"
+        );
+    }
 }
 
 #[near]
@@ -47,6 +60,10 @@ impl Gate {
             "REFUSED:agent_exists"
         );
         near_sdk::require!(allowance_yocto.0 > 0, "REFUSED:zero_allowance");
+        validate_caps(&caps);
+        if let Some(unknown_caps) = unknown_caps.as_deref() {
+            validate_caps(unknown_caps);
+        }
         self.agents.insert(
             public_key.clone(),
             Agent {
@@ -58,6 +75,7 @@ impl Gate {
                     .map(|caps| caps.into_iter().map(AssetCap::from).collect()),
             },
         );
+        increment_cap_generation(&public_key);
         events::emit(
             "agent_registered",
             json!({"agent_pk": hex_encode(&Self::key_bytes(&public_key))}),
@@ -130,9 +148,14 @@ impl Gate {
             .get(&agent_pk)
             .cloned()
             .unwrap_or_else(|| env::panic_str("REFUSED:unknown_agent"));
+        validate_caps(&caps);
+        if let Some(unknown_caps) = unknown_caps.as_deref() {
+            validate_caps(unknown_caps);
+        }
         agent.caps = caps.into_iter().map(AssetCap::from).collect();
         agent.unknown_caps =
             unknown_caps.map(|caps| caps.into_iter().map(AssetCap::from).collect());
+        increment_cap_generation(&agent_pk);
         self.agents.insert(agent_pk, agent);
     }
 
@@ -159,7 +182,10 @@ impl Gate {
     #[payable]
     pub fn set_max_ttl(&mut self, max_ttl_ms: u64) {
         self.assert_owner();
-        near_sdk::require!(max_ttl_ms > 0, "REFUSED:bad_request");
+        near_sdk::require!(
+            max_ttl_ms > 0 && max_ttl_ms <= MAX_ALLOWED_TTL_MS,
+            "REFUSED:bad_request"
+        );
         self.max_ttl_ms = max_ttl_ms;
     }
 
