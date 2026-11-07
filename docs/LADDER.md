@@ -1,6 +1,6 @@
 # The reports ladder
 
-This page fixes how a community report changes a payment verdict. One function, `effect(summary, payee_on_allowlist)` in `intel/reports.py`, maps a report summary to an effect, and it must match this page row for row and string for string. No other module may map report states to outcomes. The implementation is in `intel/reports.py` and `gate/rules.py`, with its matrix test in `tests/test_reports_rules.py`.
+This page fixes how a community report changes a payment verdict. One function, `effect(summary, payee_on_allowlist)` in `intel/reports.py`, maps a report summary to an effect, and it must match this page row for row and string for string. No other module may map report states to outcomes. `effect` and its matrix test, `tests/test_reports_rules.py`, are implemented on the `build/r2-rules` branch and land on main together with this page.
 
 ## The summary shape
 
@@ -48,7 +48,7 @@ Deny beats ask, ask beats none, and unreadable is its own outcome so that "we co
 
 ## Why pending reports have no effect
 
-A report costs a deposit of `REPORT_DEPOSIT` (0.023136 NEAR, `contracts/reports/src/lib.rs`) and each account may hold five pending reports at a time (`MAX_PENDING_REPORTS` in `contracts/reports/src/lib.rs`); accounts are cheap. If a pending report made a payment ask a human, five reports per cheap account could stall payments to any payee for as long as moderation takes. The Gate already bounds what an agent can send to a payee off its allowlist through the unknown payee caps (`request_transfer` in `contracts/gate/src/lib.rs`), so an unmoderated report adds information, not protection. A rule that counts only pending reports from submitters with accepted history was considered and dropped: it judges who reported rather than what was reported, and the contract's `publisher_stats.accepted` is a current count, not a history. Whether a pending report should ask above an amount threshold is decided on testnet data; the entry in `docs/DECISIONS.md` records it.
+A report costs a deposit of exactly `REPORT_DEPOSIT` (0.023136 NEAR today, `contracts/reports/src/lib.rs`), never refunded, and each account may hold five pending reports at a time (`MAX_PENDING_REPORTS` in `contracts/reports/src/lib.rs`); accounts are cheap. If a pending report made a payment ask a human, five reports per cheap account could stall payments to any payee for as long as moderation takes. The Gate already bounds what an agent can send to a payee off its allowlist through the unknown payee caps (`request_transfer` in `contracts/gate/src/lib.rs`), so an unmoderated report adds information, not protection. A rule that counts only pending reports from submitters with accepted history was considered and dropped: it judges who reported rather than what was reported, and the contract's `publisher_stats.accepted` is a current count, not a history. Whether a pending report should ask above an amount threshold is decided on testnet data; the entry in `docs/DECISIONS.md` records it.
 
 ## Availability
 

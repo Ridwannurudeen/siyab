@@ -1,10 +1,10 @@
-# Testnet scripts
+# Scripts: testnet, and one mainnet deploy script behind explicit guards
 
 The scripts use environment variables and the near-cli-rs command lines recorded in `docs/SPIKES.md`. Set `DRY_RUN=1` or pass `--dry-run` to print the planned command lines; neither mode reads key contents or submits a transaction. The environment example file at the repository root (RUN-N9) will show these values. No script contains or prints a key.
 
 | Variable | Use |
 |---|---|
-| `NETWORK` | Testnet only, defaults to `testnet`. |
+| `NETWORK` | Testnet only, defaults to `testnet`; `deploy_registry_mainnet.sh` alone requires `mainnet`. |
 | `OWNER_ACCOUNT_ID` | Account authorized to configure the Gate and registry. |
 | `REPORTER_ACCOUNT_ID` | Optional account that signs submitted reports; defaults to `OWNER_ACCOUNT_ID` with a warning. |
 | `DISPUTER_ACCOUNT_ID` | Optional account that signs opened disputes; defaults to `OWNER_ACCOUNT_ID` with a warning. |
@@ -32,8 +32,10 @@ The scripts use environment variables and the near-cli-rs command lines recorded
 | `AGENT_ALLOWANCE_NEAR` | Function call key allowance in NEAR, defaults to `1`. |
 | `GATE_STATE_FROZEN` | Must equal `1` to redeploy after 4 Nov. |
 | `REPORTS_ACCOUNT_ID` | Account that `redeploy.sh reports` deploys to, defaults to `reports.$GATE_ACCOUNT_ID`. |
-| `EXPECT_VERSION` | When set, `redeploy.sh` exits 1 unless the `version` view after the deploy returns this value. The reports contract has no `version` view, so setting it for `reports` exits 2. |
+| `EXPECT_VERSION` | When set, `redeploy.sh` exits 1 unless the `version` view after the deploy returns this value. |
 | `EXPECT_CODE_HASH` | When set, `redeploy.sh` exits 1 unless the account's base58 `code_hash` from `view_account` after the deploy equals this value (the form `python -m gate codehash` prints and `res/BUILD-<crate>.md` records). |
+| `MAINNET_DEPLOY_OK` | Must equal `1`, with `NETWORK=mainnet`, for `deploy_registry_mainnet.sh` to run; set it only after the six registry mainnet gates in `docs/REGISTRY.md` are met and the owner approves. |
+| `REDEPLOY` | When `1`, `deploy_registry_mainnet.sh` deploys over a registry account that already holds code, without an init call, and requires `EXPECT_VERSION` and `EXPECT_CODE_HASH`. |
 
 `setup_testnet.sh` checks all wasm files and the Gate balance before creating any subaccount, then creates missing accounts, recovers generated keys, deploys missing contract state and registers the token storage accounts. The balance check subtracts 3 NEAR for each missing token or registry account, 1 NEAR for a missing recorder account, and 0.00387 NEAR for the three storage deposits (0.00129 each, the token's storage_balance_bounds minimum), leaving at least 10 NEAR.
 
@@ -64,7 +66,9 @@ For a scheduled rotation, `rotate_verifier.sh <new_verifier_public_key>` sets th
 
 `rotate_recorder.sh <new_recorder_account>` calls `set_recorder` on `registry.$GATE_ACCOUNT_ID` with the owner key.
 
-`redeploy.sh <gate|registry|reports> <wasm> [--migrate]` deploys the wasm to the Gate, the registry or the reports account, signed with that account's key, and prints the version before and after (the reports contract has no `version` view, so its version is not read), the account summary, the wasm sha256 and its code_hash. By default it deploys without an init call, for a redeploy that keeps the state layout. `--migrate` deploys with an init call to `migrate` with args `{}` through `deploy_with_init` in `lib.sh`, for a layout change. After the deploy it asserts `EXPECT_VERSION` and `EXPECT_CODE_HASH` when they are set and exits 1 on a mismatch; a dry run prints each assertion it would make. `docs/UPGRADES.md` says when each mode applies.
+`redeploy.sh <gate|registry|reports> <wasm> [--migrate]` deploys the wasm to the Gate, the registry or the reports account, signed with that account's key, and prints the version before and after, the account summary, the wasm sha256 and its code_hash. By default it deploys without an init call, for a redeploy that keeps the state layout. `--migrate` deploys with an init call to `migrate` with args `{}` through `deploy_with_init` in `lib.sh`, for a layout change. After the deploy it asserts `EXPECT_VERSION` and `EXPECT_CODE_HASH` when they are set and exits 1 on a mismatch; a dry run prints each assertion it would make. `docs/UPGRADES.md` says when each mode applies.
+
+`deploy_registry_mainnet.sh <registry_account> <owner_account> <recorder_account> <wasm>` deploys the registry to mainnet and initializes it with `new`, signed with the registry account's key. It is the one script that does not call `require_testnet`: it exits 2 unless `NETWORK=mainnet` and `MAINNET_DEPLOY_OK=1`, unless every account is a named `.near` account and the recorder differs from the owner, and unless the wasm sha256 equals `res/registry.wasm.sha256` and `res/BUILD-registry.md` names a source commit. It refuses a registry account that already holds code unless `REDEPLOY=1`, asks for the registry account name on the terminal outside a dry run, and after the deploy asserts `get_recorder` and the code_hash. It has never been run against mainnet and must not be until the gates in `docs/REGISTRY.md` (Mainnet) are met and the owner approves.
 
 `make_attack_receiver.sh` creates a funded receiver account using our demo counterparty account and prints the creation time.
 
