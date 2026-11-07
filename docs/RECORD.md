@@ -1,6 +1,6 @@
 # Incident record, format v1
 
-This is a format spec. Main has no record store, no validator, no renderer and no committed record in this format; nothing in the repository reads or writes one yet. The incident pages that exist today are a different file, described in `docs/INCIDENTS.md`.
+This is a format specification. The repository has no validator, store, reader, writer or renderer for it yet, and no committed record in this format. The incident pages that exist today are a different file, described in `docs/INCIDENTS.md`.
 
 An incident record is the off chain account of one event: what happened, what it cost, which accounts agents should not pay because of it, the evidence, the on chain reports behind it, and a timeline whose every timestamp names where it came from. It carries the readable text behind the reason hashes the reports contract stores.
 

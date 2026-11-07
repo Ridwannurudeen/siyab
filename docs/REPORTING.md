@@ -2,7 +2,7 @@
 
 This page is the published policy for community reports on ShieldBot for NEAR: who can file one, what it costs, who decides it, how fast, how the account a report names asks for review, and how a mistake is corrected. The contract behind it is `contracts/reports` (`docs/REPORTS.md` lists its methods and tests). The decisions it applies are entries 5 and 6 of `docs/DECISIONS.md`, and each rule below names the function in `contracts/reports/src/lib.rs` that enforces it.
 
-The reports contract is deployed on testnet at `reports.kestrelridge-main.testnet`, its code hash matching the reproducible build (`res/BUILD-reports.md`, Deployed line; `docs/TESTNET.md`, the Reports rows). The read back after the deploy shows 0 reports and 0 disputes, and `kestrelridge-owner.testnet` as the only moderator (`docs/TESTNET.md`). No report has been filed, moderated or disputed under this policy yet. A report on this contract changes no verdict on main: the verdict service does not read it until the rules hook merges (see What a report does to a payment).
+The reports contract is deployed on testnet at `reports.kestrelridge-main.testnet`, its code hash matching the reproducible build (`res/BUILD-reports.md`, Deployed line; `docs/TESTNET.md`, the Reports rows). The read back after the deploy shows 0 reports and 0 disputes, and `kestrelridge-owner.testnet` as the only moderator (`docs/TESTNET.md`). No report has been filed, moderated or disputed under this policy yet. Whether the verdict service reads reports is controlled by `REPORTS_ACCOUNT_ID` (see What a report does to a payment).
 
 ## Who can report, and how
 
@@ -29,6 +29,8 @@ There is one moderator: Ridwan, the owner (`docs/DECISIONS.md`, entry 6: "The ow
 The moderator decides with `moderate(id, accept, reason_sha256)` (exactly 1 yoctoNEAR; `scripts/moderate.sh <reports_account> <report_id> <accept|reject> <reason_sha256>`). The contract records the moderator, the reason hash and the time on the report. `moderate` refuses a moderator deciding a report they submitted (`REFUSED:self_moderation`).
 
 ## What a moderator checks
+
+The review criteria, reason publication and response times below are the operator's policy; the contract enforces only its explicit checks in `contracts/reports/src/lib.rs`, including the exact `REPORT_DEPOSIT`, moderator membership, refusal of self-moderation, and its other `REFUSED:` conditions.
 
 1. The evidence document is fetchable at `evidence_url` and hashes to `evidence_sha256`. A document that cannot be fetched, or does not hash to that value, is a rejection.
 2. The document shows the subject account doing what the kind says, in a transaction, a contract or a public source a reader can check for themselves. A document that only asserts it is a rejection.
@@ -95,7 +97,7 @@ Nothing is edited. A report row and its body hash are permanent; the contract ha
 
 ## What a report does to a payment
 
-`docs/LADDER.md` is the only statement of it, and this page does not repeat the ladder. On main today a report changes no verdict, on the deployed contract or any other. The function the ladder names, `effect` in `intel/reports.py`, is not on main, and `gate/rules.py` on main has no community report check. Until that rules hook merges, the verdict service does not read the reports contract at all.
+If `REPORTS_ACCOUNT_ID` is unset, `gate/rules.py` makes no `subject_summary` call and adds no `community_report` check. The verdict CLI, agent commands and MCP server pass this setting into verdict requests (`gate/__main__.py`, `gate/agent.py`, `mcp/server.py`). When it is set, `gate/rules.py` reads `subject_summary` for the receiver and applies `effect` in `intel/reports.py`. An accepted or contested deny report yields a signal and `DENY`; an accepted social report asks for human review (`UNKNOWN`) off the allowlist and has no report effect on it. Pending reports appear in the count only, and a pending-only summary has no effect. A failed or unreadable summary yields `UNKNOWN` (`gate/rules.py`, `intel/reports.py`; see `docs/LADDER.md` for the effect ladder).
 
 ## What this policy does not cover
 
