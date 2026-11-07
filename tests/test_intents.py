@@ -13,7 +13,7 @@ from pathlib import Path
 from unittest import mock
 
 from gate import __main__ as gate_main
-from gate import intents, rpc
+from gate import evidence, intents, rpc
 
 USDC_BASE_ASSET = "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near"
 USDC_BASE = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
@@ -198,6 +198,14 @@ class BindingTest(Case):
             with self.subTest(tampered=None if tampered is None else tampered.get("evidence_hash")), \
                     self.assertRaises(ValueError):
                 intents.verify_binding(tampered, request)
+
+    def test_a_rehashed_document_whose_subject_is_not_intents_is_refused(self):
+        denied, request = judge(), self.later_request()
+        forged = json.loads(json.dumps(denied))
+        forged["document"]["subject"]["kind"] = "near"
+        forged["evidence_hash"] = evidence.evidence_hash(forged["document"])
+        with self.assertRaisesRegex(ValueError, "not an intents verdict"):
+            intents.verify_binding(forged, request)
 
     def test_an_echo_that_differs_from_the_request_is_a_signal(self):
         root = self.root("evm", "goplus")

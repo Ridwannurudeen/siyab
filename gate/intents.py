@@ -272,7 +272,7 @@ def verify_binding(answer, quote_request):
     if not isinstance(document, dict) or evidence.evidence_hash(document) != answer.get("evidence_hash"):
         raise ValueError("the evidence hash does not match the answer's document")
     subject = document.get("subject")
-    if document.get("kind") != "intents" or not isinstance(subject, dict):
+    if document.get("kind") != "intents" or not isinstance(subject, dict) or subject.get("kind") != "intents":
         raise ValueError("the answer is not an intents verdict")
     if answer.get("verdict") != document.get("verdict"):
         raise ValueError(f"the answer's verdict {_quoted(answer.get('verdict'))} is not the document's "
