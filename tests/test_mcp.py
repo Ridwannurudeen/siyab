@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from gate import base58, canon, ed25519, rpc, signer
+from gate import base58, canon, ed25519, intents, rpc, signer
 from tests.test_verdict import nacl, no_network, write_key_file
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -117,6 +117,9 @@ class McpServerTest(McpSessionCase):
         self.assertFalse(by_id[4]["result"]["isError"])
         self.assertEqual(quote["verdict"], "DENY")
         self.assertIn("recipient_theft_label", [c["id"] for c in quote["checks"] if c["status"] == "signal"])
+        intents.verify_binding(quote, {"originAsset": "nep141:wrap.near", "destinationAsset": USDC_BASE_ASSET,
+                                       "amount": ONE_NEAR, "recipient": DEMO_RECIPIENT,
+                                       "recipientType": "DESTINATION_CHAIN"})
 
         scan = json.loads(by_id[5]["result"]["content"][0]["text"])
         self.assertEqual(scan["findings"]["keys_error"], "RPC error TOO_MANY_ACCESS_KEYS")
