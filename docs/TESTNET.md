@@ -49,7 +49,7 @@ The agent registration, 29 Oct, transaction `HNVuBL2N...K2wmdu` (`fixtures/runs/
 | 10 DMT to the vendor, memo `invoice 4`, 2 Nov, request id 5, paid with `python -m gate pay --verdict-file` | ALLOW signed with the live key by the MCP server (`GATE_LIVE_SIGNING=1`) | `AADLzYbq...8d7rTJ` |
 | 10 DMT to the vendor, memo `invoice 5`, 7 Nov, request id 6, after the Gate 0.2.1 redeploy, with `REPORTS_ACCOUNT_ID` set (`community_report` pass: no report, pending 0); transcript `fixtures/runs/pay-invoice5-20261107.txt` | ALLOW, 2351 ms | `7VA6sppG...T3xCrUB` |
 
-Each emitted `transfer_scheduled`, the token's `ft_transfer` and `transfer_completed`. The evidence document of the first payment was lost with a scratch copy, so the registry holds no record of it; the second, third and fourth are recorded (see Registry). The fifth, of 7 Nov, is not recorded yet; its evidence document is kept, `fixtures/evidence/5cd25837*.json`.
+Each emitted `transfer_scheduled`, the token's `ft_transfer` and `transfer_completed`. The evidence document of the first payment was lost with a scratch copy, so the registry holds no record of it; the second, third and fourth are recorded (see Registry). The fifth, of 7 Nov, is not recorded yet: the registry read back after it (`fixtures/runs/registry-readback-20261107.txt`) still shows 7 records and the fourth payment as the vendor's latest; its evidence document is kept, `fixtures/evidence/5cd25837*.json`.
 
 ## Attack runs, 29 Oct to 5 Nov
 

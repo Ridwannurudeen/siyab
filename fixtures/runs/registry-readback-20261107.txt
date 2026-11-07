@@ -1,0 +1,8 @@
+Registry read back on testnet after the 7 Nov invoice 5 payment, view calls on registry.kestrelridge-main.testnet with near-cli-rs, as captured, except that each 64 hex value is shortened to its first and last 8 characters. The vendor's latest record is still the fourth payment (verdict id 652c1e0ebd165a413dd0489dea6a75ea), so invoice 5 (verdict id 2ca8969f5e38f9140025e91f981a095f) is not recorded.
+captured 2026-11-07T17:02:35Z
+version: "0.1.0"
+total_records: 7
+total_subjects: 5
+total_labels: 43
+latest kestrelridge-shop.testnet: { "evidence_hash": "4b99f7ed...fc84bf29", "observed_block": 275907012, "recorded_ms": 1793716241660, "verdict": "Allow", "verdict_id": "652c1e0ebd165a413dd0489dea6a75ea" }
+ registry.kestrelridge-main.testnet     At block #276659268
