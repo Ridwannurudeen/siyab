@@ -3,6 +3,10 @@ use near_sdk::Gas;
 use near_workspaces::types::NearToken;
 use reports::REPORT_DEPOSIT;
 
+// The deposit of the code in res/previous/reports.wasm (res/BUILD-reports.md); calls made while that
+// code is deployed must attach it, since a deposit is exact.
+const PREVIOUS_REPORT_DEPOSIT: u128 = 23_136_000_000_000_000_000_000;
+
 fn hash(letter: char) -> String {
     letter.to_string().repeat(64)
 }
@@ -276,7 +280,7 @@ async fn sandbox_reports_layout_preserving_round_trip() {
             "evidence_sha256": hash('a'),
             "evidence_url": "https://evidence.example/report"
         }))
-        .deposit(NearToken::from_yoctonear(REPORT_DEPOSIT))
+        .deposit(NearToken::from_yoctonear(PREVIOUS_REPORT_DEPOSIT))
         .gas(Gas::from_tgas(100))
         .transact()
         .await
@@ -308,7 +312,7 @@ async fn sandbox_reports_layout_preserving_round_trip() {
                 "evidence_sha256": hash('c'),
                 "evidence_url": "https://evidence.example/dispute"
             }))
-            .deposit(NearToken::from_yoctonear(REPORT_DEPOSIT))
+            .deposit(NearToken::from_yoctonear(PREVIOUS_REPORT_DEPOSIT))
             .gas(Gas::from_tgas(100))
             .transact()
             .await

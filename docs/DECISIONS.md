@@ -52,6 +52,8 @@ Where: `contracts/reports/src/lib.rs` (`assert_report_deposit`, the storage pin 
 
 Decided by: the orchestrator; confirmed by the owner on 6 Nov.
 
+2026-11-07 note: the owner fixed the deposit at 0.03 NEAR in source 0.1.2, on the advisor's recommendation, so the public price stops moving with each storage change; a test keeps it between 1.2 and 2 times the measured worst case storage, and `report_deposit()` returns it.
+
 ## 2026-11-06, entry 6: moderation governance the contract can enforce
 
 Decided, before the first deployment: a moderator cannot moderate a report they submitted; the moderator who accepted a report cannot resolve a dispute on it while the moderator list has more than one member; the dispute cap per report counts only disputes resolved against the disputer; `set_moderators` stays owner only with one yoctoNEAR and emits `moderators_updated`. Deferred: a threshold of distinct moderator approvals per accept, owner settable, default 1, added by a migration when a second moderator exists.

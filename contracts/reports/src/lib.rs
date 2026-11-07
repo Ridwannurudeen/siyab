@@ -2,10 +2,12 @@ mod events;
 
 use events::emit;
 use near_sdk::{
-    env, near, serde::Serialize, serde_json::json, store::LookupMap, AccountId, PanicOnDefault,
+    env, json_types::U128, near, serde::Serialize, serde_json::json, store::LookupMap, AccountId,
+    PanicOnDefault,
 };
 
-pub const REPORT_DEPOSIT: u128 = 23_136_000_000_000_000_000_000;
+pub const REPORT_DEPOSIT: u128 = 30_000_000_000_000_000_000_000;
+const ACCEPTING_MODERATOR_PREFIX: &[u8] = b"ab";
 const MAX_PENDING_REPORTS: u64 = 5;
 const MAX_EVIDENCE_URL_BYTES: usize = 512;
 const MAX_PAGE_SIZE: u32 = 50;
@@ -247,6 +249,10 @@ impl Reports {
         env!("CARGO_PKG_VERSION").to_owned()
     }
 
+    pub fn report_deposit(&self) -> U128 {
+        U128(REPORT_DEPOSIT)
+    }
+
     pub fn state_version(&self) -> u8 {
         self.state_version
     }
@@ -373,6 +379,7 @@ impl Reports {
         let moderator = env::predecessor_account_id();
         let mut report = self.report_or_refuse(id);
         near_sdk::require!(report.submitter != moderator, "REFUSED:self_moderation");
+        near_sdk::require!(report.subject != moderator, "REFUSED:self_moderation");
         near_sdk::require!(report.state == ReportState::Pending, "REFUSED:not_pending");
         let now = env::block_timestamp_ms();
         let mut summary = self.summary_for(&report.subject);
@@ -389,6 +396,8 @@ impl Reports {
         if accept {
             report.state = ReportState::Accepted;
             report.moderator = Some(moderator.clone());
+            LookupMap::<u64, AccountId>::new(ACCEPTING_MODERATOR_PREFIX)
+                .insert(id, moderator.clone());
             report.reason_sha256 = Some(reason_sha256.clone());
             report.moderated_ms = Some(now);
             summary.pending -= 1;
@@ -542,14 +551,44 @@ impl Reports {
         let mut dispute = self.dispute_or_refuse(dispute_id);
         near_sdk::require!(dispute.open, "REFUSED:dispute_closed");
         let mut report = self.report_or_refuse(dispute.report_id);
+        near_sdk::require!(report.subject != moderator, "REFUSED:self_moderation");
         near_sdk::require!(
             report.state == ReportState::Contested,
             "REFUSED:not_contested"
         );
+        let stored_accepting_moderator =
+            LookupMap::<u64, AccountId>::new(ACCEPTING_MODERATOR_PREFIX)
+                .get(&report.id)
+                .cloned();
+        let accepting_moderator = if report.upheld_disputes == 0 {
+            stored_accepting_moderator
+                .clone()
+                .or(report.moderator.clone())
+        } else {
+            stored_accepting_moderator.clone()
+        };
         near_sdk::require!(
-            self.moderators.len() <= 1 || report.moderator.as_ref() != Some(&moderator),
+            self.moderators.len() <= 1
+                || report.upheld_disputes == 0
+                || accepting_moderator.is_some(),
             "REFUSED:same_moderator"
         );
+        near_sdk::require!(
+            self.moderators.len() <= 1
+                || (report.submitter != moderator && dispute.submitter != moderator),
+            "REFUSED:self_moderation"
+        );
+        near_sdk::require!(
+            self.moderators.len() <= 1 || accepting_moderator.as_ref() != Some(&moderator),
+            "REFUSED:same_moderator"
+        );
+
+        if report.upheld_disputes == 0 && stored_accepting_moderator.is_none() {
+            if let Some(accepting_moderator) = accepting_moderator.as_ref() {
+                LookupMap::<u64, AccountId>::new(ACCEPTING_MODERATOR_PREFIX)
+                    .insert(report.id, accepting_moderator.clone());
+            }
+        }
 
         dispute.open = false;
         self.disputes.insert(dispute_id, dispute.clone());
@@ -955,6 +994,15 @@ mod tests {
         let reports = reports();
         assert_eq!(reports.version(), env!("CARGO_PKG_VERSION"));
         assert_eq!(reports.state_version(), 1);
+    }
+
+    #[test]
+    fn report_deposit_view_returns_fixed_amount() {
+        let reports = reports();
+        assert_eq!(
+            reports.report_deposit(),
+            U128(30_000_000_000_000_000_000_000)
+        );
     }
 
     #[test]
@@ -1451,6 +1499,16 @@ mod tests {
     }
 
     #[test]
+    #[should_panic(expected = "REFUSED:self_moderation")]
+    fn report_subject_cannot_moderate_own_report() {
+        context("owner.testnet", 0, 1_000);
+        let mut reports = Reports::new(account("owner.testnet"), vec![account("vendor.testnet")]);
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        context("vendor.testnet", 1, 1_002);
+        reports.moderate(id, true, hash('b'));
+    }
+
+    #[test]
     #[should_panic(expected = "REFUSED:report_missing")]
     fn moderator_cannot_moderate_missing_report() {
         let mut reports = reports();
@@ -1832,6 +1890,283 @@ mod tests {
     }
 
     #[test]
+    fn missing_accepting_moderator_uses_report_moderator_fallback_without_upheld_disputes() {
+        context("owner.testnet", 0, 1_000);
+        let mut reports = Reports::new(
+            account("owner.testnet"),
+            vec![
+                account("moderator-a.testnet"),
+                account("moderator-b.testnet"),
+            ],
+        );
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        context("moderator-a.testnet", 1, 1_002);
+        reports.moderate(id, true, hash('b'));
+        assert_eq!(reports.get_report(id).unwrap().state, ReportState::Accepted);
+        assert_eq!(reports.report_or_refuse(id).upheld_disputes, 0);
+        assert_eq!(
+            reports.report_or_refuse(id).moderator,
+            Some(account("moderator-a.testnet"))
+        );
+        assert_eq!(
+            LookupMap::<u64, AccountId>::new(ACCEPTING_MODERATOR_PREFIX).remove(&id),
+            Some(account("moderator-a.testnet"))
+        );
+
+        context("disputer.testnet", REPORT_DEPOSIT, 1_003);
+        let dispute_id =
+            reports.dispute(id, hash('c'), "https://evidence.example/dispute".to_owned());
+        context("moderator-a.testnet", 1, 1_004);
+        let refusal = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            reports.resolve_dispute(dispute_id, false, hash('d'));
+        }))
+        .unwrap_err();
+        let reason = refusal
+            .downcast_ref::<String>()
+            .map(String::as_str)
+            .or_else(|| refusal.downcast_ref::<&str>().copied());
+        assert!(reason.is_some_and(|reason| reason.contains("REFUSED:same_moderator")));
+
+        context("moderator-b.testnet", 1, 1_005);
+        reports.resolve_dispute(dispute_id, false, hash('d'));
+        assert_eq!(reports.get_report(id).unwrap().state, ReportState::Accepted);
+        assert!(!reports.get_dispute(dispute_id).unwrap().open);
+    }
+
+    #[test]
+    fn legacy_report_fallback_is_migrated_before_moderator_changes() {
+        context("owner.testnet", 0, 1_000);
+        let mut reports = Reports::new(
+            account("owner.testnet"),
+            vec![account("moderator-a.testnet"), account("moderator-b.testnet")],
+        );
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        context("moderator-a.testnet", 1, 1_002);
+        reports.moderate(id, true, hash('b'));
+        assert_eq!(
+            LookupMap::<u64, AccountId>::new(ACCEPTING_MODERATOR_PREFIX).remove(&id),
+            Some(account("moderator-a.testnet"))
+        );
+        assert_eq!(reports.report_or_refuse(id).upheld_disputes, 0);
+
+        context("disputer.testnet", REPORT_DEPOSIT, 1_003);
+        let first_dispute =
+            reports.dispute(id, hash('c'), "https://evidence.example/dispute".to_owned());
+        context("moderator-b.testnet", 1, 1_004);
+        reports.resolve_dispute(first_dispute, false, hash('d'));
+
+        assert_eq!(
+            LookupMap::<u64, AccountId>::new(ACCEPTING_MODERATOR_PREFIX)
+                .get(&id)
+                .cloned(),
+            Some(account("moderator-a.testnet"))
+        );
+        assert_eq!(reports.report_or_refuse(id).upheld_disputes, 1);
+        assert_eq!(
+            reports.get_report(id).unwrap().moderator,
+            Some(account("moderator-b.testnet"))
+        );
+
+        context("disputer.testnet", REPORT_DEPOSIT, 1_005);
+        let second_dispute = reports.dispute(
+            id,
+            hash('e'),
+            "https://evidence.example/dispute-2".to_owned(),
+        );
+        context("moderator-a.testnet", 1, 1_006);
+        let refusal = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            reports.resolve_dispute(second_dispute, false, hash('f'));
+        }))
+        .unwrap_err();
+        let reason = refusal
+            .downcast_ref::<String>()
+            .map(String::as_str)
+            .or_else(|| refusal.downcast_ref::<&str>().copied());
+        assert!(reason.is_some_and(|reason| reason.contains("REFUSED:same_moderator")));
+    }
+
+    #[test]
+    fn accepting_moderator_cannot_resolve_after_an_upheld_dispute() {
+        context("owner.testnet", 0, 1_000);
+        let mut reports = Reports::new(
+            account("owner.testnet"),
+            vec![account("moderator-a.testnet"), account("moderator-b.testnet")],
+        );
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        context("moderator-a.testnet", 1, 1_002);
+        reports.moderate(id, true, hash('b'));
+        context("disputer.testnet", REPORT_DEPOSIT, 1_003);
+        let first_dispute =
+            reports.dispute(id, hash('c'), "https://evidence.example/dispute".to_owned());
+        context("moderator-b.testnet", 1, 1_004);
+        reports.resolve_dispute(first_dispute, false, hash('d'));
+        context("disputer.testnet", REPORT_DEPOSIT, 1_005);
+        let second_dispute =
+            reports.dispute(id, hash('e'), "https://evidence.example/dispute-2".to_owned());
+        context("moderator-a.testnet", 1, 1_006);
+        let refusal = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            reports.resolve_dispute(second_dispute, false, hash('f'));
+        }))
+        .unwrap_err();
+        let reason = refusal
+            .downcast_ref::<String>()
+            .map(String::as_str)
+            .or_else(|| refusal.downcast_ref::<&str>().copied());
+        assert!(reason.is_some_and(|reason| reason.contains("REFUSED:same_moderator")));
+        context("moderator-b.testnet", 1, 1_007);
+        reports.resolve_dispute(second_dispute, false, hash('f'));
+        assert!(!reports.get_dispute(second_dispute).unwrap().open);
+    }
+
+    #[test]
+    fn legacy_upheld_report_without_accepting_moderator_refuses_every_resolver() {
+        context("owner.testnet", 0, 1_000);
+        let mut reports = Reports::new(
+            account("owner.testnet"),
+            vec![
+                account("moderator-a.testnet"),
+                account("moderator-b.testnet"),
+                account("reporter.testnet"),
+                account("disputer.testnet"),
+            ],
+        );
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        context("moderator-a.testnet", 1, 1_002);
+        reports.moderate(id, true, hash('b'));
+        context("disputer.testnet", REPORT_DEPOSIT, 1_003);
+        let first_dispute =
+            reports.dispute(id, hash('c'), "https://evidence.example/dispute".to_owned());
+        context("moderator-b.testnet", 1, 1_004);
+        reports.resolve_dispute(first_dispute, false, hash('d'));
+        assert_eq!(reports.report_or_refuse(id).upheld_disputes, 1);
+        assert_eq!(
+            LookupMap::<u64, AccountId>::new(ACCEPTING_MODERATOR_PREFIX).remove(&id),
+            Some(account("moderator-a.testnet"))
+        );
+
+        context("disputer.testnet", REPORT_DEPOSIT, 1_005);
+        let second_dispute =
+            reports.dispute(id, hash('e'), "https://evidence.example/dispute-2".to_owned());
+        for resolver in [
+            "moderator-a.testnet",
+            "moderator-b.testnet",
+            "reporter.testnet",
+            "disputer.testnet",
+        ] {
+            context(resolver, 1, 1_006);
+            let refusal = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                reports.resolve_dispute(second_dispute, false, hash('f'));
+            }))
+            .unwrap_err();
+            let reason = refusal
+                .downcast_ref::<String>()
+                .map(String::as_str)
+                .or_else(|| refusal.downcast_ref::<&str>().copied());
+            assert!(reason.is_some_and(|reason| reason.contains("REFUSED:same_moderator")));
+        }
+
+        context("owner.testnet", 1, 1_007);
+        reports.set_moderators(vec![account("moderator-b.testnet")]);
+        context("moderator-b.testnet", 1, 1_008);
+        reports.resolve_dispute(second_dispute, false, hash('f'));
+        assert!(!reports.get_dispute(second_dispute).unwrap().open);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:self_moderation")]
+    fn report_subject_cannot_resolve_own_dispute_with_one_moderator() {
+        let mut reports = reports();
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        moderate(&mut reports, id, true);
+        context("owner.testnet", 1, 1_003);
+        reports.set_moderators(vec![account("vendor.testnet")]);
+        context("disputer.testnet", REPORT_DEPOSIT, 1_004);
+        let dispute_id =
+            reports.dispute(id, hash('c'), "https://evidence.example/dispute".to_owned());
+        context("vendor.testnet", 1, 1_005);
+        reports.resolve_dispute(dispute_id, false, hash('d'));
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:self_moderation")]
+    fn report_subject_cannot_resolve_own_dispute_with_multiple_moderators() {
+        let mut reports = reports();
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        moderate(&mut reports, id, true);
+        context("owner.testnet", 1, 1_003);
+        reports.set_moderators(vec![account("vendor.testnet"), account("reviewer.testnet")]);
+        context("disputer.testnet", REPORT_DEPOSIT, 1_004);
+        let dispute_id =
+            reports.dispute(id, hash('c'), "https://evidence.example/dispute".to_owned());
+        context("vendor.testnet", 1, 1_005);
+        reports.resolve_dispute(dispute_id, false, hash('d'));
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:self_moderation")]
+    fn report_submitter_cannot_resolve_own_dispute() {
+        context("owner.testnet", 0, 1_000);
+        let mut reports = Reports::new(
+            account("owner.testnet"),
+            vec![account("moderator.testnet"), account("reporter.testnet")],
+        );
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        moderate(&mut reports, id, true);
+        context("disputer.testnet", REPORT_DEPOSIT, 1_003);
+        let dispute_id =
+            reports.dispute(id, hash('c'), "https://evidence.example/dispute".to_owned());
+        context("reporter.testnet", 1, 1_004);
+        reports.resolve_dispute(dispute_id, false, hash('d'));
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:self_moderation")]
+    fn dispute_submitter_cannot_resolve_own_dispute() {
+        context("owner.testnet", 0, 1_000);
+        let mut reports = Reports::new(
+            account("owner.testnet"),
+            vec![account("moderator.testnet"), account("disputer.testnet")],
+        );
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        moderate(&mut reports, id, true);
+        context("disputer.testnet", REPORT_DEPOSIT, 1_003);
+        let dispute_id =
+            reports.dispute(id, hash('c'), "https://evidence.example/dispute".to_owned());
+        context("disputer.testnet", 1, 1_004);
+        reports.resolve_dispute(dispute_id, false, hash('d'));
+    }
+
+    #[test]
+    fn report_submitter_can_resolve_when_the_moderator_list_has_one_member() {
+        let mut reports = reports();
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        moderate(&mut reports, id, true);
+        context("owner.testnet", 1, 1_003);
+        reports.set_moderators(vec![account("reporter.testnet")]);
+        context("disputer.testnet", REPORT_DEPOSIT, 1_004);
+        let dispute_id =
+            reports.dispute(id, hash('c'), "https://evidence.example/dispute".to_owned());
+        context("reporter.testnet", 1, 1_005);
+        reports.resolve_dispute(dispute_id, false, hash('d'));
+        assert!(!reports.get_dispute(dispute_id).unwrap().open);
+    }
+
+    #[test]
+    fn dispute_submitter_can_resolve_when_the_moderator_list_has_one_member() {
+        let mut reports = reports();
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        moderate(&mut reports, id, true);
+        context("disputer.testnet", REPORT_DEPOSIT, 1_003);
+        let dispute_id =
+            reports.dispute(id, hash('c'), "https://evidence.example/dispute".to_owned());
+        context("owner.testnet", 1, 1_004);
+        reports.set_moderators(vec![account("disputer.testnet")]);
+        context("disputer.testnet", 1, 1_005);
+        reports.resolve_dispute(dispute_id, false, hash('d'));
+        assert!(!reports.get_dispute(dispute_id).unwrap().open);
+    }
+
+    #[test]
     #[should_panic(expected = "REFUSED:not_moderator")]
     fn non_moderator_cannot_resolve_dispute() {
         let mut reports = reports();
@@ -2074,6 +2409,17 @@ mod tests {
     }
 
     #[test]
+    fn accepting_moderator_uses_registered_ab_storage_key() {
+        let mut reports = reports();
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        moderate(&mut reports, id, true);
+
+        let mut expected_key = b"ab".to_vec();
+        expected_key.extend(id.to_le_bytes());
+        assert!(env::storage_has_key(&expected_key));
+    }
+
+    #[test]
     #[should_panic(expected = "REFUSED:limit_too_large")]
     fn page_limit_is_capped_at_fifty() {
         reports().reports_by_subject(account("vendor.testnet"), 0, 51);
@@ -2081,18 +2427,25 @@ mod tests {
 
     #[test]
     fn emits_all_five_nep_297_events_with_report_identity() {
-        let mut contract = reports();
+        context("owner.testnet", 0, 1_000);
+        let mut contract = Reports::new(
+            account("owner.testnet"),
+            vec![account("moderator.testnet"), account("resolver.testnet")],
+        );
         let id = submit(&mut contract, "reporter.testnet", "vendor.testnet");
         let submitted = get_logs();
-        moderate(&mut contract, id, true);
+        let moderation_reason_sha256 = hash('b');
+        context("moderator.testnet", 1, 1_002);
+        contract.moderate(id, true, moderation_reason_sha256.clone());
         let moderated = get_logs();
         context("disputer.testnet", REPORT_DEPOSIT, 1_003);
         let dispute_id =
             contract.dispute(id, hash('c'), "https://evidence.example/dispute".to_owned());
         let disputed = get_logs();
         let body_sha256 = contract.get_report(id).unwrap().body_sha256;
-        context("moderator.testnet", 1, 1_004);
-        contract.resolve_dispute(dispute_id, true, hash('d'));
+        let resolution_reason_sha256 = hash('d');
+        context("resolver.testnet", 1, 1_004);
+        contract.resolve_dispute(dispute_id, true, resolution_reason_sha256.clone());
         let resolved = get_logs();
         let mut reports = reports();
         let withdraw_id = submit(&mut reports, "reporter.testnet", "withdraw.testnet");
@@ -2153,6 +2506,20 @@ mod tests {
             if event == "report_disputed" || event == "dispute_resolved" {
                 assert_eq!(data["dispute_id"], dispute_id);
             }
+            if event == "report_moderated" {
+                assert_eq!(data["moderator"], "moderator.testnet");
+                assert_eq!(
+                    data["reason_sha256"].as_str(),
+                    Some(moderation_reason_sha256.as_str())
+                );
+            }
+            if event == "dispute_resolved" {
+                assert_eq!(data["moderator"], "resolver.testnet");
+                assert_eq!(
+                    data["reason_sha256"].as_str(),
+                    Some(resolution_reason_sha256.as_str())
+                );
+            }
         }
     }
 
@@ -2193,9 +2560,10 @@ mod tests {
         assert_eq!(dispute_id, 0);
         let measured_bytes = report_bytes.max(dispute_bytes);
         let byte_cost = env::storage_byte_cost().as_yoctonear();
-        let deposit_with_margin = (u128::from(measured_bytes) * byte_cost * 120).div_ceil(100);
-        assert_eq!((report_bytes, dispute_bytes), (1_928, 734));
-        assert_eq!(REPORT_DEPOSIT, deposit_with_margin);
-        assert_eq!(REPORT_DEPOSIT, 23_136_000_000_000_000_000_000);
+        let measured_storage_cost = u128::from(measured_bytes) * byte_cost;
+        assert_eq!((report_bytes, dispute_bytes), (2_046, 734));
+        assert!(measured_storage_cost * 120 / 100 <= REPORT_DEPOSIT);
+        assert!(REPORT_DEPOSIT <= measured_storage_cost * 2);
+        assert_eq!(REPORT_DEPOSIT, 30_000_000_000_000_000_000_000);
     }
 }

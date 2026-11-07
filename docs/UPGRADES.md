@@ -13,11 +13,11 @@ How a contract in this repository is redeployed or migrated, what proves the ste
 7. Each crate has one build record: `res/BUILD-gate.md`, `res/BUILD-registry.md`, `res/BUILD-reports.md`. Each has one `Source commit:` line (40 hex, or TBD before the first build) and one `Deployed:` line (`not deployed`, `pending`, or the transaction and MATCH). A record whose source commit is TBD has no `res/<crate>.wasm`, and a record with a source commit has the wasm and its `.sha256`; `tests/test_res.py` asserts this state for every crate. The `reproducible` job in `.github/workflows/ci.yml` runs once per crate: it reads the record, rebuilds the crate at that commit with `cargo near build reproducible-wasm` and compares the sha256 with `res/<crate>.wasm.sha256`. It skips only a crate whose record says TBD and whose wasm is absent, and fails on any other mismatch between the record and `res/`.
 8. Provenance: no wasm in `res/` whose source commit is not on main, and no deployed code hash that no commit on main records. Between the commit that adds an artifact and the commit that records its MATCH, the record says `Deployed: pending`.
 
-Gate and Reports have their rule 2 round trips in `contracts/gate/tests/sandbox.rs` and `contracts/reports/tests/sandbox.rs`, with previous artifacts in `res/previous/`; the 7 Nov runs that passed are `fixtures/runs/cargo-gate-0.2.1-sandbox-20261107.txt` (Gate 0.2.1, with its unit tests in `fixtures/runs/cargo-gate-0.2.1-unit-20261107.txt`) and `fixtures/runs/cargo-reports-0.1.1-20261107.txt` (Reports 0.1.1, `sandbox_reports_layout_preserving_round_trip`). Gate source is `0.2.1`, and testnet runs Gate `0.2.1` per `res/BUILD-gate.md`; Reports source is `0.1.1`, and testnet runs deployed Reports version `0.1.1` per `res/BUILD-reports.md`. A crate without both its previous artifact and sandbox round trip does not qualify under rule 2, and no rollback is claimed for it.
+Gate and Reports have their rule 2 round trips in `contracts/gate/tests/sandbox.rs` and `contracts/reports/tests/sandbox.rs`, with previous artifacts in `res/previous/`; the 7 Nov runs that passed are `fixtures/runs/cargo-gate-0.2.1-sandbox-20261107.txt` (Gate 0.2.1, with its unit tests in `fixtures/runs/cargo-gate-0.2.1-unit-20261107.txt`) and `fixtures/runs/cargo-reports-0.1.1-20261107.txt` (Reports 0.1.1, `sandbox_reports_layout_preserving_round_trip`). Gate source is `0.2.1`, and testnet runs Gate `0.2.1` per `res/BUILD-gate.md`; Reports source is `0.1.2`, and testnet runs deployed Reports version `0.1.1` per `res/BUILD-reports.md`. A crate without both its previous artifact and sandbox round trip does not qualify under rule 2, and no rollback is claimed for it.
 
 ## Prefix registry
 
-Each storage prefix a contract writes, read from the `new` initializer in its `src/lib.rs`. A new collection takes a prefix that is not in this table, and the table is updated in the same commit.
+Each storage prefix a contract writes is either initialized in `new` or defined by a named prefix constant in its `src/lib.rs`. A new collection takes a prefix that is not in this table, and the table is updated in the same commit.
 
 | Contract | Prefix | Collection |
 |---|---|---|
@@ -40,6 +40,7 @@ Each storage prefix a contract writes, read from the `new` initializer in its `s
 | Reports | `pp` | `pending_by_submitter` |
 | Reports | `ss` | `subject_summaries` |
 | Reports | `ps` | `publisher_stats` |
+| Reports | `ab` | accepting moderator per report id (`ACCEPTING_MODERATOR_PREFIX`, `contracts/reports/src/lib.rs:10`), from source version `0.1.2` |
 
 Prefixes are per account, so the same letter in two contracts does not collide.
 
