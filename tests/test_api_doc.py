@@ -9,20 +9,27 @@ names. Every test also proves that its comparison fails on a deliberately broken
 
 import ast
 import json
+import os
 import re
 import shutil
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest import mock
 
+from gate import __main__ as gate_main
+from gate import http as endpoint
 from gate import rules
-from tests.test_verdict import VerdictCase
+from mcp import server as mcp_server
+from tests.test_verdict import AGENT, VerdictCase
 
 ROOT = Path(__file__).resolve().parent.parent
 API_DOC = ROOT / "docs" / "API.md"
 RULES = ROOT / "gate" / "rules.py"
 HEX64 = re.compile(r"[0-9a-f]{64}")
 OUTCOMES = ("ALLOW", "DENY", "UNKNOWN")
+CHECK_COLUMNS = ("Kind", "Tier", "Enabled by", "Network", "pass", "signal", "unknown")
 
 
 def section(text, heading):
@@ -54,6 +61,99 @@ def doc_fields(text):
 def doc_checks(text):
     """{check id: tier} from the check table."""
     return {row[0]: row[2] for row in table_rows(section(text, "### Check table"))}
+
+
+def doc_check_rows(text):
+    """{check id: {column: cell}} for the documented check table."""
+    return {row[0]: dict(zip(CHECK_COLUMNS, row[1:]))
+            for row in table_rows(section(text, "### Check table"))}
+
+
+def replace_check_cell(text, check_id, column, value):
+    """Return a copy of the doc with one check-table cell changed."""
+    index = 1 + CHECK_COLUMNS.index(column)
+    for line in text.splitlines():
+        if line.startswith(f"| `{check_id}` |"):
+            cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+            cells[index] = value
+            changed = "| " + " | ".join(cells) + " |"
+            return text.replace(line, changed, 1)
+    raise AssertionError(f"no check-table row for {check_id}")
+
+
+def kind_problems(text, observed_by_kind):
+    """Check that each row names exactly the kinds for which verdict calls emit it."""
+    problems = {}
+    for check_id, row in doc_check_rows(text).items():
+        observed = {kind for kind, ids in observed_by_kind.items() if check_id in ids}
+        documented = {kind.strip() for kind in row["Kind"].split(",")}
+        if documented != observed:
+            problems[check_id] = (documented, observed)
+    return problems
+
+
+def tier_problems(text, allowlisted_ft_ids, off_allowlist_ft_ids):
+    """Check that the documented ft tier sets match the allowlisted and off-list verdict calls."""
+    rows = doc_check_rows(text)
+    tier_one = {check_id for check_id, row in rows.items()
+                if "ft" in {kind.strip() for kind in row["Kind"].split(",")} and row["Tier"] == "1"}
+    all_ft = {check_id for check_id, row in rows.items()
+              if "ft" in {kind.strip() for kind in row["Kind"].split(",")}}
+    problems = {}
+    if tier_one != allowlisted_ft_ids:
+        problems["tier 1"] = (tier_one, allowlisted_ft_ids)
+    if all_ft != off_allowlist_ft_ids:
+        problems["tier 1 and 2"] = (all_ft, off_allowlist_ft_ids)
+    return problems
+
+
+def enabled_description_problems(text):
+    """Check that optional rows describe the inputs which the verdict calls require."""
+    rows = doc_check_rows(text)
+    issuer = rows["issuer_blacklist"]["Enabled by"].lower()
+    report = rows["community_report"]["Enabled by"].lower()
+    problems = {}
+    if "caller passes" not in issuer or "issuer table" not in issuer:
+        problems["issuer_blacklist"] = issuer
+    if not all(value in report for value in ("reports_account_id", "unset", "absent")):
+        problems["community_report"] = report
+    return problems
+
+
+def network_description_problems(text):
+    """Check that the network cell documents the Gate-based issuer selection."""
+    network = doc_check_rows(text)["issuer_blacklist"]["Network"]
+    required = ("mainnet Gate only", '`issuers_for("mainnet")`', "not ending `.testnet`", "testnet table is empty",
+                "gate/__main__.py", "mcp/server.py", "gate/http.py")
+    return [] if all(value in network for value in required) else [network]
+
+
+def action_rows(text):
+    """{outcome: documented action relation} from the Outcome and action table."""
+    rows = {}
+    for line in section(text, "### Outcome and action"):
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        outcome = cells[0].strip("`")
+        if len(cells) == 3 and outcome in OUTCOMES:
+            rows[outcome] = cells[2]
+    return rows
+
+
+def action_problems(text, results):
+    """Check verdict.request outcomes and actions against the documented action rows."""
+    rows, problems = action_rows(text), []
+    for result in results:
+        outcome, action = result["outcome"], result["action"]
+        if outcome == "ALLOW":
+            expected = "ask" if result["ask"] else "sign"
+            relation = "`ask` when `ask` is not empty, else `sign`"
+        elif outcome == "DENY":
+            expected, relation = "refuse", "`refuse`"
+        else:
+            expected, relation = "ask", "`ask`"
+        if action != expected or rows.get(outcome) != relation:
+            problems.append((outcome, action, rows.get(outcome), expected, relation))
+    return problems
 
 
 def rules_check_ids(source):
@@ -168,6 +268,161 @@ class FieldListTest(VerdictCase):
         self.assertNotEqual(doc_fields(dropped), keys)
         extra = text.replace("| `message` |", "| `signing` | string | x | x |\n| `message` |", 1)
         self.assertNotEqual(doc_fields(extra), keys)
+
+
+class CheckBehaviorTest(VerdictCase):
+    def setUp(self):
+        super().setUp()
+        self.text = API_DOC.read_text(encoding="utf-8")
+
+    def test_kind_and_tier_rows_match_offline_verdict_calls(self):
+        receiver = "intents.near"
+        issuers = rules.issuers_for("mainnet")
+        self.assertTrue(issuers)
+        results = {}
+        for kind in ("near", "ft"):
+            for allowlisted in (True, False):
+                policy = {"allowlist": [receiver] if allowlisted else [],
+                          "caps": [{"asset": {"Ft": "wrap.near"}}]}
+                results[(kind, allowlisted)] = self.request(
+                    kind=kind, token="wrap.near" if kind == "ft" else None, receiver=receiver, amount="1000",
+                    policy=policy, issuers=issuers, reports_account="reports.gate.near")
+
+        emitted = {
+            "near": ({check["id"] for check in results[("near", True)]["checks"]}
+                     | {check["id"] for check in results[("near", False)]["checks"]}),
+            "ft": ({check["id"] for check in results[("ft", True)]["checks"]}
+                   | {check["id"] for check in results[("ft", False)]["checks"]}),
+        }
+        self.assertEqual(kind_problems(self.text, emitted), {})
+        allowlisted_ft = {check["id"] for check in results[("ft", True)]["checks"]}
+        off_allowlist_ft = {check["id"] for check in results[("ft", False)]["checks"]}
+        self.assertEqual(tier_problems(self.text, allowlisted_ft, off_allowlist_ft), {})
+        ft_only = {check_id for check_id, row in doc_check_rows(self.text).items() if row["Kind"] == "ft"}
+        self.assertTrue(ft_only)
+        for allowlisted in (True, False):
+            near_ids = {check["id"] for check in results[("near", allowlisted)]["checks"]}
+            self.assertFalse(ft_only & near_ids)
+
+        wrong_kind = replace_check_cell(self.text, "token_in_catalog", "Kind", "near")
+        self.assertIn("token_in_catalog", kind_problems(wrong_kind, emitted))
+        wrong_tier = replace_check_cell(self.text, "token_in_catalog", "Tier", "2")
+        self.assertTrue(tier_problems(wrong_tier, allowlisted_ft, off_allowlist_ft))
+
+    def test_optional_check_rows_match_their_enabling_inputs(self):
+        issuer_table = rules.issuers_for("mainnet")
+        without_inputs = self.request(kind="near", token=None)
+        with_issuers = self.request(kind="near", token=None, issuers=issuer_table)
+        with_reports = self.request(kind="near", token=None, reports_account="reports.gate.near")
+        ids = [{check["id"] for check in result["checks"]}
+               for result in (without_inputs, with_issuers, with_reports)]
+        self.assertNotIn("issuer_blacklist", ids[0])
+        self.assertIn("issuer_blacklist", ids[1])
+        self.assertNotIn("issuer_blacklist", ids[2])
+        self.assertNotIn("community_report", ids[0])
+        self.assertNotIn("community_report", ids[1])
+        self.assertIn("community_report", ids[2])
+        self.assertEqual(enabled_description_problems(self.text), {})
+
+        broken = replace_check_cell(self.text, "community_report", "Enabled by", "always")
+        self.assertIn("community_report", enabled_description_problems(broken))
+
+
+class IssuerNetworkTest(VerdictCase):
+    def stub_result(self):
+        return {"checks": [], "outcome": "ALLOW", "reasons": [], "action": "sign", "ask": [],
+                "evidence_hash": "a" * 64, "latency_ms": 0, "verdict": None}
+
+    def cli_issuers(self, gate, issuer_marker):
+        args = SimpleNamespace(policy="{}", live=False, gate=gate, kind="near", token=None, receiver="intents.near",
+                               amount="1", memo=None, agent_pk=AGENT, evidence_dir=self.dir, out=self.dir)
+        with mock.patch.dict(os.environ, {}, clear=True), \
+                mock.patch.object(gate_main, "_clients", return_value=(None, None, None, None)), \
+                mock.patch.object(gate_main.labels, "load", return_value=object()), \
+                mock.patch.object(gate_main.rules, "issuers_for", return_value=issuer_marker) as selection, \
+                mock.patch.object(gate_main.verdict, "request", return_value=self.stub_result()) as request:
+            self.assertEqual(gate_main._verdict(args), 0)
+        passed = request.call_args.kwargs["issuers"]
+        if gate.endswith(".testnet"):
+            selection.assert_not_called()
+        else:
+            selection.assert_called_once_with("mainnet")
+        return passed
+
+    def mcp_issuers(self, gate, issuer_marker):
+        arguments = {"kind": "near", "token": None, "receiver": "intents.near", "amount": "1", "memo": None}
+        environment = {"GATE_ACCOUNT_ID": gate, "GATE_POLICY": "{}", "REPORTS_ACCOUNT_ID": ""}
+        with mock.patch.dict(os.environ, environment, clear=True), \
+                mock.patch.object(mcp_server, "_live_signing", return_value=None), \
+                mock.patch.object(mcp_server, "_clients", return_value=(None, None, None, None)), \
+                mock.patch.object(mcp_server.labels, "load", return_value=object()), \
+                mock.patch.object(mcp_server.rules, "issuers_for", return_value=issuer_marker) as selection, \
+                mock.patch.object(mcp_server.verdict, "request", return_value=self.stub_result()) as request:
+            mcp_server._check_near_payment(arguments, self.dir)
+        passed = request.call_args.kwargs["issuers"]
+        if gate.endswith(".testnet"):
+            selection.assert_not_called()
+        else:
+            selection.assert_called_once_with("mainnet")
+        return passed
+
+    def http_issuers(self, gate, issuer_marker):
+        class ServerStub:
+            def __init__(self, address, handler):
+                self.handler = handler
+
+        config = {"gate": gate, "policy": {}, "reports_account": None, "rate": 60, "keys": ("stub",),
+                  "mode": "replay"}
+        with mock.patch.object(endpoint, "_clients", return_value=(None, None, None, None)), \
+                mock.patch.object(endpoint, "ThreadingHTTPServer", ServerStub), \
+                mock.patch.object(endpoint.rules, "issuers_for", return_value=issuer_marker) as selection:
+            server = endpoint.make_server("127.0.0.1", 0, config, self.dir, store=object())
+        method = server.handler._verdict
+        closure = dict(zip(method.__code__.co_freevars,
+                           (cell.cell_contents for cell in method.__closure__ or ())))
+        self.assertIn("judge", closure)
+        with mock.patch.object(endpoint.verdict, "request", return_value={"evidence_path": "stub.json"}) as request:
+            closure["judge"]({"kind": "near", "token": None, "receiver": "intents.near", "amount": "1"})
+        passed = request.call_args.kwargs["issuers"]
+        if gate.endswith(".testnet"):
+            selection.assert_not_called()
+        else:
+            selection.assert_called_once_with("mainnet")
+        return passed
+
+    def test_all_callers_pass_issuers_only_for_a_non_testnet_gate(self):
+        callers = {"CLI": self.cli_issuers, "MCP": self.mcp_issuers, "HTTP": self.http_issuers}
+        for caller_name, caller in callers.items():
+            for gate in ("gate.near", "gate.testnet"):
+                with self.subTest(caller=caller_name, gate=gate):
+                    issuer_marker = [{"issuer": "marker"}]
+                    passed = caller(gate, issuer_marker)
+                    self.assertIs(passed, issuer_marker if not gate.endswith(".testnet") else None)
+
+        self.assertEqual(network_description_problems(self.text()), [])
+        broken = replace_check_cell(self.text(), "issuer_blacklist", "Network", "any")
+        self.assertTrue(network_description_problems(broken))
+
+    def text(self):
+        return API_DOC.read_text(encoding="utf-8")
+
+
+class OutcomeActionTest(VerdictCase):
+    def test_actions_match_each_documented_outcome_row(self):
+        allowed = self.request()
+        allowed_ask = self.request(policy={"allowlist": ["intents.near"], "caps": [], "enabled": False})
+        denied = self.request(kind="near", token=None, receiver="no-such-account-example.near", amount="1",
+                              policy={"allowlist": ["no-such-account-example.near"], "caps": []})
+        unknown = self.request(kind="near", token=None, receiver="relay.aurora", amount="5",
+                               policy={"allowlist": [], "caps": []})
+        results = (allowed, allowed_ask, denied, unknown)
+        self.assertEqual({result["outcome"] for result in results}, set(OUTCOMES))
+        self.assertEqual(action_problems(API_DOC.read_text(encoding="utf-8"), results), [])
+
+        broken = API_DOC.read_text(encoding="utf-8").replace(
+            "| `DENY` | always empty (`gate/verdict.py:25` to `:26`) | `refuse` |",
+            "| `DENY` | always empty (`gate/verdict.py:25` to `:26`) | `sign` |", 1)
+        self.assertTrue(action_problems(broken, results))
 
 
 class ExamplesTest(unittest.TestCase):
