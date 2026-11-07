@@ -94,6 +94,9 @@ def _event_record(item: object) -> dict | None:
         if state not in ("accepted", "overturned"):
             raise ReconcileError("dispute_resolved: state must be accepted or overturned")
         _non_negative_int(payload.get("dispute_id"), "dispute_id")
+    receipt = item.get("receipt_id") or item.get("transaction_id") or item.get("tx_hash") or None
+    if receipt is not None and (not isinstance(receipt, str) or not receipt):
+        raise ReconcileError("event line: receipt or transaction id must be non-empty text")
 
     return {
         "contract": None,
@@ -105,7 +108,7 @@ def _event_record(item: object) -> dict | None:
         "state": state,
         "body_sha256": body_sha256,
         "source_method": "event",
-        "source_args": {"id": report_id},
+        "source_args": {"receipt": receipt, "report_id": report_id},
         "event_data": payload,
         "supersedes": None,
     }
@@ -189,7 +192,7 @@ def _recovery_row(
     state = _required_text(report, "state")
     if state == "accepted" and known_state != "accepted":
         event_name = "reports_by_subject"
-    elif state == "overturned" and known_state == "accepted":
+    elif state == "overturned" and known_state != "overturned":
         event_name = "dispute_resolved"
     else:
         return None
@@ -294,6 +297,8 @@ def _apply_ordered(existing: list[dict], candidates: list[dict]) -> tuple[list[d
                 continue
             previous = active.get(identity)
             if previous is None:
+                if row["source_method"] in ("reports_by_subject", "get_report"):
+                    continue
                 raise ReconcileError(f"overturned report {row['report_id']} has no accepted row to supersede")
             row["supersedes"] = {
                 "contract": previous["contract"],
@@ -446,13 +451,20 @@ def to_label_row(
     source_method = str(row["source_method"])
     source_args = row["source_args"]
     if source_method == "event":
-        method = "get_report"
+        method = f"EVENT_JSON:{row['event']}"
     elif source_method in ("reports_by_subject", "get_report"):
         method = source_method
     else:
         raise ReconcileError("row: unsupported source method for label conversion")
     if not isinstance(source_args, Mapping):
         raise ReconcileError("row: source arguments are required for label conversion")
+    if source_method == "event" and (
+        set(source_args) != {"receipt", "report_id"}
+        or source_args.get("report_id") != row["report_id"]
+        or source_args.get("receipt") is not None
+        and (not isinstance(source_args.get("receipt"), str) or not source_args.get("receipt"))
+    ):
+        raise ReconcileError("row: event source arguments do not match the report id")
     if method == "get_report" and dict(source_args) != {"id": row["report_id"]}:
         raise ReconcileError("row: get_report source arguments do not match the report id")
     if method == "reports_by_subject" and (
@@ -468,7 +480,11 @@ def to_label_row(
         raise ReconcileError("row: reports_by_subject source arguments do not match the page")
     if state == "overturned":
         note = (f'Report {row["report_id"]} on "{row["contract"]}" was overturned at block '
-                f'{row["source_block"]}; this row supersedes the accepted row.')
+                f'{row["source_block"]}; ')
+        if row["supersedes"] is None:
+            note += "no accepted row was available to supersede."
+        else:
+            note += "this row supersedes the accepted row."
     else:
         note = (f'"{row["contract"]}" recorded report {row["report_id"]} as "{state}" at block '
                 f'{row["source_block"]}.')
@@ -502,6 +518,12 @@ def to_label_row(
         previous_args = previous_source.get("args") if isinstance(previous_source, Mapping) else None
         previous_method = previous_source.get("method") if isinstance(previous_source, Mapping) else None
         previous_source_matches = (
+            previous_method == "EVENT_JSON:report_moderated"
+            and isinstance(previous_args, Mapping)
+            and set(previous_args) == {"receipt", "report_id"}
+            and previous_args.get("report_id") == supersedes.get("report_id")
+            and (previous_args.get("receipt") is None or isinstance(previous_args.get("receipt"), str))
+        ) or (
             previous_method == "get_report" and previous_args == {"id": supersedes.get("report_id")}
         ) or (
             previous_method == "reports_by_subject"

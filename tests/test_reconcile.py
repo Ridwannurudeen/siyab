@@ -166,6 +166,46 @@ class ReconcileTest(unittest.TestCase):
         self.assertEqual([row["report_id"] for row in rows], [2])
         self.assertEqual(calls, [("subject.synthetic.testnet", 0, 50)])
 
+    def test_empty_store_page_recovery_preserves_an_overturned_report_as_watch(self):
+        subject = "subject.synthetic.testnet"
+
+        def page_reader(requested_subject, start, limit):
+            self.assertEqual((requested_subject, start, limit), (subject, 0, 50))
+            return {
+                "source_block": 31,
+                "fetched_at": FETCHED_AT,
+                "reports": [page_report(2, subject=subject, state="overturned")],
+            }
+
+        rows = self.run_reconcile([], subjects=[subject], page_reader=page_reader)
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["source_method"], "reports_by_subject")
+        self.assertIsNone(rows[0]["supersedes"])
+        label_row = to_label_row(rows[0], rpc="https://rpc.example.test")
+        self.assertEqual(label_row["category"], "watch")
+        self.assertNotIn("supersedes the accepted row", label_row["note"])
+        labels.validate(label_row)
+
+    def test_empty_store_id_walk_preserves_an_overturned_report_as_watch(self):
+        rows = self.run_reconcile(
+            [],
+            report_total=1,
+            get_report=lambda report_id: {
+                "source_block": 31,
+                "fetched_at": FETCHED_AT,
+                "report": page_report(report_id, state="overturned"),
+            },
+        )
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["source_method"], "get_report")
+        self.assertIsNone(rows[0]["supersedes"])
+        label_row = to_label_row(rows[0], rpc="https://rpc.example.test")
+        self.assertEqual(label_row["category"], "watch")
+        self.assertNotIn("supersedes the accepted row", label_row["note"])
+        labels.validate(label_row)
+
     def test_report_id_scan_recovers_reports_without_known_subjects(self):
         calls = []
 
@@ -248,7 +288,8 @@ class ReconcileTest(unittest.TestCase):
 
         self.assertEqual(accepted_label["superseded_by"], correction_label["id"])
         self.assertEqual(accepted_label["source"]["method"], "reports_by_subject")
-        self.assertEqual(correction_label["source"]["method"], "get_report")
+        self.assertEqual(correction_label["source"]["method"], "EVENT_JSON:dispute_resolved")
+        self.assertEqual(correction_label["source"]["args"], {"receipt": None, "report_id": 2})
 
     def test_nonconsecutive_report_ids_reconcile_without_a_page_reader(self):
         rows = self.run_reconcile([accepted(0, 10), accepted(3, 30), accepted(7, 70)])
@@ -309,13 +350,30 @@ class ReconcileTest(unittest.TestCase):
         self.assertEqual(label_row["provenance"], "onchain")
         self.assertEqual(label_row["subject"], "subject.synthetic.testnet")
         self.assertEqual(label_row["source"]["rpc"], "https://rpc.example.test")
-        self.assertEqual(label_row["source"]["method"], "get_report")
-        self.assertEqual(label_row["source"]["args"], {"id": 1})
+        self.assertEqual(label_row["source"]["method"], "EVENT_JSON:report_moderated")
+        self.assertEqual(label_row["source"]["args"], {"receipt": None, "report_id": 1})
         self.assertEqual(label_row["source"]["block"], 10)
         labels.validate(label_row)
         canonical = {key: value for key, value in label_row.items() if key not in ("id", "superseded_by")}
         payload = json.dumps(canonical, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
         self.assertEqual(label_row["id"], hashlib.sha256(payload).hexdigest())
+
+    def test_event_label_source_uses_an_input_receipt_or_transaction_id(self):
+        for report_id, field, identifier in (
+            (1, "receipt_id", "receipt-1"),
+            (2, "transaction_id", "transaction-2"),
+        ):
+            with self.subTest(field=field):
+                event = accepted(report_id, 10 + report_id)
+                event[field] = identifier
+                row = self.run_reconcile([event])[-1]
+                label_row = to_label_row(row, rpc="https://rpc.example.test")
+
+                self.assertEqual(label_row["source"]["args"], {
+                    "receipt": identifier,
+                    "report_id": report_id,
+                })
+                labels.validate(label_row)
 
     def test_overturn_conversion_supersedes_the_accepted_label_in_store(self):
         rpc = "https://rpc.example.test"
@@ -336,7 +394,7 @@ class ReconcileTest(unittest.TestCase):
         store = labels.load(label_store_path)
         current = [
             row for row in store.by_subject("subject.synthetic.testnet", "near")
-            if row.source["args"] == {"id": 1} and row.superseded_by is None
+            if row.source["args"] == {"receipt": None, "report_id": 1} and row.superseded_by is None
         ]
 
         self.assertEqual(len(current), 1)
