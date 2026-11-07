@@ -2,7 +2,7 @@
 
 This page is the published policy for community reports on ShieldBot for NEAR: who can file one, what it costs, who decides it, how fast, how the account a report names asks for review, and how a mistake is corrected. The contract behind it is `contracts/reports` (`docs/REPORTS.md` lists its methods and tests). The decisions it applies are entries 5 and 6 of `docs/DECISIONS.md`, and each rule below names the function in `contracts/reports/src/lib.rs` that enforces it.
 
-The reports contract is deployed on testnet at `reports.kestrelridge-main.testnet`, its code hash matching the reproducible build (`res/BUILD-reports.md`, Deployed line; `docs/TESTNET.md`, the Reports rows). The read back after the deploy shows 0 reports and 0 disputes, and `kestrelridge-owner.testnet` as the only moderator (`docs/TESTNET.md`). No report has been filed, moderated or disputed under this policy yet. The source crate is version `0.1.1` (`contracts/reports/Cargo.toml`); testnet still runs `0.1.0` per `res/BUILD-reports.md`. Whether the verdict service reads reports is controlled by `REPORTS_ACCOUNT_ID` (see What a report does to a payment).
+The reports contract is deployed on testnet at `reports.kestrelridge-main.testnet`, its code hash matching the reproducible build (`res/BUILD-reports.md`, Deployed line; `docs/TESTNET.md`, the Reports rows). The read back after the deploy shows 0 reports and 0 disputes, and `kestrelridge-owner.testnet` as the only moderator (`docs/TESTNET.md`). No report has been filed, moderated or disputed under this policy yet. The source crate is version `0.1.1` (`contracts/reports/Cargo.toml`); testnet runs deployed Reports version `0.1.1` per `res/BUILD-reports.md`. Whether the verdict service reads reports is controlled by `REPORTS_ACCOUNT_ID` (see What a report does to a payment).
 
 ## Who can report, and how
 
@@ -80,9 +80,9 @@ The first rule decides which account files. The only moderator is the owner, so 
 
 ## The dispute cap
 
-The source has no dispute cap: `dispute` refuses only a report that is not accepted (`REFUSED:not_accepted`), a second open dispute (`REFUSED:dispute_open`, `contracts/reports/src/lib.rs:486`) and a deposit that is not exact (`REFUSED:bad_deposit`). `resolve_dispute` adds one to `upheld_disputes` when it upholds the report, saturating at 255, and keeps it only as a statistic (`contracts/reports/src/lib.rs:575`). Testnet's deployed 0.1.0 still has the five-upheld-dispute cap recorded in `res/BUILD-reports.md`; source 0.1.1 removes it. An overturned report is terminal. The reason is in `docs/DECISIONS.md` (2026-11-07 note): a cap on upheld disputes counted exactly the baseless ones and let five of them close review of a report for good.
+The source has no dispute cap: `dispute` refuses only a report that is not accepted (`REFUSED:not_accepted`), a second open dispute (`REFUSED:dispute_open`, `contracts/reports/src/lib.rs:486`) and a deposit that is not exact (`REFUSED:bad_deposit`). `resolve_dispute` adds one to `upheld_disputes` when it upholds the report, saturating at 255, and keeps it only as a statistic (`contracts/reports/src/lib.rs:575`). An overturned report is terminal. The reason is in `docs/DECISIONS.md` (2026-11-07 note): a cap on upheld disputes counted exactly the baseless ones and let five of them close review of a report for good.
 
-Source version `0.1.1` has no dispute cap. Testnet still runs version `0.1.0` per `res/BUILD-reports.md`; that deployed code refuses a dispute once the report has five upheld disputes, until redeploy.
+Testnet runs deployed Reports version `0.1.1` per `res/BUILD-reports.md`; that deployed code has no lifetime dispute cap.
 
 ## Corrections
 

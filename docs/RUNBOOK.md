@@ -6,7 +6,7 @@ Every script this runbook uses calls `require_testnet` and so refuses any networ
 
 ## Current implementation state
 
-The verdict service reads `subject_summary` and applies `intel/reports.py` when `REPORTS_ACCOUNT_ID` is set (`gate/rules.py`, `docs/LADDER.md`). Current Reports source is 0.1.1 while testnet runs 0.1.0 (`res/BUILD-reports.md`); current Gate source is 0.2.0 while testnet runs 0.1.0 (`res/BUILD-gate.md`). Gate and Reports have sandbox round-trip tests and previous artifacts; the Registry has no previous artifact (`docs/UPGRADES.md:16`).
+The verdict service reads `subject_summary` and applies `intel/reports.py` when `REPORTS_ACCOUNT_ID` is set (`gate/rules.py`, `docs/LADDER.md`). Current Reports source is 0.1.1; testnet runs deployed Reports version `0.1.1` (`res/BUILD-reports.md`). Current Gate source is 0.2.0 while testnet still runs Gate 0.1.0 (`res/BUILD-gate.md`). Gate and Reports have sandbox round-trip tests and previous artifacts; the Registry has no previous artifact (`docs/UPGRADES.md:16`).
 
 The read backs below use the near-cli-rs view form `near contract call-function as-read-only <account> <method> json-args '<json>' network-config testnet now` (the form `scripts/lib.sh:178` uses), written here as "view `<method>`". Every transaction below goes through `call_transaction` (`scripts/lib.sh:241-244`) and ends with the summary block (`scripts/lib.sh:143-162`), which prints the account summary with its `code_hash` and the shortened transaction hashes.
 
@@ -47,7 +47,7 @@ DRY_RUN=1 GATE_STATE_FROZEN=1 EXPECT_VERSION=<version> EXPECT_CODE_HASH=<code_ha
 GATE_STATE_FROZEN=1 EXPECT_VERSION=<version> EXPECT_CODE_HASH=<code_hash> bash scripts/redeploy.sh <contract> <wasm>
 ```
 
-The reports contract has a `version` view, so `EXPECT_VERSION` applies to `reports` as it does to the Gate and the registry. The reports account is `REPORTS_ACCOUNT_ID`, or `reports.$GATE_ACCOUNT_ID` when that is unset (`scripts/redeploy.sh:31`); testnet currently runs version 0.1.0 while source is 0.1.1 (`res/BUILD-reports.md`, `contracts/reports/Cargo.toml`). After 4 Nov the script refuses without `GATE_STATE_FROZEN=1` (`scripts/redeploy.sh:34-35`). It deploys without an init call, signed by the contract account's own key (`scripts/redeploy.sh:38`, `:83`). The dry run prints the version view, the deploy line, the wasm sha256 and the codehash line, then one `would assert` line for each of `EXPECT_VERSION` and `EXPECT_CODE_HASH` that is set, and exits 0 (`scripts/redeploy.sh:85-90`, `:100-107`).
+The reports contract has a `version` view, so `EXPECT_VERSION` applies to `reports` as it does to the Gate and the registry. The reports account is `REPORTS_ACCOUNT_ID`, or `reports.$GATE_ACCOUNT_ID` when that is unset (`scripts/redeploy.sh:31`); testnet runs deployed Reports version `0.1.1` while source is `0.1.1` (`res/BUILD-reports.md`, `contracts/reports/Cargo.toml`). After 4 Nov the script refuses without `GATE_STATE_FROZEN=1` (`scripts/redeploy.sh:34-35`). It deploys without an init call, signed by the contract account's own key (`scripts/redeploy.sh:38`, `:83`). The dry run prints the version view, the deploy line, the wasm sha256 and the codehash line, then one `would assert` line for each of `EXPECT_VERSION` and `EXPECT_CODE_HASH` that is set, and exits 0 (`scripts/redeploy.sh:85-90`, `:100-107`).
 
 Read backs: the script prints `version before` and `version after`, the account summary with its `code_hash`, the wasm sha256 and the `python -m gate codehash` line (`scripts/redeploy.sh:79-109`). With `EXPECT_VERSION` set it exits 1 unless the `version` view after the deploy returns it (`scripts/redeploy.sh:120-130`); with `EXPECT_CODE_HASH` set it reads the account's `code_hash` from `view_account` up to five times, 2 s apart, and exits 1 unless it matches (`scripts/redeploy.sh:131-147`). Each passing assertion prints an `asserted:` line. Then read the state back: for the Gate, view `get_policy`, view `get_verifier_keys` and view `get_agent` for the agent key, each unchanged; for the registry, view `total_records`, `total_subjects`, `total_labels` and `get_recorder`, each unchanged (the 5 Nov values are in `docs/TESTNET.md:75`); for the reports contract, view `totals` unchanged.
 
@@ -74,7 +74,7 @@ When: a layout preserving redeploy went wrong and the previous code must run aga
 
 Command: the redeploy procedure above, with `res/previous/<crate>.wasm` as `<wasm>` and the previous version and code hash as `EXPECT_VERSION` and `EXPECT_CODE_HASH` (`docs/UPGRADES.md:62`), and the same read backs: the state reads back unchanged.
 
-Gate and Reports have previous artifacts in `res/previous/` and sandbox round-trip tests (`docs/UPGRADES.md:16`). Testnet still runs Gate 0.1.0 (`res/BUILD-gate.md`) and Reports 0.1.0 (`res/BUILD-reports.md`); their current source is Gate 0.2.0 and Reports 0.1.1. The Registry has no previous artifact, so no Registry rollback is available (`res/BUILD-registry.md`, `docs/UPGRADES.md:16`).
+Gate and Reports have previous artifacts in `res/previous/` and sandbox round-trip tests (`docs/UPGRADES.md:16`). Testnet runs deployed Reports version `0.1.1` (`res/BUILD-reports.md`) and still runs Gate 0.1.0 (`res/BUILD-gate.md`); their current source is Gate 0.2.0 and Reports 0.1.1. The Registry has no previous artifact, so no Registry rollback is available (`res/BUILD-registry.md`, `docs/UPGRADES.md:16`).
 
 ## Rotate the verifier
 
@@ -209,7 +209,7 @@ Before resolving read view `get_dispute` (`contracts/reports/src/lib.rs:606-608`
 
 Read backs: after opening, view `get_report` shows `contested` and the transaction carries `report_disputed`; after resolving, view `get_dispute` shows it closed, view `get_report` shows `accepted` (upheld) or `overturned`, the transaction carries `dispute_resolved`, and view `subject_summary` shows `deny`, `latest_accepted_id` and `latest_deny_id` as expected (`docs/REPORTS.md:25`).
 
-Undo: current source has no lifetime dispute cap, so an upheld report can be disputed again; testnet's deployed 0.1.0 still caps review after five upheld disputes (`res/BUILD-reports.md`). One dispute may be open at a time, and each costs the deposit (`docs/REPORTS.md`, the `dispute` row). An overturn is final.
+Undo: current source has no lifetime dispute cap, so an upheld report can be disputed again; testnet runs deployed Reports version `0.1.1`, which also has no lifetime cap (`res/BUILD-reports.md`). One dispute may be open at a time, and each costs the deposit (`docs/REPORTS.md`, the `dispute` row). An overturn is final.
 
 ## Live report beat
 

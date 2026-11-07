@@ -45,7 +45,7 @@ The other submission rules: the attached deposit must be exactly `REPORT_DEPOSIT
 
 `publisher_stats(account)` returns `{"submitted", "accepted", "rejected", "withdrawn", "overturned"}` (`:180`); `totals()` returns `{"reports", "disputes"}` (`:189`).
 
-`version()` returns the source crate version `0.1.1` in `contracts/reports/Cargo.toml` (`contracts/reports/src/lib.rs:246-247`); testnet still reports deployed version `0.1.0` per `res/BUILD-reports.md`. `state_version()` returns the stored root state version as a number, 1 since `new` (`:231`, `:250-251`); the unit test `version_views_return_the_crate_and_state_versions` checks both. The current source has no lifetime cap on disputes; testnet's deployed 0.1.0 still has the five-upheld-dispute cap from that build (`res/BUILD-reports.md`). Neither version view is a format version: the formats on this page are versioned by this page and by the events' `1.0.0`.
+`version()` returns the source crate version `0.1.1` in `contracts/reports/Cargo.toml` (`contracts/reports/src/lib.rs:246-247`); testnet runs deployed Reports version `0.1.1` per `res/BUILD-reports.md`. `state_version()` returns the stored root state version as a number, 1 since `new` (`:231`, `:250-251`); the unit test `version_views_return_the_crate_and_state_versions` checks both. The current source and deployed version have no lifetime cap on disputes. Neither version view is a format version: the formats on this page are versioned by this page and by the events' `1.0.0`.
 
 ### State changes
 
