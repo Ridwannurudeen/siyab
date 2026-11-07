@@ -153,6 +153,38 @@ class VerdictRouteTest(EndpointCase):
                 self.assertEqual([document[k] for k in ("issued_ms", "expires_ms", "verdict_id")], [None, None, None])
         self.assertEqual(sorted(path.name for path in EVIDENCE_DIR.iterdir()), before)
 
+    def test_an_unset_reports_account_omits_the_community_report_check(self):
+        status, _, result = self.call("POST", "/verdict", ALLOW)
+        self.assertEqual(status, 200)
+        self.assertNotIn("community_report", {check["id"] for check in result["checks"]})
+
+    def test_a_reports_deny_summary_is_returned_by_the_verdict_route(self):
+        environ = replay_environ(self.keys_file, REPORTS_ACCOUNT_ID="reports.gate.testnet")
+        config = endpoint.settings(environ)
+        with mock.patch.dict(os.environ, environ):
+            server = endpoint.make_server("127.0.0.1", 0, config, self.evidence_dir, store=labels.load())
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        self.server = server
+        summary = {"accepted": 2, "pending": 3, "contested": 1, "latest_accepted_id": 29,
+                   "latest_deny_id": 17, "deny": True}
+        body = {"kind": "near", "receiver": "intents.near", "amount": "1"}
+        try:
+            with mock.patch("gate.rpc.Client.call_function", autospec=True, return_value=summary) as call_function:
+                status, _, result = self.call("POST", "/verdict", body)
+            self.assertEqual(status, 200)
+            self.assertEqual(result["outcome"], "DENY")
+            check = next(check for check in result["checks"] if check["id"] == "community_report")
+            self.assertEqual((check["status"], check["detail"]),
+                             ("signal", "reports for intents.near: deny report 17 is accepted; "
+                              "1 under dispute; pending 3"))
+            self.assertEqual(call_function.call_args.args[1:],
+                             ("reports.gate.testnet", "subject_summary", {"subject": "intents.near"}))
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join()
+
     def test_no_signer_is_built_for_an_allow(self):
         refuse = mock.Mock(side_effect=AssertionError("a signer was built"))
         with mock.patch.object(signer, "TestSigner", refuse), mock.patch.object(signer, "NaClSigner", refuse), \

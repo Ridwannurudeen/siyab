@@ -99,8 +99,9 @@ def settings(environ=os.environ):
         raise ConfigError(f"GATE_POLICY is not JSON: {error}") from error
     if not isinstance(policy, dict):
         raise ConfigError("GATE_POLICY must be a JSON object in the get_agent shape")
+    reports_account = environ.get("REPORTS_ACCOUNT_ID")
     return {"keys": keys, "rate": rate, "mode": "replay" if fixtures_mode == "replay" else "live", "gate": gate,
-            "policy": policy}
+            "policy": policy, "reports_account": reports_account}
 
 
 class RateLimit:
@@ -143,6 +144,7 @@ def make_server(host, port, config, evidence_dir, store=None, clock=time.monoton
     """A ThreadingHTTPServer for the endpoint; port 0 picks a free port. clock drives the rate windows."""
     store = store or labels.load()
     gate, policy = config["gate"], config["policy"]
+    reports_account = config["reports_account"]
     agent_pk_hex = ed25519.public_from_seed(ed25519.TEST_AGENT_SEED).hex()
     client, nearblocks, scanner, archival = _clients(gate)
     issuers = None if gate.endswith(".testnet") else rules.issuers_for("mainnet")
@@ -156,7 +158,8 @@ def make_server(host, port, config, evidence_dir, store=None, clock=time.monoton
                                      body.get("memo"), gate=gate, agent_pk_hex=agent_pk_hex, policy=policy,
                                      store=store, rpc=client, nearblocks=nearblocks, signer=None,
                                      sign_actions=(), injection_scanner=scanner, archival=archival,
-                                     evidence_dir=evidence_dir, issuers=issuers)
+                                     evidence_dir=evidence_dir, issuers=issuers,
+                                     reports_account=reports_account)
         result.pop("evidence_path")
         return {**result, "verdict": None, "message": None, "signing": SIGNING}
 
