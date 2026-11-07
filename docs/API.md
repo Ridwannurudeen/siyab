@@ -55,6 +55,8 @@ NearBlocks is a fallback source whose terms are under review; plan item 2.2 name
 
 FastNEAR supplies the RPC, archival RPC and transfers reads used here. It publishes no terms of service or rate limits for those interfaces; this dependency is unverified on those two points.
 
+The issuer source records current token blacklist views as `onchain` `denylist` assertions with `python -m intel issuers seed`; `label_denylist` reads them from the store, while `issuer_blacklist` remains a separate view check.
+
 Line numbers without a file are `gate/rules.py`. The test compares the table's check ids with the literal first arguments of `evidence.check` calls in `gate/rules.py`. It does not validate the prose in the `pass`, `signal` and `unknown` columns; those descriptions are checked by review.
 
 ### Outcome and action

@@ -447,6 +447,117 @@ def rows():
     return build_rows(read_status())
 
 
+def _verified_status_read(read, fixture_dir):
+    entries = {entry["token"]: entry for entry in issuer_entries()}
+    entry = entries.get(read.get("issuer"))
+    if (entry is None or read.get("method") != entry["method"]
+            or read.get("args") != {entry["args_key"]: read.get("subject")}):
+        return None
+    client = rpc.Client(RPC_URL, "replay", fixtures_dir=fixture_dir)
+    try:
+        answer = client.call_function(read["issuer"], read["method"], read["args"])
+    except rpc.FixtureMiss:
+        return None
+    if (answer != read.get("answer") or client.last_block_height != read.get("block")
+            or client.last_source["fetched_at"] != read.get("observed_at")):
+        raise seed.SeedError("issuer status cache does not match its recorded view fixture")
+    return {"answer": answer, "rpc": client.url, "method": read["method"], "args": read["args"],
+            "block": client.last_block_height, "observed_at": client.last_source["fetched_at"]}
+
+
+def blacklist_rows(reads_to_seed=None, fixture_dir=FIXTURE_DIR):
+    reads_to_seed = reads() if reads_to_seed is None else reads_to_seed
+    entries = {entry["token"]: entry for entry in issuer_entries()}
+    rows = []
+    for read in reads_to_seed:
+        entry = entries.get(read.get("issuer"))
+        if entry is None or read.get("answer") != entry["banned"]:
+            continue
+        observed = _verified_status_read(read, fixture_dir)
+        if observed is None:
+            continue
+        token, subject, answer, block = read["issuer"], read["subject"], observed["answer"], observed["block"]
+        rows.append(seed.make_row(
+            entity=f"issuer of {token}", subject=subject, chain="near",
+            label=f"The issuer of {token} blacklists {subject} as of block {block}", category="denylist",
+            provenance="onchain",
+            source={"rpc": observed["rpc"], "method": observed["method"], "args": observed["args"],
+                    "block": block},
+            observed_at=observed["observed_at"],
+            note=f"The view returned {json.dumps(answer, ensure_ascii=False)} for this account at block {block}"))
+    return rows
+
+
+def _blacklist_key(assertion, entries):
+    if (assertion.category != "denylist" or assertion.provenance != "onchain"
+            or not assertion.entity.startswith("issuer of ")):
+        return None
+    token = assertion.entity.removeprefix("issuer of ")
+    return (token, assertion.subject) if token in entries else None
+
+
+def seed_blacklists(store_path=labels.STORE_PATH, fixture_dir=FIXTURE_DIR, reads_path=READS_PATH):
+    store_path = Path(store_path)
+    reads_to_seed = json.loads(Path(reads_path).read_text(encoding="utf-8"))
+    entries = {entry["token"]: entry for entry in issuer_entries()}
+    current_rows = blacklist_rows(reads_to_seed, fixture_dir)
+    current_by_key = {(row["entity"].removeprefix("issuer of "), row["subject"]): row for row in current_rows}
+    read_by_key = {(read.get("issuer"), read.get("subject")): read for read in reads_to_seed}
+    existing_store = labels.load(store_path) if store_path.is_file() else None
+    existing_assertions = [] if existing_store is None else existing_store.assertions
+    raw_rows = ([json.loads(line) for line in store_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+                if store_path.is_file() else [])
+    existing_by_id = {assertion.id: assertion for assertion in existing_assertions}
+    existing_ids = set(existing_by_id)
+    additions = [row for row in current_rows if row["id"] not in existing_ids]
+    superseded = {}
+    stale = []
+    for assertion in existing_assertions:
+        key = _blacklist_key(assertion, entries)
+        if key is None or assertion.superseded_by is not None:
+            continue
+        replacement = current_by_key.get(key)
+        if replacement is not None:
+            if replacement["id"] != assertion.id:
+                superseded[assertion.id] = replacement["id"]
+            continue
+        read = read_by_key.get(key)
+        if read is None or read.get("answer") == entries[key[0]]["banned"]:
+            continue
+        if _verified_status_read(read, fixture_dir) is not None:
+            stale.append((assertion, key))
+
+    if stale:
+        removals = {}
+        for row in history_rows(fixture_dir):
+            token = row["entity"].removesuffix(" issuer action")
+            key = (token, row["subject"])
+            previous = existing_by_id.get(row["id"])
+            if (token in entries and "remove_from_blacklist" in row["note"]
+                    and (previous is None or previous.superseded_by is None)):
+                removals.setdefault(key, row)
+        for assertion, key in stale:
+            removal = removals.get(key)
+            if removal is None:
+                raise seed.SeedError(f"no recorded remove_from_blacklist action for {key[1]}")
+            superseded[assertion.id] = removal["id"]
+            if removal["id"] not in existing_ids:
+                additions.append(removal)
+                existing_ids.add(removal["id"])
+
+    if not additions and not superseded:
+        return 0
+    for row in raw_rows:
+        replacement = superseded.get(row["id"])
+        if replacement is not None:
+            row["superseded_by"] = replacement
+    store_path.parent.mkdir(parents=True, exist_ok=True)
+    store_path.write_text("".join(labels.row_line(row) + "\n" for row in raw_rows + additions),
+                          encoding="utf-8", newline="\n")
+    labels.load(store_path)
+    return len(additions)
+
+
 def rows_jsonl():
     return "".join(labels.row_line(row) + "\n" for row in rows())
 
@@ -483,7 +594,7 @@ def append_rows():
 
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="python -m intel.issuers")
-    parser.add_argument("command", choices=("record", "rows", "append", "history"))
+    parser.add_argument("command", choices=("record", "rows", "append", "history", "seed"))
     args = parser.parse_args(argv)
     try:
         if args.command == "record":
@@ -495,6 +606,8 @@ def main(argv=None):
             print(f"{status_count} issuer status rows, {history_count} issuer history rows")
         elif args.command == "append":
             print(f"{append_rows()} issuer rows appended")
+        elif args.command == "seed":
+            print(f"{seed_blacklists()} issuer assertions appended")
         else:
             record_history()
     except (rpc.FixtureMiss, rpc.HttpError, rpc.TransportError, rpc.RpcError, rpc.MalformedResponse) as error:

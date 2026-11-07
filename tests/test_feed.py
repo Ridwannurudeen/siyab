@@ -574,7 +574,7 @@ class FollowModeTest(unittest.TestCase):
             state, walked = self.follow_transfers(Path(tmp), Timed(self.blocks(2), 2), lambda: now[0], TransfersStub(),
                                                   max_blocks=None, sleep=sleep, stopped=lambda: len(waits) == 2)
         self.assertEqual((walked, state["last_height"], state["last_large_transfer_poll_ms"]), (2, 2, T0_MS))
-        self.assertEqual(stamps, [None, "2026-11-03T12:00:07Z", "2026-11-03T12:00:07Z", "2026-11-03T12:00:09Z"])
+        self.assertEqual(stamps, [None, "2026-11-03T12:00:11Z", "2026-11-03T12:00:11Z", "2026-11-03T12:00:13Z"])
 
     def test_a_restart_neardata_refuses_keeps_updated_at_while_the_transfers_poll_writes_the_state(self):
         class Refused(FakeFetcher):
@@ -713,7 +713,7 @@ class FollowModeTest(unittest.TestCase):
         self.assertEqual((walked, state["last_height"], state["transfer_requests"]), (1, 2, requests))
         self.assertEqual(len(judged), requests + 2)
         self.assertEqual(judged, [None] * len(judged))
-        self.assertEqual(stamps, ["2026-11-03T12:00:00Z", "2026-11-03T12:16:43Z", "2026-11-03T12:16:43Z"])
+        self.assertEqual(stamps, ["2026-11-03T12:00:00Z", "2026-11-03T12:21:47Z", "2026-11-03T12:21:47Z"])
 
     def test_follow_counts_requests_on_the_utc_date_they_are_made_across_midnight(self):
         midnight = datetime(2026, 11, 4, tzinfo=UTC).timestamp()

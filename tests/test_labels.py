@@ -109,7 +109,7 @@ class CommittedStoreTest(unittest.TestCase):
             rows = (seed.treasuries("replay") + seed.catalog("replay") + seed.infrastructure("replay")
                     + seed.rhea("replay") + seed.sweat_hot("replay")
                     + [row for name in registries.REGISTRY_ORDER for row in by_registry[name]]
-                    + issuers.history_rows() + issuers.rows())
+                    + issuers.history_rows() + issuers.rows() + issuers.blacklist_rows())
         self.assertEqual([r["id"] for r in rows], [r["id"] for r in self.rows])
         self.assertEqual([labels.row_line(r) for r in rows], labels.STORE_PATH.read_text(encoding="utf-8").splitlines())
 

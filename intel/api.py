@@ -58,21 +58,21 @@ FEED_LIMIT = 50
 # there, and, once its run has done either, at the end of every transfer poll; a run that has done
 # neither, such as a restart on a refused key or one whose first block fetch fails, stamps nothing, so
 # a crash loop never refreshes the stamp. With every request answered inside its rpc.TIMEOUT_S (30 s),
-# a poll is one page each for 13 of the 14 incident and denylist subjects and all MAX_TRANSFER_PAGES
-# (20) for the last, 33 requests FOLLOW_INTERVAL_S (0.4 s) apart, 33 x 30 + 32 x 0.4 = 1002.8 s; a
+# a poll is one page each for 23 of the 24 incident and denylist subjects and all MAX_TRANSFER_PAGES
+# (20) for the last, 43 requests FOLLOW_INTERVAL_S (0.4 s) apart, 43 x 30 + 42 x 0.4 = 1306.8 s; a
 # final read is two requests since neardata redirects it, with one 429 back off (BACKOFF_S, 10 s),
 # 2 x 30 + 10 + 2 x 30 = 130 s; a block fetch with one back off is 30 + 10 + 30 = 70 s. A poll that
 # falls due during the final read after the 1 s wait at the final height runs before the next fetch,
 # so the longest gap between two stamps of a running follower is that wait, that read, a 0.4 s pace
-# and the poll: 1 + 130 + 0.4 + 1002.8 = 1134.2 s. A poll due at the wait itself gives
-# 1 + 1002.8 = 1003.8 s. At that speed a poll outlasts POLL_S (600 s), so the gap after a poll's own
+# and the poll: 1 + 130 + 0.4 + 1306.8 = 1438.2 s. A poll due at the wait itself gives
+# 1 + 1306.8 = 1307.8 s. At that speed a poll outlasts POLL_S (600 s), so the gap after a poll's own
 # stamp can hold a final read, a pace and a second poll that fell due during the first:
-# 130 + 0.4 + 1002.8 = 1133.2 s. 1200 s clears 1134.2 s with room for two more subjects. Not covered:
+# 130 + 0.4 + 1306.8 = 1437.2 s. 1600 s clears 1438.2 s with room for five more subjects. Not covered:
 # the polls a run makes before its first stamp, which at that speed can be two before its first fetch
 # (the first stamp about 2206 s after the restart), so a restarted follower can read stopped for about
 # 1000 s; a second subject paging to the cap at that speed; and an unbroken run of 429 answers, which
 # Fetcher.get waits out without end.
-FOLLOWER_STOPPED_AFTER_S = 1200
+FOLLOWER_STOPPED_AFTER_S = 1600
 JSON_TYPE = "application/json; charset=utf-8"
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 

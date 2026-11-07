@@ -11,9 +11,9 @@ These counts are not a precision or recall measurement against any outside groun
 | Receiver ALLOW | 70 / 84 receivers | fixtures/receivers/set.json; fixtures/receivers/judgements/*.json |
 | Receiver DENY | 14 / 84 receivers | fixtures/receivers/set.json; fixtures/receivers/judgements/*.json |
 | Receiver UNKNOWN | 0 / 84 receivers | fixtures/receivers/set.json; fixtures/receivers/judgements/*.json |
-| Label assertions | 3,266 / 3,266 committed assertion rows | intel/labels.jsonl |
-| Hostile assertions (incident and denylist) | 47 / 3,266 assertions | intel/labels.jsonl; intel/incidents/*.json |
-| Reference assertions (all other categories) | 3,219 / 3,266 assertions | intel/labels.jsonl |
+| Label assertions | 3,277 / 3,277 committed assertion rows | intel/labels.jsonl |
+| Hostile assertions (incident and denylist) | 58 / 3,277 assertions | intel/labels.jsonl; intel/incidents/*.json |
+| Reference assertions (all other categories) | 3,219 / 3,277 assertions | intel/labels.jsonl |
 | Testnet payments | 5 / 5 payment table rows | docs/TESTNET.md |
 | Testnet refusals | 11 / 11 attack table rows | docs/TESTNET.md |
 | Testnet registry records | 7 on-chain records / 7 distinct fixture verdict IDs | fixtures/runs/registry-readback-20261105.txt; fixtures/registry/event-087cff-20261103.json; fixtures/registry/testnet-aged-payee.json; fixtures/registry/testnet-latest-examples.json; fixtures/registry/testnet-latest-kestrelridge-sh0p.json; fixtures/registry/testnet-latest-kestrelridge-shop.json; fixtures/registry/testnet-latest-lindenvale.json; fixtures/registry/testnet-latest-rhea-incident-collector.json; fixtures/registry/testnet-lookalike.json; fixtures/registry/testnet-vendor.json |
