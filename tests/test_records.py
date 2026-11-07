@@ -358,6 +358,17 @@ class RecordValidationTest(unittest.TestCase):
                                  reports_event("dispute_resolved", 0, resolution["reason_sha256"], 5)
                              ])
 
+    def test_event_reader_refuses_a_dispute_resolved_event_without_a_dispute_id(self):
+        citation = {"network": "testnet", "contract": "reports.kestrelridge-main.testnet", "report_id": 0,
+                    "body_sha256": "b" * 64}
+        moderation = reason_entry(0, None, "Synthetic moderation reason.")
+        timeline = [timeline_decision("dispute_resolved", "synthetic-resolution-tx"), base_record()["timeline"][0]]
+        with self.assertRaisesRegex(records.RecordError, "dispute_id: a non negative integer is required"):
+            records.validate(base_record(reports=[citation], reasons=[moderation], timeline=timeline),
+                             event_reader=lambda network, transaction: [
+                                 reports_event("dispute_resolved", 0, moderation["reason_sha256"], None)
+                             ])
+
     def test_event_reader_checks_earlier_decisions_through_their_timeline_transactions(self):
         moderation = reason_entry(0, None, "Synthetic moderation reason.")
         resolution = reason_entry(0, 4, "Synthetic resolution reason.")

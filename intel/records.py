@@ -240,7 +240,7 @@ def _validate_event_reasons(timeline, reasons_by_decision, event_reader):
                 if type(report_id) is not int or report_id < 0:
                     raise RecordError(f"{payload_path}.report_id: a non negative integer is required")
                 dispute_id = payload.get("dispute_id") if expected_event == "dispute_resolved" else None
-                if dispute_id is not None and (type(dispute_id) is not int or dispute_id < 0):
+                if expected_event == "dispute_resolved" and (type(dispute_id) is not int or dispute_id < 0):
                     raise RecordError(f"{payload_path}.dispute_id: a non negative integer is required")
                 _hash(payload["reason_sha256"], f"{payload_path}.reason_sha256")
                 decision = (report_id, dispute_id)
