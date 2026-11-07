@@ -3,6 +3,7 @@ import contextlib
 import hashlib
 import io
 import json
+import os
 import tempfile
 import time
 import unittest
@@ -130,6 +131,42 @@ class SignalTest(unittest.TestCase):
                 self.assertTrue(events[0]["detail"])
                 for assertion_id in events[0]["labels"]:
                     self.assertIn(assertion_id, {a.id for a in self.store.assertions})
+
+    def test_a_new_feed_event_sends_one_alert_with_its_evidence_hash(self):
+        block = json.loads((BLOCKS / "synthetic-watch-addkey.json").read_text(encoding="utf-8"))
+        block["receipts"][0]["receiver_id"] = "game.hot.tg"
+        delivered = []
+
+        class CaptureSink:
+            def send(self, alert):
+                delivered.append(alert)
+                return {"ok": True}
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            url_file = root / "alert-url"
+            url_file.write_text("https://alerts.example.test/hook\n", encoding="utf-8")
+            with mock.patch.dict(os.environ, {
+                "SHIELDBOT_ALERT_URL_FILE": str(url_file),
+                "SHIELDBOT_ALERT_SECRET_FILE": str(root / "secret"),
+            }, clear=True), mock.patch("intel.alerts.WebhookSink", return_value=CaptureSink()) as webhook_sink:
+                state = feed.new_state()
+                paths = feed.apply(block, state, self.context, {"url": "test"}, events_dir=root / "events")
+                event = json.loads(paths[0].read_text(encoding="utf-8"))
+                repeated = feed.apply(block, state, self.context, {"url": "test"}, events_dir=root / "events")
+
+        self.assertEqual(len(paths), 1)
+        self.assertEqual(repeated, [])
+        webhook_sink.assert_called_once_with("https://alerts.example.test/hook", str(root / "secret"))
+        [alert] = delivered
+        self.assertEqual(alert.source, "feed")
+        self.assertEqual(alert.severity, "warn")
+        self.assertEqual(alert.subject, event["subject"])
+        self.assertEqual(alert.ref, event["signal"])
+        self.assertTrue(alert.title)
+        self.assertEqual(alert.detail, event["detail"])
+        self.assertEqual(alert.evidence_sha256, paths[0].stem)
+        self.assertEqual(alert.created_ms, event["observed"]["timestamp_ms"])
 
     def test_the_incident_code_hash_comes_from_the_incident_pages(self):
         rhea = json.loads((ROOT / "intel" / "incidents" / "rhea.json").read_text(encoding="utf-8"))
