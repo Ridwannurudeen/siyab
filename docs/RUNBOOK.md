@@ -2,17 +2,17 @@
 
 The operator's procedures for the testnet contracts. Every procedure says when to use it, the command and its dry run, the read backs that prove it worked, and how to undo it. Keys and their holders are in `docs/KEYS.md`; accounts and the recorded transactions are in `docs/TESTNET.md`; the script variables are in `scripts/README.md`; the redeploy and migration rules are in `docs/UPGRADES.md`.
 
-Every script this runbook uses calls `require_testnet` and so refuses any network but testnet (`scripts/lib.sh:104-110`); check a script for that call before using it outside this runbook. These scripts print each command line before it runs it (`scripts/lib.sh:112-115`), and with `DRY_RUN=1` or `--dry-run` prints the plan and stops there: no key file is read and no transaction is sent (`scripts/lib.sh:7-15`, `:116-118`). A dry run still checks the required variables and every argument, so a dry run that exits 2 names the value to fix. Run the dry run first, every time, and read every printed line before the real run.
+Every script this runbook uses calls `require_testnet` and so refuses any network but testnet (`scripts/lib.sh:104-110`); check a script for that call before using it outside this runbook. These scripts print each command line before it runs it (`scripts/lib.sh:123-129`), and with `DRY_RUN=1` or `--dry-run` prints the plan and stops there: no key file is read and no transaction is sent (`scripts/lib.sh:7-15`, `:123-129`). A dry run still checks the required variables and every argument, so a dry run that exits 2 names the value to fix. Run the dry run first, every time, and read every printed line before the real run.
 
 ## Current implementation state
 
 The verdict service reads `subject_summary` and applies `intel/reports.py` when `REPORTS_ACCOUNT_ID` is set (`gate/rules.py`, `docs/LADDER.md`). Current Reports source is 0.1.2; testnet runs deployed Reports version `0.1.2` (`res/BUILD-reports.md:7`, `contracts/reports/Cargo.toml`). Current Gate source is 0.2.1 and testnet runs Gate 0.2.1 (`res/BUILD-gate.md`). Gate and Reports have sandbox round-trip tests and previous artifacts; the Registry has no previous artifact (`docs/UPGRADES.md:16`).
 
-The read backs below use the near-cli-rs view form `near contract call-function as-read-only <account> <method> json-args '<json>' network-config testnet now` (the form `scripts/lib.sh:178` uses), written here as "view `<method>`". Every transaction below goes through `call_transaction` (`scripts/lib.sh:241-244`) and ends with the summary block (`scripts/lib.sh:143-162`), which prints the account summary with its `code_hash` and the shortened transaction hashes.
+The read backs below use the near-cli-rs view form `near contract call-function as-read-only <account> <method> json-args '<json>' network-config testnet now` (the form `scripts/lib.sh:189` uses), written here as "view `<method>`". Every transaction below goes through `call_transaction` (`scripts/lib.sh:252-255`) and ends with the summary block (`scripts/lib.sh:154-173`), which prints the account summary with its `code_hash` and the shortened transaction hashes.
 
 ## Deploy
 
-When: a contract account that holds no contract state yet. `scripts/setup_testnet.sh` creates the token, registry and recorder sub accounts if missing and initializes the token, the Gate and the registry; it skips any contract that already answers its view (`scripts/setup_testnet.sh:93-98`, `:110-115`, `:123-128`). `scripts/deploy_reports.sh <reports_account> <wasm> <moderator[,moderator...]>` deploys and initializes the reports contract with `OWNER_ACCOUNT_ID` as its owner (`scripts/deploy_reports.sh:8-37`).
+When: a contract account that holds no contract state yet. `scripts/setup_testnet.sh` creates the token, registry and recorder sub accounts if missing and initializes the token, the Gate and the registry; it skips any contract that already answers its view (`scripts/setup_testnet.sh:93-98`, `:110-115`, `:123-128`). `scripts/deploy_reports.sh <reports_account> <wasm> <moderator[,moderator...]>` deploys and initializes the reports contract with `OWNER_ACCOUNT_ID` as its owner (`scripts/deploy_reports.sh:29-37`).
 
 Command and dry run:
 
@@ -23,12 +23,12 @@ DRY_RUN=1 bash scripts/deploy_reports.sh <reports_account> <wasm> <moderator[,mo
 bash scripts/deploy_reports.sh <reports_account> <wasm> <moderator[,moderator...]>
 ```
 
-`setup_testnet.sh` checks every wasm file and that the Gate keeps at least 10 NEAR after the planned spend before it creates anything (`scripts/setup_testnet.sh:28-74`). `moderate.sh` and `dispute.sh --resolve` sign as `OWNER_ACCOUNT_ID`, so the reports moderator list passed to `deploy_reports.sh` must include the owner account. `report.sh` signs as `REPORTER_ACCOUNT_ID` and opening a dispute signs as `DISPUTER_ACCOUNT_ID`; each falls back to the owner with a warning when unset (`scripts/report.sh:8-10`, `scripts/dispute.sh:49-51`), and the contract refuses a moderator who moderates their own report.
+`setup_testnet.sh` checks every wasm file and that the Gate keeps at least 10 NEAR after the planned spend before it creates anything (`scripts/setup_testnet.sh:28-33,57-74`). `moderate.sh` and `dispute.sh --resolve` sign as `OWNER_ACCOUNT_ID`, so the reports moderator list passed to `deploy_reports.sh` must include the owner account. `report.sh` signs as `REPORTER_ACCOUNT_ID` and opening a dispute signs as `DISPUTER_ACCOUNT_ID`; each falls back to the owner with a warning when unset (`scripts/report.sh:8-10`, `scripts/dispute.sh:49-51`), and the contract refuses a moderator who moderates their own report.
 
 Read backs:
 
-- Each account's `code_hash`, printed by the summary block (`scripts/lib.sh:143-162`), equals the `code_hash` that `python -m gate codehash <wasm>` prints for the deployed file; `sha256sum -c res/gate.wasm.sha256 res/registry.wasm.sha256` checks the committed artifacts first (README, Try it offline).
-- Gate: view `version`, view `get_policy` (`max_ttl_ms`, `paused` false, empty denylist, `contracts/gate/src/policy.rs:224-226`), view `get_verifier_keys` (one current key, `previous` null, `policy.rs:228-233`). This is the read back `docs/TESTNET.md:32` records after setup.
+- Each account's `code_hash`, printed by the summary block (`scripts/lib.sh:154-173`), equals the `code_hash` that `python -m gate codehash <wasm>` prints for the deployed file; `sha256sum -c res/gate.wasm.sha256 res/registry.wasm.sha256` checks the committed artifacts first (README, Try it offline).
+- Gate: view `version`, view `get_policy` (`max_ttl_ms`, `paused` false, empty denylist, `contracts/gate/src/policy.rs:250-252`), view `get_verifier_keys` (one current key, `previous` null, `policy.rs:254-259`). This is the read back `docs/TESTNET.md:38` records after setup.
 - Registry: view `version` and view `get_recorder` (`contracts/registry/src/lib.rs:243`, `:247`).
 - Token: view `ft_metadata`, and `storage_balance_of` for the Gate, the vendor and the aged payee.
 - Reports: views `version`, `report_deposit` and `totals` (`contracts/reports/src/lib.rs:248`, `:252`, `:692-697`).
@@ -64,7 +64,7 @@ DRY_RUN=1 GATE_STATE_FROZEN=1 EXPECT_VERSION=<version> EXPECT_CODE_HASH=<code_ha
 GATE_STATE_FROZEN=1 EXPECT_VERSION=<version> EXPECT_CODE_HASH=<code_hash> bash scripts/redeploy.sh <contract> <wasm> --migrate
 ```
 
-`--migrate` (`scripts/redeploy.sh:5-13`) deploys with an init call to `migrate` with args `{}`, 100 Tgas and no deposit, through `deploy_with_init` (`scripts/redeploy.sh:87-88`, `scripts/lib.sh:236-239`), signed by the contract account's key. The assertions and read backs are those of the redeploy above.
+`--migrate` (`scripts/redeploy.sh:5-13`) deploys with an init call to `migrate` with args `{}`, 100 Tgas and no deposit, through `deploy_with_init` (`scripts/redeploy.sh:81`, `scripts/lib.sh:247-250`), signed by the contract account's key. The assertions and read backs are those of the redeploy above.
 
 Not usable today: no contract on main has a `migrate` method (no `#[init(ignore_state)]` and no `fn migrate` exists in `contracts/`), so the init call would fail. A layout change first needs the migration `docs/UPGRADES.md` rule 4 describes, rehearsed in the sandbox on state written by the previous artifact. Until one exists, do not deploy a layout change to an account that holds state.
 
@@ -72,7 +72,7 @@ Not usable today: no contract on main has a `migrate` method (no `#[init(ignore_
 
 When: a layout preserving redeploy went wrong and the previous code must run again over the same state. Rollback is valid only after a layout preserving redeploy; after a migration it is not, unless a reverse migration was written and rehearsed (`docs/UPGRADES.md:9-10`).
 
-Command: the redeploy procedure above, with `res/previous/<crate>.wasm` as `<wasm>` and the previous version and code hash as `EXPECT_VERSION` and `EXPECT_CODE_HASH` (`docs/UPGRADES.md:65`), and the same read backs: the state reads back unchanged.
+Command: the redeploy procedure above, with `res/previous/<crate>.wasm` as `<wasm>` and the previous version and code hash as `EXPECT_VERSION` and `EXPECT_CODE_HASH` (`docs/UPGRADES.md:62-65`), and the same read backs: the state reads back unchanged.
 
 Gate and Reports have previous artifacts in `res/previous/` and sandbox round-trip tests (`docs/UPGRADES.md:16`). Testnet runs deployed Reports version `0.1.2` (`res/BUILD-reports.md:7`) and Gate 0.2.1 (`res/BUILD-gate.md:7`); current source is Gate 0.2.1 and Reports 0.1.2. The Registry has no previous artifact, so no Registry rollback is available (`res/BUILD-registry.md`, `docs/UPGRADES.md:16`).
 
@@ -80,9 +80,9 @@ Gate and Reports have previous artifacts in `res/previous/` and sandbox round-tr
 
 When: on a schedule, or when the operator machine changes. When the verifier key may be exposed, use the exposed key procedure below instead.
 
-What the script does: `scripts/rotate_verifier.sh <new_verifier_public_key>` needs `OWNER_ACCOUNT_ID`, `GATE_ACCOUNT_ID`, `NEAR_KEYS_DIR` and `VERIFIER_PUB` (the key now current, `scripts/rotate_verifier.sh:7`), takes `MAX_TTL_MS` with a default of 300000 (`:8`), refuses a new key equal to `VERIFIER_PUB` (`:18-21`), and calls `set_verifier_keys` with the new key as `current`, `VERIFIER_PUB` as `previous` and `previous_valid_until_ms` set to the operator machine's clock plus `MAX_TTL_MS` (`:27-44`), signed by the owner with 1 yoctoNEAR. `MAX_TTL_MS` must equal the Gate's `max_ttl_ms` (view `get_policy`; 300000 on testnet, `docs/TESTNET.md:32`).
+What the script does: `scripts/rotate_verifier.sh <new_verifier_public_key>` needs `OWNER_ACCOUNT_ID`, `GATE_ACCOUNT_ID`, `NEAR_KEYS_DIR` and `VERIFIER_PUB` (the key now current, `scripts/rotate_verifier.sh:7`), takes `MAX_TTL_MS` with a default of 300000 (`:8`), refuses a new key equal to `VERIFIER_PUB` (`:28-31`), and calls `set_verifier_keys` with the new key as `current`, `VERIFIER_PUB` as `previous` and `previous_valid_until_ms` set to the operator machine's clock plus `MAX_TTL_MS` (`:45-68`), signed by the owner with 1 yoctoNEAR. `MAX_TTL_MS` must equal the Gate's `max_ttl_ms` (view `get_policy`; 300000 on testnet, `docs/TESTNET.md:38`).
 
-What the grace slot does not do: the Gate picks the key by the verdict's `key_id`: `cur` is checked against the current key, and `prev` against the previous key only while the block time is at most `previous_valid_until_ms` (`contracts/gate/src/verdict.rs:72-84`). Every signer in `gate/signer.py` defaults to `key_id` `cur` (`gate/signer.py:50`, `:61`, `:81`), and no shipped command passes another (`gate/__main__.py:63`, `gate/agent.py:76`). So an ALLOW signed with the old key before the rotation carries `cur`, is checked against the new current key after the rotation lands, and is refused with `REFUSED:bad_signature` (`verdict.rs:91-92`), not accepted through the previous slot. Likewise, from the moment the rotation lands until every verdict service has the new key file, every ALLOW those services sign is refused the same way. No funds move on a refused ALLOW; the agent requests a fresh verdict. The previous slot only serves a verdict signed with `key_id` `prev`, which no shipped command produces, but which anyone holding the old key can produce, since `key_id` is a field of the signed message (`gate/canon.py:3-4`).
+What the grace slot does not do: the Gate picks the key by the verdict's `key_id`: `cur` is checked against the current key, and `prev` against the previous key only while the block time is at most `previous_valid_until_ms` (`contracts/gate/src/policy.rs:167-178`, `contracts/gate/src/verdict.rs:72-84`). Every signer in `gate/signer.py` defaults to `key_id` `cur` (`gate/signer.py:50`, `:61`, `:81`), and no shipped command passes another (`gate/__main__.py:63`, `gate/agent.py:76`). So an ALLOW signed with the old key before the rotation carries `cur`, is checked against the new current key after the rotation lands, and is refused with `REFUSED:bad_signature` (`verdict.rs:94-95`), not accepted through the previous slot. Likewise, from the moment the rotation lands until every verdict service has the new key file, every ALLOW those services sign is refused the same way. No funds move on a refused ALLOW; the agent requests a fresh verdict. The previous slot only serves a verdict signed with `key_id` `prev`, which no shipped command produces, but which anyone holding the old key can produce, since `key_id` is a field of the signed message (`gate/canon.py:3-4`).
 
 Procedure:
 
@@ -100,13 +100,13 @@ VERIFIER_PUB=<current public key> bash scripts/rotate_verifier.sh <new public ke
 
 Skipping steps 2 and 3 moves no funds, but it refuses every ALLOW in flight with `REFUSED:bad_signature`; the loss is bounded by the verdict lifetime, `max_ttl_ms`.
 
-Read backs: view `get_verifier_keys` shows the new key as `current` (hex), and `previous` as the old key with `valid_until_ms` equal to the value the run printed (`contracts/gate/src/policy.rs:228-233`); the transaction carries the `verifier_keys_updated` event (`policy.rs:150-156`); `python -m gate scan <gate account>` with `GATE_FIXTURES_MODE=off` prints the verifier keys; one live ALLOW paid through `python -m gate pay` proves the service and the Gate agree.
+Read backs: view `get_verifier_keys` shows the new key as `current` (hex), and `previous` as the old key with `valid_until_ms` equal to the value the run printed (`contracts/gate/src/policy.rs:254-259`); the transaction carries the `verifier_keys_updated` event (`policy.rs:173-179`); `python -m gate scan <gate account>` with `GATE_FIXTURES_MODE=off` prints the verifier keys; one live ALLOW paid through `python -m gate pay` proves the service and the Gate agree.
 
 Undo: the same procedure with the keys swapped, `VERIFIER_PUB=<new public key> bash scripts/rotate_verifier.sh <old public key>`, and `VERIFIER_KEY_FILE` pointed back. Do not undo a rotation made because the old key was exposed.
 
 ### When the verifier key may be exposed
 
-`rotate_verifier.sh` always keeps the old key as `previous` for one `MAX_TTL_MS`, so for that long a verdict signed with the exposed key and `key_id` `prev` still verifies. No script sets `previous` to null. A paused Gate refuses every `request_transfer` before it checks a verdict (`contracts/gate/src/lib.rs:132`, the verdict check is at `:169-182`), so the pause covers the grace period:
+`rotate_verifier.sh` always keeps the old key as `previous` for one `MAX_TTL_MS`, so for that long a verdict signed with the exposed key and `key_id` `prev` still verifies. No script sets `previous` to null. A paused Gate refuses every `request_transfer` before it checks a verdict (`contracts/gate/src/lib.rs:149-156`, the verdict check is at `:194-207`), so the pause covers the grace period:
 
 ```
 DRY_RUN=1 bash scripts/set_paused.sh true
@@ -122,7 +122,7 @@ DRY_RUN=1 bash scripts/set_paused.sh false
 bash scripts/set_paused.sh false
 ```
 
-Read backs: view `get_policy` shows `paused` true during the wait and false after; view `get_verifier_keys` as above. A submitted verdict from the exposed key still needs the agent key, because `request_transfer` must come from the Gate's own account (`contracts/gate/src/lib.rs:133-136`), and stays bounded by the caps.
+Read backs: view `get_policy` shows `paused` true during the wait and false after; view `get_verifier_keys` as above. A submitted verdict from the exposed key still needs the agent key, because `request_transfer` must come from the Gate's own account (`contracts/gate/src/lib.rs:157-160`), and stays bounded by the caps.
 
 ## Rotate the recorder
 
@@ -159,9 +159,9 @@ bash scripts/kill_switch.sh <agent_pub>
 
 It runs `set_paused` true (`scripts/kill_switch.sh:123`), `revoke_agent` when `get_agent` finds an entry (`scripts/kill_switch.sh:137-146`), then `withdraw` of the Gate's whole token balance to the cold account (`scripts/kill_switch.sh:168-180`). On a failure after the pause it prints the partial state and the manual withdraw command (`scripts/kill_switch.sh:31-54`).
 
-Read backs: view `get_policy` shows `paused` true; view `get_agent` for the key is null; `near account list-keys <gate account> network-config testnet now` shows no function call key for `request_transfer`, which is the only proof the kill switch is complete (`scripts/README.md:42`); `ft_balance_of` the Gate is 0 and the cold account holds the moved amount.
+Read backs: view `get_policy` shows `paused` true; view `get_agent` for the key is null; `near account list-keys <gate account> network-config testnet now` shows no function call key for `request_transfer`, which is the only proof the kill switch is complete (`scripts/README.md:46`); `ft_balance_of` the Gate is 0 and the cold account holds the moved amount.
 
-Undo (a drill; after a real compromise register a new agent key, never the revoked one): the order in `scripts/README.md:44-47`: send the tokens back from the cold account, `register_agent.sh`, `set_allowlist.sh`, and last `set_paused.sh false`. One agent can be stopped alone with `set_agent_enabled` false (`contracts/gate/src/policy.rs:109`).
+Undo (a drill; after a real compromise register a new agent key, never the revoked one): the order in `scripts/README.md:48-51`: send the tokens back from the cold account, `register_agent.sh`, `set_allowlist.sh`, and last `set_paused.sh false`. One agent can be stopped alone with `set_agent_enabled` false (`contracts/gate/src/policy.rs:127-136`).
 
 ## File and moderate a report
 
@@ -260,9 +260,9 @@ Undo: set `REPORTS_ACCOUNT_ID` again and restart.
 
 When: funds must leave the Gate outside the kill switch: the NEAR the kill switch leaves in place (`scripts/kill_switch.sh:181`), a token other than the test token, or a partial amount.
 
-The owner method is `withdraw(asset, receiver_id, amount)` (`contracts/gate/src/policy.rs:205-218`) with 1 yoctoNEAR. No script in `scripts/` sends it alone; the hand call has the shape of the manual command `scripts/kill_switch.sh:41-48` prints, with args `{"asset":{"Ft":"<token account>"},"receiver_id":"<account>","amount":"<base units>"}` for a token, or `{"asset":"Near","receiver_id":"<account>","amount":"<yoctoNEAR>"}` for NEAR. A token receiver must be storage registered on the token. The Gate's NEAR stakes its own storage (`scripts/README.md:42`), so leave that much in place.
+The owner method is `withdraw(asset, receiver_id, amount)` (`contracts/gate/src/policy.rs:231-244`) with 1 yoctoNEAR. No script in `scripts/` sends it alone; the hand call has the shape of the manual command `scripts/kill_switch.sh:41-51` prints, with args `{"asset":{"Ft":"<token account>"},"receiver_id":"<account>","amount":"<base units>"}` for a token, or `{"asset":"Near","receiver_id":"<account>","amount":"<yoctoNEAR>"}` for NEAR. A token receiver must be storage registered on the token. The Gate's NEAR stakes its own storage (`scripts/README.md:46`), so leave that much in place.
 
-The command, for a token (the same form `scripts/kill_switch.sh:41-48` prints):
+The command, for a token (the same form `scripts/kill_switch.sh:41-51` prints):
 
 ```
 near contract call-function as-transaction <gate account> withdraw json-args '{"asset":{"Ft":"<token account>"},"receiver_id":"<account>","amount":"<base units>"}' prepaid-gas '100 Tgas' attached-deposit '1 yoctoNEAR' sign-as <owner account> network-config testnet sign-with-access-key-file <owner key file> send
@@ -274,4 +274,4 @@ Dry run: near-cli has none for this call. Before it, read and save the balances:
 
 Read backs: the Gate's balance fell by the amount and the receiver's rose by it; for a token, the token's `ft_transfer` receipt in the transaction succeeded.
 
-Undo: the receiver sends the amount back: for a token, `ft_transfer` to the Gate as in `scripts/README.md:44`; for NEAR, a plain transfer to the Gate account.
+Undo: the receiver sends the amount back: for a token, `ft_transfer` to the Gate as in `scripts/README.md:48`; for NEAR, a plain transfer to the Gate account.

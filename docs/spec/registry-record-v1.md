@@ -51,8 +51,8 @@ Every event is one log line: the ASCII prefix `EVENT_JSON:` followed by compact 
 | Event | `data[0]` keys, in order | Emitted by |
 |---|---|---|
 | `verdict_recorded` | `subject`, `verdict`, `evidence_hash`, `observed_block`, `verdict_id` | each record (`contracts/registry/src/lib.rs:280`) |
-| `label_recorded` | `subject`, `chain`, `label`, `category`, `provenance`, `assertion_hash` | `record_label` (`:178`) |
-| `recorder_updated` | `previous`, `current` | `set_recorder` (`:200`) |
+| `label_recorded` | `subject`, `chain`, `label`, `category`, `provenance`, `assertion_hash` | `record_label` (`:152-189`) |
+| `recorder_updated` | `previous`, `current` | `set_recorder` (`:192-204`) |
 
 `evidence_hash` and `assertion_hash` in an event are the strings the call passed, which the contract has checked are 64 lowercase hex, so they equal the view's.
 
