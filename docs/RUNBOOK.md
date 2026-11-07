@@ -214,6 +214,39 @@ Read backs: after opening, view `get_report` shows `contested` and the transacti
 
 Undo: an upheld report can be disputed again, at most five disputes over its lifetime (`docs/REPORTS.md:18`). An overturn is final.
 
+## Live report beat
+
+When: once, for the recorded demonstration of the whole report life on testnet: a report filed, pending, accepted, disputed and overturned against our own demo counterparty account, with the verdict read back after each step. Nothing is paid; the verdict reads judge a payment and never send it.
+
+Pending: the verdict reads need the verdict service to read `REPORTS_ACCOUNT_ID`, which lands with build/r2-rules (above). On a commit without it the verdict has no `community_report` check, and the script stops at step a, before any transaction, with "the verdict does not read the reports contract on this commit".
+
+`scripts/live_beat.sh` takes no arguments. Its variables: `OWNER_ACCOUNT_ID` (the sole moderator, `kestrelridge-owner.testnet`), `REPORTER_ACCOUNT_ID` (signs the report; must differ from the owner, which cannot moderate its own report), `DISPUTER_ACCOUNT_ID` (signs the dispute; must differ from the reporter and the owner), `REPORTS_ACCOUNT_ID` (`reports.kestrelridge-main.testnet`), `GATE_ACCOUNT_ID` (`kestrelridge-main.testnet`, for the verdict's `--gate` and `token.<gate>`), `COUNTERPARTY_ACCOUNT_ID` (the subject, `kestrelridge-mallory.testnet`; must differ from the three signers) and `NEAR_KEYS_DIR`. It checks them all before any command and exits 2 naming the one to fix. It files through `scripts/report.sh`, `scripts/moderate.sh` and `scripts/dispute.sh`, so each transaction is the one their sections above describe, with its deposit.
+
+The evidence is `docs/demo/synthetic-report.md`, whose first line says the report is synthetic and the subject is ours. The script computes its sha256 from the file at run time and builds the URL `https://raw.githubusercontent.com/Ridwannurudeen/shieldbot-near/<HEAD>/docs/demo/synthetic-report.md`. The real run refuses when the file is not committed unchanged at HEAD, and before any transaction it fetches the URL and refuses unless it serves the same sha256: push HEAD to that repository first. The moderation and resolution reasons are fixed texts in the script; both texts and their sha256 are written at the top of the run log.
+
+```
+DRY_RUN=1 bash scripts/live_beat.sh
+bash scripts/live_beat.sh
+```
+
+The dry run prints every command and every read in order and stops: no near call, no verdict run, no run log. It shows the report and dispute ids as 0; the real run reads them from `totals` before each filing (`totals.reports` is the next report id, `contracts/reports/src/lib.rs:661-665`) and stops with exit 1 unless the count grew by exactly one.
+
+Read backs, each appended to `fixtures/runs/live-beat-<UTC timestamp>.txt` (ed25519 signature text removed and 128 hex strings shortened to first and last 8), and each compared with what it should read; the verdicts are `python3 -m gate verdict` for 1 DMT to the subject with `GATE_FIXTURES_MODE=off` and `REPORTS_ACCOUNT_ID` set, signed only with the TEST key, written to a temporary directory that is removed at exit:
+
+| Step | `subject_summary` | `get_report` | Verdict `community_report` detail |
+|---|---|---|---|
+| a. before | all zero, ids null, `deny` false (else exit 2, nothing sent) | | `no community report; pending 0` (else exit 2, nothing sent) |
+| b. `report.sh` theft near_miss | | `pending`, the reporter as submitter, the evidence hash and URL | |
+| c. pending | `pending` 1, `deny` false | | `1 pending report(s) await moderation; no effect`; the outcome is whatever the other checks say |
+| d. `moderate.sh` accept | | `accepted` | |
+| e. accepted | `accepted` 1, `latest_accepted_id` and `latest_deny_id` the id, `deny` true | | `deny report <id> is accepted; 0 under dispute; pending 0`, outcome DENY |
+| f. `dispute.sh` as the disputer | `contested` 1, `deny` still true | `contested` | `deny report <id> is accepted; 1 under dispute; pending 0`, outcome DENY |
+| g. `dispute.sh --resolve` overturn | all zero, ids null, `deny` false | `overturned` | `no community report; pending 0` |
+
+A read back that differs is logged as `MISMATCH` and the run continues to the overturn, then exits 1. A failed transaction or read stops the run; once anything was sent the script prints the step, the report and dispute ids, and what to finish by hand (a dispute and its resolution with `overturn`, in the sections above).
+
+Undo: none needed. An overturned report is final (`docs/REPORTS.md`), it no longer counts in the subject's summary, and nothing else changed; the two deposits stay in the contract as for any report and dispute.
+
 ## The reports off switch
 
 When: the reports contract gives a wrong answer, or its reads fail and turn verdicts Unknown.
