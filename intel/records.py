@@ -17,6 +17,7 @@ _FIELDS = (
 _ENUMS = json.loads((Path(__file__).resolve().parent / "record_enums.json").read_text(encoding="utf-8"))
 _HEX64 = re.compile(r"[0-9a-f]{64}", re.ASCII)
 _REPORT_STATES = frozenset(("pending", "accepted", "rejected", "withdrawn", "contested", "overturned"))
+_UNDECIDED_STATES = frozenset(("pending", "withdrawn"))
 _CHAIN = re.compile(r"[a-z0-9]+", re.ASCII)
 _TIME = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z", re.ASCII)
 _EVENTS = frozenset((
@@ -166,7 +167,9 @@ def _validate_reasons(reasons, reports, report_views):
     if report_views is not None:
         for report_id, views in report_views.items():
             for report_view in views:
-                if report_view["state"] == "pending":
+                if report_view["state"] in _UNDECIDED_STATES:
+                    if reasons_by_id.get(report_id):
+                        raise RecordError(f"reasons: report {report_id} is {report_view['state']} and has no decision")
                     continue
                 _hash(report_view.get("reason_sha256"), f"reports[{report_id}].reason_sha256")
                 matches = reasons_by_id.get(report_id, [])

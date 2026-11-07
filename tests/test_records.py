@@ -194,6 +194,20 @@ class RecordValidationTest(unittest.TestCase):
             records.validate(base_record(reports=[citation], reasons=[reason, reason]),
                              report_reader=lambda *args: report)
 
+    def test_report_reader_needs_no_reason_for_an_undecided_report_and_refuses_one(self):
+        text = "Synthetic reason for an undecided report."
+        reason_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        citation = {"network": "testnet", "contract": "reports.kestrelridge-main.testnet", "report_id": 0,
+                    "body_sha256": "b" * 64}
+        reason = {"report_id": 0, "dispute_id": None, "reason_sha256": reason_hash, "text": text}
+        for state in ("pending", "withdrawn"):
+            with self.subTest(state=state):
+                report = {"body_sha256": "b" * 64, "state": state, "reason_sha256": None, "dispute_ids": []}
+                records.validate(base_record(reports=[citation]), report_reader=lambda *args: report)
+                with self.assertRaisesRegex(records.RecordError, "has no decision"):
+                    records.validate(base_record(reports=[citation], reasons=[reason]),
+                                     report_reader=lambda *args: report)
+
     def test_report_reader_rejects_a_reason_from_an_older_decision_after_resolution(self):
         text = "Synthetic earlier moderation reason."
         earlier_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
