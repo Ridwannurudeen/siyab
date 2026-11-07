@@ -44,10 +44,11 @@ import re
 from collections import Counter
 from pathlib import Path
 
-from intel import cluster, feed, issuers, labels, trace
+from intel import cluster, feed, issuers, labels, records, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 INCIDENTS_DIR = Path(__file__).resolve().parent / "incidents"
+RECORDS_DIR = ROOT / "fixtures" / "records"
 TESTNET_RPC = "https://test.rpc.fastnear.com"
 # The record the verify page offers as its example: a latest view of the testnet registry.
 VERIFY_RECORD = ROOT / "fixtures" / "registry" / "testnet-latest-kestrelridge-shop.json"
@@ -201,6 +202,7 @@ def index_page(incidents, flows, clusters):
               f'{len(_inferred(c["edges"]))} attribution hypotheses</a></li>' for name, c in clusters]
     links.append("<li><a href=\"issuers.html\">Issuer actions: what the issuer contracts answer for the account ids "
                  "read, and the issuer action history with its blocks and transactions</a></li>")
+    links.append("<li><a href=\"records/index.html\">Incident records and their report citations</a></li>")
     links.append("<li><a href=\"verify.html\">Read a registry record and compare its evidence hash</a></li>")
     search = ('<form id="search-box"><label for="search-term">Search accounts and entities</label>'
               '<input id="search-term" name="term" autocomplete="off"><button type="submit">Search</button>'
@@ -604,6 +606,89 @@ def issuers_page():
     return page("Issuer actions", body)
 
 
+_RECORD_SECTIONS = (
+    ("Record", ("version", "record_id", "kind", "outcome", "publisher", "supersedes")),
+    ("Subjects", ("subjects",)),
+    ("Evidence", ("evidence",)),
+    ("Report citations", ("reports",)),
+    ("Decisions and reasons", ("reasons",)),
+    ("Assertion references", ("assertion_ids",)),
+    ("Timeline", ("timeline",)),
+)
+
+
+def _record_value(value, path):
+    if isinstance(value, dict):
+        if not value:
+            return f'<span data-record-path="{esc(path)}">{{}}</span>'
+        return "<dl>" + "".join(
+            f"<dt>{esc(key)}</dt><dd>{_record_value(child, f'{path}.{key}')}</dd>"
+            for key, child in value.items()
+        ) + "</dl>"
+    if isinstance(value, list):
+        if not value:
+            return f'<span data-record-path="{esc(path)}">[]</span>'
+        return "<ol>" + "".join(
+            f"<li>{_record_value(child, f'{path}[{index}]')}</li>"
+            for index, child in enumerate(value)
+        ) + "</ol>"
+    if value is None:
+        text = "null"
+    elif isinstance(value, bool):
+        text = "true" if value else "false"
+    else:
+        text = str(value)
+    return f'<span data-record-path="{esc(path)}">{esc(text)}</span>'
+
+
+def record_page(record):
+    sections = []
+    for title, fields in _RECORD_SECTIONS:
+        content = []
+        for field in fields:
+            value = record[field]
+            if field == "reasons" and value:
+                rendered = "".join(
+                    f'<div class="card"><h3>{"Moderation" if reason["dispute_id"] is None else "Dispute"} '
+                    f'decision</h3>{_record_value(reason, f"reasons[{index}]")}</div>'
+                    for index, reason in enumerate(value)
+                )
+            else:
+                rendered = _record_value(value, field)
+            content.append(f"<dt>{esc(field)}</dt><dd>{rendered}</dd>")
+        sections.append(f"<section><h2>{esc(title)}</h2><dl>{''.join(content)}</dl></section>")
+    record_id = esc(record["record_id"])
+    body = ("<h1>Incident record</h1>" + "".join(sections)
+            + '<p class="muted">Re-check from the repository root with '
+            + f"<code>python -m intel record-check fixtures/records/{record_id}.json</code>.</p>")
+    return page("Incident record", body, depth=1)
+
+
+def record_index_page(documents):
+    entries = "".join(
+        f'<li><a href="{esc(record["record_id"])}.html">{esc(record["record_id"])}</a>, '
+        f'kind {esc(record["kind"])}, outcome {esc(record["outcome"])}</li>'
+        for record in documents
+    )
+    body = ("<h1>Incident records</h1>" + (f"<ul>{entries}</ul>" if entries else "<p>No valid records.</p>"))
+    return page("Incident records", body, depth=1)
+
+
+def _incident_record_pages(records_dir=None):
+    records_dir = RECORDS_DIR if records_dir is None else records_dir
+    documents = []
+    for path in sorted(Path(records_dir).glob("*.json")):
+        if path.name == "body-vector.json":
+            continue
+        try:
+            documents.append(records.read(path))
+        except records.RecordError as error:
+            print(f"skipped incident record {path}: {error}")
+    pages = {"records/index.html": record_index_page(documents)}
+    pages.update({f"records/{record['record_id']}.html": record_page(record) for record in documents})
+    return pages
+
+
 VERIFY_SCRIPT = """
 document.getElementById("read").addEventListener("click", async function () {
   var out = document.getElementById("out");
@@ -682,6 +767,7 @@ def render(out_dir, store=None, incidents_dir=INCIDENTS_DIR, flows_dir=trace.FLO
     search = search_index(store, accounts, registry_entities, entity_paths)
     pages = {"index.html": index_page(incidents, flows, clusters), "feed.html": feed_page(),
              "verify.html": verify_page(), "404.html": not_found_page(), "issuers.html": issuers_page()}
+    pages.update(_incident_record_pages())
     for document in incidents:
         pages[f"incidents/{document['id']}.html"] = incident_page(document, accounts)
     for name, title, categories in ENTITY_SETS:
