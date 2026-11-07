@@ -144,10 +144,12 @@ class WasmArtifactsTest(unittest.TestCase):
         previous_path = RES / "previous" / "gate.wasm"
         previous_bytes = previous_path.read_bytes()
         self.assertEqual(previous_bytes, gate_bytes)
-        expected = (
-            f"{hashlib.sha256(previous_bytes).hexdigest()}  "
-            "res/previous/gate.wasm\n"
+        previous_sha256 = hashlib.sha256(previous_bytes).hexdigest()
+        self.assertEqual(
+            (RES / "gate.wasm.sha256").read_text(encoding="ascii"),
+            f"{previous_sha256}  res/gate.wasm\n",
         )
+        expected = f"{previous_sha256}  res/previous/gate.wasm\n"
         self.assertEqual(
             (RES / "previous" / "gate.wasm.sha256").read_text(encoding="ascii"),
             expected,

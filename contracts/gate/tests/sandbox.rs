@@ -5,7 +5,13 @@ use near_workspaces::{
     Account,
 };
 use sha2::{Digest, Sha256};
-use std::{fs, str::FromStr};
+use std::{
+    fs,
+    str::FromStr,
+    sync::atomic::{AtomicU64, Ordering},
+};
+
+static FRESH_REQUEST_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 fn base58_encode(bytes: &[u8]) -> String {
     const ALPHABET: &[u8] = b"123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
@@ -84,6 +90,9 @@ async fn fresh_request(
     let expires_ms = issued_ms + ttl_ms;
     request["issued_ms"] = json!(issued_ms);
     request["expires_ms"] = json!(expires_ms);
+    let verdict_id = request["verdict_id"].as_str().unwrap().to_owned();
+    let request_number = FRESH_REQUEST_COUNTER.fetch_add(1, Ordering::Relaxed);
+    request["verdict_id"] = json!(format!("{}{:016x}", &verdict_id[..16], request_number));
 
     let token_id = request["token_id"].as_str().unwrap_or("-");
     let memo = request["memo"]
@@ -337,7 +346,7 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
     assert!(key_record.contains("allowance: Some"));
 
     let agent = Account::from_secret_key(gate.id().clone(), secret_key, &worker);
-    let happy = fresh_request(&worker, gate.id(), vector("01-ft-happy-sandbox"), 10_000).await;
+    let happy = fresh_request(&worker, gate.id(), vector("01-ft-happy-sandbox"), 300_000).await;
     let before = balance(&vendor, token.id()).await;
     let happy_result = agent
         .call(gate.id(), "request_transfer")
@@ -461,9 +470,7 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
 
     let replay_error = agent
         .call(gate.id(), "request_transfer")
-        .args_json(transfer_args(
-            &fresh_request(&worker, gate.id(), happy.clone(), 300_000).await,
-        ))
+        .args_json(transfer_args(&happy))
         .gas(Gas::from_tgas(100))
         .transact()
         .await
@@ -766,8 +773,15 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         prune_batch_ids.push(batch_request["verdict_id"].as_str().unwrap().to_owned());
         prune_batch_expires.push(batch_request["expires_ms"].as_u64().unwrap());
     }
-    worker.fast_forward(400).await.unwrap();
-    let now_ms = worker.view_block().await.unwrap().timestamp() / 1_000_000;
+    let last_expires_ms = *prune_batch_expires.iter().max().unwrap();
+    let mut now_ms = worker.view_block().await.unwrap().timestamp() / 1_000_000;
+    for _ in 0..20 {
+        if now_ms > last_expires_ms {
+            break;
+        }
+        worker.fast_forward(400).await.unwrap();
+        now_ms = worker.view_block().await.unwrap().timestamp() / 1_000_000;
+    }
     assert!(prune_batch_expires
         .iter()
         .all(|expires_ms| *expires_ms <= now_ms));
