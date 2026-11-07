@@ -30,7 +30,7 @@ Kinds, outcomes, and states serialize as the lowercase values in `intel/record_e
 
 The only report state changes are pending to accepted or rejected by a moderator, pending to withdrawn by the submitter, accepted to contested by a dispute, and contested to accepted or overturned by a moderator. `all_disallowed_report_state_transitions_are_refused` exercises every other transition from every non-pending state; the method tests above prove each allowed transition. Rows remain stored through every transition.
 
-The `shieldbot-near` 1.0.0 NEP-297 events are `moderators_updated`, `report_submitted`, `report_moderated`, `report_withdrawn`, `report_disputed`, and `dispute_resolved`. The moderator update contains the new moderator list. Report events include the report id, subject, state, and report body hash; dispute events also include the dispute id. `owner_can_set_moderators` and `emits_all_five_nep_297_events_with_report_identity` prove these event fields.
+The `shieldbot-near` 1.0.0 NEP-297 events are `moderators_updated`, `report_submitted`, `report_moderated`, `report_withdrawn`, `report_disputed`, and `dispute_resolved`. The moderator update contains the new moderator list. The other five events include the report id, subject, state, and report body hash; `report_disputed` and `dispute_resolved` also include the dispute id, and `report_moderated` and `dispute_resolved` also include the moderator and the reason hash. `owner_can_set_moderators` proves the sixth event, `moderators_updated`, and its list. `emits_all_five_nep_297_events_with_report_identity` is named for the five report and dispute events and proves their report id, subject, state, body hash and dispute id; no test asserts the moderator and reason hash fields.
 
 ## Build record
 
