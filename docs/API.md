@@ -49,6 +49,8 @@ Tiers (`gate/rules.py:713-730`): tier 1 runs for every receiver; tier 2 runs onl
 | `lookalike` | near, ft | 2 | always for tier 2 | any | no allowlisted name is contained and no allowlisted or labelled reference account is within the length scaled distance, or the receiver is itself a labelled reference account (`gate/rules.py:597-609`) | the receiver contains an allowlisted name, or is within the distance of an allowlisted or labelled reference account after confusable normalisation (`gate/rules.py:223-237`, `gate/rules.py:597-602`) | never: the allowlist and the label store are local |
 | `code_without_metadata` | near, ft | 2 | always for tier 2 | any | no contract code, code with `contract_source_metadata`, or code without it and no other tier 2 signal (`gate/rules.py:641-657`) | contract code without `contract_source_metadata` together with another tier 2 signal (`gate/rules.py:650-657`, `gate/rules.py:633-636`) | the receiver account could not be read, or `contract_source_metadata` could not be read (`gate/rules.py:641-643`, `gate/rules.py:658-660`) |
 
+The issuer source records current token blacklist views as `onchain` `denylist` assertions with `python -m intel issuers seed`; `label_denylist` reads them from the store, while `issuer_blacklist` remains a separate view check.
+
 Line numbers without a file are `gate/rules.py`. The test compares the table's check ids with the literal first arguments of `evidence.check` calls in `gate/rules.py`. It does not validate the prose in the `pass`, `signal` and `unknown` columns; those descriptions are checked by review.
 
 ### Outcome and action

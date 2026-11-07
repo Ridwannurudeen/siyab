@@ -26,6 +26,8 @@ python -m gate incident rhea
 
 ShieldBot for NEAR is a security intelligence layer for NEAR: a label store in which every assertion names its provenance class and its source. The store covers the NEAR Intents token catalog and the treasury accounts its documentation lists, the Sputnik DAO factory, the current validators, the Ref Finance whitelist and the Rainbow Bridge token factory.
 
+The issuer source records current token blacklist views as `onchain` `denylist` assertions with `python -m intel issuers seed`.
+
 It also has incident pages built from those assertions, a fund flow trace whose every hop carries its transaction hash and block, a clustering tool whose every edge carries its heuristic and provenance, issuer blacklist facts read from the token contracts and from the issuer's own transactions, and a block feed that follows finalized mainnet blocks for the hosted copy.
 
 Its first consumer is a guard: a verdict service judges the receiver, the token, the amount and the memo of an agent payment, and the destination recipient of one that leaves NEAR through NEAR Intents in a preflight before signing; a NEAR contract on testnet holds the agent's funds and pays only on a signed ALLOW bound to that exact transfer; and a NEAR registry on testnet records verdicts with their evidence hashes.
@@ -113,7 +115,7 @@ On 84 recorded mainnet receivers the rules returned 70 ALLOW, 14 DENY, 0 Unknown
 
 By cohort: ordinary counterparties 9 (9 ALLOW, 0 DENY, 0 Unknown); organisations from registries 50 (50 ALLOW, 0 DENY, 0 Unknown); incident accounts 15 (1 ALLOW, 14 DENY, 0 Unknown); catalog tokens 10 (10 ALLOW, 0 DENY, 0 Unknown).
 
-Label store: 3266 assertions over 3009 subjects (onchain 2894, official_source 350, third_party 18, inferred 4).
+Label store: 3277 assertions over 3009 subjects (onchain 2905, official_source 350, third_party 18, inferred 4).
 
 Incidents: 3 pages.
 
@@ -295,7 +297,7 @@ To check our work from outside, `docs/VERIFY.md` is the verification guide: offl
 7. `python -m intel counts` and `python -m gate incident rhea` print the label counts and the Rhea Lend incident page from committed files:
 
    ```
-   3266 assertions over 3009 subjects: onchain 2894, official_source 350, third_party 18, inferred 4, unknown 0
+   3277 assertions over 3009 subjects: onchain 2905, official_source 350, third_party 18, inferred 4, unknown 0
    ```
 
    ```

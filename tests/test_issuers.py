@@ -227,5 +227,94 @@ class IssuerRowsTest(unittest.TestCase):
         self.assertIn("2 issuer rows appended", output.getvalue())
 
 
+class IssuerBlacklistSeedTest(unittest.TestCase):
+    def write_status_fixture(self, directory, read):
+        params = issuers._query_params(read["issuer"], read["method"], read["args"])
+        key = issuers.rpc.fixture_key(issuers.RPC_URL, "query", params)
+        fixture = {
+            "request": {"method": "query", "params": params},
+            "response": {"jsonrpc": "2.0", "id": "gate", "result": {
+                "block_height": read["block"], "result": list(json.dumps(read["answer"]).encode("utf-8"))}},
+            "url": issuers.RPC_URL,
+            "fetched_at": read["observed_at"],
+        }
+        (Path(directory) / f"{key}.json").write_text(json.dumps(fixture), encoding="utf-8")
+
+    def test_current_bans_become_fixture_backed_denylist_assertions(self):
+        rows = issuers.blacklist_rows()
+        entries = {entry["token"]: entry for entry in issuers.issuer_entries()}
+        self.assertEqual(len(rows), 11)
+        self.assertEqual(len({row["subject"] for row in rows}), 11)
+        self.assertEqual(len({(row["entity"], row["subject"]) for row in rows}), len(rows))
+        for row in rows:
+            assertion = labels.validate(row)
+            entry = entries[row["entity"].removeprefix("issuer of ")]
+            self.assertEqual((assertion.category, assertion.provenance), ("denylist", "onchain"))
+            self.assertEqual(assertion.source["rpc"], issuers.RPC_URL)
+            self.assertEqual(assertion.source["method"], entry["method"])
+            self.assertEqual(assertion.source["args"], {entry["args_key"]: row["subject"]})
+            self.assertIn(f"as of block {assertion.source['block']}", assertion.label)
+
+    def test_a_status_without_a_recorded_view_fixture_makes_no_assertion(self):
+        entry = issuers.issuer_entries()[0]
+        read = {"issuer": entry["token"], "subject": "saved.near", "method": entry["method"],
+                "args": {entry["args_key"]: "saved.near"}, "answer": entry["banned"], "block": 10,
+                "observed_at": "2026-11-03T00:00:00Z"}
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(issuers.blacklist_rows([read], tmp), [])
+
+    def test_rerunning_the_seed_with_the_same_fixtures_is_a_no_op(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "labels.jsonl"
+            self.assertEqual(issuers.seed_blacklists(path), 11)
+            first = path.read_bytes()
+            self.assertEqual(issuers.seed_blacklists(path), 0)
+            self.assertEqual(path.read_bytes(), first)
+            self.assertEqual(len(labels.load(path).assertions), 11)
+
+    def test_a_recorded_removal_supersedes_the_current_blacklist_assertion(self):
+        entry = issuers.issuer_entries()[0]
+        subject = "removed.near"
+        read = {"issuer": entry["token"], "subject": subject, "method": entry["method"],
+                "args": {entry["args_key"]: subject}, "answer": entry["banned"], "block": 10,
+                "observed_at": "2026-11-03T00:00:00Z"}
+        removal = issuers.seed.make_row(
+            entity=f"{entry['token']} issuer action", subject=subject, chain="near",
+            label=f"removed from the issuer blacklist of {entry['token']} at block 12",
+            category="watch", provenance="onchain",
+            source={"rpc": issuers.FASTNEAR_TX_URL, "method": "POST /v0/transactions",
+                    "args": {"tx_hashes": ["history-tx"]}, "block": 12},
+            observed_at="2026-11-03T00:00:00Z",
+            note="The issuer action method remove_from_blacklist names this account id.")
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            reads_path = directory / "reads.json"
+            store_path = directory / "labels.jsonl"
+            self.write_status_fixture(directory, read)
+            old_row = issuers.blacklist_rows([read], directory)[0]
+            store_path.write_text(labels.row_line(old_row) + "\n", encoding="utf-8")
+            read.update(answer="Allowable", block=11, observed_at="2026-11-03T00:01:00Z")
+            self.write_status_fixture(directory, read)
+            reads_path.write_text(json.dumps([read]), encoding="utf-8")
+            with patch.object(issuers, "history_rows", return_value=[removal]):
+                self.assertEqual(issuers.seed_blacklists(store_path, directory, reads_path), 1)
+                before = store_path.read_bytes()
+                self.assertEqual(issuers.seed_blacklists(store_path, directory, reads_path), 0)
+                self.assertEqual(store_path.read_bytes(), before)
+            store = labels.load(store_path)
+
+        [saved_old] = [row for row in store.by_subject(subject, "near") if row.category == "denylist"]
+        self.assertEqual(saved_old.superseded_by, removal["id"])
+        self.assertFalse(any(row.category == "denylist" and row.superseded_by is None
+                             for row in store.by_subject(subject, "near")))
+
+    def test_seed_command_appends_fixture_backed_issuer_assertions(self):
+        output = io.StringIO()
+        with patch.object(issuers, "seed_blacklists", return_value=11), \
+                contextlib.redirect_stdout(output):
+            self.assertEqual(issuers.main(["seed"]), 0)
+        self.assertIn("11 issuer assertions appended", output.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main()

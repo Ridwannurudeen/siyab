@@ -26,7 +26,7 @@
       "detail": "no denylist or incident label on zec.omft.near",
       "source": {
         "provider": "label store",
-        "request_sha256": "74c235c6aefd1daae4c8028fc7e6461bbd9d8baa401caaa018ae29c001c1133d",
+        "request_sha256": "d6a6d55414c32703c3623b69fbcc93ae9e3d66b45345e8f57a73fafa5c7a8c9c",
         "fetched_at": null
       }
     },
@@ -76,7 +76,7 @@
       "detail": "zec.omft.near is itself a labelled reference account (assertion 38e8cd2adc1909e5c41e8358fa1313c729f68f4539b09c826430fab9cb6847fa, 2ab38db9712e6322db7ab2b714bf07c024ed17bb6a2b10bf0690d2f08dff4ded, 5d1508825a495b13088d67dedc3f53c8bf4f0676bd2ad22103c383ff29fef4d2, b5074f903cb6cdd1cb218810a37c27b701dda475457b6f0d52ede8c5bd09d403, da38379cf462153d06021fb513d5658dd277192230978f2295e826a61c2cdc90, 8813d4ceb32dcbf5fe01205d3a8a5eaf703f9a87c934f97c946fbb908eca584d)",
       "source": {
         "provider": "allowlist and label store",
-        "request_sha256": "74c235c6aefd1daae4c8028fc7e6461bbd9d8baa401caaa018ae29c001c1133d",
+        "request_sha256": "d6a6d55414c32703c3623b69fbcc93ae9e3d66b45345e8f57a73fafa5c7a8c9c",
         "fetched_at": null
       }
     },
