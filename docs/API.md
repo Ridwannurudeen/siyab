@@ -1,6 +1,8 @@
 # API
 
-This file is the consumer contract of the verdict interface: what `gate.verdict.request` returns, which checks can appear in it and what each status means, how `outcome` and `action` relate, one recorded answer per outcome, and the local HTTP endpoint that serves it. `tests/test_api_doc.py` fails when the field list, the check table or an example's fixture no longer agrees with the code.
+This file is the consumer contract of the verdict interface: what `gate.verdict.request` returns, which checks can appear in it and what each status means, how `outcome` and `action` relate, one recorded answer per outcome, and the local HTTP endpoint that serves it.
+
+`tests/test_api_doc.py` checks the response field names and order, exact check ids, `Kind` rows against emitted near/ft check ids, and `Tier` rows against `TIER2_CHECKS` plus allowlisted and off-allowlist ft calls. It checks that `issuer_blacklist` appears only when an issuer table is passed and `community_report` only when `reports_account` is set; for CLI, MCP and HTTP it verifies `issuers_for("mainnet")` for Gate ids not ending `.testnet` and no issuer table for `.testnet`; and it checks the outcome/action rows: ALLOW is `ask` when `ask` is nonempty and otherwise `sign`, DENY is `refuse`, and UNKNOWN is `ask`. It also checks one example per outcome against its fixture with 64-hex values shortened. The meanings in the `pass`, `signal` and `unknown` check-table cells are documentation checked by review, not by a test.
 
 ## The verdict response
 
@@ -19,7 +21,7 @@ This file is the consumer contract of the verdict interface: what `gate.verdict.
 | `reasons` | list of strings | the reasons for the outcome | `gate/verdict.py:125`, `gate/rules.py:621` |
 | `evidence_hash` | string | the sha256 hex of the canonical bytes of the evidence document, which is also its file name | `gate/verdict.py:126`, `:101` to `:102` |
 | `evidence_path` | string | where the evidence document was written, `<evidence_dir>/<evidence_hash>.json` | `gate/verdict.py:127`, `gate/evidence.py:93` |
-| `latency_ms` | integer | whole milliseconds of `time.perf_counter` from just before the rules ran to just after the verdict id was drawn; it leaves out the request validation, the evidence write and the signature | `gate/verdict.py:128`, `:83`, `:94` |
+| `latency_ms` | integer | whole milliseconds from just before the rules run until immediately after the conditional `verdict_id` assignment, following the action and signing decision. An id is drawn only for ALLOW when its action is in `sign_actions`; DENY, UNKNOWN and unsigned ALLOW get no id. The interval excludes request validation before it and evidence-document construction, evidence write and signature afterward. | `gate/verdict.py:128`, `:83` to `:94` |
 | `message` | string or null | the canonical message the signature covers (`docs/VERDICT-RECORD.md`), or null when `verdict` is null | `gate/verdict.py:129`, `:105` to `:108` |
 
 The adapters change the dict in two places only. The HTTP endpoint drops `evidence_path`, sets `verdict` and `message` to null and adds `signing` (`gate/http.py:163` to `:164`). The MCP tool adds `gate`, `signer`, `agent_pk` and `policy_source` (`mcp/server.py:177`).
@@ -47,7 +49,7 @@ Tiers (`gate/rules.py:670`): tier 1 runs for every receiver; tier 2 runs only fo
 | `lookalike` | near, ft | 2 | always for tier 2 | any | no allowlisted name is contained and no allowlisted or labelled reference account is within the length scaled distance, or the receiver is itself a labelled reference account (`:549` to `:555`) | the receiver contains an allowlisted name, or is within the distance of an allowlisted or labelled reference account after confusable normalisation (`:546` to `:548`) | never: the allowlist and the label store are local |
 | `code_without_metadata` | near, ft | 2 | always for tier 2 | any | no contract code, code with `contract_source_metadata`, or code without it and no other tier 2 signal (`:590` to `:602`) | contract code without `contract_source_metadata` together with another tier 2 signal (`:599` to `:600`) | the receiver account could not be read, or `contract_source_metadata` could not be read (`:587` to `:589`, `:597` to `:598`, `:604` to `:606`) |
 
-Line numbers without a file are `gate/rules.py`. `tests/test_api_doc.py` reads the check ids from `gate/rules.py` and fails when this table and the code disagree in either direction.
+Line numbers without a file are `gate/rules.py`. The test compares the table's check ids with the literal first arguments of `evidence.check` calls in `gate/rules.py`. It does not validate the prose in the `pass`, `signal` and `unknown` columns; those descriptions are checked by review.
 
 ### Outcome and action
 

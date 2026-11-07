@@ -1,10 +1,13 @@
-"""docs/API.md is the consumer contract of gate.verdict.request: its field list, its check table and its examples.
+"""Contract checks for docs/API.md.
 
-The check ids come from reading gate/rules.py with ast: the first argument of every evidence.check call, which
-must be a string literal. The field list is compared with the keys of an offline verdict.request over the replay
-fixtures, wired as tests/test_verdict.py wires it. Each example must equal its cited fixture after every 64 hex
-value is shortened to its first and last 8 hex, and the fixture must record the outcome the example's heading
-names. Every test also proves that its comparison fails on a deliberately broken copy.
+Tests pin response field names/order against an offline verdict.request; check ids against literal evidence.check
+calls; Kind rows against emitted near/ft check ids; Tier rows against TIER2_CHECKS and allowlisted/off-allowlist
+ft calls; issuer_blacklist only when an issuer table is passed and community_report only when reports_account is
+set; CLI/MCP/HTTP issuer selection as issuers_for("mainnet") for Gate ids not ending .testnet and None for
+.testnet; outcome/action rows as ALLOW to ask when ask is nonempty, otherwise sign, DENY to refuse, and UNKNOWN
+to ask; and one fixture-backed example per outcome after shortening 64-hex values.
+
+The pass, signal and unknown check-table meanings are documentation checked by review, not by a test.
 """
 
 import ast
