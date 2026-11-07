@@ -48,7 +48,6 @@ class LiveBeatScriptTest(unittest.TestCase):
             "COUNTERPARTY_ACCOUNT_ID": "subject.testnet",
             "NEAR_KEYS_DIR": str(Path(self.tempdir.name) / "keys"),
         }
-        self.env.pop("ATTACKER_ACCOUNT_ID", None)
         self.runs_before = set(RUNS.iterdir())
 
     def run_script(self, *args, env=None):
