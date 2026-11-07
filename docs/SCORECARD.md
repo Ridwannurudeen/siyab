@@ -18,7 +18,7 @@ These counts are not a precision or recall measurement against any outside groun
 | Reference assertions (all other categories) | 3,219 / 3,266 assertions | intel/labels.jsonl |
 | Testnet payments | 4 / 4 payment table rows | docs/TESTNET.md |
 | Testnet refusals | 11 / 11 attack table rows | docs/TESTNET.md |
-| Testnet registry records | 9 record entries / 9 fixture files | fixtures/registry/event-087cff-20261103.json; fixtures/registry/testnet-aged-payee.json; fixtures/registry/testnet-latest-examples.json; fixtures/registry/testnet-latest-kestrelridge-sh0p.json; fixtures/registry/testnet-latest-kestrelridge-shop.json; fixtures/registry/testnet-latest-lindenvale.json; fixtures/registry/testnet-latest-rhea-incident-collector.json; fixtures/registry/testnet-lookalike.json; fixtures/registry/testnet-vendor.json |
+| Testnet registry records | 7 on-chain records / 7 distinct fixture verdict IDs | fixtures/runs/registry-readback-20261105.txt; fixtures/registry/event-087cff-20261103.json; fixtures/registry/testnet-aged-payee.json; fixtures/registry/testnet-latest-examples.json; fixtures/registry/testnet-latest-kestrelridge-sh0p.json; fixtures/registry/testnet-latest-kestrelridge-shop.json; fixtures/registry/testnet-latest-lindenvale.json; fixtures/registry/testnet-latest-rhea-incident-collector.json; fixtures/registry/testnet-lookalike.json; fixtures/registry/testnet-vendor.json |
 | Feed blocks followed | 64,697 / 64,697 blocks recorded by the snapshot | intel/feed/follow-snapshot.json |
 | Feed events since start | 0 / 64,697 followed blocks | intel/feed/follow-snapshot.json |
 | Feed snapshot interval | 2026-11-03T18:55:31Z to 2026-11-04T05:22:06Z | intel/feed/follow-snapshot.json |

@@ -20,6 +20,7 @@ INCIDENTS = Path("intel/incidents")
 FEED_SNAPSHOT = Path("intel/feed/follow-snapshot.json")
 TESTNET = Path("docs/TESTNET.md")
 REGISTRY = Path("fixtures/registry")
+REGISTRY_READBACK = Path("fixtures/runs/registry-readback-20261105.txt")
 CLAIMS = Path("docs/CLAIMS.md")
 SCORECARD = Path("docs/SCORECARD.md")
 TEST_CITATION = re.compile(r"(?:\.test_[A-Za-z0-9_]+|::tests::[A-Za-z0-9_]+)")
@@ -184,19 +185,28 @@ def testnet_rows(root):
 
 def registry_rows(root):
     registry_dir = root / REGISTRY
-    record_files = []
+    verdict_ids = set()
+    record_paths = []
+
+    def add_entries(path, entries):
+        for entry in entries:
+            verdict_id = entry.get("verdict_id")
+            if not isinstance(verdict_id, str) or not verdict_id:
+                raise ValueError(f"{path}: verdict record has no verdict_id")
+            verdict_ids.add(verdict_id)
+
     for path in sorted(registry_dir.glob("testnet-*.json")):
         record = read_json(path)
         if record.get("event") == "verdict_recorded":
             entries = record.get("data")
             if not isinstance(entries, list) or not entries:
                 raise ValueError(f"{path}: verdict event has no record entries")
-            count = len(entries)
         elif "verdict" in record:
-            count = 1
+            entries = [record]
         else:
             raise ValueError(f"{path}: unrecognized testnet registry record")
-        record_files.append((path, count))
+        add_entries(path, entries)
+        record_paths.append(path)
 
     for path in sorted(registry_dir.glob("event-*.json")):
         event = read_json(path)
@@ -208,17 +218,30 @@ def registry_rows(root):
         if not all(isinstance(entry.get("subject"), str) and entry["subject"].endswith(".testnet")
                    for entry in entries):
             continue
-        record_files.append((path, len(entries)))
+        add_entries(path, entries)
+        record_paths.append(path)
 
-    record_files.sort(key=lambda item: item[0].name)
-    record_count = sum(count for _, count in record_files)
-    source = "; ".join(path.relative_to(root).as_posix() for path, _ in record_files)
-    if not source:
-        source = REGISTRY.as_posix()
-    return [
-        ("Testnet registry records", f"{record_count:,} record entries / {len(record_files):,} fixture files",
-         source)
-    ]
+    readback_path = root / REGISTRY_READBACK
+    readback_text = readback_path.read_text(encoding="utf-8")
+    readback_counts = re.findall(r"(?m)^total_records after: (\d+)$", readback_text)
+    if len(readback_counts) != 1:
+        raise ValueError(f"{REGISTRY_READBACK}: expected one total_records after value")
+    onchain_count = int(readback_counts[0])
+    fixture_count = len(verdict_ids)
+    value = (
+        f"{onchain_count:,} on-chain records / "
+        f"{fixture_count:,} distinct fixture verdict IDs"
+    )
+    if onchain_count != fixture_count:
+        value += " (mismatch)"
+    record_paths.sort(key=lambda path: path.name)
+    source = "; ".join([
+        REGISTRY_READBACK.as_posix(),
+        *(path.relative_to(root).as_posix() for path in record_paths),
+    ])
+    if not record_paths:
+        source += f"; {REGISTRY.as_posix()}"
+    return [("Testnet registry records", value, source)]
 
 
 def feed_rows(root):
