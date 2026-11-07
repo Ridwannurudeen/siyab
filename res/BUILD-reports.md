@@ -12,7 +12,7 @@ Previous deploy, version 0.1.0 from source commit 2d647e544ccc164c14f9ad72096f8e
 - The repository toolchain is Rust 1.99.1 with `wasm32-unknown-unknown`.
 - The crate manifest names the reproducible build image and build command.
 - Reproducing the wasm needs Docker and the cargo-near build image.
-- Reports wasm: 198593 bytes; sha256 `e28ac3fc...b4737134` (full value in `res/reports.wasm.sha256`); code_hash `GFKs9k5P6raHNxN6suXJNJByjsYdXAZdGdJE5a5duZes`; version 0.1.1. Two independent clones at the source commit built byte identical wasm on 7 Nov.
+- Reports wasm: 198593 bytes; sha256 `e28ac3fc...b4737134` (full value in `res/reports.wasm.sha256`); code_hash `GFKs9k5P6raHNxN6suXJNJByjsYdXAZdGdJE5a5duZes`; version 0.1.1. Two independent clones at the source commit built byte identical wasm on 7 Nov (`fixtures/runs/reproducible-reports-0.1.1-20261107-clones.txt`; the build output of each clone is in `fixtures/runs/reproducible-reports-0.1.1-20261107-clone1.txt` and `fixtures/runs/reproducible-reports-0.1.1-20261107-clone2.txt`).
 - Previous reports wasm: 198649 bytes; sha256 `50570436...f4e19763` (full value in `res/previous/reports.wasm.sha256`); code_hash `6QcaGeoCN7QXe2ZV8VAL4ZHTRYWTURJYQmdDD2tBqBpN`; version 0.1.0, source commit 2d647e544ccc164c14f9ad72096f8ec5cbcfcbd8.
 
 ## Verification recipe
@@ -25,4 +25,4 @@ unset CARGO_TARGET_DIR
 sha256sum contracts/reports/target/near/reports.wasm
 ```
 
-The orchestrator fills in the source commit after the build. The build output is written inside the crate, so `CARGO_TARGET_DIR` must be unset for the reproducible build command.
+The build output is written inside the crate, so `CARGO_TARGET_DIR` must be unset for the reproducible build command.

@@ -1,0 +1,58 @@
+cargo test --lib in contracts/gate of the build/gate-harden checkout, Gate 0.2.1, 7 Nov 2026: the unit tests of merge c2d42c0. Kept: the run header, the test lines that printed whole and the result line, which counts all 66 tests; the run used --nocapture, so 11 test lines are interleaved with expected panic output and are not kept. In the same run the sandbox test failed on a hard coded version string; commit 31d356e made it read the crate version, and the passing sandbox run is fixtures/runs/cargo-gate-0.2.1-sandbox-20261107.txt. The shared cargo target directory is written <target>.
+     Running unittests src/lib.rs (<target>/debug/deps/gate-95e471199a4afe72)
+test tests::derives_agent_public_key_from_test_seed ... ok
+test tests::non_monotonic_expiries_wait_for_the_live_queue_head ... ok
+test tests::expired_vector_is_refused - should panic ... ok
+test tests::initialization_rejects_ttl_above_one_hour - should panic ... ok
+test tests::non_allow_literal_is_refused - should panic ... ok
+test tests::previous_key_is_refused_after_deadline - should panic ... ok
+test tests::disabled_agent_is_refused - should panic ... ok
+test tests::missing_verdict_is_refused - should panic ... ok
+test tests::excessive_ttl_vector_is_refused - should panic ... ok
+test tests::per_call_cap_is_enforced - should panic ... ok
+test tests::previous_key_is_accepted_before_deadline ... ok
+test tests::failed_transfer_restores_the_debited_cap ... ok
+test tests::insufficient_gas_is_refused - should panic ... ok
+test tests::native_near_happy_path_debits_cap ... ok
+test tests::paused_gate_refuses_first - should panic ... ok
+test tests::failed_transfer_after_window_roll_is_not_restored ... ok
+test tests::failed_transfer_after_asset_cap_removed_is_not_restored ... ok
+test tests::flipped_signature_is_refused - should panic ... ok
+test tests::owner_method_refuses_non_owner - should panic ... ok
+test tests::failed_transfer_after_agent_revoked_is_not_restored ... ok
+test tests::prune_used_refuses_non_owner - should panic ... ok
+test tests::legacy_pending_refunds_when_generation_entries_are_missing ... ok
+test tests::max_ttl_accepts_one_hour ... ok
+test tests::prune_used_accepts_fifty_expired_ids ... ok
+test tests::duplicate_agent_registration_is_refused - should panic ... ok
+test tests::owner_method_requires_one_yocto - should panic ... ok
+test verdict::tests::expiry_at_current_time_is_refused ... ok
+test tests::pruning_stops_at_four_entries_per_call ... ok
+test tests::replay_of_pruned_verdict_is_still_refused_as_expired - should panic ... ok
+test tests::prune_used_rejects_more_than_fifty_ids - should panic ... ok
+test tests::prune_used_requires_one_yocto - should panic ... ok
+test tests::register_agent_rejects_per_call_above_window_cap - should panic ... ok
+test tests::used_verdicts_view_pages_in_map_order ... ok
+test tests::register_agent_rejects_invalid_unknown_caps - should panic ... ok
+test tests::register_agent_rejects_zero_window - should panic ... ok
+test tests::unregistered_signer_is_refused - should panic ... ok
+test tests::repeated_verdict_id_is_refused - should panic ... ok
+test tests::unlisted_receiver_without_unknown_caps_is_refused - should panic ... ok
+test tests::register_agent_starts_a_cap_generation ... ok
+test tests::unknown_payee_window_cap_is_enforced - should panic ... ok
+test tests::used_verdicts_view_rejects_limits_over_fifty - should panic ... ok
+test tests::successful_transfer_keeps_the_debit ... ok
+test tests::set_caps_rejects_per_call_above_window_cap - should panic ... ok
+test tests::set_caps_rejects_duplicate_assets - should panic ... ok
+test tests::set_max_ttl_rejects_value_above_one_hour - should panic ... ok
+test tests::window_cap_is_enforced - should panic ... ok
+test tests::verdict_for_another_agent_is_refused - should panic ... ok
+test verdict::tests::issue_time_at_now_is_accepted ... ok
+test tests::verdict_for_another_contract_is_refused - should panic ... ok
+test tests::zero_agent_allowance_is_refused - should panic ... ok
+test verdict::tests::issue_time_at_now_plus_30001_ms_is_refused ... ok
+test tests::replaced_caps_are_not_refunded_by_a_stale_callback ... ok
+test verdict::tests::issue_time_at_now_plus_30000_ms_is_accepted ... ok
+test tests::stale_queue_entry_does_not_remove_reused_verdict_id - should panic ... ok
+test verdict::tests::shared_vectors_match_message_digest_and_signature ... ok
+test result: ok. 66 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.37s
