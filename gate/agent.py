@@ -208,12 +208,13 @@ def read_policy(agent):
 def _judge(agent, request, verdict_signer, out, policy=None, sign_actions=None, reports_account=None):
     """The verdict service's answer for the request: gate.verdict.request with the agent's policy."""
     client, nearblocks, scanner, archival = agent.clients
+    issuers = None if agent.gate.endswith(".testnet") else rules.issuers_for("mainnet")
     options = {} if sign_actions is None else {"sign_actions": sign_actions}
     result = verdict.request(request["kind"], request["token_id"], request["receiver_id"], request["amount"],
                              request["memo"], gate=agent.gate, agent_pk_hex=agent.public_hex,
                              policy=read_policy(agent) if policy is None else policy, store=labels.load(), rpc=client,
                              nearblocks=nearblocks, signer=verdict_signer, injection_scanner=scanner,
-                             archival=archival, reports_account=reports_account, **options)
+                             archival=archival, issuers=issuers, reports_account=reports_account, **options)
     for check in result["checks"]:
         out(f"{check['status']:<7} {check['id']}: {check['detail']}")
     out(f"verdict: {result['outcome']}")

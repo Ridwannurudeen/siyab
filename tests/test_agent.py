@@ -104,6 +104,48 @@ class ReadPolicyTest(AgentCase):
         ])
 
 
+class JudgeIssuerTest(AgentCase):
+    def run_judge(self, gate, receiver):
+        context = self.make()
+        context.gate = gate
+        client = mock.Mock()
+        client.last_source = {"provider": "rpc.example", "request_sha256": None, "fetched_at": None}
+        client.view_account.return_value = {"block_height": 100, "code_hash": rpc.EMPTY_CODE_HASH}
+        client.call_function.return_value = False
+        context.clients = (client, None, None, None)
+        transfer = agent.transfer_request("near", None, receiver, "1", None, gate=gate,
+                                          agent_pk_hex=AGENT_PK.hex())
+        store = mock.Mock(sha256="test-label-store", assertions=[], by_subject=mock.Mock(return_value=[]))
+        original_write = agent.verdict.evidence.write
+
+        def write_to_temp(document, directory):
+            self.assertEqual(Path(directory), agent.verdict.EVIDENCE_DIR)
+            return original_write(document, self.dir / "evidence")
+
+        with (
+            mock.patch("gate.agent.labels.load", return_value=store),
+            mock.patch("gate.verdict.evidence.write", side_effect=write_to_temp),
+        ):
+            result = agent._judge(context, transfer, context.verifier(), self.lines.append,
+                                  policy={"allowlist": [receiver], "caps": []})
+        return result
+
+    def test_mainnet_gate_runs_issuer_blacklist_in_the_judgement(self):
+        issuer_table = [{"token": "issuer.near", "method": "is_blacklisted", "args_key": "account_id",
+                         "banned": True}]
+        with mock.patch("gate.agent.rules.issuers_for", return_value=issuer_table) as issuer_source:
+            result = self.run_judge("gate.near", "vendor.near")
+        issuer_source.assert_called_once_with("mainnet")
+        check = next(check for check in result["checks"] if check["id"] == "issuer_blacklist")
+        self.assertEqual(check["status"], "pass")
+
+    def test_testnet_gate_omits_issuer_blacklist_from_the_judgement(self):
+        with mock.patch("gate.agent.rules.issuers_for") as issuer_source:
+            result = self.run_judge(GATE, "vendor-shop.testnet")
+        issuer_source.assert_not_called()
+        self.assertNotIn("issuer_blacklist", {check["id"] for check in result["checks"]})
+
+
 class PayTest(AgentCase):
     def test_pay_sends_the_judged_verdict_untouched(self):
         context = self.make(SUCCESS)
