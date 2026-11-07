@@ -1,0 +1,9 @@
+Read only views of reports.kestrelridge-main.testnet after the 7 Nov redeploy to 0.1.2, as captured, except that the code checksum is shortened to its first and last 8 hex (the full value is in res/reports.wasm.sha256) and trailing spaces are removed.
+version: "0.1.2"
+state_version: 1
+report_deposit: "30000000000000000000000"
+totals: { "disputes": 0, "reports": 0 }
+subject_summary kestrelridge-sh0p.testnet: { "accepted": 0, "contested": 0, "deny": false, "latest_accepted_id": null, "latest_deny_id": null, "pending": 0 }
+subject_summary kestrelridge-mallory.testnet: { "accepted": 0, "contested": 0, "deny": false, "latest_accepted_id": null, "latest_deny_id": null, "pending": 0 }
+ reports.kestrelridge-main.testnet      At block #276631223
+ Local Contract (SHA-256 checksum hex)  ba2551dc...7f8b7705

@@ -6,7 +6,7 @@ What it is: a verdict service that judges an agent payment on NEAR before the ag
 
 Who it is for: teams that let an AI agent pay from a NEAR account; the agent's only credential is a function call key to the Gate, so the protocol refuses it a direct transfer, a deposit or a call to the token.
 
-Live on testnet: the Gate runs 0.2.1, the registry runs 0.1.0 and holds 7 verdict records, and the reports contract runs 0.1.1, which the verdict service consults only when `REPORTS_ACCOUNT_ID` is set (`docs/TESTNET.md`).
+Live on testnet: the Gate runs 0.2.1, the registry runs 0.1.0 and holds 7 verdict records, and the reports contract runs 0.1.2, which the verdict service consults only when `REPORTS_ACCOUNT_ID` is set (`docs/TESTNET.md`).
 
 Not yet: no report has been filed on the reports contract, and there is no mainnet deployment.
 

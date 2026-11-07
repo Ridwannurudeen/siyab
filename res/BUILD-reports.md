@@ -4,9 +4,9 @@ reproducible build
 
 Source commit: 5abc782b2126ac4cc91001b20ecb89e78fca11f8
 
-Deployed: pending
+Deployed: 7 Nov, `reports.kestrelridge-main.testnet`, version 0.1.2, code_hash `DXdqac6HBiXtZVCrJjdGjDEFfzcFF7EEDza8h8rU5UCC` MATCH (layout preserving redeploy without an init call over the 0.1.1 state, transaction `HDsZJNZV...aRiuXS`; `version` read 0.1.1 before and 0.1.2 after, `state_version` 1 and `report_deposit` 0.03 NEAR after, `fixtures/runs/reports-012-readback-20261107.txt`).
 
-Previous deploy, version 0.1.1 from source commit 937615878543e9f0d45eeb5002b65f88e3fc3757, now `res/previous/reports.wasm` and still the code on testnet: 7 Nov, `reports.kestrelridge-main.testnet`, code_hash `GFKs9k5P6raHNxN6suXJNJByjsYdXAZdGdJE5a5duZes` MATCH (layout preserving redeploy without an init call over the 0.1.0 state, transaction `59PSfJtQ...LzsErK`; `version` read 0.1.0 before and 0.1.1 after, `state_version` 1 after).
+Previous deploy, version 0.1.1 from source commit 937615878543e9f0d45eeb5002b65f88e3fc3757, now `res/previous/reports.wasm` and the rollback for 0.1.2: 7 Nov, `reports.kestrelridge-main.testnet`, code_hash `GFKs9k5P6raHNxN6suXJNJByjsYdXAZdGdJE5a5duZes` MATCH (layout preserving redeploy without an init call over the 0.1.0 state, transaction `59PSfJtQ...LzsErK`; `version` read 0.1.0 before and 0.1.1 after, `state_version` 1 after).
 
 Earlier deploy, version 0.1.0 from source commit 2d647e544ccc164c14f9ad72096f8ec5cbcfcbd8: 7 Nov, `reports.kestrelridge-main.testnet`, code_hash `6QcaGeoCN7QXe2ZV8VAL4ZHTRYWTURJYQmdDD2tBqBpN` MATCH (account created by `kestrelridge-main.testnet` with 3 NEAR, transaction `Cza55oWj...gcDwKF`; deploy with init `new(owner kestrelridge-owner.testnet, moderators [kestrelridge-owner.testnet])`, transaction `AMfe5SLG...nLCWCg`).
 
