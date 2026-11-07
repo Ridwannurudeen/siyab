@@ -1,0 +1,30 @@
+Read back of reports.kestrelridge-main.testnet after its first deploy, version 0.1.0, 7 Nov 2026, as captured, except that the terminal color codes and trailing spaces are removed and each 64 hex value is shortened to its first and last 8 characters (the full sha256 is in res/previous/reports.wasm.sha256). The lines from Summary to transaction_hashes are what scripts/deploy_reports.sh prints after the deploy (summary_block in scripts/lib.sh); left out are everything the capture holds before Summary (the account creation and the deploy with its init call, whose transactions res/BUILD-reports.md names) and, between the summary table and transaction_hashes, the console command line and the CLI update notice. The five lines after transaction_hashes follow in the same capture and come from a read back that scripts/deploy_reports.sh does not run: the lines labelled version, state_version and totals hold only the CLI update notice, the line labelled subject_summary vendor holds a closing brace, the console command, which names kestrelridge-sh0p.testnet, and the CLI update notice, and the last line is a second read of the account's code checksum.
+Summary
+  network: testnet
+  account: reports.kestrelridge-main.testnet
++ near account view-account-summary reports.kestrelridge-main.testnet network-config testnet now
+
+---------------------------------------------------------------------------------------------------------
+ reports.kestrelridge-main.testnet      At block #276559741
+                                        (CsYr5NQcbdRCnMebohWKYFGpjrXurp52KqzYn2qSjg8z)
+---------------------------------------------------------------------------------------------------------
+ NEAR Social profile unavailable        The profile can be edited at https://near.social
+                                        or using the cli command: bos social-db manage-profile
+                                        (https://github.com/bos-cli-rs/bos-cli-rs)
+---------------------------------------------------------------------------------------------------------
+ Native account balance                 2.9983835105175314 NEAR
+---------------------------------------------------------------------------------------------------------
+ Validator stake                        0 NEAR
+---------------------------------------------------------------------------------------------------------
+ Storage used by the account            199.0 KB
+---------------------------------------------------------------------------------------------------------
+ Local Contract (SHA-256 checksum hex)  50570436...f4e19763
+---------------------------------------------------------------------------------------------------------
+ Access keys                            1 full access keys and 0 function-call-only access keys
+---------------------------------------------------------------------------------------------------------
+  transaction_hashes: AMfe5SLG...nLCWCg
+version:  `near` CLI has a new update available 0.30.1 →  0.31.1 To update `near` CLI use: near extensions self-update
+state_version:  `near` CLI has a new update available 0.30.1 →  0.31.1 To update `near` CLI use: near extensions self-update
+totals:  `near` CLI has a new update available 0.30.1 →  0.31.1 To update `near` CLI use: near extensions self-update
+subject_summary vendor: }   Here is your console command if you need to script it or re-run:     near contract call-function as-read-only reports.kestrelridge-main.testnet subject_summary json-args '{"subject":"kestrelridge-sh0p.testnet"}' network-config testnet now   `near` CLI has a new update available 0.30.1 →  0.31.1 To update `near` CLI use: near extensions self-update
+ Local Contract (SHA-256 checksum hex)  50570436...f4e19763

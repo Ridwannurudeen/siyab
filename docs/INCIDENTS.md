@@ -38,7 +38,7 @@ A record and a page are linked through the label store: a record's `assertion_id
 
 - No incident record in the v1 format, no record store, no validator and no renderer for one.
 - No incident page cites a community report or a record; the three pages rest on public sources and chain reads only.
-- No on chain report to cite. The reports contract is deployed on testnet at `reports.kestrelridge-main.testnet` (`res/BUILD-reports.md`, Deployed line; `docs/TESTNET.md`), and its read back shows 0 reports and 0 disputes: no report has been filed.
+- No on chain report to cite. The reports contract is deployed on testnet at `reports.kestrelridge-main.testnet` (`res/BUILD-reports.md`, Deployed line; `docs/TESTNET.md`), and the read back after its 0.1.1 redeploy shows 0 reports and 0 disputes (`docs/TESTNET.md`): no report has been filed.
 - No page of measured service times. The published times are in `docs/REPORTING.md` and `docs/service_times.json`; until a report is filed there is nothing to measure.
 - No takedown or contact channel off chain. Corrections follow `docs/REPORTING.md`, Corrections.
 

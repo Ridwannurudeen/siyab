@@ -1,0 +1,75 @@
+cargo test in contracts/reports of the main checkout, Reports 0.1.1, 7 Nov 2026. This log does not show which wasm the sandbox candidate was: it records neither the checkout's commit nor whether REPORTS_CANDIDATE_WASM was set, so its round trip is of the source build. Kept from the console record: the header naming the crate, the test name and result lines and the GAS lines; everything else is left out. The checkout is written <checkout> and the shared cargo target directory <target>.
+   Compiling reports v0.1.1 (<checkout>/contracts/reports)
+
+     Running unittests src/lib.rs (<target>/debug/deps/reports-9bd52e369869c79e)
+running 59 tests
+test tests::canonical_body_hash_matches_shared_vector ... ok
+test tests::initializes_empty_counters_and_views ... ok
+test tests::duplicate_moderators_are_refused_by_new - should panic ... ok
+test tests::non_https_evidence_url_is_refused - should panic ... ok
+test tests::non_owner_cannot_set_moderators - should panic ... ok
+test tests::duplicate_moderators_are_refused_by_set_moderators - should panic ... ok
+test tests::evidence_url_over_512_bytes_is_refused - should panic ... ok
+test tests::invalid_subject_is_refused - should panic ... ok
+test tests::moderator_cannot_resolve_missing_dispute - should panic ... ok
+test tests::moderator_cannot_moderate_missing_report - should panic ... ok
+test tests::invalid_evidence_hash_is_refused - should panic ... ok
+test tests::moderation_reason_hash_is_validated - should panic ... ok
+test tests::non_moderator_cannot_moderate - should panic ... ok
+test tests::accepted_social_report_does_not_set_deny_flag ... ok
+test tests::accepted_report_updates_summary_and_publisher_stats ... ok
+test tests::rust_enum_values_match_the_canonical_json ... ok
+test tests::another_account_cannot_withdraw_report - should panic ... ok
+test tests::dispute_evidence_url_over_512_bytes_is_refused - should panic ... ok
+test tests::page_limit_is_capped_at_fifty - should panic ... ok
+test tests::record_views_return_none_when_ids_are_missing ... ok
+test tests::dispute_requires_the_pinned_deposit - should panic ... ok
+test tests::dispute_evidence_hash_is_validated - should panic ... ok
+test tests::dispute_rejects_a_deposit_above_the_exact_amount - should panic ... ok
+test tests::moderator_cannot_moderate_a_second_time - should panic ... ok
+test tests::dispute_evidence_url_is_validated - should panic ... ok
+test tests::dispute_contests_accepted_report_and_updates_summary ... ok
+test tests::newer_social_report_does_not_clear_deny_flag ... ok
+test tests::moderator_can_overturn_dispute ... ok
+test tests::closed_dispute_cannot_be_resolved_again - should panic ... ok
+test tests::non_moderator_cannot_resolve_dispute - should panic ... ok
+test tests::accepting_moderator_cannot_resolve_with_multiple_moderators - should panic ... ok
+test tests::report_rejects_a_deposit_above_the_exact_amount - should panic ... ok
+test tests::pending_summary_counts_each_new_submission ... ok
+test tests::report_requires_the_pinned_deposit - should panic ... ok
+test tests::pending_report_cannot_be_disputed - should panic ... ok
+test tests::owner_can_set_moderators ... ok
+test tests::version_views_return_the_crate_and_state_versions ... ok
+test tests::report_submitter_cannot_moderate_own_report - should panic ... ok
+test tests::open_dispute_check_reads_the_last_dispute - should panic ... ok
+test tests::rejected_report_updates_summary_and_publisher_stats ... ok
+test tests::submitter_cannot_withdraw_missing_report - should panic ... ok
+test tests::emits_all_five_nep_297_events_with_report_identity ... ok
+test tests::submission_hash_is_sha256_of_sorted_compact_json ... ok
+test tests::overturning_a_social_report_leaves_the_deny_chain_intact ... ok
+test tests::submitter_can_withdraw_pending_report ... ok
+test tests::submitter_cannot_withdraw_accepted_report - should panic ... ok
+test tests::second_open_dispute_is_refused - should panic ... ok
+test tests::resolution_reason_hash_is_validated - should panic ... ok
+test tests::report_and_dispute_storage_measurement_is_pinned ... ok
+test tests::same_moderator_can_resolve_when_the_moderator_list_has_one_member ... ok
+test tests::upheld_counter_saturates_instead_of_panicking ... ok
+test tests::views_page_by_subject_and_submitter ... ok
+test tests::overturning_middle_deny_report_relinks_deny_chain_without_changing_latest ... ok
+test tests::submitter_is_limited_to_five_pending_reports - should panic ... ok
+test tests::summary_deny_stays_true_when_one_of_two_deny_reports_is_overturned ... ok
+test tests::owner_moderator_and_withdraw_calls_require_exactly_one_yocto ... ok
+test tests::upheld_disputes_never_cap_further_disputes ... ok
+test tests::all_disallowed_report_state_transitions_are_refused ... ok
+test tests::deny_follows_kind_alone_for_every_outcome_when_accepted_and_contested ... ok
+test result: ok. 59 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.20s
+
+     Running tests/sandbox.rs (<target>/debug/deps/sandbox-40892b51a193b7d6)
+running 2 tests
+test sandbox_reports_layout_preserving_round_trip ... ok
+test sandbox_submit_accept_dispute_overturn_updates_subject_summary ... ok
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 26.31s
+
+   Doc-tests reports
+running 0 tests
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
