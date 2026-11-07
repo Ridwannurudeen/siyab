@@ -17,7 +17,7 @@ Gate and Reports have their rule 2 round trips in `contracts/gate/tests/sandbox.
 
 ## Prefix registry
 
-Each storage prefix a contract writes, read from the `new` initializer in its `src/lib.rs`. A new collection takes a prefix that is not in this table, and the table is updated in the same commit.
+Each storage prefix a contract writes is either initialized in `new` or defined by a named prefix constant in its `src/lib.rs`. A new collection takes a prefix that is not in this table, and the table is updated in the same commit.
 
 | Contract | Prefix | Collection |
 |---|---|---|
@@ -40,7 +40,7 @@ Each storage prefix a contract writes, read from the `new` initializer in its `s
 | Reports | `pp` | `pending_by_submitter` |
 | Reports | `ss` | `subject_summaries` |
 | Reports | `ps` | `publisher_stats` |
-| Reports | `ab` | `accepting_moderator_by_report` |
+| Reports | `ab` | accepting moderator per report id (`ACCEPTING_MODERATOR_PREFIX`, `contracts/reports/src/lib.rs:10`), from source version `0.1.2` |
 
 Prefixes are per account, so the same letter in two contracts does not collide.
 
