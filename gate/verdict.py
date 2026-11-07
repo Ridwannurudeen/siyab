@@ -57,7 +57,7 @@ def ask_reasons(outcome, checks, transfer, policy):
 
 def request(kind, token, receiver, amount, memo, *, gate, agent_pk_hex, policy, store, rpc, nearblocks,
             signer, ttl_ms=DEFAULT_TTL_MS, sign_actions=("sign",), injection_scanner=None, archival=None,
-            evidence_dir=EVIDENCE_DIR, clock=time.time, issuers=None):
+            evidence_dir=EVIDENCE_DIR, clock=time.time, issuers=None, reports_account=None):
     """Judge one transfer for the agent agent_pk_hex at the Gate gate.
 
     Returns {"outcome", "action", "ask", "verdict", "request", "checks", "reasons", "evidence_hash",
@@ -82,7 +82,8 @@ def request(kind, token, receiver, amount, memo, *, gate, agent_pk_hex, policy, 
     transfer = {"kind": kind, "token_id": token, "receiver_id": receiver, "amount": amount, "memo": memo}
     started = time.perf_counter()
     judgement = rules.judge(transfer, policy, store, rpc, nearblocks, now_ms=int(clock() * 1000),
-                            injection_scanner=injection_scanner, archival=archival, issuers=issuers)
+                            injection_scanner=injection_scanner, archival=archival, issuers=issuers,
+                            reports_account=reports_account)
     ask = ask_reasons(judgement.verdict, judgement.checks, transfer, policy)
     action = ("refuse" if judgement.verdict == "DENY" else
               "ask" if judgement.verdict == "UNKNOWN" or ask else "sign")

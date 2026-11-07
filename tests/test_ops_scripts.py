@@ -14,6 +14,12 @@ BASH = shutil.which("bash")
 CURRENT_VERIFIER = "ed25519:2" + "1" * 43
 NEW_VERIFIER = "ed25519:3" + "1" * 43
 HASH = "a" * 64
+# The deposit the scripts attach is read from the contract source, as report.sh does at run time.
+REPORT_DEPOSIT = next(
+    line.split("=", 1)[1].strip().rstrip(";").replace("_", "")
+    for line in (ROOT / "contracts" / "reports" / "src" / "lib.rs").read_text(encoding="utf-8").splitlines()
+    if line.startswith("pub const REPORT_DEPOSIT: u128 = ")
+)
 
 
 @unittest.skipUnless(BASH, "bash is required for operator script tests")
@@ -62,7 +68,7 @@ class OperatorScriptTest(unittest.TestCase):
         self.assertEqual(len(lines), 1, process.stdout)
         return shlex.split(lines[0][2:])
 
-    def assert_transaction(self, process, contract, method, args, deposit):
+    def assert_transaction(self, process, contract, method, args, deposit, signer="owner.testnet"):
         self.assertEqual(process.returncode, 0, process.stderr)
         command = self.near_command(process, method)
         self.assertEqual(
@@ -71,9 +77,9 @@ class OperatorScriptTest(unittest.TestCase):
                 "near", "contract", "call-function", "as-transaction", contract,
                 method, "json-args", json.dumps(args, separators=(",", ":")),
                 "prepaid-gas", "100 Tgas", "attached-deposit", deposit,
-                "sign-as", "owner.testnet", "network-config", "testnet",
+                "sign-as", signer, "network-config", "testnet",
                 "sign-with-access-key-file",
-                f'{self.env["NEAR_KEYS_DIR"]}/owner.testnet.json', "send",
+                f'{self.env["NEAR_KEYS_DIR"]}/{signer}.json', "send",
             ],
         )
         self.assertIn("Summary\n  network: testnet", process.stdout)
@@ -96,7 +102,45 @@ class OperatorScriptTest(unittest.TestCase):
         )
         self.assert_transaction(
             process, "reports.testnet", "submit_report", args,
-            "23004000000000000000000 yoctoNEAR",
+            f"{REPORT_DEPOSIT} yoctoNEAR",
+        )
+
+    def test_report_uses_reporter_account(self):
+        args = {
+            "subject": "subject.testnet",
+            "kind": "scam",
+            "outcome": "loss",
+            "evidence_sha256": HASH,
+            "evidence_url": "https://evidence.example/report",
+        }
+        env = {**self.env, "REPORTER_ACCOUNT_ID": "reporter.testnet"}
+        process = self.run_script(
+            "report.sh", "reports.testnet", "subject.testnet", "scam", "loss",
+            HASH, "https://evidence.example/report", env=env,
+        )
+        self.assert_transaction(
+            process, "reports.testnet", "submit_report", args,
+            f"{REPORT_DEPOSIT} yoctoNEAR", signer="reporter.testnet",
+        )
+
+    def test_report_fallback_warns_and_uses_owner_account(self):
+        args = {
+            "subject": "subject.testnet",
+            "kind": "scam",
+            "outcome": "loss",
+            "evidence_sha256": HASH,
+            "evidence_url": "https://evidence.example/report",
+        }
+        env = self.env.copy()
+        env.pop("REPORTER_ACCOUNT_ID", None)
+        process = self.run_script(
+            "report.sh", "reports.testnet", "subject.testnet", "scam", "loss",
+            HASH, "https://evidence.example/report", env=env,
+        )
+        self.assertEqual(process.stderr.splitlines(), ["the owner is the moderator and cannot moderate a report it filed; set REPORTER_ACCOUNT_ID"])
+        self.assert_transaction(
+            process, "reports.testnet", "submit_report", args,
+            f"{REPORT_DEPOSIT} yoctoNEAR",
         )
 
     def test_moderate_prints_exact_call(self):
@@ -107,8 +151,10 @@ class OperatorScriptTest(unittest.TestCase):
         )
 
     def test_dispute_and_resolution_print_exact_calls(self):
+        env = {**self.env, "DISPUTER_ACCOUNT_ID": "disputer.testnet"}
         process = self.run_script(
             "dispute.sh", "reports.testnet", "7", HASH, "https://evidence.example/appeal",
+            env=env,
         )
         self.assert_transaction(
             process, "reports.testnet", "dispute",
@@ -117,15 +163,35 @@ class OperatorScriptTest(unittest.TestCase):
                 "evidence_sha256": HASH,
                 "evidence_url": "https://evidence.example/appeal",
             },
-            "23004000000000000000000 yoctoNEAR",
+            f"{REPORT_DEPOSIT} yoctoNEAR",
+            signer="disputer.testnet",
         )
 
         process = self.run_script(
             "dispute.sh", "reports.testnet", "--resolve", "9", "overturn", HASH,
+            env=env,
         )
         self.assert_transaction(
             process, "reports.testnet", "resolve_dispute",
             {"dispute_id": 9, "overturn": True, "reason_sha256": HASH}, "1 yoctoNEAR",
+        )
+
+    def test_dispute_fallback_warns_and_uses_owner_account(self):
+        env = self.env.copy()
+        env.pop("DISPUTER_ACCOUNT_ID", None)
+        process = self.run_script(
+            "dispute.sh", "reports.testnet", "7", HASH, "https://evidence.example/appeal",
+            env=env,
+        )
+        self.assertEqual(process.stderr.splitlines(), ["the owner is the moderator; file disputes from a separate account by setting DISPUTER_ACCOUNT_ID"])
+        self.assert_transaction(
+            process, "reports.testnet", "dispute",
+            {
+                "report_id": 7,
+                "evidence_sha256": HASH,
+                "evidence_url": "https://evidence.example/appeal",
+            },
+            f"{REPORT_DEPOSIT} yoctoNEAR",
         )
 
     def test_verifier_rotation_preserves_old_key_for_one_configured_ttl(self):
@@ -154,6 +220,18 @@ class OperatorScriptTest(unittest.TestCase):
             ],
         )
         self.assertIn("Summary\n  network: testnet", process.stdout)
+
+    def test_verifier_rotation_can_revoke_previous_key_immediately(self):
+        process = self.run_script("rotate_verifier.sh", "--revoke-previous", NEW_VERIFIER)
+        self.assert_transaction(
+            process, "gate.testnet", "set_verifier_keys",
+            {
+                "current": NEW_VERIFIER,
+                "previous": None,
+                "previous_valid_until_ms": 0,
+            },
+            "1 yoctoNEAR",
+        )
 
     def test_recorder_rotation_prints_exact_call(self):
         process = self.run_script("rotate_recorder.sh", "recorder.testnet")

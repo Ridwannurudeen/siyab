@@ -148,7 +148,7 @@ Notes from the help output:
 
 - Install, 29 Oct: the venv `~/.venvs/near` runs Python 3.11.16 and was made with uv, because the distro's `python3` has no working venv module. Installed: pynacl 1.6.2, py-near 1.2.22, ruff 0.17.3. `~/.venvs/near/bin/python -c "import nacl.signing, py_near; print('ok')"` prints `ok`.
 - py-near on Python 3.12 stays UNVERIFIED: the venv is 3.11, which meets the 3.11 or later floor.
-- Signing a testnet transaction with a function call key, 29 Oct: PASS. A throwaway function call key (receiver the attacker account, method `noop`, allowance 0.25 NEAR) was added with the `add-key` line above; py-near 1.2.22 `Account(...).function_call(attacker, "noop", {})` signed with it and the RPC accepted the transaction, which failed in execution with `CodeDoesNotExist` as expected (no contract on that account). The key was deleted afterwards. `gate/agent.py` keeps py-near; the near-cli-rs fallback is not needed.
+- Signing a testnet transaction with a function call key, 29 Oct: PASS. A throwaway function call key (receiver the demo counterparty account, ours, method `noop`, allowance 0.25 NEAR) was added with the `add-key` line above; py-near 1.2.22 `Account(...).function_call(counterparty, "noop", {})` signed with it and the RPC accepted the transaction, which failed in execution with `CodeDoesNotExist` as expected (no contract on that account). The key was deleted afterwards. `gate/agent.py` keeps py-near; the near-cli-rs fallback is not needed.
 
 ## S8: NearBlocks testnet keys endpoint and account age
 
