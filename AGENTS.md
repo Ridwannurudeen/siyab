@@ -19,10 +19,10 @@ python scripts/check_hygiene.py --all                         # offline
 python scripts/counts.py --readme README.md                   # offline; the README must not change
 cd contracts/<crate> && cargo test --lib                      # network once (crates.io)
 cd contracts/<crate> && cargo test --test sandbox             # network, Linux or macOS (sandbox download)
-cd contracts/<crate> && cargo near build reproducible-wasm    # network, Docker
+cd contracts/<build-crate> && cargo near build reproducible-wasm # network, Docker
 ```
 
-`<crate>` is `gate`, `registry` or `test-token` (`test-token` has no sandbox test). Both contract crates carry the reproducible build metadata; each crate's `res/BUILD-<crate>.md` has its source commit, its deploy and the recipe. The PyNaCl and py-near cross checks run with `~/.venvs/near/bin/python` in place of `python` and skip without it: the py-near checks print a `skipped:` line, the PyNaCl checks show their reason with `-v`.
+`<crate>` is `gate`, `registry`, `reports` or `test-token` for `cargo test`; sandbox tests are in `gate`, `registry` and `reports`, while `test-token` has no sandbox test. `<build-crate>` is `gate`, `registry` or `reports`; each has a reproducible build record in `res/BUILD-<crate>.md`, while `test-token` has no build record. The PyNaCl and py-near cross checks run with `~/.venvs/near/bin/python` in place of `python` and skip without it: the py-near checks print a `skipped:` line, the PyNaCl checks show their reason with `-v`.
 
 ## Run
 
@@ -37,6 +37,7 @@ cd contracts/<crate> && cargo near build reproducible-wasm    # network, Docker
 ```
 contracts/gate/         guard contract that holds the agent's funds and pays only on a signed ALLOW
 contracts/registry/     registry contract that records verdicts with their evidence hashes
+contracts/reports/      community reports contract
 contracts/test-token/   NEP-141 token for the sandbox and testnet runs
 gate/                   canonical message, Ed25519, evidence, RPC, rules, verdict service, EVM leg, agent, scan, CLI
 intel/                  label store, seeds, incidents, feed, flow trace, static page renderer, read only API

@@ -22,7 +22,7 @@ These counts are not a precision or recall measurement against any outside groun
 | Feed snapshot interval | 2026-11-03T18:55:31Z to 2026-11-04T05:22:06Z | intel/feed/follow-snapshot.json |
 | Feed basis | snapshot, not live | intel/feed/follow-snapshot.json |
 | Claims rows | 49 / 49 parsed claim rows | docs/CLAIMS.md |
-| Claims citing a test | 44 / 49 claim rows | docs/CLAIMS.md |
+| Claims citing a test | 49 / 49 claim rows | docs/CLAIMS.md |
 
 ## Not measured
 

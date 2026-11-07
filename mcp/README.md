@@ -39,7 +39,7 @@ The payment tool writes its evidence documents into a temporary directory that t
 
 ## Connect a client
 
-The Claude Code command below and the Codex configuration were run on 2 Nov 2026 against the testnet Gate, each with `GATE_FIXTURES_MODE=off`, `GATE_ACCOUNT_ID=<gate>.testnet` and `GATE_POLICY=<get_agent JSON>` in the server's environment. Each client called all three tools once and got `isError: false` from each. The `.mcp.json` file declares the same server in a file; it was not part of that run.
+The Claude Code command below and the Codex configuration were run on 2 Nov 2026 against the testnet Gate, each with `GATE_FIXTURES_MODE=off`, `GATE_ACCOUNT_ID=<gate>.testnet` and `GATE_POLICY=<get_agent JSON>` in the server's environment. Each client called all three tools once and got `isError: false` from each. The JSON snippet below was not part of that run; users can save it as `.mcp.json` in their repository root.
 
 Claude Code, from the repository root:
 
@@ -47,7 +47,7 @@ Claude Code, from the repository root:
 claude mcp add shieldbot-near -s local -e GATE_FIXTURES_MODE=off -e GATE_ACCOUNT_ID=<gate>.testnet -e GATE_POLICY=<get_agent JSON> -- python -m mcp.server
 ```
 
-or a `.mcp.json` file in the repository root:
+Alternatively, save this snippet as `.mcp.json` in the repository root:
 
 ```json
 {

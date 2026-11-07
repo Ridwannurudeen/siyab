@@ -3,7 +3,8 @@ first screen states what is enforced and where.
 
 Each table is compared line for line with its source, and every file, function, test and fixture the
 README copy names must exist in the repository. The first screen is the headline, the one line and the
-blocks before the first second level heading; the full description is the paragraph under What it is.
+blocks before the first second level heading; the full description is the text under
+What it is through the next second level heading.
 """
 
 import re
@@ -126,7 +127,7 @@ class FirstScreenTest(unittest.TestCase):
     def setUp(self):
         text = README.read_text(encoding="utf-8")
         self.blocks = first_screen(text)
-        self.description = text.split("\n## What it is\n\n", 1)[1].split("\n\n", 1)[0]
+        self.description = text.split("\n## What it is\n\n", 1)[1].split("\n## ", 1)[0]
 
     def test_the_headline_and_the_one_line_open_the_readme_before_the_layers(self):
         self.assertEqual(self.blocks[:2], [HEADLINE, ONE_LINE])
