@@ -27,6 +27,14 @@ async fn sandbox_submit_accept_dispute_overturn_updates_subject_summary() {
         .unwrap()
         .into_result()
         .unwrap();
+    let second_moderator = root
+        .create_subaccount("moderator-b")
+        .initial_balance(NearToken::from_near(10))
+        .transact()
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap();
     let reporter = root
         .create_subaccount("reporter")
         .initial_balance(NearToken::from_near(10))
@@ -60,7 +68,7 @@ async fn sandbox_submit_accept_dispute_overturn_updates_subject_summary() {
         .call(contract.id(), "new")
         .args_json(json!({
             "owner_id": owner.id(),
-            "moderators": [moderator.id()]
+            "moderators": [moderator.id(), second_moderator.id()]
         }))
         .transact()
         .await
@@ -113,7 +121,24 @@ async fn sandbox_submit_accept_dispute_overturn_updates_subject_summary() {
         .unwrap()
         .json()
         .unwrap();
-    moderator
+    let refused_resolution = moderator
+        .call(contract.id(), "resolve_dispute")
+        .args_json(json!({
+            "dispute_id": dispute_id,
+            "overturn": true,
+            "reason_sha256": hash('d')
+        }))
+        .deposit(NearToken::from_yoctonear(1))
+        .gas(Gas::from_tgas(100))
+        .transact()
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap_err();
+    assert!(refused_resolution
+        .to_string()
+        .contains("REFUSED:same_moderator"));
+    second_moderator
         .call(contract.id(), "resolve_dispute")
         .args_json(json!({
             "dispute_id": dispute_id,
