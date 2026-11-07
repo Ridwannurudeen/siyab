@@ -1,0 +1,200 @@
+{
+ "synthetic": "Constructed by hand from the ApprovalDetail schema of the OutLayer API specification (out-layer/api-spec openapi.yaml 0.1.0-alpha.4, read 2026-11-07). Not recorded from OutLayer: the specification gives request_data no schema, so its fields here mirror the TransferRequest and CallRequest bodies. Identifiers and hashes are placeholders.",
+ "approvals": {
+  "ft_allow": {
+   "id": "00000000-0000-4000-8000-000000000001",
+   "wallet_id": "synthetic-wallet",
+   "request_type": "call",
+   "request_data": {
+    "receiver_id": "wrap.near",
+    "method_name": "ft_transfer",
+    "deposit": "1",
+    "args": {
+     "receiver_id": "intents.near",
+     "amount": "1000",
+     "memo": "invoice 7"
+    }
+   },
+   "status": "pending",
+   "required_approvals": 2,
+   "request_hash": "synthetic-request-hash-1",
+   "op": null,
+   "decoded_effects": null,
+   "wallet_pubkey": "ed25519:synthetic-wallet-pubkey",
+   "expires_at": "2026-11-08T12:00:00Z",
+   "created_at": "2026-11-07T12:00:00Z",
+   "approvers": []
+  },
+  "ft_deny": {
+   "id": "00000000-0000-4000-8000-000000000002",
+   "wallet_id": "synthetic-wallet",
+   "request_type": "call",
+   "request_data": {
+    "receiver_id": "wrap.near",
+    "method_name": "ft_transfer",
+    "deposit": "1",
+    "args": {
+     "receiver_id": "no-such-account-example.near",
+     "amount": "1000"
+    }
+   },
+   "status": "pending",
+   "required_approvals": 2,
+   "request_hash": "synthetic-request-hash-2",
+   "op": null,
+   "decoded_effects": null,
+   "wallet_pubkey": "ed25519:synthetic-wallet-pubkey",
+   "expires_at": "2026-11-08T12:00:00Z",
+   "created_at": "2026-11-07T12:00:00Z",
+   "approvers": []
+  },
+  "near_unknown": {
+   "id": "00000000-0000-4000-8000-000000000003",
+   "wallet_id": "synthetic-wallet",
+   "request_type": "transfer",
+   "request_data": {
+    "to": "relay.aurora",
+    "amount": "5"
+   },
+   "status": "pending",
+   "required_approvals": 2,
+   "request_hash": "synthetic-request-hash-3",
+   "op": null,
+   "decoded_effects": null,
+   "wallet_pubkey": "ed25519:synthetic-wallet-pubkey",
+   "expires_at": "2026-11-08T12:00:00Z",
+   "created_at": "2026-11-07T12:00:00Z",
+   "approvers": []
+  },
+  "near_alias_unknown": {
+   "id": "00000000-0000-4000-8000-000000000004",
+   "wallet_id": "synthetic-wallet",
+   "request_type": "transfer",
+   "request_data": {
+    "receiver_id": "relay.aurora",
+    "amount": "5",
+    "chain": "near"
+   },
+   "status": "pending",
+   "required_approvals": 2,
+   "request_hash": "synthetic-request-hash-4",
+   "op": null,
+   "decoded_effects": null,
+   "wallet_pubkey": "ed25519:synthetic-wallet-pubkey",
+   "expires_at": "2026-11-08T12:00:00Z",
+   "created_at": "2026-11-07T12:00:00Z",
+   "approvers": []
+  },
+  "withdraw": {
+   "id": "00000000-0000-4000-8000-000000000005",
+   "wallet_id": "synthetic-wallet",
+   "request_type": "withdraw",
+   "request_data": {
+    "chain": "near",
+    "to": "intents.near",
+    "amount": "1000"
+   },
+   "status": "pending",
+   "required_approvals": 2,
+   "request_hash": "synthetic-request-hash-5",
+   "op": null,
+   "decoded_effects": null,
+   "wallet_pubkey": "ed25519:synthetic-wallet-pubkey",
+   "expires_at": "2026-11-08T12:00:00Z",
+   "created_at": "2026-11-07T12:00:00Z",
+   "approvers": []
+  },
+  "other_method": {
+   "id": "00000000-0000-4000-8000-000000000006",
+   "wallet_id": "synthetic-wallet",
+   "request_type": "call",
+   "request_data": {
+    "receiver_id": "wrap.near",
+    "method_name": "storage_deposit",
+    "args": {}
+   },
+   "status": "pending",
+   "required_approvals": 2,
+   "request_hash": "synthetic-request-hash-6",
+   "op": null,
+   "decoded_effects": null,
+   "wallet_pubkey": "ed25519:synthetic-wallet-pubkey",
+   "expires_at": "2026-11-08T12:00:00Z",
+   "created_at": "2026-11-07T12:00:00Z",
+   "approvers": []
+  },
+  "ft_large_deposit": {
+   "id": "00000000-0000-4000-8000-000000000007",
+   "wallet_id": "synthetic-wallet",
+   "request_type": "call",
+   "request_data": {
+    "receiver_id": "wrap.near",
+    "method_name": "ft_transfer",
+    "deposit": "1000000000000000000000000",
+    "args": {
+     "receiver_id": "intents.near",
+     "amount": "1000",
+     "memo": "invoice 7"
+    }
+   },
+   "status": "pending",
+   "required_approvals": 2,
+   "request_hash": "synthetic-request-hash-7",
+   "op": null,
+   "decoded_effects": null,
+   "wallet_pubkey": "ed25519:synthetic-wallet-pubkey",
+   "expires_at": "2026-11-08T12:00:00Z",
+   "created_at": "2026-11-07T12:00:00Z",
+   "approvers": []
+  },
+  "ft_extra_arg": {
+   "id": "00000000-0000-4000-8000-000000000008",
+   "wallet_id": "synthetic-wallet",
+   "request_type": "call",
+   "request_data": {
+    "receiver_id": "wrap.near",
+    "method_name": "ft_transfer",
+    "deposit": "1",
+    "args": {
+     "receiver_id": "intents.near",
+     "amount": "1000",
+     "memo": "invoice 7",
+     "msg": "x"
+    }
+   },
+   "status": "pending",
+   "required_approvals": 2,
+   "request_hash": "synthetic-request-hash-8",
+   "op": null,
+   "decoded_effects": null,
+   "wallet_pubkey": "ed25519:synthetic-wallet-pubkey",
+   "expires_at": "2026-11-08T12:00:00Z",
+   "created_at": "2026-11-07T12:00:00Z",
+   "approvers": []
+  },
+  "approved": {
+   "id": "00000000-0000-4000-8000-000000000009",
+   "wallet_id": "synthetic-wallet",
+   "request_type": "call",
+   "request_data": {
+    "receiver_id": "wrap.near",
+    "method_name": "ft_transfer",
+    "deposit": "1",
+    "args": {
+     "receiver_id": "intents.near",
+     "amount": "1000",
+     "memo": "invoice 7"
+    }
+   },
+   "status": "approved",
+   "required_approvals": 2,
+   "request_hash": "synthetic-request-hash-9",
+   "op": null,
+   "decoded_effects": null,
+   "wallet_pubkey": "ed25519:synthetic-wallet-pubkey",
+   "expires_at": "2026-11-08T12:00:00Z",
+   "created_at": "2026-11-07T12:00:00Z",
+   "approvers": []
+  }
+ }
+}
