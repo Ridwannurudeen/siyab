@@ -5,9 +5,10 @@ signal wins over a check that could not run); UNKNOWN means a check could not ru
 absence of a known scam signal, not proof of identity.
 
 Tier 1, every receiver: receiver_exists, label_denylist, issuer_blacklist (when the caller gives
-the issuer table of intel/issuers.json, which it does for a mainnet Gate), token_in_catalog (ft),
-ft_metadata_sane (ft), storage_registered (ft), memo_injection. Tier 2, a receiver not on the
-agent's allowlist: account_age, dust_funded, lookalike, code_without_metadata. No contract code is
+the issuer table of intel/issuers.json, which it does for a mainnet Gate), community_report (only when
+the caller passes a reports account), token_in_catalog (ft), ft_metadata_sane (ft), storage_registered
+(ft), memo_injection. Tier 2, a receiver not on the agent's allowlist: account_age, dust_funded,
+lookalike, code_without_metadata. No contract code is
 never a signal on its own. Contract code without contract_source_metadata is a signal only together
 with another tier 2 signal (account_age, dust_funded or lookalike); alone it is a pass that says so.
 """
@@ -374,10 +375,12 @@ def _tier1(request, policy, store, rpc, injection_scanner, issuers, reports_acco
                                          f"could not read storage_balance_of: {_why(error)}", _source(rpc)))
 
     checks.append(_memo_check(memo, injection_scanner))
+    report_id = None
     if reports_account:
         try:
             report_summary = rpc.call_function(reports_account, "subject_summary", {"subject": receiver})
             report_effect = reports.effect(report_summary, receiver in policy.get("allowlist", []))
+            report_id = report_effect["report_id"]
         except UNAVAILABLE as error:
             report_effect = {"effect": "unreadable", "report_id": None,
                              "detail": f"subject_summary could not be read: {_why(error)}"}
@@ -385,7 +388,7 @@ def _tier1(request, policy, store, rpc, injection_scanner, issuers, reports_acco
             report_effect["effect"]]
         detail = f"reports for {receiver}: {report_effect['detail']}"
         checks.append(evidence.check("community_report", status, detail, _source(rpc)))
-    return checks, account, account_source, [a.id for a in consulted]
+    return checks, account, account_source, [a.id for a in consulted], report_id
 
 
 def _ft_metadata_check(rpc, token):
@@ -614,11 +617,12 @@ _SIGNAL_REASONS = {
     "ft_metadata_sane": "{token} has no valid ft_metadata.",
     "storage_registered": "Not registered on the token.",
     "memo_injection": "The memo carries instruction shaped text ({detail}).",
+    "community_report": "The reports contract {reports_account} accepted deny report {report_id} for {receiver}.",
     "code_without_metadata": "{receiver} has contract code without contract_source_metadata.",
 }
 
 
-def _reasons(verdict, checks, facts, request, tier2):
+def _reasons(verdict, checks, facts, request, tier2, reports_account, report_id):
     receiver, token = request["receiver_id"], request["token_id"]
     if verdict == "ALLOW":
         reasons = ["Every check ran and none found a signal."]
@@ -650,7 +654,8 @@ def _reasons(verdict, checks, facts, request, tier2):
         reasons.append("Not on the owner's allowlist.")
     for check_id, template in _SIGNAL_REASONS.items():
         if check_id in signals:
-            reasons.append(template.format(receiver=receiver, token=token, detail=signals[check_id]["detail"]))
+            reasons.append(template.format(receiver=receiver, token=token, detail=signals[check_id]["detail"],
+                                            reports_account=reports_account, report_id=report_id))
     return reasons
 
 
@@ -664,7 +669,7 @@ def judge(request, policy, store, rpc, nearblocks, *, now_ms, injection_scanner,
     empty list adds no check. reports_account is the reports contract account or None to omit its
     check. A receiver that is not a valid account id raises canon.CanonError, a ValueError, before any request."""
     canon.account_id(request["receiver_id"], "receiver_id")
-    tier1_checks, account, account_source, labels = _tier1(
+    tier1_checks, account, account_source, labels, report_id = _tier1(
         request, policy, store, rpc, injection_scanner, issuers, reports_account)
     block_height = account.get("block_height") if account else None
     tier2 = request["receiver_id"] not in policy.get("allowlist", [])
@@ -676,5 +681,6 @@ def judge(request, policy, store, rpc, nearblocks, *, now_ms, injection_scanner,
         labels += [assertion_id for assertion_id in matched if assertion_id not in labels]
     statuses = {check["status"] for check in checks}
     verdict = "DENY" if "signal" in statuses else "UNKNOWN" if "unknown" in statuses else "ALLOW"
-    return Judgement(verdict=verdict, checks=checks, reasons=_reasons(verdict, checks, facts, request, tier2),
+    return Judgement(verdict=verdict, checks=checks,
+                     reasons=_reasons(verdict, checks, facts, request, tier2, reports_account, report_id),
                      labels=labels, observed={"block_height": block_height, "timestamp_ms": now_ms})

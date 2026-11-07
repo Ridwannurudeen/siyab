@@ -171,6 +171,45 @@ class ReportClaimsTest(unittest.TestCase):
             with self.subTest(page=relative):
                 self.assertRegex(page, r"(?i)pending[^\n]{0,120}count only")
 
+    def test_reports_docs_match_the_deployed_reports_version(self):
+        build_record = (ROOT / "res" / "BUILD-reports.md").read_text(
+            encoding="utf-8"
+        )
+        deployed_match = re.search(
+            r"^Deployed:.*\bversion ([0-9]+(?:\.[0-9]+){2}),",
+            build_record,
+            re.MULTILINE,
+        )
+        self.assertIsNotNone(deployed_match)
+        deployed_version = deployed_match.group(1)
+
+        claim = re.compile(
+            r"testnet runs deployed Reports version \x60([^\x60]+)\x60",
+            re.IGNORECASE,
+        )
+        paths = (
+            "docs/REPORTING.md",
+            "docs/REPORTS.md",
+            "docs/RUNBOOK.md",
+            "docs/UPGRADES.md",
+            "docs/spec/report-v1.md",
+        )
+        for relative in paths:
+            page = (ROOT / relative).read_text(encoding="utf-8")
+            versions = claim.findall(page)
+            with self.subTest(page=relative):
+                self.assertTrue(versions)
+                self.assertEqual(versions, [deployed_version] * len(versions))
+
+        testnet = (ROOT / "docs" / "TESTNET.md").read_text(encoding="utf-8")
+        reports_row = re.search(
+            r"^\| Reports \|[^\n]*?\bversion ([0-9]+(?:\.[0-9]+){2})",
+            testnet,
+            re.MULTILINE,
+        )
+        self.assertIsNotNone(reports_row)
+        self.assertEqual(reports_row.group(1), deployed_version)
+
     def test_report_spec_names_the_manifest_source_version(self):
         manifest = (ROOT / "contracts" / "reports" / "Cargo.toml").read_text(
             encoding="utf-8"

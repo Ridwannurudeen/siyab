@@ -2,6 +2,28 @@
 
 **Every label has a source. Every verdict has evidence. Unknown never passes.**
 
+What it is: a verdict service that judges an agent payment on NEAR before the agent signs, and a Gate contract that holds the agent's funds and pays only on a signed ALLOW bound to that exact transfer.
+
+Who it is for: teams that let an AI agent pay from a NEAR account; the agent's only credential is a function call key to the Gate, so the protocol refuses it a direct transfer, a deposit or a call to the token.
+
+Live on testnet: the Gate runs 0.1.0, the registry runs 0.1.0 and holds 7 verdict records, and the reports contract runs 0.1.1, which the verdict service consults only when `REPORTS_ACCOUNT_ID` is set (`docs/TESTNET.md`).
+
+Not yet: Gate 0.2.1 is built and reproducible but not deployed (`Deployed: pending` in `res/BUILD-gate.md`), no report has been filed on the reports contract, and there is no mainnet deployment.
+
+Shown on testnet: a scripted agent told by a planted instruction to pay an account named in a public incident report gets DENY from the verdict service, and the Gate refuses its submission with `REFUSED:no_verdict`.
+
+**Try it in 60 seconds**, offline: Python 3.11 or later, from the repository root, no network and no keys. Each command exits 0 and reads only committed fixtures.
+
+```
+python -m gate injected
+python -m gate demo --offline
+python -m gate codehash res/previous/gate.wasm
+python -m intel counts
+python -m gate incident rhea
+```
+
+## What it is
+
 ShieldBot for NEAR is a security intelligence layer for NEAR: a label store in which every assertion names its provenance class and its source, covering the NEAR Intents token catalog and the treasury accounts its documentation lists, the Sputnik DAO factory, the current validators, the Ref Finance whitelist and the Rainbow Bridge token factory, incident pages built from those assertions, a fund flow trace whose every hop carries its transaction hash and block, a clustering tool whose every edge carries its heuristic and its provenance, issuer blacklist facts read from the token contracts and from the issuer's own transactions, and a block feed that follows finalized mainnet blocks for the hosted copy. Its first consumer is a guard: a verdict service judges the receiver, the token, the amount and the memo of an agent payment, and the destination recipient of one that leaves NEAR through NEAR Intents in a preflight before signing; a NEAR contract on testnet holds the agent's funds and pays only on a signed ALLOW bound to that exact transfer; and a NEAR registry on testnet records verdicts with their evidence hashes. The agent's only credential is a function call key to the guard, so the protocol itself refuses it a transfer, a deposit or a call to the token. Inferred attributions are shown as hypotheses with their inputs and never add a subject to the refusal set; a check that cannot run reads Unknown, and Unknown is refused. It is unrelated to NEAR Intents SHIELD; built for NEAR HACKATHON track 06 with the hints AGENT SECURITY and FUNCTION CALL KEYS; ShieldBot's EVM engine, its registries on other chains and its SDKs are pre existing baseline, everything under `contracts/`, `gate/`, `intel/` and `mcp/` was built in the hackathon window, and the baseline commit is linked in New in this hackathon vs reused. The testnet registry holds 7 verdict records: the ALLOWs of the second, third and fourth payments, the ALLOW the verdict service gave the unknown payee attack, which the Gate then refused on its cap, and the DENYs of the lookalike, the aged payee and the collector account named in the Rhea Lend incident report, which source `rekt-rhea` describes as the attacker's NEAR wallet; the first payment and the replay attack's first send have no record, because their evidence documents were not kept (`docs/TESTNET.md`). A prompt injected agent that follows a planted instruction to pay an account named in a public incident report is refused twice: the verdict service answers DENY with the label, the memo patterns and the evidence, and the guard refuses the transfer the agent then submits without a signed ALLOW; the log is replayed offline by `python -m gate injected`.
 
 ## A prompt injected agent, stopped
@@ -171,8 +193,8 @@ Python 3.11 or later, from the repository root. Steps 3, 5 and 6 show POSIX shel
    `python -m gate codehash res/gate.wasm`, then `python -m gate codehash res/registry.wasm`:
 
    ```
-   sha256: 63224c4f...644690a8
-   code_hash: 7fyhLcFm4nsof4gbfS5zN77cartyrjCBdKBtYRnSV3u9
+   sha256: 6b684655...9d000aa6
+   code_hash: 8EGqzorvbx5PiPCnLJCbi79p9HWsie93iwgCT6GjStL5
    sha256: 2a154191...f0ec0cfa
    code_hash: 3qGvVjTHVyvYVGQjJhqQGJMzmkUHwEbTCfWqHhXnW4VX
    ```
@@ -434,7 +456,7 @@ Copied from `docs/ATTACKS.md`. Each NEAR command is `python -m gate attack <name
 - `code_without_metadata` (contract code without `contract_source_metadata`) alone is a pass with a detail; it counts only with another tier 2 signal (`account_age`, `dust_funded` or `lookalike`). That moved three deployed protocol contracts of the receiver set from DENY to ALLOW (`grid.deltatrade.near`, `dclv2.ref-labs.near`, `aggregatedex.near`, `fixtures/receivers/judgements/`).
 - Where NearBlocks lists no access key for an account and `view_account` shows contract code, no creation time could be read, so `account_age` reads Unknown, and so does the verdict when no other check found a signal. In the receiver set these are the validator pool accounts and a DAO account of the organisation cohort (`fixtures/receivers/judgements/`). An agent that pays such an account has it put on its allowlist (the owner's `set_allowlist`), which skips the tier 2 checks.
 - The testnet Gate kept a full access key during the build.
-- A used verdict stays used when the transfer then fails; the agent needs a fresh ALLOW. Current Gate source 0.2.0 appends each accepted ID and expiry to a separate queue and removes at most four expired entries from its head per request. The owner can prune up to 50 expired IDs from before the queue with one yoctoNEAR. Testnet still runs Gate 0.1.0, which predates this queue pruning (`res/BUILD-gate.md`). Since expiry is checked before replay protection, a pruned expired ID still cannot authorize a transfer. A failed transfer restores the debited cap (`failed_transfer_restores_the_debited_cap`), except when the agent was revoked, the cap removed or the window rolled in between (the four `failed_transfer_after_*_is_not_restored` tests). If the completion callback itself fails, the budget stays debited.
+- A used verdict stays used when the transfer then fails; the agent needs a fresh ALLOW. Current Gate source 0.2.1 appends each accepted ID and expiry to a separate queue and removes at most four expired entries from its head per request. The owner can prune up to 50 expired IDs from before the queue with one yoctoNEAR. Testnet still runs Gate 0.1.0, which predates this queue pruning (`res/BUILD-gate.md`). Since expiry is checked before replay protection, a pruned expired ID still cannot authorize a transfer. A failed transfer restores the debited cap (`failed_transfer_restores_the_debited_cap`), except when the agent was revoked, the cap removed or the window rolled in between (the four `failed_transfer_after_*_is_not_restored` tests). If the completion callback itself fails, the budget stays debited.
 - Storage for used verdict ids, their queue entries, pending requests and agent keys is staked from the Gate's own balance; the registry pays storage for its records (`docs/REGISTRY.md`). The queue uses a new storage prefix, preserving the existing Gate state layout. `request_transfer` refuses a call whose gas cannot cover the transfer and its callback (`REFUSED:low_gas`).
 - The agent key's allowance is a gas budget, charged at the gas buy price and credited back on refund, so size it at prepaid gas times expected calls; `register_agent` refuses an allowance of 0 (`REFUSED:zero_allowance`), which the host would read as unlimited.
 - `register_agent` refuses a key that already has an entry (`REFUSED:agent_exists`); an `AddKey` failure for any other reason can leave an agent entry, which the owner removes with `revoke_agent`.
