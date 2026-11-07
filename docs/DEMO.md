@@ -1,6 +1,6 @@
 # Demo video and post
 
-The video runs about 110 seconds at 1080p, with captions and narration, recorded on 11 Nov 2026. Its one complete moment is a poisoned invoice: an AI agent that pays from its NEAR account follows the planted instruction, the verdict service answers DENY, the agent submits anyway and the guard contract refuses the transfer on chain. Then the real invoice is paid, a new payee waits for the owner, and the owner's kill switch stops the agent. Shots 3, 4, 5, 6 and 8 run live on NEAR testnet. Shot 2 prints a committed fixture file, shot 9 replays recorded fixtures, shot 10 runs the offline smoke, and the `DENIED.` line quoted in shot 4 is the offline replay of the same verdict. Shots 7 and 10 read the hosted copy, whose pages are named here by path only. Shot 1 is a title card made in the cut.
+The video is planned for NEAR testnet on 13 Nov 2026; it will run about 110 seconds at 1080p, with captions and narration. Its one complete moment is a poisoned invoice: an AI agent that pays from its NEAR account follows the planted instruction, the verdict service answers DENY, the agent submits anyway and the guard contract refuses the transfer on chain. Then the real invoice is paid, a new payee waits for the owner, and the owner's kill switch stops the agent. Shots 3, 4, 5, 6 and 8 run live on NEAR testnet. Shot 2 prints a committed fixture file, shot 9 replays recorded fixtures, shot 10 runs the offline smoke, and the `DENIED.` line quoted in shot 4 is the offline replay of the same verdict. Shots 7 and 10 read the hosted copy, whose pages are named here by path only. Shot 1 is a title card made in the cut.
 
 The commands run from the repository root. The live shots run in one terminal with `GATE_FIXTURES_MODE=off`, `GATE_ACCOUNT_ID=kestrelridge-main.testnet`, `AGENT_KEY_FILE`, `VERIFIER_KEY_FILE`, `NEAR_KEYS_DIR`, `OWNER_ACCOUNT_ID`, `COLD_ACCOUNT_ID` and `AGENT_PUB` set (`env.example`), with PyNaCl and py-near installed; `<agent pub>` below is the key `AGENT_PUB` holds, and the accounts are those of `docs/TESTNET.md`. `pay` and `attack` need the agent key in `AGENT_KEY_FILE` and the live verifier key in `VERIFIER_KEY_FILE`; without `GATE_ACCOUNT_ID` and `AGENT_KEY_FILE` each prints `not sent: set GATE_ACCOUNT_ID and AGENT_KEY_FILE` and sends nothing. `scripts/set_allowlist.sh` in shot 6 and `scripts/kill_switch.sh` in shot 8 are the owner's testnet transactions.
 
@@ -8,7 +8,7 @@ The commands run from the repository root. The live shots run in one terminal wi
 
 ### 1. 0 to 4 seconds: the title card
 
-No command runs; the card is made in the cut. It reads "An AI agent pays invoices from its NEAR account. What if an invoice is poisoned?" and, under it, "ShieldBot for NEAR, recorded 11 Nov 2026 on NEAR testnet". Caption: the card itself.
+No command runs; the card is made in the cut. It reads "An AI agent pays invoices from its NEAR account. What if an invoice is poisoned?" and, under it, "ShieldBot for NEAR, planned for 13 Nov 2026 on NEAR testnet". Caption: the card itself.
 
 ### 2. 4 to 12 seconds: the vendor message
 
