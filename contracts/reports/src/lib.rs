@@ -5,7 +5,7 @@ use near_sdk::{
     env, near, serde::Serialize, serde_json::json, store::LookupMap, AccountId, PanicOnDefault,
 };
 
-pub const REPORT_DEPOSIT: u128 = 23_124_000_000_000_000_000_000;
+pub const REPORT_DEPOSIT: u128 = 23_136_000_000_000_000_000_000;
 const MAX_PENDING_REPORTS: u64 = 5;
 const MAX_DISPUTES: usize = 5;
 const MAX_EVIDENCE_URL_BYTES: usize = 512;
@@ -71,6 +71,7 @@ pub struct Report {
     reason_sha256: Option<String>,
     moderated_ms: Option<u64>,
     dispute_ids: Vec<u64>,
+    upheld_disputes: u8,
     accepted_prev: Option<u64>,
     accepted_next: Option<u64>,
     deny_prev: Option<u64>,
@@ -206,6 +207,7 @@ struct CanonicalBody<'a> {
 pub struct Reports {
     owner_id: AccountId,
     moderators: Vec<AccountId>,
+    state_version: u8,
     reports: LookupMap<u64, Report>,
     disputes: LookupMap<u64, Dispute>,
     subject_report_counts: LookupMap<AccountId, u64>,
@@ -223,9 +225,11 @@ pub struct Reports {
 impl Reports {
     #[init]
     pub fn new(owner_id: AccountId, moderators: Vec<AccountId>) -> Self {
+        assert_distinct_moderators(&moderators);
         Self {
             owner_id,
             moderators,
+            state_version: 1,
             reports: LookupMap::new(b"r".as_slice()),
             disputes: LookupMap::new(b"d".as_slice()),
             subject_report_counts: LookupMap::new(b"sc".as_slice()),
@@ -240,10 +244,19 @@ impl Reports {
         }
     }
 
+    pub fn version(&self) -> String {
+        env!("CARGO_PKG_VERSION").to_owned()
+    }
+
+    pub fn state_version(&self) -> u8 {
+        self.state_version
+    }
+
     #[payable]
     pub fn set_moderators(&mut self, moderators: Vec<AccountId>) {
         self.assert_owner();
         near_sdk::assert_one_yocto();
+        assert_distinct_moderators(&moderators);
         self.moderators = moderators;
         emit(
             "moderators_updated",
@@ -303,6 +316,7 @@ impl Reports {
             reason_sha256: None,
             moderated_ms: None,
             dispute_ids: Vec::new(),
+            upheld_disputes: 0,
             accepted_prev: None,
             accepted_next: None,
             deny_prev: None,
@@ -359,6 +373,7 @@ impl Reports {
         validate_hash(&reason_sha256);
         let moderator = env::predecessor_account_id();
         let mut report = self.report_or_refuse(id);
+        near_sdk::require!(report.submitter != moderator, "REFUSED:self_moderation");
         near_sdk::require!(report.state == ReportState::Pending, "REFUSED:not_pending");
         let now = env::block_timestamp_ms();
         let mut summary = self.summary_for(&report.subject);
@@ -475,7 +490,7 @@ impl Reports {
             "REFUSED:not_accepted"
         );
         near_sdk::require!(
-            report.dispute_ids.len() < MAX_DISPUTES,
+            usize::from(report.upheld_disputes) < MAX_DISPUTES,
             "REFUSED:dispute_limit"
         );
 
@@ -536,6 +551,10 @@ impl Reports {
             report.state == ReportState::Contested,
             "REFUSED:not_contested"
         );
+        near_sdk::require!(
+            self.moderators.len() <= 1 || report.moderator.as_ref() != Some(&moderator),
+            "REFUSED:same_moderator"
+        );
 
         dispute.open = false;
         self.disputes.insert(dispute_id, dispute.clone());
@@ -558,6 +577,10 @@ impl Reports {
             }
         } else {
             report.state = ReportState::Accepted;
+            report.upheld_disputes = report
+                .upheld_disputes
+                .checked_add(1)
+                .unwrap_or_else(|| env::panic_str("REFUSED:counter_exhausted"));
             stats.accepted += 1;
         }
         report.moderator = Some(moderator.clone());
@@ -660,8 +683,8 @@ impl Reports {
 
     fn assert_report_deposit(&self) {
         near_sdk::require!(
-            env::attached_deposit().as_yoctonear() >= REPORT_DEPOSIT,
-            "REFUSED:low_deposit"
+            env::attached_deposit().as_yoctonear() == REPORT_DEPOSIT,
+            "REFUSED:bad_deposit"
         );
     }
 
@@ -747,6 +770,13 @@ impl Reports {
         }
         report.deny_prev = None;
         report.deny_next = None;
+    }
+}
+
+fn assert_distinct_moderators(moderators: &[AccountId]) {
+    let mut seen = std::collections::BTreeSet::new();
+    for moderator in moderators {
+        near_sdk::require!(seen.insert(moderator), "REFUSED:duplicate_moderator");
     }
 }
 
@@ -929,6 +959,13 @@ mod tests {
     }
 
     #[test]
+    fn version_views_return_the_crate_and_state_versions() {
+        let reports = reports();
+        assert_eq!(reports.version(), env!("CARGO_PKG_VERSION"));
+        assert_eq!(reports.state_version(), 1);
+    }
+
+    #[test]
     fn rust_enum_values_match_the_canonical_json() {
         assert_eq!(
             [
@@ -1066,7 +1103,7 @@ mod tests {
         assert_eq!(event["standard"], "shieldbot-near");
         assert_eq!(event["version"], "1.0.0");
         assert_eq!(event["data"][0]["moderators"][0], "next.testnet");
-        context("next.testnet", REPORT_DEPOSIT, 1_001);
+        context("reporter.testnet", REPORT_DEPOSIT, 1_001);
         let id = reports.submit_report(
             "vendor.testnet".to_owned(),
             ReportKind::Scam,
@@ -1077,6 +1114,21 @@ mod tests {
         context("next.testnet", 1, 1_002);
         reports.moderate(id, false, hash('b'));
         assert_eq!(reports.get_report(id).unwrap().state, ReportState::Rejected);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:duplicate_moderator")]
+    fn duplicate_moderators_are_refused_by_set_moderators() {
+        let mut reports = reports();
+        context("owner.testnet", 1, 1_000);
+        reports.set_moderators(vec![account("a.testnet"), account("a.testnet")]);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:duplicate_moderator")]
+    fn duplicate_moderators_are_refused_by_new() {
+        context("owner.testnet", 0, 1_000);
+        Reports::new(account("owner.testnet"), vec![account("a.testnet"), account("a.testnet")]);
     }
 
     #[test]
@@ -1129,7 +1181,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "REFUSED:low_deposit")]
+    #[should_panic(expected = "REFUSED:bad_deposit")]
     fn report_requires_the_pinned_deposit() {
         let mut reports = reports();
         context("reporter.testnet", REPORT_DEPOSIT - 1, 1_000);
@@ -1143,17 +1195,17 @@ mod tests {
     }
 
     #[test]
-    fn report_accepts_a_deposit_above_the_minimum() {
+    #[should_panic(expected = "REFUSED:bad_deposit")]
+    fn report_rejects_a_deposit_above_the_exact_amount() {
         let mut reports = reports();
         context("reporter.testnet", REPORT_DEPOSIT + 1, 1_000);
-        let id = reports.submit_report(
+        reports.submit_report(
             "vendor.testnet".to_owned(),
             ReportKind::Scam,
             ReportOutcome::Loss,
             hash('a'),
             "https://evidence.example/report".to_owned(),
         );
-        assert_eq!(reports.get_report(id).unwrap().state, ReportState::Pending);
     }
 
     #[test]
@@ -1288,6 +1340,53 @@ mod tests {
     }
 
     #[test]
+    fn deny_follows_kind_alone_for_every_outcome_when_accepted_and_contested() {
+        let kinds = [
+            ReportKind::Scam,
+            ReportKind::Theft,
+            ReportKind::Phishing,
+            ReportKind::Exploit,
+            ReportKind::KeyCompromise,
+            ReportKind::Social,
+        ];
+        let outcomes = [
+            ReportOutcome::Loss,
+            ReportOutcome::Attempt,
+            ReportOutcome::NearMiss,
+            ReportOutcome::Unknown,
+        ];
+
+        let mut pair = 0u32;
+        for kind in kinds {
+            for outcome in outcomes {
+                pair += 1;
+                let subject = format!("vendor-{pair}.testnet");
+                let mut reports = reports();
+                context("reporter.testnet", REPORT_DEPOSIT, 1_001);
+                let id = reports.submit_report(
+                    subject.clone(),
+                    kind,
+                    outcome,
+                    hash('a'),
+                    "https://evidence.example/report".to_owned(),
+                );
+                moderate(&mut reports, id, true);
+                assert_eq!(
+                    reports.subject_summary(account(&subject)).deny,
+                    kind.is_deny()
+                );
+
+                context("disputer.testnet", REPORT_DEPOSIT, 1_003);
+                reports.dispute(id, hash('c'), "https://evidence.example/dispute".to_owned());
+                assert_eq!(
+                    reports.subject_summary(account(&subject)).deny,
+                    kind.is_deny()
+                );
+            }
+        }
+    }
+
+    #[test]
     fn newer_social_report_does_not_clear_deny_flag() {
         let mut reports = reports();
         context("reporter.testnet", REPORT_DEPOSIT, 1_001);
@@ -1343,6 +1442,19 @@ mod tests {
         let mut reports = reports();
         let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
         context("stranger.testnet", 1, 1_002);
+        reports.moderate(id, true, hash('b'));
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:self_moderation")]
+    fn report_submitter_cannot_moderate_own_report() {
+        context("reporter.testnet", 1, 1_000);
+        let mut reports = Reports::new(
+            account("owner.testnet"),
+            vec![account("reporter.testnet")],
+        );
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        context("reporter.testnet", 1, 1_002);
         reports.moderate(id, true, hash('b'));
     }
 
@@ -1450,6 +1562,7 @@ mod tests {
         );
         assert_eq!(reports.get_dispute(dispute_id).unwrap().report_id, id);
         assert!(reports.get_dispute(dispute_id).unwrap().open);
+        assert_eq!(reports.report_or_refuse(id).upheld_disputes, 0);
         assert_eq!(reports.totals().disputes, 1);
     }
 
@@ -1466,12 +1579,22 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "REFUSED:low_deposit")]
+    #[should_panic(expected = "REFUSED:bad_deposit")]
     fn dispute_requires_the_pinned_deposit() {
         let mut reports = reports();
         let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
         moderate(&mut reports, id, true);
         context("disputer.testnet", REPORT_DEPOSIT - 1, 1_003);
+        reports.dispute(id, hash('c'), "https://evidence.example/dispute".to_owned());
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:bad_deposit")]
+    fn dispute_rejects_a_deposit_above_the_exact_amount() {
+        let mut reports = reports();
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        moderate(&mut reports, id, true);
+        context("disputer.testnet", REPORT_DEPOSIT + 1, 1_003);
         reports.dispute(id, hash('c'), "https://evidence.example/dispute".to_owned());
     }
 
@@ -1557,7 +1680,7 @@ mod tests {
     }
 
     #[test]
-    fn dispute_limit_is_five_over_the_report_lifetime() {
+    fn upheld_disputes_are_limited_to_five_over_the_report_lifetime() {
         let mut reports = reports();
         let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
         moderate(&mut reports, id, true);
@@ -1572,11 +1695,15 @@ mod tests {
             reports.get_report(id).unwrap().dispute_ids.len(),
             MAX_DISPUTES
         );
+        assert_eq!(
+            reports.report_or_refuse(id).upheld_disputes,
+            MAX_DISPUTES as u8
+        );
     }
 
     #[test]
     #[should_panic(expected = "REFUSED:dispute_limit")]
-    fn sixth_dispute_is_refused() {
+    fn sixth_upheld_dispute_is_refused() {
         let mut reports = reports();
         let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
         moderate(&mut reports, id, true);
@@ -1589,6 +1716,51 @@ mod tests {
         }
         context("disputer.testnet", REPORT_DEPOSIT, 1_010);
         reports.dispute(id, hash('c'), "https://evidence.example/dispute".to_owned());
+    }
+
+    #[test]
+    fn five_overturned_disputes_do_not_block_a_sixth_dispute() {
+        let mut reports = reports();
+        context("reporter.testnet", REPORT_DEPOSIT, 1_001);
+        let id = reports.submit_report(
+            "vendor.testnet".to_owned(),
+            ReportKind::Social,
+            ReportOutcome::Loss,
+            hash('a'),
+            "https://evidence.example/report".to_owned(),
+        );
+        moderate(&mut reports, id, true);
+        for index in 0..MAX_DISPUTES {
+            context("disputer.testnet", REPORT_DEPOSIT, 1_003 + index as u64);
+            reports.dispute(id, hash('c'), "https://evidence.example/dispute".to_owned());
+            context("moderator.testnet", 1, 1_004 + index as u64);
+            reports.resolve_dispute(index as u64, true, hash('d'));
+            assert_eq!(reports.report_or_refuse(id).upheld_disputes, 0);
+
+            // Overturning is terminal publicly; reset this fixture to isolate the cap counter.
+            let mut report = reports.report_or_refuse(id);
+            report.state = ReportState::Accepted;
+            reports.reports.insert(id, report);
+            let mut summary = reports.summary_for(&account("vendor.testnet"));
+            summary.accepted = 1;
+            summary.latest_accepted_id = Some(id);
+            reports
+                .subject_summaries
+                .insert(account("vendor.testnet"), summary);
+            let mut stats = reports.stats_for(&account("reporter.testnet"));
+            stats.accepted = 1;
+            reports
+                .publisher_stats
+                .insert(account("reporter.testnet"), stats);
+        }
+
+        context("disputer.testnet", REPORT_DEPOSIT, 1_010);
+        let sixth_dispute = reports.dispute(
+            id,
+            hash('e'),
+            "https://evidence.example/sixth-dispute".to_owned(),
+        );
+        assert_eq!(sixth_dispute, MAX_DISPUTES as u64);
     }
 
     #[test]
@@ -1641,7 +1813,7 @@ mod tests {
     }
 
     #[test]
-    fn moderator_can_restore_dispute_to_accepted() {
+    fn same_moderator_can_resolve_when_the_moderator_list_has_one_member() {
         let mut reports = reports();
         let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
         moderate(&mut reports, id, true);
@@ -1667,6 +1839,23 @@ mod tests {
                 .accepted,
             1
         );
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:same_moderator")]
+    fn accepting_moderator_cannot_resolve_with_multiple_moderators() {
+        context("reporter.testnet", 1, 1_000);
+        let mut reports = Reports::new(
+            account("owner.testnet"),
+            vec![account("moderator.testnet"), account("second.testnet")],
+        );
+        let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
+        moderate(&mut reports, id, true);
+        context("disputer.testnet", REPORT_DEPOSIT, 1_003);
+        let dispute_id =
+            reports.dispute(id, hash('c'), "https://evidence.example/dispute".to_owned());
+        context("moderator.testnet", 1, 1_004);
+        reports.resolve_dispute(dispute_id, false, hash('d'));
     }
 
     #[test]
@@ -2032,8 +2221,8 @@ mod tests {
         let measured_bytes = report_bytes.max(dispute_bytes);
         let byte_cost = env::storage_byte_cost().as_yoctonear();
         let deposit_with_margin = (u128::from(measured_bytes) * byte_cost * 120).div_ceil(100);
-        assert_eq!((report_bytes, dispute_bytes), (1_927, 734));
+        assert_eq!((report_bytes, dispute_bytes), (1_928, 734));
         assert_eq!(REPORT_DEPOSIT, deposit_with_margin);
-        assert_eq!(REPORT_DEPOSIT, 23_124_000_000_000_000_000_000);
+        assert_eq!(REPORT_DEPOSIT, 23_136_000_000_000_000_000_000);
     }
 }
