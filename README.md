@@ -498,7 +498,7 @@ Copied from `docs/ATTACKS.md`. Each NEAR command is `python -m gate attack <name
 - The signature is pure Ed25519 over the sha256 digest, not Ed25519ph.
 - Dependencies: NEAR RPC and archival RPC through FastNEAR, NearBlocks as an account-age fallback, GoPlus, 1Click and the ShieldBot API; each check that needs one reads Unknown when it is down. FastNEAR publishes no terms of service or rate limits for its RPC, archival RPC or Transfers API; this dependency is unverified on those two points.
 - What waits: chain wide label coverage, exchange labels, the NEAR Intents SHIELD feed, numeric risk ratings, billing, chain signatures linking, any trace of an unlabelled account. Feed and payment alerts are available when configured; the browser extension and the Telegram bot do not cover NEAR.
-- The Intear and HOT reference adapters are built in our repository and not adopted by either.
+- Intear: Reference code in our repository. Not reviewed, adopted or acknowledged by Intear. No contact made as of 8 Nov. HOT: Reference code in our repository. Not reviewed, adopted or acknowledged by HOT. No contact made as of 8 Nov.
 
 ## Relationship to other NEAR work
 

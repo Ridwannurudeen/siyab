@@ -6,4 +6,4 @@ HOT signs omni addresses. The caller must pass the real recipient carried in the
 
 Parsing HOT's intent format is NOT built. No HOT SDK is used and no HOT code is copied. The caller must extract and bind the real transfer fields before calling this module.
 
-Reference code in our repository. Not reviewed, adopted or acknowledged by HOT, and not tested with HOT. No contact made as of 8 Nov.
+Reference code in our repository. Not reviewed, adopted or acknowledged by HOT. No contact made as of 8 Nov. This preflight has not been tested with HOT.
