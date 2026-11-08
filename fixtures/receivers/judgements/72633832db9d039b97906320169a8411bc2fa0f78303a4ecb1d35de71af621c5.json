@@ -26,7 +26,7 @@
       "detail": "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5 carries the incident label \"named in the rekt.news Rhea Finance report as the master account\" (assertion 56bcaa5972ef748cca8a1f9b9be8f856184a94fa7268ec9a681ee89664d4d207); 72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5 carries the incident label \"account exists with contract code hash BbQTHv9y5pJcAVbcZVRgMkZib9v2bfydRtBL9msUR4Wi\" (assertion a28b0030e0a5060ee2e24e8dd6b0cd288d795e347660baf73a7f2ca2bfcdf7f4)",
       "source": {
         "provider": "label store",
-        "request_sha256": "598737a88bbc76a246f9fb691aed7ce3159336ace5aef333a08f6cffbbcab0c0",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
         "fetched_at": null
       }
     },
@@ -76,7 +76,7 @@
       "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
       "source": {
         "provider": "allowlist and label store",
-        "request_sha256": "598737a88bbc76a246f9fb691aed7ce3159336ace5aef333a08f6cffbbcab0c0",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
         "fetched_at": null
       }
     },
