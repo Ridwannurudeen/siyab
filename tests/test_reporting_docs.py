@@ -129,13 +129,14 @@ class ReportClaimsTest(unittest.TestCase):
             with self.subTest(claim=claim):
                 self.assertIn(claim, incidents)
 
-    def test_record_page_names_its_validator_and_keeps_store_and_renderer_unimplemented(self):
+    def test_record_page_names_its_validator_and_renderer_and_keeps_the_store_unimplemented(self):
         body = self.pages["RECORD"].split("\n\n", maxsplit=1)[1]
         first_paragraph = body.split("\n\n", maxsplit=1)[0]
         self.assertIn("format specification", first_paragraph)
         self.assertIn("validator, reader and writer are in `intel/records.py`", first_paragraph)
         self.assertIn("`python -m intel record-check`", first_paragraph)
-        self.assertIn("no store or renderer exists", first_paragraph)
+        self.assertIn("`python -m intel render --out demo/site` writes valid incident records", first_paragraph)
+        self.assertIn("no record store exists", first_paragraph)
         self.assertIn("two committed records are synthetic", first_paragraph)
 
 
