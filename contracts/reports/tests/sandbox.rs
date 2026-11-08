@@ -457,6 +457,14 @@ async fn sandbox_reports_threshold_round_trip() {
         .unwrap()
         .into_result()
         .unwrap();
+    let free_moderator = root
+        .create_subaccount("moderator-c")
+        .initial_balance(NearToken::from_near(10))
+        .transact()
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap();
     let reporter = root
         .create_subaccount("reporter")
         .initial_balance(NearToken::from_near(10))
