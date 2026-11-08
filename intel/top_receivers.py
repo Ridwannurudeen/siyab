@@ -38,6 +38,9 @@ TRANSIENT_BACKOFF_S = (5, 10, 20, 40, 60, 60)
 # A block takes one to two seconds to download, so one request at a time cannot reach the request rate the gate
 # allows; this many workers share the one gate, which still spaces request starts REQUEST_INTERVAL_S apart.
 SCAN_WORKERS = 6
+# At 0.1 s spacing and 1.35 to 3.3 s per read, 14 to 33 workers keep the gate busy. The shared gate still
+# spaces request starts, so gated starts cannot come closer than the keyed spacing whatever the worker count.
+KEYED_SCAN_WORKERS = 32
 AVERAGE_BLOCK_NS = 578_160_000
 INTENTS_ACCOUNT = "intents.near"
 _TIME = "%Y-%m-%dT%H:%M:%SZ"
@@ -422,6 +425,7 @@ def scan_window(hours, to_height=None, record=False, data_dir=DEFAULT_DATA_DIR, 
         raise TopReceiversError(f"scan stops at height {state['last_height']}; resume with --record")
     if fetcher is None:
         fetcher, interval = _neardata_fetcher()
+    workers = KEYED_SCAN_WORKERS if interval == KEYED_REQUEST_INTERVAL_S else SCAN_WORKERS
     get, last_request_at, set_last_request_at = _block_reader(fetcher, sleep, clock, clock(), interval=interval)
     while state["last_height"] < state["end_height"]:
         batch_start = state["last_height"] + 1
@@ -443,7 +447,7 @@ def scan_window(hours, to_height=None, record=False, data_dir=DEFAULT_DATA_DIR, 
                     raise TopReceiversError(f"neardata returned height {reduction['height']} for {height}")
                 return reduction
 
-            with ThreadPoolExecutor(max_workers=SCAN_WORKERS) as pool:
+            with ThreadPoolExecutor(max_workers=workers) as pool:
                 heights = list(pool.map(fetch, range(batch_start, batch_end + 1)))
             batch_requests = fetcher.requests - before_batch
             last_at = last_request_at()

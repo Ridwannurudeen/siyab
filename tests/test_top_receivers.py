@@ -381,6 +381,25 @@ class GateSpacingTest(unittest.TestCase):
             list(pool.map(lambda h: get(f"/v0/block/{h}"), range(30)))
         self.assertAlmostEqual(last_booked(), 29 * top_receivers.REQUEST_INTERVAL_S)
 
+    def test_many_workers_keep_keyed_spacing_through_one_gate(self):
+        class Recorder:
+            requests = 0
+
+            def get(self, path):
+                return synthetic_block(int(path.rsplit("/", 1)[1]), 0)
+
+        booked = [0.0]
+        get, last_booked, _ = top_receivers._block_reader(
+            Recorder(), booked.append, lambda: 0.0,
+            interval=top_receivers.KEYED_REQUEST_INTERVAL_S)
+        with ThreadPoolExecutor(max_workers=top_receivers.KEYED_SCAN_WORKERS) as pool:
+            list(pool.map(lambda h: get(f"/v0/block/{h}"), range(64)))
+        self.assertAlmostEqual(last_booked(), 63 * top_receivers.KEYED_REQUEST_INTERVAL_S)
+        booked.sort()
+        self.assertEqual(len(booked), 64)
+        for index in range(1, len(booked)):
+            self.assertAlmostEqual(booked[index] - booked[index - 1], top_receivers.KEYED_REQUEST_INTERVAL_S)
+
 
 class NeardataKeyTest(unittest.TestCase):
     def test_no_key_file_is_keyless_at_the_keyless_interval(self):
@@ -438,6 +457,64 @@ class NeardataKeyTest(unittest.TestCase):
             self.assertAlmostEqual(actual, step * top_receivers.KEYED_REQUEST_INTERVAL_S)
         self.assertAlmostEqual(batch["last_request_at"], 3 * top_receivers.KEYED_REQUEST_INTERVAL_S)
         self.assertAlmostEqual(state["last_request_at"], 3 * top_receivers.KEYED_REQUEST_INTERVAL_S)
+
+    def test_keyed_scan_builds_pool_with_keyed_scan_workers(self):
+        hour = 60 * 60 * 1_000_000_000
+        blocks = {0: synthetic_block(0, 0), 1: synthetic_block(1, 10 * hour),
+                  2: synthetic_block(2, 15 * hour), 3: synthetic_block(3, 20 * hour)}
+
+        class BlockClient:
+            def get(self, path):
+                return blocks[int(path.rsplit("/", 1)[1])]
+
+        pool_workers = []
+        real_pool = top_receivers.ThreadPoolExecutor
+
+        def recording_pool(*args, **kwargs):
+            pool_workers.append(kwargs.get("max_workers"))
+            return real_pool(*args, **kwargs)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            key = root / "key"
+            key.write_text("synthetic-key\n", encoding="utf-8")
+            data_dir = root / "scan"
+            with mock.patch.dict("os.environ", {"FASTNEAR_API_KEY_FILE": str(key)}), \
+                    mock.patch("intel.top_receivers.rpc.Client", return_value=BlockClient()), \
+                    mock.patch("intel.top_receivers.ThreadPoolExecutor", side_effect=recording_pool):
+                top_receivers.scan_window(10, 3, True, data_dir, sleep=lambda _: None, clock=lambda: 0.0)
+        self.assertEqual(pool_workers, [top_receivers.KEYED_SCAN_WORKERS])
+
+    def test_keyless_scan_builds_pool_with_scan_workers(self):
+        hour = 60 * 60 * 1_000_000_000
+        blocks = {0: synthetic_block(0, 0), 1: synthetic_block(1, 10 * hour),
+                  2: synthetic_block(2, 15 * hour), 3: synthetic_block(3, 20 * hour)}
+
+        class BlockClient:
+            def get(self, path):
+                return blocks[int(path.rsplit("/", 1)[1])]
+
+        pool_workers = []
+        real_pool = top_receivers.ThreadPoolExecutor
+
+        def recording_pool(*args, **kwargs):
+            pool_workers.append(kwargs.get("max_workers"))
+            return real_pool(*args, **kwargs)
+
+        with tempfile.TemporaryDirectory() as tmp, \
+                mock.patch("intel.top_receivers.ThreadPoolExecutor", side_effect=recording_pool):
+            root = Path(tmp)
+            keyless_dir = root / "keyless"
+            with mock.patch.dict("os.environ", {}, clear=True), \
+                    mock.patch("intel.feed.rpc.Client", return_value=BlockClient()):
+                top_receivers.scan_window(10, 3, True, keyless_dir, sleep=lambda _: None, clock=lambda: 0.0)
+            self.assertEqual(pool_workers, [top_receivers.SCAN_WORKERS])
+
+            pool_workers.clear()
+            caller_dir = root / "caller"
+            top_receivers.scan_window(10, 3, True, caller_dir, fetcher=FakeFetcher(blocks),
+                                      sleep=lambda _: None, clock=lambda: 0.0)
+            self.assertEqual(pool_workers, [top_receivers.SCAN_WORKERS])
 
 
 class ReceiverFixtureTest(unittest.TestCase):
