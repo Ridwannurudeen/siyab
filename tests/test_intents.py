@@ -164,7 +164,7 @@ class DemoRecipientTest(Case):
     def test_the_evidence_hash_is_stable(self):
         first, second = judge(), judge()
         self.assertEqual(first["evidence_hash"], second["evidence_hash"])
-        self.assertEqual(first["evidence_hash"], base64.b64decode("GyvdStjTgvVzhV28jevNR/Ywy3ShAy/AXnXlAHUBrXY=",
+        self.assertEqual(first["evidence_hash"], base64.b64decode("G4F0s9SH8j2yor2ioSob1r7vwJHKbsQnSeqbbfqLsMo=",
                                                                    validate=True).hex())
 
     def test_the_command_prints_deny_and_the_closing_line(self):
@@ -392,6 +392,24 @@ class FailClosedTest(Case):
         fixture_path = sanctions.ROOT / fixture_source["provider"]
         self.assertEqual(fixture_source["request_sha256"], hashlib.sha256(fixture_path.read_bytes()).hexdigest())
 
+    def test_eth_listing_is_denied_for_evm_chains_without_published_asset_codes(self):
+        document = sanctions.load()
+        listing = next(listing for listing in document["listings"]
+                       if listing["uid"] == 24003 and listing["asset"] == "ETH")
+        for chain in ("base", "op", "pol", "hood"):
+            with self.subTest(chain=chain):
+                destination = f"nep141:{chain}.omft.near"
+                root = self.root("evm")
+                self.quote_for_destination(root, listing["address"], destination)
+                self.goplus_says(root, listing["address"], {"code": 1, "result": {"data_source": "synthetic"}})
+
+                result = judge(listing["address"], destination=destination, fixtures_root=root)
+
+                self.assertEqual(result["verdict"], "DENY")
+                check = next(check for check in result["checks"] if check["id"] == "ofac_sanctioned")
+                self.assertEqual(check["status"], "signal")
+                self.assertIn("uid 24003", check["detail"])
+
     def test_an_unlisted_recipient_passes_the_ofac_check(self):
         document = sanctions.load()
         self.assertEqual(sanctions.is_sanctioned("eth", DEMO_RECIPIENT, document), [])
@@ -405,17 +423,24 @@ class FailClosedTest(Case):
         self.assertIn(document["publish_date"], check["detail"])
         self.assertIn(str(sanctions.counts(document)["addresses"]), check["detail"])
 
-    def test_a_chain_without_an_ofac_code_passes_with_the_list_fact(self):
+    def test_a_non_evm_chain_without_an_ofac_code_passes_with_the_list_fact(self):
         document = sanctions.load()
-        destination = "nep141:base.omft.near"
-        root = self.root("evm")
-        self.quote_for_destination(root, DEMO_RECIPIENT, destination)
-        self.goplus_says(root, DEMO_RECIPIENT, {"code": 1, "result": {"data_source": "synthetic"}})
-        result = judge(DEMO_RECIPIENT, destination=destination, fixtures_root=root)
-        check = next(check for check in result["checks"] if check["id"] == "ofac_sanctioned")
+        check = intents._ofac_check("ton", "non-evm-address", None)
         self.assertEqual(check["status"], "pass")
-        self.assertIn("publishes no address for chain base", check["detail"])
+        self.assertIn("publishes no address for chain ton", check["detail"])
         self.assertIn(document["publish_date"], check["detail"])
+
+    def test_a_non_evm_address_uses_only_its_destination_asset_code(self):
+        document = sanctions.load()
+        xbt_keys = {listing["key"] for listing in document["listings"] if listing["asset"] == "XBT"}
+        shared = next(listing for listing in document["listings"]
+                      if listing["asset"] == "USDT" and listing["key"] in xbt_keys)
+
+        check = intents._ofac_check("btc", shared["address"], None)
+
+        self.assertEqual(check["status"], "signal")
+        self.assertIn("asset XBT address", check["detail"])
+        self.assertNotIn("asset USDT address", check["detail"])
 
     def test_a_missing_ofac_file_is_unknown(self):
         destination = "nep141:eth.omft.near"

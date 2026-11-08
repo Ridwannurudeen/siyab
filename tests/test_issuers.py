@@ -243,8 +243,8 @@ class IssuerBlacklistSeedTest(unittest.TestCase):
     def test_current_bans_become_fixture_backed_denylist_assertions(self):
         rows = issuers.blacklist_rows()
         entries = {entry["token"]: entry for entry in issuers.issuer_entries()}
-        self.assertEqual(len(rows), 11)
-        self.assertEqual(len({row["subject"] for row in rows}), 11)
+        self.assertEqual(len(rows), 10)
+        self.assertEqual(len({row["subject"] for row in rows}), 10)
         self.assertEqual(len({(row["entity"], row["subject"]) for row in rows}), len(rows))
         for row in rows:
             assertion = labels.validate(row)
@@ -254,6 +254,26 @@ class IssuerBlacklistSeedTest(unittest.TestCase):
             self.assertEqual(assertion.source["method"], entry["method"])
             self.assertEqual(assertion.source["args"], {entry["args_key"]: row["subject"]})
             self.assertIn(f"as of block {assertion.source['block']}", assertion.label)
+
+    def test_a_catalog_token_blacklist_read_makes_no_assertion(self):
+        entry = next(entry for entry in issuers.issuer_entries() if entry["token"] == "usdt.tether-token.near")
+        subject = "wrap.near"
+        read = {"issuer": entry["token"], "subject": subject, "method": entry["method"],
+                "args": {entry["args_key"]: subject}, "answer": entry["banned"], "block": 10,
+                "observed_at": "2026-11-03T00:00:00Z"}
+        with tempfile.TemporaryDirectory() as tmp:
+            self.write_status_fixture(tmp, read)
+            self.assertEqual(issuers.blacklist_rows([read], tmp), [])
+
+    def test_an_issuer_blacklist_read_of_its_own_contract_makes_no_assertion(self):
+        entry = next(entry for entry in issuers.issuer_entries() if entry["token"] == "usdt.tether-token.near")
+        subject = entry["token"]
+        read = {"issuer": entry["token"], "subject": subject, "method": entry["method"],
+                "args": {entry["args_key"]: subject}, "answer": entry["banned"], "block": 10,
+                "observed_at": "2026-11-03T00:00:00Z"}
+        with tempfile.TemporaryDirectory() as tmp:
+            self.write_status_fixture(tmp, read)
+            self.assertEqual(issuers.blacklist_rows([read], tmp), [])
 
     def test_a_status_without_a_recorded_view_fixture_makes_no_assertion(self):
         entry = issuers.issuer_entries()[0]
@@ -266,11 +286,11 @@ class IssuerBlacklistSeedTest(unittest.TestCase):
     def test_rerunning_the_seed_with_the_same_fixtures_is_a_no_op(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "labels.jsonl"
-            self.assertEqual(issuers.seed_blacklists(path), 11)
+            self.assertEqual(issuers.seed_blacklists(path), 10)
             first = path.read_bytes()
             self.assertEqual(issuers.seed_blacklists(path), 0)
             self.assertEqual(path.read_bytes(), first)
-            self.assertEqual(len(labels.load(path).assertions), 11)
+            self.assertEqual(len(labels.load(path).assertions), 10)
 
     def test_a_recorded_removal_supersedes_the_current_blacklist_assertion(self):
         entry = issuers.issuer_entries()[0]

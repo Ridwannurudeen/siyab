@@ -421,10 +421,15 @@ def _ofac_check(chain, recipient, chain_error):
                   "fetched_at": fetched_at}
         list_counts = sanctions.counts(document)
         ofac_codes = [code for code in INTENTS_OFAC_ASSETS.get(chain, ()) if code in list_counts["assets"]]
-        if not ofac_codes:
+        evm_address = bool(_EVM_ADDRESS.fullmatch(recipient))
+        if not ofac_codes and not evm_address:
             return evidence.check("ofac_sanctioned", "pass", f"the OFAC list publishes no address for chain "
                                   f"{chain}; list published {document['publish_date']}", source)
-        matches = sanctions.is_sanctioned(chain, recipient, document)
+        if evm_address:
+            matches = sanctions.is_sanctioned(chain, recipient, document)
+        else:
+            matches = [match for code in ofac_codes
+                       for match in sanctions.is_sanctioned(code, recipient, document)]
     except (sanctions.SanctionsError, OSError, ValueError, KeyError, TypeError, AttributeError) as error:
         return evidence.check("ofac_sanctioned", "unknown", f"could not read the local OFAC sanctions fixture: "
                               f"{type(error).__name__}: {error}", local)
@@ -434,9 +439,14 @@ def _ofac_check(chain, recipient, chain_error):
                             f"{_quoted(match['address'])}; list published {match['publish_date']}; "
                             f"source file SHA-256 {match['source_sha256']}" for match in matches)
         return evidence.check("ofac_sanctioned", "signal", detail, source)
-    return evidence.check("ofac_sanctioned", "pass", f"no address match using chain code {chain}; checked "
-                          f"{list_counts['addresses']} distinct addresses; list published "
-                          f"{document['publish_date']}", source)
+    if evm_address:
+        detail = (f"no address match using the normalized EVM address key across "
+                  f"{list_counts['addresses']} distinct addresses; list published {document['publish_date']}")
+    else:
+        checked_addresses = sum(list_counts["assets"][code] for code in ofac_codes)
+        detail = (f"no address match under OFAC asset code(s) {', '.join(ofac_codes)}; checked "
+                  f"{checked_addresses} distinct code-address keys; list published {document['publish_date']}")
+    return evidence.check("ofac_sanctioned", "pass", detail, source)
 
 
 def _reasons(verdict, checks, recipient, goplus):

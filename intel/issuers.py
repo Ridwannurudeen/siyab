@@ -465,13 +465,19 @@ def _verified_status_read(read, fixture_dir):
             "block": client.last_block_height, "observed_at": client.last_source["fetched_at"]}
 
 
-def blacklist_rows(reads_to_seed=None, fixture_dir=FIXTURE_DIR):
+def blacklist_rows(reads_to_seed=None, fixture_dir=FIXTURE_DIR, store_path=labels.STORE_PATH):
     reads_to_seed = reads() if reads_to_seed is None else reads_to_seed
     entries = {entry["token"]: entry for entry in issuer_entries()}
+    store_path = Path(store_path)
+    catalog_subjects = ({assertion.subject for assertion in labels.load(store_path).assertions
+                         if assertion.category == "catalog_token" and assertion.superseded_by is None}
+                        if store_path.is_file() else set())
     rows = []
     for read in reads_to_seed:
         entry = entries.get(read.get("issuer"))
         if entry is None or read.get("answer") != entry["banned"]:
+            continue
+        if read.get("subject") == entry["token"] or read.get("subject") in catalog_subjects:
             continue
         observed = _verified_status_read(read, fixture_dir)
         if observed is None:
@@ -500,7 +506,8 @@ def seed_blacklists(store_path=labels.STORE_PATH, fixture_dir=FIXTURE_DIR, reads
     store_path = Path(store_path)
     reads_to_seed = json.loads(Path(reads_path).read_text(encoding="utf-8"))
     entries = {entry["token"]: entry for entry in issuer_entries()}
-    current_rows = blacklist_rows(reads_to_seed, fixture_dir)
+    catalog_store_path = store_path if store_path.is_file() else labels.STORE_PATH
+    current_rows = blacklist_rows(reads_to_seed, fixture_dir, catalog_store_path)
     current_by_key = {(row["entity"].removeprefix("issuer of "), row["subject"]): row for row in current_rows}
     read_by_key = {(read.get("issuer"), read.get("subject")): read for read in reads_to_seed}
     existing_store = labels.load(store_path) if store_path.is_file() else None

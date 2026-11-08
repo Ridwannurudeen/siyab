@@ -285,7 +285,9 @@ impl Reports {
         self.assert_owner();
         near_sdk::assert_one_yocto();
         near_sdk::require!(
-            required >= 1 && required as usize <= self.moderators.len(),
+            required >= 1
+                && required as usize <= self.moderators.len()
+                && (self.moderators.len() <= 1 || (required as usize) < self.moderators.len()),
             "REFUSED:bad_threshold"
         );
         let previous = self.current_approvals_required();
@@ -304,6 +306,11 @@ impl Reports {
         near_sdk::require!(
             moderators.len() >= self.current_approvals_required() as usize,
             "REFUSED:threshold_above_moderators"
+        );
+        near_sdk::require!(
+            self.current_approvals_required() <= 1
+                || moderators.len() > self.current_approvals_required() as usize,
+            "REFUSED:bad_threshold"
         );
         self.moderators = moderators;
         emit(
@@ -1381,6 +1388,39 @@ mod tests {
     }
 
     #[test]
+    #[should_panic(expected = "REFUSED:bad_threshold")]
+    fn approvals_required_equal_to_multiple_moderators_is_refused() {
+        let mut reports = reports();
+        configure_threshold(
+            &mut reports,
+            &["moderator-a.testnet", "moderator-b.testnet"],
+            1,
+        );
+        context("owner.testnet", 1, 1_002);
+        reports.set_approvals_required(2);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:bad_threshold")]
+    fn moderator_list_cannot_equal_approvals_required_above_one() {
+        let mut reports = reports();
+        configure_threshold(
+            &mut reports,
+            &[
+                "moderator-a.testnet",
+                "moderator-b.testnet",
+                "moderator-c.testnet",
+            ],
+            2,
+        );
+        context("owner.testnet", 1, 1_002);
+        reports.set_moderators(vec![
+            account("moderator-a.testnet"),
+            account("moderator-b.testnet"),
+        ]);
+    }
+
+    #[test]
     #[should_panic(expected = "REFUSED:threshold_above_moderators")]
     fn moderator_list_cannot_be_shorter_than_approvals_required() {
         let mut reports = reports();
@@ -1510,6 +1550,7 @@ mod tests {
                 "moderator-a.testnet",
                 "moderator-b.testnet",
                 "moderator-c.testnet",
+                "moderator-d.testnet",
             ],
             3,
         );
@@ -1570,6 +1611,7 @@ mod tests {
                 "moderator-a.testnet",
                 "moderator-b.testnet",
                 "moderator-c.testnet",
+                "moderator-d.testnet",
             ],
             3,
         );
@@ -1583,6 +1625,7 @@ mod tests {
         reports.set_moderators(vec![
             account("moderator-b.testnet"),
             account("moderator-c.testnet"),
+            account("moderator-d.testnet"),
         ]);
 
         assert_eq!(reports.get_report(id).unwrap().state, ReportState::Pending);
@@ -1598,6 +1641,7 @@ mod tests {
                 "moderator-a.testnet",
                 "moderator-b.testnet",
                 "moderator-c.testnet",
+                "moderator-d.testnet",
             ],
             3,
         );
@@ -1611,12 +1655,14 @@ mod tests {
         reports.set_moderators(vec![
             account("moderator-b.testnet"),
             account("moderator-c.testnet"),
+            account("moderator-d.testnet"),
         ]);
         assert_eq!(reports.get_report(id).unwrap().state, ReportState::Pending);
         context("owner.testnet", 1, 1_006);
         reports.set_moderators(vec![
             account("moderator-b.testnet"),
             account("moderator-c.testnet"),
+            account("moderator-d.testnet"),
             account("moderator-a.testnet"),
         ]);
         assert_eq!(reports.get_report(id).unwrap().state, ReportState::Pending);
@@ -1648,7 +1694,11 @@ mod tests {
         let mut reports = reports();
         configure_threshold(
             &mut reports,
-            &["moderator-a.testnet", "moderator-b.testnet"],
+            &[
+                "moderator-a.testnet",
+                "moderator-b.testnet",
+                "resolver.testnet",
+            ],
             2,
         );
         let id = submit(&mut reports, "reporter.testnet", "vendor.testnet");
@@ -3152,10 +3202,15 @@ mod tests {
     fn one_threshold_vote_storage_measurement_is_pinned() {
         let moderator = "m".repeat(64);
         let second_moderator = "n".repeat(64);
+        let third_moderator = "o".repeat(64);
         context("owner.testnet", 0, 999);
         let mut reports = Reports::new(
             account("owner.testnet"),
-            vec![account(&moderator), account(&second_moderator)],
+            vec![
+                account(&moderator),
+                account(&second_moderator),
+                account(&third_moderator),
+            ],
         );
         context("owner.testnet", 1, 1_000);
         reports.set_approvals_required(2);

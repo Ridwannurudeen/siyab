@@ -40,6 +40,14 @@ async fn sandbox_submit_accept_dispute_overturn_updates_subject_summary() {
         .unwrap()
         .into_result()
         .unwrap();
+    let free_moderator = root
+        .create_subaccount("moderator-free")
+        .initial_balance(NearToken::from_near(10))
+        .transact()
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap();
     let reporter = root
         .create_subaccount("reporter")
         .initial_balance(NearToken::from_near(10))
@@ -502,7 +510,7 @@ async fn sandbox_reports_threshold_round_trip() {
         .unwrap();
     owner
         .call(contract.id(), "set_moderators")
-        .args_json(json!({"moderators": [moderator.id(), second_moderator.id()]}))
+        .args_json(json!({"moderators": [moderator.id(), second_moderator.id(), free_moderator.id()]}))
         .deposit(NearToken::from_yoctonear(1))
         .transact()
         .await
@@ -639,4 +647,57 @@ async fn sandbox_reports_threshold_round_trip() {
         .unwrap();
     assert_eq!(stale_votes.as_array().unwrap().len(), 1);
     assert_eq!(stale_votes[0]["moderator"], moderator.id().as_str());
+
+    reporter
+        .call(contract.id(), "dispute")
+        .args_json(json!({
+            "report_id": report_id,
+            "evidence_sha256": hash('d'),
+            "evidence_url": "https://evidence.example/dispute"
+        }))
+        .deposit(NearToken::from_yoctonear(REPORT_DEPOSIT))
+        .gas(Gas::from_tgas(100))
+        .transact()
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap();
+    let disputed: Value = contract
+        .view(contract.id(), "get_report")
+        .args_json(json!({"id": report_id}))
+        .await
+        .unwrap()
+        .json()
+        .unwrap();
+    assert_eq!(disputed["state"], "contested");
+    free_moderator
+        .call(contract.id(), "resolve_dispute")
+        .args_json(json!({
+            "dispute_id": 0,
+            "overturn": true,
+            "reason_sha256": hash('e')
+        }))
+        .deposit(NearToken::from_yoctonear(1))
+        .gas(Gas::from_tgas(100))
+        .transact()
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap();
+    let resolved: Value = contract
+        .view(contract.id(), "get_report")
+        .args_json(json!({"id": report_id}))
+        .await
+        .unwrap()
+        .json()
+        .unwrap();
+    assert_eq!(resolved["state"], "overturned");
+    let dispute: Value = contract
+        .view(contract.id(), "get_dispute")
+        .args_json(json!({"id": 0}))
+        .await
+        .unwrap()
+        .json()
+        .unwrap();
+    assert_eq!(dispute["open"], false);
 }

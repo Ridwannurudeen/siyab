@@ -17,6 +17,14 @@ from scripts import scorecard
 
 
 class ScorecardTest(unittest.TestCase):
+    def test_label_metrics_count_only_current_assertions_as_hostile(self):
+        rows = {name: value for name, value, _ in scorecard.label_rows(ROOT)}
+        self.assertEqual(rows["Label assertions"], "3,278 / 3,278 committed assertion rows")
+        self.assertEqual(rows["Current hostile assertions (incident and denylist)"],
+                         "57 / 3,277 current assertion rows")
+        self.assertEqual(rows["Current reference assertions (all other categories)"],
+                         "3,220 / 3,277 current assertion rows")
+
     def test_rust_sandbox_citations_count_as_test_references(self):
         citation = (
             "contracts/reports/tests/sandbox.rs::"

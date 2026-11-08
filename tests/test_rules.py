@@ -215,6 +215,20 @@ class OutputsTest(RulesCase):
         self.assertEqual(judgement.observed, {"block_height": 100, "timestamp_ms": NOW_MS})
         self.assertEqual(judgement.checks[0]["source"]["provider"], "rpc.example")
 
+    def test_allowlisted_usdt_payment_is_not_denied_by_the_token_label(self):
+        token = "usdt.tether-token.near"
+        self.store = labels.load()
+        self.fx.account(VENDOR)
+        self.fx.function(token, "ft_metadata", {}, {"spec": "ft-1.0.0", "name": "Tether USD",
+                                                      "symbol": "USDT", "decimals": 6})
+        self.fx.function(token, "storage_balance_of", {"account_id": VENDOR},
+                         {"total": "1250000000000000000000", "available": "0"})
+
+        judgement = self.judge(request(token=token))
+
+        self.assertEqual(self.status(judgement, "label_denylist"), "pass")
+        self.assertEqual(judgement.verdict, "ALLOW")
+
     def test_native_transfer_has_no_token_checks(self):
         self.fx.account(VENDOR)
         judgement = self.judge(request(kind="near", memo=None))

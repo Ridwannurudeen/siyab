@@ -13,10 +13,10 @@ FETCHED_AT = "2026-11-06T10:00:00Z"
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def event_line(name, data, block_height, fetched_at=FETCHED_AT):
+def event_line(name, data, block_height, fetched_at=FETCHED_AT, version="1.0.0"):
     payload = {
         "standard": "shieldbot-near",
-        "version": "1.0.0",
+        "version": version,
         "event": name,
         "data": [data],
     }
@@ -27,7 +27,8 @@ def event_line(name, data, block_height, fetched_at=FETCHED_AT):
     }
 
 
-def accepted(report_id, block_height, subject="subject.synthetic.testnet", fetched_at=FETCHED_AT):
+def accepted(report_id, block_height, subject="subject.synthetic.testnet", fetched_at=FETCHED_AT,
+             version="1.0.0"):
     return event_line(
         "report_moderated",
         {
@@ -40,6 +41,7 @@ def accepted(report_id, block_height, subject="subject.synthetic.testnet", fetch
         },
         block_height,
         fetched_at,
+        version,
     )
 
 
@@ -110,6 +112,18 @@ class ReconcileTest(unittest.TestCase):
             "event": "report_moderated",
             "source_block": 10,
         })
+
+    def test_legacy_and_current_event_envelope_versions_are_accepted(self):
+        rows = self.run_reconcile([
+            accepted(0, 10, version="1.0.0"),
+            accepted(1, 11, version="1.1.0"),
+        ])
+
+        self.assertEqual([row["report_id"] for row in rows], [0, 1])
+
+    def test_unknown_event_envelope_version_is_refused(self):
+        with self.assertRaisesRegex(ReconcileError, "unsupported version"):
+            self.run_reconcile([accepted(0, 10, version="1.2.0")])
 
     def test_since_block_recovers_from_subject_pages(self):
         calls = []

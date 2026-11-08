@@ -244,7 +244,7 @@ def bisect_start_height(end_height, end_timestamp_ns, target_timestamp_ns, fetch
             high_height, high_timestamp = left_height, left_timestamp
         elif right_timestamp < target_timestamp_ns:
             low_height, low_timestamp = right_height, right_timestamp
-        elif left_height == low_height and right_height == high_height:
+        elif right_height == high_height:
             return high_height, high_timestamp
         else:
             high_height, high_timestamp = right_height, right_timestamp

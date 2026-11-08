@@ -157,6 +157,15 @@ class ScanTest(unittest.TestCase):
 
         self.assertEqual((start, timestamp_ns), (3, 30 * hour))
 
+    def test_bisection_returns_upper_bound_when_null_heights_reach_it(self):
+        spacing = 2 * top_receivers.AVERAGE_BLOCK_NS
+        blocks = {height: synthetic_block(height, height * spacing) for height in (104, 106, 110)}
+        target = 107 * spacing + 1
+
+        start, timestamp_ns = top_receivers.bisect_start_height(110, 110 * spacing, target, blocks.get)
+
+        self.assertEqual((start, timestamp_ns), (110, 110 * spacing))
+
     def test_scan_resumes_at_the_checkpoint_without_refetching_completed_heights(self):
         hour = 60 * 60 * 1_000_000_000
         blocks = {0: synthetic_block(0, 0), 1: synthetic_block(1, 5 * hour),

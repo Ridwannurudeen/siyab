@@ -98,16 +98,21 @@ def label_rows(root):
     if match is None:
         raise ValueError("scripts/counts.py: unexpected label counts helper output")
     total = int(match["total"])
-    categories = labels.load(label_path).counts()["category"]
-    hostile = categories["incident"] + categories["denylist"]
-    reference = total - hostile
+    store = labels.load(label_path)
+    categories = store.counts()["category"]
     if sum(categories.values()) != total:
         raise ValueError(f"{LABELS}: category counts do not sum to the assertion total")
+    current = [assertion for assertion in store.assertions if assertion.superseded_by is None]
+    current_total = len(current)
+    hostile = sum(assertion.category in {"incident", "denylist"} for assertion in current)
+    reference = current_total - hostile
     return [
         ("Label assertions", f"{total:,} / {total:,} committed assertion rows", LABELS.as_posix()),
-        ("Hostile assertions (incident and denylist)", f"{hostile:,} / {total:,} assertions",
+        ("Current hostile assertions (incident and denylist)",
+         f"{hostile:,} / {current_total:,} current assertion rows",
          f"{LABELS.as_posix()}; {INCIDENTS.as_posix()}/*.json"),
-        ("Reference assertions (all other categories)", f"{reference:,} / {total:,} assertions",
+        ("Current reference assertions (all other categories)",
+         f"{reference:,} / {current_total:,} current assertion rows",
          LABELS.as_posix()),
     ]
 
