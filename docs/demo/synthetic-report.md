@@ -17,6 +17,6 @@ This is a synthetic report made for a recorded demonstration: its subject, `kest
 
 ## The hash rule
 
-The report's `evidence_sha256` is the sha256 of this file's bytes as committed at the commit its `evidence_url` names, `https://raw.githubusercontent.com/Ridwannurudeen/shieldbot-near/<commit>/docs/demo/synthetic-report.md`. `scripts/live_beat.sh` computes it from the file at run time and refuses to file when the file differs from that commit. No hash of this page is written in the repository; it is read back from `get_report` and kept in the run log under `fixtures/runs/`.
+The report's `evidence_sha256` is the sha256 of this file's bytes as committed at the commit its `evidence_url` names, `https://raw.githubusercontent.com/Ridwannurudeen/shieldbot-near/<commit>/docs/demo/synthetic-report.md`. `scripts/live_beat.sh` computes it from the file at run time and refuses to file when the file differs from that commit. The repository is private until the public flip, so until then the run checks the bytes against the pushed commit locally, and the URL serves them from the flip on. No hash of this page is written in the repository; it is read back from `get_report` and kept in the run log under `fixtures/runs/`.
 
 The dispute points at this same page with the same hash: the reason to overturn is written here, in the first line.

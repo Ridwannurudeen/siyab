@@ -34,6 +34,11 @@ if [[ "$GATE_ACCOUNT_ID" != *.testnet ]]; then
   printf 'GATE_ACCOUNT_ID must be a .testnet account: the verdict reads select the network from it\n' >&2
   exit 2
 fi
+EVIDENCE_CHECK=${EVIDENCE_CHECK:-fetch}
+if [[ "$EVIDENCE_CHECK" != "fetch" && "$EVIDENCE_CHECK" != "local" ]]; then
+  printf 'EVIDENCE_CHECK must be fetch or local\n' >&2
+  exit 2
+fi
 
 EVIDENCE_PATH=docs/demo/synthetic-report.md
 COMMIT=$(git -C "$ROOT_DIR" rev-parse HEAD)
@@ -270,6 +275,10 @@ record "commit: $COMMIT"
 record "reports: $REPORTS_ACCOUNT_ID; owner and moderator: $OWNER_ACCOUNT_ID; reporter: $REPORTER_ACCOUNT_ID; disputer: $DISPUTER_ACCOUNT_ID; subject: $SUBJECT"
 record "evidence_url: $EVIDENCE_URL"
 record "evidence_sha256 (sha256 of $EVIDENCE_PATH): $EVIDENCE_SHA256"
+if [[ "$EVIDENCE_CHECK" == "local" ]]; then
+  record "evidence_check: local"
+  record "evidence_url note: the URL is readable once the repository is public, and scripts/public_flip_check.py --fetch-evidence fetches it then"
+fi
 record "moderation reason: $MODERATE_REASON"
 record "moderation reason_sha256: $MODERATE_REASON_SHA256"
 record "resolution reason: $RESOLVE_REASON"
@@ -280,9 +289,28 @@ ZERO_SUMMARY=$(summary_json 0 0 0 null null false)
 STEP=a
 record ""
 record "## a. before the report"
-record "+ fetch $EVIDENCE_URL and compare its sha256 with $EVIDENCE_SHA256"
-if [[ "$DRY_RUN" != "1" ]]; then
-  if ! python3 - "$EVIDENCE_URL" "$EVIDENCE_SHA256" <<'PY'
+if [[ "$EVIDENCE_CHECK" == "local" ]]; then
+  record "$(command_line git -C "$ROOT_DIR" merge-base --is-ancestor "$COMMIT" refs/remotes/origin/main)"
+  record "+ $(printf '%q ' git -C "$ROOT_DIR" show "$COMMIT:$EVIDENCE_PATH")and compare its sha256 with $EVIDENCE_SHA256"
+  if [[ "$DRY_RUN" != "1" ]]; then
+    if ! git -C "$ROOT_DIR" merge-base --is-ancestor "$COMMIT" refs/remotes/origin/main >/dev/null 2>&1; then
+      printf 'commit %s is not on refs/remotes/origin/main; push the commit and run git fetch first\n' "$COMMIT" >&2
+      exit 2
+    fi
+    if ! ACTUAL_SHA256=$(git -C "$ROOT_DIR" show "$COMMIT:$EVIDENCE_PATH" | python3 -c 'import hashlib, sys; print(hashlib.sha256(sys.stdin.buffer.read()).hexdigest())'); then
+      printf 'could not read %s:%s from git\n' "$COMMIT" "$EVIDENCE_PATH" >&2
+      exit 2
+    fi
+    if [[ "$ACTUAL_SHA256" != "$EVIDENCE_SHA256" ]]; then
+      printf 'git show %s:%s has sha256 %s, expected %s\n' "$COMMIT" "$EVIDENCE_PATH" "$ACTUAL_SHA256" "$EVIDENCE_SHA256" >&2
+      exit 2
+    fi
+    record "evidence page matches"
+  fi
+else
+  record "+ fetch $EVIDENCE_URL and compare its sha256 with $EVIDENCE_SHA256"
+  if [[ "$DRY_RUN" != "1" ]]; then
+    if ! python3 - "$EVIDENCE_URL" "$EVIDENCE_SHA256" <<'PY'
 import hashlib
 import sys
 import urllib.request
@@ -295,11 +323,12 @@ if actual != expected:
     print(f"the evidence URL serves sha256 {actual}, expected {expected}", file=sys.stderr)
     raise SystemExit(1)
 PY
-  then
-    printf 'the evidence URL does not serve the committed page; push the commit first\n' >&2
-    exit 2
+    then
+      printf 'the evidence URL does not serve the committed page; push the commit first\n' >&2
+      exit 2
+    fi
+    record "evidence page matches"
   fi
-  record "evidence page matches"
 fi
 read_summary "$ZERO_SUMMARY"
 if [[ "$MISMATCHES" -ne 0 ]]; then

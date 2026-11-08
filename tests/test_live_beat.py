@@ -1,5 +1,6 @@
 import hashlib
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -48,6 +49,7 @@ class LiveBeatScriptTest(unittest.TestCase):
             "COUNTERPARTY_ACCOUNT_ID": "subject.testnet",
             "NEAR_KEYS_DIR": str(Path(self.tempdir.name) / "keys"),
         }
+        self.env.pop("EVIDENCE_CHECK", None)
         self.runs_before = set(RUNS.iterdir())
 
     def run_script(self, *args, env=None):
@@ -185,6 +187,154 @@ class LiveBeatScriptTest(unittest.TestCase):
             self.run_script(env={**self.env, "GATE_ACCOUNT_ID": "gate.near"}),
             "GATE_ACCOUNT_ID must be a .testnet account",
         )
+
+    def test_default_dry_run_matches_explicit_fetch_and_keeps_fetch_step(self):
+        default_run = self.run_script()
+        explicit_fetch = self.run_script(env={**self.env, "EVIDENCE_CHECK": "fetch"})
+        self.assertEqual(default_run.returncode, 0, default_run.stderr)
+        self.assertEqual(explicit_fetch.returncode, 0, explicit_fetch.stderr)
+        self.assert_nothing_ran()
+        digest = hashlib.sha256(EVIDENCE.read_bytes()).hexdigest()
+        commit = subprocess.run(
+            [GIT, "rev-parse", "HEAD"], capture_output=True, cwd=ROOT, check=True, text=True,
+        ).stdout.strip()
+        url = f"https://raw.githubusercontent.com/Ridwannurudeen/shieldbot-near/{commit}/docs/demo/synthetic-report.md"
+        self.assertIn(f"+ fetch {url} and compare its sha256 with {digest}", default_run.stdout)
+        self.assertNotIn("evidence_check: local", default_run.stdout)
+        self.assertNotIn("merge-base --is-ancestor", default_run.stdout)
+        # Normalize the per-run timestamp and mktemp workdir so the two runs compare line for line.
+        normalize = lambda text: [
+            re.sub(r"--evidence-dir \S+ --out \S+", "--evidence-dir <workdir> --out <workdir>", line)
+            for line in text.splitlines()
+            if not line.startswith("dry run: nothing is sent")
+            and not line.startswith("# live report beat on ")
+        ]
+        self.assertEqual(normalize(default_run.stdout), normalize(explicit_fetch.stdout))
+
+    def test_dry_run_with_local_evidence_check_prints_two_local_checks_and_no_fetch(self):
+        process = self.run_script(env={**self.env, "EVIDENCE_CHECK": "local"})
+        self.assertEqual(process.returncode, 0, process.stderr)
+        self.assert_nothing_ran()
+        out = process.stdout
+        digest = hashlib.sha256(EVIDENCE.read_bytes()).hexdigest()
+        commit = subprocess.run(
+            [GIT, "rev-parse", "HEAD"], capture_output=True, cwd=ROOT, check=True, text=True,
+        ).stdout.strip()
+        self.assertIn("evidence_check: local", out)
+        self.assertIn(
+            "the URL is readable once the repository is public, and scripts/public_flip_check.py --fetch-evidence fetches it then",
+            out,
+        )
+        self.assertNotIn("+ fetch ", out)
+        markers = [
+            "## a. before the report",
+            f"merge-base --is-ancestor {commit} refs/remotes/origin/main",
+            f"show {commit}:docs/demo/synthetic-report.md and compare its sha256 with {digest}",
+            " subject_summary json-args ",
+        ]
+        position = 0
+        for marker in markers:
+            found = out.find(marker, position)
+            self.assertNotEqual(found, -1, f"{marker!r} missing after offset {position}:\n{out}")
+            position = found + len(marker)
+
+    def test_refuses_bad_evidence_check_value(self):
+        for bad in ("skip", "none", "remote", "1"):
+            with self.subTest(value=bad):
+                env = {**self.env, "EVIDENCE_CHECK": bad}
+                self.assert_refused(self.run_script(env=env), "EVIDENCE_CHECK must be fetch or local")
+
+    def test_local_evidence_check_real_run_enforces_pushed_ancestor_and_blob_sha256(self):
+        repo = Path(self.tempdir.name) / "repo"
+        (repo / "scripts").mkdir(parents=True)
+        (repo / "docs" / "demo").mkdir(parents=True)
+        shutil.copyfile(ROOT / "scripts" / "lib.sh", repo / "scripts" / "lib.sh")
+        shutil.copyfile(ROOT / "scripts" / "live_beat.sh", repo / "scripts" / "live_beat.sh")
+        shutil.copyfile(EVIDENCE, repo / "docs" / "demo" / "synthetic-report.md")
+        git = lambda *args: subprocess.run(
+            [GIT, *args], cwd=repo, check=True, capture_output=True, text=True,
+        )
+        git("init", "-q")
+        git("config", "user.email", "test@example.invalid")
+        git("config", "user.name", "test")
+        git("config", "core.autocrlf", "false")
+        git("add", "-A")
+        git("commit", "-q", "-m", "initial")
+
+        live_env = {**self.env, "DRY_RUN": "0", "EVIDENCE_CHECK": "local"}
+        run_in_repo = lambda env=live_env: subprocess.run(
+            [BASH, "scripts/live_beat.sh"],
+            capture_output=True,
+            cwd=repo,
+            env=env,
+            timeout=120,
+            check=False,
+            text=True,
+        )
+
+        # No refs/remotes/origin/main yet: refuses with exit 2 telling the operator to push and fetch.
+        missing_remote = run_in_repo()
+        self.assertEqual(missing_remote.returncode, 2, missing_remote.stdout + missing_remote.stderr)
+        self.assertIn("push the commit and run git fetch", missing_remote.stderr)
+        self.assertFalse(self.marker.exists())
+
+        # Commit ahead of refs/remotes/origin/main: refuses with exit 2.
+        first_commit = git("rev-parse", "HEAD").stdout.strip()
+        git("update-ref", "refs/remotes/origin/main", first_commit)
+        (repo / "other.txt").write_text("ahead\n", encoding="utf-8")
+        git("add", "other.txt")
+        git("commit", "-q", "-m", "ahead of origin")
+        ahead = run_in_repo()
+        self.assertEqual(ahead.returncode, 2, ahead.stdout + ahead.stderr)
+        self.assertIn("push the commit and run git fetch", ahead.stderr)
+        self.assertFalse(self.marker.exists())
+
+        # Commit on refs/remotes/origin/main, simulated git show byte mismatch: refuses with exit 2.
+        head_commit = git("rev-parse", "HEAD").stdout.strip()
+        git("update-ref", "refs/remotes/origin/main", head_commit)
+        fake_git_dir = Path(self.tempdir.name) / "fake-git"
+        fake_git_dir.mkdir()
+        fake_git = fake_git_dir / "git"
+        fake_git.write_text(
+            '#!/bin/sh\n'
+            'for arg in "$@"; do\n'
+            '  case "$arg" in\n'
+            '    *:docs/demo/synthetic-report.md)\n'
+            '      printf "tampered\\n"\n'
+            '      exit 0\n'
+            '      ;;\n'
+            '  esac\n'
+            'done\n'
+            f'exec "{posix(GIT)}" "$@"\n',
+            encoding="utf-8",
+        )
+        fake_git.chmod(0o755)
+        tampered_env = {
+            **live_env,
+            "PATH": os.pathsep.join((str(fake_git_dir), live_env["PATH"])),
+        }
+        mismatch = run_in_repo(env=tampered_env)
+        self.assertEqual(mismatch.returncode, 2, mismatch.stdout + mismatch.stderr)
+        self.assertIn("has sha256", mismatch.stderr)
+        self.assertFalse(self.marker.exists())
+
+        # Commit on refs/remotes/origin/main and matching blob: local checks pass, log records mode and note,
+        # and execution proceeds to the first near read (which our stub fails, causing view() to return 1).
+        for old_log in (repo / "fixtures" / "runs").glob("live-beat-*.txt"):
+            old_log.unlink()
+        passed_local = run_in_repo()
+        self.assertEqual(passed_local.returncode, 1, passed_local.stdout + passed_local.stderr)
+        self.assertTrue(self.marker.exists())
+        logs = list((repo / "fixtures" / "runs").glob("live-beat-*.txt"))
+        self.assertEqual(len(logs), 1)
+        log_text = logs[0].read_text(encoding="utf-8")
+        self.assertIn("evidence_check: local", log_text)
+        self.assertIn(
+            "the URL is readable once the repository is public, and scripts/public_flip_check.py --fetch-evidence fetches it then",
+            log_text,
+        )
+        self.assertIn("evidence page matches", log_text)
+        self.assertEqual(set(RUNS.iterdir()), self.runs_before)
 
     def test_bash_syntax(self):
         process = subprocess.run(

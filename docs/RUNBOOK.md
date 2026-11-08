@@ -217,14 +217,32 @@ When: once, for the recorded demonstration of the whole report life on testnet: 
 
 The verdict service reads the reports contract when `REPORTS_ACCOUNT_ID` is set. `scripts/live_beat.sh` checks that this switch is set before it runs the report and verdict sequence; pending reports are a count only and have no verdict effect.
 
-`scripts/live_beat.sh` takes no arguments. Its variables: `OWNER_ACCOUNT_ID` (the sole moderator, `kestrelridge-owner.testnet`), `REPORTER_ACCOUNT_ID` (signs the report; must differ from the owner, which cannot moderate its own report), `DISPUTER_ACCOUNT_ID` (signs the dispute; must differ from the reporter and the owner), `REPORTS_ACCOUNT_ID` (`reports.kestrelridge-main.testnet`), `GATE_ACCOUNT_ID` (`kestrelridge-main.testnet`, for the verdict's `--gate` and `token.<gate>`), `COUNTERPARTY_ACCOUNT_ID` (the subject, `kestrelridge-mallory.testnet`; must differ from the three signers) and `NEAR_KEYS_DIR`. It checks them all before any command and exits 2 naming the one to fix. It files through `scripts/report.sh`, `scripts/moderate.sh` and `scripts/dispute.sh`, so each transaction is the one their sections above describe, with its deposit.
+`scripts/live_beat.sh` takes no arguments (`--dry-run` is accepted by `parse_dry_run`, `scripts/lib.sh:7-15`). Its variables: `OWNER_ACCOUNT_ID` (the sole moderator, `kestrelridge-owner.testnet`), `REPORTER_ACCOUNT_ID` (signs the report; must differ from the owner, which cannot moderate its own report), `DISPUTER_ACCOUNT_ID` (signs the dispute; must differ from the reporter and the owner), `REPORTS_ACCOUNT_ID` (`reports.kestrelridge-main.testnet`), `GATE_ACCOUNT_ID` (`kestrelridge-main.testnet`, for the verdict's `--gate` and `token.<gate>`), `COUNTERPARTY_ACCOUNT_ID` (the subject, `kestrelridge-mallory.testnet`; must differ from the three signers), `NEAR_KEYS_DIR`, and optional `EVIDENCE_CHECK` (`fetch` by default, or `local`; any other value exits 2, `scripts/live_beat.sh:37-41`). It checks them all before any command and exits 2 naming the one to fix. It files through `scripts/report.sh`, `scripts/moderate.sh` and `scripts/dispute.sh`, so each transaction is the one their sections above describe, with its deposit.
 
-The evidence is `docs/demo/synthetic-report.md`, whose first line says the report is synthetic and the subject is ours. The script computes its sha256 from the file at run time and builds the URL `https://raw.githubusercontent.com/Ridwannurudeen/shieldbot-near/<HEAD>/docs/demo/synthetic-report.md`. The real run refuses when the file is not committed unchanged at HEAD, and before any transaction it fetches the URL and refuses unless it serves the same sha256: push HEAD to that repository first. The moderation and resolution reasons are fixed texts in the script; both texts and their sha256 are written at the top of the run log.
+The evidence is `docs/demo/synthetic-report.md`, whose first line says the report is synthetic and the subject is ours. The script computes its sha256 from the file at run time and builds the URL `https://raw.githubusercontent.com/Ridwannurudeen/shieldbot-near/<HEAD>/docs/demo/synthetic-report.md` (`scripts/live_beat.sh:43-53`). The real run refuses when the file is not committed unchanged at HEAD (`:54-61`). By default (`EVIDENCE_CHECK=fetch`), step a fetches the URL before any transaction and refuses unless it serves the same sha256 (`scripts/live_beat.sh:310-332`): push HEAD to that repository first. While the repository is private before the public flip, that raw URL cannot be fetched yet: push HEAD to `origin/main`, run `git fetch` first so `refs/remotes/origin/main` is current locally (the script itself makes no git network call), and set `EVIDENCE_CHECK=local`. Step a then checks `git merge-base --is-ancestor <HEAD> refs/remotes/origin/main` and checks that `git show <HEAD>:docs/demo/synthetic-report.md` has the same sha256 as the working file, exiting 2 otherwise (`scripts/live_beat.sh:292-309`), and the run log records `evidence_check: local` and a note that the URL is readable once the repository is public (`scripts/live_beat.sh:278-281`). On flip day, once the repository is public, run `python scripts/public_flip_check.py --fetch-evidence`, which reads `evidence_url` and `evidence_sha256` from every `fixtures/runs/live-beat-*.txt`, fetches each URL with a 30 s timeout, and exits 1 naming the log if a fetch fails or a hash differs (`check_evidence`, `scripts/public_flip_check.py:113-138`, `:141-156`). The moderation and resolution reasons are fixed texts in the script; both texts and their sha256 are written at the top of the run log.
+
+Before the public flip (`git fetch` first, then local evidence check):
+
+```
+git fetch origin
+DRY_RUN=1 EVIDENCE_CHECK=local bash scripts/live_beat.sh
+EVIDENCE_CHECK=local bash scripts/live_beat.sh
+```
+
+Runs after the public flip (fetch mode):
 
 ```
 DRY_RUN=1 bash scripts/live_beat.sh
 bash scripts/live_beat.sh
 ```
+
+On flip day, to verify the recorded runs, run only the check; never run the beat again for this purpose, because after an overturn the subject summary is zero again and a second run files a second report and dispute:
+
+```
+python scripts/public_flip_check.py --fetch-evidence
+```
+
+A real run that exits 2 at step a has sent nothing but has already written a partial `fixtures/runs/live-beat-*.txt`; delete that log before the next run so the flip check reads only completed runs.
 
 The dry run prints every command and every read in order and stops: no near call, no verdict run, no run log. It shows the report and dispute ids as 0; the real run reads them from `totals` before each filing (`totals.reports` is the next report id, `contracts/reports/src/lib.rs:824-829`) and stops with exit 1 unless the count grew by exactly one.
 
