@@ -26,7 +26,7 @@ import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from gate import evidence, rpc
+from gate import canon, evidence, rpc
 from intel import sanctions
 
 FIXTURES_ROOT = Path(__file__).resolve().parent.parent / "fixtures"
@@ -98,6 +98,7 @@ UNAVAILABLE = (rpc.FixtureMiss, rpc.HttpError, rpc.RateLimited, rpc.RpcError, rp
 BOUND_FIELDS = (("originAsset", "origin_asset"), ("destinationAsset", "destination_asset"), ("amount", "amount"),
                 ("recipient", "recipient"), ("recipientType", "recipient_type"))
 _OMFT = ".omft.near"
+_CHAIN_CODE = re.compile(r"[a-z][a-z0-9]*")
 _EVM_ADDRESS = re.compile(r"0x[0-9a-fA-F]{40}")
 
 
@@ -122,9 +123,11 @@ def parse_destination(asset_id):
         raise ValueError(f"not a nep141 asset id: {asset_id!r}")
     account = asset_id[len("nep141:"):]
     if not account.endswith(_OMFT):
-        return "near", account
+        return "near", canon.account_id(account, "destination asset account")
     bridged = account[: -len(_OMFT)]
     chain, separator, address = bridged.partition("-")
+    if not _CHAIN_CODE.fullmatch(chain):
+        raise ValueError(f"not a valid 1Click chain code in {asset_id!r}")
     if not separator:
         return chain, None
     if not (address.startswith("0x") and len(address) == 42 and all(c in "0123456789abcdefABCDEF" for c in address[2:])):

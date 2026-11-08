@@ -563,7 +563,8 @@ def main(argv=None):
     server.add_argument("--host", default="127.0.0.1")
     server.add_argument("--port", type=int, default=8787)
     server.add_argument("--site", help="a directory of static files to serve too, such as demo/site")
-    server.set_defaults(handler=lambda args: api.serve(args.host, args.port, args.site))
+    server.add_argument("--live", action="store_true", help="enable keyless live mainnet checks and testnet reports")
+    server.set_defaults(handler=lambda args: api.serve(args.host, args.port, args.site, live=args.live))
     receivers = commands.add_parser("receivers", help="judge the recorded mainnet receiver set in replay")
     receivers.add_argument("--record", action="store_true", help="choose the set and record what is missing")
     receivers.add_argument("--exclude-file", help="with --record: a file of account ids kept outside the repository, "

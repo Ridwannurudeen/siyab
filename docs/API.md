@@ -220,3 +220,97 @@ Unsupported methods are rejected before path, in-flight capacity and key checks.
 - Without a supplied address, the CLI says the address was not checked because dry quotes have no deposit address. The MCP answer's `deposit_address_check` says the same. With an address, the result records the status lookup check in its evidence.
 - Signature. The recorded 1Click answer has a `signature` field. It is not verified: no 1Click verifying key is recorded in this repository, and the committed fixture replaces the signature with a note (`tests/test_intents.py:1-3`).
 - Replay. Quote and status requests use `gate.rpc.Client` and the `replay`, `record` and `off` fixture modes. Status GET parameters are part of the fixture key, and replay reads a matching recorded response from `fixtures/intents/`. The status answers in the tests are synthetic and marked `synthetic: true`; no live status answer is committed. The tests are in `tests/test_intents.py` and `tests/test_rpc.py`.
+
+## Opt-in live API
+
+`python -m intel serve --live` mounts the keyless routes in `intel/live.py`; without `--live`, `/live/...` answers 404 and the hosted JSON API keeps its no-network behavior (`intel/api.py:make_server`, `intel/__main__.py:main`). The live routes never build a signer, read a signing key or write route data to disk. Reads use `gate.rules.judge`, `gate.scan.scan`, `gate.intents.judge_quote`, and the read-only Reports views (`intel/live.py:LiveAPI`, `gate/rpc.py:request_deadline`).
+
+| Method and route | Inputs | Network | Response |
+|---|---|---|---|
+| `GET /live/verdict` | `receiver`, `amount`, `token` | Mainnet | Unsigned verdict shape |
+| `GET /live/scan/<near account>` | Account in path | Mainnet | Access key counts, key lists, findings and read block |
+| `GET /live/intents` | `destination_asset`, `recipient`, `amount` | Mainnet 1Click and EVM checks | Unsigned verdict shape, including OFAC check |
+| `GET /live/reports` | `subject` | Testnet Reports contract | Subject summary and reports |
+| `GET /live/reports/recent` | None | Testnet Reports contract | Newest 20 reports |
+| `GET /live/health` | None | None | Network label and rate limit |
+
+Routes 1 to 3 read mainnet. A `.testnet` NEAR account is refused for the verdict and scan routes. The Intents destination is a 1Click asset id parsed by `gate.intents.parse_destination`; its recipient must be an EVM address. Reports read the testnet contract `reports.kestrelridge-main.testnet` (`intel/live.py:REPORTS_ACCOUNT`, `contracts/reports/src/lib.rs:subject_summary`). The report list route pages `reports_by_subject` and then reads each row with `get_report`; the recent route reads the newest 20 report ids from `totals` with `get_report` (`contracts/reports/src/lib.rs:reports_by_subject`, `contracts/reports/src/lib.rs:totals`).
+
+The verdict and Intents responses have these fields: `outcome`, `action`, `reasons`, `checks`, `evidence_hash`, `freshness`, `verdict`, `signing`, and `latency_ms`. `UNKNOWN` maps to `ASK`; checks use `{name, status, detail}`. `freshness` is the existing observed block and timestamp object, or the timestamp object for an Intents quote. `verdict` is always null and `signing` is always `never`; an ALLOW action still says `sign`, which describes the judgement action only (`intel/live.py:LiveAPI._verdict_shape`).
+
+`/live/verdict` accepts `receiver`, `amount`, and `token`; `token` is `near` or an account id. The contract has no memo query field, so this route judges an absent memo. Amounts are canonical positive decimal strings within the NEAR u128 range. `/live/intents` accepts `destination_asset`, `recipient`, and `amount`, but 1Click also requires an origin asset. Since the route contract omits it, the route uses the recorded source asset `nep141:wrap.near` (`intel/live.py:INTENTS_ORIGIN_ASSET`, `tests/test_intents.py:quote_for`).
+
+The live routes answer JSON with `Cache-Control: no-store`. They allow 60 requests per client IP in a fixed minute, trust `X-Forwarded-For` only when the socket peer is `127.0.0.1`, allow eight requests in flight, and bound each request to 25 seconds. Successful answers are cached in memory for 60 seconds in a 128-entry cache, keyed by the full path and query. Errors have `{error, message}`; statuses are 400 for invalid input, 429 with `Retry-After`, 503 when all slots are occupied or a required Reports view is unreadable, 504 on timeout, and 500 for an unexpected failure (`intel/live.py:LiveAPI.handle`).
+
+### Stubbed route examples
+
+These examples are built from offline test stubs. They show response fields, not live reads.
+
+#### `GET /live/verdict?receiver=alice.near&amount=1&token=near`
+
+```json
+{
+  "outcome": "ALLOW",
+  "action": "sign",
+  "reasons": ["Every check ran and none found a signal."],
+  "checks": [{"name": "receiver_exists", "status": "pass", "detail": "alice.near exists"}],
+  "evidence_hash": "stubbed-evidence-hash",
+  "freshness": {"block_height": 123, "timestamp_ms": 456},
+  "verdict": null,
+  "signing": "never",
+  "latency_ms": 12
+}
+```
+
+#### `GET /live/scan/agent.near`
+
+```json
+{
+  "access_keys": 1,
+  "full_access_keys": [],
+  "empty_method_names": [],
+  "dead_keys": [],
+  "unlimited_allowance": [],
+  "findings": ["The scan read 1 access key entries.", "The scan found 0 full access keys.", "The scan found 0 keys with empty method names.", "The scan found 0 keys with zero allowance.", "The scan found 0 keys with no allowance limit."],
+  "read_at_block": 99
+}
+```
+
+#### `GET /live/intents?destination_asset=nep141%3Abase-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near&recipient=0x0000000000000000000000000000000000000001&amount=5`
+
+```json
+{
+  "outcome": "ALLOW",
+  "action": "sign",
+  "reasons": ["Every check ran and none found a signal."],
+  "checks": [{"name": "ofac_sanctioned", "status": "pass", "detail": "no match"}],
+  "evidence_hash": "stubbed-evidence-hash",
+  "freshness": {"timestamp_ms": 789},
+  "verdict": null,
+  "signing": "never",
+  "latency_ms": 12
+}
+```
+
+#### `GET /live/reports?subject=vendor.testnet`
+
+```json
+{
+  "subject_summary": {"accepted": 1, "pending": 0, "contested": 0, "latest_accepted_id": 7, "latest_deny_id": null, "deny": false},
+  "reports": [{"id": 7, "subject": "vendor.testnet", "kind": "theft", "outcome": "near_miss", "status": "accepted", "evidence_url": "https://evidence.example/report", "evidence_sha256": "stubbed-report-hash", "submitter": "reporter.testnet", "moderator": "moderator.testnet"}]
+}
+```
+
+#### `GET /live/reports/recent`
+
+```json
+{
+  "reports": [{"id": 1, "subject": "vendor-1.testnet", "kind": "theft", "outcome": "near_miss", "status": "accepted", "evidence_url": "https://evidence.example/report", "evidence_sha256": "stubbed-report-hash", "submitter": "reporter.testnet", "moderator": "moderator.testnet"}, {"id": 0, "subject": "vendor-0.testnet", "kind": "theft", "outcome": "near_miss", "status": "accepted", "evidence_url": "https://evidence.example/report", "evidence_sha256": "stubbed-report-hash", "submitter": "reporter.testnet", "moderator": "moderator.testnet"}]
+}
+```
+
+#### `GET /live/health`
+
+```json
+{"ok": true, "network": "mainnet", "rate_per_minute": 60}
+```

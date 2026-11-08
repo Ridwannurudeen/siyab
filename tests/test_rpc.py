@@ -3,14 +3,17 @@ import http.client
 import importlib.util
 import json
 import os
+import socket
 import tempfile
+import threading
+import time
 import unittest
 import urllib.error
 from datetime import UTC, datetime
 from pathlib import Path
 from unittest import mock
 
-from gate import rpc
+from gate import intents, rpc, rules
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -282,6 +285,94 @@ class ModeTest(unittest.TestCase):
 
     def test_empty_code_hash(self):
         self.assertEqual(rpc.EMPTY_CODE_HASH, "1" * 32)
+
+
+class DeadlineFetchTest(unittest.TestCase):
+    def test_a_deadline_bounds_slow_response_headers(self):
+        listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        listener.bind(("127.0.0.1", 0))
+        listener.listen()
+
+        def respond():
+            connection, _ = listener.accept()
+            with connection:
+                request = bytearray()
+                while b"\r\n\r\n" not in request:
+                    chunk = connection.recv(4096)
+                    if not chunk:
+                        return
+                    request.extend(chunk)
+                connection.sendall(b"HTTP/1.1 200 OK\r\n")
+                header = b"X-Slow: " + b"a" * 40 + b"\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}"
+                for byte in header:
+                    try:
+                        connection.sendall(bytes((byte,)))
+                    except OSError:
+                        return
+                    time.sleep(0.02)
+
+        thread = threading.Thread(target=respond, daemon=True)
+        thread.start()
+        started = time.monotonic()
+        try:
+            with rpc.request_deadline(0.15), self.assertRaises(TimeoutError):
+                rpc._fetch(f"http://127.0.0.1:{listener.getsockname()[1]}/", None)
+        finally:
+            listener.close()
+            thread.join(timeout=2)
+        self.assertLess(time.monotonic() - started, 0.5)
+
+    def test_a_deadline_bounds_the_whole_response_read(self):
+        now = [0.0]
+
+        class SlowReply:
+            def __init__(self):
+                self.reads = 0
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self):
+                return b'{"ok": true}'
+
+            def read1(self, _size):
+                self.reads += 1
+                now[0] += 0.6
+                return b'{"ok": true}'
+
+        response = SlowReply()
+        token = rpc._REQUEST_DEADLINE.set(1.0)
+        try:
+            with mock.patch.object(rpc.time, "monotonic", side_effect=lambda: now[0]), \
+                    mock.patch.object(rpc, "_open_with_deadline", return_value=response):
+                with self.assertRaises(TimeoutError):
+                    rpc._fetch("https://rpc.example/read", None)
+        finally:
+            rpc._REQUEST_DEADLINE.reset(token)
+        self.assertEqual(response.reads, 2)
+
+    def test_without_a_deadline_the_existing_unbounded_read_path_is_preserved(self):
+        response = reply({"ok": True})
+        with mock.patch("urllib.request.urlopen", return_value=response) as opened:
+            self.assertEqual(rpc._fetch("https://rpc.example/read", None), {"ok": True})
+        self.assertEqual(opened.call_args.kwargs["timeout"], rpc.TIMEOUT_S)
+        response.__enter__.return_value.read.assert_called_once_with()
+        response.__enter__.return_value.read1.assert_not_called()
+
+    def test_transport_errors_and_public_details_hide_endpoint_urls(self):
+        url = "https://rpc.example/private/path"
+        error = rpc.TransportError(f"BadStatusLine from {url}")
+        self.assertNotIn(url, str(error))
+        self.assertNotIn(url, rules._why(error))
+        self.assertNotIn(url, intents._why(error))
+
+        with mock.patch("urllib.request.urlopen", side_effect=http.client.BadStatusLine("x")), \
+                self.assertRaises(rpc.TransportError) as caught:
+            rpc._fetch(url, None)
+        self.assertNotIn(url, str(caught.exception))
 
 
 

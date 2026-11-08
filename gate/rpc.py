@@ -21,14 +21,18 @@ day per process they raise RateLimited without a request.
 """
 
 import base64
+import contextvars
 import hashlib
 import http.client
+import io
 import json
 import os
+import re
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -52,8 +56,87 @@ NEARBLOCKS_DAILY_BUDGET = 300
 # The code_hash view_account reports for an account with no contract: base58 of 32 zero bytes.
 EMPTY_CODE_HASH = base58.encode(bytes(32))
 _TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+_REQUEST_DEADLINE = contextvars.ContextVar("gate_rpc_request_deadline", default=None)
+_URL_IN_ERROR = re.compile(r"https?://[^\s\"'<>]+")
 # Per process NearBlocks use: host -> {"last": seconds of the last fetch, "day": UTC date, "count"}.
 _NEARBLOCKS_USE = {}
+
+
+@contextmanager
+def request_deadline(seconds):
+    """Bound every RPC and HTTP read in the current request to one monotonic deadline."""
+    if not isinstance(seconds, (int, float)) or isinstance(seconds, bool) or seconds <= 0:
+        raise ValueError("request deadline must be a positive number of seconds")
+    token = _REQUEST_DEADLINE.set(time.monotonic() + seconds)
+    try:
+        yield
+    finally:
+        _REQUEST_DEADLINE.reset(token)
+
+
+class _DeadlineReader(io.RawIOBase):
+    def __init__(self, connection, deadline):
+        super().__init__()
+        self.connection = connection
+        self.stream = connection.makefile("rb", buffering=0)
+        self.deadline = deadline
+
+    def readable(self):
+        return True
+
+    def readinto(self, buffer):
+        remaining = self.deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError("request deadline exceeded")
+        self.connection.settimeout(min(TIMEOUT_S, remaining))
+        return self.stream.readinto(buffer)
+
+    def close(self):
+        if not self.closed:
+            self.stream.close()
+        super().close()
+
+
+class _DeadlineSocket:
+    def __init__(self, connection, deadline):
+        self.connection = connection
+        self.deadline = deadline
+
+    def makefile(self, mode, *args, **kwargs):
+        if mode != "rb":
+            return self.connection.makefile(mode, *args, **kwargs)
+        return io.BufferedReader(_DeadlineReader(self.connection, self.deadline))
+
+    def __getattr__(self, name):
+        return getattr(self.connection, name)
+
+
+class _DeadlineHTTPResponse(http.client.HTTPResponse):
+    def __init__(self, connection, *args, **kwargs):
+        super().__init__(_DeadlineSocket(connection, _REQUEST_DEADLINE.get()), *args, **kwargs)
+
+
+class _DeadlineHTTPConnection(http.client.HTTPConnection):
+    response_class = _DeadlineHTTPResponse
+
+
+class _DeadlineHTTPSConnection(http.client.HTTPSConnection):
+    response_class = _DeadlineHTTPResponse
+
+
+class _DeadlineHTTPHandler(urllib.request.HTTPHandler):
+    def http_open(self, request):
+        return self.do_open(_DeadlineHTTPConnection, request)
+
+
+class _DeadlineHTTPSHandler(urllib.request.HTTPSHandler):
+    def https_open(self, request):
+        return self.do_open(_DeadlineHTTPSConnection, request, context=self._context)
+
+
+def _open_with_deadline(request, timeout):
+    opener = urllib.request.build_opener(_DeadlineHTTPHandler, _DeadlineHTTPSHandler)
+    return opener.open(request, timeout=timeout)
 
 
 class FixtureMiss(Exception):
@@ -75,6 +158,9 @@ class HttpError(Exception):
 
 class TransportError(Exception):
     """The reply was cut off or was not valid HTTP."""
+
+    def __init__(self, message):
+        super().__init__(_URL_IN_ERROR.sub("endpoint", str(message)))
 
 
 class RateLimited(Exception):
@@ -291,6 +377,9 @@ class Client:
                               f"is {NEARBLOCKS_DAILY_BUDGET}")
         wait = 0 if use["last"] is None else use["last"] + NEARBLOCKS_MIN_INTERVAL_S - now
         if wait > 0:
+            deadline = _REQUEST_DEADLINE.get()
+            if deadline is not None and time.monotonic() + wait >= deadline:
+                raise TimeoutError("request deadline exceeded")
             self.sleep(wait)
         use["last"] = now + max(wait, 0)
         use["count"] += 1
@@ -337,12 +426,36 @@ def _fetch(url, body, extra_headers=None, record_http_errors=()):
     headers.update(extra_headers or {})
     request = urllib.request.Request(url, data=data, headers=headers,
                                      method="GET" if data is None else "POST")
+    deadline = _REQUEST_DEADLINE.get()
+    timeout = TIMEOUT_S
+    if deadline is not None:
+        timeout = min(timeout, deadline - time.monotonic())
+        if timeout <= 0:
+            raise TimeoutError("request deadline exceeded")
     try:
-        with urllib.request.urlopen(request, timeout=TIMEOUT_S) as reply:
-            return json.loads(reply.read())
+        opener = (urllib.request.urlopen(request, timeout=timeout) if deadline is None
+                  else _open_with_deadline(request, timeout))
+        with opener as reply:
+            if deadline is None:
+                return json.loads(reply.read())
+            chunks = []
+            while True:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise TimeoutError("request deadline exceeded")
+                chunk = reply.read1(65536)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+            response = json.loads(b"".join(chunks))
+            if time.monotonic() >= deadline:
+                raise TimeoutError("request deadline exceeded")
+            return response
     except urllib.error.HTTPError as error:
+        if deadline is not None and time.monotonic() >= deadline:
+            raise TimeoutError("request deadline exceeded") from error
         if error.code in record_http_errors:
             return {HTTP_STATUS_MARKER: error.code}
         raise HttpError(error.code, url, error.headers.get("Retry-After")) from error
     except http.client.HTTPException as error:
-        raise TransportError(f"{type(error).__name__} from {url}") from error
+        raise TransportError(type(error).__name__) from error

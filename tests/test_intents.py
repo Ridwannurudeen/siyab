@@ -522,7 +522,7 @@ class ParseTest(unittest.TestCase):
         self.assertEqual(intents.parse_destination(USDC_BASE_ASSET), ("base", USDC_BASE))
         self.assertEqual(intents.parse_destination("nep141:wrap.near"), ("near", "wrap.near"))
         self.assertEqual(intents.parse_destination("nep141:eth.omft.near"), ("eth", None))
-        for bad in ("nep245:x", "nep141:", "nep141:base-0x12.omft.near", None):
+        for bad in ("nep245:x", "nep141:", "nep141:x", "nep141:base-0x12.omft.near", None):
             with self.subTest(bad=bad), self.assertRaises(ValueError):
                 intents.parse_destination(bad)
 
