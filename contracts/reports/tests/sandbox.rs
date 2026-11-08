@@ -6,7 +6,7 @@ use sha2::{Digest, Sha256};
 
 // The deposit of the code in res/previous/reports.wasm (res/BUILD-reports.md); calls made while that
 // code is deployed must attach it, since a deposit is exact.
-const PREVIOUS_REPORT_DEPOSIT: u128 = 23_136_000_000_000_000_000_000;
+const PREVIOUS_REPORT_DEPOSIT: u128 = 30_000_000_000_000_000_000_000;
 
 fn hash(letter: char) -> String {
     letter.to_string().repeat(64)
@@ -255,6 +255,15 @@ async fn sandbox_reports_layout_preserving_round_trip() {
     let manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let previous_wasm = std::fs::read(manifest_dir.join("../../res/previous/reports.wasm"))
         .unwrap();
+    let expected_checksum =
+        std::fs::read_to_string(manifest_dir.join("../../res/previous/reports.wasm.sha256"))
+            .unwrap();
+    let digest = Sha256::digest(&previous_wasm);
+    let digest_hex: String = digest.iter().map(|byte| format!("{byte:02x}")).collect();
+    assert_eq!(
+        expected_checksum.trim_end(),
+        format!("{digest_hex}  res/previous/reports.wasm")
+    );
     let candidate_wasm = match std::env::var_os("REPORTS_CANDIDATE_WASM") {
         Some(path) => std::fs::read(path).unwrap(),
         None => near_workspaces::compile_project(env!("CARGO_MANIFEST_DIR"))
@@ -483,14 +492,16 @@ async fn sandbox_reports_threshold_round_trip() {
         .unwrap();
 
     let manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let previous_wasm = std::fs::read(manifest_dir.join("../../res/reports.wasm")).unwrap();
+    let previous_wasm =
+        std::fs::read(manifest_dir.join("../../res/previous/reports.wasm")).unwrap();
     let expected_checksum =
-        std::fs::read_to_string(manifest_dir.join("../../res/reports.wasm.sha256")).unwrap();
+        std::fs::read_to_string(manifest_dir.join("../../res/previous/reports.wasm.sha256"))
+            .unwrap();
     let digest = Sha256::digest(&previous_wasm);
     let digest_hex: String = digest.iter().map(|byte| format!("{byte:02x}")).collect();
     assert_eq!(
         expected_checksum.trim_end(),
-        format!("{digest_hex}  res/reports.wasm")
+        format!("{digest_hex}  res/previous/reports.wasm")
     );
     let candidate_wasm = match std::env::var_os("REPORTS_CANDIDATE_WASM") {
         Some(path) => std::fs::read(path).unwrap(),

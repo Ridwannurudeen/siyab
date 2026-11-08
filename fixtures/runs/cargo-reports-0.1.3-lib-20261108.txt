@@ -1,0 +1,98 @@
+cargo test --lib in contracts/reports of the checkout at c270d76e, Reports 0.1.3, 8 Nov 2026. Kept: the crate compile line, run header, all test lines and the result line. The checkout is written <checkout> and the shared cargo target directory <target>.
+   Compiling reports v0.1.3 (<checkout>/contracts/reports)
+     Running unittests src/lib.rs (<target>/debug/deps/reports-ebe81ac7f5dd1705)
+running 93 tests
+test tests::canonical_body_hash_matches_shared_vector ... ok
+test tests::initializes_empty_counters_and_views ... ok
+test tests::duplicate_moderators_are_refused_by_new - should panic ... ok
+test tests::approvals_required_above_moderator_count_is_refused - should panic ... ok
+test tests::invalid_subject_is_refused - should panic ... ok
+test tests::duplicate_moderators_are_refused_by_set_moderators - should panic ... ok
+test tests::evidence_url_over_512_bytes_is_refused - should panic ... ok
+test tests::approvals_required_defaults_to_one_and_emits_an_update ... ok
+test tests::invalid_evidence_hash_is_refused - should panic ... ok
+test tests::another_account_cannot_withdraw_report - should panic ... ok
+test tests::accepted_social_report_does_not_set_deny_flag ... ok
+test tests::accepting_moderator_uses_registered_ab_storage_key ... ok
+test tests::accepted_report_updates_summary_and_publisher_stats ... ok
+test tests::dispute_evidence_hash_is_validated - should panic ... ok
+test tests::dispute_contests_accepted_report_and_updates_summary ... ok
+test tests::dispute_rejects_a_deposit_above_the_exact_amount - should panic ... ok
+test tests::dispute_requires_the_pinned_deposit - should panic ... ok
+test tests::dispute_evidence_url_is_validated - should panic ... ok
+test tests::dispute_evidence_url_over_512_bytes_is_refused - should panic ... ok
+test tests::accepting_moderator_cannot_resolve_with_multiple_moderators - should panic ... ok
+test tests::dispute_submitter_cannot_resolve_own_dispute - should panic ... ok
+test tests::new_refuses_more_than_seven_moderators - should panic ... ok
+test tests::approvals_required_equal_to_multiple_moderators_is_refused - should panic ... ok
+test tests::moderator_cannot_moderate_missing_report - should panic ... ok
+test tests::closed_dispute_cannot_be_resolved_again - should panic ... ok
+test tests::moderation_reason_hash_is_validated - should panic ... ok
+test tests::dispute_submitter_can_resolve_when_the_moderator_list_has_one_member ... ok
+test tests::non_https_evidence_url_is_refused - should panic ... ok
+test tests::moderator_cannot_resolve_missing_dispute - should panic ... ok
+test tests::page_limit_is_capped_at_fifty - should panic ... ok
+test tests::accept_voter_cannot_resolve_when_not_the_deciding_voter - should panic ... ok
+test tests::non_owner_cannot_set_moderators - should panic ... ok
+test tests::moderator_list_cannot_be_shorter_than_approvals_required - should panic ... ok
+test tests::moderator_cannot_moderate_a_second_time - should panic ... ok
+test tests::a_removed_moderators_vote_stops_counting_at_threshold_two ... ok
+test tests::legacy_report_fallback_is_migrated_before_moderator_changes ... ok
+test tests::non_owner_cannot_set_approvals_required - should panic ... ok
+test tests::moderator_list_cannot_equal_approvals_required_above_one - should panic ... ok
+test tests::non_moderator_cannot_moderate - should panic ... ok
+test tests::record_views_return_none_when_ids_are_missing ... ok
+test tests::emits_all_five_nep_297_events_with_report_identity ... ok
+test tests::missing_accepting_moderator_uses_report_moderator_fallback_without_upheld_disputes ... ok
+test tests::rust_enum_values_match_the_canonical_json ... ok
+test tests::a_readded_moderators_vote_counts_on_the_next_tally ... ok
+test tests::newer_social_report_does_not_clear_deny_flag ... ok
+test tests::moderator_can_overturn_dispute ... ok
+test tests::accepting_moderator_cannot_resolve_after_an_upheld_dispute ... ok
+test tests::non_moderator_cannot_resolve_dispute - should panic ... ok
+test tests::one_threshold_vote_storage_measurement_is_pinned ... ok
+test tests::report_deposit_view_returns_fixed_amount ... ok
+test tests::owner_can_set_moderators ... ok
+test tests::pending_report_cannot_be_disputed - should panic ... ok
+test tests::report_requires_the_pinned_deposit - should panic ... ok
+test tests::lowering_threshold_then_repeating_a_vote_finishes_the_report ... ok
+test tests::report_rejects_a_deposit_above_the_exact_amount - should panic ... ok
+test tests::pending_summary_counts_each_new_submission ... ok
+test tests::rejected_report_updates_summary_and_publisher_stats ... ok
+test tests::report_subject_cannot_moderate_own_report - should panic ... ok
+test tests::both_sides_at_a_lowered_threshold_stay_pending_until_a_moderator_changes_side ... ok
+test tests::report_submitter_cannot_moderate_own_report - should panic ... ok
+test tests::set_moderators_refuses_more_than_seven_moderators - should panic ... ok
+test tests::open_dispute_check_reads_the_last_dispute - should panic ... ok
+test tests::report_and_dispute_storage_measurement_is_pinned ... ok
+test tests::overturning_a_social_report_leaves_the_deny_chain_intact ... ok
+test tests::submission_hash_is_sha256_of_sorted_compact_json ... ok
+test tests::version_views_return_the_crate_and_state_versions ... ok
+test tests::report_submitter_cannot_resolve_own_dispute - should panic ... ok
+test tests::submitter_cannot_withdraw_missing_report - should panic ... ok
+test tests::threshold_one_moderation_keeps_legacy_events_and_stores_no_vote ... ok
+test tests::resolution_reason_hash_is_validated - should panic ... ok
+test tests::setting_approvals_required_needs_exactly_one_yocto ... ok
+test tests::legacy_upheld_report_without_accepting_moderator_refuses_every_resolver ... ok
+test tests::repeat_vote_replaces_the_old_vote_and_re_tallies ... ok
+test tests::second_open_dispute_is_refused - should panic ... ok
+test tests::report_subject_cannot_resolve_own_dispute_with_one_moderator - should panic ... ok
+test tests::same_moderator_can_resolve_when_the_moderator_list_has_one_member ... ok
+test tests::submitter_can_withdraw_pending_report ... ok
+test tests::overturning_middle_deny_report_relinks_deny_chain_without_changing_latest ... ok
+test tests::zero_approvals_required_is_refused - should panic ... ok
+test tests::submitter_cannot_withdraw_accepted_report - should panic ... ok
+test tests::report_subject_cannot_resolve_own_dispute_with_multiple_moderators - should panic ... ok
+test tests::report_submitter_can_resolve_when_the_moderator_list_has_one_member ... ok
+test tests::split_threshold_votes_leave_the_report_pending ... ok
+test tests::views_page_by_subject_and_submitter ... ok
+test tests::threshold_vote_and_moderation_events_have_the_required_key_order ... ok
+test tests::two_of_three_accepting_moderators_accept_a_report ... ok
+test tests::submitter_is_limited_to_five_pending_reports - should panic ... ok
+test tests::summary_deny_stays_true_when_one_of_two_deny_reports_is_overturned ... ok
+test tests::upheld_counter_saturates_instead_of_panicking ... ok
+test tests::owner_moderator_and_withdraw_calls_require_exactly_one_yocto ... ok
+test tests::upheld_disputes_never_cap_further_disputes ... ok
+test tests::all_disallowed_report_state_transitions_are_refused ... ok
+test tests::deny_follows_kind_alone_for_every_outcome_when_accepted_and_contested ... ok
+test result: ok. 93 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.34s

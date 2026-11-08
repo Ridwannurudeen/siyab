@@ -56,6 +56,7 @@ CONTRACT_EXPORTS = {
     ],
     "reports.wasm": [
         "__contract_abi",
+        "approvals_required",
         "contract_source_metadata",
         "dispute",
         "get_dispute",
@@ -64,9 +65,11 @@ CONTRACT_EXPORTS = {
         "new",
         "publisher_stats",
         "report_deposit",
+        "report_votes",
         "reports_by_subject",
         "reports_by_submitter",
         "resolve_dispute",
+        "set_approvals_required",
         "set_moderators",
         "state_version",
         "subject_summary",
@@ -145,6 +148,9 @@ class WasmArtifactsTest(unittest.TestCase):
     def test_current_and_previous_artifacts_match_their_build_record(self):
         for crate, title in (("gate", "Gate"), ("reports", "Reports")):
             record = (RES / f"BUILD-{crate}.md").read_text(encoding="utf-8")
+            if crate == "reports":
+                self.assertRegex(record, r"(?m)^- Reports wasm: .*; version 0\.1\.3\.")
+                self.assertRegex(record, r"(?m)^- Previous reports wasm: .*; version 0\.1\.2\.")
             for label, path, sha_name in (
                 (f"{title} wasm", RES / f"{crate}.wasm", f"res/{crate}.wasm"),
                 (f"Previous {crate} wasm", RES / "previous" / f"{crate}.wasm", f"res/previous/{crate}.wasm"),
