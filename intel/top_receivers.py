@@ -3,6 +3,7 @@
 import hashlib
 import json
 import math
+import os
 import re
 import threading
 import time
@@ -21,7 +22,11 @@ RANK_LIMIT = 1000
 # neardata answers /v0/block/<height> with a redirect, so each block costs two requests against its published limit
 # of 180 a minute per IP for keyless callers; 80 blocks a minute (160 requests) stays under it. Measured on
 # 7 Nov 2026: at 170 blocks a minute every request answered 429.
-REQUEST_INTERVAL_S = 60 / 80
+# A probe on 7 Nov 2026, after a 15 minute cooldown, still met 429 on 47 of 90 keyless requests at 30 blocks a minute
+# and on all 150 at about 50, so a keyless scan runs at 15 blocks a minute. neardata does not throttle keyed requests,
+# so with FASTNEAR_API_KEY_FILE set the scan uses the follower's keyed spacing.
+REQUEST_INTERVAL_S = 60 / 15
+KEYED_REQUEST_INTERVAL_S = feed.FOLLOW_INTERVAL_KEYED_S
 # A scan of about 150,000 requests meets dropped connections; each is retried after these pauses, in seconds.
 TRANSIENT_BACKOFF_S = (5, 10, 20, 40, 60, 60)
 # A block takes one to two seconds to download, so one request at a time cannot reach the request rate the gate
@@ -251,7 +256,24 @@ def bisect_start_height(end_height, end_timestamp_ns, target_timestamp_ns, fetch
     return high_height, high_timestamp
 
 
-def _block_reader(fetcher, sleep, clock, last_request_at=None):
+def _neardata_fetcher():
+    """The neardata fetcher and request interval for a scan: keyed (an Authorization Bearer header read from the file
+    FASTNEAR_API_KEY_FILE names, the key never printed) when that variable is set, keyless otherwise. A set variable
+    whose file cannot be read or is empty stops the scan rather than falling back to keyless."""
+    key_file = os.environ.get("FASTNEAR_API_KEY_FILE")
+    if not key_file:
+        return feed.Fetcher(max_requests=None), REQUEST_INTERVAL_S
+    try:
+        api_key = Path(key_file).read_text(encoding="utf-8").strip()
+    except (OSError, UnicodeDecodeError) as error:
+        raise TopReceiversError("the file FASTNEAR_API_KEY_FILE names cannot be read") from error
+    if not api_key:
+        raise TopReceiversError("the file FASTNEAR_API_KEY_FILE names is empty")
+    client = rpc.Client(feed.NEARDATA_URL, "off", kind="http", headers={"Authorization": f"Bearer {api_key}"})
+    return feed.Fetcher(client, max_requests=None), KEYED_REQUEST_INTERVAL_S
+
+
+def _block_reader(fetcher, sleep, clock, last_request_at=None, interval=REQUEST_INTERVAL_S):
     """A block reader that spaces requests, reads a 404 as a skipped height, and retries a transport failure or a
     5xx answer after each pause of TRANSIENT_BACKOFF_S before it gives up; any other error stops the scan."""
     last_request = [last_request_at]
@@ -262,7 +284,7 @@ def _block_reader(fetcher, sleep, clock, last_request_at=None):
         # workers together never exceed the gate's rate.
         with lock:
             now = clock()
-            start = now if last_request[0] is None else max(now, last_request[0] + REQUEST_INTERVAL_S)
+            start = now if last_request[0] is None else max(now, last_request[0] + interval)
             last_request[0] = start
         if start > now:
             sleep(start - now)
@@ -360,9 +382,11 @@ def scan_window(hours, to_height=None, record=False, data_dir=DEFAULT_DATA_DIR, 
     else:
         if not record:
             raise TopReceiversError(f"no checkpoint under {data_dir}; run with --record")
-        fetcher = fetcher or feed.Fetcher(max_requests=None)
+        interval = REQUEST_INTERVAL_S
+        if fetcher is None:
+            fetcher, interval = _neardata_fetcher()
         before_pin = fetcher.requests
-        get, last_request_at, _ = _block_reader(fetcher, sleep, clock)
+        get, last_request_at, _ = _block_reader(fetcher, sleep, clock, interval=interval)
         end_path = "/v0/last_block/final" if to_height is None else f"/v0/block/{to_height}"
         final = get(end_path)
         if final is None:
@@ -379,8 +403,10 @@ def scan_window(hours, to_height=None, record=False, data_dir=DEFAULT_DATA_DIR, 
         return state
     if not record:
         raise TopReceiversError(f"scan stops at height {state['last_height']}; resume with --record")
-    fetcher = fetcher or feed.Fetcher(max_requests=None)
-    get, last_request_at, set_last_request_at = _block_reader(fetcher, sleep, clock, clock())
+    interval = REQUEST_INTERVAL_S
+    if fetcher is None:
+        fetcher, interval = _neardata_fetcher()
+    get, last_request_at, set_last_request_at = _block_reader(fetcher, sleep, clock, clock(), interval=interval)
     while state["last_height"] < state["end_height"]:
         batch_start = state["last_height"] + 1
         batch_end = min(batch_start + BATCH_SIZE - 1, state["end_height"])

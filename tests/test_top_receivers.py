@@ -1,4 +1,5 @@
 import json
+import os
 import tempfile
 import unittest
 from concurrent.futures import ThreadPoolExecutor
@@ -263,6 +264,33 @@ class GateSpacingTest(unittest.TestCase):
         with ThreadPoolExecutor(max_workers=top_receivers.SCAN_WORKERS) as pool:
             list(pool.map(lambda h: get(f"/v0/block/{h}"), range(30)))
         self.assertAlmostEqual(last_booked(), 29 * top_receivers.REQUEST_INTERVAL_S)
+
+
+class NeardataKeyTest(unittest.TestCase):
+    def test_no_key_file_is_keyless_at_the_keyless_interval(self):
+        with mock.patch.dict("os.environ", {}, clear=False):
+            os.environ.pop("FASTNEAR_API_KEY_FILE", None)
+            fetcher, interval = top_receivers._neardata_fetcher()
+        self.assertEqual(interval, top_receivers.REQUEST_INTERVAL_S)
+        self.assertNotIn("Authorization", fetcher.client.headers or {})
+
+    def test_a_key_file_sends_a_bearer_header_at_the_keyed_interval(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            key = Path(tmp) / "key"
+            key.write_text("synthetic-key\n", encoding="utf-8")
+            with mock.patch.dict("os.environ", {"FASTNEAR_API_KEY_FILE": str(key)}):
+                fetcher, interval = top_receivers._neardata_fetcher()
+        self.assertEqual(interval, top_receivers.KEYED_REQUEST_INTERVAL_S)
+        self.assertEqual(fetcher.client.headers["Authorization"], "Bearer synthetic-key")
+
+    def test_an_empty_or_missing_key_file_stops_the_scan(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            empty = Path(tmp) / "empty"
+            empty.write_text("", encoding="utf-8")
+            for path in (empty, Path(tmp) / "missing"):
+                with self.subTest(path=path.name), mock.patch.dict("os.environ", {"FASTNEAR_API_KEY_FILE": str(path)}):
+                    with self.assertRaises(top_receivers.TopReceiversError):
+                        top_receivers._neardata_fetcher()
 
 
 class ReceiverFixtureTest(unittest.TestCase):
