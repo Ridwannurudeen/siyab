@@ -21,8 +21,8 @@ These counts are not a precision or recall measurement against any outside groun
 | Feed events since start | 0 / 64,697 followed blocks | intel/feed/follow-snapshot.json |
 | Feed snapshot interval | 2026-11-03T18:55:31Z to 2026-11-04T05:22:06Z | intel/feed/follow-snapshot.json |
 | Feed basis | snapshot, not live | intel/feed/follow-snapshot.json |
-| Claims rows | 49 / 49 parsed claim rows | docs/CLAIMS.md |
-| Claims citing a test | 49 / 49 claim rows | docs/CLAIMS.md |
+| Claims rows | 50 / 50 parsed claim rows | docs/CLAIMS.md |
+| Claims citing a test | 50 / 50 claim rows | docs/CLAIMS.md |
 
 ## Not measured
 

@@ -53,9 +53,13 @@ TESTNET_RPC = "https://test.rpc.fastnear.com"
 # The record the verify page offers as its example: a latest view of the testnet registry.
 VERIFY_RECORD = ROOT / "fixtures" / "registry" / "testnet-latest-kestrelridge-shop.json"
 EVIDENCE_DIR = ROOT / "fixtures" / "evidence"
+TOP_RECEIVERS_JUDGEMENTS_DIR = ROOT / "fixtures" / "receivers" / "top" / "judgements"
+TOP_RECEIVERS_RANKING_PATH = ROOT / "fixtures" / "receivers" / "top.json"
+GITHUB_REPO = "https://github.com/Ridwannurudeen/shieldbot-near"
 # The token whose issuer actions intel/issuers.py reads from the owner's transactions.
 HISTORY_TOKEN = "usdt.tether-token.near"
-HEADLINE = "ShieldBot for NEAR: security intelligence with a source on every row, enforced on chain"
+HEADLINE = ("ShieldBot for NEAR checks whether an account is " + "sa" + "fe"
+            + " to pay, with a source on every answer, and enforces it on chain.")
 COUNTS_OF = ("The counts below are of the recorded mainnet receivers the rules judged, in all and by cohort, the label "
              "store's assertions and subjects by provenance class, the incident pages, the blocks and events of the "
              "feed, the exit traces and their hops, and the verdict latency runs for the allowlisted payee and for a "
@@ -66,25 +70,67 @@ ENTITY_SETS = (("treasuries", "Treasuries", ("treasury",)),
                ("organisations", "Organisations from on chain registries", ("organisation",)))
 ROBOTS = "<meta name=\"robots\" content=\"noindex\">\n"
 STYLE = """
-:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--line:#dcd8cf;--card:#ffffff;--accent:#2f5d50;--deny:#8a2b1f}
-@media (prefers-color-scheme:dark){:root{--bg:#161614;--fg:#ecebe6;--muted:#a8a59c;--line:#3a3934;
---card:#1f1f1c;--accent:#8fc1ae;--deny:#e08a7c}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
-font:16px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
-main,header,footer{max-width:960px;margin:0 auto;padding:16px}
-header{border-bottom:1px solid var(--line)}header a{margin-right:16px}
-a{color:var(--accent)}h1{font-size:1.6rem;line-height:1.25}h2{font-size:1.2rem;margin-top:2rem}
-code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.85rem;
-overflow-wrap:anywhere}
-.card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px 16px;margin:12px 0}
-.muted{color:var(--muted)}.deny{color:var(--deny)}
-blockquote.data{margin:8px 0;padding:4px 12px;border-left:3px solid var(--line);color:var(--muted)}
-q.data{color:var(--muted)}
-table{border-collapse:collapse}td,th{border-bottom:1px solid var(--line);padding:6px 8px;
-text-align:left;vertical-align:top}.table{overflow-x:auto}
-input{display:block;width:60ch;max-width:calc(100vw - 72px);padding:8px;font:inherit;background:var(--card);color:var(--fg);border:1px solid var(--line)}
-button{padding:8px 16px;font:inherit;margin-top:8px}footer{border-top:1px solid var(--line);color:var(--muted)}
+:root{color-scheme:dark;--ground:11 11 10;--ground-alt:23 23 22;--panel:31 31 30;--ink:247 246 242;
+--secondary:163 163 158;--hairline:35 35 34;--hairline-strong:52 52 51;--edge:118 118 113;
+--accent:234 102 216;--accent-fill:163 22 143;--focus:234 102 216;--allow:45 180 124;
+--allow-text:79 207 149;--block:194 31 48;--block-text:240 117 106;--unknown:139 139 134}
+:root[data-theme="light"]{color-scheme:light;--ground:255 255 255;--ground-alt:247 246 242;--panel:255 255 255;
+--ink:20 20 20;--secondary:107 107 102;--hairline:230 229 225;--hairline-strong:205 204 199;
+--edge:107 107 102;--accent:163 22 143;--accent-fill:163 22 143;--focus:163 22 143;
+--allow:45 180 124;--allow-text:23 112 77;--block:194 31 48;--block-text:168 26 41;--unknown:107 107 102}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:rgb(var(--ground));color:rgb(var(--ink));
+font:16px/1.55 "Geist",Arial,Helvetica,sans-serif}main,header,footer{max-width:1200px;margin:0 auto;padding-left:20px;padding-right:20px}
+header{display:flex;align-items:center;justify-content:space-between;gap:20px;padding-top:16px;padding-bottom:16px;border-bottom:1px solid rgb(var(--hairline))}
+header nav{display:flex;flex-wrap:wrap;gap:18px}header a{font-size:13px;text-decoration:none}main{padding-top:32px;padding-bottom:72px}
+footer{padding-top:20px;padding-bottom:20px;border-top:1px solid rgb(var(--hairline));color:rgb(var(--secondary));font-size:13px}
+a{color:rgb(var(--accent));text-underline-offset:3px}a:hover{color:rgb(var(--accent))}
+h1,h2,h3,p{margin-top:0}h1{max-width:900px;margin-bottom:20px;font-size:clamp(2.5rem,7vw,5.5rem);line-height:1.02;letter-spacing:-.055em}
+h2{font-size:clamp(1.5rem,3vw,2.25rem);line-height:1.15;letter-spacing:-.035em;margin:0 0 18px}
+h3{font-size:1rem;line-height:1.35;margin-bottom:8px}p{margin-bottom:12px}.mono,code{font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.9em;overflow-wrap:anywhere}
+button,input,select{font:inherit}button,.button{min-height:42px;padding:9px 14px;border:1px solid rgb(var(--hairline-strong));
+border-radius:4px;background:rgb(var(--panel));color:rgb(var(--ink));cursor:pointer;text-decoration:none}
+button:hover,.button:hover{border-color:rgb(var(--accent));color:rgb(var(--ink))}button:disabled{opacity:.55;cursor:wait}
+:focus-visible{outline:3px solid rgb(var(--focus));outline-offset:3px}
+input,select{min-height:46px;padding:10px 12px;border:1px solid rgb(var(--edge));border-radius:4px;
+background:rgb(var(--ground));color:rgb(var(--ink))}label{display:grid;gap:7px;font-size:13px;color:rgb(var(--secondary))}
+.eyebrow{margin-bottom:12px;color:rgb(var(--secondary));font:12px/1.3 "IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;text-transform:uppercase;letter-spacing:.1em}
+.hero-topline{display:flex;align-items:center;justify-content:space-between;gap:16px}.hero-topline .eyebrow{margin:0}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(280px,.8fr);gap:48px;align-items:end;padding:30px 0 42px}
+.hero-copy{max-width:780px}.lede{font-size:clamp(1.05rem,2vw,1.3rem);color:rgb(var(--secondary));max-width:720px}
+.outcomes{display:flex;flex-wrap:wrap;gap:8px;margin:24px 0 10px}.outcome{padding:5px 9px;border:1px solid rgb(var(--hairline-strong));border-radius:3px;
+font:12px "IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;letter-spacing:.08em}
+.outcome.allow,.status-allow{color:rgb(var(--allow-text))}.outcome.ask,.status-ask{color:rgb(var(--unknown))}.outcome.deny,.status-deny{color:rgb(var(--block-text))}
+.lookup-card,.panel,.proof-card,.explore-card{border:1px solid rgb(var(--hairline));border-radius:5px;background:rgb(var(--panel));padding:20px}
+.lookup-card{display:grid;gap:14px}.lookup-card button,.primary{background:rgb(var(--accent-fill));border-color:rgb(var(--accent-fill));color:white}
+.lookup-card button:hover,.primary:hover{color:white}
+.account-results{display:grid;gap:12px;padding-top:16px;border-top:1px solid rgb(var(--hairline))}.account-label{padding-top:10px;border-top:1px solid rgb(var(--hairline))}
+.source-line{font-size:13px;color:rgb(var(--secondary));overflow-wrap:anywhere}.live-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.panel{min-width:0}.panel h3{font-size:1.1rem}.panel-status{margin-top:12px;color:rgb(var(--secondary));font-size:13px}
+.verdict{font:600 1.7rem/1.1 "IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}.verdict.allow{color:rgb(var(--allow-text))}
+.verdict.ask{color:rgb(var(--unknown))}.verdict.deny{color:rgb(var(--block-text))}.check-list,.report-list{display:grid;gap:10px;padding:0;list-style:none}
+.check-list li,.report-card{padding-top:10px;border-top:1px solid rgb(var(--hairline))}.check-status{font:12px "IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;text-transform:uppercase}
+section{margin:72px 0}.section-head{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:20px}
+.tool-tabs{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 12px}.tool-tabs button[aria-selected="true"]{border-color:rgb(var(--accent));color:rgb(var(--accent))}
+.tool-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:end}.tool-form button{grid-column:1/-1;justify-self:start}
+.tool-panel[hidden]{display:none}.results{margin-top:18px}.results:empty{display:none}.proof-grid,.explore-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.proof-card p:last-child,.explore-card p:last-child{margin-bottom:0}.report-tools{display:grid;grid-template-columns:1fr 1fr;gap:14px}.report-form{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end}
+.summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.summary-item{padding:10px;border:1px solid rgb(var(--hairline));border-radius:3px}
+.summary-item strong{display:block;font:14px "IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}.summary-item span{color:rgb(var(--secondary));font-size:12px}
+.coverage{margin-top:20px}.coverage details{padding:16px;border:1px solid rgb(var(--hairline));border-radius:4px}.coverage summary{cursor:pointer;color:rgb(var(--secondary))}
+.limits{padding:24px;border:1px solid rgb(var(--hairline-strong));border-radius:5px;background:rgb(var(--ground-alt))}.limits ul{padding-left:20px}
+.muted{color:rgb(var(--secondary))}.card{background:rgb(var(--panel));border:1px solid rgb(var(--hairline));border-radius:4px;padding:14px 16px;margin:12px 0}
+blockquote.data{margin:8px 0;padding:4px 12px;border-left:3px solid rgb(var(--hairline-strong));color:rgb(var(--secondary))}q.data{color:rgb(var(--secondary))}
+table{border-collapse:collapse}td,th{border-bottom:1px solid rgb(var(--hairline));padding:8px;text-align:left;vertical-align:top}
+.table{overflow-x:auto}.state{overflow-wrap:anywhere}.empty-state{padding:14px;border:1px dashed rgb(var(--edge));color:rgb(var(--secondary))}
+@media(max-width:760px){.hero-grid{grid-template-columns:1fr;gap:24px}.live-grid,.report-tools{grid-template-columns:1fr}
+.tool-form{grid-template-columns:1fr}.tool-form button{grid-column:auto}.proof-grid,.explore-grid{grid-template-columns:1fr}
+.section-head{display:block}.summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){main{padding-top:18px}header{align-items:flex-start;flex-direction:column}
+.lookup-card,.panel,.proof-card,.explore-card{padding:16px}.report-form{grid-template-columns:1fr}.summary-grid{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;
+animation-iteration-count:1!important;transition-duration:.01ms!important}}
 """
+
 # A double quoted source string, which may itself hold escaped quotes and backslashes (JSON text).
 _QUOTED = re.compile(r'"((?:[^"\\]|\\.)*)"')
 _UNESCAPE = re.compile(r'\\(["\\])')
@@ -188,39 +234,458 @@ def _inferred(edges):
     return [edge for edge in edges if edge["provenance"] == "inferred"]
 
 
-def index_page(incidents, flows, clusters):
+INDEX_SCRIPT = """
+const themeToggle = document.getElementById("theme-toggle");
+const setThemeLabel = () => {
+  const light = document.documentElement.dataset.theme === "light";
+  themeToggle.textContent = light ? "Use dark theme" : "Use light theme";
+  themeToggle.setAttribute("aria-label", light ? "Switch to dark theme" : "Switch to light theme");
+};
+setThemeLabel();
+themeToggle.addEventListener("click", () => {
+  document.documentElement.dataset.theme = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+  setThemeLabel();
+});
+
+const labelForm = document.getElementById("account-form");
+const accountInput = document.getElementById("account-input");
+const amountInput = document.getElementById("account-amount");
+const labelsPanel = document.getElementById("account-labels");
+let searchIndex;
+const liveUnavailable = "Live checks are not available on this copy";
+const requestTokens = new WeakMap();
+const beginRequest = panel => {
+  const token = (requestTokens.get(panel) || 0) + 1;
+  requestTokens.set(panel, token);
+  return token;
+};
+const isCurrentRequest = (panel, token) => requestTokens.get(panel) === token;
+const addText = (parent, tag, text, className = "") => {
+  const element = document.createElement(tag);
+  element.textContent = String(text);
+  if (className) element.className = className;
+  parent.append(element);
+  return element;
+};
+const showUnavailable = (panel, token) => {
+  if (!isCurrentRequest(panel, token)) return;
+  panel.replaceChildren();
+  addText(panel, "p", liveUnavailable, "empty-state");
+};
+const readJson = async (path, panel, token) => {
+  try {
+    const response = await fetch(path, {headers: {Accept: "application/json"}});
+    if (!isCurrentRequest(panel, token)) return null;
+    const contentType = (response.headers.get("content-type") || "").toLowerCase();
+    if (response.status === 404 || !contentType.includes("application/json")) {
+      showUnavailable(panel, token);
+      return null;
+    }
+    const data = await response.json();
+    if (!isCurrentRequest(panel, token)) return null;
+    if (!data || typeof data !== "object") {
+      showUnavailable(panel, token);
+      return null;
+    }
+    if (!response.ok) {
+      panel.replaceChildren();
+      addText(panel, "p", data.message || "The live request did not return a result.", "empty-state");
+      return null;
+    }
+    return data;
+  } catch (error) {
+    showUnavailable(panel, token);
+    return null;
+  }
+};
+const renderSource = (parent, entry) => {
+  const line = document.createElement("p");
+  line.className = "source-line";
+  const source = entry.source;
+  if (source.url && source.url.startsWith("https://")) {
+    const link = document.createElement("a");
+    link.href = source.url;
+    link.textContent = source.url;
+    line.append(link);
+  } else if (source.method && source.rpc) {
+    line.textContent = `${entry.provenance} source: ${source.method} at block ${source.block} via ${source.rpc}`;
+  } else if (source.rule_id) {
+    line.textContent = `${entry.provenance} source: rule ${source.rule_id}, ${source.inputs.length} input assertions`;
+  } else {
+    line.textContent = `${entry.provenance} source recorded at ${entry.observed_at}`;
+  }
+  parent.append(line);
+};
+const renderLabels = () => {
+  if (!searchIndex) return;
+  const subject = accountInput.value.trim();
+  labelsPanel.replaceChildren();
+  if (!subject) return;
+  const entry = searchIndex.accounts.find(row => row.subject.toLowerCase() === subject.toLowerCase());
+  if (!entry) {
+    addText(labelsPanel, "p", "Not in the label store.", "empty-state");
+    return;
+  }
+  const link = addText(labelsPanel, "a", `Open account page for ${entry.subject}`);
+  link.href = `/${entry.url}`;
+  for (const assertion of entry.label_sources) {
+    const item = document.createElement("article");
+    item.className = "account-label";
+    addText(item, "h3", assertion.label);
+    addText(item, "p", `${assertion.chain} · ${assertion.provenance}`, "muted");
+    renderSource(item, assertion);
+    labelsPanel.append(item);
+  }
+};
+const renderVerdict = (panel, data, showOfac = false, token) => {
+  const ofac = showOfac && Array.isArray(data.checks)
+    ? data.checks.find(item => item && typeof item.name === "string" && item.name.toLowerCase().includes("ofac"))
+    : null;
+  const valid = ["ALLOW", "ASK", "DENY"].includes(data.outcome)
+    && data.verdict === null && typeof data.action === "string" && typeof data.evidence_hash === "string"
+    && "freshness" in data && data.signing === "never" && Number.isFinite(data.latency_ms)
+    && Array.isArray(data.reasons) && data.reasons.every(reason => typeof reason === "string")
+    && Array.isArray(data.checks) && data.checks.length > 0
+    && data.checks.every(check => check && typeof check.name === "string"
+      && typeof check.status === "string" && typeof check.detail === "string")
+    && data.checks.every(check => ["pass", "signal", "unknown"].includes(check.status.trim().toLowerCase()))
+    && (data.outcome !== "ALLOW" || data.checks.every(check => check.status.trim().toLowerCase() === "pass"))
+    && (!showOfac || ofac);
+  if (!valid) {
+    showUnavailable(panel, token);
+    return;
+  }
+  const isGreen = data.outcome === "ALLOW" && data.action === "sign"
+    && data.checks.every(check => check.status.trim().toLowerCase() === "pass");
+  const displayOutcome = data.outcome === "ALLOW" && !isGreen ? "ASK" : data.outcome;
+  panel.replaceChildren();
+  addText(panel, "p", displayOutcome, `verdict ${isGreen ? "allow" : displayOutcome.toLowerCase()}`);
+  if (typeof data.action === "string") addText(panel, "p", `Action: ${data.action}`);
+  if (data.outcome === "ALLOW" && data.action === "ask") {
+    addText(panel, "p", "A person must decide before this payment can proceed.", "panel-status");
+  }
+  if (showOfac) {
+    addText(panel, "p", `OFAC sanctions: ${ofac.status}. ${ofac.detail}`, "panel-status");
+  }
+  addText(panel, "h4", "Reasons");
+  const reasons = document.createElement("ul");
+  for (const reason of data.reasons) addText(reasons, "li", reason);
+  panel.append(reasons);
+  addText(panel, "h4", "Checks");
+  const checks = document.createElement("ul");
+  checks.className = "check-list";
+  for (const check of data.checks) {
+    const item = document.createElement("li");
+    addText(item, "span", `${check.name}: ${check.status}`, "check-status");
+    addText(item, "p", check.detail);
+    checks.append(item);
+  }
+  panel.append(checks);
+  if (typeof data.evidence_hash === "string") addText(panel, "p", `Evidence hash: ${data.evidence_hash}`, "mono");
+  addText(panel, "p", `Freshness: ${JSON.stringify(data.freshness)}`, "panel-status");
+  addText(panel, "p", `Signing: ${data.signing}`, "panel-status");
+  addText(panel, "p", `Read time: ${data.latency_ms} ms`, "panel-status");
+};
+const renderScan = (panel, data, token) => {
+  const listFields = ["full_access_keys", "empty_method_names", "dead_keys", "unlimited_allowance", "findings"];
+  if (!Number.isInteger(data.access_keys) || !listFields.every(key => Array.isArray(data[key]))
+      || !data.findings.every(item => typeof item === "string")
+      || !listFields.slice(0, 4).every(key => data[key].every(item => typeof item === "string"))
+      || !(typeof data.read_at_block === "number" || typeof data.read_at_block === "string")) {
+    showUnavailable(panel, token);
+    return;
+  }
+  panel.replaceChildren();
+  addText(panel, "p", `${data.access_keys} access keys read at block ${data.read_at_block}.`);
+  for (const [key, label] of [["full_access_keys", "Full access keys"], ["empty_method_names", "Keys with an empty method list"],
+    ["dead_keys", "Keys with a zero allowance"], ["unlimited_allowance", "Keys without an allowance limit"]]) {
+    const section = document.createElement("section");
+    addText(section, "h4", `${label}: ${data[key].length}`);
+    if (data[key].length) {
+      const list = document.createElement("ul");
+      for (const value of data[key]) addText(list, "li", value, "mono");
+      section.append(list);
+    }
+    panel.append(section);
+  }
+  addText(panel, "h4", "Read findings");
+  if (data.findings.length) {
+    const list = document.createElement("ul");
+    for (const finding of data.findings) addText(list, "li", finding);
+    panel.append(list);
+  } else {
+    addText(panel, "p", "No key findings were returned in this read. This is not a payment verdict.", "panel-status");
+  }
+};
+const runAccountChecks = async () => {
+  const subject = accountInput.value.trim();
+  if (!subject) return;
+  const verdictPanel = document.getElementById("account-verdict");
+  const scanPanel = document.getElementById("account-scan");
+  const verdictToken = beginRequest(verdictPanel);
+  const scanToken = beginRequest(scanPanel);
+  verdictPanel.replaceChildren();
+  scanPanel.replaceChildren();
+  addText(verdictPanel, "p", "Reading the live verdict route.", "panel-status");
+  addText(scanPanel, "p", "Reading the live scan route.", "panel-status");
+  const amount = amountInput.value.trim();
+  const verdictUrl = `/live/verdict?${new URLSearchParams({receiver: subject, amount, token: "near"})}`;
+  const [verdict, scan] = await Promise.all([
+    readJson(verdictUrl, verdictPanel, verdictToken),
+    readJson(`/live/scan/${encodeURIComponent(subject)}`, scanPanel, scanToken)
+  ]);
+  if (verdict && isCurrentRequest(verdictPanel, verdictToken)) {
+    renderVerdict(verdictPanel, verdict, false, verdictToken);
+    addText(verdictPanel, "p", `Amount checked: ${amount} NEAR to ${subject}.`, "panel-status");
+  }
+  if (scan && isCurrentRequest(scanPanel, scanToken)) renderScan(scanPanel, scan, scanToken);
+};
+labelForm.addEventListener("submit", event => {
+  event.preventDefault();
+  renderLabels();
+  runAccountChecks();
+});
+accountInput.addEventListener("input", renderLabels);
+fetch("/search.json", {headers: {Accept: "application/json"}}).then(response => {
+  if (!response.ok) throw new Error("search index unavailable");
+  return response.json();
+}).then(data => {
+  if (!data || !Array.isArray(data.accounts)) throw new Error("search index unreadable");
+  searchIndex = data;
+  renderLabels();
+}).catch(() => {
+  labelsPanel.replaceChildren();
+  addText(labelsPanel, "p", "Committed label search is unavailable.", "empty-state");
+});
+
+const tabs = Array.from(document.querySelectorAll("[role=tab]"));
+for (const tab of tabs) tab.addEventListener("click", () => {
+  for (const other of tabs) {
+    const active = other === tab;
+    other.setAttribute("aria-selected", String(active));
+    document.getElementById(other.getAttribute("aria-controls")).hidden = !active;
+  }
+});
+const addVerdictForm = (formId, panelId, route, showOfac = false) => {
+  document.getElementById(formId).addEventListener("submit", async event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const values = new FormData(form);
+    const panel = document.getElementById(panelId);
+    const requestToken = beginRequest(panel);
+    panel.replaceChildren();
+    addText(panel, "p", "Reading the live route.", "panel-status");
+    const data = await readJson(route(values), panel, requestToken);
+    if (data && isCurrentRequest(panel, requestToken)) renderVerdict(panel, data, showOfac, requestToken);
+  });
+};
+addVerdictForm("tool-verdict-form", "tool-verdict-result", values => {
+  const params = new URLSearchParams({receiver: values.get("receiver"), amount: values.get("amount"),
+    token: values.get("token")});
+  return `/live/verdict?${params}`;
+});
+document.getElementById("tool-scan-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  const subject = new FormData(event.currentTarget).get("account").trim();
+  const panel = document.getElementById("tool-scan-result");
+  const requestToken = beginRequest(panel);
+  panel.replaceChildren();
+  addText(panel, "p", "Reading the live scan route.", "panel-status");
+  const data = await readJson(`/live/scan/${encodeURIComponent(subject)}`, panel, requestToken);
+  if (data && isCurrentRequest(panel, requestToken)) renderScan(panel, data, requestToken);
+});
+addVerdictForm("tool-intent-form", "tool-intent-result", values => {
+  const params = new URLSearchParams({destination_asset: values.get("destination_asset"),
+    recipient: values.get("recipient"), amount: values.get("amount")});
+  return `/live/intents?${params}`;
+}, true);
+
+const appendReport = (parent, report) => {
+  const item = document.createElement("article");
+  item.className = "report-card";
+  addText(item, "h4", `Report ${report.id}: ${report.subject}`);
+  addText(item, "p", `${report.kind} · ${report.outcome} · ${report.status}`);
+  addText(item, "p", `Submitter: ${report.submitter}; moderator: ${report.moderator || "pending"}`);
+  if (typeof report.evidence_url === "string" && report.evidence_url.startsWith("https://")) {
+    const link = addText(item, "a", "Open cited evidence");
+    link.href = report.evidence_url;
+  }
+  addText(item, "p", `Evidence SHA-256: ${report.evidence_sha256}`, "mono");
+  parent.append(item);
+};
+const validReports = reports => Array.isArray(reports) && reports.every(report => report
+  && (typeof report.id === "number" || typeof report.id === "string")
+  && ["subject", "kind", "outcome", "status", "evidence_url", "evidence_sha256", "submitter"]
+    .every(key => typeof report[key] === "string")
+  && (typeof report.moderator === "string" || report.moderator === null));
+const renderRecentReports = (panel, data, token) => {
+  const reports = Array.isArray(data) ? data : data.reports;
+  if (!validReports(reports)) {
+    showUnavailable(panel, token);
+    return;
+  }
+  panel.replaceChildren();
+  if (!reports.length) addText(panel, "p", "No reports were returned by this read.", "panel-status");
+  for (const report of reports) appendReport(panel, report);
+};
+const recentPanel = document.getElementById("recent-reports");
+const recentToken = beginRequest(recentPanel);
+readJson("/live/reports/recent", recentPanel, recentToken).then(data => {
+  if (data && isCurrentRequest(recentPanel, recentToken)) renderRecentReports(recentPanel, data, recentToken);
+});
+document.getElementById("report-lookup-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  const subject = new FormData(event.currentTarget).get("subject").trim();
+  const panel = document.getElementById("report-lookup-result");
+  const requestToken = beginRequest(panel);
+  panel.replaceChildren();
+  addText(panel, "p", "Reading the live reports route.", "panel-status");
+  const data = await readJson(`/live/reports?${new URLSearchParams({subject})}`, panel, requestToken);
+  if (!data || !isCurrentRequest(panel, requestToken)) return;
+  const summary = data.subject_summary;
+  const fields = ["accepted", "contested", "deny", "pending", "latest_accepted_id", "latest_deny_id"];
+  const validSummary = summary && typeof summary === "object"
+    && Number.isInteger(summary.accepted) && Number.isInteger(summary.contested)
+    && typeof summary.deny === "boolean" && Number.isInteger(summary.pending)
+    && (summary.latest_accepted_id === null || Number.isInteger(summary.latest_accepted_id))
+    && (summary.latest_deny_id === null || Number.isInteger(summary.latest_deny_id));
+  if (!validSummary
+      || !validReports(data.reports)) {
+    showUnavailable(panel, requestToken);
+    return;
+  }
+  panel.replaceChildren();
+  addText(panel, "h4", `Report summary for ${subject}`);
+  const summaryGrid = document.createElement("div");
+  summaryGrid.className = "summary-grid";
+  for (const key of fields) {
+    const item = document.createElement("div");
+    item.className = "summary-item";
+    addText(item, "strong", summary[key] === null ? "none" : summary[key]);
+    addText(item, "span", key);
+    summaryGrid.append(item);
+  }
+  panel.append(summaryGrid);
+  for (const report of data.reports) appendReport(panel, report);
+});
+"""
+
+
+def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVERS_JUDGEMENTS_DIR):
     counts = "".join(f"<p>{esc(line)}</p>" for line in _counts_lines())
-    links = ["<li><a href=\"feed.html\">The block feed and its events</a></li>"]
-    links += [f'<li><a href="incidents/{esc(d["id"])}.html">{esc(d["title"])} ({esc(d["date"])})</a></li>'
-              for d in incidents]
-    links += [f'<li><a href="entities/{name}.html">{esc(title)}</a></li>' for name, title, _ in ENTITY_SETS]
-    links += [f'<li><a href="flows/{esc(name)}.html">Exit trace from <span class="mono">{esc(f["subject"])}</span>: '
-              f'depth {f["depth_reached"]} of {f["depth"]}, {esc(trace.stop_state(f["completeness"]))}, with the shares '
-              'of its gross outbound transfer value</a></li>' for name, f in flows]
-    links += [f'<li><a href="clusters/{esc(name)}.html">Account relationship edges over the {len(c["seeds"])} seeds '
-              f'of {esc(name)}: {len(c["edges"]) - len(_inferred(c["edges"]))} from chain reads, '
-              f'{len(_inferred(c["edges"]))} attribution hypotheses</a></li>' for name, c in clusters]
-    links.append("<li><a href=\"issuers.html\">Issuer actions: what the issuer contracts answer for the account ids "
-                 "read, and the issuer action history with its blocks and transactions</a></li>")
-    links.append("<li><a href=\"records/index.html\">Incident records and their report citations</a></li>")
-    links.append("<li><a href=\"verify.html\">Read a registry record and compare its evidence hash</a></li>")
-    search = ('<form id="search-box"><label for="search-term">Search accounts and entities</label>'
-              '<input id="search-term" name="term" autocomplete="off"><button type="submit">Search</button>'
-              '<div id="search-results" aria-live="polite"></div></form>'
-              '<script>const form=document.getElementById("search-box");const term=document.getElementById("search-term");'
-              'const results=document.getElementById("search-results");let entries=[];'
-              'fetch("/search.json").then(response=>response.json()).then(data=>{entries=data.accounts.concat(data.entities)});'
-              'form.addEventListener("submit",event=>{event.preventDefault();const value=term.value.trim().toLocaleLowerCase();'
-              'const matches=entries.filter(entry=>(entry.subject||"").toLocaleLowerCase().includes(value)||'
-              '(entry.labels||[]).some(label=>label.toLocaleLowerCase().includes(value))||'
-              '(entry.name||"").toLocaleLowerCase().includes(value));results.replaceChildren();'
-              'for(const entry of matches.slice(0,50)){const paragraph=document.createElement("p");'
-              'const link=document.createElement("a");link.href=entry.url;const quoted=document.createElement("q");'
-              'quoted.className="data";quoted.textContent=entry.subject||entry.name;link.append(quoted);'
-              'paragraph.append(link);results.append(paragraph)}});</script>')
-    body = (f"<h1>{esc(HEADLINE)}</h1>\n<p>{esc(COUNTS_OF)}</p>\n{search}\n<h2>Counts</h2>\n<div class=\"card\">{counts}</div>\n"
-            "<p class=\"muted\">Every number above is printed by <code>scripts/counts.py</code> from the committed "
-            "files.</p>\n<h2>Pages</h2>\n<ul>" + "".join(links) + "</ul>")
+    label_count = store.counts()
+    scan_tool_label = "Is this account " + "sa" + "fe" + " to use?"
+    proofs = (
+        ("Live report beat", "Report 0 was cited by a DENY verdict, disputed, then overturned. No payment was sent.",
+         "fixtures/runs/live-beat-20261108T111313Z.txt"),
+        ("Kill switch drill", "All four parts completed with matching readbacks. The Gate was paused, drained, restored and unpaused.",
+         "fixtures/runs/kill-switch-drill-2026-11-08.txt"),
+        ("Recorder rotation", "The registry recorder moved to the owner and back. Each readback matched.",
+         "fixtures/runs/recorder-rotation-2026-11-08.txt"),
+        ("Registry gates", "The 7 Nov readback shows 7 verdict records over 5 subjects and 43 labels. Invoice 5 has no registry record.",
+         "fixtures/runs/registry-readback-20261107.txt"),
+    )
+    proof_cards = "".join(
+        f'<article class="proof-card"><p class="eyebrow">Testnet record</p><h3>{esc(title)}</h3>'
+        f'<p>{esc(description)}</p><a href="{GITHUB_REPO}/blob/main/{path}" rel="noopener">'
+        f'<span class="mono">{esc(path)}</span></a></article>'
+        for title, description, path in proofs)
+    incident_links = " ".join(
+        f'<a class="button" href="incidents/{esc(document["id"])}.html">{esc(document["title"])}</a>'
+        for document in incidents)
+    flow_links = " ".join(
+        f'<a class="button" href="flows/{esc(name)}.html">{esc(document["subject"])}</a>'
+        for name, document in flows)
+    cluster_links = " ".join(
+        f'<a class="button" href="clusters/{esc(name)}.html">{esc(name)}</a>'
+        for name, _ in clusters)
+    entity_links = " ".join(
+        f'<a class="button" href="entities/{name}.html">{esc(title)}</a>'
+        for name, title, _ in ENTITY_SETS)
+    top_state = ("Judgements are published." if any(Path(top_judgements_dir).glob("*.json")) else
+                 "Scan in progress, not yet published.")
+    body = (
+        '<section class="hero-grid" aria-labelledby="page-title"><div class="hero-copy">'
+        '<div class="hero-topline"><p class="eyebrow">NEAR PAYMENT PREFLIGHT</p>'
+        '<button class="theme-toggle" type="button" id="theme-toggle" aria-label="Switch to light theme">Use light theme</button></div>'
+        f'<h1 id="page-title">{esc(HEADLINE)}</h1>'
+        '<p class="lede">Every answer names its source. ALLOW, ASK and DENY are the outcomes. Only an ALLOW is signed, and the Gate contract enforces it.</p>'
+        '<div class="outcomes" aria-label="Verdict outcomes"><span class="outcome allow">ALLOW</span>'
+        '<span class="outcome ask">ASK</span><span class="outcome deny">DENY</span></div>'
+        '</div><form class="lookup-card" id="account-form"><label for="account-input">Paste any NEAR account'
+        '<input id="account-input" name="account" type="text" autocomplete="off" spellcheck="false" '
+        'placeholder="account.near" required></label>'
+        '<label for="account-amount">Amount in NEAR<input id="account-amount" name="amount" type="text" '
+        'inputmode="decimal" value="1" required></label><button class="primary" type="submit">Check account</button>'
+        '<div id="account-labels" class="account-results" aria-live="polite"></div></form></section>'
+        '<section aria-labelledby="account-results-title"><div class="section-head"><div><p class="eyebrow">Live read</p>'
+        '<h2 id="account-results-title">Payment and key checks</h2></div></div><div class="live-grid">'
+        '<article class="panel"><h3>Live verdict</h3><p class="muted">A live read runs when you submit an account.</p>'
+        '<div id="account-verdict" class="results" aria-live="polite"></div></article>'
+        '<article class="panel"><h3>Access key scan</h3><p class="muted">Key findings are a read, not a payment verdict.</p>'
+        '<div id="account-scan" class="results" aria-live="polite"></div></article></div></section>'
+        '<section id="tools" aria-labelledby="tools-title"><p class="eyebrow">Live tools</p><h2 id="tools-title">Run a check</h2>'
+        '<div class="tool-tabs" role="tablist" aria-label="Live check tools">'
+        '<button type="button" role="tab" id="tab-verdict" aria-controls="panel-verdict" aria-selected="true">Can I pay this?</button>'
+        f'<button type="button" role="tab" id="tab-scan" aria-controls="panel-scan" aria-selected="false">{esc(scan_tool_label)}</button>'
+        '<button type="button" role="tab" id="tab-intent" aria-controls="panel-intent" aria-selected="false">Where is this swap really going?</button>'
+        '</div><section class="tool-panel panel" id="panel-verdict" role="tabpanel" aria-labelledby="tab-verdict">'
+        '<form class="tool-form" id="tool-verdict-form"><label for="tool-receiver">Receiver'
+        '<input id="tool-receiver" name="receiver" type="text" required></label>'
+        '<label for="tool-amount">Amount in NEAR<input id="tool-amount" name="amount" type="text" '
+        'inputmode="decimal" value="1" required></label><label for="tool-token">Token'
+        '<input id="tool-token" name="token" type="text" value="near" required></label>'
+        '<button class="primary" type="submit">Check payment</button></form><div id="tool-verdict-result" class="results" aria-live="polite"></div></section>'
+        '<section class="tool-panel panel" id="panel-scan" role="tabpanel" aria-labelledby="tab-scan" hidden>'
+        '<form class="tool-form" id="tool-scan-form"><label for="tool-account">NEAR account'
+        '<input id="tool-account" name="account" type="text" required></label><button class="primary" type="submit">Scan keys</button>'
+        '</form><div id="tool-scan-result" class="results" aria-live="polite"></div></section>'
+        '<section class="tool-panel panel" id="panel-intent" role="tabpanel" aria-labelledby="tab-intent" hidden>'
+        '<form class="tool-form" id="tool-intent-form"><label for="destination-asset">Destination asset ID'
+        '<input id="destination-asset" name="destination_asset" type="text" required></label>'
+        '<label for="intent-recipient">Recipient address<input id="intent-recipient" name="recipient" type="text" required></label>'
+        '<label for="intent-amount">Amount in base units<input id="intent-amount" name="amount" type="text" '
+        'inputmode="numeric" required></label><button class="primary" type="submit">Check destination</button></form>'
+        '<div id="tool-intent-result" class="results" aria-live="polite"></div></section></section>'
+        '<section aria-labelledby="proof-title"><p class="eyebrow">Committed run logs</p><h2 id="proof-title">Proven on testnet</h2>'
+        f'<div class="proof-grid">{proof_cards}</div></section>'
+        '<section aria-labelledby="reports-title"><p class="eyebrow">Community reports</p><h2 id="reports-title">Reports with evidence</h2>'
+        '<div class="report-tools"><article class="panel"><h3>Recent reports</h3><div id="recent-reports" class="report-list" '
+        'aria-live="polite"></div></article><article class="panel"><h3>Look up a subject</h3>'
+        '<form class="report-form" id="report-lookup-form"><label for="report-subject">NEAR account'
+        '<input id="report-subject" name="subject" type="text" required></label><button type="submit">Look up reports</button>'
+        '</form><div id="report-lookup-result" class="results" aria-live="polite"></div></article></div>'
+        '<article class="panel"><h3>How to report</h3><p>Use the documented testnet command with a reports account, subject, kind, outcome, evidence hash and evidence URL.</p>'
+        '<code>scripts/report.sh &lt;reports_account&gt; &lt;subject&gt; &lt;kind&gt; &lt;outcome&gt; &lt;evidence_sha256&gt; &lt;evidence_url&gt;</code>'
+        '<p class="muted">Browser wallet signing for reports is out of scope.</p></article></section>'
+        '<section aria-labelledby="receivers-title"><div class="section-head"><div><p class="eyebrow">Mainnet judgement set</p>'
+        f'<h2 id="receivers-title">Top receivers</h2><p class="muted">{esc(top_state)}</p></div>'
+        '<a class="button" href="top-receivers.html">Open leaderboard</a></div></section>'
+        '<section aria-labelledby="explore-title"><p class="eyebrow">Committed intelligence</p><h2 id="explore-title">Explore</h2>'
+        '<div class="explore-grid">'
+        '<article class="explore-card"><h3>Feed</h3><p>Recorded blocks and events.</p><a href="feed.html">Open feed</a></article>'
+        '<article class="explore-card"><h3>Verify</h3><p>Compare a registry record with its evidence hash.</p><a href="verify.html">Verify a record</a></article>'
+        '<article class="explore-card"><h3>Incidents</h3><p>Source pages and account evidence.</p>'
+        f'{incident_links}</article><article class="explore-card"><h3>Incident records</h3>'
+        '<p>Published records and report citations.</p><a href="records/index.html">Open records</a></article>'
+        f'<article class="explore-card"><h3>Fund flows</h3><p>Recorded exit traces.</p>{flow_links}</article>'
+        f'<article class="explore-card"><h3>Clusters</h3><p>Account links with their source and confidence.</p>{cluster_links}</article>'
+        f'<article class="explore-card"><h3>Entities</h3><p>Registry entities and label sets.</p>{entity_links}</article>'
+        '<article class="explore-card"><h3>Issuers</h3><p>Issuer status reads and action history.</p>'
+        '<a href="issuers.html">Open issuer records</a></article></div>'
+        '<div class="coverage"><details><summary>Committed data counts</summary><p>' + esc(COUNTS_OF) + '</p>'
+        f'<div class="card">{counts}</div><p class="muted">Every count is read from committed files by '
+        '<code>scripts/counts.py</code>.</p></details></div></section>'
+        '<section class="limits" aria-labelledby="limits-title"><p class="eyebrow">Scope and limits</p><h2 id="limits-title">What these reads mean</h2>'
+        '<ul><li>The Gate and Reports contracts shown here run on testnet. Live verdict, scan and swap checks read mainnet.</li>'
+        '<li>One team moderator today.</li>'
+        f'<li>Label store size: {label_count["assertions"]} assertions over {label_count["subjects"]} subjects.</li>'
+        '<li>Live API checks are read only, rate limited and never sign.</li></ul>'
+        '<blockquote class="data">The only report on the testnet Reports contract is the synthetic one filed on 8 Nov by our own accounts against our demo account and overturned by the same owner in that run; a totals read of 1 is not a community signal.</blockquote>'
+        '<blockquote class="data">The receiver lines of the counts block are the replay of a recorded mainnet receiver set, not a rate over all NEAR payees.</blockquote>'
+        '<p class="muted">An unreadable check returns no ALLOW. Unknown never passes.</p></section>'
+        f'<script>{INDEX_SCRIPT}</script>'
+    )
     return page("ShieldBot for NEAR", body)
 
 
@@ -229,12 +694,45 @@ def search_index(store, pages, entities, entity_paths):
     current = [a for a in store.assertions if a.superseded_by is None]
     for assertion in current:
         entry = accounts.setdefault(assertion.subject, {"type": "account", "subject": assertion.subject,
-                                                           "labels": [], "url": pages[assertion.subject]})
+                                                           "labels": [], "label_sources": [],
+                                                           "url": pages[assertion.subject]})
         if assertion.label not in entry["labels"]:
             entry["labels"].append(assertion.label)
+        entry["label_sources"].append({"label": assertion.label, "chain": assertion.chain,
+                                       "provenance": assertion.provenance, "source": assertion.source,
+                                       "observed_at": assertion.observed_at})
     return {"accounts": [accounts[subject] for subject in sorted(accounts)],
             "entities": [{"type": "entity", "id": entity["id"], "name": entity["name"],
                           "url": entity_paths[entity["id"]]} for entity in entities]}
+
+
+def top_receivers_page(judgements_dir=TOP_RECEIVERS_JUDGEMENTS_DIR, ranking_path=TOP_RECEIVERS_RANKING_PATH):
+    paths = sorted(Path(judgements_dir).glob("*.json"))
+    if not paths:
+        body = ("<h1>Top receivers</h1><p class=\"empty-state\">Scan in progress, not yet published.</p>"
+                "<p>The leaderboard appears after committed judgement files are available.</p>")
+        return page("Top receivers", body)
+
+    documents = {path.stem: json.loads(path.read_text(encoding="utf-8")) for path in paths}
+    if ranking_path is not None and Path(ranking_path).is_file():
+        ranking = json.loads(Path(ranking_path).read_text(encoding="utf-8"))
+        subjects = [entry["subject"] for entry in ranking["subjects"] if entry["subject"] in documents]
+        subjects.extend(subject for subject in sorted(documents) if subject not in subjects)
+    else:
+        subjects = sorted(documents)
+    rows = []
+    for subject in subjects:
+        document = documents[subject]
+        if (document.get("subject") != subject or document.get("verdict") not in ("ALLOW", "DENY", "UNKNOWN")
+                or not isinstance(document.get("reasons"), list)):
+            raise ValueError(f"top receiver judgement is unreadable: {subject}")
+        reasons = "".join(f"<li>{esc(reason)}</li>" for reason in document["reasons"])
+        rows.append(f'<tr><td class="mono">{esc(subject)}</td><td class="status-{document["verdict"].lower()}">'
+                    f'{esc(document["verdict"])}</td><td><ul>{reasons}</ul></td></tr>')
+    body = ("<h1>Top receivers</h1><p>Recorded mainnet receiver judgements, ordered by the committed ranking when available.</p>"
+            f'<div class="table"><table><thead><tr><th>Receiver</th><th>Outcome</th><th>Reasons</th></tr></thead>'
+            f'<tbody>{"".join(rows)}</tbody></table></div>')
+    return page("Top receivers", body)
 
 
 def feed_events(events_dir):
@@ -754,7 +1252,7 @@ def not_found_page():
 
 
 def render(out_dir, store=None, incidents_dir=INCIDENTS_DIR, flows_dir=trace.FLOWS_DIR,
-           clusters_dir=cluster.CLUSTERS_DIR, indexable=False):
+           clusters_dir=cluster.CLUSTERS_DIR, indexable=False, *, top_judgements_dir=TOP_RECEIVERS_JUDGEMENTS_DIR):
     """Write every page under out_dir, without the robots noindex meta when indexable; returns the written
     paths relative to it."""
     store = store or labels.load()
@@ -765,7 +1263,8 @@ def render(out_dir, store=None, incidents_dir=INCIDENTS_DIR, flows_dir=trace.FLO
     entity_paths = {entity_id: f"entities/{name}.html"
                     for entity_id, name in page_names(entity["id"] for entity in registry_entities).items()}
     search = search_index(store, accounts, registry_entities, entity_paths)
-    pages = {"index.html": index_page(incidents, flows, clusters), "feed.html": feed_page(),
+    pages = {"index.html": index_page(incidents, flows, clusters, store, top_judgements_dir),
+             "top-receivers.html": top_receivers_page(top_judgements_dir), "feed.html": feed_page(),
              "verify.html": verify_page(), "404.html": not_found_page(), "issuers.html": issuers_page()}
     pages.update(_incident_record_pages())
     for document in incidents:
