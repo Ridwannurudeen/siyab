@@ -1,4 +1,4 @@
-"""A block feed over finalized NEAR mainnet blocks, with five signals.
+"""A block feed over finalized NEAR mainnet blocks, with six signals.
 
 python -m intel feed [--from <height>] --blocks <n> [--record] walks n block heights from --from
 (default: the height after the state's last block; with --record and no state, the height
@@ -37,11 +37,15 @@ after the height in hand and the command exits 0.
 The reduced form keeps, for each executed action receipt, its receipt id, transaction hash,
 predecessor, receiver, whether it succeeded, and the actions the signals read: DeployContract
 (the base58 sha256 of the code, never the code), CreateAccount, Transfer (the deposit),
-FunctionCall (the method name and deposit, never the args) and AddKey (the public key and the
-permission). The state directory is the one FEED_STATE_DIR names (default intel/feed/, the
+FunctionCall (the method name and deposit, never the args), AddKey (the public key and the
+permission), DeleteKey (the public key) and DeleteAccount (the beneficiary). Reduced fixtures
+before action reducer version 2 cannot raise full_access_key_then_outflow. The state directory is
+the one FEED_STATE_DIR names (default intel/feed/, the
 recorded window), so a follower on a host writes no tracked file. Its state.json holds the start
 height and time, the last height and time, the block count, the skipped heights, the fresh
-accounts with their funding deposit and time, and the event count per signal; a follower adds
+accounts with their funding deposit and time, pending full access key additions with their key,
+timestamp and lockout state, the successful receipt count, candidate count per signal and event count
+per signal; an old state gains the new fields on its next block. A follower adds
 mode ("follow"), started_at (when the first follow run began), lag_blocks (the final height at the
 last read minus the last height), updated_at (the UTC time of the follower's last update: its state
 write at a height, at a read of the final height while it waits there, or, once its run has walked a
@@ -77,6 +81,8 @@ The signals, each written as an evidence document under <state dir>/events/<sha2
   deploy_on_labelled_contract      a successful DeployContract on a NEAR account with a current
                                    catalog_token, infrastructure, bridge, treasury, organisation or
                                    watch row
+  full_access_key_then_outflow     a full access key added to an existing account, then a native
+                                   transfer or account deletion within KEY_OUTFLOW_WINDOW_MS
 
 The transfer poll runs in follow mode only, from the follower's loop both while it walks heights
 and while it waits at the final height, every POLL_S (600 s), sooner after a 429 as below. It
@@ -98,6 +104,7 @@ Neither stops the block walk. feed-stats and the feed page show the last failed 
 """
 
 import base64
+import csv
 import hashlib
 import json
 import os
@@ -119,11 +126,17 @@ EVENT_BLOCKS_DIR = FEED_DIR / "event-blocks"
 INCIDENTS_DIR = Path(__file__).resolve().parent / "incidents"
 SNAPSHOT_PATH = Path(__file__).resolve().parent / "feed" / "follow-snapshot.json"
 SIGNALS = ("code_hash_matches_incident", "fresh_dust_funded_pays_labelled", "watch_account_key_added",
-           "labelled_account_large_transfer", "deploy_on_labelled_contract")
+           "labelled_account_large_transfer", "deploy_on_labelled_contract", "full_access_key_then_outflow")
+UNMEASURED_SIGNALS = ("full_access_key_then_outflow",)
 WATCH_CATEGORIES = ("infrastructure", "treasury", "watch")
 DEPLOY_CATEGORIES = ("catalog_token", "infrastructure", "bridge", "treasury", "organisation", "watch")
 TRANSFERS_URL = "https://transfers.main.fastnear.com"
 FRESH_WINDOW_MS = 24 * 60 * 60 * 1000
+# Ten minutes pairs an immediate key change with a nearby drain without linking later activity.
+KEY_OUTFLOW_WINDOW_MS = 10 * 60 * 1000
+# A one NEAR floor keeps small maintenance transfers below this initial, unmeasured threshold.
+MIN_OUTFLOW_YOCTO = rules.YOCTO_PER_NEAR
+ACTION_REDUCER_VERSION = 2
 POLL_S = 600
 TRANSFER_BACKOFF_S = 60
 LARGE_TRANSFER_USD = 1000
@@ -171,6 +184,10 @@ def _action(action):
         return {"type": "FunctionCall", "method_name": body["method_name"], "deposit": str(body["deposit"])}
     if name == "AddKey":
         return {"type": "AddKey", "public_key": body["public_key"], "permission": _permission(body["access_key"])}
+    if name == "DeleteKey":
+        return {"type": "DeleteKey", "public_key": body["public_key"]}
+    if name == "DeleteAccount":
+        return {"type": "DeleteAccount", "beneficiary_id": body["beneficiary_id"]}
     return None
 
 
@@ -192,7 +209,7 @@ def reduce_block(block):
                              "predecessor_id": receipt["predecessor_id"], "receiver_id": receipt["receiver_id"],
                              "ok": not (isinstance(status, dict) and "Failure" in status), "actions": actions})
     return {"height": header["height"], "hash": header["hash"], "timestamp_ns": str(header["timestamp_nanosec"]),
-            "receipts": receipts}
+            "action_reducer_version": ACTION_REDUCER_VERSION, "receipts": receipts}
 
 
 def _write_json(path, value, indent=None):
@@ -210,11 +227,15 @@ def _stamp(state, clock):
 
 def new_state():
     return {"start_height": None, "start_time": None, "last_height": None, "last_time": None, "blocks": 0,
-            "skipped_heights": [], "fresh_accounts": {}, "events": {name: 0 for name in SIGNALS}}
+            "skipped_heights": [], "fresh_accounts": {}, "pending_key_additions": {},
+            "receipts": 0, "candidates": {name: 0 for name in SIGNALS},
+            "events": {name: 0 for name in SIGNALS}}
 
 
 def load_state(path=STATE_PATH):
-    return json.loads(Path(path).read_text(encoding="utf-8")) if Path(path).is_file() else new_state()
+    state = json.loads(Path(path).read_text(encoding="utf-8")) if Path(path).is_file() else new_state()
+    state.pop("created_accounts", None)
+    return state
 
 
 class Context:
@@ -260,14 +281,32 @@ def signals(block, state, context, source):
     """The events one reduced block raises; updates the fresh accounts of the state."""
     events = []
     now_ms = int(block["timestamp_ns"]) // 1_000_000
-    fresh = state["fresh_accounts"]
+    state.setdefault("receipts", 0)
+    candidates = state.setdefault("candidates", {})
+    event_counts = state.setdefault("events", {})
+    for signal in SIGNALS:
+        candidates.setdefault(signal, 0)
+        event_counts.setdefault(signal, 0)
+    fresh = state.setdefault("fresh_accounts", {})
+    pending_keys = state.setdefault("pending_key_additions", {})
     for account in [a for a, info in fresh.items() if now_ms - info["created_ms"] > FRESH_WINDOW_MS]:
         del fresh[account]
+    for account, additions in list(pending_keys.items()):
+        pending_keys[account] = [addition for addition in additions
+                                 if now_ms - addition["added_ms"] <= KEY_OUTFLOW_WINDOW_MS]
+        if not pending_keys[account]:
+            del pending_keys[account]
+    version = block.get("action_reducer_version", 0)
     for receipt in block["receipts"]:
         if not receipt["ok"]:
             continue
+        state["receipts"] += 1
         types = [action["type"] for action in receipt["actions"]]
         receiver, predecessor = receipt["receiver_id"], receipt["predecessor_id"]
+        if "CreateAccount" in types:
+            deposit = sum(int(action["deposit"]) for action in receipt["actions"] if action["type"] == "Transfer")
+            if deposit < rules.DUST_YOCTO:
+                fresh[receiver] = {"deposit": str(deposit), "created_ms": now_ms, "height": block["height"]}
         for action in receipt["actions"]:
             if action["type"] == "DeployContract" and action["code_hash"] in context.code_hashes:
                 incident_id = context.code_hashes[action["code_hash"]]
@@ -286,12 +325,50 @@ def signals(block, state, context, source):
                     events.append(_event(SIGNALS[2], receiver, f"{kind} added to {receiver}, an account labelled "
                                          f"{' and '.join(context.watch_categories[receiver])}", block, receipt,
                                          context.watched[receiver], source))
-        if "CreateAccount" in types:
-            deposit = sum(int(a["deposit"]) for a in receipt["actions"] if a["type"] == "Transfer")
-            if deposit < rules.DUST_YOCTO:
-                fresh[receiver] = {"deposit": str(deposit), "created_ms": now_ms, "height": block["height"]}
-        elif (predecessor in fresh and receiver in context.labelled and receiver in context.deny_receivers
-              and ({"FunctionCall", "Transfer"} & set(types))):
+            if (version >= ACTION_REDUCER_VERSION and action["type"] == "AddKey"
+                    and action["permission"] == "FullAccess" and receiver not in fresh
+                    and "CreateAccount" not in types):
+                candidates["full_access_key_then_outflow"] += 1
+                pending_keys.setdefault(receiver, []).append({"public_key": action["public_key"],
+                                                              "added_ms": now_ms, "lockout": False})
+            if version >= ACTION_REDUCER_VERSION and action["type"] == "DeleteKey":
+                for addition in pending_keys.get(receiver, []):
+                    if addition["public_key"] != action["public_key"]:
+                        addition["lockout"] = True
+            if version >= ACTION_REDUCER_VERSION and action["type"] in ("Transfer", "DeleteAccount"):
+                if action["type"] == "Transfer":
+                    account, destination = predecessor, receiver
+                    amount, drain_kind = int(action["deposit"]), "transfer"
+                    if amount < MIN_OUTFLOW_YOCTO:
+                        continue
+                else:
+                    account, destination = receiver, action["beneficiary_id"]
+                    amount, drain_kind = None, "delete_account"
+                for addition in list(pending_keys.get(account, [])):
+                    age_ms = now_ms - addition["added_ms"]
+                    if age_ms > KEY_OUTFLOW_WINDOW_MS:
+                        continue
+                    if destination in fresh:
+                        destination_kind = "fresh_dust_funded"
+                    elif (len(destination) == 64
+                          and all(character in "0123456789abcdefABCDEF" for character in destination)):
+                        destination_kind = "implicit"
+                    else:
+                        destination_kind = "other"
+                    drain = (f"transfer of {amount} yoctoNEAR to {destination}" if drain_kind == "transfer"
+                             else f"DeleteAccount to {destination}")
+                    event = _event("full_access_key_then_outflow", account,
+                                   f"full access key {addition['public_key']} added to {account}; {drain} "
+                                   f"within {age_ms} ms", block, receipt, [], source)
+                    event.update({"lockout": addition["lockout"], "drain_kind": drain_kind,
+                                  "amount_yocto": None if amount is None else str(amount),
+                                  "destination": destination_kind})
+                    events.append(event)
+                    pending_keys[account].remove(addition)
+                    if not pending_keys[account]:
+                        del pending_keys[account]
+        if ("CreateAccount" not in types and predecessor in fresh and receiver in context.labelled
+                and receiver in context.deny_receivers and ({"FunctionCall", "Transfer"} & set(types))):
             info = fresh[predecessor]
             age_minutes = (now_ms - info["created_ms"]) // 60000
             events.append(_event(SIGNALS[1], predecessor, f"{predecessor}, created at block {info['height']} with a "
@@ -310,10 +387,11 @@ def apply(block, state, context, source, events_dir=EVENTS_DIR):
         state["events"].setdefault(event["signal"], 0)
         state["events"][event["signal"]] += 1
         path = evidence.write(event, events_dir)
-        alert = alerts.Alert("feed", "warn", event["subject"], event["signal"],
-                             f"Feed event: {event['signal']}", event["detail"], path.stem,
-                             event["observed"]["timestamp_ms"])
-        alerts.send(alert, alerts.configured_sinks())
+        if event["signal"] not in UNMEASURED_SIGNALS:
+            alert = alerts.Alert("feed", "warn", event["subject"], event["signal"],
+                                 f"Feed event: {event['signal']}", event["detail"], path.stem,
+                                 event["observed"]["timestamp_ms"])
+            alerts.send(alert, alerts.configured_sinks())
         paths.append(path)
     stamp = datetime.fromtimestamp(int(block["timestamp_ns"]) // 10**9, UTC).strftime(_TIME)
     if state["start_height"] is None:
@@ -323,10 +401,10 @@ def apply(block, state, context, source, events_dir=EVENTS_DIR):
     return paths
 
 
-def block_source(path):
-    """Where an event's block came from: the neardata URL and the reduced fixture with its sha256."""
+def block_source(path, mode="replay"):
+    """Where an event's block came from: the neardata URL, reduced fixture hash and source mode."""
     path = Path(path)
-    return {"url": f"{NEARDATA_URL}/v0/block/{path.stem}", "block_fixture": path.name,
+    return {"url": f"{NEARDATA_URL}/v0/block/{path.stem}", "block_fixture": path.name, "mode": mode,
             "block_fixture_sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
 
 
@@ -420,7 +498,7 @@ def poll_transfers(client, state, state_path, context, events_dir, clock, sleep,
                  "transaction_id": transfer["transaction_id"], "tx_hash": transfer["transaction_id"],
                  "receipt_id": transfer["receipt_id"], "block_height": height,
                  "observed": {"block_height": height, "timestamp_ms": int(transfer["block_timestamp"]) // 1_000_000},
-                 "source": source}
+                 "source": {**source, "mode": "follow"}}
         path = evidence.write(event, events_dir)
         alert = alerts.Alert("feed", "warn", event["subject"], event["signal"],
                              f"Feed event: {event['signal']}", event["detail"], path.stem,
@@ -464,7 +542,7 @@ def run(start, count, record, store=None, blocks_dir=BLOCKS_DIR, state_path=STAT
             if height not in state["skipped_heights"]:
                 state["skipped_heights"].append(height)
             continue
-        paths += apply(block, state, context, block_source(path), events_dir)
+        paths += apply(block, state, context, block_source(path, "replay"), events_dir)
     _write_json(Path(state_path), state, indent=2)
     return state, paths
 
@@ -561,7 +639,7 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
             else:
                 block = reduce_block(raw)
                 event_paths = apply(block, state, context,
-                                    {"url": f"{NEARDATA_URL}/v0/block/{next_height}",
+                                    {"url": f"{NEARDATA_URL}/v0/block/{next_height}", "mode": "follow",
                                      "block_fixture": f"{next_height}.json",
                                      "block_fixture_sha256": hashlib.sha256(
                                          (json.dumps(block, separators=(",", ":"), ensure_ascii=False) + "\n")
@@ -603,3 +681,87 @@ def stats_lines(state, stopped_since=None):
         status = "no HTTP status" if error["status"] is None else f"HTTP {error['status']}"
         lines.append(f"{SIGNALS[3]} last failed poll at {error['at']}: {error['error']}, {status}")
     return lines
+
+
+def fprate(events_dir, state_path, since=None, until=None, review_path=None):
+    """Update the review CSV for the selected unmeasured signal events and print its review funnel."""
+    if since is not None and until is not None and since > until:
+        raise FeedError("--since must not be above --until")
+    events_dir = Path(events_dir)
+    if not events_dir.is_dir():
+        raise FeedError(f"no events directory at {events_dir}")
+    state = load_state(state_path)
+    review_path = Path(review_path) if review_path else events_dir / "full_access_key_then_outflow-review.csv"
+    fields = ("event_sha256", "height", "subject", "destination", "drain_kind", "amount", "lockout", "mode", "review")
+    reviews = {}
+    if review_path.is_file():
+        with review_path.open(encoding="utf-8", newline="") as handle:
+            reader = csv.DictReader(handle)
+            if reader.fieldnames != list(fields):
+                raise FeedError(f"review CSV has the wrong columns: {review_path}")
+            for row in reader:
+                reviews[row["event_sha256"]] = row
+    selected = []
+    for path in sorted(events_dir.glob("*.json")):
+        event = json.loads(path.read_text(encoding="utf-8"))
+        if event.get("signal") != "full_access_key_then_outflow":
+            continue
+        height = int(event["observed"]["block_height"])
+        if (since is not None and height < since) or (until is not None and height > until):
+            continue
+        row = {"event_sha256": path.stem, "height": str(height), "subject": event["subject"],
+               "destination": event["destination"], "drain_kind": event["drain_kind"],
+               "amount": "" if event["amount_yocto"] is None else event["amount_yocto"],
+               "lockout": str(bool(event["lockout"])).lower(), "mode": event["source"]["mode"],
+               "review": reviews.get(path.stem, {}).get("review", "")}
+        reviews[path.stem] = row
+        selected.append((row, event))
+    review_path.parent.mkdir(parents=True, exist_ok=True)
+    with review_path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(reviews[key] for key in sorted(reviews))
+
+    skipped = state.get("skipped_heights", [])
+    heights_walked = state.get("blocks", 0) + len(skipped)
+    receipts_seen = state.get("receipts", 0)
+    candidates = state.get("candidates", {}).get("full_access_key_then_outflow", 0)
+    subjects = {event["subject"] for _, event in selected}
+    print(f"heights walked: {heights_walked}")
+    print(f"receipts seen: {receipts_seen}")
+    print(f"candidates full_access_key_then_outflow: {candidates}")
+    print(f"events: {len(selected)}")
+    print(f"distinct subjects: {len(subjects)}")
+    lockout_values = (False, True)
+    for value in lockout_values:
+        group = [(row, event) for row, event in selected if bool(event["lockout"]) is value]
+        print(f"events lockout={str(value).lower()}: {len(group)}")
+    destinations = sorted({event["destination"] for _, event in selected})
+    for value in destinations:
+        group = [(row, event) for row, event in selected if event["destination"] == value]
+        print(f"events destination={value}: {len(group)}")
+
+    def report_reviews(name, group):
+        counts = {value: 0 for value in ("true_positive", "false_positive", "unclear")}
+        for row, _ in group:
+            if row["review"] in counts:
+                counts[row["review"]] += 1
+        reviewed = sum(counts.values())
+        print(f"reviews {name}: true_positive {counts['true_positive']}, "
+              f"false_positive {counts['false_positive']}, unclear {counts['unclear']} over reviewed {reviewed}")
+        if reviewed:
+            lower = counts["false_positive"]
+            upper = lower + counts["unclear"]
+            print(f"false_positive_rate {name}: lower {lower}/{reviewed}, upper {upper}/{reviewed}")
+
+    reviewed_total = sum(row["review"] in ("true_positive", "false_positive", "unclear") for row, _ in selected)
+    if reviewed_total:
+        for value in lockout_values:
+            report_reviews(f"lockout={str(value).lower()}",
+                           [(row, event) for row, event in selected if bool(event["lockout"]) is value])
+        for value in destinations:
+            report_reviews(f"destination={value}",
+                           [(row, event) for row, event in selected if event["destination"] == value])
+        report_reviews("total", selected)
+    print(f"review CSV: {review_path}")
+    return selected

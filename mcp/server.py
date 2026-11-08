@@ -77,6 +77,7 @@ TOOLS = [
                 "amount": {"type": "string", "description": "the amount in the origin asset's base units"},
                 "recipient": {"type": "string", "description": "the 0x recipient on the destination chain"},
                 "recipient_type": {"type": "string", "description": "default DESTINATION_CHAIN"},
+                "deposit_address": {"type": "string", "description": "optional address from a real quote; checked by a read only status lookup"},
             },
             "required": ["origin_asset", "destination_asset", "amount", "recipient"],
         },
@@ -179,16 +180,31 @@ def _check_near_payment(arguments, evidence_dir):
 
 
 def _check_intents_quote(arguments, evidence_dir):
-    replay = (os.environ.get("GATE_FIXTURES_MODE") or "replay") == "replay"
+    mode = os.environ.get("GATE_FIXTURES_MODE") or "replay"
     try:
+        recipient_type = arguments.get("recipient_type") or "DESTINATION_CHAIN"
         result = intents.judge_quote(arguments.get("origin_asset"), arguments.get("destination_asset"),
-                                     arguments.get("amount"), arguments.get("recipient"),
-                                     arguments.get("recipient_type") or "DESTINATION_CHAIN",
+                                     arguments.get("amount"), arguments.get("recipient"), recipient_type,
                                      firewall_url=os.environ.get("SHIELDBOT_API_URL"),
-                                     deadline=intents.RECORDED_DEADLINE if replay else intents.live_deadline())
+                                     mode=mode,
+                                     deadline=intents.RECORDED_DEADLINE if mode == "replay" else intents.live_deadline())
     except ValueError as error:
         raise ToolError(f"invalid request: {error}") from error
-    return {key: result[key] for key in ("verdict", "checks", "reasons", "quote", "document", "evidence_hash")}
+    quote_request = {"originAsset": arguments.get("origin_asset"),
+                     "destinationAsset": arguments.get("destination_asset"), "amount": arguments.get("amount"),
+                     "recipient": arguments.get("recipient"), "recipientType": recipient_type}
+    deposit_address = arguments.get("deposit_address")
+    try:
+        intents.verify_binding(result, quote_request)
+        if deposit_address is not None:
+            intents.bind_deposit_address(result, quote_request, deposit_address, mode=mode)
+            intents.verify_binding(result, quote_request)
+    except ValueError as error:
+        raise ToolError(f"refused: {error}") from error
+    answer = {key: result[key] for key in ("verdict", "checks", "reasons", "quote", "document", "evidence_hash")}
+    answer["deposit_address_check"] = ("checked by a read only 1Click status lookup" if deposit_address is not None
+                                       else "not checked: a dry quote has no deposit address")
+    return answer
 
 
 def _scan_near_account(arguments, evidence_dir):

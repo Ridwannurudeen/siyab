@@ -1,0 +1,72 @@
+{
+  "format": "label-snapshot",
+  "version": "1",
+  "store": "fixtures/spec/snapshot-v1-store.jsonl",
+  "store_sha256": "9fa00fcd13a046a4931414c8a77a1a80afa24a5e94bf08a8a53bab4671322bef",
+  "vectors": [
+    {
+      "name": "refusal-rows-and-payees",
+      "what": "every incident and denylist row, and five NEAR payees: one with a catalog row, one with an infrastructure row, the synthetic non ASCII row, the synthetic superseded pair and one the store does not hold; the lists are written out of order to show the normalization",
+      "scope": {
+        "name": "every refusal row and five payees",
+        "select": [
+          {
+            "subjects": [
+              "wrap.near",
+              "v1.signer",
+              "cafe-example.testnet",
+              "renamed-example.testnet",
+              "v2.ref-finance.near"
+            ],
+            "chains": [
+              "near"
+            ]
+          },
+          {
+            "categories": [
+              "incident",
+              "denylist"
+            ]
+          }
+        ]
+      },
+      "rows": 9,
+      "content_sha256": "36424b677d49ff67a7b3b7ebbf58030c3738810d7322a1edc31fc08f534cea91",
+      "document": "{\"content_sha256\":\"36424b677d49ff67a7b3b7ebbf58030c3738810d7322a1edc31fc08f534cea91\",\"format\":\"label-snapshot\",\"rows\":[{\"category\":\"incident\",\"chain\":\"near\",\"confidence\":0.9,\"entity\":\"the unnamed party behind the Rhea Lend incident, as rekt.news reports it\",\"id\":\"664db39d7af57209306fd948412fe59353389d94aba4aafc6c3b2779f1767ee2\",\"label\":\"named in the rekt.news Rhea Finance report as the collector account, which the report also prints as the attacker NEAR wallet\",\"note\":\"quote \\\"Collector account: 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540\\\"\",\"observed_at\":\"2026-10-29T11:26:35Z\",\"provenance\":\"third_party\",\"rule_id\":null,\"source\":{\"content_sha256\":\"1743d14145c7bfbcace5fc04a060bffb98fd5566887f4db2ee0c863eeb0e6c1f\",\"fetched_at\":\"2026-10-29T11:26:35Z\",\"url\":\"https://rekt.news/rhea-finance-rekt\"},\"subject\":\"31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540\",\"superseded_by\":null},{\"category\":\"incident\",\"chain\":\"near\",\"confidence\":1,\"entity\":\"the unnamed party behind the Rhea Lend incident, as rekt.news reports it\",\"id\":\"4dee8f7bf4d04282c2422d2a31108dd0bdae5faee9a028753f5ff6b0505fe8f9\",\"label\":\"ft_metadata fails on the contract: \\\"wasm execution failed with error: HostError(GuestPanic { panic_msg: \\\\\\\"panicked at contracts/mock-ft/src/lib.rs:70:9:\\\\\\\\nnot implemented\\\\\\\" })\\\"\",\"note\":\"current mainnet state read for the Rhea incident, not a historical block replay\",\"observed_at\":\"2026-10-29T11:38:07Z\",\"provenance\":\"onchain\",\"rule_id\":null,\"source\":{\"args\":{},\"block\":222119665,\"method\":\"ft_metadata\",\"rpc\":\"https://free.rpc.fastnear.com\"},\"subject\":\"c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163\",\"superseded_by\":null},{\"category\":\"incident\",\"chain\":\"near\",\"confidence\":0.9,\"entity\":\"the unnamed party behind the Rhea Lend incident, as rekt.news reports it\",\"id\":\"5ebef8b10c3f91f9b97215f39492df2cc0ea81397c9ca9636732d0fd0f6bdf19\",\"label\":\"named in the rekt.news Rhea Finance report as one of the four token contracts that shared the code hash it names\",\"note\":\"quote \\\"Fake Token Contracts: c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163 7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640 9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee 80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705\\\"\",\"observed_at\":\"2026-10-29T11:26:35Z\",\"provenance\":\"third_party\",\"rule_id\":null,\"source\":{\"content_sha256\":\"1743d14145c7bfbcace5fc04a060bffb98fd5566887f4db2ee0c863eeb0e6c1f\",\"fetched_at\":\"2026-10-29T11:26:35Z\",\"url\":\"https://rekt.news/rhea-finance-rekt\"},\"subject\":\"c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163\",\"superseded_by\":null},{\"category\":\"incident\",\"chain\":\"near\",\"confidence\":1,\"entity\":\"the unnamed party behind the Rhea Lend incident, as rekt.news reports it\",\"id\":\"8afc1bbf04d7f5b4afe8eb07afdf4b1db5f50aa6534617b92b48c85616adcef9\",\"label\":\"code hash equals the hash named in the Rhea report\",\"note\":\"current mainnet state read for the Rhea incident, not a historical block replay\",\"observed_at\":\"2026-10-29T11:38:06Z\",\"provenance\":\"onchain\",\"rule_id\":null,\"source\":{\"args\":{\"account_id\":\"c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163\"},\"block\":222119664,\"method\":\"view_account\",\"rpc\":\"https://free.rpc.fastnear.com\"},\"subject\":\"c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163\",\"superseded_by\":null},{\"category\":\"denylist\",\"chain\":\"near\",\"confidence\":0.9,\"entity\":\"the unnamed party behind the Rhea Lend incident, as rekt.news reports it\",\"id\":\"c388d0b2030a32c524704505544b00f1ee4112f142fbdac6795bd6fa23bb4609\",\"label\":\"token contract whose ft_metadata call fails and whose code hash equals the hash named in the Rhea report\",\"note\":\"derived from the two onchain assertions in source.inputs\",\"observed_at\":\"2026-10-29T11:38:07Z\",\"provenance\":\"inferred\",\"rule_id\":\"fake_token_shared_hash\",\"source\":{\"inputs\":[\"8afc1bbf04d7f5b4afe8eb07afdf4b1db5f50aa6534617b92b48c85616adcef9\",\"4dee8f7bf4d04282c2422d2a31108dd0bdae5faee9a028753f5ff6b0505fe8f9\"],\"rule_id\":\"fake_token_shared_hash\"},\"subject\":\"c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163\",\"superseded_by\":null},{\"category\":\"watch\",\"chain\":\"near\",\"confidence\":0.75,\"entity\":\"Café Example Øst\",\"id\":\"b512bc66caf200b90d3d9fdb5bb6082279b52b2f1677f816daa593848fdb9f43\",\"label\":\"symbol \\\"€X\\\"\",\"note\":\"quote \\\"line one\\nline two\\ttab\\\"; a synthetic row for the spec, not in the store\",\"observed_at\":\"2026-11-07T00:00:00Z\",\"provenance\":\"unknown\",\"rule_id\":null,\"source\":{\"content_sha256\":\"56e5909cb6ab306e4a4b812b92479e2c4a0491837c1487a5e06a5d0552bd4cc9\",\"fetched_at\":\"2026-11-07T00:00:00Z\",\"url\":\"https://example.org/café\"},\"subject\":\"cafe-example.testnet\",\"superseded_by\":null},{\"category\":\"watch\",\"chain\":\"near\",\"confidence\":1,\"entity\":\"Example Org\",\"id\":\"6de9f03d71540b07f5b7df4b8ce86f1626c121105da623882ed893521346d240\",\"label\":\"example service account, renamed\",\"note\":\"a synthetic row for the spec that supersedes the row before it, not in the store\",\"observed_at\":\"2026-11-07T01:00:00Z\",\"provenance\":\"official_source\",\"rule_id\":null,\"source\":{\"content_sha256\":\"a8dfc66eb275d1c61fd049bab718d837e7e1e08754280993262a48943da4fbde\",\"fetched_at\":\"2026-11-07T01:00:00Z\",\"url\":\"https://example.org/renamed\"},\"subject\":\"renamed-example.testnet\",\"superseded_by\":null},{\"category\":\"infrastructure\",\"chain\":\"near\",\"confidence\":1,\"entity\":\"NEAR MPC\",\"id\":\"5fc8db8f1c3f232a3537adeed2ca53bd1c4a9f48a19e6342e8644c0e1c5e641a\",\"label\":\"MPC signer contract\",\"note\":\"role from docs, UNVERIFIED; view_account shows the account exists with a contract\",\"observed_at\":\"2026-10-29T09:21:29Z\",\"provenance\":\"onchain\",\"rule_id\":null,\"source\":{\"args\":{\"account_id\":\"v1.signer\"},\"block\":222105621,\"method\":\"view_account\",\"rpc\":\"https://free.rpc.fastnear.com\"},\"subject\":\"v1.signer\",\"superseded_by\":null},{\"category\":\"catalog_token\",\"chain\":\"near\",\"confidence\":1,\"entity\":\"NEAR Intents 1Click catalog\",\"id\":\"2be16dbfd78c9beacec3521ab506216eaa3a79b2e082d97fbdf148033c5d969d\",\"label\":\"symbol \\\"wNEAR\\\"\",\"note\":\"assetId \\\"nep141:wrap.near\\\"; symbol \\\"wNEAR\\\"; blockchain \\\"near\\\"; contractAddress \\\"wrap.near\\\"; decimals 24\",\"observed_at\":\"2026-10-29T09:20:02Z\",\"provenance\":\"official_source\",\"rule_id\":null,\"source\":{\"content_sha256\":\"3bce63a94e1b8ca0655ce96d341f6f06d0d7e85501911b3256a7e4101c3df8c6\",\"fetched_at\":\"2026-10-29T09:20:02Z\",\"url\":\"https://1click.chaindefuser.com/v0/tokens\"},\"subject\":\"wrap.near\",\"superseded_by\":null}],\"scope\":{\"name\":\"every refusal row and five payees\",\"select\":[{\"categories\":[\"denylist\",\"incident\"]},{\"chains\":[\"near\"],\"subjects\":[\"cafe-example.testnet\",\"renamed-example.testnet\",\"v1.signer\",\"v2.ref-finance.near\",\"wrap.near\"]}]},\"store_sha256\":\"9fa00fcd13a046a4931414c8a77a1a80afa24a5e94bf08a8a53bab4671322bef\",\"version\":\"1\"}"
+    },
+    {
+      "name": "denylist-only",
+      "what": "the denylist category alone: the one row is inferred, so this snapshot holds nothing a consumer refuses on",
+      "scope": {
+        "name": "denylist rows only",
+        "select": [
+          {
+            "categories": [
+              "denylist"
+            ]
+          }
+        ]
+      },
+      "rows": 1,
+      "content_sha256": "4398e7ff2f4c089e5120eaf23af9ed95098f08ceab15adb9cfa0fc173613712c",
+      "document": "{\"content_sha256\":\"4398e7ff2f4c089e5120eaf23af9ed95098f08ceab15adb9cfa0fc173613712c\",\"format\":\"label-snapshot\",\"rows\":[{\"category\":\"denylist\",\"chain\":\"near\",\"confidence\":0.9,\"entity\":\"the unnamed party behind the Rhea Lend incident, as rekt.news reports it\",\"id\":\"c388d0b2030a32c524704505544b00f1ee4112f142fbdac6795bd6fa23bb4609\",\"label\":\"token contract whose ft_metadata call fails and whose code hash equals the hash named in the Rhea report\",\"note\":\"derived from the two onchain assertions in source.inputs\",\"observed_at\":\"2026-10-29T11:38:07Z\",\"provenance\":\"inferred\",\"rule_id\":\"fake_token_shared_hash\",\"source\":{\"inputs\":[\"8afc1bbf04d7f5b4afe8eb07afdf4b1db5f50aa6534617b92b48c85616adcef9\",\"4dee8f7bf4d04282c2422d2a31108dd0bdae5faee9a028753f5ff6b0505fe8f9\"],\"rule_id\":\"fake_token_shared_hash\"},\"subject\":\"c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163\",\"superseded_by\":null}],\"scope\":{\"name\":\"denylist rows only\",\"select\":[{\"categories\":[\"denylist\"]}]},\"store_sha256\":\"9fa00fcd13a046a4931414c8a77a1a80afa24a5e94bf08a8a53bab4671322bef\",\"version\":\"1\"}"
+    },
+    {
+      "name": "absent-subject",
+      "what": "one payee the store holds no row for: the rows list is empty",
+      "scope": {
+        "name": "one payee the store does not hold",
+        "select": [
+          {
+            "subjects": [
+              "v2.ref-finance.near"
+            ]
+          }
+        ]
+      },
+      "rows": 0,
+      "content_sha256": "ce403b100e6b5e4233c370b4c72970685b83bd570cc5e5c366be900e98e749af",
+      "document": "{\"content_sha256\":\"ce403b100e6b5e4233c370b4c72970685b83bd570cc5e5c366be900e98e749af\",\"format\":\"label-snapshot\",\"rows\":[],\"scope\":{\"name\":\"one payee the store does not hold\",\"select\":[{\"subjects\":[\"v2.ref-finance.near\"]}]},\"store_sha256\":\"9fa00fcd13a046a4931414c8a77a1a80afa24a5e94bf08a8a53bab4671322bef\",\"version\":\"1\"}"
+    }
+  ]
+}

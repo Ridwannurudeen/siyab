@@ -26,7 +26,7 @@
       "detail": "no denylist or incident label on figment.poolv1.near",
       "source": {
         "provider": "label store",
-        "request_sha256": "74c235c6aefd1daae4c8028fc7e6461bbd9d8baa401caaa018ae29c001c1133d",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
         "fetched_at": null
       }
     },
@@ -53,7 +53,7 @@
     {
       "id": "account_age",
       "status": "pass",
-      "detail": "no creation time from NearBlocks (keys empty); figment.poolv1.near has no access key; view_account finds figment.poolv1.near at block 221701054 (2026-10-26T14:29:58Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
+      "detail": "figment.poolv1.near has no access key; view_account finds figment.poolv1.near at block 221701054 (2026-10-26T14:29:58Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
       "source": {
         "provider": "archival-rpc.mainnet.fastnear.com",
         "request_sha256": "1e633bd9777d89a570639ef4a186eac5a65a3e97e3553f7d3907eea0efe95fce",
@@ -63,7 +63,7 @@
     {
       "id": "dust_funded",
       "status": "pass",
-      "detail": "creation deposit not read: NearBlocks has no creation transaction for figment.poolv1.near; a deposit is a signal only with lookalike or account_age",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
       "source": {
         "provider": "nearblocks",
         "request_sha256": null,
@@ -76,7 +76,7 @@
       "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
       "source": {
         "provider": "allowlist and label store",
-        "request_sha256": "74c235c6aefd1daae4c8028fc7e6461bbd9d8baa401caaa018ae29c001c1133d",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
         "fetched_at": null
       }
     },

@@ -116,6 +116,7 @@ class McpServerTest(McpSessionCase):
         quote = json.loads(by_id[4]["result"]["content"][0]["text"])
         self.assertFalse(by_id[4]["result"]["isError"])
         self.assertEqual(quote["verdict"], "DENY")
+        self.assertEqual(quote["deposit_address_check"], "not checked: a dry quote has no deposit address")
         self.assertIn("recipient_theft_label", [c["id"] for c in quote["checks"] if c["status"] == "signal"])
         intents.verify_binding(quote, {"originAsset": "nep141:wrap.near", "destinationAsset": USDC_BASE_ASSET,
                                        "amount": ONE_NEAR, "recipient": DEMO_RECIPIENT,
@@ -132,6 +133,15 @@ class McpServerTest(McpSessionCase):
         self.assertTrue(by_id[9]["result"]["isError"])
         self.assertTrue(by_id[9]["result"]["content"][0]["text"].startswith("invalid request: "))
         self.assertEqual(sorted(path.name for path in EVIDENCE_DIR.iterdir()), before)
+
+    def test_the_intents_tool_refuses_a_different_deposit_address(self):
+        by_id, _ = self.replies([call(1, "check_intents_quote", {
+            "origin_asset": "nep141:wrap.near", "destination_asset": USDC_BASE_ASSET,
+            "amount": ONE_NEAR, "recipient": DEMO_RECIPIENT, "deposit_address": "other.near",
+        })])
+        result = by_id[1]["result"]
+        self.assertTrue(result["isError"])
+        self.assertIn("UNKNOWN deposit address status", result["content"][0]["text"])
 
     def test_only_json_frames_reach_stdout(self):
         stdout, stderr = self.session([initialize("2025-06-18"), call(2, "scan_near_account", {"account_id": "near"}),

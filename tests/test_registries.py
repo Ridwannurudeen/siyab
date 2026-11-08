@@ -162,7 +162,7 @@ class RegistriesTests(unittest.TestCase):
     def test_hypothesis_sources_come_from_the_reads_the_clients_made(self):
         fixtures_dir = registries.FIXTURES_DIR
 
-        def served(url, body, extra_headers=None):
+        def served(url, body, extra_headers=None, record_http_errors=()):
             method, params = ("GET", None) if body is None else (body["method"], body["params"])
             fixture = fixtures_dir / f"{rpc.fixture_key(url, method, params)}.json"
             return json.loads(fixture.read_text(encoding="utf-8"))["response"]

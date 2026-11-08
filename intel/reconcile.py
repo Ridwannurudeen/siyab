@@ -70,7 +70,7 @@ def _event_record(item: object) -> dict | None:
         raise ReconcileError("event line: invalid JSON") from error
     if not isinstance(envelope, dict) or envelope.get("standard") != STANDARD:
         raise ReconcileError(f"event line: standard must be {STANDARD}")
-    if envelope.get("version") != "1.0.0" or not isinstance(envelope.get("event"), str):
+    if envelope.get("version") not in ("1.0.0", "1.1.0") or not isinstance(envelope.get("event"), str):
         raise ReconcileError("event line: unsupported version or missing event name")
     data = envelope.get("data")
     if not isinstance(data, list) or len(data) != 1 or not isinstance(data[0], dict):

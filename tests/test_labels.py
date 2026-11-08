@@ -91,6 +91,14 @@ class CommittedStoreTest(unittest.TestCase):
         catalog_bridges = [a for a in self.store.assertions if a.category == "bridge" and a.provenance == "official_source"]
         self.assertEqual(len(catalog_bridges), len(bridged))
 
+    def test_reference_accounts_have_no_current_refusal_label(self):
+        references = {(assertion.subject, assertion.chain) for assertion in self.store.assertions
+                      if assertion.category in ("catalog_token", "infrastructure", "bridge", "treasury")
+                      and assertion.superseded_by is None}
+        refusals = {(assertion.subject, assertion.chain) for assertion in self.store.assertions
+                    if assertion.category in ("denylist", "incident") and assertion.superseded_by is None}
+        self.assertEqual(references & refusals, set())
+
     def test_readme_lists_every_snapshot(self):
         readme = seed.README_PATH.read_text(encoding="utf-8")
         self.assertEqual(readme, seed.readme_text())
@@ -109,9 +117,15 @@ class CommittedStoreTest(unittest.TestCase):
             rows = (seed.treasuries("replay") + seed.catalog("replay") + seed.infrastructure("replay")
                     + seed.rhea("replay") + seed.sweat_hot("replay")
                     + [row for name in registries.REGISTRY_ORDER for row in by_registry[name]]
-                    + issuers.history_rows() + issuers.rows())
-        self.assertEqual([r["id"] for r in rows], [r["id"] for r in self.rows])
-        self.assertEqual([labels.row_line(r) for r in rows], labels.STORE_PATH.read_text(encoding="utf-8").splitlines())
+                    + issuers.history_rows() + issuers.rows() + issuers.blacklist_rows())
+        manual_rows = [r for r in self.rows if r["entity"] == "issuer blacklist correction"]
+        replaced_rows = [r for r in self.rows if r["entity"] == "issuer of usdt.tether-token.near"
+                         and r["subject"] == "usdt.tether-token.near" and r["category"] == "denylist"]
+        self.assertEqual(len(manual_rows), 1)
+        self.assertEqual(len(replaced_rows), 1)
+        generated_rows = [r for r in self.rows if r not in manual_rows and r not in replaced_rows]
+        self.assertEqual([r["id"] for r in rows], [r["id"] for r in generated_rows])
+        self.assertEqual([labels.row_line(r) for r in rows], [labels.row_line(r) for r in generated_rows])
 
     def test_the_rules_read_the_store(self):
         client = rpc.Client(rpc.MAINNET_RPC_URL, "replay")

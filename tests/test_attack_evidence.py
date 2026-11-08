@@ -88,7 +88,8 @@ class AttackEvidenceTest(unittest.TestCase):
         evm_row = rows[10]
         self.assertEqual(evm_row[0], "preflight")
         self.assertIn("preflight, no transaction on any chain", evm_row[1])
-        intent_files = list((ROOT / "fixtures" / "intents").glob("*.json"))
+        intent_files = [path for path in (ROOT / "fixtures" / "intents").glob("*.json")
+                        if json.loads(path.read_text(encoding="utf-8"))["url"].endswith("/v0/quote")]
         goplus_files = list((ROOT / "fixtures" / "goplus").glob("*.json"))
         self.assertEqual(len(intent_files), 1)
         self.assertTrue(goplus_files)

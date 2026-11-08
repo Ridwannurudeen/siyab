@@ -8,12 +8,13 @@ import unittest
 from pathlib import Path
 
 from gate import base58, canon, ed25519, evidence, verify
-from intel import labels
+from intel import labels, snapshot
 
 ROOT = Path(__file__).resolve().parent.parent
 SPEC = ROOT / "docs" / "spec"
 FIXTURES = ROOT / "fixtures"
-PAGES = ("label-assertion-v1.md", "evidence-v1.md", "verdict-v1.md", "registry-record-v1.md", "report-v1.md")
+PAGES = ("label-assertion-v1.md", "evidence-v1.md", "verdict-v1.md", "registry-record-v1.md", "report-v1.md",
+         "snapshot-v1.md")
 CITED_PATH = re.compile(r"`(fixtures/[^`\s]*)`")
 VERSION_LINE = re.compile(r"^Version: (\d+)( \(.+\))?$", re.MULTILINE)
 VIEW_KEYS = ["verdict", "evidence_hash", "observed_block", "recorded_ms", "verdict_id"]
@@ -215,6 +216,52 @@ class ReportTest(unittest.TestCase):
         for name, values in enums.items():
             with self.subTest(name=name):
                 self.assertIn(f"| {name} | " + ", ".join(f"`{value}`" for value in values) + " |", shown)
+
+
+class SnapshotTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.document = load_json(FIXTURES / "spec" / "snapshot-v1.json")
+        cls.store = labels.load(ROOT / cls.document["store"])
+
+    def test_vectors_reproduce(self):
+        self.assertEqual((self.document["format"], self.document["version"]), ("label-snapshot", "1"))
+        self.assertEqual(hashlib.sha256((ROOT / self.document["store"]).read_bytes()).hexdigest(),
+                         self.document["store_sha256"])
+        self.assertEqual(self.store.sha256, self.document["store_sha256"])
+        for vector in self.document["vectors"]:
+            with self.subTest(name=vector["name"]):
+                data = vector["document"].encode("utf-8")
+                built = snapshot.build(self.store, vector["scope"])
+                self.assertEqual(snapshot.canonical_bytes(built), data)
+                self.assertEqual(snapshot.check(data), built)
+                self.assertEqual(len(built["rows"]), vector["rows"])
+                parsed = json.loads(data)
+                body = {key: value for key, value in parsed.items() if key != "content_sha256"}
+                text = json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+                self.assertEqual(hashlib.sha256(text.encode("utf-8")).hexdigest(), vector["content_sha256"])
+                self.assertEqual(parsed["content_sha256"], vector["content_sha256"])
+                for row in parsed["rows"]:
+                    self.assertEqual(labels.assertion_id(row), row["id"])
+
+    def test_the_vector_store_copies_store_lines_and_marks_the_rest_synthetic(self):
+        committed = set(labels.STORE_PATH.read_text(encoding="utf-8").splitlines())
+        lines = (ROOT / self.document["store"]).read_text(encoding="utf-8").splitlines()
+        copied = [line for line in lines if line in committed]
+        self.assertIn(f"{len(lines)} rows: {len(copied)} lines copied", page("snapshot-v1.md"))
+        rows = [json.loads(line) for line in lines]
+        for line, row in zip(lines, rows):
+            with self.subTest(id=row["id"]):
+                self.assertTrue(line in committed or "a synthetic row for the spec" in row["note"])
+        self.assertEqual({row["provenance"] for row in rows}, set(labels.PROVENANCES))
+        self.assertTrue([row for row in rows if row["superseded_by"] is not None])
+
+    def test_worked_example_is_vector_1(self):
+        vector = self.document["vectors"][0]
+        shown = page("snapshot-v1.md")
+        self.assertIn(snapshot.canonical_bytes(snapshot.scope(vector["scope"])).decode("utf-8"), shown)
+        self.assertIn(f"`{vector['content_sha256'][:8]}...`", shown)
+        self.assertIn(f"`{self.document['store_sha256'][:8]}...`", shown)
 
 
 if __name__ == "__main__":

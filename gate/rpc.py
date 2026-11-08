@@ -13,7 +13,8 @@ the key is the sha256 hex of json.dumps({"url", "method", "params"}, sort_keys=T
 separators=(",", ":")). A POST body is never written: its params are {"body_sha256": ...}, the
 sha256 of the body as sorted compact JSON. No header is written, and a URL with user info or a
 query string is refused. Every request has a 30 s timeout. HTTP errors (a 429 included) raise
-HttpError and are never written; a truncated or broken reply raises TransportError. A body
+HttpError and are never written unless a GET caller explicitly selects a status for recording;
+selected statuses are stored as markers and replay as HttpError. A truncated or broken reply raises TransportError. A body
 without the fields the caller reads raises MalformedResponse. NearBlocks fetches (its free tier
 allows 6 calls a minute and 333 a day) are spaced at least 10 s apart, and past 300 in one UTC
 day per process they raise RateLimited without a request.
@@ -38,6 +39,7 @@ MODES = ("replay", "record", "off")
 KINDS = ("rpc", "http")
 TIMEOUT_S = 30
 MAX_AGE_S = 24 * 60 * 60
+HTTP_STATUS_MARKER = "_gate_http_status"
 MAINNET_RPC_URL = "https://free.rpc.fastnear.com"
 TESTNET_RPC_URL = "https://test.rpc.fastnear.com"
 ARCHIVAL_RPC_URL = "https://archival-rpc.mainnet.fastnear.com"
@@ -192,9 +194,16 @@ class Client:
         self.last_block_height = result.get("block_height") if isinstance(result, dict) else None
         return result
 
-    def get(self, url):
+    def get(self, url, *, params=None, record_http_errors=()):
         """The JSON body of a GET; url is absolute or a path under the client's url."""
-        return self._exchange(self._absolute(url), "GET", None, None)
+        absolute = self._absolute(url)
+        request_url = absolute
+        if params is not None:
+            if not isinstance(params, dict):
+                raise ValueError("GET params must be an object")
+            request_url = f"{absolute}?{urllib.parse.urlencode(params)}"
+        return self._exchange(absolute, "GET", params, None, request_url=request_url,
+                              record_http_errors=record_http_errors)
 
     def post(self, url, body):
         """The JSON body of a POST of body; the fixture keeps only the body's sha256."""
@@ -217,16 +226,15 @@ class Client:
         """The account's code hash in base58; EMPTY_CODE_HASH when it has no contract."""
         return self.view_account(account_id)["code_hash"]
 
-    def call_function(self, contract, method, args):
-        """The parsed JSON a view method returns."""
+    def call_function(self, contract, method, args, *, block_id=None):
+        """The parsed JSON a view method returns, optionally pinned to a block height."""
         encoded = json.dumps(args, sort_keys=True, separators=(",", ":")).encode("utf-8")
-        result = self.call("query", {
-            "request_type": "call_function",
-            "finality": "final",
-            "account_id": contract,
-            "method_name": method,
-            "args_base64": base64.b64encode(encoded).decode("ascii"),
-        })
+        if block_id is not None and (type(block_id) is not int or block_id < 0):
+            raise ValueError("block_id must be a non negative integer")
+        params = {"request_type": "call_function", "account_id": contract, "method_name": method,
+                  "args_base64": base64.b64encode(encoded).decode("ascii")}
+        params["finality" if block_id is None else "block_id"] = "final" if block_id is None else block_id
+        result = self.call("query", params)
         if not isinstance(result, dict):
             raise MalformedResponse("the call_function result is not an object")
         if "error" in result:
@@ -287,34 +295,40 @@ class Client:
         use["last"] = now + max(wait, 0)
         use["count"] += 1
 
-    def _exchange(self, url, method, params, body):
+    def _exchange(self, url, method, params, body, *, request_url=None, record_http_errors=()):
         key = fixture_key(url, method, params)
         path = self.fixtures_dir / f"{key}.json"
         host = urllib.parse.urlsplit(url).netloc
         self.last_source = {"provider": host, "request_sha256": key, "fetched_at": None}
+        used_fixture = False
         if self.mode != "off" and path.exists():
             fixture = json.loads(path.read_text(encoding="utf-8"))
             if self.mode == "replay" or self.clock() - _seconds(fixture["fetched_at"]) < MAX_AGE_S:
                 self.last_source["fetched_at"] = fixture["fetched_at"]
-                return fixture["response"]
-        if self.mode == "replay":
-            raise FixtureMiss(key, url, method, params)
-        if host in NEARBLOCKS_HOSTS:
-            self._respect_nearblocks(host)
-        response = _fetch(url, body, self.headers)
-        fetched_at = _timestamp(self.clock())
-        self.last_source["fetched_at"] = fetched_at
-        if self.mode == "record":
-            recorded_response = (trim_block_response(response)
-                                 if self.kind == "rpc" and method == "block" else response)
-            fixture = {"request": {"method": method, "params": params}, "response": recorded_response,
-                       "url": url, "fetched_at": fetched_at}
-            self.fixtures_dir.mkdir(parents=True, exist_ok=True)
-            path.write_bytes((json.dumps(fixture, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
+                response = fixture["response"]
+                used_fixture = True
+        if not used_fixture:
+            if self.mode == "replay":
+                raise FixtureMiss(key, url, method, params)
+            if host in NEARBLOCKS_HOSTS:
+                self._respect_nearblocks(host)
+            response = _fetch(request_url or url, body, self.headers, record_http_errors)
+            fetched_at = _timestamp(self.clock())
+            self.last_source["fetched_at"] = fetched_at
+            if self.mode == "record":
+                recorded_response = (trim_block_response(response)
+                                     if self.kind == "rpc" and method == "block" else response)
+                fixture = {"request": {"method": method, "params": params}, "response": recorded_response,
+                           "url": url, "fetched_at": fetched_at}
+                self.fixtures_dir.mkdir(parents=True, exist_ok=True)
+                path.write_bytes((json.dumps(fixture, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
+        if (isinstance(response, dict) and set(response) == {HTTP_STATUS_MARKER}
+                and type(response[HTTP_STATUS_MARKER]) is int):
+            raise HttpError(response[HTTP_STATUS_MARKER], request_url or url)
         return response
 
 
-def _fetch(url, body, extra_headers=None):
+def _fetch(url, body, extra_headers=None, record_http_errors=()):
     headers = {"Accept": "application/json", "User-Agent": "shieldbot-near"}
     data = None
     if body is not None:
@@ -327,6 +341,8 @@ def _fetch(url, body, extra_headers=None):
         with urllib.request.urlopen(request, timeout=TIMEOUT_S) as reply:
             return json.loads(reply.read())
     except urllib.error.HTTPError as error:
+        if error.code in record_http_errors:
+            return {HTTP_STATUS_MARKER: error.code}
         raise HttpError(error.code, url, error.headers.get("Retry-After")) from error
     except http.client.HTTPException as error:
         raise TransportError(f"{type(error).__name__} from {url}") from error

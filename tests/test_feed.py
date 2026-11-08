@@ -233,7 +233,7 @@ class SignalTest(unittest.TestCase):
     def test_signal_order_and_stats_lines_include_the_new_feed_signals(self):
         self.assertEqual(feed.SIGNALS, ("code_hash_matches_incident", "fresh_dust_funded_pays_labelled",
                                        "watch_account_key_added", "labelled_account_large_transfer",
-                                       "deploy_on_labelled_contract"))
+                                       "deploy_on_labelled_contract", "full_access_key_then_outflow"))
         state = feed.new_state()
         state.update(mode="follow", started_at="2026-11-03T00:00:00Z", last_height=1,
                      last_time="2026-11-03T00:00:01Z", lag_blocks=0)
@@ -574,7 +574,7 @@ class FollowModeTest(unittest.TestCase):
             state, walked = self.follow_transfers(Path(tmp), Timed(self.blocks(2), 2), lambda: now[0], TransfersStub(),
                                                   max_blocks=None, sleep=sleep, stopped=lambda: len(waits) == 2)
         self.assertEqual((walked, state["last_height"], state["last_large_transfer_poll_ms"]), (2, 2, T0_MS))
-        self.assertEqual(stamps, [None, "2026-11-03T12:00:07Z", "2026-11-03T12:00:07Z", "2026-11-03T12:00:09Z"])
+        self.assertEqual(stamps, [None, "2026-11-03T12:00:10Z", "2026-11-03T12:00:10Z", "2026-11-03T12:00:12Z"])
 
     def test_a_restart_neardata_refuses_keeps_updated_at_while_the_transfers_poll_writes_the_state(self):
         class Refused(FakeFetcher):
@@ -713,7 +713,7 @@ class FollowModeTest(unittest.TestCase):
         self.assertEqual((walked, state["last_height"], state["transfer_requests"]), (1, 2, requests))
         self.assertEqual(len(judged), requests + 2)
         self.assertEqual(judged, [None] * len(judged))
-        self.assertEqual(stamps, ["2026-11-03T12:00:00Z", "2026-11-03T12:16:43Z", "2026-11-03T12:16:43Z"])
+        self.assertEqual(stamps, ["2026-11-03T12:00:00Z", "2026-11-03T12:21:17Z", "2026-11-03T12:21:17Z"])
 
     def test_follow_counts_requests_on_the_utc_date_they_are_made_across_midnight(self):
         midnight = datetime(2026, 11, 4, tzinfo=UTC).timestamp()

@@ -125,3 +125,33 @@ def vote(detail, judge):
     return {"approval_id": approval_id, "vote": choice,
             "message": f"{choice}:{approval_id}:{detail['wallet_pubkey']}:{detail['request_hash']}",
             "reason": f"{judgement['outcome']} with action {judgement['action']}", "judgement": judgement}
+
+
+def vote_once(detail, judge, seen):
+    """vote, for an approver that keeps seen between calls: approval id -> {"content", "vote"}.
+
+    content is what the first sighting of the id showed: the transfer the verdict judged (None when nothing was
+    judged), the request_hash and the wallet_pubkey; vote is the approve or reject vote cast for the id, or
+    abstain while none is. Every sighting is voted as vote does, and an approve or reject is cast only when its
+    content equals the first sighting's and no vote was cast for the id yet. So an approval whose amount,
+    receiver, token, memo or request_hash changed under its id abstains, and so does a second sighting after an
+    approve or a reject. After an abstain the same content is voted again, so an approval that waited on a check
+    that could not run is decided once the check runs. seen is the caller's dict and lasts as long as it does.
+    """
+    result = vote(detail, judge)
+    judgement = result["judgement"]
+    content = {"transfer": dict(judgement["request"]) if judgement else None,
+               "request_hash": detail["request_hash"], "wallet_pubkey": detail["wallet_pubkey"]}
+    first = seen.setdefault(result["approval_id"], {"content": content, "vote": "abstain"})
+    if result["vote"] == "abstain":
+        return result
+    changed = [field for field in content if content[field] != first["content"][field]]
+    if changed:
+        reason = f"the approval's {' and '.join(changed)} changed since this approver first saw it"
+    elif first["vote"] != "abstain":
+        reason = f"this approver already voted {first['vote']} on the approval"
+    else:
+        first["vote"] = result["vote"]
+        return result
+    return {"approval_id": result["approval_id"], "vote": "abstain", "message": None,
+            "reason": f"{reason}, so it casts no vote", "judgement": judgement}

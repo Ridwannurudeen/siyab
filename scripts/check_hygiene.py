@@ -36,7 +36,7 @@ IMAGE_DIGEST_LINE = re.compile(r'image_digest = "sha256:[0-9a-f]{64}"')
 HEX128 = re.compile(r"[0-9a-fA-F]{128}")
 RPC_FIXTURES = ("fixtures/rpc/", "fixtures/demo/", "fixtures/scan/", "fixtures/cluster/", "fixtures/fastnear/",
                 "fixtures/feed/", "fixtures/goplus/", "fixtures/intents/", "fixtures/receivers/",
-                "fixtures/registries/", "fixtures/runs/")
+                "fixtures/registries/", "fixtures/reports/", "fixtures/runs/")
 # ShieldBot's own text never uses this word. Third party strings that carry it (a token symbol)
 # live only in data: seeds, raw snapshots, fixtures and the label store.
 AUTHORED_WORD = re.compile(r"safe", re.IGNORECASE)

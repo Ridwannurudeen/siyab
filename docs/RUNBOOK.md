@@ -6,7 +6,7 @@ Every script this runbook uses calls `require_testnet` and so refuses any networ
 
 ## Current implementation state
 
-The verdict service reads `subject_summary` and applies `intel/reports.py` when `REPORTS_ACCOUNT_ID` is set (`gate/rules.py`, `docs/LADDER.md`). Current Reports source is 0.1.2; testnet runs deployed Reports version `0.1.2` (`res/BUILD-reports.md:7`, `contracts/reports/Cargo.toml`). Current Gate source is 0.2.1 and testnet runs Gate 0.2.1 (`res/BUILD-gate.md`). Gate and Reports have sandbox round-trip tests and previous artifacts; the Registry has no previous artifact (`docs/UPGRADES.md:16`).
+The verdict service reads `subject_summary` and applies `intel/reports.py` when `REPORTS_ACCOUNT_ID` is set (`gate/rules.py`, `docs/LADDER.md`). Current Reports source is 0.1.3; testnet runs deployed Reports version `0.1.2` (`res/BUILD-reports.md:7`, `contracts/reports/Cargo.toml`). Current Gate source is 0.2.1 and testnet runs Gate 0.2.1 (`res/BUILD-gate.md`). Gate and Reports have sandbox round-trip tests and previous artifacts; the Registry has no previous artifact (`docs/UPGRADES.md:16`).
 
 The read backs below use the near-cli-rs view form `near contract call-function as-read-only <account> <method> json-args '<json>' network-config testnet now` (the form `scripts/lib.sh:189` uses), written here as "view `<method>`". Every transaction below goes through `call_transaction` (`scripts/lib.sh:252-255`) and ends with the summary block (`scripts/lib.sh:154-173`), which prints the account summary with its `code_hash` and the shortened transaction hashes.
 
@@ -31,7 +31,7 @@ Read backs:
 - Gate: view `version`, view `get_policy` (`max_ttl_ms`, `paused` false, empty denylist, `contracts/gate/src/policy.rs:250-252`), view `get_verifier_keys` (one current key, `previous` null, `policy.rs:254-259`). This is the read back `docs/TESTNET.md:38` records after setup.
 - Registry: view `version` and view `get_recorder` (`contracts/registry/src/lib.rs:243`, `:247`).
 - Token: view `ft_metadata`, and `storage_balance_of` for the Gate, the vendor and the aged payee.
-- Reports: views `version`, `report_deposit` and `totals` (`contracts/reports/src/lib.rs:248`, `:252`, `:692-697`).
+- Reports: views `version`, `report_deposit` and `totals` (`contracts/reports/src/lib.rs:267-269`, `:271-273`, `:824-829`).
 - `python -m gate scan <gate account>` with `GATE_FIXTURES_MODE=off` lists the Gate's access keys and its verifier keys.
 
 Undo: an init cannot be undone. A wrong value the owner can set is corrected with its owner method (`set_verifier_keys`, `set_max_ttl`, `set_recorder`, `set_moderators`; `docs/KEYS.md`). A wrong `owner_id` cannot be corrected, because no contract has a method that changes it; deploy to a new account instead.
@@ -47,7 +47,7 @@ DRY_RUN=1 GATE_STATE_FROZEN=1 EXPECT_VERSION=<version> EXPECT_CODE_HASH=<code_ha
 GATE_STATE_FROZEN=1 EXPECT_VERSION=<version> EXPECT_CODE_HASH=<code_hash> bash scripts/redeploy.sh <contract> <wasm>
 ```
 
-The reports contract has a `version` view, so `EXPECT_VERSION` applies to `reports` as it does to the Gate and the registry. The reports account is `REPORTS_ACCOUNT_ID`, or `reports.$GATE_ACCOUNT_ID` when that is unset (`scripts/redeploy.sh:31`); testnet runs deployed Reports version `0.1.2` while source is `0.1.2` (`res/BUILD-reports.md:7`, `contracts/reports/Cargo.toml`). After 4 Nov the script refuses without `GATE_STATE_FROZEN=1` (`scripts/redeploy.sh:34-35`). It deploys without an init call, signed by the contract account's own key (`scripts/redeploy.sh:38`, `:83`). The dry run prints the version view, the deploy line, the wasm sha256 and the codehash line, then one `would assert` line for each of `EXPECT_VERSION` and `EXPECT_CODE_HASH` that is set, and exits 0 (`scripts/redeploy.sh:85-90`, `:100-107`).
+The reports contract has a `version` view, so `EXPECT_VERSION` applies to `reports` as it does to the Gate and the registry. The reports account is `REPORTS_ACCOUNT_ID`, or `reports.$GATE_ACCOUNT_ID` when that is unset (`scripts/redeploy.sh:31`); testnet runs deployed Reports version `0.1.2` while source is `0.1.3` (`res/BUILD-reports.md:7`, `contracts/reports/Cargo.toml`). After 4 Nov the script refuses without `GATE_STATE_FROZEN=1` (`scripts/redeploy.sh:34-35`). It deploys without an init call, signed by the contract account's own key (`scripts/redeploy.sh:38`, `:83`). The dry run prints the version view, the deploy line, the wasm sha256 and the codehash line, then one `would assert` line for each of `EXPECT_VERSION` and `EXPECT_CODE_HASH` that is set, and exits 0 (`scripts/redeploy.sh:85-90`, `:100-107`).
 
 Read backs: the script prints `version before` and `version after`, the account summary with its `code_hash`, the wasm sha256 and the `python -m gate codehash` line (`scripts/redeploy.sh:77-98`). With `EXPECT_VERSION` set it exits 1 unless the `version` view after the deploy returns it (`scripts/redeploy.sh:109-119`); with `EXPECT_CODE_HASH` set it reads the account's `code_hash` from `view_account` up to five times, 2 s apart, and exits 1 unless it matches (`scripts/redeploy.sh:120-136`). Each passing assertion prints an `asserted:` line. Then read the state back: for the Gate, view `get_policy`, view `get_verifier_keys` and view `get_agent` for the agent key, each unchanged; for the registry, view `total_records`, `total_subjects`, `total_labels` and `get_recorder`, each unchanged (the 5 Nov values are in `docs/TESTNET.md:86`); for the reports contract, view `totals` unchanged.
 
@@ -74,7 +74,7 @@ When: a layout preserving redeploy went wrong and the previous code must run aga
 
 Command: the redeploy procedure above, with `res/previous/<crate>.wasm` as `<wasm>` and the previous version and code hash as `EXPECT_VERSION` and `EXPECT_CODE_HASH` (`docs/UPGRADES.md:62-65`), and the same read backs: the state reads back unchanged.
 
-Gate and Reports have previous artifacts in `res/previous/` and sandbox round-trip tests (`docs/UPGRADES.md:16`). Testnet runs deployed Reports version `0.1.2` (`res/BUILD-reports.md:7`) and Gate 0.2.1 (`res/BUILD-gate.md:7`); current source is Gate 0.2.1 and Reports 0.1.2. The Registry has no previous artifact, so no Registry rollback is available (`res/BUILD-registry.md`, `docs/UPGRADES.md:16`).
+Gate and Reports have previous artifacts in `res/previous/` and sandbox round-trip tests (`docs/UPGRADES.md:16`). Testnet runs deployed Reports version `0.1.2` (`res/BUILD-reports.md:7`) and Gate 0.2.1 (`res/BUILD-gate.md:7`); current source is Gate 0.2.1 and Reports 0.1.3. The Registry has no previous artifact, so no Registry rollback is available (`res/BUILD-registry.md`, `docs/UPGRADES.md:16`).
 
 ## Rotate the verifier
 
@@ -167,23 +167,23 @@ Undo (a drill; after a real compromise register a new agent key, never the revok
 
 When: a report is filed against a subject, and later, when it is pending and a moderator has read its evidence. The reports contract is deployed on testnet (`res/BUILD-reports.md:7`).
 
-File: `scripts/report.sh <reports_account> <subject> <kind> <outcome> <evidence_sha256> <evidence_url>` calls `submit_report` signed by `REPORTER_ACCOUNT_ID`, falling back to `OWNER_ACCOUNT_ID` with a warning when unset (`scripts/report.sh:8-10,65`). It checks `kind` and `outcome` against `intel/record_enums.json` (`:28-39`), the hash as 64 lowercase hex and the URL as `https://` of at most 512 bytes (`:26-27`, `scripts/lib.sh:48-68`), and attaches `REPORT_DEPOSIT` read from current source at run time (`contracts/reports/src/lib.rs:9`, `scripts/report.sh:53-65`), 30000000000000000000000 yoctoNEAR (0.03 NEAR). Testnet runs deployed Reports version `0.1.2`, which requires that exact deposit; another amount is refused with `REFUSED:bad_deposit` (`contracts/reports/src/lib.rs:715-720`).
+File: `scripts/report.sh <reports_account> <subject> <kind> <outcome> <evidence_sha256> <evidence_url>` calls `submit_report` signed by `REPORTER_ACCOUNT_ID`, falling back to `OWNER_ACCOUNT_ID` with a warning when unset (`scripts/report.sh:8-10,65`). It checks `kind` and `outcome` against `intel/record_enums.json` (`:28-39`), the hash as 64 lowercase hex and the URL as `https://` of at most 512 bytes (`:26-27`, `scripts/lib.sh:48-68`), and attaches `REPORT_DEPOSIT` read from current source at run time (`contracts/reports/src/lib.rs:9`, `scripts/report.sh:53-65`), 30000000000000000000000 yoctoNEAR (0.03 NEAR). Testnet runs deployed Reports version `0.1.2`, which requires that exact deposit; another amount is refused with `REFUSED:bad_deposit` (`contracts/reports/src/lib.rs:853-858`).
 
 ```
 DRY_RUN=1 bash scripts/report.sh <reports_account> <subject> <kind> <outcome> <evidence_sha256> <evidence_url>
 bash scripts/report.sh <reports_account> <subject> <kind> <outcome> <evidence_sha256> <evidence_url>
 ```
 
-Moderate: `scripts/moderate.sh <reports_account> <report_id> <accept|reject> <reason_sha256>` calls `moderate` with args `{"id":<report id>,"accept":<true|false>,"reason_sha256":"<hash>"}`, signed by `OWNER_ACCOUNT_ID` with exactly 1 yoctoNEAR (`scripts/moderate.sh:8-35`; `contracts/reports/src/lib.rs:375-377`). The owner must be on the moderator list (`assert_moderator`, `contracts/reports/src/lib.rs:708-713`).
+Moderate: `scripts/moderate.sh <reports_account> <report_id> <accept|reject> <reason_sha256>` calls `moderate` with args `{"id":<report id>,"accept":<true|false>,"reason_sha256":"<hash>"}`, signed by `OWNER_ACCOUNT_ID` with exactly 1 yoctoNEAR (`scripts/moderate.sh:8-35`; `contracts/reports/src/lib.rs:425-427`). The owner must be on the moderator list (`assert_moderator`, `contracts/reports/src/lib.rs:846-851`).
 
 ```
 DRY_RUN=1 bash scripts/moderate.sh <reports_account> <report_id> <accept|reject> <reason_sha256>
 bash scripts/moderate.sh <reports_account> <report_id> <accept|reject> <reason_sha256>
 ```
 
-Before the real run read view `get_report` for the id (`contracts/reports/src/lib.rs:641-643`): its state is `pending`, or the call fails with `REFUSED:not_pending` (`:383`), and its evidence is the one read.
+Before the real run read view `get_report` for the id (`contracts/reports/src/lib.rs:766-768`): its state is `pending`, or the call fails with `REFUSED:not_pending` (`:433`), and its evidence is the one read.
 
-Read backs: `report.sh` returns the new report id, and view `totals` grows by one report; after `moderate.sh`, view `get_report` shows `accepted` or `rejected`, the moderator and the reason hash; the transaction carries `report_moderated` (`docs/REPORTS.md`); view `subject_summary` for the subject shows the counts moved (`contracts/reports/src/lib.rs:676-686`).
+Read backs: `report.sh` returns the new report id, and view `totals` grows by one report; after `moderate.sh`, view `get_report` shows `accepted` or `rejected`, the moderator and the reason hash; the transaction carries `report_moderated` (`docs/REPORTS.md`); view `subject_summary` for the subject shows the counts moved (`contracts/reports/src/lib.rs:808-817`).
 
 Undo: a moderation is final; the only state changes are listed in `docs/REPORTS.md:34`. A wrong acceptance is corrected by a dispute and its resolution with `overturn`, below. A wrong rejection is corrected only by a new report.
 
@@ -191,23 +191,23 @@ Undo: a moderation is final; the only state changes are listed in `docs/REPORTS.
 
 When: a report is accepted and its acceptance is challenged; then, when the dispute is open and a moderator has read both evidence documents.
 
-Open: `scripts/dispute.sh <reports_account> <report_id> <evidence_sha256> <evidence_url>` calls `dispute` signed by `DISPUTER_ACCOUNT_ID`, falling back to `OWNER_ACCOUNT_ID` with a warning when unset (`scripts/dispute.sh:49-53,80`), and attaches `REPORT_DEPOSIT` read from current source at run time (`contracts/reports/src/lib.rs:9`, `scripts/dispute.sh:66-80`). Testnet runs deployed Reports version `0.1.2`, which requires 30000000000000000000000 yoctoNEAR (0.03 NEAR); another amount is refused with `REFUSED:bad_deposit` (`contracts/reports/src/lib.rs:488-489`). Anyone can open a dispute on chain.
+Open: `scripts/dispute.sh <reports_account> <report_id> <evidence_sha256> <evidence_url>` calls `dispute` signed by `DISPUTER_ACCOUNT_ID`, falling back to `OWNER_ACCOUNT_ID` with a warning when unset (`scripts/dispute.sh:49-53,80`), and attaches `REPORT_DEPOSIT` read from current source at run time (`contracts/reports/src/lib.rs:9`, `scripts/dispute.sh:66-80`). Testnet runs deployed Reports version `0.1.2`, which requires 30000000000000000000000 yoctoNEAR (0.03 NEAR); another amount is refused with `REFUSED:bad_deposit` (`contracts/reports/src/lib.rs:598-604`). Anyone can open a dispute on chain.
 
 ```
 DRY_RUN=1 bash scripts/dispute.sh <reports_account> <report_id> <evidence_sha256> <evidence_url>
 bash scripts/dispute.sh <reports_account> <report_id> <evidence_sha256> <evidence_url>
 ```
 
-Resolve: `scripts/dispute.sh <reports_account> --resolve <dispute_id> <uphold|overturn> <reason_sha256>` calls `resolve_dispute` with args `{"dispute_id":<dispute id>,"overturn":<true|false>,"reason_sha256":"<hash>"}`, signed by `OWNER_ACCOUNT_ID` with exactly 1 yoctoNEAR (`scripts/dispute.sh:15-40`; `contracts/reports/src/lib.rs:546-549`). The owner must be on the moderator list (`assert_moderator`, `contracts/reports/src/lib.rs:708-713`).
+Resolve: `scripts/dispute.sh <reports_account> --resolve <dispute_id> <uphold|overturn> <reason_sha256>` calls `resolve_dispute` with args `{"dispute_id":<dispute id>,"overturn":<true|false>,"reason_sha256":"<hash>"}`, signed by `OWNER_ACCOUNT_ID` with exactly 1 yoctoNEAR (`scripts/dispute.sh:15-40`; `contracts/reports/src/lib.rs:662-665`). The owner must be on the moderator list (`assert_moderator`, `contracts/reports/src/lib.rs:846-851`).
 
 ```
 DRY_RUN=1 bash scripts/dispute.sh <reports_account> --resolve <dispute_id> <uphold|overturn> <reason_sha256>
 bash scripts/dispute.sh <reports_account> --resolve <dispute_id> <uphold|overturn> <reason_sha256>
 ```
 
-Before resolving read view `get_dispute` (`contracts/reports/src/lib.rs:645-647`): it is open, or the call fails with `REFUSED:dispute_closed` (`:552`); and view `get_report` for its report: it is `contested`, or the call fails with `REFUSED:not_contested` (`:555-558`).
+Before resolving read view `get_dispute` (`contracts/reports/src/lib.rs:777-779`): it is open, or the call fails with `REFUSED:dispute_closed` (`:668`); and view `get_report` for its report: it is `contested`, or the call fails with `REFUSED:not_contested` (`:672-674`).
 
-Read backs: after opening, view `get_report` shows `contested` and the transaction carries `report_disputed`; after resolving, view `get_dispute` shows it closed, view `get_report` shows `accepted` (upheld) or `overturned`, the transaction carries `dispute_resolved`, and view `subject_summary` shows `deny`, `latest_accepted_id` and `latest_deny_id` as expected (`docs/REPORTS.md:28`).
+Read backs: after opening, view `get_report` shows `contested` and the transaction carries `report_disputed`; after resolving, view `get_dispute` shows it closed, view `get_report` shows `accepted` (upheld) or `overturned`, the transaction carries `dispute_resolved`, and view `subject_summary` shows `deny`, `latest_accepted_id` and `latest_deny_id` as expected (`docs/REPORTS.md:31`).
 
 Undo: testnet runs deployed Reports version `0.1.2`, which has no lifetime dispute cap (`docs/REPORTS.md`). One dispute may be open at a time, and each costs the exact deposit. An overturn is final.
 
@@ -226,7 +226,7 @@ DRY_RUN=1 bash scripts/live_beat.sh
 bash scripts/live_beat.sh
 ```
 
-The dry run prints every command and every read in order and stops: no near call, no verdict run, no run log. It shows the report and dispute ids as 0; the real run reads them from `totals` before each filing (`totals.reports` is the next report id, `contracts/reports/src/lib.rs:692-697`) and stops with exit 1 unless the count grew by exactly one.
+The dry run prints every command and every read in order and stops: no near call, no verdict run, no run log. It shows the report and dispute ids as 0; the real run reads them from `totals` before each filing (`totals.reports` is the next report id, `contracts/reports/src/lib.rs:824-829`) and stops with exit 1 unless the count grew by exactly one.
 
 Read backs, each appended to `fixtures/runs/live-beat-<UTC timestamp>.txt` (ed25519 signature text removed and 128 hex strings shortened to first and last 8), and each compared with what it should read; the verdicts are `python3 -m gate verdict` for 1 DMT to the subject with `GATE_FIXTURES_MODE=off` and `REPORTS_ACCOUNT_ID` set, signed only with the TEST key, written to a temporary directory that is removed at exit:
 

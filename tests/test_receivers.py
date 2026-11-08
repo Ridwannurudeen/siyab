@@ -207,8 +207,7 @@ class ReceiverSetTest(unittest.TestCase):
             with self.subTest(subject=subject):
                 self.assertEqual(age["status"], "pass")
                 self.assertTrue(age["detail"].startswith(
-                    f"no creation time from NearBlocks (keys empty); {subject} has no access key; view_account "
-                    f"finds {subject} at block "), age["detail"])
+                    f"{subject} has no access key; view_account finds {subject} at block "), age["detail"])
                 self.assertEqual(age["source"]["provider"], "archival-rpc.mainnet.fastnear.com")
         self.assertEqual(len(locked), 26)
 
@@ -223,8 +222,8 @@ class ReceiverSetTest(unittest.TestCase):
             with self.subTest(subject=entry["subject"]):
                 judgement = json.loads((JUDGEMENTS / f"{entry['subject']}.json").read_text(encoding="utf-8"))
                 checks = {check["id"]: check for check in judgement["checks"]}
-                self.assertTrue(checks["account_age"]["detail"].startswith(
-                    "no creation time from NearBlocks (no recorded response for the request); "),
+                self.assertFalse(checks["account_age"]["detail"].startswith(
+                    ("no archival age (", "no creation time from NearBlocks (")),
                     checks["account_age"]["detail"])
                 self.assertNotEqual(checks["account_age"]["source"]["provider"], "api.nearblocks.io")
                 self.assertEqual(checks["account_age"]["status"], "pass")

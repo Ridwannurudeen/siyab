@@ -1,6 +1,6 @@
 # Incident record, format v1
 
-This is a format specification. The validator, reader and writer are in `intel/records.py` and `python -m intel record-check`; no store or renderer exists, and the two committed records are synthetic. The incident pages that exist today are a different file, described in `docs/INCIDENTS.md`.
+This is a format specification. The validator, reader and writer are in `intel/records.py` and `python -m intel record-check`; `python -m intel render --out demo/site` writes valid incident records from `fixtures/records/` to `demo/site/records/<record id>.html` and `demo/site/records/index.html`; no record store exists. The two committed records are synthetic. The incident pages that exist today are a different file, described in `docs/INCIDENTS.md`.
 
 An incident record is the off chain account of one event: what happened, what it cost, which accounts agents should not pay because of it, the evidence, the on chain reports behind it, and a timeline whose every timestamp names where it came from. It carries the readable text behind the reason hashes the reports contract stores.
 

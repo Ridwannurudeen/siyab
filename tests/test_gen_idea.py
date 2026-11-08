@@ -60,6 +60,7 @@ COUNT_LINES = [
     "Flows: 1 exit traces, 200 hops, depth 1 of 3, stopped while reading the subject.",
     "Latency: p50 1843 ms, p95 2300 ms over 20 verdict runs.",
     "Latency, payee off the allowlist: p50 4210 ms, p95 6100 ms over 20 verdict runs.",
+    "Latency, payee off the allowlist, NearBlocks fallback: not measured.",
     "10 attempts, 10 refusals, 0 bypasses.",
 ]
 COUNT_PROSE = [
@@ -76,6 +77,7 @@ COUNT_PROSE = [
     "Adversarial table: 10 attempts, 10 refusals, 0 bypasses.",
     "Verdict latency: p50 1843 ms, p95 2300 ms over 20 recorded runs.",
     "Verdict latency for a payee off the allowlist: p50 4210 ms, p95 6100 ms over 20 recorded runs.",
+    "Verdict latency for the NearBlocks fallback path is not measured.",
 ]
 
 
@@ -122,7 +124,8 @@ class IdeaTextTest(unittest.TestCase):
             gen_idea.count_rows(["Receivers: a line in a format no template knows."])
         self.assertIn("no prose template for the counts line", str(raised.exception))
         tier2 = (ROOT / "fixtures" / "latency" / "verdict-runs-tier2.json").is_file()
-        self.assertEqual(len(gen_idea.count_rows(gen_idea.counts.lines())), 8 if tier2 else 7)
+        fallback = (ROOT / "fixtures" / "latency" / "verdict-runs-tier2-fallback.json").is_file()
+        self.assertEqual(len(gen_idea.count_rows(gen_idea.counts.lines())), 7 + tier2 + fallback)
 
     def test_the_first_300_characters_name_the_label_store_and_the_guard(self):
         code, stdout, _ = self.run_main([])
