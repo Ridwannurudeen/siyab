@@ -27,6 +27,8 @@ RANK_LIMIT = 1000
 # so with FASTNEAR_API_KEY_FILE set the scan uses the follower's keyed spacing.
 REQUEST_INTERVAL_S = 60 / 15
 KEYED_REQUEST_INTERVAL_S = feed.FOLLOW_INTERVAL_KEYED_S
+# Bound a persistently throttled height while allowing brief 429 bursts to clear.
+MAX_CONSECUTIVE_429S = 5
 # A scan of about 150,000 requests meets dropped connections; each is retried after these pauses, in seconds.
 TRANSIENT_BACKOFF_S = (5, 10, 20, 40, 60, 60)
 # A block takes one to two seconds to download, so one request at a time cannot reach the request rate the gate
@@ -262,7 +264,7 @@ def _neardata_fetcher():
     whose file cannot be read or is empty stops the scan rather than falling back to keyless."""
     key_file = os.environ.get("FASTNEAR_API_KEY_FILE")
     if not key_file:
-        return feed.Fetcher(max_requests=None), REQUEST_INTERVAL_S
+        return feed.Fetcher(max_requests=None, max_consecutive_429s=MAX_CONSECUTIVE_429S), REQUEST_INTERVAL_S
     try:
         api_key = Path(key_file).read_text(encoding="utf-8").strip()
     except (OSError, UnicodeDecodeError) as error:
@@ -270,7 +272,7 @@ def _neardata_fetcher():
     if not api_key:
         raise TopReceiversError("the file FASTNEAR_API_KEY_FILE names is empty")
     client = rpc.Client(feed.NEARDATA_URL, "off", kind="http", headers={"Authorization": f"Bearer {api_key}"})
-    return feed.Fetcher(client, max_requests=None), KEYED_REQUEST_INTERVAL_S
+    return feed.Fetcher(client, max_requests=None, max_consecutive_429s=MAX_CONSECUTIVE_429S), KEYED_REQUEST_INTERVAL_S
 
 
 def _block_reader(fetcher, sleep, clock, last_request_at=None, interval=REQUEST_INTERVAL_S):

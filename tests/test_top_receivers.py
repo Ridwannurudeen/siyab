@@ -200,6 +200,53 @@ class ScanTest(unittest.TestCase):
             self.assertNotIn("shards", batch["heights"][0])
 
 
+class ThrottledBlockClient:
+    def __init__(self, throttled_path, retry_count):
+        self.throttled_path = throttled_path
+        self.retry_count = retry_count
+        self.calls = {}
+
+    def get(self, path):
+        self.calls[path] = self.calls.get(path, 0) + 1
+        if path == self.throttled_path and self.calls[path] <= self.retry_count:
+            raise rpc.HttpError(429, path)
+        height = int(path.rsplit("/", 1)[1])
+        return synthetic_block(height, height)
+
+
+class Scan429Test(unittest.TestCase):
+    max_429_answers = top_receivers.MAX_CONSECUTIVE_429S
+
+    def run_from_checkpoint(self, directory, client):
+        with mock.patch.object(top_receivers, "BATCH_SIZE", 2):
+            checkpoint = top_receivers._new_checkpoint(1, 1, 4, 0, 4, 0, None)
+            top_receivers.feed._write_json(directory / "checkpoint.json", checkpoint, indent=2)
+            with mock.patch.dict(os.environ, {}, clear=True), \
+                    mock.patch("intel.feed.rpc.Client", return_value=client), \
+                    mock.patch.object(top_receivers.feed, "BACKOFF_S", 0):
+                return top_receivers.scan_window(1, 4, True, directory, sleep=lambda _: None, clock=lambda: 0)
+
+    def test_too_many_429_answers_stop_after_the_last_completed_batch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            client = ThrottledBlockClient("/v0/block/3", self.max_429_answers + 1)
+            with self.assertRaisesRegex(top_receivers.feed.FeedError, "HTTP 429 .* /v0/block/3"):
+                self.run_from_checkpoint(root, client)
+            checkpoint = json.loads((root / "checkpoint.json").read_text(encoding="utf-8"))
+            self.assertEqual(checkpoint["last_height"], 2)
+            self.assertEqual(client.calls["/v0/block/3"], self.max_429_answers)
+            self.assertTrue((root / "batches" / "1-2.json").is_file())
+            self.assertFalse((root / "batches" / "3-4.json").exists())
+
+    def test_a_few_429_answers_then_a_block_complete_the_scan(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            client = ThrottledBlockClient("/v0/block/3", 2)
+            state = self.run_from_checkpoint(root, client)
+            self.assertEqual(state["last_height"], 4)
+            self.assertEqual(client.calls["/v0/block/3"], 3)
+
+
 class FlakyFetcher:
     def __init__(self, errors, block):
         self.errors = list(errors)
@@ -272,6 +319,7 @@ class NeardataKeyTest(unittest.TestCase):
             os.environ.pop("FASTNEAR_API_KEY_FILE", None)
             fetcher, interval = top_receivers._neardata_fetcher()
         self.assertEqual(interval, top_receivers.REQUEST_INTERVAL_S)
+        self.assertEqual(fetcher.max_consecutive_429s, top_receivers.MAX_CONSECUTIVE_429S)
         self.assertNotIn("Authorization", fetcher.client.headers or {})
 
     def test_a_key_file_sends_a_bearer_header_at_the_keyed_interval(self):
@@ -281,6 +329,7 @@ class NeardataKeyTest(unittest.TestCase):
             with mock.patch.dict("os.environ", {"FASTNEAR_API_KEY_FILE": str(key)}):
                 fetcher, interval = top_receivers._neardata_fetcher()
         self.assertEqual(interval, top_receivers.KEYED_REQUEST_INTERVAL_S)
+        self.assertEqual(fetcher.max_consecutive_429s, top_receivers.MAX_CONSECUTIVE_429S)
         self.assertEqual(fetcher.client.headers["Authorization"], "Bearer synthetic-key")
 
     def test_an_empty_or_missing_key_file_stops_the_scan(self):
