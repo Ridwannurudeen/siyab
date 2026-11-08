@@ -5,8 +5,10 @@ import json
 import math
 import os
 import re
+import ssl
 import threading
 import time
+import urllib.error
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
@@ -29,7 +31,9 @@ REQUEST_INTERVAL_S = 60 / 15
 KEYED_REQUEST_INTERVAL_S = feed.FOLLOW_INTERVAL_KEYED_S
 # Bound a persistently throttled height while allowing brief 429 bursts to clear.
 MAX_CONSECUTIVE_429S = 5
-# A scan of about 150,000 requests meets dropped connections; each is retried after these pauses, in seconds.
+# A scan of about 150,000 requests meets network failures: a dropped or reset connection, a socket timeout, an
+# unreachable host or DNS failure, or a 5xx answer. Each is retried after these pauses, in seconds; a local OSError is
+# not, and a refused TLS certificate stops the scan at once.
 TRANSIENT_BACKOFF_S = (5, 10, 20, 40, 60, 60)
 # A block takes one to two seconds to download, so one request at a time cannot reach the request rate the gate
 # allows; this many workers share the one gate, which still spaces request starts REQUEST_INTERVAL_S apart.
@@ -276,9 +280,12 @@ def _neardata_fetcher():
 
 
 def _block_reader(fetcher, sleep, clock, last_request_at=None, interval=REQUEST_INTERVAL_S):
-    """A block reader that spaces requests, reads a 404 as a skipped height, and retries a transport failure or a
-    5xx answer after each pause of TRANSIENT_BACKOFF_S before it gives up; a run of MAX_CONSECUTIVE_429S consecutive
-    429 answers, or any other error, stops the scan."""
+    """A block reader that spaces requests, reads a 404 as a skipped height, and retries a network failure (a dropped
+    connection or other rpc.TransportError, a reset connection raised as ConnectionError, a socket timeout, or an
+    unreachable host or DNS failure reported as urllib.error.URLError) or a 5xx answer after each pause of
+    TRANSIENT_BACKOFF_S, re-raising after the last attempt. A refused TLS certificate, or any URLError whose reason is
+    not an OSError, stops the scan at once with no pause, as do a run of MAX_CONSECUTIVE_429S consecutive 429 answers,
+    any other HTTP error, and any other OSError such as a local file error."""
     last_request = [last_request_at]
     lock = threading.Lock()
 
@@ -302,7 +309,14 @@ def _block_reader(fetcher, sleep, clock, last_request_at=None, interval=REQUEST_
                     return None
                 if error.status < 500 or attempt == len(TRANSIENT_BACKOFF_S):
                     raise
-            except rpc.TransportError:
+            except (rpc.TransportError, TimeoutError, ConnectionError, urllib.error.URLError) as error:
+                # urllib.error.HTTPError is a URLError but never arrives here: rpc._fetch turns it into rpc.HttpError.
+                # A reset arrives as a raw ConnectionError from the response read, outside urlopen's URLError wrapper.
+                if isinstance(error, urllib.error.URLError) and (
+                        not isinstance(error.reason, OSError) or isinstance(error.reason, ssl.SSLError)):
+                    # As in intel.alerts._retryable: a refused TLS certificate, or a reason that is no transport
+                    # failure, will not clear on a retry.
+                    raise
                 if attempt == len(TRANSIENT_BACKOFF_S):
                     raise
             sleep(TRANSIENT_BACKOFF_S[attempt])

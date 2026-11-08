@@ -1,7 +1,9 @@
 import json
 import os
+import ssl
 import tempfile
 import unittest
+import urllib.error
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest import mock
@@ -306,6 +308,64 @@ class BlockReaderRetryTest(unittest.TestCase):
         get, _ = self.reader(fetcher)
         self.assertIsNone(get("/v0/block/7"))
         self.assertEqual(fetcher.requests, 1)
+
+    def test_a_socket_timeout_is_retried_after_its_pause(self):
+        block = synthetic_block(7, 0)
+        fetcher = FlakyFetcher([TimeoutError("The read operation timed out")], block)
+        get, pauses = self.reader(fetcher)
+        self.assertEqual(get("/v0/block/7"), block)
+        self.assertEqual(fetcher.requests, 2)
+        self.assertEqual(pauses, [top_receivers.TRANSIENT_BACKOFF_S[0]])
+
+    def test_an_unreachable_host_is_retried_after_its_pause(self):
+        block = synthetic_block(7, 0)
+        fetcher = FlakyFetcher([urllib.error.URLError(OSError("getaddrinfo failed"))], block)
+        get, pauses = self.reader(fetcher)
+        self.assertEqual(get("/v0/block/7"), block)
+        self.assertEqual(fetcher.requests, 2)
+        self.assertEqual(pauses, [top_receivers.TRANSIENT_BACKOFF_S[0]])
+
+    def test_a_timeout_on_every_attempt_stops_the_scan_after_the_last_pause(self):
+        attempts = len(top_receivers.TRANSIENT_BACKOFF_S) + 1
+        fetcher = FlakyFetcher([TimeoutError("x") for _ in range(attempts)], synthetic_block(7, 0))
+        get, pauses = self.reader(fetcher)
+        with self.assertRaises(TimeoutError):
+            get("/v0/block/7")
+        self.assertEqual(fetcher.requests, attempts)
+        self.assertEqual(pauses, list(top_receivers.TRANSIENT_BACKOFF_S))
+
+    def test_a_local_os_error_is_not_retried(self):
+        fetcher = FlakyFetcher([PermissionError("x")], synthetic_block(7, 0))
+        get, pauses = self.reader(fetcher)
+        with self.assertRaises(PermissionError):
+            get("/v0/block/7")
+        self.assertEqual(fetcher.requests, 1)
+        self.assertEqual(pauses, [])
+
+    def test_a_reset_connection_is_retried_after_its_pause(self):
+        block = synthetic_block(7, 0)
+        fetcher = FlakyFetcher([ConnectionResetError(10054, "forcibly closed")], block)
+        get, pauses = self.reader(fetcher)
+        self.assertEqual(get("/v0/block/7"), block)
+        self.assertEqual(fetcher.requests, 2)
+        self.assertEqual(pauses, [top_receivers.TRANSIENT_BACKOFF_S[0]])
+
+    def test_a_refused_certificate_stops_the_scan_at_once(self):
+        refusal = urllib.error.URLError(ssl.SSLCertVerificationError(1, "certificate verify failed"))
+        fetcher = FlakyFetcher([refusal], synthetic_block(7, 0))
+        get, pauses = self.reader(fetcher)
+        with self.assertRaises(urllib.error.URLError):
+            get("/v0/block/7")
+        self.assertEqual(fetcher.requests, 1)
+        self.assertEqual(pauses, [])
+
+    def test_a_url_error_whose_reason_is_not_an_os_error_stops_the_scan_at_once(self):
+        fetcher = FlakyFetcher([urllib.error.URLError("no host given")], synthetic_block(7, 0))
+        get, pauses = self.reader(fetcher)
+        with self.assertRaises(urllib.error.URLError):
+            get("/v0/block/7")
+        self.assertEqual(fetcher.requests, 1)
+        self.assertEqual(pauses, [])
 
 
 class GateSpacingTest(unittest.TestCase):
