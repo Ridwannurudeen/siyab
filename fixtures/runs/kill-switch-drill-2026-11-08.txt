@@ -1,0 +1,1168 @@
+Sanitized capture: key directory written <keys>; home directory written <home>; run output directory written <out>; transaction Signature lines removed; 128 character hexadecimal strings shortened to first 8 and last 8 characters.
+[capture] <out>/a2-20261108T114506Z.txt
++ near contract call-function as-read-only kestrelridge-main.testnet get_policy json-args \{\} network-config testnet now 
+├  Logs:
+│    No logs[0m
+Function execution return value (printed to stdout):
+{
+  "denylist": [],
+  "max_ttl_ms": 300000,
+  "paused": false
+}
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-read-only kestrelridge-main.testnet get_policy json-args {} network-config testnet now[39m
+Verified get_policy: paused=false, max_ttl_ms=300000
+[capture] <out>/a3-20261108T114519Z.txt
++ near contract call-function as-read-only kestrelridge-main.testnet get_agent json-args \{\"public_key\":\"ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2\"\} network-config testnet now 
+├  Logs:
+│    No logs[0m
+Function execution return value (printed to stdout):
+{
+  "allowlist": [
+    "kestrelridge-shop.testnet"
+  ],
+  "caps": [
+    {
+      "asset": {
+        "Ft": "token.kestrelridge-main.testnet"
+      },
+      "per_call": "10000000",
+      "spent": "10000000",
+      "window_cap": "50000000",
+      "window_ms": 86400000,
+      "window_start_ms": 1794042105498
+    }
+  ],
+  "enabled": true,
+  "label": "demo agent",
+  "unknown_caps": [
+    {
+      "asset": {
+        "Ft": "token.kestrelridge-main.testnet"
+      },
+      "per_call": "1000000",
+      "spent": "0",
+      "window_cap": "1000000",
+      "window_ms": 86400000,
+      "window_start_ms": 0
+    }
+  ]
+}
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-read-only kestrelridge-main.testnet get_agent json-args '{"public_key":"ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2"}' network-config testnet now[39m
+Verified get_agent: label demo agent, enabled, expected caps
+[capture] <out>/a4-20261108T114537Z.txt
++ near account list-keys kestrelridge-main.testnet network-config testnet now 
++---+------------------------------------------------------+-----------------+-----------------------------------------------------------------------------------------------------------------------+
+| # | Public Key                                           | Nonce           | Permissions                                                                                                           |
++---+------------------------------------------------------+-----------------+-----------------------------------------------------------------------------------------------------------------------+
+| 1 | ed25519:7gxqnnhZbSBFRnYmTg8T3UZ4WUULUNS97f4jnf1oygp8 | 275335998000013 | full access                                                                                                           |
+| 2 | ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2 | 275343969000015 | only do ["request_transfer"] function calls on kestrelridge-main.testnet with an allowance of 0.9929944815814999 NEAR |
++---+------------------------------------------------------+-----------------+-----------------------------------------------------------------------------------------------------------------------+
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear account list-keys kestrelridge-main.testnet network-config testnet now[39m
+Verified list-keys shape: one full access key, one request_transfer function call key
+[capture] <out>/a5-20261108T114551Z.txt
++ near contract call-function as-read-only token.kestrelridge-main.testnet ft_balance_of json-args \{\"account_id\":\"kestrelridge-main.testnet\"\} network-config testnet now 
+├  Logs:
+│    No logs[0m
+Function execution return value (printed to stdout):
+"999930000000"
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-read-only token.kestrelridge-main.testnet ft_balance_of json-args '{"account_id":"kestrelridge-main.testnet"}' network-config testnet now[39m
+Parsed ft_balance_of for kestrelridge-main.testnet: 999930000000
++ near contract call-function as-read-only token.kestrelridge-main.testnet ft_balance_of json-args \{\"account_id\":\"kestrelridge-owner.testnet\"\} network-config testnet now 
+├  Logs:
+│    No logs[0m
+Function execution return value (printed to stdout):
+"0"
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-read-only token.kestrelridge-main.testnet ft_balance_of json-args '{"account_id":"kestrelridge-owner.testnet"}' network-config testnet now[39m
+Parsed ft_balance_of for kestrelridge-owner.testnet: 0
+Part A before balances: Gate=999930000000, cold account kestrelridge-owner.testnet=0
+Saved Part A before balances for this drill session.
+[capture] <out>/a6-20261108T114623Z.txt
++ near contract call-function as-read-only token.kestrelridge-main.testnet storage_balance_of json-args \{\"account_id\":\"kestrelridge-owner.testnet\"\} network-config testnet now 
+├  Logs:
+│    No logs[0m
+Function execution return value (printed to stdout):
+null
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-read-only token.kestrelridge-main.testnet storage_balance_of json-args '{"account_id":"kestrelridge-owner.testnet"}' network-config testnet now[39m
+Parsed storage_balance_of for kestrelridge-owner.testnet: null
+Part A step 6 found null. The near command has no dry-run option, so this is a printed dry plan only.
+Plan only. The near command has no DRY_RUN option.
++ near contract call-function as-transaction token.kestrelridge-main.testnet storage_deposit json-args \{\"account_id\":\"kestrelridge-owner.testnet\"\,\"registration_only\":false\} prepaid-gas 100\ Tgas attached-deposit 0.00129\ NEAR sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-owner.testnet.json send 
+Part A step 6 storage_deposit Type the exact word send to continue: Executing the confirmed command.
+├  Unsigned transaction:
+│    signer_id:    kestrelridge-owner.testnet
+│    receiver_id:  token.kestrelridge-main.testnet
+│    actions:
+│       -- function call:      
+│                       method name:  storage_deposit
+│                       args:         {
+│                                       "account_id": "kestrelridge-owner.testnet",
+│                                       "registration_only": false
+│                                     }
+│                       gas:          100.0 Tgas
+│                       deposit:      0.00129 NEAR
+│     [0m
+├  Your transaction was signed successfully.
+│    Public key: ed25519:6UAfYZGkZqfsJXzvT8vCd13V4mZ975pqr9h2aS1VuA96
+│     [0m
+├  Transaction Execution Info:
+│    Gas burned: 0.313 Tgas
+│    Transaction fee: 0.000031206493206 NEAR
+│    Transaction ID: 7U6nFfQi56vCeWQFW8BMf5h31TRwrPyMoYE1ki2WwDJF
+│    To see the transaction in the transaction explorer, please open this url in your browser:
+│    https://explorer.testnet.near.org/transactions/7U6nFfQi56vCeWQFW8BMf5h31TRwrPyMoYE1ki2WwDJF
+│     [0m
+├  Function execution logs:
+│    Logs [token.kestrelridge-main.testnet]:   No logs
+│    Logs [kestrelridge-owner.testnet]:   No logs
+│     [0m
+
+Function execution return value (printed to stdout):
+{
+  "available": "0",
+  "total": "1290000000000000000000"
+}
+
+
+The "storage_deposit" call to <token.kestrelridge-main.testnet> on behalf of <kestrelridge-owner.testnet> succeeded.
+
+
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-transaction token.kestrelridge-main.testnet storage_deposit json-args '{"account_id":"kestrelridge-owner.testnet","registration_only":false}' prepaid-gas '100.0 Tgas' attached-deposit '0.00129 NEAR' sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-owner.testnet.json send[39m
++ near contract call-function as-read-only token.kestrelridge-main.testnet storage_balance_of json-args \{\"account_id\":\"kestrelridge-owner.testnet\"\} network-config testnet now 
+├  Logs:
+│    No logs[0m
+Function execution return value (printed to stdout):
+{
+  "available": "0",
+  "total": "1290000000000000000000"
+}
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-read-only token.kestrelridge-main.testnet storage_balance_of json-args '{"account_id":"kestrelridge-owner.testnet"}' network-config testnet now[39m
+Parsed storage_balance_of for kestrelridge-owner.testnet: registered
+Verified storage registration after storage_deposit.
+[capture] <out>/a7-20261108T120826Z.txt
++ GATE_FIXTURES_MODE=off python -m gate scan kestrelridge-main.testnet
+drill-scan: line 1: exec: python: not found
+[capture] <out>/a2-20261108T120931Z.txt
++ near contract call-function as-read-only kestrelridge-main.testnet get_policy json-args \{\} network-config testnet now 
+├  Logs:
+│    No logs[0m
+Function execution return value (printed to stdout):
+{
+  "denylist": [],
+  "max_ttl_ms": 300000,
+  "paused": false
+}
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-read-only kestrelridge-main.testnet get_policy json-args {} network-config testnet now[39m
+Verified get_policy: paused=false, max_ttl_ms=300000
+[capture] <out>/a3-20261108T120945Z.txt
++ near contract call-function as-read-only kestrelridge-main.testnet get_agent json-args \{\"public_key\":\"ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2\"\} network-config testnet now 
+├  Logs:
+│    No logs[0m
+Function execution return value (printed to stdout):
+{
+  "allowlist": [
+    "kestrelridge-shop.testnet"
+  ],
+  "caps": [
+    {
+      "asset": {
+        "Ft": "token.kestrelridge-main.testnet"
+      },
+      "per_call": "10000000",
+      "spent": "10000000",
+      "window_cap": "50000000",
+      "window_ms": 86400000,
+      "window_start_ms": 1794042105498
+    }
+  ],
+  "enabled": true,
+  "label": "demo agent",
+  "unknown_caps": [
+    {
+      "asset": {
+        "Ft": "token.kestrelridge-main.testnet"
+      },
+      "per_call": "1000000",
+      "spent": "0",
+      "window_cap": "1000000",
+      "window_ms": 86400000,
+      "window_start_ms": 0
+    }
+  ]
+}
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-read-only kestrelridge-main.testnet get_agent json-args '{"public_key":"ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2"}' network-config testnet now[39m
+Verified get_agent: label demo agent, enabled, expected caps
+[capture] <out>/a4-20261108T120959Z.txt
++ near account list-keys kestrelridge-main.testnet network-config testnet now 
++---+------------------------------------------------------+-----------------+-----------------------------------------------------------------------------------------------------------------------+
+| # | Public Key                                           | Nonce           | Permissions                                                                                                           |
++---+------------------------------------------------------+-----------------+-----------------------------------------------------------------------------------------------------------------------+
+| 1 | ed25519:7gxqnnhZbSBFRnYmTg8T3UZ4WUULUNS97f4jnf1oygp8 | 275335998000013 | full access                                                                                                           |
+| 2 | ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2 | 275343969000015 | only do ["request_transfer"] function calls on kestrelridge-main.testnet with an allowance of 0.9929944815814999 NEAR |
++---+------------------------------------------------------+-----------------+-----------------------------------------------------------------------------------------------------------------------+
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear account list-keys kestrelridge-main.testnet network-config testnet now[39m
+Verified list-keys shape: one full access key, one request_transfer function call key
+[capture] <out>/a5-20261108T121001Z.txt
++ near contract call-function as-read-only token.kestrelridge-main.testnet ft_balance_of json-args \{\"account_id\":\"kestrelridge-main.testnet\"\} network-config testnet now 
+├  Logs:
+│    No logs[0m
+Function execution return value (printed to stdout):
+"999930000000"
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-read-only token.kestrelridge-main.testnet ft_balance_of json-args '{"account_id":"kestrelridge-main.testnet"}' network-config testnet now[39m
+Parsed ft_balance_of for kestrelridge-main.testnet: 999930000000
++ near contract call-function as-read-only token.kestrelridge-main.testnet ft_balance_of json-args \{\"account_id\":\"kestrelridge-owner.testnet\"\} network-config testnet now 
+├  Logs:
+│    No logs[0m
+Function execution return value (printed to stdout):
+"0"
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-read-only token.kestrelridge-main.testnet ft_balance_of json-args '{"account_id":"kestrelridge-owner.testnet"}' network-config testnet now[39m
+Parsed ft_balance_of for kestrelridge-owner.testnet: 0
+Part A before balances: Gate=999930000000, cold account kestrelridge-owner.testnet=0
+Saved Part A before balances for this drill session.
+[capture] <out>/a6-20261108T121035Z.txt
++ near contract call-function as-read-only token.kestrelridge-main.testnet storage_balance_of json-args \{\"account_id\":\"kestrelridge-owner.testnet\"\} network-config testnet now 
+├  Logs:
+│    No logs[0m
+Function execution return value (printed to stdout):
+{
+  "available": "0",
+  "total": "1290000000000000000000"
+}
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-read-only token.kestrelridge-main.testnet storage_balance_of json-args '{"account_id":"kestrelridge-owner.testnet"}' network-config testnet now[39m
+Parsed storage_balance_of for kestrelridge-owner.testnet: registered
+Cold account storage registration is present.
+[capture] <out>/a7-20261108T121048Z.txt
++ GATE_FIXTURES_MODE=off python -m gate scan kestrelridge-main.testnet
+account: kestrelridge-main.testnet on https://test.rpc.fastnear.com, read at block 276773989
+access keys: 2
+full access keys: 1
+  ed25519:7gxqnnhZbSBFRnYmTg8T3UZ4WUULUNS97f4jnf1oygp8
+empty method_names: 0, these may call any method on their receiver
+dead keys: 0, allowance "0"
+unlimited allowance: 0, allowance null
+agent keys: 1 scoped to kestrelridge-main.testnet, 0 with method_names other than exactly ["request_transfer"]
+verifier keys: the TEST key is ed25519:36ZbCswnc8QBvUxFF1pEwKwj6PZwgRWGe4nqcdy9HCzL
+  on chain current: ed25519:9SVNJQqQjSKFo6LXpSJJXWKEjV65V93mHUsXGhmokyb5, different from the TEST key
+labels: 0
+Verified scan agent count: 1
+[capture] <out>/c-20261108T130212Z.txt
+Dry-run invocation: + env DRY_RUN=1 bash -l scripts/kill_switch.sh ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2 --dry-run 
++ near contract call-function as-transaction kestrelridge-main.testnet set_paused json-args \{\"paused\":true\} prepaid-gas 100\ Tgas attached-deposit 1\ yoctoNEAR sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-owner.testnet.json send 
++ near contract call-function as-read-only kestrelridge-main.testnet get_agent json-args \{\"public_key\":\"ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2\"\} network-config testnet now 
++ near contract call-function as-transaction kestrelridge-main.testnet revoke_agent json-args \{\"public_key\":\"ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2\"\} prepaid-gas 100\ Tgas attached-deposit 1\ yoctoNEAR sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-owner.testnet.json send 
++ near contract call-function as-read-only token.kestrelridge-main.testnet ft_balance_of json-args \{\"account_id\":\"kestrelridge-main.testnet\"\} network-config testnet now 
++ near contract call-function as-read-only token.kestrelridge-main.testnet storage_balance_of json-args \{\"account_id\":\"kestrelridge-owner.testnet\"\} network-config testnet now 
++ near contract call-function as-transaction kestrelridge-main.testnet withdraw json-args \{\"asset\":\{\"Ft\":\"token.kestrelridge-main.testnet\"\}\,\"receiver_id\":\"kestrelridge-owner.testnet\"\,\"amount\":\"\<ft_balance_of\ of\ the\ Gate\>\"\} prepaid-gas 100\ Tgas attached-deposit 1\ yoctoNEAR sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-owner.testnet.json send 
+The Gate NEAR balance stays in place to stake its own state; the owner can withdraw NEAR by hand with withdraw and asset "Near" if needed.
+
+Summary
+  network: testnet
+  account: kestrelridge-main.testnet
+  code_hash: unavailable during dry run
+  transaction_hashes: unavailable during dry run
+The dry-run plan for scripts/kill_switch.sh has been printed. Type the exact word send to continue: Real invocation: + env bash -l scripts/kill_switch.sh ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2 
++ near contract call-function as-transaction kestrelridge-main.testnet set_paused json-args \{\"paused\":true\} prepaid-gas 100\ Tgas attached-deposit 1\ yoctoNEAR sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-owner.testnet.json send 
+├  Unsigned transaction:
+│    signer_id:    kestrelridge-owner.testnet
+│    receiver_id:  kestrelridge-main.testnet
+│    actions:
+│       -- function call:      
+│                       method name:  set_paused
+│                       args:         {
+│                                       "paused": true
+│                                     }
+│                       gas:          100.0 Tgas
+│                       deposit:      1 yoctoNEAR
+│     [0m
+├  Your transaction was signed successfully.
+│    Public key: ed25519:6UAfYZGkZqfsJXzvT8vCd13V4mZ975pqr9h2aS1VuA96
+│     [0m
+├  Transaction Execution Info:
+│    Gas burned: 0.310 Tgas
+│    Transaction fee: 0.0000309251592875 NEAR
+│    Transaction ID: 8jDdzCTS...geokaL
+│    To see the transaction in the transaction explorer, please open this url in your browser:
+│    https://explorer.testnet.near.org/transactions/8jDdzCTSUxxpx9KxsNYCKTbz81dABH7cejpRiZgeokaL
+│     [0m
+├  Function execution logs:
+│    Logs [kestrelridge-main.testnet]:   No logs
+│    Logs [kestrelridge-owner.testnet]:   No logs
+│     [0m
+├  Function execution return value:
+│    Empty return value
+│     [0m
+
+
+The "set_paused" call to <kestrelridge-main.testnet> on behalf of <kestrelridge-owner.testnet> succeeded.
+
+
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-transaction kestrelridge-main.testnet set_paused json-args '{"paused":true}' prepaid-gas '100.0 Tgas' attached-deposit '1 yoctoNEAR' sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-owner.testnet.json send[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
++ near contract call-function as-read-only kestrelridge-main.testnet get_agent json-args \{\"public_key\":\"ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2\"\} network-config testnet now 
++ near contract call-function as-transaction kestrelridge-main.testnet revoke_agent json-args \{\"public_key\":\"ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2\"\} prepaid-gas 100\ Tgas attached-deposit 1\ yoctoNEAR sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-owner.testnet.json send 
+├  Unsigned transaction:
+│    signer_id:    kestrelridge-owner.testnet
+│    receiver_id:  kestrelridge-main.testnet
+│    actions:
+│       -- function call:      
+│                       method name:  revoke_agent
+│                       args:         {
+│                                       "public_key": "ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2"
+│                                     }
+│                       gas:          100.0 Tgas
+│                       deposit:      1 yoctoNEAR
+│     [0m
+├  Your transaction was signed successfully.
+│    Public key: ed25519:6UAfYZGkZqfsJXzvT8vCd13V4mZ975pqr9h2aS1VuA96
+│     [0m
+├  Transaction Execution Info:
+│    Gas burned: 0.312 Tgas
+│    Transaction fee: 0.0000311921880915 NEAR
+│    Transaction ID: HWvfXh4d...2oYn5T
+│    To see the transaction in the transaction explorer, please open this url in your browser:
+│    https://explorer.testnet.near.org/transactions/HWvfXh4dq11cTjBoCRqx2vhPJCe2Pqeyrp7YF62oYn5T
+│     [0m
+├  Function execution logs:
+│    Logs [kestrelridge-main.testnet]:
+│      EVENT_JSON:{"standard":"shieldbot-near","version":"1.0.0","event":"agent_revoked","data":[{"agent_pk":"fc5b49a7e7d11222ec1f88aba4d8814b254286f45db917508049bbcf06e5bba9"}]}
+│    Logs [kestrelridge-main.testnet]:   No logs
+│    Logs [kestrelridge-owner.testnet]:   No logs
+│    Logs [kestrelridge-owner.testnet]:   No logs
+│     [0m
+├  Function execution return value:
+│    Empty return value
+│     [0m
+
+
+The "revoke_agent" call to <kestrelridge-main.testnet> on behalf of <kestrelridge-owner.testnet> succeeded.
+
+
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-transaction kestrelridge-main.testnet revoke_agent json-args '{"public_key":"ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2"}' prepaid-gas '100.0 Tgas' attached-deposit '1 yoctoNEAR' sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-owner.testnet.json send[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
++ near contract call-function as-read-only token.kestrelridge-main.testnet ft_balance_of json-args \{\"account_id\":\"kestrelridge-main.testnet\"\} network-config testnet now 
++ near contract call-function as-read-only token.kestrelridge-main.testnet storage_balance_of json-args \{\"account_id\":\"kestrelridge-owner.testnet\"\} network-config testnet now 
++ near contract call-function as-transaction kestrelridge-main.testnet withdraw json-args \{\"asset\":\{\"Ft\":\"token.kestrelridge-main.testnet\"\}\,\"receiver_id\":\"kestrelridge-owner.testnet\"\,\"amount\":\"999930000000\"\} prepaid-gas 100\ Tgas attached-deposit 1\ yoctoNEAR sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-owner.testnet.json send 
+├  Unsigned transaction:
+│    signer_id:    kestrelridge-owner.testnet
+│    receiver_id:  kestrelridge-main.testnet
+│    actions:
+│       -- function call:      
+│                       method name:  withdraw
+│                       args:         {
+│                                       "amount": "999930000000",
+│                                       "asset": {
+│                                         "Ft": "token.kestrelridge-main.testnet"
+│                                       },
+│                                       "receiver_id": "kestrelridge-owner.testnet"
+│                                     }
+│                       gas:          100.0 Tgas
+│                       deposit:      1 yoctoNEAR
+│     [0m
+├  Your transaction was signed successfully.
+│    Public key: ed25519:6UAfYZGkZqfsJXzvT8vCd13V4mZ975pqr9h2aS1VuA96
+│     [0m
+├  Transaction Execution Info:
+│    Gas burned: 0.315 Tgas
+│    Transaction fee: 0.0000314019964375 NEAR
+│    Transaction ID: 3xjB79fg...i1Gc5v
+│    To see the transaction in the transaction explorer, please open this url in your browser:
+│    https://explorer.testnet.near.org/transactions/3xjB79fgsu1cUJY3756kH8JWc1UuE4ksDun3STi1Gc5v
+│     [0m
+├  Function execution logs:
+│    Logs [kestrelridge-main.testnet]:   No logs
+│    Logs [token.kestrelridge-main.testnet]:
+│      EVENT_JSON:{"standard":"nep141","version":"1.0.0","event":"ft_transfer","data":[{"old_owner_id":"kestrelridge-main.testnet","new_owner_id":"kestrelridge-owner.testnet","amount":"999930000000"}]}
+│    Logs [kestrelridge-owner.testnet]:   No logs
+│    Logs [kestrelridge-owner.testnet]:   No logs
+│     [0m
+├  Function execution return value:
+│    Empty return value
+│     [0m
+
+
+The "withdraw" call to <kestrelridge-main.testnet> on behalf of <kestrelridge-owner.testnet> succeeded.
+
+
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-transaction kestrelridge-main.testnet withdraw json-args '{"asset":{"Ft":"token.kestrelridge-main.testnet"},"receiver_id":"kestrelridge-owner.testnet","amount":"999930000000"}' prepaid-gas '100.0 Tgas' attached-deposit '1 yoctoNEAR' sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-owner.testnet.json send[39m
+The Gate NEAR balance stays in place to stake its own state; the owner can withdraw NEAR by hand with withdraw and asset "Near" if needed.
+
+Summary
+  network: testnet
+  account: kestrelridge-main.testnet
++ near account view-account-summary kestrelridge-main.testnet network-config testnet now 
+
+---------------------------------------------------------------------------------------------------------
+ kestrelridge-main.testnet              At block #276779568 
+                                        (3oh17kj87R1tTouQMJXxsHmU38boLHvCunWQUmvxgX1z) 
+---------------------------------------------------------------------------------------------------------
+ NEAR Social profile unavailable        The profile can be edited at [34mhttps://near.social[39m 
+                                        or using the cli command: [34mbos social-db manage-profile[39m 
+                                        (https://github.com/bos-cli-rs/bos-cli-rs) 
+---------------------------------------------------------------------------------------------------------
+ Native account balance                 10.953868666377409699999998 NEAR 
+---------------------------------------------------------------------------------------------------------
+ Validator stake                        0 NEAR 
+---------------------------------------------------------------------------------------------------------
+ Storage used by the account            264.7 KB 
+---------------------------------------------------------------------------------------------------------
+ Local Contract (SHA-256 checksum hex)  6b684655767171a102a74b3c7c0b0124c169e8b906e374dc450773419d000aa6 
+---------------------------------------------------------------------------------------------------------
+ Access keys                            1 full access keys and 0 function-call-only access keys 
+---------------------------------------------------------------------------------------------------------
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear account view-account-summary kestrelridge-main.testnet network-config testnet now[39m
+  transaction_hashes: 8jDdzCTS...geokaL HWvfXh4d...2oYn5T 3xjB79fg...i1Gc5v
+Verified Part C transaction lines, NEAR balance note and summary block.
+[capture] <out>/readback-c-20261108T130612Z.txt
++ near contract call-function as-read-only kestrelridge-main.testnet get_policy json-args \{\} network-config testnet now 
+├  Logs:
+│    No logs[0m
+Function execution return value (printed to stdout):
+{
+  "denylist": [],
+  "max_ttl_ms": 300000,
+  "paused": true
+}
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-read-only kestrelridge-main.testnet get_policy json-args {} network-config testnet now[39m
+Verified get_policy: paused=true
++ near contract call-function as-read-only kestrelridge-main.testnet get_agent json-args \{\"public_key\":\"ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2\"\} network-config testnet now 
+├  Logs:
+│    No logs[0m
+Function execution return value (printed to stdout):
+null
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-read-only kestrelridge-main.testnet get_agent json-args '{"public_key":"ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2"}' network-config testnet now[39m
+Verified get_agent: null
++ near account list-keys kestrelridge-main.testnet network-config testnet now 
++---+------------------------------------------------------+-----------------+-------------+
+| # | Public Key                                           | Nonce           | Permissions |
++---+------------------------------------------------------+-----------------+-------------+
+| 1 | ed25519:7gxqnnhZbSBFRnYmTg8T3UZ4WUULUNS97f4jnf1oygp8 | 275335998000013 | full access |
++---+------------------------------------------------------+-----------------+-------------+
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear account list-keys kestrelridge-main.testnet network-config testnet now[39m
+Verified list-keys shape: one full access key, no request_transfer function call key
++ near contract call-function as-read-only token.kestrelridge-main.testnet ft_balance_of json-args \{\"account_id\":\"kestrelridge-main.testnet\"\} network-config testnet now 
+├  Logs:
+│    No logs[0m
+Function execution return value (printed to stdout):
+"0"
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-read-only token.kestrelridge-main.testnet ft_balance_of json-args '{"account_id":"kestrelridge-main.testnet"}' network-config testnet now[39m
+Parsed ft_balance_of for kestrelridge-main.testnet: 0
++ near contract call-function as-read-only token.kestrelridge-main.testnet ft_balance_of json-args \{\"account_id\":\"kestrelridge-owner.testnet\"\} network-config testnet now 
+├  Logs:
+│    No logs[0m
+Function execution return value (printed to stdout):
+"999930000000"
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-read-only token.kestrelridge-main.testnet ft_balance_of json-args '{"account_id":"kestrelridge-owner.testnet"}' network-config testnet now[39m
+Parsed ft_balance_of for kestrelridge-owner.testnet: 999930000000
++ GATE_FIXTURES_MODE=off python -m gate scan kestrelridge-main.testnet
+account: kestrelridge-main.testnet on https://test.rpc.fastnear.com, read at block 276779704
+access keys: 1
+full access keys: 1
+  ed25519:7gxqnnhZbSBFRnYmTg8T3UZ4WUULUNS97f4jnf1oygp8
+empty method_names: 0, these may call any method on their receiver
+dead keys: 0, allowance "0"
+unlimited allowance: 0, allowance null
+agent keys: 0 scoped to kestrelridge-main.testnet, 0 with method_names other than exactly ["request_transfer"]
+verifier keys: the TEST key is ed25519:36ZbCswnc8QBvUxFF1pEwKwj6PZwgRWGe4nqcdy9HCzL
+  on chain current: ed25519:9SVNJQqQjSKFo6LXpSJJXWKEjV65V93mHUsXGhmokyb5, different from the TEST key
+labels: 0
+Verified scan agent count: 0
+[capture] <out>/d1-20261108T130811Z.txt
+Plan only. The near command has no DRY_RUN option.
++ near contract call-function as-transaction token.kestrelridge-main.testnet ft_transfer json-args \{\"receiver_id\":\"kestrelridge-main.testnet\"\,\"amount\":\"999930000000\"\} prepaid-gas 100\ Tgas attached-deposit 1\ yoctoNEAR sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-owner.testnet.json send 
+Part D step 1 ft_transfer back. Type the exact word send to continue: Executing the confirmed command.
+├  Unsigned transaction:
+│    signer_id:    kestrelridge-owner.testnet
+│    receiver_id:  token.kestrelridge-main.testnet
+│    actions:
+│       -- function call:      
+│                       method name:  ft_transfer
+│                       args:         {
+│                                       "amount": "999930000000",
+│                                       "receiver_id": "kestrelridge-main.testnet"
+│                                     }
+│                       gas:          100.0 Tgas
+│                       deposit:      1 yoctoNEAR
+│     [0m
+├  Your transaction was signed successfully.
+│    Public key: ed25519:6UAfYZGkZqfsJXzvT8vCd13V4mZ975pqr9h2aS1VuA96
+│     [0m
+├  Transaction Execution Info:
+│    Gas burned: 0.312 Tgas
+│    Transaction fee: 0.000031177882977 NEAR
+│    Transaction ID: 5iXDDTtpdunpBJi8eDq4SJRJ3Swu7SuRM1h1yxzMvcHL
+│    To see the transaction in the transaction explorer, please open this url in your browser:
+│    https://explorer.testnet.near.org/transactions/5iXDDTtpdunpBJi8eDq4SJRJ3Swu7SuRM1h1yxzMvcHL
+│     [0m
+├  Function execution logs:
+│    Logs [token.kestrelridge-main.testnet]:
+│      EVENT_JSON:{"standard":"nep141","version":"1.0.0","event":"ft_transfer","data":[{"old_owner_id":"kestrelridge-owner.testnet","new_owner_id":"kestrelridge-main.testnet","amount":"999930000000"}]}
+│    Logs [kestrelridge-owner.testnet]:   No logs
+│     [0m
+├  Function execution return value:
+│    Empty return value
+│     [0m
+
+
+The "ft_transfer" call to <token.kestrelridge-main.testnet> on behalf of <kestrelridge-owner.testnet> succeeded.
+
+
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-transaction token.kestrelridge-main.testnet ft_transfer json-args '{"receiver_id":"kestrelridge-main.testnet","amount":"999930000000"}' prepaid-gas '100.0 Tgas' attached-deposit '1 yoctoNEAR' sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-owner.testnet.json send[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
+[capture] <out>/readback-d1-20261108T130929Z.txt
++ near contract call-function as-read-only token.kestrelridge-main.testnet ft_balance_of json-args \{\"account_id\":\"kestrelridge-main.testnet\"\} network-config testnet now 
+├  Logs:
+│    No logs[0m
+Function execution return value (printed to stdout):
+"999930000000"
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-read-only token.kestrelridge-main.testnet ft_balance_of json-args '{"account_id":"kestrelridge-main.testnet"}' network-config testnet now[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
+Parsed ft_balance_of for kestrelridge-main.testnet: 999930000000
+[capture] <out>/d2-20261108T131312Z.txt
+Dry-run invocation: + env DRY_RUN=1 AGENT_LABEL=demo\ agent CAP_PER_CALL=10 CAP_WINDOW=50 CAP_WINDOW_MS=86400000 UNKNOWN_PER_CALL=1 UNKNOWN_WINDOW=1 AGENT_ALLOWANCE_NEAR=1 TOKEN_DECIMALS=6 bash -l scripts/register_agent.sh ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2 --dry-run 
++ near contract call-function as-transaction kestrelridge-main.testnet register_agent json-args \{\"public_key\":\"ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2\"\,\"label\":\"demo\ agent\"\,\"caps\":\[\{\"asset\":\{\"Ft\":\"token.kestrelridge-main.testnet\"\}\,\"per_call\":\"10000000\"\,\"window_cap\":\"50000000\"\,\"window_ms\":86400000\,\"window_start_ms\":0\,\"spent\":\"0\"\}\]\,\"unknown_caps\":\[\{\"asset\":\{\"Ft\":\"token.kestrelridge-main.testnet\"\}\,\"per_call\":\"1000000\"\,\"window_cap\":\"1000000\"\,\"window_ms\":86400000\,\"window_start_ms\":0\,\"spent\":\"0\"\}\]\,\"allowance_yocto\":\"1000000000000000000000000\"\} prepaid-gas 100\ Tgas attached-deposit 1\ yoctoNEAR sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-owner.testnet.json send 
+
+Summary
+  network: testnet
+  account: kestrelridge-main.testnet
+  code_hash: unavailable during dry run
+  transaction_hashes: unavailable during dry run
+The dry-run plan for scripts/register_agent.sh has been printed. Type the exact word send to continue: Real invocation: + env AGENT_LABEL=demo\ agent CAP_PER_CALL=10 CAP_WINDOW=50 CAP_WINDOW_MS=86400000 UNKNOWN_PER_CALL=1 UNKNOWN_WINDOW=1 AGENT_ALLOWANCE_NEAR=1 TOKEN_DECIMALS=6 bash -l scripts/register_agent.sh ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2 
++ near contract call-function as-transaction kestrelridge-main.testnet register_agent json-args \{\"public_key\":\"ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2\"\,\"label\":\"demo\ agent\"\,\"caps\":\[\{\"asset\":\{\"Ft\":\"token.kestrelridge-main.testnet\"\}\,\"per_call\":\"10000000\"\,\"window_cap\":\"50000000\"\,\"window_ms\":86400000\,\"window_start_ms\":0\,\"spent\":\"0\"\}\]\,\"unknown_caps\":\[\{\"asset\":\{\"Ft\":\"token.kestrelridge-main.testnet\"\}\,\"per_call\":\"1000000\"\,\"window_cap\":\"1000000\"\,\"window_ms\":86400000\,\"window_start_ms\":0\,\"spent\":\"0\"\}\]\,\"allowance_yocto\":\"1000000000000000000000000\"\} prepaid-gas 100\ Tgas attached-deposit 1\ yoctoNEAR sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-owner.testnet.json send 
+├  Unsigned transaction:
+│    signer_id:    kestrelridge-owner.testnet
+│    receiver_id:  kestrelridge-main.testnet
+│    actions:
+│       -- function call:      
+│                       method name:  register_agent
+│                       args:         {
+│                                       "allowance_yocto": "1000000000000000000000000",
+│                                       "caps": [
+│                                         {
+│                                           "asset": {
+│                                             "Ft": "token.kestrelridge-main.testnet"
+│                                           },
+│                                           "per_call": "10000000",
+│                                           "spent": "0",
+│                                           "window_cap": "50000000",
+│                                           "window_ms": 86400000,
+│                                           "window_start_ms": 0
+│                                         }
+│                                       ],
+│                                       "label": "demo agent",
+│                                       "public_key": "ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2",
+│                                       "unknown_caps": [
+│                                         {
+│                                           "asset": {
+│                                             "Ft": "token.kestrelridge-main.testnet"
+│                                           },
+│                                           "per_call": "1000000",
+│                                           "spent": "0",
+│                                           "window_cap": "1000000",
+│                                           "window_ms": 86400000,
+│                                           "window_start_ms": 0
+│                                         }
+│                                       ]
+│                                     }
+│                       gas:          100.0 Tgas
+│                       deposit:      1 yoctoNEAR
+│     [0m
+├  Your transaction was signed successfully.
+│    Public key: ed25519:6UAfYZGkZqfsJXzvT8vCd13V4mZ975pqr9h2aS1VuA96
+│     [0m
+├  Transaction Execution Info:
+│    Gas burned: 0.331 Tgas
+│    Transaction fee: 0.000033066158091 NEAR
+│    Transaction ID: 41HSE2yY...RfW4QJ
+│    To see the transaction in the transaction explorer, please open this url in your browser:
+│    https://explorer.testnet.near.org/transactions/41HSE2yYvtobwbqRCR1uJsvwsPw2wFF3pbu3oqRfW4QJ
+│     [0m
+├  Function execution logs:
+│    Logs [kestrelridge-main.testnet]:
+│      EVENT_JSON:{"standard":"shieldbot-near","version":"1.0.0","event":"agent_registered","data":[{"agent_pk":"fc5b49a7e7d11222ec1f88aba4d8814b254286f45db917508049bbcf06e5bba9"}]}
+│    Logs [kestrelridge-main.testnet]:   No logs
+│    Logs [kestrelridge-owner.testnet]:   No logs
+│    Logs [kestrelridge-owner.testnet]:   No logs
+│     [0m
+├  Function execution return value:
+│    Empty return value
+│     [0m
+
+
+The "register_agent" call to <kestrelridge-main.testnet> on behalf of <kestrelridge-owner.testnet> succeeded.
+
+
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-transaction kestrelridge-main.testnet register_agent json-args '{"public_key":"ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2","label":"demo agent","caps":[{"asset":{"Ft":"token.kestrelridge-main.testnet"},"per_call":"10000000","window_cap":"50000000","window_ms":86400000,"window_start_ms":0,"spent":"0"}],"unknown_caps":[{"asset":{"Ft":"token.kestrelridge-main.testnet"},"per_call":"1000000","window_cap":"1000000","window_ms":86400000,"window_start_ms":0,"spent":"0"}],"allowance_yocto":"1000000000000000000000000"}' prepaid-gas '100.0 Tgas' attached-deposit '1 yoctoNEAR' sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-owner.testnet.json send[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
+
+Summary
+  network: testnet
+  account: kestrelridge-main.testnet
++ near account view-account-summary kestrelridge-main.testnet network-config testnet now 
+
+---------------------------------------------------------------------------------------------------------
+ kestrelridge-main.testnet              At block #276780436 
+                                        (7zwTkPR9LRQxi5fjEGB9TmP4Nd4ZH3ydhLCNoJPJCpZM) 
+---------------------------------------------------------------------------------------------------------
+ NEAR Social profile unavailable        The profile can be edited at [34mhttps://near.social[39m 
+                                        or using the cli command: [34mbos social-db manage-profile[39m 
+                                        (https://github.com/bos-cli-rs/bos-cli-rs) 
+---------------------------------------------------------------------------------------------------------
+ Native account balance                 10.953868666377409699999999 NEAR 
+---------------------------------------------------------------------------------------------------------
+ Validator stake                        0 NEAR 
+---------------------------------------------------------------------------------------------------------
+ Storage used by the account            265.3 KB 
+---------------------------------------------------------------------------------------------------------
+ Local Contract (SHA-256 checksum hex)  6b684655767171a102a74b3c7c0b0124c169e8b906e374dc450773419d000aa6 
+---------------------------------------------------------------------------------------------------------
+ Access keys                            1 full access keys and 1 function-call-only access keys 
+---------------------------------------------------------------------------------------------------------
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear account view-account-summary kestrelridge-main.testnet network-config testnet now[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
+  transaction_hashes: 41HSE2yY...RfW4QJ
+[capture] <out>/readback-d2-20261108T131445Z.txt
++ near contract call-function as-read-only kestrelridge-main.testnet get_agent json-args \{\"public_key\":\"ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2\"\} network-config testnet now 
+├  Logs:
+│    No logs[0m
+Function execution return value (printed to stdout):
+{
+  "allowlist": [],
+  "caps": [
+    {
+      "asset": {
+        "Ft": "token.kestrelridge-main.testnet"
+      },
+      "per_call": "10000000",
+      "spent": "0",
+      "window_cap": "50000000",
+      "window_ms": 86400000,
+      "window_start_ms": 0
+    }
+  ],
+  "enabled": true,
+  "label": "demo agent",
+  "unknown_caps": [
+    {
+      "asset": {
+        "Ft": "token.kestrelridge-main.testnet"
+      },
+      "per_call": "1000000",
+      "spent": "0",
+      "window_cap": "1000000",
+      "window_ms": 86400000,
+      "window_start_ms": 0
+    }
+  ]
+}
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-read-only kestrelridge-main.testnet get_agent json-args '{"public_key":"ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2"}' network-config testnet now[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
++ near account list-keys kestrelridge-main.testnet network-config testnet now 
++---+------------------------------------------------------+-----------------+------------------------------------------------------------------------------------------------------+
+| # | Public Key                                           | Nonce           | Permissions                                                                                          |
++---+------------------------------------------------------+-----------------+------------------------------------------------------------------------------------------------------+
+| 1 | ed25519:7gxqnnhZbSBFRnYmTg8T3UZ4WUULUNS97f4jnf1oygp8 | 275335998000013 | full access                                                                                          |
+| 2 | ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2 | 276780432000000 | only do ["request_transfer"] function calls on kestrelridge-main.testnet with an allowance of 1 NEAR |
++---+------------------------------------------------------+-----------------+------------------------------------------------------------------------------------------------------+
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear account list-keys kestrelridge-main.testnet network-config testnet now[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
+Verified list-keys shape: one full access key, one request_transfer function call key
+Verified get_agent: label demo agent, enabled, expected caps, empty allowlist
+[capture] <out>/d3-20261108T131505Z.txt
+Dry-run invocation: + env DRY_RUN=1 bash -l scripts/set_allowlist.sh ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2 kestrelridge-shop.testnet --dry-run 
++ near contract call-function as-transaction kestrelridge-main.testnet set_allowlist json-args \{\"agent_pk\":\"ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2\"\,\"accounts\":\[\"kestrelridge-shop.testnet\"\]\} prepaid-gas 100\ Tgas attached-deposit 1\ yoctoNEAR sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-owner.testnet.json send 
+
+Summary
+  network: testnet
+  account: kestrelridge-main.testnet
+  code_hash: unavailable during dry run
+  transaction_hashes: unavailable during dry run
+The dry-run plan for scripts/set_allowlist.sh has been printed. Type the exact word send to continue: Real invocation: + env bash -l scripts/set_allowlist.sh ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2 kestrelridge-shop.testnet 
++ near contract call-function as-transaction kestrelridge-main.testnet set_allowlist json-args \{\"agent_pk\":\"ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2\"\,\"accounts\":\[\"kestrelridge-shop.testnet\"\]\} prepaid-gas 100\ Tgas attached-deposit 1\ yoctoNEAR sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-owner.testnet.json send 
+├  Unsigned transaction:
+│    signer_id:    kestrelridge-owner.testnet
+│    receiver_id:  kestrelridge-main.testnet
+│    actions:
+│       -- function call:      
+│                       method name:  set_allowlist
+│                       args:         {
+│                                       "accounts": [
+│                                         "kestrelridge-shop.testnet"
+│                                       ],
+│                                       "agent_pk": "ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2"
+│                                     }
+│                       gas:          100.0 Tgas
+│                       deposit:      1 yoctoNEAR
+│     [0m
+├  Your transaction was signed successfully.
+│    Public key: ed25519:6UAfYZGkZqfsJXzvT8vCd13V4mZ975pqr9h2aS1VuA96
+│     [0m
+├  Transaction Execution Info:
+│    Gas burned: 0.314 Tgas
+│    Transaction fee: 0.0000313829229515 NEAR
+│    Transaction ID: HdwyaSb4...d2jXHY
+│    To see the transaction in the transaction explorer, please open this url in your browser:
+│    https://explorer.testnet.near.org/transactions/HdwyaSb4iZtz7tGZ3f6agK2dK3EDTPMqJj3TXwd2jXHY
+│     [0m
+├  Function execution logs:
+│    Logs [kestrelridge-main.testnet]:   No logs
+│    Logs [kestrelridge-owner.testnet]:   No logs
+│     [0m
+├  Function execution return value:
+│    Empty return value
+│     [0m
+
+
+The "set_allowlist" call to <kestrelridge-main.testnet> on behalf of <kestrelridge-owner.testnet> succeeded.
+
+
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-transaction kestrelridge-main.testnet set_allowlist json-args '{"agent_pk":"ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2","accounts":["kestrelridge-shop.testnet"]}' prepaid-gas '100.0 Tgas' attached-deposit '1 yoctoNEAR' sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-owner.testnet.json send[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
+
+Summary
+  network: testnet
+  account: kestrelridge-main.testnet
++ near account view-account-summary kestrelridge-main.testnet network-config testnet now 
+
+---------------------------------------------------------------------------------------------------------
+ kestrelridge-main.testnet              At block #276780611 
+                                        (G41QrTyTbGDKxNkm6ge6v5pJVfV95EXqmbGNY2BDFQPo) 
+---------------------------------------------------------------------------------------------------------
+ NEAR Social profile unavailable        The profile can be edited at [34mhttps://near.social[39m 
+                                        or using the cli command: [34mbos social-db manage-profile[39m 
+                                        (https://github.com/bos-cli-rs/bos-cli-rs) 
+---------------------------------------------------------------------------------------------------------
+ Native account balance                 10.9538686663774097 NEAR 
+---------------------------------------------------------------------------------------------------------
+ Validator stake                        0 NEAR 
+---------------------------------------------------------------------------------------------------------
+ Storage used by the account            265.3 KB 
+---------------------------------------------------------------------------------------------------------
+ Local Contract (SHA-256 checksum hex)  6b684655767171a102a74b3c7c0b0124c169e8b906e374dc450773419d000aa6 
+---------------------------------------------------------------------------------------------------------
+ Access keys                            1 full access keys and 1 function-call-only access keys 
+---------------------------------------------------------------------------------------------------------
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear account view-account-summary kestrelridge-main.testnet network-config testnet now[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
+  transaction_hashes: HdwyaSb4...d2jXHY
+[capture] <out>/readback-d3-20261108T131629Z.txt
++ near contract call-function as-read-only kestrelridge-main.testnet get_agent json-args \{\"public_key\":\"ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2\"\} network-config testnet now 
+├  Logs:
+│    No logs[0m
+Function execution return value (printed to stdout):
+{
+  "allowlist": [
+    "kestrelridge-shop.testnet"
+  ],
+  "caps": [
+    {
+      "asset": {
+        "Ft": "token.kestrelridge-main.testnet"
+      },
+      "per_call": "10000000",
+      "spent": "0",
+      "window_cap": "50000000",
+      "window_ms": 86400000,
+      "window_start_ms": 0
+    }
+  ],
+  "enabled": true,
+  "label": "demo agent",
+  "unknown_caps": [
+    {
+      "asset": {
+        "Ft": "token.kestrelridge-main.testnet"
+      },
+      "per_call": "1000000",
+      "spent": "0",
+      "window_cap": "1000000",
+      "window_ms": 86400000,
+      "window_start_ms": 0
+    }
+  ]
+}
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-read-only kestrelridge-main.testnet get_agent json-args '{"public_key":"ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2"}' network-config testnet now[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
+Verified get_agent: label demo agent, enabled, expected caps, allowlist [kestrelridge-shop.testnet]
+[capture] <out>/readback-d3-20261108T131754Z.txt
++ near contract call-function as-read-only kestrelridge-main.testnet get_policy json-args \{\} network-config testnet now 
+├  Logs:
+│    No logs[0m
+Function execution return value (printed to stdout):
+{
+  "denylist": [],
+  "max_ttl_ms": 300000,
+  "paused": true
+}
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-read-only kestrelridge-main.testnet get_policy json-args {} network-config testnet now[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
+Verified get_policy: paused=true
++ near contract call-function as-read-only kestrelridge-main.testnet get_agent json-args \{\"public_key\":\"ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2\"\} network-config testnet now 
+├  Logs:
+│    No logs[0m
+Function execution return value (printed to stdout):
+{
+  "allowlist": [
+    "kestrelridge-shop.testnet"
+  ],
+  "caps": [
+    {
+      "asset": {
+        "Ft": "token.kestrelridge-main.testnet"
+      },
+      "per_call": "10000000",
+      "spent": "0",
+      "window_cap": "50000000",
+      "window_ms": 86400000,
+      "window_start_ms": 0
+    }
+  ],
+  "enabled": true,
+  "label": "demo agent",
+  "unknown_caps": [
+    {
+      "asset": {
+        "Ft": "token.kestrelridge-main.testnet"
+      },
+      "per_call": "1000000",
+      "spent": "0",
+      "window_cap": "1000000",
+      "window_ms": 86400000,
+      "window_start_ms": 0
+    }
+  ]
+}
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-read-only kestrelridge-main.testnet get_agent json-args '{"public_key":"ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2"}' network-config testnet now[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
+Verified get_agent: label demo agent, enabled, expected caps, allowlist [kestrelridge-shop.testnet]
+[capture] <out>/d4-20261108T131803Z.txt
+Dry-run invocation: + env DRY_RUN=1 bash -l scripts/set_paused.sh false --dry-run 
++ near contract call-function as-transaction kestrelridge-main.testnet set_paused json-args \{\"paused\":false\} prepaid-gas 100\ Tgas attached-deposit 1\ yoctoNEAR sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-owner.testnet.json send 
+
+Summary
+  network: testnet
+  account: kestrelridge-main.testnet
+  code_hash: unavailable during dry run
+  transaction_hashes: unavailable during dry run
+The dry-run plan for scripts/set_paused.sh has been printed. Type the exact word send to continue: Real invocation: + env bash -l scripts/set_paused.sh false 
++ near contract call-function as-transaction kestrelridge-main.testnet set_paused json-args \{\"paused\":false\} prepaid-gas 100\ Tgas attached-deposit 1\ yoctoNEAR sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-owner.testnet.json send 
+├  Unsigned transaction:
+│    signer_id:    kestrelridge-owner.testnet
+│    receiver_id:  kestrelridge-main.testnet
+│    actions:
+│       -- function call:      
+│                       method name:  set_paused
+│                       args:         {
+│                                       "paused": false
+│                                     }
+│                       gas:          100.0 Tgas
+│                       deposit:      1 yoctoNEAR
+│     [0m
+├  Your transaction was signed successfully.
+│    Public key: ed25519:6UAfYZGkZqfsJXzvT8vCd13V4mZ975pqr9h2aS1VuA96
+│     [0m
+├  Transaction Execution Info:
+│    Gas burned: 0.310 Tgas
+│    Transaction fee: 0.000030929927659 NEAR
+│    Transaction ID: 6XjGc5mS...yJiEZJ
+│    To see the transaction in the transaction explorer, please open this url in your browser:
+│    https://explorer.testnet.near.org/transactions/6XjGc5mSBHBQUx8kMgmAZ8wmj9REfp15yuDkuwyJiEZJ
+│     [0m
+├  Function execution logs:
+│    Logs [kestrelridge-main.testnet]:   No logs
+│    Logs [kestrelridge-owner.testnet]:   No logs
+│     [0m
+├  Function execution return value:
+│    Empty return value
+│     [0m
+
+
+The "set_paused" call to <kestrelridge-main.testnet> on behalf of <kestrelridge-owner.testnet> succeeded.
+
+
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-transaction kestrelridge-main.testnet set_paused json-args '{"paused":false}' prepaid-gas '100.0 Tgas' attached-deposit '1 yoctoNEAR' sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-owner.testnet.json send[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
+
+Summary
+  network: testnet
+  account: kestrelridge-main.testnet
++ near account view-account-summary kestrelridge-main.testnet network-config testnet now 
+
+---------------------------------------------------------------------------------------------------------
+ kestrelridge-main.testnet              At block #276781462 
+                                        (HBHnZvrQxb1EkhGQX8UuMpxXSYouyRG9DnAKiDEYCZZV) 
+---------------------------------------------------------------------------------------------------------
+ NEAR Social profile unavailable        The profile can be edited at [34mhttps://near.social[39m 
+                                        or using the cli command: [34mbos social-db manage-profile[39m 
+                                        (https://github.com/bos-cli-rs/bos-cli-rs) 
+---------------------------------------------------------------------------------------------------------
+ Native account balance                 10.953868666377409700000001 NEAR 
+---------------------------------------------------------------------------------------------------------
+ Validator stake                        0 NEAR 
+---------------------------------------------------------------------------------------------------------
+ Storage used by the account            265.3 KB 
+---------------------------------------------------------------------------------------------------------
+ Local Contract (SHA-256 checksum hex)  6b684655767171a102a74b3c7c0b0124c169e8b906e374dc450773419d000aa6 
+---------------------------------------------------------------------------------------------------------
+ Access keys                            1 full access keys and 1 function-call-only access keys 
+---------------------------------------------------------------------------------------------------------
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear account view-account-summary kestrelridge-main.testnet network-config testnet now[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
+  transaction_hashes: 6XjGc5mS...yJiEZJ
+[capture] <out>/readback-d4-20261108T132426Z.txt
++ near contract call-function as-read-only kestrelridge-main.testnet get_policy json-args \{\} network-config testnet now 
+├  Logs:
+│    No logs[0m
+Function execution return value (printed to stdout):
+{
+  "denylist": [],
+  "max_ttl_ms": 300000,
+  "paused": false
+}
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-read-only kestrelridge-main.testnet get_policy json-args {} network-config testnet now[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
+Verified get_policy: paused=false, max_ttl_ms=300000
++ near contract call-function as-read-only kestrelridge-main.testnet get_agent json-args \{\"public_key\":\"ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2\"\} network-config testnet now 
+├  Logs:
+│    No logs[0m
+Function execution return value (printed to stdout):
+{
+  "allowlist": [
+    "kestrelridge-shop.testnet"
+  ],
+  "caps": [
+    {
+      "asset": {
+        "Ft": "token.kestrelridge-main.testnet"
+      },
+      "per_call": "10000000",
+      "spent": "0",
+      "window_cap": "50000000",
+      "window_ms": 86400000,
+      "window_start_ms": 0
+    }
+  ],
+  "enabled": true,
+  "label": "demo agent",
+  "unknown_caps": [
+    {
+      "asset": {
+        "Ft": "token.kestrelridge-main.testnet"
+      },
+      "per_call": "1000000",
+      "spent": "0",
+      "window_cap": "1000000",
+      "window_ms": 86400000,
+      "window_start_ms": 0
+    }
+  ]
+}
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-read-only kestrelridge-main.testnet get_agent json-args '{"public_key":"ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2"}' network-config testnet now[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
+Verified get_agent: label demo agent, enabled, expected caps, allowlist [kestrelridge-shop.testnet]
++ near account list-keys kestrelridge-main.testnet network-config testnet now 
++---+------------------------------------------------------+-----------------+------------------------------------------------------------------------------------------------------+
+| # | Public Key                                           | Nonce           | Permissions                                                                                          |
++---+------------------------------------------------------+-----------------+------------------------------------------------------------------------------------------------------+
+| 1 | ed25519:7gxqnnhZbSBFRnYmTg8T3UZ4WUULUNS97f4jnf1oygp8 | 275335998000013 | full access                                                                                          |
+| 2 | ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2 | 276780432000000 | only do ["request_transfer"] function calls on kestrelridge-main.testnet with an allowance of 1 NEAR |
++---+------------------------------------------------------+-----------------+------------------------------------------------------------------------------------------------------+
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear account list-keys kestrelridge-main.testnet network-config testnet now[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
+Verified list-keys shape: one full access key, one request_transfer function call key
++ near contract call-function as-read-only token.kestrelridge-main.testnet ft_balance_of json-args \{\"account_id\":\"kestrelridge-main.testnet\"\} network-config testnet now 
+├  Logs:
+│    No logs[0m
+Function execution return value (printed to stdout):
+"999930000000"
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-read-only token.kestrelridge-main.testnet ft_balance_of json-args '{"account_id":"kestrelridge-main.testnet"}' network-config testnet now[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
+Parsed ft_balance_of for kestrelridge-main.testnet: 999930000000
++ GATE_FIXTURES_MODE=off python -m gate scan kestrelridge-main.testnet
+account: kestrelridge-main.testnet on https://test.rpc.fastnear.com, read at block 276781489
+access keys: 2
+full access keys: 1
+  ed25519:7gxqnnhZbSBFRnYmTg8T3UZ4WUULUNS97f4jnf1oygp8
+empty method_names: 0, these may call any method on their receiver
+dead keys: 0, allowance "0"
+unlimited allowance: 0, allowance null
+agent keys: 1 scoped to kestrelridge-main.testnet, 0 with method_names other than exactly ["request_transfer"]
+verifier keys: the TEST key is ed25519:36ZbCswnc8QBvUxFF1pEwKwj6PZwgRWGe4nqcdy9HCzL
+  on chain current: ed25519:9SVNJQqQjSKFo6LXpSJJXWKEjV65V93mHUsXGhmokyb5, different from the TEST key
+labels: 0
+Verified scan agent count: 1

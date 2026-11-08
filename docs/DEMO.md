@@ -84,6 +84,8 @@ After the orchestrator records the shoot's verdicts in the registry, open `/veri
 
 ### 8. 85 to 97 seconds: the kill switch
 
+The kill switch was rehearsed on testnet on 8 Nov 2026; the completed drill and readbacks are recorded in `fixtures/runs/kill-switch-drill-2026-11-08.txt`.
+
 ```console
 bash scripts/kill_switch.sh <agent pub>
 ```
