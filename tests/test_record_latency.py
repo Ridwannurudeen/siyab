@@ -110,7 +110,7 @@ class RecordLatencyTest(unittest.TestCase):
         code, stdout, stderr, _ = self.record("examples.testnet", TIER2_DOCUMENT, TIER2_DOCUMENT)
         self.assertEqual(code, 0, stderr)
         rows = read(self.out)
-        self.assertEqual([row["path"] for row in rows], [read(TIER2_RUNS)[0]["path"]] * 2)
+        self.assertEqual([row["path"] for row in rows], ["tier 1 and 2, account age from the NearBlocks key creation time"] * 2)
         self.assertEqual([row["latency_ms"] for row in rows], [read(TIER2_DOCUMENT)["latency_ms"]] * 2)
         line = self.counts.tier2_latency_line(self.out)
         self.assertEqual(line, "Latency, payee off the allowlist: p50 13477 ms, p95 13477 ms over 2 verdict runs.")
@@ -214,7 +214,7 @@ class PathTest(RulesCase):
 
     def test_recorded_documents(self):
         self.assertEqual([self.recorder.path_of(read(path)["checks"]) for path in TIER1_DOCUMENTS], ["tier 1"] * 4)
-        self.assertEqual(self.recorder.path_of(read(TIER2_DOCUMENT)["checks"]), read(TIER2_RUNS)[0]["path"])
+        self.assertEqual(self.recorder.path_of(read(TIER2_DOCUMENT)["checks"]), "tier 1 and 2, account age from the NearBlocks key creation time")
         self.assertIsNone(self.recorder.path_of(read(LOOKALIKE_DOCUMENT)["checks"]))
         self.assertIsNone(self.recorder.path_of(read(SUPERSEDED_DOCUMENT)["checks"]))
 
