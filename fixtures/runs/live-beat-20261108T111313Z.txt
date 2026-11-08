@@ -1,0 +1,484 @@
+# live report beat on testnet, 20261108T111313Z; transaction output with ed25519 signature text removed and 128 hex strings shortened to first and last 8; every other line as captured
+commit: d6852f0231f99c192f7ca2871da8f6351008ba51
+reports: reports.kestrelridge-main.testnet; owner and moderator: kestrelridge-owner.testnet; reporter: kestrelridge-shop.testnet; disputer: lindenvale.testnet; subject: kestrelridge-mallory.testnet
+evidence_url: https://raw.githubusercontent.com/Ridwannurudeen/shieldbot-near/d6852f0231f99c192f7ca2871da8f6351008ba51/docs/demo/synthetic-report.md
+evidence_sha256 (sha256 of docs/demo/synthetic-report.md): d07ec137a663d2599f85986b2e7f467823aea815058c6a173bbf90b0b2ce140a
+evidence_check: local
+evidence_url note: the URL is readable once the repository is public, and scripts/public_flip_check.py --fetch-evidence fetches it then
+moderation reason: live report beat: accepted to show the deny path on our own demo counterparty account; the evidence page says the report is synthetic
+moderation reason_sha256: 14efd748a564c73800a73f59e0a04fdb5e1fa6c7dfeb40e067e1fe845a009137
+resolution reason: live report beat: overturned because the report is synthetic, as the first line of its evidence page says; nothing happened to anyone
+resolution reason_sha256: bc78666383b11258708ced44dc63809765f89816e3ecf59bc7d5aa51c85b4b3c
+
+## a. before the report
++ git -C /srv/sb merge-base --is-ancestor d6852f0231f99c192f7ca2871da8f6351008ba51 refs/remotes/origin/main 
++ git -C /srv/sb show d6852f0231f99c192f7ca2871da8f6351008ba51:docs/demo/synthetic-report.md and compare its sha256 with d07ec137a663d2599f85986b2e7f467823aea815058c6a173bbf90b0b2ce140a
+evidence page matches
++ near contract call-function as-read-only reports.kestrelridge-main.testnet subject_summary json-args \{\"subject\":\"kestrelridge-mallory.testnet\"\} network-config testnet now 
+subject_summary: {"accepted":0,"contested":0,"deny":false,"latest_accepted_id":null,"latest_deny_id":null,"pending":0}
+expect subject_summary: {"accepted":0,"contested":0,"deny":false,"latest_accepted_id":null,"latest_deny_id":null,"pending":0}
++ env GATE_FIXTURES_MODE=off REPORTS_ACCOUNT_ID=reports.kestrelridge-main.testnet python3 -m gate verdict --kind ft --token token.kestrelridge-main.testnet --receiver kestrelridge-mallory.testnet --amount 1000000 --gate kestrelridge-main.testnet --evidence-dir /tmp/tmp.7WzMpPr1lT --out /tmp/tmp.7WzMpPr1lT 
+expect: community_report: reports for kestrelridge-mallory.testnet: no community report; pending 0
+pass    receiver_exists: kestrelridge-mallory.testnet exists
+pass    label_denylist: no denylist or incident label on kestrelridge-mallory.testnet or token.kestrelridge-main.testnet
+signal  token_in_catalog: token_not_in_catalog: token.kestrelridge-main.testnet is neither a cap asset nor a catalog_token
+pass    ft_metadata_sane: symbol "DMT", 6 decimals
+pass    storage_registered: kestrelridge-mallory.testnet is registered on token.kestrelridge-main.testnet
+pass    memo_injection: no memo
+pass    community_report: reports for kestrelridge-mallory.testnet: no community report; pending 0
+pass    account_age: oldest access key nonce 275336010000006 from test.rpc.fastnear.com: existed by block 275336011 (2026-10-29T18:17:02Z) from archival-rpc.testnet.fastnear.com, at least 7 d old
+pass    dust_funded: creation deposit not read: a deposit is a signal only with lookalike or account_age
+pass    lookalike: no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation
+pass    code_without_metadata: no contract code
+verdict: DENY
+  Not on the owner's allowlist.
+  token.kestrelridge-main.testnet is not a catalog token or a cap asset of the agent.
+action: refuse
+evidence: 787cd60657ccb95008e323e1fd78239c7583442217c7beeab32d293c8284a39f
+latency: 10966 ms
+{"literal": "DENY", "evidence_hash": "787cd60657ccb95008e323e1fd78239c7583442217c7beeab32d293c8284a39f"}
+wrote /tmp/tmp.7WzMpPr1lT/787cd60657ccb95008e323e1fd78239c7583442217c7beeab32d293c8284a39f.verdict.json
++ near contract call-function as-read-only reports.kestrelridge-main.testnet totals json-args \{\} network-config testnet now 
+totals: {"disputes":0,"reports":0}
+
+## b. file the report
++ bash /srv/sb/scripts/report.sh reports.kestrelridge-main.testnet kestrelridge-mallory.testnet theft near_miss d07ec137a663d2599f85986b2e7f467823aea815058c6a173bbf90b0b2ce140a https://raw.githubusercontent.com/Ridwannurudeen/shieldbot-near/d6852f0231f99c192f7ca2871da8f6351008ba51/docs/demo/synthetic-report.md 
++ near contract call-function as-transaction reports.kestrelridge-main.testnet submit_report json-args \{\"subject\":\"kestrelridge-mallory.testnet\"\,\"kind\":\"theft\"\,\"outcome\":\"near_miss\"\,\"evidence_sha256\":\"d07ec137a663d2599f85986b2e7f467823aea815058c6a173bbf90b0b2ce140a\"\,\"evidence_url\":\"https://raw.githubusercontent.com/Ridwannurudeen/shieldbot-near/d6852f0231f99c192f7ca2871da8f6351008ba51/docs/demo/synthetic-report.md\"\} prepaid-gas 100\ Tgas attached-deposit 30000000000000000000000\ yoctoNEAR sign-as kestrelridge-shop.testnet network-config testnet sign-with-access-key-file /srv/keys/kestrelridge-shop.testnet.json send 
+├  Unsigned transaction:
+│    signer_id:    kestrelridge-shop.testnet
+│    receiver_id:  reports.kestrelridge-main.testnet
+│    actions:
+│       -- function call:      
+│                       method name:  submit_report
+│                       args:         {
+│                                       "evidence_sha256": "d07ec137a663d2599f85986b2e7f467823aea815058c6a173bbf90b0b2ce140a",
+│                                       "evidence_url": "https://raw.githubusercontent.com/Ridwannurudeen/shieldbot-near/d6852f0231f99c192f7ca2871da8f6351008ba51/docs/demo/synthetic-report.md",
+│                                       "kind": "theft",
+│                                       "outcome": "near_miss",
+│                                       "subject": "kestrelridge-mallory.testnet"
+│                                     }
+│                       gas:          100.0 Tgas
+│                       deposit:      0.03 NEAR
+│     [0m
+├  Your transaction was signed successfully.
+│    Public key: ed25519:6SheYpQeWpd2RP5ttAUh2B7uf5CbkK61PQEDx7The8DS
+│    Signature:  ed25519:<signature removed>
+│     [0m
+├  Transaction Execution Info:
+│    Gas burned: 0.324 Tgas
+│    Transaction fee: 0.0000323747442235 NEAR
+│    Transaction ID: EMBP2oox...8KQ1ob
+│    To see the transaction in the transaction explorer, please open this url in your browser:
+│    https://explorer.testnet.near.org/transactions/EMBP2ooxwc99tm8dfbBzjQhLdYD4jHcW43EEDB8KQ1ob
+│     [0m
+├  Function execution logs:
+│    Logs [reports.kestrelridge-main.testnet]:
+│      EVENT_JSON:{"standard":"shieldbot-near","version":"1.0.0","event":"report_submitted","data":[{"report_id":0,"subject":"kestrelridge-mallory.testnet","state":"pending","body_sha256":"d697ef21cf3d73f45a9ed3fb28b95d5a729517154590998ed02e5d0026762baf"}]}
+│    Logs [kestrelridge-shop.testnet]:   No logs
+│     [0m
+
+Function execution return value (printed to stdout):
+0
+
+
+The "submit_report" call to <reports.kestrelridge-main.testnet> on behalf of <kestrelridge-shop.testnet> succeeded.
+
+
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-transaction reports.kestrelridge-main.testnet submit_report json-args '{"subject":"kestrelridge-mallory.testnet","kind":"theft","outcome":"near_miss","evidence_sha256":"d07ec137a663d2599f85986b2e7f467823aea815058c6a173bbf90b0b2ce140a","evidence_url":"https://raw.githubusercontent.com/Ridwannurudeen/shieldbot-near/d6852f0231f99c192f7ca2871da8f6351008ba51/docs/demo/synthetic-report.md"}' prepaid-gas '100.0 Tgas' attached-deposit '0.03 NEAR' sign-as kestrelridge-shop.testnet network-config testnet sign-with-access-key-file /srv/keys/kestrelridge-shop.testnet.json send[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
+
+Summary
+  network: testnet
+  account: reports.kestrelridge-main.testnet
++ near account view-account-summary reports.kestrelridge-main.testnet network-config testnet now 
+
+---------------------------------------------------------------------------------------------------------
+ reports.kestrelridge-main.testnet      At block #276768082 
+                                        (8hB8NcQhXC6KaFW8ShgP6w2B64utitWBcZfmxZ2uYt3x) 
+---------------------------------------------------------------------------------------------------------
+ NEAR Social profile unavailable        The profile can be edited at [34mhttps://near.social[39m 
+                                        or using the cli command: [34mbos social-db manage-profile[39m 
+                                        (https://github.com/bos-cli-rs/bos-cli-rs) 
+---------------------------------------------------------------------------------------------------------
+ Native account balance                 3.0253997707974519 NEAR 
+---------------------------------------------------------------------------------------------------------
+ Validator stake                        0 NEAR 
+---------------------------------------------------------------------------------------------------------
+ Storage used by the account            204.4 KB 
+---------------------------------------------------------------------------------------------------------
+ Local Contract (SHA-256 checksum hex)  ba2551dc54c24706a35fef0101e248e238248f381eea96e874aae67f7f8b7705 
+---------------------------------------------------------------------------------------------------------
+ Access keys                            1 full access keys and 0 function-call-only access keys 
+---------------------------------------------------------------------------------------------------------
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear account view-account-summary reports.kestrelridge-main.testnet network-config testnet now[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
+  transaction_hashes: EMBP2oox...8KQ1ob
++ near contract call-function as-read-only reports.kestrelridge-main.testnet totals json-args \{\} network-config testnet now 
+totals: {"disputes":0,"reports":1}
+report id: 0 (totals.reports before the report)
++ near contract call-function as-read-only reports.kestrelridge-main.testnet get_report json-args \{\"id\":0\} network-config testnet now 
+get_report: {"body_sha256":"d697ef21cf3d73f45a9ed3fb28b95d5a729517154590998ed02e5d0026762baf","dispute_ids":[],"evidence_sha256":"d07ec137a663d2599f85986b2e7f467823aea815058c6a173bbf90b0b2ce140a","evidence_url":"https://raw.githubusercontent.com/Ridwannurudeen/shieldbot-near/d6852f0231f99c192f7ca2871da8f6351008ba51/docs/demo/synthetic-report.md","id":0,"kind":"theft","moderated_ms":null,"moderator":null,"outcome":"near_miss","reason_sha256":null,"state":"pending","subject":"kestrelridge-mallory.testnet","submitted_ms":1794136413669,"submitter":"kestrelridge-shop.testnet"}
+expect get_report 0: state pending, subject kestrelridge-mallory.testnet, submitter kestrelridge-shop.testnet, kind theft, outcome near_miss, evidence_sha256 d07ec137a663d2599f85986b2e7f467823aea815058c6a173bbf90b0b2ce140a
+
+## c. pending
++ near contract call-function as-read-only reports.kestrelridge-main.testnet subject_summary json-args \{\"subject\":\"kestrelridge-mallory.testnet\"\} network-config testnet now 
+subject_summary: {"accepted":0,"contested":0,"deny":false,"latest_accepted_id":null,"latest_deny_id":null,"pending":1}
+expect subject_summary: {"accepted":0,"contested":0,"deny":false,"latest_accepted_id":null,"latest_deny_id":null,"pending":1}
++ env GATE_FIXTURES_MODE=off REPORTS_ACCOUNT_ID=reports.kestrelridge-main.testnet python3 -m gate verdict --kind ft --token token.kestrelridge-main.testnet --receiver kestrelridge-mallory.testnet --amount 1000000 --gate kestrelridge-main.testnet --evidence-dir /tmp/tmp.7WzMpPr1lT --out /tmp/tmp.7WzMpPr1lT 
+expect: community_report: reports for kestrelridge-mallory.testnet: 1 pending report(s) await moderation; no effect
+pass    receiver_exists: kestrelridge-mallory.testnet exists
+pass    label_denylist: no denylist or incident label on kestrelridge-mallory.testnet or token.kestrelridge-main.testnet
+signal  token_in_catalog: token_not_in_catalog: token.kestrelridge-main.testnet is neither a cap asset nor a catalog_token
+pass    ft_metadata_sane: symbol "DMT", 6 decimals
+pass    storage_registered: kestrelridge-mallory.testnet is registered on token.kestrelridge-main.testnet
+pass    memo_injection: no memo
+pass    community_report: reports for kestrelridge-mallory.testnet: 1 pending report(s) await moderation; no effect
+pass    account_age: oldest access key nonce 275336010000006 from test.rpc.fastnear.com: existed by block 275336011 (2026-10-29T18:17:02Z) from archival-rpc.testnet.fastnear.com, at least 7 d old
+pass    dust_funded: creation deposit not read: a deposit is a signal only with lookalike or account_age
+pass    lookalike: no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation
+pass    code_without_metadata: no contract code
+verdict: DENY
+  Not on the owner's allowlist.
+  token.kestrelridge-main.testnet is not a catalog token or a cap asset of the agent.
+action: refuse
+evidence: efef2b616af8d9503a57b7709ae345876c1ba6a2e0bcb3c8e5de3a38600121fe
+latency: 9236 ms
+{"literal": "DENY", "evidence_hash": "efef2b616af8d9503a57b7709ae345876c1ba6a2e0bcb3c8e5de3a38600121fe"}
+wrote /tmp/tmp.7WzMpPr1lT/efef2b616af8d9503a57b7709ae345876c1ba6a2e0bcb3c8e5de3a38600121fe.verdict.json
+
+## d. accept
++ bash /srv/sb/scripts/moderate.sh reports.kestrelridge-main.testnet 0 accept 14efd748a564c73800a73f59e0a04fdb5e1fa6c7dfeb40e067e1fe845a009137 
++ near contract call-function as-transaction reports.kestrelridge-main.testnet moderate json-args \{\"id\":0\,\"accept\":true\,\"reason_sha256\":\"14efd748a564c73800a73f59e0a04fdb5e1fa6c7dfeb40e067e1fe845a009137\"\} prepaid-gas 100\ Tgas attached-deposit 1\ yoctoNEAR sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file /srv/keys/kestrelridge-owner.testnet.json send 
+├  Unsigned transaction:
+│    signer_id:    kestrelridge-owner.testnet
+│    receiver_id:  reports.kestrelridge-main.testnet
+│    actions:
+│       -- function call:      
+│                       method name:  moderate
+│                       args:         {
+│                                       "accept": true,
+│                                       "id": 0,
+│                                       "reason_sha256": "14efd748a564c73800a73f59e0a04fdb5e1fa6c7dfeb40e067e1fe845a009137"
+│                                     }
+│                       gas:          100.0 Tgas
+│                       deposit:      1 yoctoNEAR
+│     [0m
+├  Your transaction was signed successfully.
+│    Public key: ed25519:6UAfYZGkZqfsJXzvT8vCd13V4mZ975pqr9h2aS1VuA96
+│    Signature:  ed25519:<signature removed>
+│     [0m
+├  Transaction Execution Info:
+│    Gas burned: 0.314 Tgas
+│    Transaction fee: 0.0000313447759795 NEAR
+│    Transaction ID: 3jeJfBB8...bFJxtz
+│    To see the transaction in the transaction explorer, please open this url in your browser:
+│    https://explorer.testnet.near.org/transactions/3jeJfBB8pbzTBiuBu28mMZY9ZBKZgQvoUx7XLFbFJxtz
+│     [0m
+├  Function execution logs:
+│    Logs [reports.kestrelridge-main.testnet]:
+│      EVENT_JSON:{"standard":"shieldbot-near","version":"1.0.0","event":"report_moderated","data":[{"report_id":0,"subject":"kestrelridge-mallory.testnet","state":"accepted","body_sha256":"d697ef21cf3d73f45a9ed3fb28b95d5a729517154590998ed02e5d0026762baf","moderator":"kestrelridge-owner.testnet","reason_sha256":"14efd748a564c73800a73f59e0a04fdb5e1fa6c7dfeb40e067e1fe845a009137"}]}
+│    Logs [kestrelridge-owner.testnet]:   No logs
+│     [0m
+├  Function execution return value:
+│    Empty return value
+│     [0m
+
+
+The "moderate" call to <reports.kestrelridge-main.testnet> on behalf of <kestrelridge-owner.testnet> succeeded.
+
+
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-transaction reports.kestrelridge-main.testnet moderate json-args '{"id":0,"accept":true,"reason_sha256":"14efd748a564c73800a73f59e0a04fdb5e1fa6c7dfeb40e067e1fe845a009137"}' prepaid-gas '100.0 Tgas' attached-deposit '1 yoctoNEAR' sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file /srv/keys/kestrelridge-owner.testnet.json send[39m
+
+Summary
+  network: testnet
+  account: reports.kestrelridge-main.testnet
++ near account view-account-summary reports.kestrelridge-main.testnet network-config testnet now 
+
+---------------------------------------------------------------------------------------------------------
+ reports.kestrelridge-main.testnet      At block #276768176 
+                                        (BPB1QqubJcCrin1HUDZhN7eGSTNGnENaf6PcmLok1kfB) 
+---------------------------------------------------------------------------------------------------------
+ NEAR Social profile unavailable        The profile can be edited at [34mhttps://near.social[39m 
+                                        or using the cli command: [34mbos social-db manage-profile[39m 
+                                        (https://github.com/bos-cli-rs/bos-cli-rs) 
+---------------------------------------------------------------------------------------------------------
+ Native account balance                 3.025399770797451900000001 NEAR 
+---------------------------------------------------------------------------------------------------------
+ Validator stake                        0 NEAR 
+---------------------------------------------------------------------------------------------------------
+ Storage used by the account            204.6 KB 
+---------------------------------------------------------------------------------------------------------
+ Local Contract (SHA-256 checksum hex)  ba2551dc54c24706a35fef0101e248e238248f381eea96e874aae67f7f8b7705 
+---------------------------------------------------------------------------------------------------------
+ Access keys                            1 full access keys and 0 function-call-only access keys 
+---------------------------------------------------------------------------------------------------------
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear account view-account-summary reports.kestrelridge-main.testnet network-config testnet now[39m
+  transaction_hashes: 3jeJfBB8...bFJxtz
++ near contract call-function as-read-only reports.kestrelridge-main.testnet get_report json-args \{\"id\":0\} network-config testnet now 
+get_report: {"body_sha256":"d697ef21cf3d73f45a9ed3fb28b95d5a729517154590998ed02e5d0026762baf","dispute_ids":[],"evidence_sha256":"d07ec137a663d2599f85986b2e7f467823aea815058c6a173bbf90b0b2ce140a","evidence_url":"https://raw.githubusercontent.com/Ridwannurudeen/shieldbot-near/d6852f0231f99c192f7ca2871da8f6351008ba51/docs/demo/synthetic-report.md","id":0,"kind":"theft","moderated_ms":1794136464119,"moderator":"kestrelridge-owner.testnet","outcome":"near_miss","reason_sha256":"14efd748a564c73800a73f59e0a04fdb5e1fa6c7dfeb40e067e1fe845a009137","state":"accepted","subject":"kestrelridge-mallory.testnet","submitted_ms":1794136413669,"submitter":"kestrelridge-shop.testnet"}
+expect get_report 0: state accepted, subject kestrelridge-mallory.testnet, submitter kestrelridge-shop.testnet, kind theft, outcome near_miss, evidence_sha256 d07ec137a663d2599f85986b2e7f467823aea815058c6a173bbf90b0b2ce140a
+
+## e. accepted
++ near contract call-function as-read-only reports.kestrelridge-main.testnet subject_summary json-args \{\"subject\":\"kestrelridge-mallory.testnet\"\} network-config testnet now 
+subject_summary: {"accepted":1,"contested":0,"deny":true,"latest_accepted_id":0,"latest_deny_id":0,"pending":0}
+expect subject_summary: {"accepted":1,"contested":0,"deny":true,"latest_accepted_id":0,"latest_deny_id":0,"pending":0}
++ env GATE_FIXTURES_MODE=off REPORTS_ACCOUNT_ID=reports.kestrelridge-main.testnet python3 -m gate verdict --kind ft --token token.kestrelridge-main.testnet --receiver kestrelridge-mallory.testnet --amount 1000000 --gate kestrelridge-main.testnet --evidence-dir /tmp/tmp.7WzMpPr1lT --out /tmp/tmp.7WzMpPr1lT 
+expect: community_report: reports for kestrelridge-mallory.testnet: deny report 0 is accepted; 0 under dispute; pending 0
+expect: verdict: DENY
+pass    receiver_exists: kestrelridge-mallory.testnet exists
+pass    label_denylist: no denylist or incident label on kestrelridge-mallory.testnet or token.kestrelridge-main.testnet
+signal  token_in_catalog: token_not_in_catalog: token.kestrelridge-main.testnet is neither a cap asset nor a catalog_token
+pass    ft_metadata_sane: symbol "DMT", 6 decimals
+pass    storage_registered: kestrelridge-mallory.testnet is registered on token.kestrelridge-main.testnet
+pass    memo_injection: no memo
+signal  community_report: reports for kestrelridge-mallory.testnet: deny report 0 is accepted; 0 under dispute; pending 0
+pass    account_age: oldest access key nonce 275336010000006 from test.rpc.fastnear.com: existed by block 275336011 (2026-10-29T18:17:02Z) from archival-rpc.testnet.fastnear.com, at least 7 d old
+pass    dust_funded: creation deposit not read: a deposit is a signal only with lookalike or account_age
+pass    lookalike: no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation
+pass    code_without_metadata: no contract code
+verdict: DENY
+  Not on the owner's allowlist.
+  token.kestrelridge-main.testnet is not a catalog token or a cap asset of the agent.
+  The reports contract reports.kestrelridge-main.testnet accepted deny report 0 for kestrelridge-mallory.testnet.
+action: refuse
+evidence: 2af0ceb4c13d13e99e9b50e71c7c3f9828c3680a196f84e6ba828b005d420f0f
+latency: 11702 ms
+{"literal": "DENY", "evidence_hash": "2af0ceb4c13d13e99e9b50e71c7c3f9828c3680a196f84e6ba828b005d420f0f"}
+wrote /tmp/tmp.7WzMpPr1lT/2af0ceb4c13d13e99e9b50e71c7c3f9828c3680a196f84e6ba828b005d420f0f.verdict.json
+
+## f. dispute
++ bash /srv/sb/scripts/dispute.sh reports.kestrelridge-main.testnet 0 d07ec137a663d2599f85986b2e7f467823aea815058c6a173bbf90b0b2ce140a https://raw.githubusercontent.com/Ridwannurudeen/shieldbot-near/d6852f0231f99c192f7ca2871da8f6351008ba51/docs/demo/synthetic-report.md 
++ near contract call-function as-transaction reports.kestrelridge-main.testnet dispute json-args \{\"report_id\":0\,\"evidence_sha256\":\"d07ec137a663d2599f85986b2e7f467823aea815058c6a173bbf90b0b2ce140a\"\,\"evidence_url\":\"https://raw.githubusercontent.com/Ridwannurudeen/shieldbot-near/d6852f0231f99c192f7ca2871da8f6351008ba51/docs/demo/synthetic-report.md\"\} prepaid-gas 100\ Tgas attached-deposit 30000000000000000000000\ yoctoNEAR sign-as lindenvale.testnet network-config testnet sign-with-access-key-file /srv/keys/lindenvale.testnet.json send 
+├  Unsigned transaction:
+│    signer_id:    lindenvale.testnet
+│    receiver_id:  reports.kestrelridge-main.testnet
+│    actions:
+│       -- function call:      
+│                       method name:  dispute
+│                       args:         {
+│                                       "evidence_sha256": "d07ec137a663d2599f85986b2e7f467823aea815058c6a173bbf90b0b2ce140a",
+│                                       "evidence_url": "https://raw.githubusercontent.com/Ridwannurudeen/shieldbot-near/d6852f0231f99c192f7ca2871da8f6351008ba51/docs/demo/synthetic-report.md",
+│                                       "report_id": 0
+│                                     }
+│                       gas:          100.0 Tgas
+│                       deposit:      0.03 NEAR
+│     [0m
+├  Your transaction was signed successfully.
+│    Public key: ed25519:C5LjriDNy1ZJpiJgzm9Gxh2pbn1hd7CDrTviZbMSwy3R
+│    Signature:  ed25519:<signature removed>
+│     [0m
+├  Transaction Execution Info:
+│    Gas burned: 0.321 Tgas
+│    Transaction fee: 0.0000320409582185 NEAR
+│    Transaction ID: 8qEMBcZz...2XbkWv
+│    To see the transaction in the transaction explorer, please open this url in your browser:
+│    https://explorer.testnet.near.org/transactions/8qEMBcZzydFqtjKEgNo6BCGfw6d4qCS5fCXken2XbkWv
+│     [0m
+├  Function execution logs:
+│    Logs [reports.kestrelridge-main.testnet]:
+│      EVENT_JSON:{"standard":"shieldbot-near","version":"1.0.0","event":"report_disputed","data":[{"report_id":0,"dispute_id":0,"subject":"kestrelridge-mallory.testnet","state":"contested","body_sha256":"d697ef21cf3d73f45a9ed3fb28b95d5a729517154590998ed02e5d0026762baf"}]}
+│    Logs [lindenvale.testnet]:   No logs
+│     [0m
+
+Function execution return value (printed to stdout):
+0
+
+
+The "dispute" call to <reports.kestrelridge-main.testnet> on behalf of <lindenvale.testnet> succeeded.
+
+
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-transaction reports.kestrelridge-main.testnet dispute json-args '{"report_id":0,"evidence_sha256":"d07ec137a663d2599f85986b2e7f467823aea815058c6a173bbf90b0b2ce140a","evidence_url":"https://raw.githubusercontent.com/Ridwannurudeen/shieldbot-near/d6852f0231f99c192f7ca2871da8f6351008ba51/docs/demo/synthetic-report.md"}' prepaid-gas '100.0 Tgas' attached-deposit '0.03 NEAR' sign-as lindenvale.testnet network-config testnet sign-with-access-key-file /srv/keys/lindenvale.testnet.json send[39m
+
+Summary
+  network: testnet
+  account: reports.kestrelridge-main.testnet
++ near account view-account-summary reports.kestrelridge-main.testnet network-config testnet now 
+
+---------------------------------------------------------------------------------------------------------
+ reports.kestrelridge-main.testnet      At block #276768303 
+                                        (4xQyRtU7BjZrn8x4f3b4D1AR3mSuAZrMM7LwRxNkKszR) 
+---------------------------------------------------------------------------------------------------------
+ NEAR Social profile unavailable        The profile can be edited at [34mhttps://near.social[39m 
+                                        or using the cli command: [34mbos social-db manage-profile[39m 
+                                        (https://github.com/bos-cli-rs/bos-cli-rs) 
+---------------------------------------------------------------------------------------------------------
+ Native account balance                 3.055399770797451900000001 NEAR 
+---------------------------------------------------------------------------------------------------------
+ Validator stake                        0 NEAR 
+---------------------------------------------------------------------------------------------------------
+ Storage used by the account            204.9 KB 
+---------------------------------------------------------------------------------------------------------
+ Local Contract (SHA-256 checksum hex)  ba2551dc54c24706a35fef0101e248e238248f381eea96e874aae67f7f8b7705 
+---------------------------------------------------------------------------------------------------------
+ Access keys                            1 full access keys and 0 function-call-only access keys 
+---------------------------------------------------------------------------------------------------------
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear account view-account-summary reports.kestrelridge-main.testnet network-config testnet now[39m
+  transaction_hashes: 8qEMBcZz...2XbkWv
++ near contract call-function as-read-only reports.kestrelridge-main.testnet totals json-args \{\} network-config testnet now 
+totals: {"disputes":1,"reports":1}
+dispute id: 0 (totals.disputes before the dispute)
++ near contract call-function as-read-only reports.kestrelridge-main.testnet get_report json-args \{\"id\":0\} network-config testnet now 
+get_report: {"body_sha256":"d697ef21cf3d73f45a9ed3fb28b95d5a729517154590998ed02e5d0026762baf","dispute_ids":[0],"evidence_sha256":"d07ec137a663d2599f85986b2e7f467823aea815058c6a173bbf90b0b2ce140a","evidence_url":"https://raw.githubusercontent.com/Ridwannurudeen/shieldbot-near/d6852f0231f99c192f7ca2871da8f6351008ba51/docs/demo/synthetic-report.md","id":0,"kind":"theft","moderated_ms":1794136464119,"moderator":"kestrelridge-owner.testnet","outcome":"near_miss","reason_sha256":"14efd748a564c73800a73f59e0a04fdb5e1fa6c7dfeb40e067e1fe845a009137","state":"contested","subject":"kestrelridge-mallory.testnet","submitted_ms":1794136413669,"submitter":"kestrelridge-shop.testnet"}
+expect get_report 0: state contested, subject kestrelridge-mallory.testnet, submitter kestrelridge-shop.testnet, kind theft, outcome near_miss, evidence_sha256 d07ec137a663d2599f85986b2e7f467823aea815058c6a173bbf90b0b2ce140a
++ near contract call-function as-read-only reports.kestrelridge-main.testnet subject_summary json-args \{\"subject\":\"kestrelridge-mallory.testnet\"\} network-config testnet now 
+subject_summary: {"accepted":1,"contested":1,"deny":true,"latest_accepted_id":0,"latest_deny_id":0,"pending":0}
+expect subject_summary: {"accepted":1,"contested":1,"deny":true,"latest_accepted_id":0,"latest_deny_id":0,"pending":0}
++ env GATE_FIXTURES_MODE=off REPORTS_ACCOUNT_ID=reports.kestrelridge-main.testnet python3 -m gate verdict --kind ft --token token.kestrelridge-main.testnet --receiver kestrelridge-mallory.testnet --amount 1000000 --gate kestrelridge-main.testnet --evidence-dir /tmp/tmp.7WzMpPr1lT --out /tmp/tmp.7WzMpPr1lT 
+expect: community_report: reports for kestrelridge-mallory.testnet: deny report 0 is accepted; 1 under dispute; pending 0
+expect: verdict: DENY
+pass    receiver_exists: kestrelridge-mallory.testnet exists
+pass    label_denylist: no denylist or incident label on kestrelridge-mallory.testnet or token.kestrelridge-main.testnet
+signal  token_in_catalog: token_not_in_catalog: token.kestrelridge-main.testnet is neither a cap asset nor a catalog_token
+pass    ft_metadata_sane: symbol "DMT", 6 decimals
+pass    storage_registered: kestrelridge-mallory.testnet is registered on token.kestrelridge-main.testnet
+pass    memo_injection: no memo
+signal  community_report: reports for kestrelridge-mallory.testnet: deny report 0 is accepted; 1 under dispute; pending 0
+pass    account_age: oldest access key nonce 275336010000006 from test.rpc.fastnear.com: existed by block 275336011 (2026-10-29T18:17:02Z) from archival-rpc.testnet.fastnear.com, at least 7 d old
+pass    dust_funded: creation deposit not read: a deposit is a signal only with lookalike or account_age
+pass    lookalike: no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation
+pass    code_without_metadata: no contract code
+verdict: DENY
+  Not on the owner's allowlist.
+  token.kestrelridge-main.testnet is not a catalog token or a cap asset of the agent.
+  The reports contract reports.kestrelridge-main.testnet accepted deny report 0 for kestrelridge-mallory.testnet.
+action: refuse
+evidence: 5954c12cfc438fbe09fa9c63c72c1195cca6706211d2c299f07a864c49ce887c
+latency: 16695 ms
+{"literal": "DENY", "evidence_hash": "5954c12cfc438fbe09fa9c63c72c1195cca6706211d2c299f07a864c49ce887c"}
+wrote /tmp/tmp.7WzMpPr1lT/5954c12cfc438fbe09fa9c63c72c1195cca6706211d2c299f07a864c49ce887c.verdict.json
+
+## g. overturn
++ bash /srv/sb/scripts/dispute.sh reports.kestrelridge-main.testnet --resolve 0 overturn bc78666383b11258708ced44dc63809765f89816e3ecf59bc7d5aa51c85b4b3c 
++ near contract call-function as-transaction reports.kestrelridge-main.testnet resolve_dispute json-args \{\"dispute_id\":0\,\"overturn\":true\,\"reason_sha256\":\"bc78666383b11258708ced44dc63809765f89816e3ecf59bc7d5aa51c85b4b3c\"\} prepaid-gas 100\ Tgas attached-deposit 1\ yoctoNEAR sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file /srv/keys/kestrelridge-owner.testnet.json send 
+├  Unsigned transaction:
+│    signer_id:    kestrelridge-owner.testnet
+│    receiver_id:  reports.kestrelridge-main.testnet
+│    actions:
+│       -- function call:      
+│                       method name:  resolve_dispute
+│                       args:         {
+│                                       "dispute_id": 0,
+│                                       "overturn": true,
+│                                       "reason_sha256": "bc78666383b11258708ced44dc63809765f89816e3ecf59bc7d5aa51c85b4b3c"
+│                                     }
+│                       gas:          100.0 Tgas
+│                       deposit:      1 yoctoNEAR
+│     [0m
+├  Your transaction was signed successfully.
+│    Public key: ed25519:6UAfYZGkZqfsJXzvT8vCd13V4mZ975pqr9h2aS1VuA96
+│    Signature:  ed25519:<signature removed>
+│     [0m
+├  Transaction Execution Info:
+│    Gas burned: 0.315 Tgas
+│    Transaction fee: 0.000031425838295 NEAR
+│    Transaction ID: Gnot4EHx...qkTSL5
+│    To see the transaction in the transaction explorer, please open this url in your browser:
+│    https://explorer.testnet.near.org/transactions/Gnot4EHxPMq6FVxPVQB7eBhgNenxmdkhqSwRMcqkTSL5
+│     [0m
+├  Function execution logs:
+│    Logs [reports.kestrelridge-main.testnet]:
+│      EVENT_JSON:{"standard":"shieldbot-near","version":"1.0.0","event":"dispute_resolved","data":[{"report_id":0,"dispute_id":0,"subject":"kestrelridge-mallory.testnet","state":"overturned","body_sha256":"d697ef21cf3d73f45a9ed3fb28b95d5a729517154590998ed02e5d0026762baf","moderator":"kestrelridge-owner.testnet","reason_sha256":"bc78666383b11258708ced44dc63809765f89816e3ecf59bc7d5aa51c85b4b3c"}]}
+│    Logs [kestrelridge-owner.testnet]:   No logs
+│     [0m
+├  Function execution return value:
+│    Empty return value
+│     [0m
+
+
+The "resolve_dispute" call to <reports.kestrelridge-main.testnet> on behalf of <kestrelridge-owner.testnet> succeeded.
+
+
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-transaction reports.kestrelridge-main.testnet resolve_dispute json-args '{"dispute_id":0,"overturn":true,"reason_sha256":"bc78666383b11258708ced44dc63809765f89816e3ecf59bc7d5aa51c85b4b3c"}' prepaid-gas '100.0 Tgas' attached-deposit '1 yoctoNEAR' sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file /srv/keys/kestrelridge-owner.testnet.json send[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
+
+Summary
+  network: testnet
+  account: reports.kestrelridge-main.testnet
++ near account view-account-summary reports.kestrelridge-main.testnet network-config testnet now 
+
+---------------------------------------------------------------------------------------------------------
+ reports.kestrelridge-main.testnet      At block #276768437 
+                                        (6MGnWeSAnJxRZzj22TCctNyNn89vRdhFqtpbNNuK2dby) 
+---------------------------------------------------------------------------------------------------------
+ NEAR Social profile unavailable        The profile can be edited at [34mhttps://near.social[39m 
+                                        or using the cli command: [34mbos social-db manage-profile[39m 
+                                        (https://github.com/bos-cli-rs/bos-cli-rs) 
+---------------------------------------------------------------------------------------------------------
+ Native account balance                 3.055399770797451900000002 NEAR 
+---------------------------------------------------------------------------------------------------------
+ Validator stake                        0 NEAR 
+---------------------------------------------------------------------------------------------------------
+ Storage used by the account            204.9 KB 
+---------------------------------------------------------------------------------------------------------
+ Local Contract (SHA-256 checksum hex)  ba2551dc54c24706a35fef0101e248e238248f381eea96e874aae67f7f8b7705 
+---------------------------------------------------------------------------------------------------------
+ Access keys                            1 full access keys and 0 function-call-only access keys 
+---------------------------------------------------------------------------------------------------------
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear account view-account-summary reports.kestrelridge-main.testnet network-config testnet now[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
+  transaction_hashes: Gnot4EHx...qkTSL5
++ near contract call-function as-read-only reports.kestrelridge-main.testnet get_report json-args \{\"id\":0\} network-config testnet now 
+get_report: {"body_sha256":"d697ef21cf3d73f45a9ed3fb28b95d5a729517154590998ed02e5d0026762baf","dispute_ids":[0],"evidence_sha256":"d07ec137a663d2599f85986b2e7f467823aea815058c6a173bbf90b0b2ce140a","evidence_url":"https://raw.githubusercontent.com/Ridwannurudeen/shieldbot-near/d6852f0231f99c192f7ca2871da8f6351008ba51/docs/demo/synthetic-report.md","id":0,"kind":"theft","moderated_ms":1794136611500,"moderator":"kestrelridge-owner.testnet","outcome":"near_miss","reason_sha256":"bc78666383b11258708ced44dc63809765f89816e3ecf59bc7d5aa51c85b4b3c","state":"overturned","subject":"kestrelridge-mallory.testnet","submitted_ms":1794136413669,"submitter":"kestrelridge-shop.testnet"}
+expect get_report 0: state overturned, subject kestrelridge-mallory.testnet, submitter kestrelridge-shop.testnet, kind theft, outcome near_miss, evidence_sha256 d07ec137a663d2599f85986b2e7f467823aea815058c6a173bbf90b0b2ce140a
++ near contract call-function as-read-only reports.kestrelridge-main.testnet subject_summary json-args \{\"subject\":\"kestrelridge-mallory.testnet\"\} network-config testnet now 
+subject_summary: {"accepted":0,"contested":0,"deny":false,"latest_accepted_id":null,"latest_deny_id":null,"pending":0}
+expect subject_summary: {"accepted":0,"contested":0,"deny":false,"latest_accepted_id":null,"latest_deny_id":null,"pending":0}
++ env GATE_FIXTURES_MODE=off REPORTS_ACCOUNT_ID=reports.kestrelridge-main.testnet python3 -m gate verdict --kind ft --token token.kestrelridge-main.testnet --receiver kestrelridge-mallory.testnet --amount 1000000 --gate kestrelridge-main.testnet --evidence-dir /tmp/tmp.7WzMpPr1lT --out /tmp/tmp.7WzMpPr1lT 
+expect: community_report: reports for kestrelridge-mallory.testnet: no community report; pending 0
+pass    receiver_exists: kestrelridge-mallory.testnet exists
+pass    label_denylist: no denylist or incident label on kestrelridge-mallory.testnet or token.kestrelridge-main.testnet
+signal  token_in_catalog: token_not_in_catalog: token.kestrelridge-main.testnet is neither a cap asset nor a catalog_token
+pass    ft_metadata_sane: symbol "DMT", 6 decimals
+pass    storage_registered: kestrelridge-mallory.testnet is registered on token.kestrelridge-main.testnet
+pass    memo_injection: no memo
+pass    community_report: reports for kestrelridge-mallory.testnet: no community report; pending 0
+pass    account_age: oldest access key nonce 275336010000006 from test.rpc.fastnear.com: existed by block 275336011 (2026-10-29T18:17:02Z) from archival-rpc.testnet.fastnear.com, at least 7 d old
+pass    dust_funded: creation deposit not read: a deposit is a signal only with lookalike or account_age
+pass    lookalike: no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation
+pass    code_without_metadata: no contract code
+verdict: DENY
+  Not on the owner's allowlist.
+  token.kestrelridge-main.testnet is not a catalog token or a cap asset of the agent.
+action: refuse
+evidence: 2e3b26844fc048233a100a8315c65dafed7756afece1294fca90c711f38e1674
+latency: 23383 ms
+{"literal": "DENY", "evidence_hash": "2e3b26844fc048233a100a8315c65dafed7756afece1294fca90c711f38e1674"}
+wrote /tmp/tmp.7WzMpPr1lT/2e3b26844fc048233a100a8315c65dafed7756afece1294fca90c711f38e1674.verdict.json
+
+result: every read back matched

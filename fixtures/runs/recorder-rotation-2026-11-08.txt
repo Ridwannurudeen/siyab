@@ -1,0 +1,231 @@
+Sanitized capture: key directory written <keys>; home directory written <home>; run output directory written <out>; transaction Signature lines removed; 128 character hexadecimal strings shortened to first 8 and last 8 characters.
+[capture] <out>/a1-20261108T114446Z.txt
++ near contract call-function as-read-only registry.kestrelridge-main.testnet get_recorder json-args \{\} network-config testnet now 
+├  Logs:
+│    No logs[0m
+Function execution return value (printed to stdout):
+"recorder.kestrelridge-main.testnet"
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-read-only registry.kestrelridge-main.testnet get_recorder json-args {} network-config testnet now[39m
+Parsed get_recorder: recorder.kestrelridge-main.testnet
+Verified get_recorder: recorder.kestrelridge-main.testnet
+[capture] <out>/a1-20261108T120918Z.txt
++ near contract call-function as-read-only registry.kestrelridge-main.testnet get_recorder json-args \{\} network-config testnet now 
+├  Logs:
+│    No logs[0m
+Function execution return value (printed to stdout):
+"recorder.kestrelridge-main.testnet"
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-read-only registry.kestrelridge-main.testnet get_recorder json-args {} network-config testnet now[39m
+Parsed get_recorder: recorder.kestrelridge-main.testnet
+Verified get_recorder: recorder.kestrelridge-main.testnet
+[capture] <out>/b1-20261108T121115Z.txt
+Dry-run invocation: + env DRY_RUN=1 bash -l scripts/rotate_recorder.sh kestrelridge-owner.testnet --dry-run 
++ near contract call-function as-transaction registry.kestrelridge-main.testnet set_recorder json-args \{\"recorder_id\":\"kestrelridge-owner.testnet\"\} prepaid-gas 100\ Tgas attached-deposit 1\ yoctoNEAR sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-owner.testnet.json send 
+
+Summary
+  network: testnet
+  account: registry.kestrelridge-main.testnet
+  code_hash: unavailable during dry run
+  transaction_hashes: unavailable during dry run
+The dry-run plan for scripts/rotate_recorder.sh has been printed. Type the exact word send to continue: Real invocation: + env bash -l scripts/rotate_recorder.sh kestrelridge-owner.testnet 
++ near contract call-function as-transaction registry.kestrelridge-main.testnet set_recorder json-args \{\"recorder_id\":\"kestrelridge-owner.testnet\"\} prepaid-gas 100\ Tgas attached-deposit 1\ yoctoNEAR sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-owner.testnet.json send 
+├  Unsigned transaction:
+│    signer_id:    kestrelridge-owner.testnet
+│    receiver_id:  registry.kestrelridge-main.testnet
+│    actions:
+│       -- function call:      
+│                       method name:  set_recorder
+│                       args:         {
+│                                       "recorder_id": "kestrelridge-owner.testnet"
+│                                     }
+│                       gas:          100.0 Tgas
+│                       deposit:      1 yoctoNEAR
+│     [0m
+├  Your transaction was signed successfully.
+│    Public key: ed25519:6UAfYZGkZqfsJXzvT8vCd13V4mZ975pqr9h2aS1VuA96
+│     [0m
+├  Transaction Execution Info:
+│    Gas burned: 0.311 Tgas
+│    Transaction fee: 0.000031072978804 NEAR
+│    Transaction ID: 99EVe7NN...be1kDV
+│    To see the transaction in the transaction explorer, please open this url in your browser:
+│    https://explorer.testnet.near.org/transactions/99EVe7NNRFqbbvKSo1q66rVPsQ6fYrWtwZ5frqbe1kDV
+│     [0m
+├  Function execution logs:
+│    Logs [registry.kestrelridge-main.testnet]:
+│      EVENT_JSON:{"standard":"shieldbot-near","version":"1.0.0","event":"recorder_updated","data":[{"previous":"recorder.kestrelridge-main.testnet","current":"kestrelridge-owner.testnet"}]}
+│    Logs [kestrelridge-owner.testnet]:   No logs
+│     [0m
+├  Function execution return value:
+│    Empty return value
+│     [0m
+
+
+The "set_recorder" call to <registry.kestrelridge-main.testnet> on behalf of <kestrelridge-owner.testnet> succeeded.
+
+
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-transaction registry.kestrelridge-main.testnet set_recorder json-args '{"recorder_id":"kestrelridge-owner.testnet"}' prepaid-gas '100.0 Tgas' attached-deposit '1 yoctoNEAR' sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-owner.testnet.json send[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
+
+Summary
+  network: testnet
+  account: registry.kestrelridge-main.testnet
++ near account view-account-summary registry.kestrelridge-main.testnet network-config testnet now 
+
+---------------------------------------------------------------------------------------------------------
+ registry.kestrelridge-main.testnet     At block #276774804 
+                                        (HhVE5fVH3cBqLNHVd13re4b4Fv6EPy1X9QbtPQDMHmJk) 
+---------------------------------------------------------------------------------------------------------
+ NEAR Social profile unavailable        The profile can be edited at [34mhttps://near.social[39m 
+                                        or using the cli command: [34mbos social-db manage-profile[39m 
+                                        (https://github.com/bos-cli-rs/bos-cli-rs) 
+---------------------------------------------------------------------------------------------------------
+ Native account balance                 2.997508887544463600000001 NEAR 
+---------------------------------------------------------------------------------------------------------
+ Validator stake                        0 NEAR 
+---------------------------------------------------------------------------------------------------------
+ Storage used by the account            172.8 KB 
+---------------------------------------------------------------------------------------------------------
+ Local Contract (SHA-256 checksum hex)  2a154191a996558216a955d04fdd87c9079ceae84907c8e95275b846f0ec0cfa 
+---------------------------------------------------------------------------------------------------------
+ Access keys                            1 full access keys and 0 function-call-only access keys 
+---------------------------------------------------------------------------------------------------------
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear account view-account-summary registry.kestrelridge-main.testnet network-config testnet now[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
+  transaction_hashes: 99EVe7NN...be1kDV
+[capture] <out>/readback-b1-20261108T121851Z.txt
++ near contract call-function as-read-only registry.kestrelridge-main.testnet get_recorder json-args \{\} network-config testnet now 
+├  Logs:
+│    No logs[0m
+Function execution return value (printed to stdout):
+"kestrelridge-owner.testnet"
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-read-only registry.kestrelridge-main.testnet get_recorder json-args {} network-config testnet now[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
+Parsed get_recorder: kestrelridge-owner.testnet
+Verified get_recorder: kestrelridge-owner.testnet
+[capture] <out>/b2-20261108T122919Z.txt
+Dry-run invocation: + env DRY_RUN=1 bash -l scripts/rotate_recorder.sh recorder.kestrelridge-main.testnet --dry-run 
++ near contract call-function as-transaction registry.kestrelridge-main.testnet set_recorder json-args \{\"recorder_id\":\"recorder.kestrelridge-main.testnet\"\} prepaid-gas 100\ Tgas attached-deposit 1\ yoctoNEAR sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-owner.testnet.json send 
+
+Summary
+  network: testnet
+  account: registry.kestrelridge-main.testnet
+  code_hash: unavailable during dry run
+  transaction_hashes: unavailable during dry run
+The dry-run plan for scripts/rotate_recorder.sh has been printed. Type the exact word send to continue: Real invocation: + env bash -l scripts/rotate_recorder.sh recorder.kestrelridge-main.testnet 
++ near contract call-function as-transaction registry.kestrelridge-main.testnet set_recorder json-args \{\"recorder_id\":\"recorder.kestrelridge-main.testnet\"\} prepaid-gas 100\ Tgas attached-deposit 1\ yoctoNEAR sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-owner.testnet.json send 
+├  Unsigned transaction:
+│    signer_id:    kestrelridge-owner.testnet
+│    receiver_id:  registry.kestrelridge-main.testnet
+│    actions:
+│       -- function call:      
+│                       method name:  set_recorder
+│                       args:         {
+│                                       "recorder_id": "recorder.kestrelridge-main.testnet"
+│                                     }
+│                       gas:          100.0 Tgas
+│                       deposit:      1 yoctoNEAR
+│     [0m
+├  Your transaction was signed successfully.
+│    Public key: ed25519:6UAfYZGkZqfsJXzvT8vCd13V4mZ975pqr9h2aS1VuA96
+│     [0m
+├  Transaction Execution Info:
+│    Gas burned: 0.312 Tgas
+│    Transaction fee: 0.000031111125776 NEAR
+│    Transaction ID: 2cr5kGm5...EsyfnF
+│    To see the transaction in the transaction explorer, please open this url in your browser:
+│    https://explorer.testnet.near.org/transactions/2cr5kGm5deyYK8wwiQrQV65Df8WTDYYRpJNeQSEsyfnF
+│     [0m
+├  Function execution logs:
+│    Logs [registry.kestrelridge-main.testnet]:
+│      EVENT_JSON:{"standard":"shieldbot-near","version":"1.0.0","event":"recorder_updated","data":[{"previous":"kestrelridge-owner.testnet","current":"recorder.kestrelridge-main.testnet"}]}
+│    Logs [kestrelridge-owner.testnet]:   No logs
+│     [0m
+├  Function execution return value:
+│    Empty return value
+│     [0m
+
+
+The "set_recorder" call to <registry.kestrelridge-main.testnet> on behalf of <kestrelridge-owner.testnet> succeeded.
+
+
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-transaction registry.kestrelridge-main.testnet set_recorder json-args '{"recorder_id":"recorder.kestrelridge-main.testnet"}' prepaid-gas '100.0 Tgas' attached-deposit '1 yoctoNEAR' sign-as kestrelridge-owner.testnet network-config testnet sign-with-access-key-file <keys>/kestrelridge-owner.testnet.json send[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
+
+Summary
+  network: testnet
+  account: registry.kestrelridge-main.testnet
++ near account view-account-summary registry.kestrelridge-main.testnet network-config testnet now 
+
+---------------------------------------------------------------------------------------------------------
+ registry.kestrelridge-main.testnet     At block #276779040 
+                                        (5WsP35hvZmSvzp7K594B9dhB6KWJGheBopAn2K6GJnVP) 
+---------------------------------------------------------------------------------------------------------
+ NEAR Social profile unavailable        The profile can be edited at [34mhttps://near.social[39m 
+                                        or using the cli command: [34mbos social-db manage-profile[39m 
+                                        (https://github.com/bos-cli-rs/bos-cli-rs) 
+---------------------------------------------------------------------------------------------------------
+ Native account balance                 2.997508887544463600000002 NEAR 
+---------------------------------------------------------------------------------------------------------
+ Validator stake                        0 NEAR 
+---------------------------------------------------------------------------------------------------------
+ Storage used by the account            172.8 KB 
+---------------------------------------------------------------------------------------------------------
+ Local Contract (SHA-256 checksum hex)  2a154191a996558216a955d04fdd87c9079ceae84907c8e95275b846f0ec0cfa 
+---------------------------------------------------------------------------------------------------------
+ Access keys                            1 full access keys and 0 function-call-only access keys 
+---------------------------------------------------------------------------------------------------------
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear account view-account-summary registry.kestrelridge-main.testnet network-config testnet now[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
+  transaction_hashes: 2cr5kGm5...EsyfnF
+[capture] <out>/readback-b2-20261108T130100Z.txt
++ near contract call-function as-read-only registry.kestrelridge-main.testnet get_recorder json-args \{\} network-config testnet now 
+├  Logs:
+│    No logs[0m
+Function execution return value (printed to stdout):
+"recorder.kestrelridge-main.testnet"
+
+
+Here is your console command if you need to script it or re-run:
+    [33mnear contract call-function as-read-only registry.kestrelridge-main.testnet get_recorder json-args {} network-config testnet now[39m
+
+
+`near` CLI has a new update available [2m0.30.1[0m →  [32m0.31.1[0m
+To update `near` CLI use: [33mnear extensions self-update[39m
+Parsed get_recorder: recorder.kestrelridge-main.testnet
+Verified get_recorder: recorder.kestrelridge-main.testnet
