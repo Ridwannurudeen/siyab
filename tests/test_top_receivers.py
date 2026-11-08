@@ -201,7 +201,7 @@ class ScanTest(unittest.TestCase):
 
 
 class ThrottledBlockClient:
-    def __init__(self, throttled_path, retry_count):
+    def __init__(self, throttled_path=None, retry_count=0):
         self.throttled_path = throttled_path
         self.retry_count = retry_count
         self.calls = {}
@@ -217,14 +217,18 @@ class ThrottledBlockClient:
 class Scan429Test(unittest.TestCase):
     max_429_answers = top_receivers.MAX_CONSECUTIVE_429S
 
+    def run_scan(self, directory, client):
+        with mock.patch.object(top_receivers, "BATCH_SIZE", 2), \
+                mock.patch.dict(os.environ, {}, clear=True), \
+                mock.patch("intel.feed.rpc.Client", return_value=client), \
+                mock.patch.object(top_receivers.feed, "BACKOFF_S", 0):
+            return top_receivers.scan_window(1, 4, True, directory, sleep=lambda _: None, clock=lambda: 0)
+
     def run_from_checkpoint(self, directory, client):
         with mock.patch.object(top_receivers, "BATCH_SIZE", 2):
             checkpoint = top_receivers._new_checkpoint(1, 1, 4, 0, 4, 0, None)
             top_receivers.feed._write_json(directory / "checkpoint.json", checkpoint, indent=2)
-            with mock.patch.dict(os.environ, {}, clear=True), \
-                    mock.patch("intel.feed.rpc.Client", return_value=client), \
-                    mock.patch.object(top_receivers.feed, "BACKOFF_S", 0):
-                return top_receivers.scan_window(1, 4, True, directory, sleep=lambda _: None, clock=lambda: 0)
+        return self.run_scan(directory, client)
 
     def test_too_many_429_answers_stop_after_the_last_completed_batch(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -237,6 +241,11 @@ class Scan429Test(unittest.TestCase):
             self.assertEqual(client.calls["/v0/block/3"], self.max_429_answers)
             self.assertTrue((root / "batches" / "1-2.json").is_file())
             self.assertFalse((root / "batches" / "3-4.json").exists())
+
+            resumed = ThrottledBlockClient()
+            state = self.run_scan(root, resumed)
+            self.assertEqual(resumed.calls, {"/v0/block/3": 1, "/v0/block/4": 1})
+            self.assertEqual(state["last_height"], 4)
 
     def test_a_few_429_answers_then_a_block_complete_the_scan(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -340,6 +349,35 @@ class NeardataKeyTest(unittest.TestCase):
                 with self.subTest(path=path.name), mock.patch.dict("os.environ", {"FASTNEAR_API_KEY_FILE": str(path)}):
                     with self.assertRaises(top_receivers.TopReceiversError):
                         top_receivers._neardata_fetcher()
+
+    def test_a_new_keyed_scan_spaces_batch_requests_at_the_keyed_interval(self):
+        hour = 60 * 60 * 1_000_000_000
+        blocks = {0: synthetic_block(0, 0), 1: synthetic_block(1, 10 * hour),
+                  2: synthetic_block(2, 15 * hour), 3: synthetic_block(3, 20 * hour)}
+
+        class BlockClient:
+            def get(self, path):
+                return blocks[int(path.rsplit("/", 1)[1])]
+
+        pauses = []
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            key = root / "key"
+            key.write_text("synthetic-key\n", encoding="utf-8")
+            data_dir = root / "scan"
+            with mock.patch.dict("os.environ", {"FASTNEAR_API_KEY_FILE": str(key)}), \
+                    mock.patch("intel.top_receivers.rpc.Client", return_value=BlockClient()) as client_cls:
+                state = top_receivers.scan_window(10, 3, True, data_dir, sleep=pauses.append, clock=lambda: 0.0)
+            batch = json.loads((data_dir / "batches" / "1-3.json").read_text(encoding="utf-8"))
+        client_cls.assert_called_once_with(
+            top_receivers.feed.NEARDATA_URL, "off", kind="http", headers={"Authorization": "Bearer synthetic-key"})
+        self.assertEqual((state["start_height"], state["last_height"]), (1, 3))
+        batch_pauses = sorted(pauses[2:])
+        self.assertEqual(len(batch_pauses), 3)
+        for step, actual in enumerate(batch_pauses, start=1):
+            self.assertAlmostEqual(actual, step * top_receivers.KEYED_REQUEST_INTERVAL_S)
+        self.assertAlmostEqual(batch["last_request_at"], 3 * top_receivers.KEYED_REQUEST_INTERVAL_S)
+        self.assertAlmostEqual(state["last_request_at"], 3 * top_receivers.KEYED_REQUEST_INTERVAL_S)
 
 
 class ReceiverFixtureTest(unittest.TestCase):

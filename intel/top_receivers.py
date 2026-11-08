@@ -277,7 +277,8 @@ def _neardata_fetcher():
 
 def _block_reader(fetcher, sleep, clock, last_request_at=None, interval=REQUEST_INTERVAL_S):
     """A block reader that spaces requests, reads a 404 as a skipped height, and retries a transport failure or a
-    5xx answer after each pause of TRANSIENT_BACKOFF_S before it gives up; any other error stops the scan."""
+    5xx answer after each pause of TRANSIENT_BACKOFF_S before it gives up; a run of MAX_CONSECUTIVE_429S consecutive
+    429 answers, or any other error, stops the scan."""
     last_request = [last_request_at]
     lock = threading.Lock()
 
@@ -378,13 +379,13 @@ def scan_window(hours, to_height=None, record=False, data_dir=DEFAULT_DATA_DIR, 
     data_dir = _data_dir(data_dir)
     data_dir.mkdir(parents=True, exist_ok=True)
     checkpoint_path = _checkpoint_path(data_dir)
+    interval = REQUEST_INTERVAL_S
     if checkpoint_path.is_file():
         state = _read_checkpoint(checkpoint_path)
         _validate_checkpoint(state, hours, to_height)
     else:
         if not record:
             raise TopReceiversError(f"no checkpoint under {data_dir}; run with --record")
-        interval = REQUEST_INTERVAL_S
         if fetcher is None:
             fetcher, interval = _neardata_fetcher()
         before_pin = fetcher.requests
@@ -405,7 +406,6 @@ def scan_window(hours, to_height=None, record=False, data_dir=DEFAULT_DATA_DIR, 
         return state
     if not record:
         raise TopReceiversError(f"scan stops at height {state['last_height']}; resume with --record")
-    interval = REQUEST_INTERVAL_S
     if fetcher is None:
         fetcher, interval = _neardata_fetcher()
     get, last_request_at, set_last_request_at = _block_reader(fetcher, sleep, clock, clock(), interval=interval)
