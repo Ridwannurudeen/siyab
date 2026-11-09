@@ -1,6 +1,6 @@
 """A read only JSON API over the committed files, on the standard library http.server.
 
-Routes (GET only; no route writes anything and no route opens the network):
+Routes (GET only; without --live, no route opens the network):
 
     /health               the label store's size and sha256
     /labels/<subject>     every assertion on the subject, on any chain
@@ -25,6 +25,7 @@ Routes (GET only; no route writes anything and no route opens the network):
                           holds the term, ignoring case, each with the path of its page
     /accounts/<subject>   every current assertion on the subject, on any chain; 404 for a subject with none
     /entities/<id>        the registry entity <id> of intel/entities.jsonl; 404 when there is none
+    /live/...              live mainnet checks and testnet reports, only with --live
     anything else         a static file under --site when one is given; a path whose last segment
                           ends in .html is never an API route, so /incidents/<id>.html is the page
                           and /incidents/<id> the JSON; a path that is neither answers 404 with the
@@ -34,10 +35,12 @@ Every answer is JSON (static files aside) and carries Cache-Control: no-store.
 """
 
 import dataclasses
+import io
 import json
 import mimetypes
 import os
 import re
+import threading
 import time
 import urllib.parse
 from datetime import UTC, datetime
@@ -275,12 +278,66 @@ def _static(site, path):
     return 200, mimetypes.guess_type(target.name)[0] or "application/octet-stream", target.read_bytes()
 
 
-def make_server(host, port, site=None, store=None):
+class _DeadlineReader(io.RawIOBase):
+    def __init__(self, connection, deadline):
+        super().__init__()
+        self.connection = connection
+        self.deadline = deadline
+
+    def readable(self):
+        return True
+
+    def readinto(self, buffer):
+        remaining = self.deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError("request line and headers exceeded their deadline")
+        self.connection.settimeout(remaining)
+        return self.connection.recv_into(buffer)
+
+
+def make_server(host, port, site=None, store=None, live_routes=None):
     """A ThreadingHTTPServer for the API; port 0 picks a free port."""
     store = store or labels.load()
 
     class Handler(BaseHTTPRequestHandler):
+        def setup(self):
+            super().setup()
+            self._route_slot = None
+            if live_routes is not None:
+                deadline = time.monotonic() + live_routes.request_timeout_s
+                self.rfile = io.BufferedReader(_DeadlineReader(self.connection, deadline))
+
+        def parse_request(self):
+            parsed = super().parse_request()
+            if live_routes is not None:
+                self.connection.settimeout(live_routes.request_timeout_s)
+                if parsed:
+                    request_path = urllib.parse.urlsplit(self.path).path
+                    if request_path != "/live" and not request_path.startswith("/live/"):
+                        if not self.server._read_only_slots.acquire(blocking=False):
+                            self.send_error(503)
+                            return False
+                        self._route_slot = self.server._read_only_slots
+            return parsed
+
+        def finish(self):
+            try:
+                super().finish()
+            finally:
+                if self._route_slot is not None:
+                    self._route_slot.release()
+                    self._route_slot = None
+
         def do_GET(self):
+            request_path = urllib.parse.urlsplit(self.path).path
+            if request_path == "/live" or request_path.startswith("/live/"):
+                if live_routes is None:
+                    self._send(404, JSON_TYPE, b'{"error": "not_found", "message": "No live route is enabled."}\n')
+                    return
+                status, body, headers = live_routes.handle(self.path, self.client_address[0], self.headers)
+                data = (json.dumps(body, ensure_ascii=False) + "\n").encode("utf-8")
+                self._send(status, JSON_TYPE, data, headers)
+                return
             answer = route(self.path, store)
             if answer is not None:
                 status, body = answer
@@ -301,20 +358,63 @@ def make_server(host, port, site=None, store=None):
                 return
             self._send(*static)
 
-        def _send(self, status, content_type, data):
+        def _send(self, status, content_type, data, headers=None):
             self.send_response(status)
             self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(data)))
             self.send_header("Cache-Control", "no-store")
+            for name, value in (headers or {}).items():
+                self.send_header(name, value)
             self.end_headers()
             self.wfile.write(data)
 
-    return ThreadingHTTPServer((host, port), Handler)
+    class Server(ThreadingHTTPServer):
+        def __init__(self, *args, **kwargs):
+            self._connection_slots = (threading.BoundedSemaphore(live_routes.max_in_flight * 2)
+                                      if live_routes is not None else None)
+            self._read_only_slots = (threading.BoundedSemaphore(live_routes.max_in_flight)
+                                     if live_routes is not None else None)
+            super().__init__(*args, **kwargs)
+
+        def get_request(self):
+            request, client_address = super().get_request()
+            if live_routes is not None:
+                request.settimeout(live_routes.request_timeout_s)
+            return request, client_address
+
+        def process_request(self, request, client_address):
+            if self._connection_slots is not None and not self._connection_slots.acquire(blocking=False):
+                request.sendall(b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\n"
+                                b"Connection: close\r\n\r\n")
+                self.shutdown_request(request)
+                return
+            try:
+                super().process_request(request, client_address)
+            except Exception:
+                if self._connection_slots is not None:
+                    self._connection_slots.release()
+                raise
+
+        def process_request_thread(self, request, client_address):
+            try:
+                super().process_request_thread(request, client_address)
+            finally:
+                if self._connection_slots is not None:
+                    self._connection_slots.release()
+
+    return Server((host, port), Handler)
 
 
-def serve(host, port, site=None):
-    server = make_server(host, port, site)
-    print(f"serving the read only API on http://{server.server_address[0]}:{server.server_address[1]}")
+def serve(host, port, site=None, live=False):
+    store = labels.load() if live else None
+    live_routes = None
+    if live:
+        from intel.live import LiveAPI
+
+        live_routes = LiveAPI(store)
+    server = make_server(host, port, site, store=store, live_routes=live_routes)
+    mode = " with live routes" if live else ""
+    print(f"serving the read only API{mode} on http://{server.server_address[0]}:{server.server_address[1]}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
