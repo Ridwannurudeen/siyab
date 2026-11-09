@@ -1,0 +1,7 @@
+cargo test --test sandbox in contracts/reports of the checkout at 94076a8e after artifact rotation, 8 Nov 2026, run with REPORTS_CANDIDATE_WASM set to res/reports.wasm (the reproducible 0.1.3 build, sha256 ccb386ad...e043fde5). Kept: the run header, the three test lines and the result line. The shared cargo target directory is written <target>.
+     Running tests/sandbox.rs (<target>/debug/deps/sandbox-b3cd770bb86ad0ad)
+running 3 tests
+test sandbox_reports_threshold_round_trip ... ok
+test sandbox_reports_layout_preserving_round_trip ... ok
+test sandbox_submit_accept_dispute_overturn_updates_subject_summary ... ok
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 28.31s
