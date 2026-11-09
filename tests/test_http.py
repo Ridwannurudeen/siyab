@@ -113,7 +113,7 @@ class VerdictRouteTest(EndpointCase):
         for header in (None, "Bearer wrong", "Bearer key-on", "Bearer key-one ", "Basic key-one", "key-one"):
             with self.subTest(header=header):
                 connection = self.connection()
-                connection.request("POST", "/verdict", body=json.dumps(ALLOW).encode("utf-8"),
+                connection.request("POST", "/verdict",
                                    headers={"Authorization": header} if header else {})
                 status, headers, body = self.answer(connection)
                 self.assertEqual(status, 401)
