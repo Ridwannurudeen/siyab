@@ -1,6 +1,6 @@
 # Format specifications
 
-These pages specify the byte formats ShieldBot for NEAR writes and reads, so that a party outside this repository can produce and check them without reading the code. Each page gives the fields, the canonical serialization byte for byte, the hashing, a worked example, the vectors that pin the format and the code that is the source of truth.
+These pages specify the byte formats Siyab writes and reads, so that a party outside this repository can produce and check them without reading the code. Each page gives the fields, the canonical serialization byte for byte, the hashing, a worked example, the vectors that pin the format and the code that is the source of truth.
 
 | Page | Format | Version |
 |---|---|---|

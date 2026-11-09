@@ -42,7 +42,7 @@ ATTACK_COUNTS = re.compile(r"^\d+ attempts, \d+ refusals, \d+ bypasses\.", re.MU
 MIN_CHARS, MAX_CHARS = 20, 2000
 PROBLEM = ("A NEAR function call key cannot attach the 1 yoctoNEAR ft_transfer requires, so an agent moving tokens "
            "holds a full access key. The protocol never checks who a prompt injected agent pays.")
-BUILT = ("What exists: ShieldBot for NEAR, a label store with a provenance class on every row, incident pages and "
+BUILT = ("What exists: Siyab, a label store with a provenance class on every row, incident pages and "
          "a guard that pays only on a signed ALLOW bound to the exact transfer and refuses Unknown.")
 HOW_NEAR = ("How NEAR fits: hints AGENT SECURITY and FUNCTION CALL KEYS; a function call key scoped to one method is "
             "the enforcement boundary, with NEP-141 transfers and NEP-297 events.")

@@ -169,7 +169,7 @@ def mcp_server(work):
         raise StepFailed(f"the server answered ids {[reply.get('id') for reply in replies]}, not [1, 2]")
     info = replies[0].get("result", {}).get("serverInfo", {})
     names = [tool["name"] for tool in replies[1].get("result", {}).get("tools", [])]
-    if info.get("name") != "shieldbot-near" or names != TOOLS:
+    if info.get("name") != "siyab" or names != TOOLS:
         raise StepFailed(f"serverInfo {info}, tools {names}")
     return f"{info['name']} {info.get('version')}, tools {', '.join(names)}"
 
@@ -226,7 +226,7 @@ def main():
     os.chdir(ROOT)
     sys.dont_write_bytecode = True
     tempdir, passed = tempfile.tempdir, 0
-    with (tempfile.TemporaryDirectory(prefix="shieldbot-near-smoke-") as tmp,
+    with (tempfile.TemporaryDirectory(prefix="siyab-smoke-") as tmp,
           mock.patch("urllib.request.urlopen", side_effect=_refuse),
           mock.patch.dict(os.environ, {"GATE_FIXTURES_MODE": "replay", "TMPDIR": tmp, "TEMP": tmp, "TMP": tmp})):
         tempfile.tempdir = tmp

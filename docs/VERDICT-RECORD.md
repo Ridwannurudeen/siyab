@@ -1,6 +1,6 @@
 # Verdict record
 
-The format of a ShieldBot for NEAR verdict: the canonical message the verifier signs, the signature, the keys, expiry and ttl, the verdict id, the evidence document the message binds, the contract argument shapes and the shared test vectors. Code: `gate/canon.py` (the message and the vectors), `gate/ed25519.py` (the RFC 8032 verifier and the TEST keys), `gate/evidence.py` (the evidence document and its hash). The Gate contract in `contracts/gate` rebuilds the same message from its own arguments.
+The format of a Siyab verdict: the canonical message the verifier signs, the signature, the keys, expiry and ttl, the verdict id, the evidence document the message binds, the contract argument shapes and the shared test vectors. Code: `gate/canon.py` (the message and the vectors), `gate/ed25519.py` (the RFC 8032 verifier and the TEST keys), `gate/evidence.py` (the evidence document and its hash). The Gate contract in `contracts/gate` rebuilds the same message from its own arguments.
 
 ## Verdicts
 

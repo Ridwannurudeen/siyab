@@ -37,10 +37,10 @@ HEX128 = re.compile(r"[0-9a-fA-F]{128}")
 RPC_FIXTURES = ("fixtures/rpc/", "fixtures/demo/", "fixtures/scan/", "fixtures/cluster/", "fixtures/fastnear/",
                 "fixtures/feed/", "fixtures/goplus/", "fixtures/intents/", "fixtures/receivers/",
                 "fixtures/registries/", "fixtures/reports/", "fixtures/runs/")
-# ShieldBot's own text never uses this word. Third party strings that carry it (a token symbol)
+# Siyab's own text never uses this word. Third party strings that carry it (a token symbol)
 # live only in data: seeds, raw snapshots, fixtures and the label store.
 AUTHORED_WORD = re.compile(r"safe", re.IGNORECASE)
-# Root and seed documents ShieldBot writes itself; the word rule covers them like gate/ and docs/.
+# Root and seed documents Siyab writes itself; the word rule covers them like gate/ and docs/.
 AUTHORED_FILES = ("README.md", "AGENTS.md", "intel/seeds/README.md")
 KEY_FORMS = (
     (re.compile(r"ed25519:[1-9A-HJ-NP-Za-km-z]{80,}"), "ed25519 private key form"),
@@ -94,7 +94,7 @@ def check_text(path, text):
         if hex128_rule and HEX128.search(line):
             hits.append((number, "128 hex string in a recorded network fixture"))
         if word_rule and AUTHORED_WORD.search(line):
-            hits.append((number, "a word ShieldBot never uses in its own text"))
+            hits.append((number, "a word Siyab never uses in its own text"))
     return hits
 
 

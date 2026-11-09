@@ -121,12 +121,12 @@ def _remove(directory):
 def run(out=print, live=False):
     """Run the four demo verdicts, replayed from fixtures/demo or, with live, read from the networks; returns
     their results. The evidence directory is removed when the process exits unless GATE_KEEP_EVIDENCE=1."""
-    evidence_dir = Path(tempfile.mkdtemp(prefix="shieldbot-near-demo-"))
+    evidence_dir = Path(tempfile.mkdtemp(prefix="siyab-demo-"))
     if os.environ.get(KEEP_EVIDENCE) != "1":
         atexit.register(_remove, evidence_dir)
     store = labels.load()
     if live:
-        out("ShieldBot for NEAR live demo v1: the same four over testnet RPC, NearBlocks testnet, the testnet")
+        out("Siyab live demo v1: the same four over testnet RPC, NearBlocks testnet, the testnet")
         out("archival RPC and a dry 1Click quote on mainnet. It reads only: nothing is sent and no fixture is")
         out("written. An ALLOW is signed with the TEST key, which the testnet Gate does not trust.")
         clients = (rpc.Client(rpc.TESTNET_RPC_URL, "off"),
@@ -135,7 +135,7 @@ def run(out=print, live=False):
         policy = clients[0].call_function(GATE, "get_agent", {"public_key": AGENT_KEY})
         clock, mode, deadline = time.time, "off", intents.live_deadline()
     else:
-        out("ShieldBot for NEAR offline demo v1: testnet responses recorded on 1 and 2 Nov 2026, replayed from")
+        out("Siyab offline demo v1: testnet responses recorded on 1 and 2 Nov 2026, replayed from")
         out("fixtures/demo with the TEST verifier key and no network. The TEST key is derived from a published")
         out("seed and is never registered on testnet. The demo clock is pinned to 2026-11-02T07:00:00Z, inside")
         out("the recording window, so the 7 day checks replay as recorded.")

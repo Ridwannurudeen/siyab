@@ -44,7 +44,7 @@ The Claude Code command below and the Codex configuration were run on 2 Nov 2026
 Claude Code, from the repository root:
 
 ```
-claude mcp add shieldbot-near -s local -e GATE_FIXTURES_MODE=off -e GATE_ACCOUNT_ID=<gate>.testnet -e GATE_POLICY=<get_agent JSON> -- python -m mcp.server
+claude mcp add siyab -s local -e GATE_FIXTURES_MODE=off -e GATE_ACCOUNT_ID=<gate>.testnet -e GATE_POLICY=<get_agent JSON> -- python -m mcp.server
 ```
 
 Alternatively, save this snippet as `.mcp.json` in the repository root:
@@ -52,7 +52,7 @@ Alternatively, save this snippet as `.mcp.json` in the repository root:
 ```json
 {
   "mcpServers": {
-    "shieldbot-near": {
+    "siyab": {
       "command": "python",
       "args": ["-m", "mcp.server"]
     }
@@ -63,24 +63,24 @@ Alternatively, save this snippet as `.mcp.json` in the repository root:
 Codex, in `~/.codex/config.toml`. `codex mcp add` has no working directory option, so `PYTHONPATH` names the repository root and `python -m mcp.server` finds this package from any directory. With `approval_policy = "never"`, each tool needs its own `approval_mode = "approve"` entry:
 
 ```toml
-[mcp_servers.shieldbot_near]
+[mcp_servers.siyab]
 command = "python"
 args = ["-m", "mcp.server"]
 
-[mcp_servers.shieldbot_near.env]
+[mcp_servers.siyab.env]
 PYTHONPATH = "/path/to/shieldbot-near"
 # for live reads, as in the 2 Nov run:
 GATE_FIXTURES_MODE = "off"
 GATE_ACCOUNT_ID = "<gate>.testnet"
 GATE_POLICY = '<get_agent JSON>'
 
-[mcp_servers.shieldbot_near.tools.check_near_payment]
+[mcp_servers.siyab.tools.check_near_payment]
 approval_mode = "approve"
 
-[mcp_servers.shieldbot_near.tools.check_intents_quote]
+[mcp_servers.siyab.tools.check_intents_quote]
 approval_mode = "approve"
 
-[mcp_servers.shieldbot_near.tools.scan_near_account]
+[mcp_servers.siyab.tools.scan_near_account]
 approval_mode = "approve"
 ```
 
@@ -90,4 +90,4 @@ approval_mode = "approve"
 printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"t","version":"0"}}}' '{"jsonrpc":"2.0","method":"notifications/initialized"}' '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' | python -m mcp.server
 ```
 
-prints two lines: the `initialize` answer with `"protocolVersion": "2025-06-18"` and `"serverInfo": {"name": "shieldbot-near", "version": "0.1.0"}`, then the three tools. The server answers `protocolVersion` with the version the client asks for when it is `2024-11-05`, `2025-03-26` or `2025-06-18`, and with `2024-11-05` otherwise.
+prints two lines: the `initialize` answer with `"protocolVersion": "2025-06-18"` and `"serverInfo": {"name": "siyab", "version": "0.1.0"}`, then the three tools. The server answers `protocolVersion` with the version the client asks for when it is `2024-11-05`, `2025-03-26` or `2025-06-18`, and with `2024-11-05` otherwise.

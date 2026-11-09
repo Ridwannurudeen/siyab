@@ -111,7 +111,7 @@ def _why(error):
 
 
 def _quoted(text):
-    """A third party string as quoted data, never as ShieldBot's own words."""
+    """A third party string as quoted data, never as Siyab's own words."""
     return json.dumps(text, ensure_ascii=False)
 
 

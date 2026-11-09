@@ -516,11 +516,11 @@ def _alert_test(args):
     created_ms = int(time.time() * 1000)
     detail = "A test alert was sent from the intel CLI."
     alert = alerts.Alert(
-        source="shieldbot-cli",
+        source="siyab-cli",
         severity="info",
         subject="alert-test",
         ref=f"alert-test-{created_ms}",
-        title="ShieldBot alert test",
+        title="Siyab alert test",
         detail=detail,
         evidence_sha256=hashlib.sha256(detail.encode("utf-8")).hexdigest(),
         created_ms=created_ms,

@@ -34,7 +34,7 @@ that has an account page to it.
 Text from a source (a report's sentence, a token symbol, a quoted string in a label row) is shown
 as quoted data: a quote object as <blockquote class="data">, a double quoted string inside a label
 or note as <q class="data">, and so is a value a label row stores (its source, its rule id), so a reader and
-a test can tell it from ShieldBot's own words.
+a test can tell it from Siyab's own words.
 """
 
 import html
@@ -58,7 +58,7 @@ TOP_RECEIVERS_RANKING_PATH = ROOT / "fixtures" / "receivers" / "top.json"
 GITHUB_REPO = "https://github.com/Ridwannurudeen/shieldbot-near"
 # The token whose issuer actions intel/issuers.py reads from the owner's transactions.
 HISTORY_TOKEN = "usdt.tether-token.near"
-HEADLINE = ("ShieldBot for NEAR checks whether an account is " + "sa" + "fe"
+HEADLINE = ("Siyab checks whether an account is " + "sa" + "fe"
             + " to pay, with a source on every answer, and enforces it on chain.")
 COUNTS_OF = ("The counts below are of the recorded mainnet receivers the rules judged, in all and by cohort, the label "
              "store's assertions and subjects by provenance class, the incident pages, the blocks and events of the "
@@ -724,7 +724,7 @@ def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVE
         '<p class="muted">An unreadable check returns no ALLOW. Unknown never passes.</p></section>'
         f'<script>{INDEX_SCRIPT}</script>'
     )
-    return page("ShieldBot for NEAR", body)
+    return page("Siyab", body)
 
 
 def search_index(store, pages, entities, entity_paths):

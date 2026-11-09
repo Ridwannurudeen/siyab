@@ -17,7 +17,7 @@ from intel import cluster, feed, issuers, labels, records, render, trace
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "demo" / "site"
 ROBOTS = '<meta name="robots" content="noindex">\n'
-# COMMON rule 3: the hygiene phrases plus the words ShieldBot never writes in its own text.
+# COMMON rule 3: the hygiene phrases plus the words Siyab never writes in its own text.
 EXTRA_WORDS = re.compile(r"go to|guarantee|secure|safe|\bshield\b", re.IGNORECASE)
 BARRED = re.compile(r"scam|clone|fake|drainer", re.IGNORECASE)
 DASHES = re.compile("[" + chr(0x2013) + chr(0x2014) + "]")
@@ -146,6 +146,12 @@ class RenderTest(unittest.TestCase):
         """The escaped subject, linked to its account page when it has a current row."""
         text = html.escape(subject)
         return f'<a href="../accounts/{page_name(subject)}.html">{text}</a>' if subject in self.subjects else text
+
+    def test_the_homepage_uses_the_siyab_project_name(self):
+        page = self.pages["index.html"]
+        self.assertIn("<title>Siyab</title>", page)
+        self.assertIn('<h1 id="page-title">Siyab ', page)
+        self.assertNotIn("ShieldBot for NEAR", page)
 
     def test_every_page_is_written(self):
         incidents = [p.stem for p in (ROOT / "intel" / "incidents").glob("*.json")]

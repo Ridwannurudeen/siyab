@@ -269,7 +269,7 @@ def serve(host, port):
     except ConfigError as error:
         print(f"not started: {error}", file=sys.stderr)
         return 2
-    evidence_dir = tempfile.mkdtemp(prefix="shieldbot-near-http-")
+    evidence_dir = tempfile.mkdtemp(prefix="siyab-http-")
     server = make_server(host, port, config, evidence_dir)
     print(f"serving the unsigned verdict endpoint ({config['mode']}) on "
           f"http://{server.server_address[0]}:{server.server_address[1]}; evidence documents go to {evidence_dir}, "

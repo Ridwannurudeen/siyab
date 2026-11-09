@@ -22,7 +22,7 @@ TESTNET = ROOT / "docs" / "TESTNET.md"
 CLAIMS_HEADER = "| Claim | File:function |"
 ATTACKS_HEADER = "| # | Attack and command |"
 SUMMARY = re.compile(r"^\d+ attempts, \d+ refusals, \d+ bypasses\..*$", re.MULTILINE)
-HEADLINE = "# ShieldBot for NEAR: security intelligence with a source on every row, enforced on chain."
+HEADLINE = "# Siyab: security intelligence with a source on every row, enforced on chain."
 ONE_LINE = "**Every label has a source. Every verdict has evidence. Unknown never passes.**"
 RANKING = ("number one", "first on", "the first to")
 SHIPPED = ("intel/registries.py:rows", "gate/rules.py:_issuer_check", "intel/trace.py:trace",
@@ -131,7 +131,7 @@ class FirstScreenTest(unittest.TestCase):
 
     def test_the_headline_and_the_one_line_open_the_readme_before_the_layers(self):
         self.assertEqual(self.blocks[:2], [HEADLINE, ONE_LINE])
-        self.assertTrue(self.description.startswith("ShieldBot for NEAR is a security intelligence layer for NEAR: "
+        self.assertTrue(self.description.startswith("Siyab is a security intelligence layer for NEAR: "
                                                     "a label store in which every assertion names its provenance "
                                                     "class and its source"))
 

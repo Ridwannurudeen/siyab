@@ -266,7 +266,7 @@ class IdeaTextTest(unittest.TestCase):
     def test_the_full_name_is_never_shortened(self):
         rows = gen_idea.idea_rows((ROOT / "docs" / "CLAIMS.md").read_text(encoding="utf-8"))
         for text in (gen_idea.assemble(rows), gen_idea.build(rows)[0], gen_idea.assemble([])):
-            self.assertIn("ShieldBot for NEAR", text)
+            self.assertIn("Siyab", text)
             self.assertIsNone(re.search(r"Shield(?!Bot)", text, re.IGNORECASE))
 
 

@@ -92,7 +92,7 @@ class SmokeTest(unittest.TestCase):
         self.assertEqual(len(seen), 9)
         for mode, temp, tmp, tmpdir, work in seen:
             self.assertEqual(mode, "replay")
-            self.assertTrue(work.name.startswith("shieldbot-near-smoke-"), work)
+            self.assertTrue(work.name.startswith("siyab-smoke-"), work)
             self.assertEqual({temp, tmp, tmpdir}, {str(work)})
 
 

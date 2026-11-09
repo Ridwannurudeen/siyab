@@ -93,7 +93,7 @@ class McpServerTest(McpSessionCase):
         ])
         self.assertEqual([reply["id"] for reply in replies], [1, 2, 3, 4, 5, 6, 7, 8, 9])
         self.assertEqual(by_id[1]["result"], {"protocolVersion": "2025-06-18", "capabilities": {"tools": {}},
-                                              "serverInfo": {"name": "shieldbot-near", "version": "0.1.0"}})
+                                              "serverInfo": {"name": "siyab", "version": "0.1.0"}})
         tools = by_id[2]["result"]["tools"]
         self.assertEqual([tool["name"] for tool in tools],
                          ["check_near_payment", "check_intents_quote", "scan_near_account"])

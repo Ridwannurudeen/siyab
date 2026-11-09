@@ -38,7 +38,7 @@ from intel import labels
 
 PROTOCOL_VERSIONS = ("2024-11-05", "2025-03-26", "2025-06-18")
 FALLBACK_VERSION = "2024-11-05"
-SERVER_INFO = {"name": "shieldbot-near", "version": "0.1.0"}
+SERVER_INFO = {"name": "siyab", "version": "0.1.0"}
 DEFAULT_GATE = "gate.near"
 DEFAULT_POLICY = '{"allowlist": [], "caps": []}'
 LIVE_FLAG = "GATE_LIVE_SIGNING"
@@ -298,8 +298,8 @@ def _messages(stream):
 
 
 def serve(stdin, stdout):
-    evidence_dir = tempfile.mkdtemp(prefix="shieldbot-near-mcp-")
-    print(f"shieldbot-near MCP server on stdio; evidence documents go to {evidence_dir}, removed at exit unless "
+    evidence_dir = tempfile.mkdtemp(prefix="siyab-mcp-")
+    print(f"Siyab MCP server on stdio; evidence documents go to {evidence_dir}, removed at exit unless "
           f"{KEEP_EVIDENCE}=1", file=sys.stderr)
     try:
         for framed, body in _messages(stdin):

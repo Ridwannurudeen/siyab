@@ -63,7 +63,7 @@ def run(out=print):
     message = MESSAGE_PATH.read_text(encoding="utf-8")
     request = agent.transfer_request(**parse_message(message), gate=GATE,
                                      agent_pk_hex=base58.decode_key(AGENT_KEY).hex())
-    evidence_dir = Path(tempfile.mkdtemp(prefix="shieldbot-near-injected-"))
+    evidence_dir = Path(tempfile.mkdtemp(prefix="siyab-injected-"))
     keep_evidence = os.environ.get(KEEP_EVIDENCE) == "1"
     if not keep_evidence:
         atexit.register(_remove, evidence_dir)
@@ -79,7 +79,7 @@ def run(out=print):
     recorded_at = next(check["source"]["fetched_at"] for check in result["checks"]
                        if check["id"] == "receiver_exists")
     recorded_date = recorded_at.split("T", 1)[0]
-    out("ShieldBot for NEAR, a scripted agent following an instruction planted in a vendor message, standing in "
+    out("Siyab, a scripted agent following an instruction planted in a vendor message, standing in "
         "for a prompt injected model. No model runs.")
     out(f"Offline replay: the verdict uses testnet reads recorded on {recorded_date}; the refusal was recorded "
         "on testnet the same day.")

@@ -178,7 +178,7 @@ def extract(data, fetched_at):
 
 def fetch(clock=time.time):
     """(the bytes of SDN_ADVANCED.XML, the UTC time they were read) from the Sanctions List Service."""
-    request = urllib.request.Request(SDN_URL, headers={"User-Agent": "shieldbot-near"})
+    request = urllib.request.Request(SDN_URL, headers={"User-Agent": "siyab"})
     with urllib.request.urlopen(request, timeout=TIMEOUT_S) as reply:
         data = reply.read()
     return data, datetime.fromtimestamp(clock(), UTC).strftime(_TIME)

@@ -295,7 +295,7 @@ class CommandTest(unittest.TestCase):
             document = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(code, 0)
         request = opener.call_args.args[0]
-        self.assertEqual((request.full_url, request.get_header("User-agent")), (sanctions.SDN_URL, "shieldbot-near"))
+        self.assertEqual((request.full_url, request.get_header("User-agent")), (sanctions.SDN_URL, "siyab"))
         self.assertEqual(document, sanctions.extract(SAMPLE, document["source"]["fetched_at"]))
         self.assertEqual(path.name, f"ofac-sdn-addresses-{re.sub('[-:]', '', document['source']['fetched_at'])}.json")
         self.assertIn(sanctions.counts_line(sanctions.counts(document)), stdout)

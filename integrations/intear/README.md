@@ -1,6 +1,6 @@
 # Intear reference adapter
 
-This is a reference adapter in our repository. It maps a ShieldBot answer to Safe, Unsafe or Unknown and creates the JSON body for a proposed `GET /addresssafety?address=<account>` route. A wallet operator could host that route beside `/dappsafety` on their own service.
+This is a reference adapter in our repository. It maps a Siyab answer to Safe, Unsafe or Unknown and creates the JSON body for a proposed `GET /addresssafety?address=<account>` route. A wallet operator could host that route beside `/dappsafety` on their own service.
 
 Reference code in our repository. Not reviewed, adopted or acknowledged by Intear. No contact made as of 8 Nov. Their wallet code is not modified. This adapter has not been tested against their service.
 

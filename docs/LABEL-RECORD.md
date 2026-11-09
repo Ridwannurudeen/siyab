@@ -1,6 +1,6 @@
 # Label record
 
-The format of the ShieldBot for NEAR label store: one assertion per line of `intel/labels.jsonl`, each naming where it comes from. Code: `intel/labels.py` (loading and validation), `intel/seed.py` (the seeds). `python -m intel counts` prints the counts line from the committed file.
+The format of the Siyab label store: one assertion per line of `intel/labels.jsonl`, each naming where it comes from. Code: `intel/labels.py` (loading and validation), `intel/seed.py` (the seeds). `python -m intel counts` prints the counts line from the committed file.
 
 ## An assertion
 
@@ -24,7 +24,7 @@ A chain code that is not a 1Click code says so in the note: `aurora` (a chain th
 
 ## Source strings are data
 
-A label or note repeats strings from its source (token symbols, page names, contract metadata) inside double quotes, as data with the row's source, never as ShieldBot's own words. ShieldBot's own text (verdict literals, check outcomes, reason and detail templates, the labels it writes) keeps to the word rules `scripts/check_hygiene.py` enforces over `gate/`, `intel/*.py`, `docs/`, `mcp/`, `scripts/`, `README.md`, `AGENTS.md` and `intel/seeds/README.md`; the check script itself, which has to name the word, is the one file in those paths outside the rule. In the files the rule covers, the barred word never appears, quoted or not. Source strings that carry it stay in the snapshots, fixtures and the label store, which hold source data. A row that repeats a report's sentence writes it in `note` as `quote "<sentence>"`, with the row's source as the citation, optionally followed by `; ` and a clause in ShieldBot's own words (such as which existing row the category comes from); a renderer that shows the note shows the quoted part as a quote. A source's own risk words appear only inside those quotes, because they are the source's judgement, not a finding ShieldBot made: ShieldBot's own words state what a chain read answered or what a rule matched.
+A label or note repeats strings from its source (token symbols, page names, contract metadata) inside double quotes, as data with the row's source, never as Siyab's own words. Siyab's own text (verdict literals, check outcomes, reason and detail templates, the labels it writes) keeps to the word rules `scripts/check_hygiene.py` enforces over `gate/`, `intel/*.py`, `docs/`, `mcp/`, `scripts/`, `README.md`, `AGENTS.md` and `intel/seeds/README.md`; the check script itself, which has to name the word, is the one file in those paths outside the rule. In the files the rule covers, the barred word never appears, quoted or not. Source strings that carry it stay in the snapshots, fixtures and the label store, which hold source data. A row that repeats a report's sentence writes it in `note` as `quote "<sentence>"`, with the row's source as the citation, optionally followed by `; ` and a clause in Siyab's own words (such as which existing row the category comes from); a renderer that shows the note shows the quoted part as a quote. A source's own risk words appear only inside those quotes, because they are the source's judgement, not a finding Siyab made: Siyab's own words state what a chain read answered or what a rule matched.
 
 ## Categories
 
