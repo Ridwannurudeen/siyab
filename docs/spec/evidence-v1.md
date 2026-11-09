@@ -86,7 +86,7 @@ The document of canon vector `04-ft-happy-unit` (`fixtures/canon/04-ft-happy-uni
 
 | Path | What it pins | Reproduced by |
 |---|---|---|
-| `fixtures/evidence/` | 20 stored documents, each named by the sha256 of its bytes and in canonical form, among them signed ALLOWs with checks, DENYs and the documents of the canon vectors | `gate.evidence.check_file` |
+| `fixtures/evidence/` | 22 stored documents, each named by the sha256 of its bytes and in canonical form, among them signed ALLOWs with checks, DENYs and the documents of the canon vectors | `gate.evidence.check_file` |
 | `fixtures/canon/` | each vector's `evidence_sha256` is the hash of the document `gate.canon.build_vectors` builds for it, which is the file of that name under `fixtures/evidence/` | `gate.canon.build_vectors`, `gate.evidence.evidence_hash` |
 | `fixtures/registry/sample-allow-evidence.json` | an evidence document stored under another name, whose bytes hash to the sample record's `evidence_hash` | `gate.verify.verify` |
 | `fixtures/spec/label-assertion-v1.json` | the same canonical JSON with non ASCII text and the `\n`, `\t` and `\"` escapes (the label body allows a float; evidence does not) | `intel.labels.assertion_id` |

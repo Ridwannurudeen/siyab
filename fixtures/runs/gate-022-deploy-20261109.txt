@@ -1,0 +1,81 @@
+Gate 0.2.2 deploy, payments and owner-key handover, 9 Nov 2026.
+
+Verified summary of captured public RPC readbacks and FINAL transaction responses. This is not a verbatim terminal transcript. Selected public RPC fields are in gate-022-transactions-20261109.json, and the six block-pinned snapshots are in gate-022-readbacks-20261109.json. Full immutable RPC captures remain in the operator handoff. Transaction signatures, verdict signatures and outcome Merkle proofs and gas-profile metadata are omitted from the selected records; FunctionCall args are decoded as args_json. The DeployContract code field is preserved and decodes to the 32-byte artifact SHA-256, not the full wasm bytes. No key files were read to prepare these records.
+
+Checkout: 9693281540dafef353f2da4e4ef054649e0a1d84
+Artifact source: 57860c96f071fac0f7bb99f242fcae7e6c4430d2
+Artifact: res/gate.wasm, 264604 bytes
+Artifact sha256: 3ef57087...622f0b76
+Artifact code_hash: 5EmM2UQRYcvaNvJX6jfcgtNS7Mm8ZPjZhwK1J8bMXrcu
+Rollback: res/previous/gate.wasm, version 0.2.1, code_hash 8EGqzorvbx5PiPCnLJCbi79p9HWsie93iwgCT6GjStL5
+
+Deploy
+Transaction: HnFAFtxqxvG5N1TFqSABtwEREfUF9jNHCQLC7g1YKTvU
+FINAL, SuccessValue, no failed receipt
+Signer and receiver: kestrelridge-main.testnet
+Signing public key: ed25519:7gxqnnhZbSBFRnYmTg8T3UZ4WUULUNS97f4jnf1oygp8
+One DeployContract action, no init call
+Before snapshot: 2026-11-09T16:34:45.906272+00:00, block 276945271
+After snapshot: 2026-11-09T16:39:22.015275+00:00, block 276945733
+Version: 0.2.1 -> 0.2.2
+Policy, agent configuration, signing public keys and token balances: equal
+Access key public keys and permissions: equal; deploy-key nonce advanced
+Storage usage: 265311 -> 265842 bytes, +531
+Native amount: 10953868666377409700000001 -> 10951921200721252500000001 yoctoNEAR
+Native amount decrease: 1947465656157200000000 yoctoNEAR, exactly 0.0019474656561572 NEAR
+The decrease equals tokens_burnt summed over the FINAL transaction outcome and every receipt outcome. The shorter CLI fee line reports only the transaction outcome and is not this total.
+
+First payment, before handover
+Transaction: CaRw6HnbkS2V5WNDNyixf2V9cHHqe6rShbemnrsQfcRC
+FINAL, SuccessValue, no failed receipt
+Signing public key: ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2
+One request_transfer action on kestrelridge-main.testnet, zero attached deposit
+Asset: token.kestrelridge-main.testnet
+Receiver: kestrelridge-shop.testnet
+Amount: 1000000 base units, 1 DMT
+Memo: Gate 0.2.2 upgrade check
+Request id: 7
+Verdict id: 825161e0b7b65c63859b5517cd5d4f2a
+Evidence hash: deb96dd6...4c6bfee5
+Token executor emitted ft_transfer for the exact sender, receiver and amount; Gate executor emitted transfer_completed.
+Token balances: Gate 999930000000 -> 999929000000; vendor 70000000 -> 71000000; owner 0
+
+Owner key addition
+Transaction: DgyWfdPeCeTBzjeF8vvtEFUxC1RstJsHxMxdjXFYkPEi
+FINAL, SuccessValue, no failed receipt
+Signing public key: ed25519:7gxqnnhZbSBFRnYmTg8T3UZ4WUULUNS97f4jnf1oygp8
+One AddKey action: ed25519:6UAfYZGkZqfsJXzvT8vCd13V4mZ975pqr9h2aS1VuA96, FullAccess
+Readback: three keys, old deploy FullAccess, owner FullAccess and the existing agent function-call key
+
+Old deploy key deletion
+Transaction: AcwMBodNyz3buwg7SeDTJB2LN9qJnwt1PJD2oaeDtdab
+FINAL, SuccessValue, no failed receipt
+Signing public key: ed25519:6UAfYZGkZqfsJXzvT8vCd13V4mZ975pqr9h2aS1VuA96
+One DeleteKey action: ed25519:7gxqnnhZbSBFRnYmTg8T3UZ4WUULUNS97f4jnf1oygp8
+Readback: exactly owner FullAccess and agent function-call key, receiver kestrelridge-main.testnet, method request_transfer only
+Code hash, policy, agent configuration, signing public keys and token balances: equal before and after deletion
+The removed private key file was left untouched. Future Gate deploy and rollback signing uses the surviving owner key, with the Gate-only alias below:
+/srv/gate-owner-signing/kestrelridge-main.testnet.json -> /srv/keys/kestrelridge-owner.testnet.json
+The alias capture reports no key material read or copied.
+
+Second payment, after handover
+Transaction: DbaRnGgf4xoQTqh36xG6wS7PhF5QoNic3oVwKGSoYPs5
+FINAL, SuccessValue, no failed receipt
+Signing public key: ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2
+One request_transfer action on kestrelridge-main.testnet, zero attached deposit
+Asset: token.kestrelridge-main.testnet
+Receiver: kestrelridge-shop.testnet
+Amount: 1000000 base units, 1 DMT
+Memo: Gate owner key handover check
+Request id: 8
+Verdict id: 9a73bd0aed8443895376a8b46ec4d663
+Evidence hash: ea8462ba...cc12c758
+Token executor emitted ft_transfer for the exact sender, receiver and amount; Gate executor emitted transfer_completed.
+Final snapshot: 2026-11-09T16:57:23.518901+00:00, block 276947625
+Token balances: Gate 999929000000 -> 999928000000; vendor 71000000 -> 72000000; owner 0
+Agent regular cap spent: 2000000 base units; unknown cap spent: 0
+Version 0.2.2 and code_hash still match the committed artifact. The exact two-key permissions remain owner FullAccess plus agent request_transfer only.
+
+A read by the operator through the second RPC endpoint https://rpc.testnet.near.org at final block 276948092 agreed on version 0.2.2, the matching code_hash and the same exact two-key permissions. It is included as second_rpc_final in the readbacks JSON. This records agreement from a distinct endpoint, not independent infrastructure or verification by an outside person.
+
+Neither payment was recorded in the registry. These team-run checks and the internal verification kit do not satisfy registry mainnet gate 6, which still requires a real outside verifier.

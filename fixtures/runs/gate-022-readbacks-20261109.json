@@ -1,0 +1,587 @@
+{
+  "description": "Public RPC readbacks at the named blocks on 9 Nov 2026. No key files were read to create this record.",
+  "second_rpc_final": {
+    "account": {
+      "amount": "10950010321032144299999999",
+      "block_hash": "2v18yNhiCCvcCbXERoM38rcF6TtuJUab1u37nAMHw8eA",
+      "block_height": 276948092,
+      "code_hash": "5EmM2UQRYcvaNvJX6jfcgtNS7Mm8ZPjZhwK1J8bMXrcu",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 265895
+    },
+    "keys": {
+      "block_hash": "2v18yNhiCCvcCbXERoM38rcF6TtuJUab1u37nAMHw8eA",
+      "block_height": 276948092,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 276946936000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6UAfYZGkZqfsJXzvT8vCd13V4mZ975pqr9h2aS1VuA96"
+        },
+        {
+          "access_key": {
+            "nonce": 276780432000002,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "998171686460891800000000",
+                "method_names": [
+                  "request_transfer"
+                ],
+                "receiver_id": "kestrelridge-main.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2"
+        }
+      ]
+    },
+    "provider": "https://rpc.testnet.near.org",
+    "version": "0.2.2"
+  },
+  "snapshots": {
+    "after_deploy": {
+      "account": {
+        "amount": "10951921200721252500000001",
+        "block_hash": "J6ZytTsNxhnL9Kme9QaGNytZSGeocQt7ZuWxtG2ywoC5",
+        "block_height": 276945733,
+        "code_hash": "5EmM2UQRYcvaNvJX6jfcgtNS7Mm8ZPjZhwK1J8bMXrcu",
+        "locked": "0",
+        "storage_paid_at": 0,
+        "storage_usage": 265842
+      },
+      "agent": {
+        "allowlist": [
+          "kestrelridge-shop.testnet"
+        ],
+        "caps": [
+          {
+            "asset": {
+              "Ft": "token.kestrelridge-main.testnet"
+            },
+            "per_call": "10000000",
+            "spent": "0",
+            "window_cap": "50000000",
+            "window_ms": 86400000,
+            "window_start_ms": 0
+          }
+        ],
+        "enabled": true,
+        "label": "demo agent",
+        "unknown_caps": [
+          {
+            "asset": {
+              "Ft": "token.kestrelridge-main.testnet"
+            },
+            "per_call": "1000000",
+            "spent": "0",
+            "window_cap": "1000000",
+            "window_ms": 86400000,
+            "window_start_ms": 0
+          }
+        ]
+      },
+      "block_hash": "J6ZytTsNxhnL9Kme9QaGNytZSGeocQt7ZuWxtG2ywoC5",
+      "block_height": 276945733,
+      "captured_utc": "2026-11-09T16:39:22.015275+00:00",
+      "commit": "9693281540dafef353f2da4e4ef054649e0a1d84",
+      "keys": {
+        "block_hash": "J6ZytTsNxhnL9Kme9QaGNytZSGeocQt7ZuWxtG2ywoC5",
+        "block_height": 276945733,
+        "keys": [
+          {
+            "access_key": {
+              "nonce": 275335998000014,
+              "permission": "FullAccess"
+            },
+            "public_key": "ed25519:7gxqnnhZbSBFRnYmTg8T3UZ4WUULUNS97f4jnf1oygp8"
+          },
+          {
+            "access_key": {
+              "nonce": 276780432000000,
+              "permission": {
+                "FunctionCall": {
+                  "allowance": "1000000000000000000000000",
+                  "method_names": [
+                    "request_transfer"
+                  ],
+                  "receiver_id": "kestrelridge-main.testnet"
+                }
+              }
+            },
+            "public_key": "ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2"
+          }
+        ]
+      },
+      "policy": {
+        "denylist": [],
+        "max_ttl_ms": 300000,
+        "paused": false
+      },
+      "signing_public_keys": {
+        "current": "7d6517307a399288e3ce6a08ad2d5b05911e74df3c940ea63f0cb8b6172eb230",
+        "previous": null
+      },
+      "token_balances": {
+        "kestrelridge-main.testnet": "999930000000",
+        "kestrelridge-owner.testnet": "0",
+        "kestrelridge-shop.testnet": "70000000"
+      },
+      "version": "0.2.2"
+    },
+    "after_first_payment": {
+      "account": {
+        "amount": "10951008377660159500000000",
+        "block_hash": "EF1fMi5NYNE6BrqHHjd3VkstyEyDJyZfiVabFZpN3M2V",
+        "block_height": 276946788,
+        "code_hash": "5EmM2UQRYcvaNvJX6jfcgtNS7Mm8ZPjZhwK1J8bMXrcu",
+        "locked": "0",
+        "storage_paid_at": 0,
+        "storage_usage": 265895
+      },
+      "agent": {
+        "allowlist": [
+          "kestrelridge-shop.testnet"
+        ],
+        "caps": [
+          {
+            "asset": {
+              "Ft": "token.kestrelridge-main.testnet"
+            },
+            "per_call": "10000000",
+            "spent": "1000000",
+            "window_cap": "50000000",
+            "window_ms": 86400000,
+            "window_start_ms": 1794242726183
+          }
+        ],
+        "enabled": true,
+        "label": "demo agent",
+        "unknown_caps": [
+          {
+            "asset": {
+              "Ft": "token.kestrelridge-main.testnet"
+            },
+            "per_call": "1000000",
+            "spent": "0",
+            "window_cap": "1000000",
+            "window_ms": 86400000,
+            "window_start_ms": 0
+          }
+        ]
+      },
+      "block_hash": "EF1fMi5NYNE6BrqHHjd3VkstyEyDJyZfiVabFZpN3M2V",
+      "block_height": 276946788,
+      "captured_utc": "2026-11-09T16:49:23.640059+00:00",
+      "commit": "9693281540dafef353f2da4e4ef054649e0a1d84",
+      "keys": {
+        "block_hash": "EF1fMi5NYNE6BrqHHjd3VkstyEyDJyZfiVabFZpN3M2V",
+        "block_height": 276946788,
+        "keys": [
+          {
+            "access_key": {
+              "nonce": 275335998000014,
+              "permission": "FullAccess"
+            },
+            "public_key": "ed25519:7gxqnnhZbSBFRnYmTg8T3UZ4WUULUNS97f4jnf1oygp8"
+          },
+          {
+            "access_key": {
+              "nonce": 276780432000001,
+              "permission": {
+                "FunctionCall": {
+                  "allowance": "999087176938907000000000",
+                  "method_names": [
+                    "request_transfer"
+                  ],
+                  "receiver_id": "kestrelridge-main.testnet"
+                }
+              }
+            },
+            "public_key": "ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2"
+          }
+        ]
+      },
+      "policy": {
+        "denylist": [],
+        "max_ttl_ms": 300000,
+        "paused": false
+      },
+      "signing_public_keys": {
+        "current": "7d6517307a399288e3ce6a08ad2d5b05911e74df3c940ea63f0cb8b6172eb230",
+        "previous": null
+      },
+      "token_balances": {
+        "kestrelridge-main.testnet": "999929000000",
+        "kestrelridge-owner.testnet": "0",
+        "kestrelridge-shop.testnet": "71000000"
+      },
+      "version": "0.2.2"
+    },
+    "after_second_payment": {
+      "account": {
+        "amount": "10950010321032144299999999",
+        "block_hash": "55ULV4nRN4R3oyZqTTuhMe3BUAFokKMe9YsHXGt7UWaX",
+        "block_height": 276947625,
+        "code_hash": "5EmM2UQRYcvaNvJX6jfcgtNS7Mm8ZPjZhwK1J8bMXrcu",
+        "locked": "0",
+        "storage_paid_at": 0,
+        "storage_usage": 265895
+      },
+      "agent": {
+        "allowlist": [
+          "kestrelridge-shop.testnet"
+        ],
+        "caps": [
+          {
+            "asset": {
+              "Ft": "token.kestrelridge-main.testnet"
+            },
+            "per_call": "10000000",
+            "spent": "2000000",
+            "window_cap": "50000000",
+            "window_ms": 86400000,
+            "window_start_ms": 1794242726183
+          }
+        ],
+        "enabled": true,
+        "label": "demo agent",
+        "unknown_caps": [
+          {
+            "asset": {
+              "Ft": "token.kestrelridge-main.testnet"
+            },
+            "per_call": "1000000",
+            "spent": "0",
+            "window_cap": "1000000",
+            "window_ms": 86400000,
+            "window_start_ms": 0
+          }
+        ]
+      },
+      "block_hash": "55ULV4nRN4R3oyZqTTuhMe3BUAFokKMe9YsHXGt7UWaX",
+      "block_height": 276947625,
+      "captured_utc": "2026-11-09T16:57:23.518901+00:00",
+      "commit": "9693281540dafef353f2da4e4ef054649e0a1d84",
+      "keys": {
+        "block_hash": "55ULV4nRN4R3oyZqTTuhMe3BUAFokKMe9YsHXGt7UWaX",
+        "block_height": 276947625,
+        "keys": [
+          {
+            "access_key": {
+              "nonce": 276946936000001,
+              "permission": "FullAccess"
+            },
+            "public_key": "ed25519:6UAfYZGkZqfsJXzvT8vCd13V4mZ975pqr9h2aS1VuA96"
+          },
+          {
+            "access_key": {
+              "nonce": 276780432000002,
+              "permission": {
+                "FunctionCall": {
+                  "allowance": "998171686460891800000000",
+                  "method_names": [
+                    "request_transfer"
+                  ],
+                  "receiver_id": "kestrelridge-main.testnet"
+                }
+              }
+            },
+            "public_key": "ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2"
+          }
+        ]
+      },
+      "policy": {
+        "denylist": [],
+        "max_ttl_ms": 300000,
+        "paused": false
+      },
+      "signing_public_keys": {
+        "current": "7d6517307a399288e3ce6a08ad2d5b05911e74df3c940ea63f0cb8b6172eb230",
+        "previous": null
+      },
+      "token_balances": {
+        "kestrelridge-main.testnet": "999928000000",
+        "kestrelridge-owner.testnet": "0",
+        "kestrelridge-shop.testnet": "72000000"
+      },
+      "version": "0.2.2"
+    },
+    "before_deploy": {
+      "account": {
+        "amount": "10953868666377409700000001",
+        "block_hash": "EHuo7oXALY2HXt4Efan86teGvGmWwfgBzZBCM9phzsSm",
+        "block_height": 276945271,
+        "code_hash": "8EGqzorvbx5PiPCnLJCbi79p9HWsie93iwgCT6GjStL5",
+        "locked": "0",
+        "storage_paid_at": 0,
+        "storage_usage": 265311
+      },
+      "agent": {
+        "allowlist": [
+          "kestrelridge-shop.testnet"
+        ],
+        "caps": [
+          {
+            "asset": {
+              "Ft": "token.kestrelridge-main.testnet"
+            },
+            "per_call": "10000000",
+            "spent": "0",
+            "window_cap": "50000000",
+            "window_ms": 86400000,
+            "window_start_ms": 0
+          }
+        ],
+        "enabled": true,
+        "label": "demo agent",
+        "unknown_caps": [
+          {
+            "asset": {
+              "Ft": "token.kestrelridge-main.testnet"
+            },
+            "per_call": "1000000",
+            "spent": "0",
+            "window_cap": "1000000",
+            "window_ms": 86400000,
+            "window_start_ms": 0
+          }
+        ]
+      },
+      "block_hash": "EHuo7oXALY2HXt4Efan86teGvGmWwfgBzZBCM9phzsSm",
+      "block_height": 276945271,
+      "captured_utc": "2026-11-09T16:34:45.906272+00:00",
+      "commit": "9693281540dafef353f2da4e4ef054649e0a1d84",
+      "keys": {
+        "block_hash": "EHuo7oXALY2HXt4Efan86teGvGmWwfgBzZBCM9phzsSm",
+        "block_height": 276945271,
+        "keys": [
+          {
+            "access_key": {
+              "nonce": 275335998000013,
+              "permission": "FullAccess"
+            },
+            "public_key": "ed25519:7gxqnnhZbSBFRnYmTg8T3UZ4WUULUNS97f4jnf1oygp8"
+          },
+          {
+            "access_key": {
+              "nonce": 276780432000000,
+              "permission": {
+                "FunctionCall": {
+                  "allowance": "1000000000000000000000000",
+                  "method_names": [
+                    "request_transfer"
+                  ],
+                  "receiver_id": "kestrelridge-main.testnet"
+                }
+              }
+            },
+            "public_key": "ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2"
+          }
+        ]
+      },
+      "policy": {
+        "denylist": [],
+        "max_ttl_ms": 300000,
+        "paused": false
+      },
+      "signing_public_keys": {
+        "current": "7d6517307a399288e3ce6a08ad2d5b05911e74df3c940ea63f0cb8b6172eb230",
+        "previous": null
+      },
+      "token_balances": {
+        "kestrelridge-main.testnet": "999930000000",
+        "kestrelridge-owner.testnet": "0",
+        "kestrelridge-shop.testnet": "70000000"
+      },
+      "version": "0.2.1"
+    },
+    "owner_added": {
+      "account": {
+        "amount": "10950966412735159500000000",
+        "block_hash": "3iFEvwHd3K6zAZkPDbtMobHvered3rPsd4YJhi4yo9BC",
+        "block_height": 276946981,
+        "code_hash": "5EmM2UQRYcvaNvJX6jfcgtNS7Mm8ZPjZhwK1J8bMXrcu",
+        "locked": "0",
+        "storage_paid_at": 0,
+        "storage_usage": 265977
+      },
+      "agent": {
+        "allowlist": [
+          "kestrelridge-shop.testnet"
+        ],
+        "caps": [
+          {
+            "asset": {
+              "Ft": "token.kestrelridge-main.testnet"
+            },
+            "per_call": "10000000",
+            "spent": "1000000",
+            "window_cap": "50000000",
+            "window_ms": 86400000,
+            "window_start_ms": 1794242726183
+          }
+        ],
+        "enabled": true,
+        "label": "demo agent",
+        "unknown_caps": [
+          {
+            "asset": {
+              "Ft": "token.kestrelridge-main.testnet"
+            },
+            "per_call": "1000000",
+            "spent": "0",
+            "window_cap": "1000000",
+            "window_ms": 86400000,
+            "window_start_ms": 0
+          }
+        ]
+      },
+      "block_hash": "3iFEvwHd3K6zAZkPDbtMobHvered3rPsd4YJhi4yo9BC",
+      "block_height": 276946981,
+      "captured_utc": "2026-11-09T16:51:12.144346+00:00",
+      "commit": "9693281540dafef353f2da4e4ef054649e0a1d84",
+      "keys": {
+        "block_hash": "3iFEvwHd3K6zAZkPDbtMobHvered3rPsd4YJhi4yo9BC",
+        "block_height": 276946981,
+        "keys": [
+          {
+            "access_key": {
+              "nonce": 276946936000000,
+              "permission": "FullAccess"
+            },
+            "public_key": "ed25519:6UAfYZGkZqfsJXzvT8vCd13V4mZ975pqr9h2aS1VuA96"
+          },
+          {
+            "access_key": {
+              "nonce": 275335998000015,
+              "permission": "FullAccess"
+            },
+            "public_key": "ed25519:7gxqnnhZbSBFRnYmTg8T3UZ4WUULUNS97f4jnf1oygp8"
+          },
+          {
+            "access_key": {
+              "nonce": 276780432000001,
+              "permission": {
+                "FunctionCall": {
+                  "allowance": "999087176938907000000000",
+                  "method_names": [
+                    "request_transfer"
+                  ],
+                  "receiver_id": "kestrelridge-main.testnet"
+                }
+              }
+            },
+            "public_key": "ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2"
+          }
+        ]
+      },
+      "policy": {
+        "denylist": [],
+        "max_ttl_ms": 300000,
+        "paused": false
+      },
+      "signing_public_keys": {
+        "current": "7d6517307a399288e3ce6a08ad2d5b05911e74df3c940ea63f0cb8b6172eb230",
+        "previous": null
+      },
+      "token_balances": {
+        "kestrelridge-main.testnet": "999929000000",
+        "kestrelridge-owner.testnet": "0",
+        "kestrelridge-shop.testnet": "71000000"
+      },
+      "version": "0.2.2"
+    },
+    "owner_deleted": {
+      "account": {
+        "amount": "10950925811510159500000000",
+        "block_hash": "KiztdorNbFUuxShv7SKudjBaKaXu394zQeEv6Wrs5Xv",
+        "block_height": 276947054,
+        "code_hash": "5EmM2UQRYcvaNvJX6jfcgtNS7Mm8ZPjZhwK1J8bMXrcu",
+        "locked": "0",
+        "storage_paid_at": 0,
+        "storage_usage": 265895
+      },
+      "agent": {
+        "allowlist": [
+          "kestrelridge-shop.testnet"
+        ],
+        "caps": [
+          {
+            "asset": {
+              "Ft": "token.kestrelridge-main.testnet"
+            },
+            "per_call": "10000000",
+            "spent": "1000000",
+            "window_cap": "50000000",
+            "window_ms": 86400000,
+            "window_start_ms": 1794242726183
+          }
+        ],
+        "enabled": true,
+        "label": "demo agent",
+        "unknown_caps": [
+          {
+            "asset": {
+              "Ft": "token.kestrelridge-main.testnet"
+            },
+            "per_call": "1000000",
+            "spent": "0",
+            "window_cap": "1000000",
+            "window_ms": 86400000,
+            "window_start_ms": 0
+          }
+        ]
+      },
+      "block_hash": "KiztdorNbFUuxShv7SKudjBaKaXu394zQeEv6Wrs5Xv",
+      "block_height": 276947054,
+      "captured_utc": "2026-11-09T16:51:57.361288+00:00",
+      "commit": "9693281540dafef353f2da4e4ef054649e0a1d84",
+      "keys": {
+        "block_hash": "KiztdorNbFUuxShv7SKudjBaKaXu394zQeEv6Wrs5Xv",
+        "block_height": 276947054,
+        "keys": [
+          {
+            "access_key": {
+              "nonce": 276946936000001,
+              "permission": "FullAccess"
+            },
+            "public_key": "ed25519:6UAfYZGkZqfsJXzvT8vCd13V4mZ975pqr9h2aS1VuA96"
+          },
+          {
+            "access_key": {
+              "nonce": 276780432000001,
+              "permission": {
+                "FunctionCall": {
+                  "allowance": "999087176938907000000000",
+                  "method_names": [
+                    "request_transfer"
+                  ],
+                  "receiver_id": "kestrelridge-main.testnet"
+                }
+              }
+            },
+            "public_key": "ed25519:Hz6UZRmRNCKxAV5WiHEBMobwr9T4tUvtcijGycLBAeX2"
+          }
+        ]
+      },
+      "policy": {
+        "denylist": [],
+        "max_ttl_ms": 300000,
+        "paused": false
+      },
+      "signing_public_keys": {
+        "current": "7d6517307a399288e3ce6a08ad2d5b05911e74df3c940ea63f0cb8b6172eb230",
+        "previous": null
+      },
+      "token_balances": {
+        "kestrelridge-main.testnet": "999929000000",
+        "kestrelridge-owner.testnet": "0",
+        "kestrelridge-shop.testnet": "71000000"
+      },
+      "version": "0.2.2"
+    }
+  }
+}
