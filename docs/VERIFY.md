@@ -27,7 +27,7 @@ sha256: ba2551dc...7f8b7705
 code_hash: DXdqac6HBiXtZVCrJjdGjDEFfzcFF7EEDza8h8rU5UCC
 ```
 
-This checks that the committed Wasm bytes match the checked-in checksums and recorded hashes. Gate 0.2.2 in `res/gate.wasm` is built but not deployed; `res/previous/gate.wasm` is the deployed 0.2.1 artifact preserved as rollback for 0.2.2. This check does not rebuild from source or establish which code is currently deployed. To reproduce a build, use the source commit and recipe in the corresponding `res/BUILD-*.md`, from that contract crate, with `CARGO_TARGET_DIR` unset:
+This checks that the committed Wasm bytes match the checked-in checksums and recorded hashes. Gate 0.2.2 in `res/gate.wasm` matches the recorded 9 Nov testnet deployment; `res/previous/gate.wasm` is the 0.2.1 rollback (`fixtures/runs/gate-022-deploy-20261109.txt`). This check does not rebuild from source or establish which code is currently deployed. To reproduce a build, use the source commit and recipe in the corresponding `res/BUILD-*.md`, from that contract crate, with `CARGO_TARGET_DIR` unset:
 
 ```sh needs-docker
 cargo near build reproducible-wasm

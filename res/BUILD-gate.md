@@ -4,9 +4,9 @@ reproducible build
 
 Source commit: 57860c96f071fac0f7bb99f242fcae7e6c4430d2
 
-Deployed: pending
+Deployed: 9 Nov, `kestrelridge-main.testnet`, version 0.2.2, code_hash `5EmM2UQRYcvaNvJX6jfcgtNS7Mm8ZPjZhwK1J8bMXrcu` MATCH (layout preserving redeploy without an init call, transaction `HnFAFtxq...1YKTvU`; FINAL success, no failed receipt; policy, agent configuration, signing public keys and token balances unchanged; storage grew by 531 bytes and the native amount decrease exactly matched total transaction and receipt fees). Public readbacks and transaction proof fields are in `fixtures/runs/gate-022-readbacks-20261109.json` and `fixtures/runs/gate-022-transactions-20261109.json`; the verified summary is `fixtures/runs/gate-022-deploy-20261109.txt`.
 
-Previous deploy, version 0.2.1 from source commit c2d42c02d1942d39fa0fa2651d3d1652875ffdcc, still the code on testnet, now `res/previous/gate.wasm` and the rollback for 0.2.2: 7 Nov, `kestrelridge-main.testnet`, code_hash `8EGqzorvbx5PiPCnLJCbi79p9HWsie93iwgCT6GjStL5` MATCH (layout preserving redeploy without an init call over the 0.1.0 state, transaction `2N6HEK3d...EBW9R1`; `version` read 0.1.0 before and 0.2.1 after; policy, verifier key, agent and used verdict ids read back unchanged).
+Previous deploy, version 0.2.1 from source commit c2d42c02d1942d39fa0fa2651d3d1652875ffdcc, now `res/previous/gate.wasm` and the rollback for 0.2.2: 7 Nov, `kestrelridge-main.testnet`, code_hash `8EGqzorvbx5PiPCnLJCbi79p9HWsie93iwgCT6GjStL5` MATCH (layout preserving redeploy without an init call over the 0.1.0 state, transaction `2N6HEK3d...EBW9R1`; `version` read 0.1.0 before and 0.2.1 after; policy, verifier key, agent and used verdict ids read back unchanged).
 
 The source link embedded by NEP-330 is `https://github.com/Ridwannurudeen/shieldbot-near/tree/57860c96f071fac0f7bb99f242fcae7e6c4430d2`.
 
