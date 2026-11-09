@@ -34,3 +34,4 @@
 8 Nov: a keyed scan runs 32 workers so it reaches its request spacing, with block reads measured at 1.35 s in the morning and 3.3 s in the afternoon.
 9 Nov: demo shot list extended to 130 seconds with real human narration, a 2 to 4 minute export at 720p or above, live transaction capture and a final recording review; fixture and scripted agent disclosures retained.
 9 Nov: Gate 0.2.2 built byte identical in two clean clones, with native memo rejection and clearer unknown-token refusals, 73 unit tests and the exact-artifact upgrade and rollback sandbox passing; preserved the deployed 0.2.1 wasm as rollback, and marked 0.2.2 deployment pending in the build and verification records.
+9 Nov: routing-only HTTP tests omit irrelevant request bodies, preserving the 404, 405 and Allow assertions while avoiding intermittent Windows connection aborts when the server closes before reading an unsupported route's body; production HTTP behavior is unchanged.
