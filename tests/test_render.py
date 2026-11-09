@@ -281,7 +281,10 @@ class RenderTest(unittest.TestCase):
 
     def test_allow_ask_requires_a_person_and_uses_neutral_style(self):
         page = self.pages["index.html"]
-        self.assertIn('const isGreen = data.outcome === "ALLOW" && data.action === "sign"', page)
+        is_green = page[page.index("const isGreen ="):page.index("const displayOutcome =")]
+        self.assertIn('data.outcome === "ALLOW" && data.action === "sign"', is_green)
+        self.assertIn("data.evidence_hash.trim().length > 0", is_green)
+        self.assertIn("data.freshness !== null", is_green)
         self.assertIn('data.checks.every(check => check.status.trim().toLowerCase() === "pass")', page)
         self.assertIn('const displayOutcome = data.outcome === "ALLOW" && !isGreen ? "ASK" : data.outcome;', page)
         self.assertIn('`verdict ${isGreen ? "allow" : displayOutcome.toLowerCase()}`', page)

@@ -356,6 +356,7 @@ const renderVerdict = (panel, data, showOfac = false, token) => {
     return;
   }
   const isGreen = data.outcome === "ALLOW" && data.action === "sign"
+    && data.evidence_hash.trim().length > 0 && data.freshness !== null
     && data.checks.every(check => check.status.trim().toLowerCase() === "pass");
   const displayOutcome = data.outcome === "ALLOW" && !isGreen ? "ASK" : data.outcome;
   panel.replaceChildren();
