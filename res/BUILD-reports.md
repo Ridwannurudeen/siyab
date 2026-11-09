@@ -4,9 +4,9 @@ reproducible build
 
 Source commit: c270d76e21f11310b6d64e78c6af0fb98710491f
 
-Deployed: pending
+Deployed: 9 Nov 2026, transaction `zrSXNV7k...spCxuF`, version 0.1.3, code_hash `En4wm3kmoZRTP8jZQCHhuDwwyXXEbQcNqfJyyiQYve4k` MATCH.
 
-Previous deploy, version 0.1.2 from source commit 5abc782b2126ac4cc91001b20ecb89e78fca11f8; code_hash `DXdqac6HBiXtZVCrJjdGjDEFfzcFF7EEDza8h8rU5UCC`; rollback target `res/previous/reports.wasm`; still the code on testnet.
+Previous deploy and rollback target, version 0.1.2 from source commit 5abc782b2126ac4cc91001b20ecb89e78fca11f8; code_hash `DXdqac6HBiXtZVCrJjdGjDEFfzcFF7EEDza8h8rU5UCC`; artifact `res/previous/reports.wasm`.
 
 Earlier deploy, version 0.1.1 from source commit 937615878543e9f0d45eeb5002b65f88e3fc3757; code_hash `GFKs9k5P6raHNxN6suXJNJByjsYdXAZdGdJE5a5duZes`.
 
