@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "kent-user1.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "G6gFuAEpnqMC7A8iGc9zeNfYRtR6RU5cPYuTgK6HKVxi",
+      "block_height": 223718463,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 223457219000015,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4xSv4H3fKYd5r93wqXwabK59ZgAzcduDEHpuo3ZnqHay"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:44:49Z"
+}

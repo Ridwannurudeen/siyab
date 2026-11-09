@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "missoralways.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "85MXzgHE5t1GB9cJDsFsKmqnxLfCtHbFYfrov3eVMTgK",
+      "block_height": 223715964,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 216790655000890,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:EhZK2ikci8Doeph9TUgoPnmPWF8X6kyqC7dYaJ4UnkUM"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:21:04Z"
+}

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "seanybeagle.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "B2GV27osyr6vauQCjiWvjb1xb9KxiM6CxAjZBzikvrY3",
+      "block_height": 223719441,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 217231003000239,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8DGFncMEDCBgdXP4ckj9BeJsaZpk2wHXuyPVEowzPgq2"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:54:06Z"
+}

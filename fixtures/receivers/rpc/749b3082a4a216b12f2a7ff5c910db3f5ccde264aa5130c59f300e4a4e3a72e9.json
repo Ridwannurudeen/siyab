@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "wongteckzwee.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "CfcgbJpRm3jJ2VQKTBC877bqLUNFS6zpam81VMTk3d1P",
+      "block_height": 223719096,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 223487912000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:2YvgtT5wAo6LCoZ9iYuocHmzX5S1hWJ7fXcf7ch3hzH5"
+        },
+        {
+          "access_key": {
+            "nonce": 223487900000002,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:99dWrGbjsPng5VcvLr94taqNfuJgVowimhBuFiSS1owi"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:50:49Z"
+}

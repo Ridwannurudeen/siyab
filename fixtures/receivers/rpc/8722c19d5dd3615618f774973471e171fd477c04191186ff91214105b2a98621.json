@@ -1,0 +1,42 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "babulagalya.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "Dkuq1BSCepbka9SPvrVTofseVgPTmShN3uB9SUd3aTCe",
+      "block_height": 223715066,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 222704260000012,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1",
+                "method_names": [],
+                "receiver_id": "aa-harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:457bmErKqgPU5Z8PaQbCvZR35T7dod3bAq48jnsiqYqG"
+        },
+        {
+          "access_key": {
+            "nonce": 119558497002742,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Fq9vvu5xRBHiUyvkam59mjznpc4esdJeTmNgBwccKJ6D"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:12:39Z"
+}

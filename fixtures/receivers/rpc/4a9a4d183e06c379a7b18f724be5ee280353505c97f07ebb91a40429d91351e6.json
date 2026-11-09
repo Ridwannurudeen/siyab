@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "jonnyy.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "7SrEFBBqMUiEP1HXmogcWZaK167RK7scVP9CiJAfac7d",
+      "block_height": 223719369,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 220193146000230,
+            "permission": "FullAccess"
+          },
+          "public_key": "ml-dsa-65-hash:BuhM1UeS5ro879UD4BCGGgeTgjm7dHzTPGaz2oXRRtBa"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:53:24Z"
+}

@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "antoinevergne.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "3469231277309810026792684",
+      "block_hash": "CRTjgPpyRqWfbtFqruazB1eCzvz3BmZG3xp2mwV8o3aJ",
+      "block_height": 223715184,
+      "code_hash": "E8jZ1giWcVrps8PcV75ATauu6gFRkcwjNtKp7NKmipZG",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 1843
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:13:46Z"
+}

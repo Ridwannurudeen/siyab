@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "archiolddata.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "8kZ4n1YBFM7ovWkJgp9FVvbg5c4RnoGPyAPD8nHxfN5X",
+      "block_height": 223721730,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 112692945027805,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8s5aQ2bjzbJVGHbkkjabUQ5ThbJenYuDfL8CUzbHRSMy"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T05:15:37Z"
+}

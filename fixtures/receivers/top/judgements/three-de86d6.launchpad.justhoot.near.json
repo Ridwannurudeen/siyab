@@ -1,0 +1,105 @@
+{
+  "subject": "three-de86d6.launchpad.justhoot.near",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "three-de86d6.launchpad.justhoot.near",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "ALLOW",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "pass",
+      "detail": "three-de86d6.launchpad.justhoot.near exists",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "1c0b886942a2f23e578afa936f09ec358369880750343cdb1b19422f83a9c239",
+        "fetched_at": "2026-11-09T04:15:28Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "pass",
+      "detail": "no denylist or incident label on three-de86d6.launchpad.justhoot.near",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "issuer_blacklist",
+      "status": "pass",
+      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "3e06e36c344e7fe3032744683095cb864d98ce80743dc04cdd5a914fdeb94d3d",
+        "fetched_at": "2026-11-09T04:15:28Z"
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "pass",
+      "detail": "three-de86d6.launchpad.justhoot.near has no access key; view_account finds three-de86d6.launchpad.justhoot.near at block 222505766 (2026-11-01T02:18:00Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
+      "source": {
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "950f3f04ac8bc5a9e5bc6f9cfab3f5ea9680ff864ae886b157fb6e50298ebe45",
+        "fetched_at": "2026-11-09T04:15:32Z"
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "pass",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
+      "source": {
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "three-de86d6.launchpad.justhoot.near is itself a labelled reference account (assertion 94a1e37a985f56576e2c38c200128833602b510bdf383f70f931c4998f545de0)",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "pass",
+      "detail": "no contract code",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "1c0b886942a2f23e578afa936f09ec358369880750343cdb1b19422f83a9c239",
+        "fetched_at": "2026-11-09T04:15:28Z"
+      }
+    }
+  ],
+  "reasons": [
+    "Every check ran and none found a signal.",
+    "Not on the owner's allowlist."
+  ],
+  "labels": [
+    "94a1e37a985f56576e2c38c200128833602b510bdf383f70f931c4998f545de0"
+  ],
+  "observed": {
+    "block_height": 223715366,
+    "timestamp_ms": 1794197345742
+  }
+}

@@ -1,0 +1,205 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "rxbbw.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "2579uULneCwk3cHCigpc35NtCdizkWbB5sE7cXdrXXE4",
+      "block_height": 223719434,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 169411226000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meme-cooking.near"
+              }
+            }
+          },
+          "public_key": "ed25519:Jw7geovhFzc88eC7Wvo5snXLbb7WJypWKW8xFWRjFzB"
+        },
+        {
+          "access_key": {
+            "nonce": 111876815000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "marketplace.paras.near"
+              }
+            }
+          },
+          "public_key": "ed25519:38tNS6t5Tjk5Yj4zSoev9aSwe1dW9Yz4norJP6hjLznR"
+        },
+        {
+          "access_key": {
+            "nonce": 165795117000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "veax.near"
+              }
+            }
+          },
+          "public_key": "ed25519:3xvMcGH6N2iSNmBkrCKbQNDvHdQA1Bh2seaL8pBrLjth"
+        },
+        {
+          "access_key": {
+            "nonce": 116594233000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "asset-manager.orderly-network.near"
+              }
+            }
+          },
+          "public_key": "ed25519:4ZzZXX5nrwTc8e5ARgWWYdK3mggapjQgjooRkzniNxoz"
+        },
+        {
+          "access_key": {
+            "nonce": 176621736000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "subscription.pikespeak.near"
+              }
+            }
+          },
+          "public_key": "ed25519:4hAQayBHAQYhuyYxx5VLuosASwLVZ8iosadgpKY9qk4j"
+        },
+        {
+          "access_key": {
+            "nonce": 216361952000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:5Ki3TvE7s4mLsSvsaBvrLenB4S4kNedGaEMtgF13UVwo"
+        },
+        {
+          "access_key": {
+            "nonce": 221877949000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "nearlytrade.near"
+              }
+            }
+          },
+          "public_key": "ed25519:A2p4JRzxyrj7dqn6Lb6D1RD6NFCWuRJcYY3wnQC93zix"
+        },
+        {
+          "access_key": {
+            "nonce": 113511280000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "mintbase1.near"
+              }
+            }
+          },
+          "public_key": "ed25519:A3UoBp9LmqiVfWaHdHNhL8ZqX2c1eCK9YBQCK9FuF7pE"
+        },
+        {
+          "access_key": {
+            "nonce": 111811546022612,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:AEyM5iWrJ5gUF4unR7U2xmxoXbsx64DxenME4eh9zZeD"
+        },
+        {
+          "access_key": {
+            "nonce": 165794463000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "veax.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BQPvSNRnBGRoKvNVqxycVNFnHAmi7AEQfEDNJd5RB4DE"
+        },
+        {
+          "access_key": {
+            "nonce": 216363116000002,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "aa-harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BS5tkyAHU6dyLHVYBGGxCKzqAa5jB1j1xyAMQ1Cwaqny"
+        },
+        {
+          "access_key": {
+            "nonce": 221605199000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "nearlytrade.near"
+              }
+            }
+          },
+          "public_key": "ed25519:ERagcg8aWfhxUKSfKhBx65hXc5V7wto649w5Qd8xXLcK"
+        },
+        {
+          "access_key": {
+            "nonce": 111876956000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "market.tradeport.near"
+              }
+            }
+          },
+          "public_key": "ed25519:GNpYA7mwpWYc9DmioYsrXG4c5qpNuFUpUbsXhxSRhtwE"
+        },
+        {
+          "access_key": {
+            "nonce": 175581463000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meme-cooking.near"
+              }
+            }
+          },
+          "public_key": "ed25519:GyvAcheHZ2dzyk6JEtQKJHNDNQfzRcnHPVYkfrU8nPCv"
+        },
+        {
+          "access_key": {
+            "nonce": 172004678000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meme-cooking.near"
+              }
+            }
+          },
+          "public_key": "ed25519:JDL5qEsTMSRNB5cYyG8sXPDktEDHB8hS3b3DP7ydvBrG"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:54:02Z"
+}

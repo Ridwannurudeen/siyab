@@ -1,0 +1,42 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "mohamad_kanani01.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "9z8C3SrXV55aCQAW8mvKFa2XKWKf3vjS64TTkGw2hVao",
+      "block_height": 223718589,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 111960848039991,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4G33esv8DCiBGa69hCQvyqmbnXNsE2MHJhWjA36iCNPn"
+        },
+        {
+          "access_key": {
+            "nonce": 193430180000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:EXs9qXnxn31Pg8doH8VHL8axtgGy8yEusAQMLNuxBCpF"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:46:02Z"
+}

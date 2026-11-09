@@ -1,0 +1,43 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "meta-pool-dao-7.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "9QGirqot6Nxz2b4hYjHMxg6E8ZyJ6GTj78iWE8HFDmFJ",
+      "block_height": 223716315,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 91767320000013,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:CQ71TRFd5kubykUehsauv4mLqLM7MiWNxckCqWsV2BK"
+        },
+        {
+          "access_key": {
+            "nonce": 91767332000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:YvWGNwkfHMzEgbHa73kzFU4p7R6uGGKdkBqAUNKqJJ7"
+        },
+        {
+          "access_key": {
+            "nonce": 92418781006862,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:JDHvjosDxQAwVNWHWGh4tGVvXL5cLstrEg6FSqkfqrBj"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:24:23Z"
+}

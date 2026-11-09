@@ -1,0 +1,26 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "betman.nearlytrade.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "63930000000000000000036",
+      "block_hash": "GoaosV6iXSoAkE6QBnGguPnzdC45kjxT98BCYsjYDQBS",
+      "block_height": 223715038,
+      "code_hash": "11111111111111111111111111111111",
+      "global_contract_hash": "8GXVnFTxx1d6tYnoqNiQ5YzzQpj1uyxG7u28LeCGmsER",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 5020
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:12:24Z"
+}

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "firedrop.hot.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "3XYHcEr2oiwE3F7rieUJj5cGA6B2aeb3xgT5ESwyHEaV",
+      "block_height": 223714824,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 128312165000004,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Yry7x4LatHei61aBdXGghCmHyipKMr1cXzFcHVnB7tR"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:10:23Z"
+}

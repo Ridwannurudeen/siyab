@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "unhuntable.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "829332136822166800000000",
+      "block_hash": "88jHVRXxeFb5c8veUaJg58pAq63ymKyUD2KQUQUazwTr",
+      "block_height": 223718973,
+      "code_hash": "FU9xW6eA9QWF5U9oeSXDKPbSxiihkPzBJGFYuv1r7rxw",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 78411
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:49:40Z"
+}

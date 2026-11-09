@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "tiesenhausen.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "DSxz24e6VL3uoWHmo77eUirnoApRs72pbc3CR1wK8RYG",
+      "block_height": 223718946,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 120851516016334,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:BQ4zTnm3w3ysSsuZGVyAwYJcgHyCbKJKFuhTMte6mr8S"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:49:25Z"
+}

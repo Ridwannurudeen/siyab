@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "omft.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "5908185324712610150938130822",
+      "block_hash": "AQydzRxKwMuCgxaq8fNGtTj4QfxSpBQH86xtodx4RBeA",
+      "block_height": 223714828,
+      "code_hash": "Ar8QnDvvksbFZCk5J5F4m46ZwoWxynF2aXN2xvJ1gAr2",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 604807
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:10:26Z"
+}

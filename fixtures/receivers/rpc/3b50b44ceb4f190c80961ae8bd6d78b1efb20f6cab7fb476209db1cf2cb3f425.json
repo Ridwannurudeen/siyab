@@ -1,0 +1,42 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "chaudhryqasair.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "37bju3mqP4Huapj4vTUeWqA1MFbXzgYRwnRigHh1xYuW",
+      "block_height": 223716645,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 114124272011724,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:NQmvNqoz1Jr6bNR3rHfAkF3PZGTbQf6yPVfhRZiPvJb"
+        },
+        {
+          "access_key": {
+            "nonce": 122465484000009,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "login.learnclub.near"
+              }
+            }
+          },
+          "public_key": "ed25519:dTFeyjr9Pnmq9CiA22TzFxBGxMnACpC6vDKbu8rEj2n"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:27:30Z"
+}

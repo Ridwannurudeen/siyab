@@ -1,0 +1,157 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "intents.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "AMgDssvc4iSbF3sAncTEGUptU8E978Yk66EDxqBWcR7X",
+      "block_height": 223714759,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 151978851886469,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "execute_intents"
+                ],
+                "receiver_id": "intents.near"
+              }
+            }
+          },
+          "public_key": "ed25519:oxEocH88sCavwDRXqoMtryK2Qm9Af72jxMsvsQGHQJx"
+        },
+        {
+          "access_key": {
+            "nonce": 151978851887256,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "execute_intents"
+                ],
+                "receiver_id": "intents.near"
+              }
+            }
+          },
+          "public_key": "ed25519:2nwukzu9FrAYbrrBRyHH7XNaJpQcYCoVqZAPeSXEbQJF"
+        },
+        {
+          "access_key": {
+            "nonce": 151978851887148,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "execute_intents"
+                ],
+                "receiver_id": "intents.near"
+              }
+            }
+          },
+          "public_key": "ed25519:4vq3dbhcG3A1fJufpgMZwa1UKQcnWf3aprFFp916J82Z"
+        },
+        {
+          "access_key": {
+            "nonce": 149367527908984,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "execute_intents"
+                ],
+                "receiver_id": "intents.near"
+              }
+            }
+          },
+          "public_key": "ed25519:5feHBLeyMBf7mppZR1kHv3Hk43kG7b69pM1JKEfWPjdC"
+        },
+        {
+          "access_key": {
+            "nonce": 149367527909394,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "execute_intents"
+                ],
+                "receiver_id": "intents.near"
+              }
+            }
+          },
+          "public_key": "ed25519:8KwHMd5ruFvFqcBCAq1k7k5aqpdLoGMfbUeQKjbaMdSb"
+        },
+        {
+          "access_key": {
+            "nonce": 186377975050732,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "execute_intents"
+                ],
+                "receiver_id": "intents.near"
+              }
+            }
+          },
+          "public_key": "ed25519:Anpgu2DvnC3E4yULEyN5eX64KPpgpKTHomgWcm6ArZyr"
+        },
+        {
+          "access_key": {
+            "nonce": 149367527909415,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "execute_intents"
+                ],
+                "receiver_id": "intents.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BXa2Evq6XGAr3TiXfQisyv9PYp4Gpzm14AbLuw8h6G77"
+        },
+        {
+          "access_key": {
+            "nonce": 151978851886259,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "execute_intents"
+                ],
+                "receiver_id": "intents.near"
+              }
+            }
+          },
+          "public_key": "ed25519:CTjF3Xm8s7Gob9qLPMbh3sAq8scdoEpibrDFFCMAVwcQ"
+        },
+        {
+          "access_key": {
+            "nonce": 151978851886440,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "execute_intents"
+                ],
+                "receiver_id": "intents.near"
+              }
+            }
+          },
+          "public_key": "ed25519:FKPYRP9c93qVKPexkDAsHhqmgwmrS4H5uMiuqGXhY2y3"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:09:46Z"
+}

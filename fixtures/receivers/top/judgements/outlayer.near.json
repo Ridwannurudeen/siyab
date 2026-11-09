@@ -1,0 +1,106 @@
+{
+  "subject": "outlayer.near",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "outlayer.near",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "UNKNOWN",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "pass",
+      "detail": "outlayer.near exists",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "682ef295c25bd730b41418882142047c9669bf3b5d5170a06fb301f385fd0101",
+        "fetched_at": "2026-11-09T04:38:36Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "pass",
+      "detail": "no denylist or incident label on outlayer.near",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "issuer_blacklist",
+      "status": "pass",
+      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "36b175d40ffdfb41ff2d86c84f0adfde459864ca0644702402c535fd41472543",
+        "fetched_at": "2026-11-09T04:38:37Z"
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "unknown",
+      "detail": "no archival age (view_access_key_list could not run: no recorded response for the request); could not read the account keys: no recorded response for the request",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "b0264106f97ebd791047387cc064a58e604c3ff538ff8d22203a1f0fd128af48",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "unknown",
+      "detail": "the creation transaction is not known",
+      "source": {
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "outlayer.near is itself a labelled reference account (assertion 29995f1c3eee95f0f0c511cbab02fa45c25ef5ca7973c66729b10d0495c8aeeb)",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "unknown",
+      "detail": "could not read contract_source_metadata: no recorded response for the request",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "e494d2bbf39e71b68b9d6dda6558bb47d81675f93d98ddd54e5dc576c51cb1fe",
+        "fetched_at": null
+      }
+    }
+  ],
+  "reasons": [
+    "account_age could not run: no archival age (view_access_key_list could not run: no recorded response for the request); could not read the account keys: no recorded response for the request.",
+    "dust_funded could not run: the creation transaction is not known.",
+    "code_without_metadata could not run: could not read contract_source_metadata: no recorded response for the request."
+  ],
+  "labels": [
+    "29995f1c3eee95f0f0c511cbab02fa45c25ef5ca7973c66729b10d0495c8aeeb"
+  ],
+  "observed": {
+    "block_height": 223717809,
+    "timestamp_ms": 1794197345742
+  }
+}

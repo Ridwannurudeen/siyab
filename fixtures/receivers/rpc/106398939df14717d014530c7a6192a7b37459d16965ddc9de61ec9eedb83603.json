@@ -1,0 +1,24 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "call_function",
+      "account_id": "snirk83.near",
+      "method_name": "contract_source_metadata",
+      "args_base64": "e30=",
+      "finality": "final"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "81iKGU7m43zeh1rr4amT5EXmwUe4a3sK1iLKinYs2nzD",
+      "block_height": 223715511,
+      "error": "wasm execution failed with error: CompilationError(PrepareError(Deserialization))",
+      "logs": []
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:16:49Z"
+}

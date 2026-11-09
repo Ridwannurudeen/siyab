@@ -1,0 +1,120 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "abuzar_1364-hot.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "EFa1yMQABpVrVDgy2X91DpwhTa1Gc3ADodZLhVpcpLyV",
+      "block_height": 223721256,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 188490290000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "near-fm.near"
+              }
+            }
+          },
+          "public_key": "ed25519:6BTWtq5NpR5WsqMLLSExdSYi8B6kbqgmAv2Qv6UMtDzC"
+        },
+        {
+          "access_key": {
+            "nonce": 198050660000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "near-fm.near"
+              }
+            }
+          },
+          "public_key": "ed25519:7Xv1R8kakBh3S8K3sSLR8XCXxYoQDvKDdF1nrnS271jp"
+        },
+        {
+          "access_key": {
+            "nonce": 168564548000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "vault.intellex_xyz.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BDMttRDP5bggSSKMFCSK6Po6Ad6hsoTfkzEyuv8f69GG"
+        },
+        {
+          "access_key": {
+            "nonce": 185112420000001,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "aa-harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BS5tkyAHU6dyLHVYBGGxCKzqAa5jB1j1xyAMQ1Cwaqny"
+        },
+        {
+          "access_key": {
+            "nonce": 218450734000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "nearlios.swiftarena6534.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BkpYs7HPAoA5ogVVoKSGyo1a5Mqm691Wsfa8epfEszZg"
+        },
+        {
+          "access_key": {
+            "nonce": 198061815000016,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "212238151298648100000000",
+                "method_names": [],
+                "receiver_id": "near-fm.near"
+              }
+            }
+          },
+          "public_key": "ed25519:FhznE8Gyy47qTWij2cU4K82zo7MVZrpNJmPS646VQ4Y8"
+        },
+        {
+          "access_key": {
+            "nonce": 116156507029823,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:G9wzFkiQT4XatvR5nLFKdjRQg3o3yCT9rYKdC3XaBmL4"
+        },
+        {
+          "access_key": {
+            "nonce": 198063143000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "near-fm.near"
+              }
+            }
+          },
+          "public_key": "ed25519:GZ91e2U58GBZd4QK2PuQ59RZVfRHksgN8B1XoDWc68fd"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T05:11:08Z"
+}

@@ -1,0 +1,71 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "wrapz-z.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "RSwwNfZH8anJWETuTFTHsKZYdVZ2JZgQvWZSSVBigi4",
+      "block_height": 223715173,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 220250022000424,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:3FHRQ4jzFb1SEtGct2ModDvVmfaWp4URwwozx1LCxovE"
+        },
+        {
+          "access_key": {
+            "nonce": 220250022000412,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4aoM5GRb1EuzGi1hAzfVKAVBJFQRfHpVR4cgX6RAk5Ee"
+        },
+        {
+          "access_key": {
+            "nonce": 220250022000450,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4ssTzrUbuHHFRsjsboQvWEV4U5DscWES9k96Dbsfs9Ah"
+        },
+        {
+          "access_key": {
+            "nonce": 220250022000432,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6qJ8KteXKa9R2Nt3xmG2HtCRvx9BvBqEGdZgan4eTquY"
+        },
+        {
+          "access_key": {
+            "nonce": 220250022000405,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8WqtdNSLybbdXvJEuUxSmUTsymRAHho7XGruYqZfGCRe"
+        },
+        {
+          "access_key": {
+            "nonce": 220248221000085,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:AFgtM6wTBPiVjmFtHAjag7cokYa482A5mgsubHkr61EW"
+        },
+        {
+          "access_key": {
+            "nonce": 220250022000439,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:GH8zzcAx6FLUkshCtcWvZczdfRYmxRyxxex8etdieeGG"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:13:40Z"
+}

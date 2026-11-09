@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "snirk83.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "2441402350154489420113589",
+      "block_hash": "mJX53eP7xewupWkfffCLdS8r2GTkgspTmYxNwmAuMqn",
+      "block_height": 223715504,
+      "code_hash": "GKot5hBsd81kMupNCXHaqbhv3huEbxAFMLnpcX2hniwn",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 309
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:16:45Z"
+}

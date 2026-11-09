@@ -1,0 +1,62 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "manuelbarbosa.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "CMSW23BHQFPdMm32ov2DUi9FnuyH75TrVhvNzvmydKoq",
+      "block_height": 223716705,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 56091744001215,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:26fkc9FPnN1D7rR5pdBMeDzFCogfWFx7PwnhKK3LjgUa"
+        },
+        {
+          "access_key": {
+            "nonce": 190487760000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:3heF72L5UBwwAr17VbnmitbX2FrQxxPinTELpCzeyiUH"
+        },
+        {
+          "access_key": {
+            "nonce": 220778783000002,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8nRhwZBbJib6Tp7VwQ51dgqfc359NSsA7vJUiMKDXfYd"
+        },
+        {
+          "access_key": {
+            "nonce": 221226688000001,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "aa-harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BS5tkyAHU6dyLHVYBGGxCKzqAa5jB1j1xyAMQ1Cwaqny"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:28:06Z"
+}

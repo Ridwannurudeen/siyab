@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "reward-optin.sweat"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "GGkxT4dNWKg3EUTmbAyyRh51Xm57Q73V3kJsaXmPeei3",
+      "block_height": 223714753,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 200139557000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6TGGGYBUfo1Vy6SDVqrm1sKrJ4BsY292iLg2AEv5Sknp"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:09:42Z"
+}

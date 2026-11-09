@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "alireza_vidafar90.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "Fag6h7PUgu7BbbWj4rXLjcW7hBH8HJCaCcFu1EzHMpSE",
+      "block_height": 223721512,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 120069132016050,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:BAPy7ASVxaVrRmuhsJDZEhoV85RcL3RD3tijE5YTUbRS"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T05:13:33Z"
+}

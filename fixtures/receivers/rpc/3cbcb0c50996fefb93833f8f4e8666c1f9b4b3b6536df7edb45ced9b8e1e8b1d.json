@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "asteroid30.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "3rbUXpDMKSNdAxivsgDA1gzUSjAhJja3pVSfSPnqKeDL",
+      "block_height": 223721767,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 116307928029670,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:C9WF1oL6eSfSRc3AkUmcokm6btpoydquRMTYSwjR5SZg"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T05:15:59Z"
+}

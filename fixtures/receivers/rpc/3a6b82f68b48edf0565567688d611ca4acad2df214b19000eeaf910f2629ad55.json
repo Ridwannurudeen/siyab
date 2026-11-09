@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "ekoether.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "2k8EE88Fvf6KBdxgaM6RhaHEZwr5ekpSjNDC7G6P5ZVN",
+      "block_height": 223717173,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 124759902013800,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:A9j5mP6QvL2fjLunxrrU2JGKT7EjVJZVcNDZZZ9wgyJt"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:32:35Z"
+}

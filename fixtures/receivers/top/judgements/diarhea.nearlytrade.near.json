@@ -1,0 +1,105 @@
+{
+  "subject": "diarhea.nearlytrade.near",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "diarhea.nearlytrade.near",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "ALLOW",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "pass",
+      "detail": "diarhea.nearlytrade.near exists",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "f0d89e8571a2b690c5a8bbe041e77601a48fe6776eb7b433c67aaae5512917bf",
+        "fetched_at": "2026-11-09T04:13:16Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "pass",
+      "detail": "no denylist or incident label on diarhea.nearlytrade.near",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "issuer_blacklist",
+      "status": "pass",
+      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "1a6e75bf480ea0ef6c42cb250b5f793d86e216eed7409b51481521367f67d8eb",
+        "fetched_at": "2026-11-09T04:13:16Z"
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "pass",
+      "detail": "diarhea.nearlytrade.near has no access key; view_account finds diarhea.nearlytrade.near at block 222505531 (2026-11-01T02:15:44Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
+      "source": {
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "c9b4b4bc45a062bdf2bf212cf6818b3cc0fd1f38c785becbb4870e1363f96942",
+        "fetched_at": "2026-11-09T04:13:20Z"
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "pass",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
+      "source": {
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "diarhea.nearlytrade.near is itself a labelled reference account (assertion 4e85f9785dc803e6fcfe73ee061e48f89ea3547704c06d524b62dd86c0585c85)",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "pass",
+      "detail": "no contract code",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "f0d89e8571a2b690c5a8bbe041e77601a48fe6776eb7b433c67aaae5512917bf",
+        "fetched_at": "2026-11-09T04:13:16Z"
+      }
+    }
+  ],
+  "reasons": [
+    "Every check ran and none found a signal.",
+    "Not on the owner's allowlist."
+  ],
+  "labels": [
+    "4e85f9785dc803e6fcfe73ee061e48f89ea3547704c06d524b62dd86c0585c85"
+  ],
+  "observed": {
+    "block_height": 223715131,
+    "timestamp_ms": 1794197345742
+  }
+}

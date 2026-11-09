@@ -1,0 +1,42 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "antibiotikvrn.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "6p6u2ChhFMwtnLeQTRm2HG7S7KrFN4667U3v2Va6RBaW",
+      "block_height": 223721666,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 113078207013511,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6sHesZ5TzMjiNoScVsYN9yvK6QswMGChmPURXF3LW1Tk"
+        },
+        {
+          "access_key": {
+            "nonce": 116434490000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "market.tradeport.near"
+              }
+            }
+          },
+          "public_key": "ed25519:9KZLBC1mW1AFb8YcacbR41bVLSevzkrMe9f2q1ihWiDJ"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T05:15:01Z"
+}

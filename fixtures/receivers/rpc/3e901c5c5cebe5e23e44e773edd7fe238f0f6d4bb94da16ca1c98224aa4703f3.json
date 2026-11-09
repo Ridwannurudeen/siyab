@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "nearinsiders.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "CQBxd3nFCrds3N3cw63yBFpq4QYW29mcsMfrXWdoWCWU",
+      "block_height": 223715245,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 219032678000027,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:BZQSxExmXR6BQEfCbnmtvgBy3D7oM9px1s5sVAWVMV3c"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:14:20Z"
+}

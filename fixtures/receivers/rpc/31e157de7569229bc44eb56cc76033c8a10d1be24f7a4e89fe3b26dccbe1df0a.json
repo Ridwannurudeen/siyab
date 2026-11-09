@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "btc-relayer.bridge.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "5RdJXmn3S4UUwgR2oQv7ejEz9ij8131b26CuCbNfsovX",
+      "block_height": 223719165,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 208893900014478,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6uMxBHjDDUfFT6NEEMYHaBjGysDJTdfohhY9cYDgaM6v"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:51:28Z"
+}

@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "v3.noamarket.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "17326672601778850200000098",
+      "block_hash": "5XbT3Jf1oK1y3RwznRCYx45bsraJZUeK6Zve9mjtb7Tf",
+      "block_height": 223717906,
+      "code_hash": "5LtBEMgZgBucBW5g2S5grZJVJ4RxvGnQ9pzz7KkmjQSD",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 456169
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:39:31Z"
+}

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "burner.justhoot.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "42fxyA5jDfKSGXqeUh1yU9JAMg6EvG3KPUkG7sioPBig",
+      "block_height": 223719317,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 218208033000027,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:78oA6c82bkai4YDzdN51pZFrfhGp3N7T2khqxx9sk2eM"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:52:55Z"
+}

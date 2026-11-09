@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "mpdao-vote.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "GZUJzrVmeYXxgpMfVVmfeJvjnv4tKFkmVqjFzeiM14uU",
+      "block_height": 223716456,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 116557255000043,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:CWbrieGggyoAWNe1SZoSG2HtgpubvEJHeqtfFQUVKEdB"
+        },
+        {
+          "access_key": {
+            "nonce": 116557262000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:ChYrobV84ghQ4LLUdyfWfvhyCszvfTxPWhp2EEx3Q8Au"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:25:43Z"
+}

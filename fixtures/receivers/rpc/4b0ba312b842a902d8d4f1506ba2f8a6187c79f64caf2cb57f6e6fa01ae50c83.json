@@ -1,0 +1,26 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 222509181,
+      "account_id": "rhea001156.multica.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "102478136464727599999975",
+      "block_hash": "4bWVZdeUMVQTH1agkebyAnzbyMhuHwRs2fMvYwYHexnq",
+      "block_height": 222509181,
+      "code_hash": "11111111111111111111111111111111",
+      "global_contract_hash": "FDX6nYTmwVVwkjSXwFZ8xRjkPsyU1BEt1QqB9TbXwD11",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 297
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-09T04:47:55Z"
+}

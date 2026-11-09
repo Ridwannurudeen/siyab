@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "mikvision.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "GXnQCtdMbctx7G58KFBPK8CdHNV85Vn1yPRd6GLDXeC3",
+      "block_height": 223716113,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 111911171009033,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:DVPtfzxkBDSBJRXD11QZnEQK3FxqA7eaC3qvXfC1Uax2"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:22:29Z"
+}

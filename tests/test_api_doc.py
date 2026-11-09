@@ -6,7 +6,7 @@ ft calls; issuer_blacklist only when an issuer table is passed and community_rep
 set; CLI/MCP/HTTP issuer selection as issuers_for("mainnet") for Gate ids not ending .testnet and None for
 .testnet; outcome/action rows as ALLOW to ask when ask is nonempty, otherwise sign, DENY to refuse, and UNKNOWN
 to ask; fixture-backed ALLOW and DENY examples after shortening 64-hex values; and an UNKNOWN example section
-that cites no fixture while no committed fixture records UNKNOWN.
+that cites no fixture while committed UNKNOWN fixtures are exactly top receiver judgements with that verdict.
 
 The pass, signal and unknown check-table meanings are documentation checked by review, not by a test.
 """
@@ -445,10 +445,15 @@ class ExamplesTest(unittest.TestCase):
             data = json.loads(path.read_text(encoding="utf-8"))
             if isinstance(data, dict) and fixture_outcome(data) == "UNKNOWN":
                 unknown.append(path.relative_to(ROOT).as_posix())
-        self.assertEqual(unknown, [])
+        top_judgements = sorted((ROOT / "fixtures" / "receivers" / "top" / "judgements").glob("*.json"))
+        top_unknown = [path for path in top_judgements
+                       if json.loads(path.read_text(encoding="utf-8"))["verdict"] == "UNKNOWN"]
+        self.assertTrue(top_unknown)
+        self.assertEqual(unknown, [path.relative_to(ROOT).as_posix() for path in top_unknown])
         self.assertTrue(sorted((ROOT / "fixtures" / "receivers" / "judgements").glob("*.json")))
-        self.assertIn("no judgement under `fixtures/receivers/judgements/` records UNKNOWN",
-                      "\n".join(section(self.text, "### UNKNOWN")))
+        self.assertIn("The committed UNKNOWN verdicts are exactly the top receiver judgements whose verdict is "
+                      "UNKNOWN, under `fixtures/receivers/top/judgements/`; they reflect incomplete data for real "
+                      "mainnet receivers.", "\n".join(section(self.text, "### UNKNOWN")))
 
     def test_each_example_is_its_fixture_and_the_fixture_records_its_outcome(self):
         self.assertEqual(example_problems(self.text, ROOT), {})

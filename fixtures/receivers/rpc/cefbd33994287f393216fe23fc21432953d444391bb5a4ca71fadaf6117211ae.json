@@ -1,0 +1,124 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "txns": [
+      {
+        "transaction_hash": "6stkh4Fx87c9L7Z9QUas3XSVYMWsJQKoWMmHqF3eyjzh",
+        "included_in_block_hash": "CRaaL81RLvu9thzoKPZb5V7i5Dxgrpje7x7BCxZxurWu",
+        "block_timestamp": "1764955201593179317",
+        "signer_account_id": "user.intear.near",
+        "receiver_account_id": "user.intear.near",
+        "receipt_conversion_gas_burnt": "1736301500000",
+        "receipt_conversion_tokens_burnt": "173630150000000000000",
+        "shard_id": "5",
+        "block": {
+          "block_height": 175566104
+        },
+        "actions": [
+          {
+            "action": "ADD_KEY",
+            "method": null,
+            "args": null
+          },
+          {
+            "action": "ADD_KEY",
+            "method": null,
+            "args": null
+          },
+          {
+            "action": "ADD_KEY",
+            "method": null,
+            "args": null
+          },
+          {
+            "action": "ADD_KEY",
+            "method": null,
+            "args": null
+          },
+          {
+            "action": "ADD_KEY",
+            "method": null,
+            "args": null
+          },
+          {
+            "action": "ADD_KEY",
+            "method": null,
+            "args": null
+          },
+          {
+            "action": "ADD_KEY",
+            "method": null,
+            "args": null
+          },
+          {
+            "action": "ADD_KEY",
+            "method": null,
+            "args": null
+          },
+          {
+            "action": "ADD_KEY",
+            "method": null,
+            "args": null
+          },
+          {
+            "action": "ADD_KEY",
+            "method": null,
+            "args": null
+          },
+          {
+            "action": "ADD_KEY",
+            "method": null,
+            "args": null
+          },
+          {
+            "action": "ADD_KEY",
+            "method": null,
+            "args": null
+          },
+          {
+            "action": "ADD_KEY",
+            "method": null,
+            "args": null
+          },
+          {
+            "action": "ADD_KEY",
+            "method": null,
+            "args": null
+          },
+          {
+            "action": "ADD_KEY",
+            "method": null,
+            "args": null
+          },
+          {
+            "action": "ADD_KEY",
+            "method": null,
+            "args": null
+          }
+        ],
+        "actions_agg": {
+          "deposit": 0,
+          "gas_attached": 0
+        },
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": 347260300000000000000,
+          "gas_used": 3472603000000
+        },
+        "receipts": [
+          {
+            "fts": [],
+            "nfts": []
+          }
+        ]
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/txns/6stkh4Fx87c9L7Z9QUas3XSVYMWsJQKoWMmHqF3eyjzh",
+  "fetched_at": "2026-11-09T04:11:14Z"
+}

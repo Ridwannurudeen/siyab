@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "adriandarie.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "DHrRLpSQsDyAuRa9YVh6tisxku2KUXKSuqid9aSDg8BT",
+      "block_height": 223715532,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 222112616000043,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:D2ShQQaHUryKuPN2G5GeuKFLjew3s2Qr5LtUPaFpcxMk"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:17:00Z"
+}

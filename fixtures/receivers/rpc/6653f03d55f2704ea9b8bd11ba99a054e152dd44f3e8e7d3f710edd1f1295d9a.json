@@ -1,0 +1,55 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "khudaormuhabat.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "HURVARMbSk3gqVUBpKur8r8GrypRRCGotGTxkk3MPKHD",
+      "block_height": 223718471,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 119721852000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "signin2.sendercommunity.near"
+              }
+            }
+          },
+          "public_key": "ed25519:2wewFc75q8HT2shRJqD61dHBt8ANBsrpqXQgPSggNLFQ"
+        },
+        {
+          "access_key": {
+            "nonce": 113970175005677,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:3QwaUm71CxuwrKek2fj5Vore9FVsp4H3LfAp4TdepYFH"
+        },
+        {
+          "access_key": {
+            "nonce": 116396834000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "signin.sendercommunity.near"
+              }
+            }
+          },
+          "public_key": "ed25519:Hk9p3b1LbBXqxU9F2Q9VBAw1adcZTT3z9dPgqvbqCC3V"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:44:54Z"
+}

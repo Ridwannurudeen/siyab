@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "wwwonlyfans.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "9tzSAHaZS8nmKQYkdBwrvJbvoFVjvfXGGTG6muVZG6TJ",
+      "block_height": 223716826,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 219117954000229,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:5D9m5f2Rf4TP2Eqz1nmoVn8XCZNX7rYEoofRo4HVvSxR"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:29:15Z"
+}

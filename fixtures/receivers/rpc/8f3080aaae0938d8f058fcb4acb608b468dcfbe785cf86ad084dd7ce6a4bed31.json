@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "townhall.nearcarta.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "2403902803316858300000000",
+      "block_hash": "CvXuH1CLybkK1ZavKcmGbCd1bRxg9hhBhAze6yW1e6sB",
+      "block_height": 223719804,
+      "code_hash": "FQg3EZdbEcjz44F5dckp9agpbsV9nYuToBQ4yUzXXWK9",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 232304
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:57:29Z"
+}

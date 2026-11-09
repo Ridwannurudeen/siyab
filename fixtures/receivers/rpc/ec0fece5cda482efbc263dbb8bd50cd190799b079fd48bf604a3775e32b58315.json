@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "satojandro.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "1273581895686022114802179",
+      "block_hash": "A8iptueZMVXGH1H7U6jnjB4oYsWr7ZB5ohUoRd66F2c2",
+      "block_height": 223716289,
+      "code_hash": "E8jZ1giWcVrps8PcV75ATauu6gFRkcwjNtKp7NKmipZG",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 43958
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:24:08Z"
+}

@@ -1,0 +1,55 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "adj_kz.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "4k3nRv8iU6cK7FRCCCJxLJ1sftsa9et9zP5mTwUYPbT4",
+      "block_height": 223721304,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 111842389021847,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:x3xkuPYC7KkDGLh8uL1wUShsoaZ3Q6gGiS7S1ncYeoH"
+        },
+        {
+          "access_key": {
+            "nonce": 143963181000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:A4ajikNsdnrQYdi9UcRqeMo3oeKZ6Hu58DKTok95hs5o"
+        },
+        {
+          "access_key": {
+            "nonce": 116707322000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "market.tradeport.near"
+              }
+            }
+          },
+          "public_key": "ed25519:GTSHpQszCJWKKMRNtGpFPGDbCwUVFa2wVhBYk6j9sjBm"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T05:11:35Z"
+}

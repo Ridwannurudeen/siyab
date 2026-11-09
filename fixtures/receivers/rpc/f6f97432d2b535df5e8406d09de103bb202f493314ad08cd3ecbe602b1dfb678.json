@@ -1,0 +1,53 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "keysop.nearlyops.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "6mdKURWN9rM3ouhWVNd3m5YkVQMsgu7fvMsu3rN2TkTK",
+      "block_height": 223719157,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 223196096004926,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "846540738656885400000000",
+                "method_names": [
+                  "charge_inference",
+                  "propose",
+                  "rule_final",
+                  "finalize",
+                  "accept_job",
+                  "submit_job",
+                  "charge_job",
+                  "review_job",
+                  "settle_job",
+                  "open_fact"
+                ],
+                "receiver_id": "keys.nearlyops.near"
+              }
+            }
+          },
+          "public_key": "ed25519:cWjKG5P3ssHy7YW9vR1M4wS3RghGLvacPtZUu2bZP1X"
+        },
+        {
+          "access_key": {
+            "nonce": 223170405000037,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:HNo4WfANZFLiWEN5Ws2GxJKwzKWnS8man4oueJ41XVw8"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:51:23Z"
+}

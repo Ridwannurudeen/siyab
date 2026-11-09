@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "whiteram300.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "FmyBDc6WFxDwnL7y5cQGxEdM2gDwuv5JEuyGjnXEQDdt",
+      "block_height": 223719082,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 223470586000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:FrFzsV51rt9aaN1CTR2Vxkb5J57vioZb23xYQE6q1tXk"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:50:41Z"
+}

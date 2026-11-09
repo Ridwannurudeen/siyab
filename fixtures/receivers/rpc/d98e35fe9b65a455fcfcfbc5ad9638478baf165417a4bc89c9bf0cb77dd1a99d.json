@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "7057493642.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "8KswKtGLUEH2K7zf1VBNhFWyhvk1TjXjZhXNCMpw5TAE",
+      "block_height": 223720546,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 117306178013550,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:5bGwqkRv8mNve9sWpJRbRqVKr4kBcjFJ4XzeeAArksSP"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T05:04:28Z"
+}

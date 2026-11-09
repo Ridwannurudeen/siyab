@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "ahmedelbana367.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "GFWsrLAgomzCyBu9fNB1H4vmAWVcBzYFJaMr8mmWF6r8",
+      "block_height": 223721347,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 131341185022760,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Huh9tLJu2xihBHt8WC9nCLzJnmLrTkpiLjYH842iZZ97"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T05:11:59Z"
+}

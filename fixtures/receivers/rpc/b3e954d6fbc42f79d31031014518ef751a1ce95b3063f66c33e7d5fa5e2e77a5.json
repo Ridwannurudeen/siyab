@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "delta_hedging_inactive.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "25938612046543203455750474",
+      "block_hash": "GxpN9X3vb5fA3SoMtM6ZSLzRNgQbXoUyX1EPSwwqbqbV",
+      "block_height": 223717144,
+      "code_hash": "6YmCcC2hz8AFzvqAKEdwCmu41SF9Jm6cQcr8xtPKZnvm",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 232370
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:32:18Z"
+}

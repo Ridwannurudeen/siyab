@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "mca-relayer.rhealab.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "3Gv9JabLzMFuDjiTvr958SmrtVAS67yRPcfF1chAn5k7",
+      "block_height": 223715395,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 223712221000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:BJADo42WU3QeKCLQdURqFYtP51zStxN526E92GSwkKuN"
+        },
+        {
+          "access_key": {
+            "nonce": 177197033000005,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:F7o3ag88ATtrRxFjzRDiwQ2FboUKv9VvPNFKkP91E4Nm"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:15:45Z"
+}

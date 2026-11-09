@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "artontrade.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "CD9tRnRFCUALB5uvtKe4oEwb6c16syLDfgGE7TUcWJD6",
+      "block_height": 223721742,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 114965066016410,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:DrWzXUqhsR7Euw4RAkYNf1bhF3PHzrkx5p8y49UWoCqX"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T05:15:45Z"
+}

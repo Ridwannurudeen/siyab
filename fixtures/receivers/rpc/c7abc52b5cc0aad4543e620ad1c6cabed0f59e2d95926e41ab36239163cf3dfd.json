@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "pfel12.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "B9ipwBvcJb6o4V99MqSGxUJzJwHwzsNXyaEjjjgcd2Yz",
+      "block_height": 223718699,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 112228309015483,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Evee3E7UJqqQGPMduLd7f6ERUq2mt2hhYBxyPYT4eVQq"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:47:06Z"
+}

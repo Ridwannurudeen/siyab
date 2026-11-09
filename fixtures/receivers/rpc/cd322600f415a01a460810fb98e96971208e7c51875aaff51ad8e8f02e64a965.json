@@ -1,0 +1,55 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "alijanali1355-hot9.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "Evowmc74VmDwQpjJ9V2xkcUPLop8PbmwCmTspWiHNq44",
+      "block_height": 223721497,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 193861887000004,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "245473417161705000000000",
+                "method_names": [],
+                "receiver_id": "near-fm.near"
+              }
+            }
+          },
+          "public_key": "ed25519:14dfC15UPzzu3n3UvS3WcwhCv8eooCQzUQnytZpA7ii1"
+        },
+        {
+          "access_key": {
+            "nonce": 141114569021517,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:CdEpAyyVn5XkUuDpWCnjwj43ms81S45anzcRtDqFABQs"
+        },
+        {
+          "access_key": {
+            "nonce": 193850812000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "near-fm.near"
+              }
+            }
+          },
+          "public_key": "ed25519:EF2UiqJ5vX1SyTbLexBvpXdUJMdZ2Ra64DdHRJ35Ejpd"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T05:13:24Z"
+}

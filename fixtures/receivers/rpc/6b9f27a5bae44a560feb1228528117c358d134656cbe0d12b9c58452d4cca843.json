@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "saitama98.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "8m4JEkqDNvzCwSzpS462ytY1CmMcvG9kfP8wVewzZ4UW",
+      "block_height": 223719788,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 217220591000358,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4hvfFa3JYFWCHeYibnbC9vBsqWGt754fuwc966p9o1VA"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:57:20Z"
+}

@@ -1,0 +1,104 @@
+{
+  "subject": "hoot-8ecf65.launchpad.justhoot.near",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "hoot-8ecf65.launchpad.justhoot.near",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "UNKNOWN",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "pass",
+      "detail": "hoot-8ecf65.launchpad.justhoot.near exists",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "82ab801b7013a70465cafbe8fec68eb0e5a6e39bcd18fef6946aed4c46f053a1",
+        "fetched_at": "2026-11-09T04:52:57Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "pass",
+      "detail": "no denylist or incident label on hoot-8ecf65.launchpad.justhoot.near",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "issuer_blacklist",
+      "status": "unknown",
+      "detail": "could not read get_blacklist_status on usdt.tether-token.near: no recorded response for the request; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "fc7fc31b11eaa9d66e07eefa38bef34b38b11dbf8874d8a3835cc4fa336763fc",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "pass",
+      "detail": "hoot-8ecf65.launchpad.justhoot.near has no access key; view_account finds hoot-8ecf65.launchpad.justhoot.near at block 222509721 (2026-11-01T02:56:10Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
+      "source": {
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "10f94a9a3718b96b56c6f9dd4dce42d5e6435cd98badaf7330a9fff0f5c17d9e",
+        "fetched_at": "2026-11-09T04:53:01Z"
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "pass",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
+      "source": {
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "hoot-8ecf65.launchpad.justhoot.near is itself a labelled reference account (assertion e17741a0640f4096afc8412412073860028f2889787f98089601e004eac63a96)",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "pass",
+      "detail": "contract code with contract_source_metadata",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "fae0ce33bd4021c3a3ed359108833cb08cb7bb23c885f98b99a3065f369847f3",
+        "fetched_at": "2026-11-09T04:53:02Z"
+      }
+    }
+  ],
+  "reasons": [
+    "issuer_blacklist could not run: could not read get_blacklist_status on usdt.tether-token.near: no recorded response for the request; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false."
+  ],
+  "labels": [
+    "e17741a0640f4096afc8412412073860028f2889787f98089601e004eac63a96"
+  ],
+  "observed": {
+    "block_height": 223719321,
+    "timestamp_ms": 1794197345742
+  }
+}

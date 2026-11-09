@@ -1,0 +1,106 @@
+{
+  "subject": "contract.portalbridge.near",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "contract.portalbridge.near",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "DENY",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "pass",
+      "detail": "contract.portalbridge.near exists",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "4764cf96282c8a8a157799cc53dda2d5e5998e052d182bc7d5d17f899600b17f",
+        "fetched_at": "2026-11-09T04:14:12Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "pass",
+      "detail": "no denylist or incident label on contract.portalbridge.near",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "issuer_blacklist",
+      "status": "pass",
+      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "98742fdac4f48ba5fe0423b41b1ac52a2511fdf1d4e1c546c533039fb7748218",
+        "fetched_at": "2026-11-09T04:14:13Z"
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "pass",
+      "detail": "contract.portalbridge.near has no access key; view_account finds contract.portalbridge.near at block 222505630 (2026-11-01T02:16:40Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
+      "source": {
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "d4f891e07c05dba78114fac9e8d7328cab94220e6b4fbe4da5fd9265071befa8",
+        "fetched_at": "2026-11-09T04:14:16Z"
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "unknown",
+      "detail": "the creation transaction is not known",
+      "source": {
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "signal",
+      "detail": "lookalike of 3.contract.portalbridge.near (distance 2 after confusable normalisation)",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "signal",
+      "detail": "code_without_metadata: contract code without contract_source_metadata",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "f26f9997b11d53817d7ec4942671f0d93906dc103d26cec94b838fed289d3ea6",
+        "fetched_at": "2026-11-09T04:14:16Z"
+      }
+    }
+  ],
+  "reasons": [
+    "contract.portalbridge.near is a lookalike of 3.contract.portalbridge.near.",
+    "Not on the owner's allowlist.",
+    "contract.portalbridge.near has contract code without contract_source_metadata."
+  ],
+  "labels": [
+    "50a6a194cff4ccd18bd002f5248843a85bcb382d571bfcc87699c573cd3f45f7"
+  ],
+  "observed": {
+    "block_height": 223715230,
+    "timestamp_ms": 1794197345742
+  }
+}

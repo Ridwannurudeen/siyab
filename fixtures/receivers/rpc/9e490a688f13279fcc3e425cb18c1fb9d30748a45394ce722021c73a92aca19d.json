@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 222505706,
+      "account_id": "xtoken.rhealab.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "18674564205637406600014369",
+      "block_hash": "5Zovp5JEfiaiPV3rP2ZuofxxbgVCDJSrBzLq1gFePFvu",
+      "block_height": 222505706,
+      "code_hash": "2oKuKQvijZozBwgpLnGH9D1f8mNexw65yj6XPvX2cACS",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 1227876
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-09T04:14:59Z"
+}

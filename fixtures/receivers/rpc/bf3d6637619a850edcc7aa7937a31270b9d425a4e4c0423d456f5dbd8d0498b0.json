@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "cosmosnock.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "38085588382759319279969608",
+      "block_hash": "4ef3Rmk6PoCU6Ha8EhoiL3V7RGNRfCXMrqVMrDoSaeF5",
+      "block_height": 223717594,
+      "code_hash": "7yAg1Qr8SFrM1gmPA9JF4nQjNHDpCPLJDzQ5KU2Cqcb9",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 573689
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:36:34Z"
+}

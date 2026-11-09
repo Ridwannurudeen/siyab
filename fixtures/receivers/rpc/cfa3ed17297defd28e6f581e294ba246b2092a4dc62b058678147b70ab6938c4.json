@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "447455.village.hot.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "2i9cXZ9MKTsu6ZNv7MBWk35RTjo2qcE2RGTTkwVzDycB",
+      "block_height": 223719362,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 179814977000400,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:CWmsuRSMvjNTG8oHZ7pTnp3DVoUapdWTELcKw8vn19Sb"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:53:20Z"
+}

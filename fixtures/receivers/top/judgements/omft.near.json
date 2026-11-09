@@ -1,0 +1,105 @@
+{
+  "subject": "omft.near",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "omft.near",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "ALLOW",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "pass",
+      "detail": "omft.near exists",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "8165d1f2c9a91e5765f4d4a5686af9f8500e64e13285b8fefd1749b76a483e45",
+        "fetched_at": "2026-11-09T04:10:26Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "pass",
+      "detail": "no denylist or incident label on omft.near",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "issuer_blacklist",
+      "status": "pass",
+      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "12f0f7ac9b775b7ad1c0c66e943360dd2bbf761e5d02b9588a02342cf4dad956",
+        "fetched_at": "2026-11-09T04:10:26Z"
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "pass",
+      "detail": "omft.near has no access key; view_account finds omft.near at block 222505228 (2026-11-01T02:12:49Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
+      "source": {
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "9f5871cf9c60b5a5851386b4cbd9ba18795ce507c2d2bf148980daf2b32d85bc",
+        "fetched_at": "2026-11-09T04:10:29Z"
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "pass",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
+      "source": {
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "omft.near is itself a labelled reference account (assertion 3603c61d093fc9a4bbb9eef319dbbaa10f01cd2942973f482f798add6724351d)",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "pass",
+      "detail": "contract code with contract_source_metadata",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "e7174921ef5fdf83310aad581e6fecc20f5bcd69185bf590c334b30f81aeda4c",
+        "fetched_at": "2026-11-09T04:10:30Z"
+      }
+    }
+  ],
+  "reasons": [
+    "Every check ran and none found a signal.",
+    "Not on the owner's allowlist."
+  ],
+  "labels": [
+    "3603c61d093fc9a4bbb9eef319dbbaa10f01cd2942973f482f798add6724351d"
+  ],
+  "observed": {
+    "block_height": 223714828,
+    "timestamp_ms": 1794197345742
+  }
+}

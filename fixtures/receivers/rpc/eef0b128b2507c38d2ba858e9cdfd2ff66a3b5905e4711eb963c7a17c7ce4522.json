@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "mpdao-vote.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "814274501933405295061184745",
+      "block_hash": "BC7G7kq14j7X8EgunTQyx2Ndtv29KV3FeqPp5YALaq6u",
+      "block_height": 223716447,
+      "code_hash": "8ZYPZfzPTi57AyUqZkzybS8iHFsj4RStG4nXbBqP2DKZ",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 2450383
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:25:38Z"
+}

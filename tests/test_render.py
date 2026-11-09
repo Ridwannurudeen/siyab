@@ -358,19 +358,58 @@ class RenderTest(unittest.TestCase):
         self.assertIn("--ground:11 11 10", stylesheet)
         self.assertIn('id="theme-toggle"', page)
 
-    def test_top_receivers_page_has_an_honest_empty_state_and_renders_judgements(self):
+    def test_top_receivers_page_has_an_honest_empty_state_and_renders_aggregates(self):
         with tempfile.TemporaryDirectory() as tmp:
             judgement_dir = Path(tmp) / "judgements"
-            empty = render.top_receivers_page(judgement_dir, Path(tmp) / "ranking.json")
+            ranking_path = Path(tmp) / "ranking.json"
+            empty = render.top_receivers_page(judgement_dir, ranking_path)
             self.assertIn("Scan in progress, not yet published.", empty)
             judgement_dir.mkdir()
             (judgement_dir / "receiver.near.json").write_text(json.dumps({
-                "subject": "receiver.near", "verdict": "DENY", "reasons": ["A cited reason."],
+                "subject": "receiver.near", "verdict": "DENY",
+                "checks": [{"id": "account_age", "status": "signal"}], "reasons": ["A cited reason."],
             }), encoding="utf-8")
-            populated = render.top_receivers_page(judgement_dir, Path(tmp) / "ranking.json")
-        self.assertIn("receiver.near", populated)
+            ranking_path.write_text(json.dumps({
+                "window": {"hours": 24, "start_timestamp": "start", "start_height": 1,
+                           "end_timestamp": "end", "end_height": 2},
+                "rule": "Receivers are ordered by distinct payer count descending, transfer count descending, "
+                        "then account id ascending.",
+                "subjects": [{"subject": "receiver.near"}],
+            }), encoding="utf-8")
+            populated = render.top_receivers_page(judgement_dir, ranking_path)
+        self.assertNotIn("receiver.near", populated)
         self.assertIn("DENY", populated)
-        self.assertIn("A cited reason.", populated)
+        self.assertIn("New account (account_age signal only): 1.", populated)
+        self.assertNotIn("A cited reason.", populated)
+
+    def test_top_receivers_page_publishes_aggregate_results_without_judgement_subjects(self):
+        judgement_dir = ROOT / "fixtures" / "receivers" / "top" / "judgements"
+        documents = [json.loads(path.read_text(encoding="utf-8")) for path in sorted(judgement_dir.glob("*.json"))]
+        page = self.pages["top-receivers.html"]
+        self.assertEqual(len(documents), 990)
+        self.assertTrue(all(document["subject"] not in page for document in documents))
+        for text in (
+            "271 ALLOW, 54 DENY, 665 UNKNOWN",
+            "account_age: 491",
+            "code_without_metadata: 255",
+            "dust_funded: 491",
+            "issuer_blacklist: 535",
+            "receiver_exists: 248",
+            "New account (account_age signal only): 53.",
+            "Lookalike with code without metadata: 1.",
+            "Each verdict is what an agent's 1 NEAR payment to that receiver would get, not a finding that the account is malicious.",
+            f'{render.GITHUB_REPO}/tree/main/fixtures/receivers/top/judgements/',
+            "Receivers are ordered by distinct payer count descending, transfer count descending, then account id ascending.",
+        ):
+            with self.subTest(text=text):
+                self.assertIn(text, page)
+        ranking = json.loads((ROOT / "fixtures" / "receivers" / "top.json").read_text(encoding="utf-8"))
+        window = ranking["window"]
+        self.assertIn(f'{window["hours"]} hours, {window["start_timestamp"]}', page)
+        self.assertIn(f'{window["end_timestamp"]}', page)
+        index = self.pages["index.html"]
+        self.assertIn("990 judged: 271 ALLOW, 54 DENY, 665 UNKNOWN.", index)
+        self.assertIn('href="top-receivers.html">Open aggregate results</a>', index)
 
     def test_every_search_link_is_a_page_inside_the_site(self):
         search = json.loads((self.out / "search.json").read_text(encoding="utf-8"))

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "denta.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "3p3c7TWBriV4oy8i4adSUG87ELYLMyELUhdPkccwC5Ff",
+      "block_height": 223717620,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 177086664000694,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4S4F63T466ziXxZJya7av3ngiFyW4Vi6S189TXj67Jet"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:36:48Z"
+}

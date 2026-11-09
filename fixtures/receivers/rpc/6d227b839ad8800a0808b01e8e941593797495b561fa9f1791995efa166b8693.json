@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "umbrafun.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "2439321657303637692663120",
+      "block_hash": "HrTnP42apGMaB2XN9euA2GFDSzRo2aqcNEvYZjN4TxgK",
+      "block_height": 223719982,
+      "code_hash": "HUUf4ruh1Nh8HCGKwSEyMAPwfWKi2UkvHZ6BFocFLzm",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 198369
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:59:09Z"
+}

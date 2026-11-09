@@ -1,0 +1,42 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "likebluesky88.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "CpbMQ78wKXHE5E6gynmMBhYRZgvnfxUTFGYWXmZPMzj7",
+      "block_height": 223718492,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 126742809000001,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "a.mitte-orderbook.near"
+              }
+            }
+          },
+          "public_key": "ed25519:Ckb5mnMUDH6qURCjRppsHtteFJp3Jw859hwTeDSvrQeG"
+        },
+        {
+          "access_key": {
+            "nonce": 118284920015300,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:EKA2Lybnx64C7v879WxwkWUZCBjLaAVJFN3c9q3xsA93"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:45:05Z"
+}

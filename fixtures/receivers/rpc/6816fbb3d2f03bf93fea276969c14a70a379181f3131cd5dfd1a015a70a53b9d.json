@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "arz20.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "AAhw8WXV1eWW1QLfBr7ewvwq8Q1VMTUvUd73zcYLJfdz",
+      "block_height": 223721754,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 121991473027972,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4HcaKrKynnfgUrYhVX4DkU3HMTRCdzHUHa6tMK4b2Rz3"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T05:15:52Z"
+}

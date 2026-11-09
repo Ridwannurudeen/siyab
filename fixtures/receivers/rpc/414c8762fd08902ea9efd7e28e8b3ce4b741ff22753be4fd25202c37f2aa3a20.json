@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "pducthang.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "DXaUuPY6ozMq4wxqkkXedyLKAak1Td6ZrUQ4pbpweF4Z",
+      "block_height": 223719954,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 221498726000010,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:APBEUYdnrMR9Y4xrvQUtWdG21LPAhxkE4YpDQ6Kwoz5U"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:58:53Z"
+}

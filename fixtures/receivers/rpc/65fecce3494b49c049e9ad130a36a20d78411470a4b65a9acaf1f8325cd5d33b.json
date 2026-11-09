@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "manyegg4146.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "CrMTaNN6ULj3KsdB2bxSR2Px9cFy9FpT3tAJb7NZvMEv",
+      "block_height": 223717300,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 223459655000007,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:44tLSmVd3mC5wyJg81PHizoza2gzQz95Qc7eP7u75jhr"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:33:49Z"
+}

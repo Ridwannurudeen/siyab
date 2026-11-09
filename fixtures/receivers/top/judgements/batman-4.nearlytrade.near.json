@@ -1,0 +1,105 @@
+{
+  "subject": "batman-4.nearlytrade.near",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "batman-4.nearlytrade.near",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "ALLOW",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "pass",
+      "detail": "batman-4.nearlytrade.near exists",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "68485a9d18f35ee35e418ba398c6f389fe75de41fa4a47eb7aeb052e35981e64",
+        "fetched_at": "2026-11-09T04:10:55Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "pass",
+      "detail": "no denylist or incident label on batman-4.nearlytrade.near",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "issuer_blacklist",
+      "status": "pass",
+      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "013b8a0310436a252f1e7affe05bd3e3a4369a95ed4fcfd8b45f985de838fb34",
+        "fetched_at": "2026-11-09T04:10:56Z"
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "pass",
+      "detail": "batman-4.nearlytrade.near has no access key; view_account finds batman-4.nearlytrade.near at block 222505281 (2026-11-01T02:13:19Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
+      "source": {
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "8d4ab6378f7aeeb68eed5e159ddfb170063292d488023acd32afe35c0c2c69a4",
+        "fetched_at": "2026-11-09T04:11:00Z"
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "pass",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
+      "source": {
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "batman-4.nearlytrade.near is itself a labelled reference account (assertion c369f018af042be363a16ddac8e7d2f25cfd41b43241bae79c27f41918d49a81)",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "pass",
+      "detail": "no contract code",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "68485a9d18f35ee35e418ba398c6f389fe75de41fa4a47eb7aeb052e35981e64",
+        "fetched_at": "2026-11-09T04:10:55Z"
+      }
+    }
+  ],
+  "reasons": [
+    "Every check ran and none found a signal.",
+    "Not on the owner's allowlist."
+  ],
+  "labels": [
+    "c369f018af042be363a16ddac8e7d2f25cfd41b43241bae79c27f41918d49a81"
+  ],
+  "observed": {
+    "block_height": 223714881,
+    "timestamp_ms": 1794197345742
+  }
+}

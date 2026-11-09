@@ -409,15 +409,17 @@ def block_source(path, mode="replay"):
 
 
 class Fetcher:
-    """neardata blocks with the request budget and the 429 back off."""
+    """neardata blocks with the request budget and an optional consecutive 429 limit."""
 
-    def __init__(self, client=None, sleep=time.sleep, max_requests=MAX_REQUESTS):
+    def __init__(self, client=None, sleep=time.sleep, max_requests=MAX_REQUESTS, max_consecutive_429s=None):
         self.client = client or rpc.Client(NEARDATA_URL, "off", kind="http")
         self.sleep = sleep
         self.requests = 0
         self.max_requests = max_requests
+        self.max_consecutive_429s = max_consecutive_429s
 
     def get(self, path):
+        consecutive_429s = 0
         while True:
             if self.max_requests is not None and self.requests >= self.max_requests:
                 raise FeedError(f"the neardata budget of {self.max_requests} requests is used up")
@@ -427,6 +429,12 @@ class Fetcher:
             except rpc.HttpError as error:
                 if error.status != 429:
                     raise
+                consecutive_429s += 1
+                if (self.max_consecutive_429s is not None
+                        and consecutive_429s >= self.max_consecutive_429s):
+                    raise FeedError(
+                        f"neardata returned HTTP 429 {consecutive_429s} consecutive times for {path}"
+                    ) from error
                 self.sleep(BACKOFF_S)
 
     def final_block(self):

@@ -1077,6 +1077,26 @@ class FollowModeTest(unittest.TestCase):
         self.assertIn(feed.BACKOFF_S, fake.sleeps)
         self.assertIn(feed.FOLLOW_INTERVAL_S, fake.sleeps)
 
+    def test_follow_retries_429_past_the_request_budget(self):
+        class Throttled:
+            def __init__(self):
+                self.calls = 0
+
+            def get(self, path):
+                self.calls += 1
+                if self.calls <= feed.MAX_REQUESTS:
+                    raise rpc.HttpError(429, path)
+                return raw_block(1, [])
+
+        client = Throttled()
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {}, clear=True), \
+                mock.patch("intel.feed.rpc.Client", return_value=client), mock.patch.object(feed, "BACKOFF_S", 0):
+            root = Path(tmp)
+            state, walked = feed.follow(start=1, state_path=root / "state.json", events_dir=root / "events",
+                                        event_blocks_dir=root / "event-blocks", max_blocks=1,
+                                        sleep=lambda _: None, clock=lambda: T0)
+        self.assertEqual((walked, state["last_height"], client.calls), (1, 1, feed.MAX_REQUESTS + 1))
+
     def paced_log(self, end, keyed):
         """The neardata gets, Transfers posts and sleeps of a follow over heights 1 to end, in order, with
         an injected clock that each sleep moves on; keyed follows over a temp key file and a Transfers stub."""

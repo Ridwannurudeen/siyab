@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "aa-harvest-moon-relics.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "139093457852382243200085215",
+      "block_hash": "2vzjVNQ9Te7eek9y61R7kraFytsdFvYkRuJTvgPBUKPR",
+      "block_height": 223714873,
+      "code_hash": "ABqTa6RkNYfrsmoe7CwuVHMT1x9k9emQaapZA7owQcsD",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 12250666
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:10:51Z"
+}

@@ -1,0 +1,71 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "raen_trade.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "4CGS7orNDCuhoSh8NMPHYKf3Goz57RkSVJgBVQ6yJAH4",
+      "block_height": 223715361,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 222458367000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:2sCLq5omV7T2rRMtWRP5eovR8Txp7cxJiYRGTXuUQQtB"
+        },
+        {
+          "access_key": {
+            "nonce": 222458367000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:2xo2wbfYLw2ZhSKJgEhVDbdGt5UyPHvGM2ADzP7AJhU2"
+        },
+        {
+          "access_key": {
+            "nonce": 222458367000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6zmGLr6KsqmRSWnS8pzCxDsSQpxpJrVfbChu8nKqEtpd"
+        },
+        {
+          "access_key": {
+            "nonce": 222458367000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9jXszbj3J2orGY4He9XQYNzKxujsnnM4kTJubsC2eNSZ"
+        },
+        {
+          "access_key": {
+            "nonce": 222458367000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:AqZBBZpuGLeArw7pa6t3E4UVTPqUzUNcaankqY559WBu"
+        },
+        {
+          "access_key": {
+            "nonce": 222458367000053,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:F8gA32AEeXrRaPFEY5FpYgtgXeYbRaEJHdwgizor4BxN"
+        },
+        {
+          "access_key": {
+            "nonce": 222017238014750,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:J6VbeqJLojdpkPqNFwxbao3AgPWQvM1dJYhNSzV3D9fK"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:15:25Z"
+}

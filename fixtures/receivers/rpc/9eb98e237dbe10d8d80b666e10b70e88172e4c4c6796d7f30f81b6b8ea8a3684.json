@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "alexandr_zuickov.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "J2jvWrSdL4f76YGEqpWW9Ni7Xsi1kQLc97fZJ3QXs8Dn",
+      "block_height": 223716045,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 116612211008780,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4ftqeVVQu8rUEu6UX7onHHkhwXnobCfvsYmLC9tjurzb"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:21:50Z"
+}

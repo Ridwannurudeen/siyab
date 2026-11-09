@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "excitedair.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "9wgTGUQotnM4HvKtVTrndD2aKnnmXgehYgoudwy4PpoD",
+      "block_height": 223717193,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 139705089014500,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:G9aGnhbLhgKExCqgz6wv1j3hD225XuQ1gJeYDVJxwZqX"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:32:46Z"
+}

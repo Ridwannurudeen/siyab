@@ -1,0 +1,179 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "alkozhuhov.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "EWNDvRLyWYUWvqP5hKmPp269nKeyT1uGxTs6pNYXDWNf",
+      "block_height": 223718048,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 119613552000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "contract.main.burrow.near"
+              }
+            }
+          },
+          "public_key": "ed25519:UkVJz8SsCHZewjuVKWWwHmFENjpqWAQAHicncHd9DKr"
+        },
+        {
+          "access_key": {
+            "nonce": 119632393000001,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "contract.main.burrow.near"
+              }
+            }
+          },
+          "public_key": "ed25519:uSywdTKUX56o11i8pJycCw46RLEJ2tGm71WjvrHCgQT"
+        },
+        {
+          "access_key": {
+            "nonce": 119611425000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "contract.main.burrow.near"
+              }
+            }
+          },
+          "public_key": "ed25519:4ievq1insqns5VXaXKAwoL4fERNtdWNCDayy5Sbrkdfk"
+        },
+        {
+          "access_key": {
+            "nonce": 120113733000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "contract.main.burrow.near"
+              }
+            }
+          },
+          "public_key": "ed25519:5YNQvBQHEJBUyszPpZwi9VtAq9mRWvxYbz3Xpu9S432f"
+        },
+        {
+          "access_key": {
+            "nonce": 120829045000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "contract.main.burrow.near"
+              }
+            }
+          },
+          "public_key": "ed25519:5wJ3TmiUsCf2dALN92mQUu5CyToXtx8ubzo9T7R3NN2x"
+        },
+        {
+          "access_key": {
+            "nonce": 120828726000001,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "contract.main.burrow.near"
+              }
+            }
+          },
+          "public_key": "ed25519:6u5d7V6uNBPC4gFYYzxtGNrsRzcjzU8nmC3heX4rSJ6u"
+        },
+        {
+          "access_key": {
+            "nonce": 132963650000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "a.mitte-orderbook.near"
+              }
+            }
+          },
+          "public_key": "ed25519:B7u1A6MF4LyfbDHpfvWpx7FXBRhZM1iVCkGNsXy86nMA"
+        },
+        {
+          "access_key": {
+            "nonce": 113799309024301,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:BcvC3hJkJAuKhRwib7NcwauJRLWD8vj14mcKftFxmBU7"
+        },
+        {
+          "access_key": {
+            "nonce": 119611149000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "asset-manager.orderly-network.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BwCrC5t5s4UgtTTTfhg785Y6Rnveqn3wBt5uET8FxR3k"
+        },
+        {
+          "access_key": {
+            "nonce": 119756441000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "contract.main.burrow.near"
+              }
+            }
+          },
+          "public_key": "ed25519:CPKvUA3ZuAFPcfaDjycJ8gFCohrj34hDNeu1EhQgu1gk"
+        },
+        {
+          "access_key": {
+            "nonce": 119611026000002,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "249093390372814500000000",
+                "method_names": [
+                  "addMessage",
+                  "user_deposit_native_token",
+                  "user_request_withdraw",
+                  "user_announce_key",
+                  "user_request_set_trading_key",
+                  "create_user_account"
+                ],
+                "receiver_id": "asset-manager.orderly-network.near"
+              }
+            }
+          },
+          "public_key": "ed25519:Egu2VdnHgWmtDFtSjGKKbQoo4qCP8hCGfbUon8YaH1oN"
+        },
+        {
+          "access_key": {
+            "nonce": 132963678000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "a.mitte-orderbook.near"
+              }
+            }
+          },
+          "public_key": "ed25519:Ev7imMNGbSsgd6E6V4BuQMLg5GQwP7zfBaz6jHoZ88d7"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:40:52Z"
+}

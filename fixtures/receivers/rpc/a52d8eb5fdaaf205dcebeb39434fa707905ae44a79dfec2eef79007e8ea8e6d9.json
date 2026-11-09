@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "olegasy.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "BMDYzm6bfUWephKsmYhEoUVYfjmH5pL4YYK39rYsd17T",
+      "block_height": 223717791,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 149175904016910,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:BM3DLCkdiFtn2UnxJ9BpxWNX91EGTXwsyyCSCyXEqPYX"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:38:26Z"
+}

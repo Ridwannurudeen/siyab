@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "cryptocbas.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "FnMuA3CQmya4WqM6VC9mdYNsrjT4HLFRABj6WuL9u32n",
+      "block_height": 223719866,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 215224727000074,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9Y2YWyZsUV6rafSJakscFoW5p1f6uXkFCWmUJ2spUWaS"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:58:04Z"
+}

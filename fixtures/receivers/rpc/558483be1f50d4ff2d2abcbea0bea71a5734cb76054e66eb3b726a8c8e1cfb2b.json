@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "abnamak_123.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "5RSxadMcmDGNWV84MBX21BYAxkLHZ2RTRHDzuSyVjShQ",
+      "block_height": 223721226,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 120068720015870,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:FdirVTrx8ju7tgZcN6i7sCntY62az2fYXgdYbqG8pdCu"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T05:10:52Z"
+}

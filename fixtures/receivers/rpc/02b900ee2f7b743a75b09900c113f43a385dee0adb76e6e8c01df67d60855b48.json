@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "gaypad.j1-racing.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "12398221490210784099994148",
+      "block_hash": "AGBzE9YeVA3ncCP6wB4t7DzfriTrb9u7v3XR1sW2kRCy",
+      "block_height": 223719882,
+      "code_hash": "EqPfurdRxqtXv6wWkGcrqjeBehba5o6f51yz5VbADtdh",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 334893
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:58:13Z"
+}
