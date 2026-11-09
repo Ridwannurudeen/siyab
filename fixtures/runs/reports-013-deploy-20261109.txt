@@ -1,0 +1,128 @@
+Reports 0.1.3 deploy run and readbacks, 9 Nov 2026. Terminal colors and trailing spaces removed. Host-specific file paths are omitted.
+
+Deploy run
+version before: "0.1.2"
+near contract deploy reports.kestrelridge-main.testnet use-file res/reports.wasm without-init-call network-config testnet sign-with-access-key-file [external signing key file] send
+Transaction ID: zrSXNV7k...spCxuF
+Contract code has been successfully deployed.
+version after: "0.1.3"
+Local Contract (SHA-256 checksum hex)  ccb386ad...e043fde5
+sha256: ccb386ade67b883f0ef0376d47771bac2c5b866635fb722222b20f80e043fde5
+code_hash: En4wm3kmoZRTP8jZQCHhuDwwyXXEbQcNqfJyyiQYve4k
+transaction_hashes: zrSXNV7k...spCxuF
+asserted: version after equals 0.1.3
+asserted: code_hash of reports.kestrelridge-main.testnet equals En4wm3kmoZRTP8jZQCHhuDwwyXXEbQcNqfJyyiQYve4k
+
+Readback before
+== version {}
+"0.1.2"
+
+== state_version {}
+1
+
+== report_deposit {}
+"30000000000000000000000"
+
+== totals {}
+{
+  "disputes": 1,
+  "reports": 1
+}
+
+== get_report {"id":0}
+{
+  "body_sha256": "d697ef21cf3d73f45a9ed3fb28b95d5a729517154590998ed02e5d0026762baf",
+  "dispute_ids": [
+    0
+  ],
+  "evidence_sha256": "d07ec137a663d2599f85986b2e7f467823aea815058c6a173bbf90b0b2ce140a",
+  "evidence_url": "https://raw.githubusercontent.com/Ridwannurudeen/shieldbot-near/d6852f0231f99c192f7ca2871da8f6351008ba51/docs/demo/synthetic-report.md",
+  "id": 0,
+  "kind": "theft",
+  "moderated_ms": 1794136611500,
+  "moderator": "kestrelridge-owner.testnet",
+  "outcome": "near_miss",
+  "reason_sha256": "bc78666383b11258708ced44dc63809765f89816e3ecf59bc7d5aa51c85b4b3c",
+  "state": "overturned",
+  "subject": "kestrelridge-mallory.testnet",
+  "submitted_ms": 1794136413669,
+  "submitter": "kestrelridge-shop.testnet"
+}
+
+== get_dispute {"id":0}
+{
+  "evidence_sha256": "d07ec137a663d2599f85986b2e7f467823aea815058c6a173bbf90b0b2ce140a",
+  "evidence_url": "https://raw.githubusercontent.com/Ridwannurudeen/shieldbot-near/d6852f0231f99c192f7ca2871da8f6351008ba51/docs/demo/synthetic-report.md",
+  "id": 0,
+  "open": false,
+  "report_id": 0,
+  "submitted_ms": 1794136537452,
+  "submitter": "lindenvale.testnet"
+}
+
+== subject_summary {"subject":"kestrelridge-mallory.testnet"}
+{
+  "accepted": 0,
+  "contested": 0,
+  "deny": false,
+  "latest_accepted_id": null,
+  "latest_deny_id": null,
+  "pending": 0
+}
+
+Readback after
+== version {}
+"0.1.3"
+
+== state_version {}
+1
+
+== report_deposit {}
+"30000000000000000000000"
+
+== totals {}
+{
+  "disputes": 1,
+  "reports": 1
+}
+
+== get_report {"id":0}
+{
+  "body_sha256": "d697ef21cf3d73f45a9ed3fb28b95d5a729517154590998ed02e5d0026762baf",
+  "dispute_ids": [
+    0
+  ],
+  "evidence_sha256": "d07ec137a663d2599f85986b2e7f467823aea815058c6a173bbf90b0b2ce140a",
+  "evidence_url": "https://raw.githubusercontent.com/Ridwannurudeen/shieldbot-near/d6852f0231f99c192f7ca2871da8f6351008ba51/docs/demo/synthetic-report.md",
+  "id": 0,
+  "kind": "theft",
+  "moderated_ms": 1794136611500,
+  "moderator": "kestrelridge-owner.testnet",
+  "outcome": "near_miss",
+  "reason_sha256": "bc78666383b11258708ced44dc63809765f89816e3ecf59bc7d5aa51c85b4b3c",
+  "state": "overturned",
+  "subject": "kestrelridge-mallory.testnet",
+  "submitted_ms": 1794136413669,
+  "submitter": "kestrelridge-shop.testnet"
+}
+
+== get_dispute {"id":0}
+{
+  "evidence_sha256": "d07ec137a663d2599f85986b2e7f467823aea815058c6a173bbf90b0b2ce140a",
+  "evidence_url": "https://raw.githubusercontent.com/Ridwannurudeen/shieldbot-near/d6852f0231f99c192f7ca2871da8f6351008ba51/docs/demo/synthetic-report.md",
+  "id": 0,
+  "open": false,
+  "report_id": 0,
+  "submitted_ms": 1794136537452,
+  "submitter": "lindenvale.testnet"
+}
+
+== subject_summary {"subject":"kestrelridge-mallory.testnet"}
+{
+  "accepted": 0,
+  "contested": 0,
+  "deny": false,
+  "latest_accepted_id": null,
+  "latest_deny_id": null,
+  "pending": 0
+}
