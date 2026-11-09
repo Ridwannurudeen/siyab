@@ -103,4 +103,3 @@ test tests::stale_queue_entry_does_not_remove_reused_verdict_id - should panic .
 test verdict::tests::shared_vectors_match_message_digest_and_signature ... ok
 
 test result: ok. 73 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.35s
-

@@ -13,7 +13,7 @@ current HEAD (<tmp>/.git/): 57860c96f071fac0f7bb99f242fcae7e6c4430d2
 
 • done
 
-applied reproducible build metadata: 
+applied reproducible build metadata:
     build variant: <DEFAULT>
     image: sourcescan/cargo-near:0.21.1-rust-1.96.0
     image digest: sha256:ccb22bb4...8ee6ee17
