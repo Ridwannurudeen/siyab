@@ -25,3 +25,6 @@
 8 Nov: Reports 0.1.3 was built reproducibly by two independent clones and the exact artifact passed the post rotation sandbox on checkout commit 94076a8e, including the previous artifact checksum assertion; deployment remains pending.
 8 Nov: NEAR site front page adds committed account label sources, same origin live checks with unavailable states, testnet run log cards, reports, and the top receiver leaderboard's unpublished state; shared dark and light styling reaches every generated page.
 8 Nov: Intear reference mapping now requires passing checks, evidence and a fresh signed verdict; both disclosures state their review and contact status; the claims mirror remains aligned.
+8 Nov: top receivers scan stops at a height after five consecutive neardata 429 responses and resumes from the last completed batch; the follower keeps unbounded 429 retries; a new keyed scan keeps the keyed request interval for its batches instead of falling back to the keyless 4 s.
+8 Nov: the top receivers scan also retries a socket timeout, an unreachable host or a reset connection after each TRANSIENT_BACKOFF_S pause; a refused TLS certificate stops it at once, and a local OSError such as a file error still stops it.
+8 Nov: a keyed scan runs 32 workers so it reaches its request spacing, with block reads measured at 1.35 s in the morning and 3.3 s in the afternoon.

@@ -3,9 +3,12 @@
 import hashlib
 import json
 import math
+import os
 import re
+import ssl
 import threading
 import time
+import urllib.error
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
@@ -21,12 +24,23 @@ RANK_LIMIT = 1000
 # neardata answers /v0/block/<height> with a redirect, so each block costs two requests against its published limit
 # of 180 a minute per IP for keyless callers; 80 blocks a minute (160 requests) stays under it. Measured on
 # 7 Nov 2026: at 170 blocks a minute every request answered 429.
-REQUEST_INTERVAL_S = 60 / 80
-# A scan of about 150,000 requests meets dropped connections; each is retried after these pauses, in seconds.
+# A probe on 7 Nov 2026, after a 15 minute cooldown, still met 429 on 47 of 90 keyless requests at 30 blocks a minute
+# and on all 150 at about 50, so a keyless scan runs at 15 blocks a minute. neardata does not throttle keyed requests,
+# so with FASTNEAR_API_KEY_FILE set the scan uses the follower's keyed spacing.
+REQUEST_INTERVAL_S = 60 / 15
+KEYED_REQUEST_INTERVAL_S = feed.FOLLOW_INTERVAL_KEYED_S
+# Bound a persistently throttled height while allowing brief 429 bursts to clear.
+MAX_CONSECUTIVE_429S = 5
+# A scan of about 150,000 requests meets network failures: a dropped or reset connection, a socket timeout, an
+# unreachable host or DNS failure, or a 5xx answer. Each is retried after these pauses, in seconds; a local OSError is
+# not, and a refused TLS certificate stops the scan at once.
 TRANSIENT_BACKOFF_S = (5, 10, 20, 40, 60, 60)
 # A block takes one to two seconds to download, so one request at a time cannot reach the request rate the gate
 # allows; this many workers share the one gate, which still spaces request starts REQUEST_INTERVAL_S apart.
 SCAN_WORKERS = 6
+# At 0.1 s spacing and 1.35 to 3.3 s per read, 14 to 33 workers keep the gate busy. The shared gate still
+# spaces request starts, so gated starts cannot come closer than the keyed spacing whatever the worker count.
+KEYED_SCAN_WORKERS = 32
 AVERAGE_BLOCK_NS = 578_160_000
 INTENTS_ACCOUNT = "intents.near"
 _TIME = "%Y-%m-%dT%H:%M:%SZ"
@@ -251,9 +265,30 @@ def bisect_start_height(end_height, end_timestamp_ns, target_timestamp_ns, fetch
     return high_height, high_timestamp
 
 
-def _block_reader(fetcher, sleep, clock, last_request_at=None):
-    """A block reader that spaces requests, reads a 404 as a skipped height, and retries a transport failure or a
-    5xx answer after each pause of TRANSIENT_BACKOFF_S before it gives up; any other error stops the scan."""
+def _neardata_fetcher():
+    """The neardata fetcher and request interval for a scan: keyed (an Authorization Bearer header read from the file
+    FASTNEAR_API_KEY_FILE names, the key never printed) when that variable is set, keyless otherwise. A set variable
+    whose file cannot be read or is empty stops the scan rather than falling back to keyless."""
+    key_file = os.environ.get("FASTNEAR_API_KEY_FILE")
+    if not key_file:
+        return feed.Fetcher(max_requests=None, max_consecutive_429s=MAX_CONSECUTIVE_429S), REQUEST_INTERVAL_S
+    try:
+        api_key = Path(key_file).read_text(encoding="utf-8").strip()
+    except (OSError, UnicodeDecodeError) as error:
+        raise TopReceiversError("the file FASTNEAR_API_KEY_FILE names cannot be read") from error
+    if not api_key:
+        raise TopReceiversError("the file FASTNEAR_API_KEY_FILE names is empty")
+    client = rpc.Client(feed.NEARDATA_URL, "off", kind="http", headers={"Authorization": f"Bearer {api_key}"})
+    return feed.Fetcher(client, max_requests=None, max_consecutive_429s=MAX_CONSECUTIVE_429S), KEYED_REQUEST_INTERVAL_S
+
+
+def _block_reader(fetcher, sleep, clock, last_request_at=None, interval=REQUEST_INTERVAL_S):
+    """A block reader that spaces requests, reads a 404 as a skipped height, and retries a network failure (a dropped
+    connection or other rpc.TransportError, a reset connection raised as ConnectionError, a socket timeout, or an
+    unreachable host or DNS failure reported as urllib.error.URLError) or a 5xx answer after each pause of
+    TRANSIENT_BACKOFF_S, re-raising after the last attempt. A refused TLS certificate, or any URLError whose reason is
+    not an OSError, stops the scan at once with no pause, as do a run of MAX_CONSECUTIVE_429S consecutive 429 answers,
+    any other HTTP error, and any other OSError such as a local file error."""
     last_request = [last_request_at]
     lock = threading.Lock()
 
@@ -262,7 +297,7 @@ def _block_reader(fetcher, sleep, clock, last_request_at=None):
         # workers together never exceed the gate's rate.
         with lock:
             now = clock()
-            start = now if last_request[0] is None else max(now, last_request[0] + REQUEST_INTERVAL_S)
+            start = now if last_request[0] is None else max(now, last_request[0] + interval)
             last_request[0] = start
         if start > now:
             sleep(start - now)
@@ -277,7 +312,14 @@ def _block_reader(fetcher, sleep, clock, last_request_at=None):
                     return None
                 if error.status < 500 or attempt == len(TRANSIENT_BACKOFF_S):
                     raise
-            except rpc.TransportError:
+            except (rpc.TransportError, TimeoutError, ConnectionError, urllib.error.URLError) as error:
+                # urllib.error.HTTPError is a URLError but never arrives here: rpc._fetch turns it into rpc.HttpError.
+                # A reset arrives as a raw ConnectionError from the response read, outside urlopen's URLError wrapper.
+                if isinstance(error, urllib.error.URLError) and (
+                        not isinstance(error.reason, OSError) or isinstance(error.reason, ssl.SSLError)):
+                    # As in intel.alerts._retryable: a refused TLS certificate, or a reason that is no transport
+                    # failure, will not clear on a retry.
+                    raise
                 if attempt == len(TRANSIENT_BACKOFF_S):
                     raise
             sleep(TRANSIENT_BACKOFF_S[attempt])
@@ -354,15 +396,17 @@ def scan_window(hours, to_height=None, record=False, data_dir=DEFAULT_DATA_DIR, 
     data_dir = _data_dir(data_dir)
     data_dir.mkdir(parents=True, exist_ok=True)
     checkpoint_path = _checkpoint_path(data_dir)
+    interval = REQUEST_INTERVAL_S
     if checkpoint_path.is_file():
         state = _read_checkpoint(checkpoint_path)
         _validate_checkpoint(state, hours, to_height)
     else:
         if not record:
             raise TopReceiversError(f"no checkpoint under {data_dir}; run with --record")
-        fetcher = fetcher or feed.Fetcher(max_requests=None)
+        if fetcher is None:
+            fetcher, interval = _neardata_fetcher()
         before_pin = fetcher.requests
-        get, last_request_at, _ = _block_reader(fetcher, sleep, clock)
+        get, last_request_at, _ = _block_reader(fetcher, sleep, clock, interval=interval)
         end_path = "/v0/last_block/final" if to_height is None else f"/v0/block/{to_height}"
         final = get(end_path)
         if final is None:
@@ -379,8 +423,10 @@ def scan_window(hours, to_height=None, record=False, data_dir=DEFAULT_DATA_DIR, 
         return state
     if not record:
         raise TopReceiversError(f"scan stops at height {state['last_height']}; resume with --record")
-    fetcher = fetcher or feed.Fetcher(max_requests=None)
-    get, last_request_at, set_last_request_at = _block_reader(fetcher, sleep, clock, clock())
+    if fetcher is None:
+        fetcher, interval = _neardata_fetcher()
+    workers = KEYED_SCAN_WORKERS if interval == KEYED_REQUEST_INTERVAL_S else SCAN_WORKERS
+    get, last_request_at, set_last_request_at = _block_reader(fetcher, sleep, clock, clock(), interval=interval)
     while state["last_height"] < state["end_height"]:
         batch_start = state["last_height"] + 1
         batch_end = min(batch_start + BATCH_SIZE - 1, state["end_height"])
@@ -401,7 +447,7 @@ def scan_window(hours, to_height=None, record=False, data_dir=DEFAULT_DATA_DIR, 
                     raise TopReceiversError(f"neardata returned height {reduction['height']} for {height}")
                 return reduction
 
-            with ThreadPoolExecutor(max_workers=SCAN_WORKERS) as pool:
+            with ThreadPoolExecutor(max_workers=workers) as pool:
                 heights = list(pool.map(fetch, range(batch_start, batch_end + 1)))
             batch_requests = fetcher.requests - before_batch
             last_at = last_request_at()
