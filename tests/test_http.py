@@ -195,11 +195,11 @@ class VerdictRouteTest(EndpointCase):
 
     def test_an_unknown_path_is_404_and_a_wrong_method_is_405(self):
         self.assertEqual(self.call("GET", "/verdicts")[::2], (404, {"error": "not found"}))
-        self.assertEqual(self.call("POST", "/", ALLOW)[0], 404)
+        self.assertEqual(self.call("POST", "/")[0], 404)
         for method, path, allowed in (("GET", "/verdict", "POST"), ("PUT", "/verdict", "GET, POST"),
                                       ("DELETE", "/verdict", "GET, POST"), ("POST", "/health", "GET")):
             with self.subTest(method=method, path=path):
-                status, headers, _ = self.call(method, path, b"{}")
+                status, headers, _ = self.call(method, path)
                 self.assertEqual((status, headers["Allow"]), (405, allowed))
 
     def test_an_unknown_method_on_an_unknown_path_is_405_before_path_lookup(self):

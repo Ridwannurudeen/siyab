@@ -1,0 +1,32 @@
+Exact Gate 0.2.2 artifact from source 57860c96 tested with the corrected sandbox harness committed as 9d4b6342. GATE_CANDIDATE_WASM selected the committed res/gate.wasm; res/previous/gate.wasm was the SHA-256-pinned deployed 0.2.1 rollback. cargo test --locked --offline --test sandbox -- --nocapture used sandbox 2.13.4 and an external CARGO_TARGET_DIR.
+Local paths are replaced by angle-bracket labels; long hex values are shortened to eight characters at each end.
+
+   Compiling gate v0.2.2 (<checkout>/contracts/gate)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.74s
+     Running tests/sandbox.rs (<home>/target/shieldbot-near/debug/deps/sandbox-8ee28246cb507559)
+
+running 1 test
+happy FT total gas burnt: 8546500871173
+happy FT outcome gas burnt: 309217713812
+happy FT outcome gas burnt: 4261555902600
+happy FT outcome gas burnt: 1722098926064
+happy FT outcome gas burnt: 223182562500
+happy FT outcome gas burnt: 1807263203697
+happy FT outcome gas burnt: 223182562500
+sandbox refusal text: Smart contract panicked: REFUSED:verdict_used
+GAS request_transfer_prune4=11304272096340
+callback protocol rejection: Error { repr: Custom { kind: Rpc(BroadcastTxFailure), error: ServerError(HandlerError(InvalidTransaction { context: InvalidAccessKeyError(MethodNameMismatch { method_name: "on_transfer" }) })) } }
+token protocol rejection: Error { repr: Custom { kind: Rpc(BroadcastTxFailure), error: ServerError(HandlerError(InvalidTransaction { context: InvalidAccessKeyError(ReceiverMismatch { tx_receiver: AccountId("token.gate.test.near"), ak_receiver: "gate.test.near" }) })) } }
+deposit protocol rejection: Error { repr: Custom { kind: Rpc(BroadcastTxFailure), error: ServerError(HandlerError(InvalidTransaction { context: InvalidAccessKeyError(DepositWithFunctionCall) })) } }
+happy NEAR total gas burnt: 7017932548939
+happy NEAR outcome gas burnt: 309206534142
+happy NEAR outcome gas burnt: 4233988418412
+happy NEAR outcome gas burnt: 223182562500
+happy NEAR outcome gas burnt: 223182562500
+happy NEAR outcome gas burnt: 1805189908885
+happy NEAR outcome gas burnt: 223182562500
+test sandbox_transfer_policy_and_protocol_boundary has been running for over 60 seconds
+GAS prune_used_50=18687855812061
+test sandbox_transfer_policy_and_protocol_boundary ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 75.15s

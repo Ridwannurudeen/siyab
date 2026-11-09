@@ -15,19 +15,19 @@ python -m gate codehash res/previous/reports.wasm
 ```
 
 ```text expected
-sha256: 6b684655...9d000aa6
-code_hash: 8EGqzorvbx5PiPCnLJCbi79p9HWsie93iwgCT6GjStL5
+sha256: 3ef57087...622f0b76
+code_hash: 5EmM2UQRYcvaNvJX6jfcgtNS7Mm8ZPjZhwK1J8bMXrcu
 sha256: 2a154191...f0ec0cfa
 code_hash: 3qGvVjTHVyvYVGQjJhqQGJMzmkUHwEbTCfWqHhXnW4VX
 sha256: ccb386ad...e043fde5
 code_hash: En4wm3kmoZRTP8jZQCHhuDwwyXXEbQcNqfJyyiQYve4k
-sha256: f7a09b28...fd14a107
-code_hash: Hfdk3jGUFxQyP8wEEoejNUkZ81bE9gDmoUBfGRghR5iE
+sha256: 6b684655...9d000aa6
+code_hash: 8EGqzorvbx5PiPCnLJCbi79p9HWsie93iwgCT6GjStL5
 sha256: ba2551dc...7f8b7705
 code_hash: DXdqac6HBiXtZVCrJjdGjDEFfzcFF7EEDza8h8rU5UCC
 ```
 
-This checks that the committed Wasm bytes match the checked-in checksums and recorded hashes. It does not rebuild from source or establish which code is currently deployed. To reproduce a build, use the source commit and recipe in the corresponding `res/BUILD-*.md`, from that contract crate, with `CARGO_TARGET_DIR` unset:
+This checks that the committed Wasm bytes match the checked-in checksums and recorded hashes. Gate 0.2.2 in `res/gate.wasm` is built but not deployed; `res/previous/gate.wasm` is the deployed 0.2.1 artifact preserved as rollback for 0.2.2. This check does not rebuild from source or establish which code is currently deployed. To reproduce a build, use the source commit and recipe in the corresponding `res/BUILD-*.md`, from that contract crate, with `CARGO_TARGET_DIR` unset:
 
 ```sh needs-docker
 cargo near build reproducible-wasm
