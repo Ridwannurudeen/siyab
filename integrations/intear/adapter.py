@@ -8,8 +8,12 @@ MAX_VERDICT_AGE_MS = 300_000
 # Five minutes matches the Gate's default ttl and limits stale wallet decisions.
 
 
-def state_for_verdict(answer):
+def state_for_verdict(answer, address):
     if not isinstance(answer, dict):
+        return "Unknown"
+    request = answer.get("request")
+    if (not isinstance(address, str) or not address or not isinstance(request, Mapping)
+            or request.get("receiver_id") != address):
         return "Unknown"
     outcome = answer.get("outcome")
     if outcome == "DENY":
@@ -39,7 +43,7 @@ def state_for_verdict(answer):
     return "Safe"
 
 
-def address_safety_payload(answer):
+def address_safety_payload(answer, address):
     if isinstance(answer, Mapping):
         reasons = answer.get("reasons")
         if not isinstance(reasons, list) or any(not isinstance(reason, str) for reason in reasons):
@@ -49,9 +53,9 @@ def address_safety_payload(answer):
             evidence_hash = None
     else:
         reasons, evidence_hash = [], None
-    return {"status": state_for_verdict(answer), "reasons": reasons, "evidence_hash": evidence_hash}
+    return {"status": state_for_verdict(answer, address), "reasons": reasons, "evidence_hash": evidence_hash}
 
 
-def address_safety_json(answer):
+def address_safety_json(answer, address):
     """The JSON body an operator can return from GET /addresssafety?address=<account>."""
-    return json.dumps(address_safety_payload(answer), ensure_ascii=False)
+    return json.dumps(address_safety_payload(answer, address), ensure_ascii=False)
