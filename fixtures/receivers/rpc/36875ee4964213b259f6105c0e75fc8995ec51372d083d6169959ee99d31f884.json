@@ -1,0 +1,62 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "chehonten.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "E1z1oqeQUQpg6mqgYLbkceFAMfi7AYqxq5GooTfQVtYb",
+      "block_height": 223718146,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 128783249000006,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "login.learnclub.near"
+              }
+            }
+          },
+          "public_key": "ed25519:hVPhMkWBvtygkuxLah8jbX3kobFc5Si5aAKghCALk8z"
+        },
+        {
+          "access_key": {
+            "nonce": 127967238000002,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "249084778297094600000000",
+                "method_names": [
+                  "addMessage",
+                  "user_deposit_native_token",
+                  "user_request_withdraw",
+                  "user_announce_key",
+                  "user_request_set_trading_key",
+                  "create_user_account"
+                ],
+                "receiver_id": "asset-manager.orderly-network.near"
+              }
+            }
+          },
+          "public_key": "ed25519:EcAEDj7PzpxWHwUaNLHHgu5MdKV2hixB6ZHHesfpcJDy"
+        },
+        {
+          "access_key": {
+            "nonce": 111846109008102,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:J1EzB1K8HiFTJ2X3SpxRiic17DdvcaELiKpnrDDFNy8r"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:41:47Z"
+}

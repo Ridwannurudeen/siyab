@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "heretowin1688.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "DSKEkBw988qPNzmAkAfh5mCpQbo6WAaEc5yy75gU4Pwd",
+      "block_height": 223718333,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 219998835000047,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:7z5kohcHZWWpDbJidaKKkzcaneMmXqu44YtzigfSxjU5"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:43:34Z"
+}

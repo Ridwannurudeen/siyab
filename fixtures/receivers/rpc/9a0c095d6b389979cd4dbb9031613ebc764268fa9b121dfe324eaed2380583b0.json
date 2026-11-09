@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "aliyu_said-hot.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "Emk2m4TC66uEEvPQwAVha2kVFoW4bYbMnxGDBktx195i",
+      "block_height": 223721523,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 130092372015910,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:AivXgVCRRcNd9kLcWFZ3j7HWB3Ntg9ZxSSVHjBuAQnwi"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T05:13:39Z"
+}

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "randymarsh.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "HMJXwYrJe1cTZwKxrSPVmN7pToedpAp1dmmt23LeiKWG",
+      "block_height": 223718759,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 222067267000003,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:7uwtzVmusDv1i3AuW9DFtQZnoqK6VHu84mX65wFsMrzc"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:47:39Z"
+}

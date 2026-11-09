@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "cencosud.pideky_escala.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "2jf8nKeEjpD1x5Ct3hbEoPqbBXLtDosqv3kmwcMdsKSE",
+      "block_height": 223715059,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 213841523000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:7Yig2eaEnErohySM1D4Ki9yR5er2MdpFGcTfPkyhZ5Yh"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:12:36Z"
+}

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "grid.deltatrade.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "2e3DLndTYBjixQepibnq6vxJxMqGP76MbKiXGtfQkXRg",
+      "block_height": 223715094,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 117511875000018,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:3TSvVvABQXkFYh9s6vPBUrfiF3HTMZCSzzoRETBLoVzh"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:12:55Z"
+}

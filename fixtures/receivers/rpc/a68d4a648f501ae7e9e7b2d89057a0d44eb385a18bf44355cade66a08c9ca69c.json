@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "phimaestro2.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "3FKStLHryvxXYg4BEUYjVCTDTsZe2A9d9qgdgwaTM8va",
+      "block_height": 223718707,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 112484951007296,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:FWkUH1Khbw5zu3fc4wHGEM2EWquJDb7oSkZ1Vnkw9woE"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:47:10Z"
+}

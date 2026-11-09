@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "awkarin56.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "7hTG945ayV4v7an2eEBjVySZQpJm96idK2Jz67iGFbQY",
+      "block_height": 223717071,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 112148844014540,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:5Y6TJ1suVLj5NKmR8sYRT8av9WyoyFEL2bTkqwbS5MvV"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:31:36Z"
+}

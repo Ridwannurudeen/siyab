@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "valzdom.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "8Ydd6AvjL6ztcwvD64phYoKVs8VR6D7HXUJiFDKAwJeU",
+      "block_height": 223719012,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 116469134019130,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:7PrS8Z8yPcT787yqkC5pv3DyusZXsy1RnjJ792dhLFXL"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:50:02Z"
+}

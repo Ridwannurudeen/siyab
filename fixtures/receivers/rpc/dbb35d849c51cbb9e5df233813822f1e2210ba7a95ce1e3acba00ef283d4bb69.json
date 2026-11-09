@@ -1,0 +1,81 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "allegia.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "AkUufRpFmU6q1LWuNUhPDrvmVXm6vsLoaVwo1LexV56v",
+      "block_height": 223721533,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 119509394000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "signin2.sendercommunity.near"
+              }
+            }
+          },
+          "public_key": "ed25519:33V4Znt4jzWqU5aFgYGXeeRSCywn3ToEwcTMdzH6QCut"
+        },
+        {
+          "access_key": {
+            "nonce": 114213970000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "asset-manager.orderly-network.near"
+              }
+            }
+          },
+          "public_key": "ed25519:6dST2LvVGmU4oEVmj77HZkfHixhTvWcv3KZSojVW6WVz"
+        },
+        {
+          "access_key": {
+            "nonce": 134277388000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "senderdaoairdrop01.near"
+              }
+            }
+          },
+          "public_key": "ed25519:DVupgindsfB72pYH8FXwCwLkXq4yFwuW1uZv2LMEteiC"
+        },
+        {
+          "access_key": {
+            "nonce": 111832835013534,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:EJEussvwk3D4Kvsoqh2vDGHpPNzDvRPD8r8GqvQWj7hZ"
+        },
+        {
+          "access_key": {
+            "nonce": 116764797000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "signin.sendercommunity.near"
+              }
+            }
+          },
+          "public_key": "ed25519:FnH4mJVVsRV9vR2n1GSibSUxJP6fd7FBZmDY1RMm88JV"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T05:13:45Z"
+}

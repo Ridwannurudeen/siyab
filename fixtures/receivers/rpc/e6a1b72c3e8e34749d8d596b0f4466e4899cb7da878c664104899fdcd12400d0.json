@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "opick444.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "7jy3EMB8GaPYYEbsYxk3faSiZvPTf2WK86itffpLHrKi",
+      "block_height": 223717361,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 123460868014360,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:DD77yoiMMrrH74XKh5ZAzZrsvpqLsVf7ZjUfV3FNGRJ1"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:34:24Z"
+}

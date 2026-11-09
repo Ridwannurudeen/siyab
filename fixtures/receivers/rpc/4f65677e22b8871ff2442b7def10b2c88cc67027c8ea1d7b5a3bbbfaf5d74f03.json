@@ -1,0 +1,68 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "antonenko_andrey.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "2NrSR5TKuZay7HuGYMGneZJv4Cpn7XbyMJDFXznWpcHP",
+      "block_height": 223721686,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 124700432000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "marketplace.paras.near"
+              }
+            }
+          },
+          "public_key": "ed25519:6v5zHcnUHnYT4RebXVQouLgRxgADC4dHhG952XYvLZGm"
+        },
+        {
+          "access_key": {
+            "nonce": 116040372000013,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meteor-points.near"
+              }
+            }
+          },
+          "public_key": "ed25519:8UqnPhF4qxPPKU2yD7bE3rgKXhJJie1Fh3MQanxaR3Y6"
+        },
+        {
+          "access_key": {
+            "nonce": 119335727001645,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "aa-harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BS5tkyAHU6dyLHVYBGGxCKzqAa5jB1j1xyAMQ1Cwaqny"
+        },
+        {
+          "access_key": {
+            "nonce": 111914460013091,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:GHqJ6RLwMzcmXLg9tyUUXjZZ9F8gnwi8ELCkYLPNXuVk"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T05:15:12Z"
+}

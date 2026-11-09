@@ -1,0 +1,109 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "847591996c446f51.trade.unrlzd.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "BUeBgWbTK8pW1Qe4B6nBoGm9Mxzkv4Apm2Q5nYxNaJCC",
+      "block_height": 223718013,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 218432809000001,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "996313009212046600000000",
+                "method_names": [
+                  "execute_order"
+                ],
+                "receiver_id": "847591996c446f51.trade.unrlzd.near"
+              }
+            }
+          },
+          "public_key": "ed25519:tpTnnzFAr7CzfDUbbPr479E8oScmLPsu7XSrBSvMeG1"
+        },
+        {
+          "access_key": {
+            "nonce": 218432808000032,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "execute",
+                  "withdraw_to_owner",
+                  "lower_caps",
+                  "place_order",
+                  "cancel_order",
+                  "revoke_automation",
+                  "withdraw_cross_chain",
+                  "remove_withdraw_destination",
+                  "withdraw_from_intents",
+                  "execute_order"
+                ],
+                "receiver_id": "847591996c446f51.trade.unrlzd.near"
+              }
+            }
+          },
+          "public_key": "ed25519:52Kvf1NC5trRJxPCJbiGCnuKL4DAoXutTSoJeQDLXH5g"
+        },
+        {
+          "access_key": {
+            "nonce": 218432808000019,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "execute",
+                  "withdraw_to_owner",
+                  "lower_caps",
+                  "place_order",
+                  "cancel_order",
+                  "revoke_automation",
+                  "withdraw_cross_chain",
+                  "remove_withdraw_destination",
+                  "withdraw_from_intents",
+                  "execute_order"
+                ],
+                "receiver_id": "847591996c446f51.trade.unrlzd.near"
+              }
+            }
+          },
+          "public_key": "ed25519:AHnBLbt7vakhfWnVgHWBrKX1dLZpTT5ggqCRx6EUuwBL"
+        },
+        {
+          "access_key": {
+            "nonce": 218432808000013,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "execute",
+                  "withdraw_to_owner",
+                  "lower_caps",
+                  "place_order",
+                  "cancel_order",
+                  "revoke_automation",
+                  "withdraw_cross_chain",
+                  "remove_withdraw_destination",
+                  "withdraw_from_intents",
+                  "execute_order"
+                ],
+                "receiver_id": "847591996c446f51.trade.unrlzd.near"
+              }
+            }
+          },
+          "public_key": "ed25519:De6GNLDgQoB3St133Tkmdm8uftkiKxsqymva161Bnpso"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:40:32Z"
+}

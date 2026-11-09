@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "raffa912.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "AHjAgZFQxvVz9cosrPtzyGwGgqfNwCyAxNdGn3iBJHFt",
+      "block_height": 223717390,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 123541351014140,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:BJo3a7VuecWwq69scd3dtGN7uA3npm75YwWJon5mYocE"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:34:40Z"
+}

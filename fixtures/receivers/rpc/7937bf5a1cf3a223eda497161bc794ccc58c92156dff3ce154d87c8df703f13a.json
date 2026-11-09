@@ -1,0 +1,81 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "opennode3697.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "ASpJf5pbeuz2D1QBFS4rXQBeKpsY5brfaGzZ8JuVpT7e",
+      "block_height": 223716749,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 222748731000039,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1",
+                "method_names": [],
+                "receiver_id": "aa-harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:457bmErKqgPU5Z8PaQbCvZR35T7dod3bAq48jnsiqYqG"
+        },
+        {
+          "access_key": {
+            "nonce": 134867041000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "market.tradeport.near"
+              }
+            }
+          },
+          "public_key": "ed25519:8ypDhMn3aoZRwXV5Wk4Dz3YeTiycgwKbziSkpQXXhHkN"
+        },
+        {
+          "access_key": {
+            "nonce": 115666296000058,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:AwizYfKRRdWBYa2Nx237YoPSxXcWKHoqULxjyYAtFCTC"
+        },
+        {
+          "access_key": {
+            "nonce": 115697503000030,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meteor-points.near"
+              }
+            }
+          },
+          "public_key": "ed25519:D62ooBzeBKdiCu38yeoqXzQBQbtiHvfJ9Nqt468586g6"
+        },
+        {
+          "access_key": {
+            "nonce": 115666433000124,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:GN1YrpzKNbJcvaTBPfdi1zxCRBZqDv5bzjxeGyEo2gHB"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:28:31Z"
+}

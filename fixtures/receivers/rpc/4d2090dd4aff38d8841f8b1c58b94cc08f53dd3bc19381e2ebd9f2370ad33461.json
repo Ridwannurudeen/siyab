@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "rheagasrelayer.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "G4qM4XczgRf5MFReiAZ48b4jTcE1dGpm5nQT8teq1HR6",
+      "block_height": 223715387,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 198403169003128,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Ec4kq5XZpmsovvsydxoe8RBKyjc6knFhvcffFd5Ji26J"
+        },
+        {
+          "access_key": {
+            "nonce": 198410158000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:HCU55puMadRrWXxgXa5vUSGn86WJKU7fRnFzW8AsCqxU"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:15:40Z"
+}

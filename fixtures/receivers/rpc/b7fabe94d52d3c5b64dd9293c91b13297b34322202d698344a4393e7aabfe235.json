@@ -1,0 +1,107 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "i1776146433.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "61EkWFvejY2rCYxo36a95BW41NZvvvbUH8pV9ZAmcusC",
+      "block_height": 223715322,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 111924629062704,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:g1YEhLWzNJBrcowsAcBrkAXB6FNKBPj1x2DWCX5Xec9"
+        },
+        {
+          "access_key": {
+            "nonce": 222681045000013,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1",
+                "method_names": [],
+                "receiver_id": "aa-harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:457bmErKqgPU5Z8PaQbCvZR35T7dod3bAq48jnsiqYqG"
+        },
+        {
+          "access_key": {
+            "nonce": 141330504000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "staking.enleap.near"
+              }
+            }
+          },
+          "public_key": "ed25519:5SxdQUMD18pk5Kt32Uq6hTNa5pn9N71B8w3P8NsbbEVS"
+        },
+        {
+          "access_key": {
+            "nonce": 144558062000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "staking.enleap.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BJnohBeNWVZBSP8sGv8G1PUSjjvXd3zNx4pk7aeFeZ7L"
+        },
+        {
+          "access_key": {
+            "nonce": 113817346000115,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meteor-points.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BL4MdkYyTppoY8wghinq3duYQskdFnW7Mc9YdEoCVpE5"
+        },
+        {
+          "access_key": {
+            "nonce": 116039022000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "staking.enleap.near"
+              }
+            }
+          },
+          "public_key": "ed25519:GHoTB8qxXxCwuHEJbx9tKmS8MhxcwJvF6RJ9Qa7E5X8X"
+        },
+        {
+          "access_key": {
+            "nonce": 115232657000271,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:GN1YrpzKNbJcvaTBPfdi1zxCRBZqDv5bzjxeGyEo2gHB"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:15:03Z"
+}

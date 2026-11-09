@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "matliav.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "2UCsx6P9zFtkExNx9PuHwi1sahRT3uQRBboYe9korDWR",
+      "block_height": 223718565,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 112146052012349,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9Dnr6sm1akVRhBs9VxMedVabKiAMUxyr2ACLbYrt5oCt"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:45:47Z"
+}

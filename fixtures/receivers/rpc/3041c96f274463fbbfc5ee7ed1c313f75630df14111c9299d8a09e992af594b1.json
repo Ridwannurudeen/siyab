@@ -1,0 +1,55 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "andrei_kb.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "CSnV6vwmwKZzTADFECiUpiCZhhjPePH2E6gFLPtwhMY8",
+      "block_height": 223721604,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 126327309000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "market.tradeport.near"
+              }
+            }
+          },
+          "public_key": "ed25519:Cx7H9M4MiQHxCdf3UeAi2abfYy1J9njfrCrP4XsvfV9"
+        },
+        {
+          "access_key": {
+            "nonce": 132395064000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "market.tradeport.near"
+              }
+            }
+          },
+          "public_key": "ed25519:785dJ9MiFuubVgAqHXFfMraTj5V4CvGnaoJkka2jH94H"
+        },
+        {
+          "access_key": {
+            "nonce": 111801547022439,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:A3JsVifJ1Qv673oQbWWWwyKoUJtYyWR4gbhMsFgB2jAg"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T05:14:25Z"
+}

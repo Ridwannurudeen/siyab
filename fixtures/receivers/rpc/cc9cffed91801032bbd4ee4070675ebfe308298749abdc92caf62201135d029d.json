@@ -1,0 +1,55 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "andris0088.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "E187FAGnhxTYfLLL7259cxofZJP54HRaD8zNmUMx23w4",
+      "block_height": 223721628,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 222709428000018,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1",
+                "method_names": [],
+                "receiver_id": "aa-harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:457bmErKqgPU5Z8PaQbCvZR35T7dod3bAq48jnsiqYqG"
+        },
+        {
+          "access_key": {
+            "nonce": 114755728008960,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9uc987tBsNntt1sZUQ7ajcyhNbJfqf6MhrV3yck3Qt3s"
+        },
+        {
+          "access_key": {
+            "nonce": 114757729000020,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meteor-points.near"
+              }
+            }
+          },
+          "public_key": "ed25519:DE9UtQKRXKEBSYRVpK5bfmuVNAmPC8VKK6JXnVrNdyUV"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T05:14:39Z"
+}

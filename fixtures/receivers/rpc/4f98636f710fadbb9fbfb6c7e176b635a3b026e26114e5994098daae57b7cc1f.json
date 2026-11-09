@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "andrey_leprekon.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "C1JqXm58Uer6WT5Ff4nZyMWko2ZXcJJU34A4wwD4Tetn",
+      "block_height": 223721618,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 148700558006820,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:HcQdvF8bBW2outFuwdCfnQXz5gdbxQf7KKc5R8k2P3Yf"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T05:14:33Z"
+}

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "sweetwiki9194.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "CfQ26PFtbqjgpy6RdtKbvckAp5sXi6NJbd3hPRAojUh4",
+      "block_height": 223716598,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 218027789000082,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:H5wk4yiSy5YtHvbEG3gEonGbH7qHvFTzbcyyMFmmEZhA"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:27:03Z"
+}

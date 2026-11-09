@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "multica.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "36027514677895307599996916",
+      "block_hash": "3ALAGy735hyXPChR2SabPMVMBejTicD5Vw6ZEVXHxo41",
+      "block_height": 223716710,
+      "code_hash": "F5FMpGcf5WHs1bWjYg4s4rSFSZUMbbchNx6m5vWUqEXj",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 2243115
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:28:09Z"
+}

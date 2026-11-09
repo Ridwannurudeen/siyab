@@ -1,0 +1,68 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "astrolog7.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "DtrxLqA5bEmXG6dvu69YXicEATimpoqWW1LNgq8DwA64",
+      "block_height": 223721778,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 135727847000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "senderdaoairdrop01.near"
+              }
+            }
+          },
+          "public_key": "ed25519:2gcG6nPXfUuVDQFvoBANvpzhjj6sQXWizxc61Zbnbtgj"
+        },
+        {
+          "access_key": {
+            "nonce": 111776620039165,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:57yzjV1RxZwgwZY9aCe9E3UroNdKc7aTTXNDDsPS5VoT"
+        },
+        {
+          "access_key": {
+            "nonce": 116841117000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "signin.sendercommunity.near"
+              }
+            }
+          },
+          "public_key": "ed25519:E7g7YM6CajBmEsDQQbrsvL9LtRJqDW5Q94HzZBMPyqGP"
+        },
+        {
+          "access_key": {
+            "nonce": 119482875000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "signin2.sendercommunity.near"
+              }
+            }
+          },
+          "public_key": "ed25519:EoV9kVTaTRhdw95RcK6vZ4tsJdvkXBSKJMZT42Q5JwBW"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T05:16:05Z"
+}

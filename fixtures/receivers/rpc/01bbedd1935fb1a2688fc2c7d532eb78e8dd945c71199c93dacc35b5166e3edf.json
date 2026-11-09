@@ -1,0 +1,43 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "znaki1980.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "DhNKdov47ds1giURZfB3gqkTFdVcrbXQNc6puiFqsPeW",
+      "block_height": 223717941,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 118753494000511,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:3SsGBvVaCiYHQ9WMf6rKaoQFzyuZWJscJY6vFf17Wxux"
+        },
+        {
+          "access_key": {
+            "nonce": 216334882000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4CuyxmDWeFAizVo58xTz2STbEuZWLYvs5z1v4srh97ac"
+        },
+        {
+          "access_key": {
+            "nonce": 118740304000201,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:7v8wtxPBDwWo2LU9YemSSjfta3Kkk9yhgd2DCavEo9ys"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:39:51Z"
+}

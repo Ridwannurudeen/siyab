@@ -1,0 +1,68 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "talllace2671.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "DpLyExMeTrbVDwqY2dmCT3gPeYF4pGVfXuKUQ1WvK9vT",
+      "block_height": 223716787,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 222683035000012,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1",
+                "method_names": [],
+                "receiver_id": "aa-harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:457bmErKqgPU5Z8PaQbCvZR35T7dod3bAq48jnsiqYqG"
+        },
+        {
+          "access_key": {
+            "nonce": 115702225003221,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:69PUP2MjZ5v22Sf24oUWVjAojP1fRnKyrCbrVe87iGVn"
+        },
+        {
+          "access_key": {
+            "nonce": 160429723000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "market.tradeport.near"
+              }
+            }
+          },
+          "public_key": "ed25519:7ZpmEZx78xD5wXqBC6zXTXwhPTrLTHcTjQCmdSFUJt82"
+        },
+        {
+          "access_key": {
+            "nonce": 142514965000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "market.tradeport.near"
+              }
+            }
+          },
+          "public_key": "ed25519:J7mGbcf879zoXGsmATvLEH83V2v7MgvJJxH9qeQsKuhE"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:28:52Z"
+}

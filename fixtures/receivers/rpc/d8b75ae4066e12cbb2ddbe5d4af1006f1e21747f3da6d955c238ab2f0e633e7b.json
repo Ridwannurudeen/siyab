@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "poolliquidity.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "BQWp7z73vigV1SbfpGtkHeQQn1usD9UP1u5oDjh3t4cB",
+      "block_height": 223714958,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 210736213000859,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:F339EsXhfhJ68NeqQKP4uMD7VyabRgJJuG3kMUXexb7b"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:11:38Z"
+}

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "milkchan45.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "34nfDtNxTv6RMKrjyBBRnUufvhgHz76M9GQYj52XugW5",
+      "block_height": 223719738,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 219956510000007,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:5oZRXyKs9LDvZYB2XFgNFk6btVnj5NsfD67QV5i51Nox"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:56:53Z"
+}

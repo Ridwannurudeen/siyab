@@ -1,0 +1,26 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "diarhea.nearlytrade.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "4375296600194608500031196",
+      "block_hash": "8ao3C6c9G4jm9SrLCXWLBfk7yPkoHDDcwoWAQbeGwbo1",
+      "block_height": 223715131,
+      "code_hash": "11111111111111111111111111111111",
+      "global_contract_hash": "1uGuBEpx3dFRDrr2wNzm5Vcb5sF3jWY3AKQ3Gopd6we",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 211633
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:13:16Z"
+}

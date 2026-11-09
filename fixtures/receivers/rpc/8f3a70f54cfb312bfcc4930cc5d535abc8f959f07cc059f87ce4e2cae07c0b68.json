@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "ijapa.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "2bKrqgsjJXDL6gY9Vttga3SpgkiWgzU61zBiDEYe5uzf",
+      "block_height": 223718392,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 217916143000278,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:FnB9JnyPHz1djehxrbzRb6NMmXhmTw8BLPKoSH4BNwij"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:44:09Z"
+}

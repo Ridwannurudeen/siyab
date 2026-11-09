@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "launchpad.justhoot.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "12351334184752518099999220",
+      "block_hash": "GnSAod9aL3sfLvgrhF4ujdTxsKNETd5e8dGrcrNJuXZu",
+      "block_height": 223719330,
+      "code_hash": "4d5gC7Coj5WTeGmJ5UgYsovyhSf6UEHN7WHDmyNisS4z",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 655472
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:53:02Z"
+}

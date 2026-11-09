@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "ghost-spark-2459.racerbot.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "34y1iBASoFocu5CTKJVZRUhD51x71puEze7NpbHoNc9E",
+      "block_height": 223716661,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 217613801000014,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9Cg1gJz9zb7xgybxxo1hbji59Hn5e6hpHudfetjTrPnA"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:27:40Z"
+}

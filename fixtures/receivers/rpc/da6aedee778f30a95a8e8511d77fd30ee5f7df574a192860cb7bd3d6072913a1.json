@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "thinos1181.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "7L5ifWtbnbPGn9eRigGvMe9mZmdsh9DaS93peXYsJ6Ux",
+      "block_height": 223715554,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 223447985000025,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Dh6SW71Yc29SDi2smTQfzzS8E7Wcby3KKZmJvwggvLuq"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:17:13Z"
+}

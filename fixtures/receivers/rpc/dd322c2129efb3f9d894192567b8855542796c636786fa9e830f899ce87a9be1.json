@@ -1,0 +1,21 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "62e1e3be3df663f0563c4ef48233d42ec988e6d9.aurora"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "CbuMfhyWG8WE3TciqVGQhGaHSeQx61wMFn73wNRdoSi5",
+      "block_height": 223719173,
+      "keys": []
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:51:32Z"
+}

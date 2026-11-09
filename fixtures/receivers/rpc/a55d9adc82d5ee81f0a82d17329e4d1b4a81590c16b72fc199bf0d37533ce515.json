@@ -1,0 +1,26 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "w4spon.sputnik-dao.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "131710000000000000000000",
+      "block_hash": "379U8vYLiBViQPWTNcjN8XfSgLgfo2UG1tJoi5dC2y6h",
+      "block_height": 223717920,
+      "code_hash": "11111111111111111111111111111111",
+      "global_contract_hash": "DtHZA1mUmGYeScEaUoUZYQGGFHSMpnjMCvkr5U9hJXuF",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 2261
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:39:39Z"
+}

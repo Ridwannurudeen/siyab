@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "mstsobhani-hot6.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "FYdqVF8ZS3KcvxX1sfuiQZGEoeAyF578ocgNn7yDSH7U",
+      "block_height": 223716548,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 119952427037561,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4crY32uCJWLiHNjAj9TWj8BhQK69HL9ZWtJef7V2NVLv"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:26:34Z"
+}

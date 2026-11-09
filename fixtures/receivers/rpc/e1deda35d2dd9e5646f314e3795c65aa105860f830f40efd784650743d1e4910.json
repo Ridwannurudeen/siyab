@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "raen_trade.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "63324074015923727411576288",
+      "block_hash": "CRWdY5j5hbWfeXbkG8u39nW2bDdiL6exWhxHeUJ913p4",
+      "block_height": 223715357,
+      "code_hash": "4HbDUPVUbjj8KAw1JGybypt8tpKZGyotcaMdCFSxh866",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 491269
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:15:23Z"
+}

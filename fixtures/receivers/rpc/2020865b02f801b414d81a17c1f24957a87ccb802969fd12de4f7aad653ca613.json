@@ -1,0 +1,26 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "56c9a6ef438223bd.trade.unrlzd.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "489726800074645921306513311",
+      "block_hash": "Fnur69TB1XQQ3uYbjuj3S1QGVpTRPLj46P2ersoKDaHr",
+      "block_height": 223719835,
+      "code_hash": "11111111111111111111111111111111",
+      "global_contract_hash": "53kXHafSbLaYp8ZNbmgwDnWXrz8DtrpEvvQAHzNmY6Fu",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 2592
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:57:47Z"
+}

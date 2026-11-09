@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 222505630,
+      "account_id": "contract.portalbridge.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "7361194965954219503570923190",
+      "block_hash": "6AQ8dVB83chxFp2tUBrSm8zhXzqXJyJf6SmTSNBhhq5R",
+      "block_height": 222505630,
+      "code_hash": "AjG8iyXZRzX7sYz34niwXACAgowF9BKwFXgDki4s7e2P",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 2244424
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-09T04:14:16Z"
+}

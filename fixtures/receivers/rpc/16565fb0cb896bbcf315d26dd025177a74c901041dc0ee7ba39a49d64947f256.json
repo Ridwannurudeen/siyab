@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "camilabarba.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "CQBK8yfvPkFrpwhaLmhdKioQWZK47YU3wbTwFiBPLYPA",
+      "block_height": 223717119,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 124773672014150,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:WPqEbo22zmwQE5u6XpjX5W7Nob3knE2CYaF3nNh2QLw"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:32:04Z"
+}

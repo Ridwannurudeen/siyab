@@ -1,0 +1,159 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "apynzaru.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "DzNaABCMxHDCLCRbTaBNJL8vNA9Usoaqzu4wkjowy7bX",
+      "block_height": 223721707,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 115797546000014,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meteor-points.near"
+              }
+            }
+          },
+          "public_key": "ed25519:2CEUSk1qkXrmZhcXtHBucPuwUhQA6PTUdaSPg1GMXcvQ"
+        },
+        {
+          "access_key": {
+            "nonce": 114219575000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "asset-manager.orderly-network.near"
+              }
+            }
+          },
+          "public_key": "ed25519:3eYYCZKWYNK2EcGLApFwCgx4LJ32L3DeDR93n9sCpdvK"
+        },
+        {
+          "access_key": {
+            "nonce": 114214014000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "asset-manager.orderly-network.near"
+              }
+            }
+          },
+          "public_key": "ed25519:5EFqrhXTUZ4EXTMSZtbGeWPQAYcLyfsohcgVg92kEnTf"
+        },
+        {
+          "access_key": {
+            "nonce": 114222978000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "asset-manager.orderly-network.near"
+              }
+            }
+          },
+          "public_key": "ed25519:6HcCmUEW7a233s7uVxDNgdz5VsJ9pw1VyFJzmyc1Gtrr"
+        },
+        {
+          "access_key": {
+            "nonce": 112042639011532,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6pQpxmV4cKKNssbzDaF2AqpRfYD2wP9sE7wio5DtAzCu"
+        },
+        {
+          "access_key": {
+            "nonce": 117442553000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "market.tradeport.near"
+              }
+            }
+          },
+          "public_key": "ed25519:AP9h4bn6rFJvCwXRZ4cAw4Tf66hDbw5nEp1QMvtpiKzq"
+        },
+        {
+          "access_key": {
+            "nonce": 116247683000497,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "aa-harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BS5tkyAHU6dyLHVYBGGxCKzqAa5jB1j1xyAMQ1Cwaqny"
+        },
+        {
+          "access_key": {
+            "nonce": 114217721000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "asset-manager.orderly-network.near"
+              }
+            }
+          },
+          "public_key": "ed25519:DkMYtq2Nx4kVjjsesQgoq2XvPYDjCQMt3JPSAeX7QfGg"
+        },
+        {
+          "access_key": {
+            "nonce": 114219030000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "asset-manager.orderly-network.near"
+              }
+            }
+          },
+          "public_key": "ed25519:EhcnrAwTsgnC22xDWeDKRJatkruaE1rx2Zex22fdJFNv"
+        },
+        {
+          "access_key": {
+            "nonce": 114223073000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "asset-manager.orderly-network.near"
+              }
+            }
+          },
+          "public_key": "ed25519:G5rjAfTVpVPSXCXvKdR9Q8hGY2UF9PNZRAqN36yTWE39"
+        },
+        {
+          "access_key": {
+            "nonce": 115931051000049,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:GN1YrpzKNbJcvaTBPfdi1zxCRBZqDv5bzjxeGyEo2gHB"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T05:15:24Z"
+}

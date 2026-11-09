@@ -1,0 +1,24 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "call_function",
+      "account_id": "petersalomonsen.near",
+      "method_name": "contract_source_metadata",
+      "args_base64": "e30=",
+      "finality": "final"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "FnkEVYYpDv1ZjsyHkmhfzXhD4nLsonu9KGP3wkweGSje",
+      "block_height": 223718693,
+      "error": "wasm execution failed with error: MethodResolveError(MethodNotFound)",
+      "logs": []
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:47:03Z"
+}

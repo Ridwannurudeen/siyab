@@ -10,7 +10,7 @@
 <body>
 <header><nav><a href="index.html">Home</a><a href="feed.html">Feed</a><a href="verify.html">Verify</a></nav></header>
 <main>
-<h1>Top receivers</h1><p class="empty-state">Scan in progress, not yet published.</p><p>The leaderboard appears after committed judgement files are available.</p>
+<h1>Top receivers</h1><p>Aggregate results for the committed mainnet receiver ranking.</p><p>Window: 24 hours, 2026-11-07T07:53:57.598911006Z (height 223437611) through 2026-11-08T07:53:57.327611755Z (height 223587303).</p><p>Ranking rule: Receivers are ordered by distinct payer count descending, transfer count descending, then account id ascending.</p><p>Judged 990: 271 ALLOW, 54 DENY, 665 UNKNOWN.</p><h2>UNKNOWN causes</h2><p>Counts overlap.</p><ul><li>account_age: 491</li><li>code_without_metadata: 255</li><li>dust_funded: 491</li><li>issuer_blacklist: 535</li><li>receiver_exists: 248</li></ul><h2>DENY split</h2><p>New account (account_age signal only): 53.</p><p>Lookalike with code without metadata: 1.</p><p>Each verdict is what an agent's 1 NEAR payment to that receiver would get, not a finding that the account is malicious.</p><p>See the <a href="https://github.com/Ridwannurudeen/shieldbot-near/tree/main/fixtures/receivers/top/judgements/">committed judgement files</a> for per-account results.</p>
 </main>
 <footer><p>Data: NearBlocks. Blocks: mainnet.neardata.xyz. Transfers: FastNEAR.</p></footer>
 </body>

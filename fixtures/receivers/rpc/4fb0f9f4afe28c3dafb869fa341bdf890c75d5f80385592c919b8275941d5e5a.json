@@ -1,0 +1,42 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "decayed_1921.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "3kWLKfXhzS1h3TFxMoJt7dYkM45jQWT6Gns4rq327m49",
+      "block_height": 223718189,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 112329860005694,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4c4ewSJutehreUj9rEc4agxsp3SmKgsrp2ii6KjrYLsL"
+        },
+        {
+          "access_key": {
+            "nonce": 121534248000054,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "aa-harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BS5tkyAHU6dyLHVYBGGxCKzqAa5jB1j1xyAMQ1Cwaqny"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:42:11Z"
+}

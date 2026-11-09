@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "blockada.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "F6vCfvBwz59JyH6Y6kkLYnQ5VZomuyPZCNdKDsk2jBiD",
+      "block_height": 223717101,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 218383841000058,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:EGkoV8uRJDSqLcybmo8TyQAbt9p23zai9ThStL45w48N"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:31:53Z"
+}

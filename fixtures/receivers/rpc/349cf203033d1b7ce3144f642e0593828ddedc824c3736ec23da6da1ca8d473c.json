@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "dragonpad.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "3486449507406339619129867",
+      "block_hash": "GQA7NXrkfRi8yn5kTQAmwAJujpUDsCUrPr6NFhzMmAEU",
+      "block_height": 223717160,
+      "code_hash": "3gqUU3rDaJ8xw61iBwHa65ygy1BnHKLHK3Wo3GcAgCUC",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 322705
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:32:27Z"
+}

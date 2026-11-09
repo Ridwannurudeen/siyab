@@ -1,0 +1,94 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "oleksandra_mamontova.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "GL8QkLWGZ4mXtXHDZBkLoa56y6gwVbZ7cbDLANhmuHGE",
+      "block_height": 223716129,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 137506725000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "subscription.pikespeak.near"
+              }
+            }
+          },
+          "public_key": "ed25519:3kXeij6VRPX3CAkbA5WVj6WnKwV8dojsHZHkwBBYMi2Z"
+        },
+        {
+          "access_key": {
+            "nonce": 119782382085380,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:5FXXK8YyhKv4WUfDMZk1LnYUtoXtHAjYXG7rhCabibkv"
+        },
+        {
+          "access_key": {
+            "nonce": 134064825000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "a.mitte-orderbook.near"
+              }
+            }
+          },
+          "public_key": "ed25519:97ucj6gDKkftSUXhh5unZTKH4D3erTHngfz9LDWPAnFE"
+        },
+        {
+          "access_key": {
+            "nonce": 129727661000564,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "aa-harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BS5tkyAHU6dyLHVYBGGxCKzqAa5jB1j1xyAMQ1Cwaqny"
+        },
+        {
+          "access_key": {
+            "nonce": 134064941000017,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "a.mitte-orderbook.near"
+              }
+            }
+          },
+          "public_key": "ed25519:D33831vS4WnQb2MiXYhhQMrytwnsqGUaznQBpCyPZ7gU"
+        },
+        {
+          "access_key": {
+            "nonce": 147729332000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "siberia-tap-contract.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:GeSuJzJtoymADHtMcX9Q28MrDpU9uCCFRgXxFN1NXknT"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:22:38Z"
+}

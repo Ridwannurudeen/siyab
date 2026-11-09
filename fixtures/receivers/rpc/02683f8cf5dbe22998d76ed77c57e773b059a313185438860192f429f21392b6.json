@@ -1,0 +1,50 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "delta_hedging_inactive.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "Cd6ULYBe1E1cdjgDw9ocRWCREeXvbVcmmKS8EihH4o5i",
+      "block_height": 223717149,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 189622644000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:2KFbEXPMNpt9ZxjD9uBpDzEc45N4M7Wbmv8p3FnW8LCq"
+        },
+        {
+          "access_key": {
+            "nonce": 134032738000002,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:5hrxEu4YjyK8VLH7C3S3dGsbN6wC1T4ZW9Nm9kCNAPiz"
+        },
+        {
+          "access_key": {
+            "nonce": 134032485000045,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9MQwJJakFRggDu1ZfUc2TznXwo4tJgzXAPDQc6EG2nL5"
+        },
+        {
+          "access_key": {
+            "nonce": 134032493000002,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:ET4UsfsMS92GVZtF1oFZkbA2JWxNLBGXLeHPov3M6p4V"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:32:21Z"
+}

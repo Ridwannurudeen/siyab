@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "kistokyo19690123.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "FQWyssnh1bySXiBvZuhXCt1ZMXGrqCYbch3RV9hnFJUE",
+      "block_height": 223719921,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 220208091000036,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8p597zx9w1dhn9w6iZZ3YgRkRHHsVHuxiLFFB9UqbxVY"
+        },
+        {
+          "access_key": {
+            "nonce": 220208102000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9E78jCdivDyggmAUrgTDeZ8zR2T1pK157pd69E52qLhA"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:58:35Z"
+}

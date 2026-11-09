@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "buybacks.multisignature.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "2219984973414385315576843660139",
+      "block_hash": "7aPtepkzmxPLvHwTemg1r8yL3kp5JX7BViQnSKDxEDu9",
+      "block_height": 223719285,
+      "code_hash": "2v9kZJHN4sogHuKtKHaqYAqQBazkqH2cjY1rrjQYvNQa",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 356468
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:52:37Z"
+}

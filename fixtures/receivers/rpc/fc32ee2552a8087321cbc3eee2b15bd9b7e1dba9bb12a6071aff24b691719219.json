@@ -1,0 +1,55 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "dullnook6662.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "Ao1tv39QZnRZQfVeADJ8hRFrZ5QuWw3bVJ9EJeEb6RBD",
+      "block_height": 223718239,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 217096246000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "pad.onetokenhub.near"
+              }
+            }
+          },
+          "public_key": "ed25519:7MtL1WajjS2ikUUxcThjzQgbVHU341MjvyXikrLMrnFK"
+        },
+        {
+          "access_key": {
+            "nonce": 216826287000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "nearlytrade.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BuhmsDBmJUTcCrcoHaqmZDi5vqA9aWvforKk5De8Ecjk"
+        },
+        {
+          "access_key": {
+            "nonce": 185377526003882,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:FPk8FuNSPteUoQ1RWZ2ncpH4XDnBQv43ycpzAXKG1Zbo"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:42:40Z"
+}

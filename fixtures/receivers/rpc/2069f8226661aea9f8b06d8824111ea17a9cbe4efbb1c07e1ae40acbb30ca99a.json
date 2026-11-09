@@ -1,0 +1,30 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 222506629,
+      "account_id": "w5vgdvsv.sputnik-dao.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "error": {
+      "name": "HANDLER_ERROR",
+      "cause": {
+        "info": {
+          "block_hash": "5pKSTDpQhFUqhjABR2KNJH2S7uRZ5VZb9wS2KvTKM98z",
+          "block_height": 222506629,
+          "requested_account_id": "w5vgdvsv.sputnik-dao.near"
+        },
+        "name": "UNKNOWN_ACCOUNT"
+      },
+      "code": -32000,
+      "message": "Server error",
+      "data": "account w5vgdvsv.sputnik-dao.near does not exist while viewing"
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-09T04:23:39Z"
+}

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "nearaddict.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "EzCoD4jBo2g63ytoJrxTcdgN7B2ivb59uwBXpMEYH7FY",
+      "block_height": 223715143,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 223169994000102,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:CJ52WXAiHXYzpxPdswkyW3vzP5d7FJD67XP3rnKHF33D"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:13:23Z"
+}

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "aungthanooato.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "GgYJT4A5eom1yhH8Uu43emmBjKFoBqjxorrBv2FwWB66",
+      "block_height": 223718071,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 140801773004441,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:CYGv33U3gXqTGvZapDkCzE5cUpDST2H1fazxjRq1YRfQ"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:41:05Z"
+}

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "zcash-relayer.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "BGMZRfrsC98o4jDi35mvFpUx2dRvPZs6fwLhyhWhBZ9D",
+      "block_height": 223719130,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 208899957111931,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:GJ9VWF2i4sjt3xvfwiZ2ytGQBgznFwf2AVjHv36bdgQW"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:51:08Z"
+}

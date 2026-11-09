@@ -1,0 +1,54 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "dex.intear.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "EfRGjqLTAR2LWYxZaqeuJWqqvtW51VES5tNjzvviwbZi",
+      "block_height": 223715012,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 0,
+            "permission": {
+              "GasKeyFunctionCall": {
+                "allowance": null,
+                "balance": "492895247153954600000000",
+                "method_names": [
+                  "oracle_respond",
+                  "remove_oracle_key"
+                ],
+                "num_nonces": 4,
+                "receiver_id": "dex.intear.near"
+              }
+            }
+          },
+          "public_key": "ed25519:7EK1MhudQrXZBZjvnvvcNXiQ2ByYBkXg8rUhbKL69CGo"
+        },
+        {
+          "access_key": {
+            "nonce": 176901119000003,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9P4BVbD2VCYDgVWfGTdQEMRRLQ3F84Ksg7GEnV2kB3b5"
+        },
+        {
+          "access_key": {
+            "nonce": 176901311000079,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9vBRw9qExuMJeeBK16UjerBMzcvwoB8uXbusRzGGvwp8"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:12:08Z"
+}

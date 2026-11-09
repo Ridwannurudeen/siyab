@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "ruytua.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "27KUZ7kceLfsPcziLiHJrUXaBThXYBHa7iUNH8zTV5BF",
+      "block_height": 223717882,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 127115857024841,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:DbAri1LY6aPMBMGw61Qzp5Vn155mTYKrQdVnQo84bHLN"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:39:18Z"
+}

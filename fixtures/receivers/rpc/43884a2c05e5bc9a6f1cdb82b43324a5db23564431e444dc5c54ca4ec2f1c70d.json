@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "987654brush.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "EzSizx5Q1SHAnmhi1GenmPHNGaXPowJHqNwpASHsadMD",
+      "block_height": 223721123,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 219139482000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:paXTJTvTrkT4SuNVt831WZ6wHy8Sn2FzUAAo17S5w72"
+        },
+        {
+          "access_key": {
+            "nonce": 219139470000112,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Da1YUi8AM2hjySq3Zcur3zjdeVUqmBwENFED2dgGRfJQ"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T05:09:53Z"
+}
