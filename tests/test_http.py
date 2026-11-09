@@ -274,12 +274,12 @@ class RateTest(EndpointCase):
         self.now[0] = 15.5
         for _ in range(2):
             self.assertEqual(self.call("POST", "/verdict", b"[]")[0], 400)
-        status, headers, body = self.call("POST", "/verdict", b"[]")
+        status, headers, body = self.call("POST", "/verdict")
         self.assertEqual((status, headers["Retry-After"]), (429, "45"))
         self.assertIn("2 requests a minute", body["error"])
         self.assertEqual(self.call("POST", "/verdict", b"[]", key="key-two")[0], 400)
         self.now[0] = 59.9
-        self.assertEqual(self.call("POST", "/verdict", b"[]")[1]["Retry-After"], "1")
+        self.assertEqual(self.call("POST", "/verdict")[1]["Retry-After"], "1")
         self.now[0] = 60.0
         self.assertEqual(self.call("POST", "/verdict", b"[]")[0], 400)
 
