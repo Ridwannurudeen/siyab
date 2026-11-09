@@ -12,6 +12,50 @@ from tests.test_feed import FakeFetcher, T0, T0_MS, TransfersStub, raw_block, tr
 
 
 class IncrementalTransfersTest(unittest.TestCase):
+    def test_neardata_success_latency_counts_toward_the_minimum_request_interval(self):
+        for latency in (0.3, 0.7):
+            now, starts = [T0], []
+
+            class Timed(FakeFetcher):
+                def get(self, path):
+                    starts.append(now[0])
+                    now[0] += latency
+                    return super().get(path)
+
+            with self.subTest(latency=latency), tempfile.TemporaryDirectory() as tmp, \
+                    mock.patch.dict("os.environ", {}, clear=True), \
+                    mock.patch("intel.feed.rpc.Client", return_value=TransfersStub()):
+                root = Path(tmp)
+                feed.follow(start=1, fetcher=Timed({height: raw_block(height, []) for height in range(1, 4)}, 3).inner,
+                            state_path=root / "state.json", events_dir=root / "events",
+                            event_blocks_dir=root / "event-blocks", max_blocks=3, clock=lambda: now[0],
+                            sleep=lambda seconds: now.__setitem__(0, now[0] + seconds))
+            self.assertEqual(len(starts), 3)
+            for index, started in enumerate(starts):
+                self.assertAlmostEqual(started - T0, index * max(0.4, latency), delta=0.000001)
+
+    def test_an_internal_neardata_retry_keeps_a_safe_interval_after_its_final_response(self):
+        now, starts = [T0], []
+
+        class Timed(FakeFetcher):
+            def get(self, path):
+                starts.append(now[0])
+                now[0] += 0.3
+                return super().get(path)
+
+        def sleep(seconds):
+            now[0] += seconds
+
+        blocks = Timed({1: raw_block(1, []), 2: raw_block(2, [])}, 2, throttled=1)
+        blocks.inner.sleep = sleep
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict("os.environ", {}, clear=True), \
+                mock.patch("intel.feed.rpc.Client", return_value=TransfersStub()):
+            root = Path(tmp)
+            feed.follow(start=1, fetcher=blocks.inner, state_path=root / "state.json", events_dir=root / "events",
+                        event_blocks_dir=root / "event-blocks", max_blocks=2, clock=lambda: now[0], sleep=sleep)
+        self.assertEqual(len(starts), 3)
+        self.assertAlmostEqual(starts[2] - starts[1], 0.7, delta=0.000001)
+
     def test_a_late_429_retries_only_that_subject_while_blocks_continue(self):
         subjects = sorted(feed.Context(labels.load()).deny_receivers)
         now, calls, before_retry = [T0], [], []

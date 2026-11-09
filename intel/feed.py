@@ -21,7 +21,7 @@ stops on SIGINT or after --max-blocks heights, a skipped height included. It has
 and backs off 10 s on a 429 as above. When
 FASTNEAR_API_KEY_FILE names a usable key, its neardata requests (the final block and the blocks)
 carry that key as an Authorization Bearer header, read once at start and kept in memory; without
-one they are keyless, and record mode never sends it. Between one neardata request and the next
+one they are keyless, and record mode never sends it. Between neardata request starts
 it leaves FOLLOW_INTERVAL_KEYED_S (0.1 s, so at most 600 a minute) when keyed and FOLLOW_INTERVAL_S
 (0.4 s, so at most 150 a minute) when keyless, since neardata does not throttle keyed requests from
 the shared host the follower runs on and does throttle keyless ones from it. No reduced block is
@@ -638,10 +638,12 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
         poll_transfers(transfers_client, state, state_path, context, events_dir, clock, pending_transfers, stamp=stamped)
         _request_day(state, clock)
         requests_before = fetcher.requests
+        request_started = clock()
         final_block = fetcher.final_block()
         final_height = final_block["block"]["header"]["height"]
-        state["requests"] += fetcher.requests - requests_before
-        last_request = clock()
+        used = fetcher.requests - requests_before
+        state["requests"] += used
+        last_request = request_started if used == 1 else clock()
         next_height = state["last_height"] + 1 if state["last_height"] is not None else (
             start if start is not None else final_height)
         start = None
@@ -662,14 +664,16 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
                 raw = final_block
             else:
                 requests_before = fetcher.requests
+                request_started = clock()
                 try:
                     raw = fetcher.get(f"/v0/block/{next_height}")
                 except rpc.HttpError as error:
                     if error.status != 404:
                         raise
                     raw = None
-                state["requests"] += fetcher.requests - requests_before
-                last_request = clock()
+                used = fetcher.requests - requests_before
+                state["requests"] += used
+                last_request = request_started if used == 1 else clock()
             if raw is None:
                 if next_height not in state["skipped_heights"]:
                     state["skipped_heights"].append(next_height)
