@@ -486,7 +486,10 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
     assert_eq!(panic_text, "Smart contract panicked: REFUSED:verdict_used");
 
     let mut expired_head_ids = Vec::with_capacity(4);
-    let mut expired_head_expires = vec![empty_memo["expires_ms"].as_u64().unwrap()];
+    let mut expired_head_expires = vec![
+        happy["expires_ms"].as_u64().unwrap(),
+        empty_memo["expires_ms"].as_u64().unwrap(),
+    ];
     for index in 0..4 {
         let mut expired = vector("03-memo-empty-sandbox");
         expired["amount"] = json!("1");
@@ -509,8 +512,15 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         expired_head_ids.push(expired["verdict_id"].as_str().unwrap().to_owned());
         expired_head_expires.push(expired["expires_ms"].as_u64().unwrap());
     }
-    worker.fast_forward(400).await.unwrap();
-    let now_ms = worker.view_block().await.unwrap().timestamp() / 1_000_000;
+    let last_head_expires_ms = *expired_head_expires.iter().max().unwrap();
+    let mut now_ms = worker.view_block().await.unwrap().timestamp() / 1_000_000;
+    for _ in 0..20 {
+        if now_ms >= last_head_expires_ms {
+            break;
+        }
+        worker.fast_forward(400).await.unwrap();
+        now_ms = worker.view_block().await.unwrap().timestamp() / 1_000_000;
+    }
     assert!(expired_head_expires
         .iter()
         .all(|expires_ms| *expires_ms <= now_ms));
