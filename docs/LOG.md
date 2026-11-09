@@ -24,3 +24,4 @@
 8 Nov: added the opt-in keyless live API routes for mainnet verdicts, scans and Intents checks plus read-only testnet reports, with offline stub tests for route shapes and abuse controls.
 8 Nov: Reports 0.1.3 was built reproducibly by two independent clones and the exact artifact passed the post rotation sandbox on checkout commit 94076a8e, including the previous artifact checksum assertion; deployment remains pending.
 8 Nov: NEAR site front page adds committed account label sources, same origin live checks with unavailable states, testnet run log cards, reports, and the top receiver leaderboard's unpublished state; shared dark and light styling reaches every generated page.
+8 Nov: Intear reference mapping now requires passing checks, evidence and a fresh signed verdict; both disclosures state their review and contact status; the claims mirror remains aligned.
