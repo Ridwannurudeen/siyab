@@ -203,7 +203,9 @@ class FullAccessKeyOutflowTest(unittest.TestCase):
             def final_block(self):
                 return raw
 
-        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict("os.environ", {}, clear=True):
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict("os.environ", {}, clear=True), \
+                mock.patch("intel.feed.rpc.Client.post", return_value={"transfers": [], "resume_token": None}), \
+                mock.patch("urllib.request.urlopen", side_effect=AssertionError("the test opened the network")):
             root = Path(tmp)
             state, _ = feed.follow(start=10, fetcher=FetcherStub(), store=labels.load(),
                                    state_path=root / "state.json", events_dir=root / "events",
