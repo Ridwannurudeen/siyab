@@ -156,6 +156,7 @@ class RenderTest(unittest.TestCase):
         entities = [json.loads(line)["id"] for line in (ROOT / "intel" / "entities.jsonl").read_text(
             encoding="utf-8").splitlines()]
         expected = (["index.html", "feed.html", "verify.html", "404.html", "issuers.html"]
+                    + ["top-receivers.html"]
                     + [f"incidents/{i}.html" for i in incidents]
                     + [f"entities/{name}.html" for name, _, _ in render.ENTITY_SETS] + [f"flows/{f}.html" for f in flows]
                     + [f"clusters/{c}.html" for c in clusters]
@@ -236,9 +237,140 @@ class RenderTest(unittest.TestCase):
         self.assertEqual({entry["subject"] for entry in search["accounts"]}, current_subjects)
         entities = [json.loads(line) for line in (ROOT / "intel" / "entities.jsonl").read_text(encoding="utf-8").splitlines()]
         self.assertEqual({entry["id"] for entry in search["entities"]}, {entity["id"] for entity in entities})
-        self.assertIn("search-box", self.pages["index.html"])
+        self.assertIn("account-form", self.pages["index.html"])
         self.assertIn("<script>", self.pages["index.html"])
         self.assertNotIn("<script src", self.pages["index.html"])
+        for entry in search["accounts"]:
+            with self.subTest(subject=entry["subject"]):
+                self.assertTrue(entry["label_sources"])
+                self.assertTrue(all(row["source"] for row in entry["label_sources"]))
+
+    def test_index_has_the_account_search_tools_and_proven_run_logs(self):
+        page = self.pages["index.html"]
+        for text in ("Paste any NEAR account", "Can I pay this?", "Is this account safe to use?",
+                     "Where is this swap really going?", "Proven on testnet", "Not in the label store."):
+            with self.subTest(text=text):
+                self.assertIn(text, page)
+        for path in ("fixtures/runs/live-beat-20261108T111313Z.txt",
+                     "fixtures/runs/kill-switch-drill-2026-11-08.txt",
+                     "fixtures/runs/recorder-rotation-2026-11-08.txt",
+                     "fixtures/runs/registry-readback-20261107.txt"):
+            with self.subTest(path=path):
+                self.assertIn(path, page)
+                self.assertIn(f"{render.GITHUB_REPO}/blob/main/{path}", page)
+        self.assertIn('href="top-receivers.html"', page)
+        self.assertIn("One team moderator today", page)
+
+    def test_generated_index_shows_sources_and_fails_live_checks_closed(self):
+        page = self.pages["index.html"]
+        search = json.loads((self.out / "search.json").read_text(encoding="utf-8"))
+        entry = search["accounts"][0]
+        self.assertTrue(entry["label_sources"])
+        self.assertTrue(entry["label_sources"][0]["source"])
+        self.assertIn("label_sources", page)
+        self.assertIn("source.url.startsWith(\"https://\")", page)
+        self.assertIn("link.href = `/${entry.url}`", page)
+        self.assertIn('const liveUnavailable = "Live checks are not available on this copy"', page)
+        self.assertIn("response.status === 404", page)
+        self.assertIn('!contentType.includes("application/json")', page)
+        self.assertIn("catch (error)", page)
+        self.assertIn('data.outcome', page)
+        self.assertIn('"ALLOW", "ASK", "DENY"', page)
+        self.assertIn('["pass", "signal", "unknown"].includes(check.status.trim().toLowerCase())', page)
+        self.assertIn('data.outcome !== "ALLOW" || data.checks.every(check => check.status.trim().toLowerCase() === "pass")', page)
+
+    def test_allow_ask_requires_a_person_and_uses_neutral_style(self):
+        page = self.pages["index.html"]
+        is_green = page[page.index("const isGreen ="):page.index("const displayOutcome =")]
+        self.assertIn('data.outcome === "ALLOW" && data.action === "sign"', is_green)
+        self.assertIn("data.evidence_hash.trim().length > 0", is_green)
+        self.assertIn("data.freshness !== null", is_green)
+        self.assertIn('data.checks.every(check => check.status.trim().toLowerCase() === "pass")', page)
+        self.assertIn('const displayOutcome = data.outcome === "ALLOW" && !isGreen ? "ASK" : data.outcome;', page)
+        self.assertIn('`verdict ${isGreen ? "allow" : displayOutcome.toLowerCase()}`', page)
+        self.assertIn('if (data.outcome === "ALLOW" && data.action === "ask")', page)
+        self.assertIn("A person must decide before this payment can proceed.", page)
+
+    def test_live_panel_requests_ignore_stale_responses(self):
+        page = self.pages["index.html"]
+        self.assertIn("const requestTokens = new WeakMap();", page)
+        self.assertIn("const beginRequest = panel => {", page)
+        self.assertIn("const isCurrentRequest = (panel, token) => requestTokens.get(panel) === token;", page)
+        self.assertIn("if (!isCurrentRequest(panel, token)) return null;", page)
+        self.assertIn("readJson(verdictUrl, verdictPanel, verdictToken)", page)
+        self.assertIn("readJson(`/live/scan/${encodeURIComponent(subject)}`, scanPanel, scanToken)", page)
+        self.assertIn("if (verdict && isCurrentRequest(verdictPanel, verdictToken))", page)
+        self.assertIn("if (scan && isCurrentRequest(scanPanel, scanToken))", page)
+        self.assertIn("readJson(route(values), panel, requestToken)", page)
+        self.assertIn("readJson(`/live/scan/${encodeURIComponent(subject)}`, panel, requestToken)", page)
+        self.assertIn('readJson("/live/reports/recent", recentPanel, recentToken)', page)
+        self.assertIn("readJson(`/live/reports?${new URLSearchParams({subject})}`, panel, requestToken)", page)
+
+    def test_rendered_text_and_fill_pairs_meet_contrast_in_both_themes(self):
+        stylesheet = (self.out / "style.css").read_text(encoding="utf-8")
+        self.assertIn("a:hover{color:rgb(var(--accent))}", stylesheet)
+        self.assertIn(".lookup-card button:hover,.primary:hover{color:white}", stylesheet)
+        self.assertNotRegex(stylesheet, r"(?<!border-)color:rgb\(var\(--accent-fill\)\)")
+        theme_blocks = (
+            ("dark", re.search(r":root\{(.*?)\}", stylesheet, re.DOTALL).group(1)),
+            ("light", re.search(r':root\[data-theme="light"\]\{(.*?)\}', stylesheet, re.DOTALL).group(1)),
+        )
+        text_surfaces = {
+            "--ink": ("--ground", "--panel", "--ground-alt"),
+            "--secondary": ("--ground", "--panel", "--ground-alt"),
+            "--accent": ("--ground", "--panel"),
+            "--allow-text": ("--ground", "--panel"),
+            "--unknown": ("--ground", "--panel"),
+            "--block-text": ("--ground", "--panel"),
+        }
+
+        def luminance(rgb):
+            channels = []
+            for channel in rgb:
+                value = channel / 255
+                channels.append(value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4)
+            return sum(weight * channel for weight, channel in zip((0.2126, 0.7152, 0.0722), channels))
+
+        def contrast(foreground, background):
+            high, low = sorted((luminance(foreground), luminance(background)), reverse=True)
+            return (high + 0.05) / (low + 0.05)
+
+        for theme, block in theme_blocks:
+            colors = {name: tuple(map(int, value.split()))
+                      for name, value in re.findall(r"(--[\w-]+):(\d+ \d+ \d+)", block)}
+            for foreground, surfaces in text_surfaces.items():
+                for surface in surfaces:
+                    with self.subTest(theme=theme, foreground=foreground, surface=surface):
+                        self.assertGreaterEqual(contrast(colors[foreground], colors[surface]), 4.5)
+            with self.subTest(theme=theme, foreground="white", surface="--accent-fill"):
+                self.assertGreaterEqual(contrast((255, 255, 255), colors["--accent-fill"]), 4.5)
+
+    def test_index_has_no_unexpected_host_or_remote_script_or_font(self):
+        page = self.pages["index.html"]
+        stylesheet = (self.out / "style.css").read_text(encoding="utf-8")
+        urls = [link for link in LINK.findall(page) if link.startswith(("http://", "https://"))]
+        self.assertTrue(urls)
+        self.assertTrue(all(url.startswith(f"{render.GITHUB_REPO}/blob/main/") for url in urls))
+        self.assertNotRegex(page, r"<script[^>]+src=")
+        self.assertNotRegex(page, r"<link[^>]+(?:Geist|Plex|fonts\.googleapis)")
+        self.assertNotIn("@import", stylesheet)
+        self.assertNotRegex(stylesheet, r"url\(\s*['\"]?https?://")
+        self.assertIn("--ground:11 11 10", stylesheet)
+        self.assertIn('id="theme-toggle"', page)
+
+    def test_top_receivers_page_has_an_honest_empty_state_and_renders_judgements(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            judgement_dir = Path(tmp) / "judgements"
+            empty = render.top_receivers_page(judgement_dir, Path(tmp) / "ranking.json")
+            self.assertIn("Scan in progress, not yet published.", empty)
+            judgement_dir.mkdir()
+            (judgement_dir / "receiver.near.json").write_text(json.dumps({
+                "subject": "receiver.near", "verdict": "DENY", "reasons": ["A cited reason."],
+            }), encoding="utf-8")
+            populated = render.top_receivers_page(judgement_dir, Path(tmp) / "ranking.json")
+        self.assertIn("receiver.near", populated)
+        self.assertIn("DENY", populated)
+        self.assertIn("A cited reason.", populated)
 
     def test_every_search_link_is_a_page_inside_the_site(self):
         search = json.loads((self.out / "search.json").read_text(encoding="utf-8"))
@@ -283,6 +415,9 @@ class RenderTest(unittest.TestCase):
         for name, page in self.pages.items():
             with self.subTest(page=name):
                 text = own_text(page)
+                if name == "index.html":
+                    text = text.replace(render.HEADLINE, "")
+                    text = text.replace("Is this account safe to use?", "")
                 self.assertIsNone(forbidden(text), forbidden(text))
                 self.assertIsNone(BARRED.search(text), BARRED.search(text))
                 self.assertIsNone(DASHES.search(page))
@@ -419,10 +554,9 @@ class RenderTest(unittest.TestCase):
         self.assertNotIn("torn", page)
         self.assertNotIn("No signal fired", page)
 
-    def test_the_index_headline_is_the_readme_headline(self):
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertEqual(readme.splitlines()[0], f"# {render.HEADLINE}.")
-        self.assertIn(f"<h1>{html.escape(render.HEADLINE)}</h1>", self.pages["index.html"])
+    def test_the_index_headline_is_the_requested_account_sentence(self):
+        self.assertIn(f'<h1 id="page-title">{html.escape(render.HEADLINE)}</h1>', self.pages["index.html"])
+        self.assertIn("checks whether an account is safe to pay", self.pages["index.html"])
 
     def test_the_verify_page_inputs_carry_placeholders_from_committed_records(self):
         record = json.loads((ROOT / "fixtures" / "registry" / "testnet-latest-kestrelridge-shop.json")
