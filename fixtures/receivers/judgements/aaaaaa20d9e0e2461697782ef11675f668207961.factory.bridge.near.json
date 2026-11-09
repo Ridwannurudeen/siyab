@@ -83,21 +83,21 @@
     {
       "id": "account_age",
       "status": "pass",
-      "detail": "no archival age (view_access_key_list could not run: no recorded response for the request); created 731 d ago",
+      "detail": "oldest access key nonce 149367527908984 from free.rpc.fastnear.com: existed by block 149367528 (2025-06-02T10:38:14Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "657c4845e82b92107209708622a1f8de3ae1afa87514183caf3d66e640a5422e",
-        "fetched_at": "2026-10-29T14:38:15Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "66fe533bffa1cbd2fe2edbf059e208a764b948ec7366cd0f5698f7b15436cfca",
+        "fetched_at": "2026-11-09T04:09:47Z"
       }
     },
     {
       "id": "dust_funded",
       "status": "pass",
-      "detail": "created by a 0.1 NEAR deposit",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "253ecd7d0118aef78635f2faab299e229d4693cb490f11a31dec79a351e4f32d",
-        "fetched_at": "2026-10-29T14:38:25Z"
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
       }
     },
     {
