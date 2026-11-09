@@ -1,0 +1,12 @@
+Two independent clean Linux clones of source commit 57860c96f071fac0f7bb99f242fcae7e6c4430d2 built Gate 0.2.2 with cargo near build reproducible-wasm on 9 Nov 2026. CARGO_TARGET_DIR was unset for both builds. Both commands exited 0, and cmp of the two resulting wasm files exited 0 before the candidate was copied to res/gate.wasm. The full checksum is in res/gate.wasm.sha256; long hex values below are shortened to eight characters at each end.
+
+clone 1: source 57860c96f071fac0f7bb99f242fcae7e6c4430d2
+clone 1: sha256 3ef57087...622f0b76
+clone 1: 264604 bytes
+clone 2: source 57860c96f071fac0f7bb99f242fcae7e6c4430d2
+clone 2: sha256 3ef57087...622f0b76
+clone 2: 264604 bytes
+byte identical: yes
+code_hash: 5EmM2UQRYcvaNvJX6jfcgtNS7Mm8ZPjZhwK1J8bMXrcu
+
+The separate cargo near build output is in reproducible-gate-0.2.2-20261109-clone1.txt and reproducible-gate-0.2.2-20261109-clone2.txt. Local paths and long hex values are sanitized as those files state. The candidate artifact is built, not deployed; the deployed 0.2.1 artifact is preserved in res/previous/gate.wasm.

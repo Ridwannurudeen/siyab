@@ -6,7 +6,7 @@ Every script this runbook uses calls `require_testnet` and so refuses any networ
 
 ## Current implementation state
 
-The verdict service reads `subject_summary` and applies `intel/reports.py` when `REPORTS_ACCOUNT_ID` is set (`gate/rules.py`, `docs/LADDER.md`). Reports source is 0.1.3, and testnet runs deployed Reports version `0.1.3` (`contracts/reports/Cargo.toml:3`, `res/BUILD-reports.md:7`, `fixtures/runs/reports-013-deploy-20261109.txt`). The 9 Nov threshold demo shows the owner's vote leaving report 1 pending, mod2's second vote accepting it, and mod3 resolving the dispute; the final summary is all zeros and `totals` is 2 reports and 2 disputes (`fixtures/runs/reports-threshold-demo-20261109.txt`). Current Gate source is 0.2.1 and testnet runs Gate 0.2.1 (`res/BUILD-gate.md`). Gate and Reports have sandbox round-trip tests and previous artifacts; the Registry has no previous artifact (`docs/UPGRADES.md:16`).
+The verdict service reads `subject_summary` and applies `intel/reports.py` when `REPORTS_ACCOUNT_ID` is set (`gate/rules.py`, `docs/LADDER.md`). Reports source is 0.1.3, and testnet runs deployed Reports version `0.1.3` (`contracts/reports/Cargo.toml:3`, `res/BUILD-reports.md:7`, `fixtures/runs/reports-013-deploy-20261109.txt`). The 9 Nov threshold demo shows the owner's vote leaving report 1 pending, mod2's second vote accepting it, and mod3 resolving the dispute; the final summary is all zeros and `totals` is 2 reports and 2 disputes (`fixtures/runs/reports-threshold-demo-20261109.txt`). Current Gate source is 0.2.2, built but not deployed, and testnet runs Gate 0.2.1 (`res/BUILD-gate.md`). Gate and Reports have sandbox round-trip tests and previous artifacts; the Registry has no previous artifact (`docs/UPGRADES.md:16`).
 
 The read backs below use the near-cli-rs view form `near contract call-function as-read-only <account> <method> json-args '<json>' network-config testnet now` (the form `scripts/lib.sh:189` uses), written here as "view `<method>`". Every transaction below goes through `call_transaction` (`scripts/lib.sh:252-255`) and ends with the summary block (`scripts/lib.sh:154-173`), which prints the account summary with its `code_hash` and the shortened transaction hashes.
 
@@ -38,7 +38,7 @@ Undo: an init cannot be undone. A wrong value the owner can set is corrected wit
 
 ## Redeploy, layout preserving
 
-When: new code whose root struct and every stored type are unchanged, so the existing state reads back under the new code. On 2 Nov this ran for the Gate and the registry with the reproducible wasm then in `res/` (for the Gate now `res/previous/gate.wasm`, source commit `eb54c8e`; `docs/TESTNET.md:21`). A change to the stored layout is a migration, below; never run it through this procedure. `docs/UPGRADES.md` records the sandbox round trip required by rule 2, now completed for Gate and Reports (`fixtures/runs/cargo-gate-0.2.1-sandbox-20261107.txt`, `fixtures/runs/cargo-reports-0.1.1-20261107.txt`).
+When: new code whose root struct and every stored type are unchanged, so the existing state reads back under the new code. On 2 Nov this ran for the Gate and the registry with the reproducible wasm then in `res/` (the historical Gate 0.1.0 source is `eb54c8e`; `docs/TESTNET.md:21`). A change to the stored layout is a migration, below; never run it through this procedure. `docs/UPGRADES.md` records the sandbox round trip required by rule 2, now completed for Gate and Reports (`fixtures/runs/cargo-gate-0.2.1-sandbox-20261107.txt`, `fixtures/runs/cargo-reports-0.1.1-20261107.txt`).
 
 Command and dry run (`<contract>` is `gate`, `registry` or `reports`, `scripts/redeploy.sh:28-33`; `<version>` is the crate's new `version` and `<code_hash>` the base58 value `python -m gate codehash <wasm>` prints and `res/BUILD-<crate>.md` records):
 
@@ -74,7 +74,7 @@ When: a layout preserving redeploy went wrong and the previous code must run aga
 
 Command: the redeploy procedure above, with `res/previous/<crate>.wasm` as `<wasm>` and the previous version and code hash as `EXPECT_VERSION` and `EXPECT_CODE_HASH` (`docs/UPGRADES.md:62-65`), and the same read backs: the state reads back unchanged.
 
-Gate and Reports have previous artifacts in `res/previous/` and sandbox round-trip tests (`docs/UPGRADES.md:16`). Reports 0.1.2 is the previous artifact and rollback target; testnet now runs Reports 0.1.3 (`res/BUILD-reports.md:7`, `fixtures/runs/reports-013-deploy-20261109.txt`). Gate source and testnet are 0.2.1 (`res/BUILD-gate.md:7`). The Registry has no previous artifact, so no Registry rollback is available (`res/BUILD-registry.md`, `docs/UPGRADES.md:16`).
+Gate and Reports have previous artifacts in `res/previous/` and sandbox round-trip tests (`docs/UPGRADES.md:16`). Reports 0.1.2 is the previous artifact and rollback target; testnet now runs Reports 0.1.3 (`res/BUILD-reports.md:7`, `fixtures/runs/reports-013-deploy-20261109.txt`). Gate source is 0.2.2, built but not deployed; testnet runs Gate 0.2.1, whose artifact is preserved in `res/previous/gate.wasm` as rollback for 0.2.2 (`res/BUILD-gate.md:5-7`). The Registry has no previous artifact, so no Registry rollback is available (`res/BUILD-registry.md`, `docs/UPGRADES.md:16`).
 
 ## Rotate the verifier
 
