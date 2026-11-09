@@ -92,16 +92,20 @@ only as the Authorization Bearer header of clients that write no fixture; withou
 it still polls keylessly. Each poll asks POST
 https://transfers.main.fastnear.com/v0/transfers for each subject, FOLLOW_INTERVAL_S apart
 (direction sender, min_usd_amount 1000, ignore_system true, limit 100, from_timestamp_ms the last
-complete poll's start, to_timestamp_ms this poll's start, which the API treats as exclusive, so no
+complete window's end, to_timestamp_ms frozen at this window's start, which the API treats as exclusive, so no
 row is in two windows), following resume_token up to MAX_TRANSFER_PAGES (20) pages. The API gives
 an outbound row a negative usd_amount, so a row becomes an event when the magnitude of its
 usd_amount is at least LARGE_TRANSFER_USD (1000), whatever the server filter did, and the event
 holds that magnitude with direction "outbound". A row the poll cannot read is counted in
 skipped_rows and never fails the poll; only a response without a transfers list does. Events are
-written and the window moves on only when every request of the poll succeeded. A 429 moves the
-next poll to Retry-After seconds later, at most POLL_S (TRANSFER_BACKOFF_S, 60 s, when the header
-is absent or not a number of seconds), and keeps the window; any other HTTP, transport or parse
-error is recorded in last_large_transfer_error and the window is asked again at the next poll.
+written and the window moves on only when every subject's bounded poll succeeded. Each loop
+invocation makes at most one eligible Transfers request, with a local 0.4 s minimum interval;
+it never sleeps through a batch or a Transfers cooldown. Subject, page, resume token and rows stay
+in memory until completion. A 429 defers the same page until Retry-After (uncapped seconds or an
+HTTP date; TRANSFER_BACKOFF_S, 60 s, when absent or invalid). Other HTTP, transport or parse errors
+retry that page after POLL_S. The block walk continues between requests. A restart discards pending
+rows and restarts from the persisted last completed window's end, or the persisted initial anchor.
+last_large_transfer_completed_ms records actual completion; the initial anchor is not a completion.
 Neither stops the block walk. HTTP 401, 402 and 403 temporarily mark the signal unavailable until
 a complete poll succeeds. feed-stats and the feed page retain the last failed poll as history.
 """
@@ -114,6 +118,7 @@ import os
 import time
 from datetime import UTC, datetime
 from decimal import Decimal
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 
 from gate import evidence, rpc, rules, wasm
@@ -448,60 +453,89 @@ class Fetcher:
         return self.final_block()["block"]["header"]["height"]
 
 
-def poll_transfers(client, state, state_path, context, events_dir, clock, sleep, stamp=False):
-    """The large transfer poll when it is due: every subject's rows of the window since the last
-    complete poll, asked FOLLOW_INTERVAL_S apart and written as events only when every request
-    succeeded; with stamp, given once the run has stamped updated_at itself (walked a height or waited
-    at the final height), its state write stamps updated_at too."""
+def _request_day(state, clock):
+    day = datetime.fromtimestamp(clock(), UTC).strftime("%Y-%m-%d")
+    if state.get("request_day") != day:
+        state["request_day"], state["requests"], state["transfer_requests"] = day, 0, 0
+
+
+def poll_transfers(client, state, state_path, context, events_dir, clock, pending, stamp=False):
+    """Make at most one eligible request; pending rows and pagination live only in this run's memory.
+    Publish and advance the frozen window only after every subject succeeds."""
     now_ms = int(clock() * 1000)
     if now_ms < state.get("large_transfer_next_poll_ms", now_ms):
         return
-    from_ms = state.setdefault("last_large_transfer_poll_ms", now_ms - POLL_S * 1000)
-    rows, caps, skipped, last_request = [], [], 0, None
+    if not pending:
+        if "last_large_transfer_poll_ms" not in state:
+            state["last_large_transfer_poll_ms"] = now_ms - POLL_S * 1000
+            _write_json(Path(state_path), state, indent=2)
+        pending.update(from_ms=state["last_large_transfer_poll_ms"],
+                       to_ms=now_ms, subjects=sorted(context.deny_receivers), index=0, page=0,
+                       resume_token=None, rows=[], caps=[], skipped=0)
     try:
-        for subject in sorted(context.deny_receivers):
-            body = {"account_id": subject, "direction": "sender", "from_timestamp_ms": from_ms,
-                    "to_timestamp_ms": now_ms, "min_usd_amount": LARGE_TRANSFER_USD, "ignore_system": True,
+        if pending["index"] < len(pending["subjects"]):
+            subject = pending["subjects"][pending["index"]]
+            body = {"account_id": subject, "direction": "sender", "from_timestamp_ms": pending["from_ms"],
+                    "to_timestamp_ms": pending["to_ms"], "min_usd_amount": LARGE_TRANSFER_USD, "ignore_system": True,
                     "limit": 100}
-            for _ in range(MAX_TRANSFER_PAGES):
-                if last_request is not None:
-                    sleep(max(0, FOLLOW_INTERVAL_S - (clock() - last_request)))
-                state["transfer_requests"] += 1
-                response = client.post("/v0/transfers", body)
-                last_request = clock()
-                if not isinstance(response, dict) or not isinstance(response.get("transfers"), list):
-                    raise rpc.MalformedResponse("the transfers response has no transfers list")
-                for transfer in response["transfers"]:
-                    if not (isinstance(transfer, dict)
-                            and all(isinstance(transfer.get(name), str)
-                                    for name in ("other_account_id", "asset_id", "transaction_id", "receipt_id"))
-                            and str(transfer.get("block_height")).isdecimal()
-                            and str(transfer.get("block_timestamp")).isdecimal()
-                            and isinstance(transfer.get("usd_amount"), (int, float))):
-                        skipped += 1
-                    elif abs(transfer["usd_amount"]) >= LARGE_TRANSFER_USD:
-                        rows.append((subject, transfer, dict(client.last_source)))
-                if not response.get("resume_token"):
-                    break
-                body = {**body, "resume_token": response["resume_token"]}
+            if pending["resume_token"] is not None:
+                body["resume_token"] = pending["resume_token"]
+            _request_day(state, clock)
+            state["transfer_requests"] += 1
+            response = client.post("/v0/transfers", body)
+            if not isinstance(response, dict) or not isinstance(response.get("transfers"), list):
+                raise rpc.MalformedResponse("the transfers response has no transfers list")
+            for transfer in response["transfers"]:
+                if not (isinstance(transfer, dict)
+                        and all(isinstance(transfer.get(name), str)
+                                for name in ("other_account_id", "asset_id", "transaction_id", "receipt_id"))
+                        and str(transfer.get("block_height")).isdecimal()
+                        and str(transfer.get("block_timestamp")).isdecimal()
+                        and isinstance(transfer.get("usd_amount"), (int, float))):
+                    pending["skipped"] += 1
+                elif abs(transfer["usd_amount"]) >= LARGE_TRANSFER_USD:
+                    pending["rows"].append((subject, transfer, dict(client.last_source)))
+            pending["page"] += 1
+            token = response.get("resume_token")
+            if token and pending["page"] < MAX_TRANSFER_PAGES:
+                pending["resume_token"] = token
             else:
-                caps.append({"subject": subject, "from_timestamp_ms": from_ms, "to_timestamp_ms": now_ms})
+                if token:
+                    pending["caps"].append({"subject": subject, "from_timestamp_ms": pending["from_ms"],
+                                            "to_timestamp_ms": pending["to_ms"]})
+                pending["index"] += 1
+                pending["page"], pending["resume_token"] = 0, None
     except (rpc.HttpError, rpc.TransportError, OSError, ValueError) as error:
         status = error.status if isinstance(error, rpc.HttpError) else None
         state["last_large_transfer_error"] = {"at": datetime.fromtimestamp(now_ms / 1000, UTC).strftime(_TIME),
                                               "status": status, "error": type(error).__name__}
         if status in (401, 402, 403):
             state.setdefault("disabled_signals", {})[SIGNALS[3]] = f"Transfers API returned HTTP {status}; retry pending"
-        wait_s = POLL_S
+        retry_now_ms = int(clock() * 1000)
+        wait_ms = POLL_S * 1000
         if status == 429:
             retry_after = (error.retry_after or "").strip()
-            wait_s = min(int(retry_after), POLL_S) if retry_after.isdecimal() else TRANSFER_BACKOFF_S
-        state["large_transfer_next_poll_ms"] = now_ms + wait_s * 1000
+            wait_ms = TRANSFER_BACKOFF_S * 1000
+            if retry_after.isdecimal():
+                wait_ms = int(retry_after) * 1000
+            elif retry_after:
+                try:
+                    deadline = parsedate_to_datetime(retry_after)
+                    wait_ms = max(0, int(deadline.replace(tzinfo=deadline.tzinfo or UTC).timestamp() * 1000) - retry_now_ms)
+                except (ValueError, TypeError, OverflowError):
+                    wait_ms = TRANSFER_BACKOFF_S * 1000
+        state["large_transfer_next_poll_ms"] = retry_now_ms + max(int(FOLLOW_INTERVAL_S * 1000), wait_ms)
         if stamp:
             _stamp(state, clock)
         _write_json(Path(state_path), state, indent=2)
         return
-    for subject, transfer, source in rows:
+    if pending["index"] < len(pending["subjects"]):
+        state["large_transfer_next_poll_ms"] = int(clock() * 1000) + int(FOLLOW_INTERVAL_S * 1000)
+        if stamp:
+            _stamp(state, clock)
+        _write_json(Path(state_path), state, indent=2)
+        return
+    for subject, transfer, source in pending["rows"]:
         height, usd_amount = int(transfer["block_height"]), abs(transfer["usd_amount"])
         event = {"version": "1", "kind": "feed_event", "signal": SIGNALS[3], "subject": subject,
                  "detail": f"FastNEAR reported a transfer of {usd_amount} USD from {subject} to "
@@ -518,11 +552,14 @@ def poll_transfers(client, state, state_path, context, events_dir, clock, sleep,
                              event["observed"]["timestamp_ms"])
         alerts.send(alert, alerts.configured_sinks())
         state["events"][SIGNALS[3]] += 1
-    if caps:
-        state.setdefault("large_transfer_page_caps", []).extend(caps)
-    state["skipped_rows"] = state.get("skipped_rows", 0) + skipped
-    state["last_large_transfer_poll_ms"] = now_ms
-    state["large_transfer_next_poll_ms"] = now_ms + POLL_S * 1000
+    if pending["caps"]:
+        state.setdefault("large_transfer_page_caps", []).extend(pending["caps"])
+    state["skipped_rows"] = state.get("skipped_rows", 0) + pending["skipped"]
+    state["last_large_transfer_poll_ms"] = pending["to_ms"]
+    state["last_large_transfer_completed_ms"] = int(clock() * 1000)
+    state["large_transfer_next_poll_ms"] = max(pending["to_ms"] + POLL_S * 1000,
+                                              int(clock() * 1000) + int(FOLLOW_INTERVAL_S * 1000))
+    pending.clear()
     state.setdefault("disabled_signals", {}).pop(SIGNALS[3], None)
     if stamp:
         _stamp(state, clock)
@@ -591,16 +628,15 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
     context = Context(store or labels.load())
     state.setdefault("disabled_signals", {})
     transfers_client = rpc.Client(TRANSFERS_URL, "off", kind="http", headers=headers)
+    pending_transfers = {}
     walked = 0
     last_request = None
     stamped = False
     while not stopped() and (max_blocks is None or walked < max_blocks):
         if last_request is not None:
             sleep(max(0, interval_s - (clock() - last_request)))
-        request_day = datetime.fromtimestamp(clock(), UTC).strftime("%Y-%m-%d")
-        if state["request_day"] != request_day:
-            state["request_day"], state["requests"], state["transfer_requests"] = request_day, 0, 0
-        poll_transfers(transfers_client, state, state_path, context, events_dir, clock, sleep, stamp=stamped)
+        poll_transfers(transfers_client, state, state_path, context, events_dir, clock, pending_transfers, stamp=stamped)
+        _request_day(state, clock)
         requests_before = fetcher.requests
         final_block = fetcher.final_block()
         final_height = final_block["block"]["header"]["height"]
@@ -620,10 +656,8 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
         while next_height <= final_height and not stopped() and (max_blocks is None or walked < max_blocks):
             if last_request is not None and next_height < final_height:
                 sleep(max(0, interval_s - (clock() - last_request)))
-            request_day = datetime.fromtimestamp(clock(), UTC).strftime("%Y-%m-%d")
-            if state["request_day"] != request_day:
-                state["request_day"], state["requests"], state["transfer_requests"] = request_day, 0, 0
-            poll_transfers(transfers_client, state, state_path, context, events_dir, clock, sleep, stamp=stamped)
+            poll_transfers(transfers_client, state, state_path, context, events_dir, clock, pending_transfers, stamp=stamped)
+            _request_day(state, clock)
             if next_height == final_height:
                 raw = final_block
             else:
