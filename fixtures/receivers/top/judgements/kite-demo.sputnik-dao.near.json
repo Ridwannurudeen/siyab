@@ -1,0 +1,103 @@
+{
+  "subject": "kite-demo.sputnik-dao.near",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "kite-demo.sputnik-dao.near",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "UNKNOWN",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "pass",
+      "detail": "kite-demo.sputnik-dao.near exists",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "dfdb3391f653c7b7f8f8f1f388ad0acbebf3e90e6d39331f34c51f922b5e0eaf",
+        "fetched_at": "2026-11-09T04:16:07Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "pass",
+      "detail": "no denylist or incident label on kite-demo.sputnik-dao.near",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "issuer_blacklist",
+      "status": "pass",
+      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "400177bcacb34a2e39e26a0acb995beb60eeaf13d55d7500ff936fa168d103a1",
+        "fetched_at": "2026-11-09T04:16:08Z"
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "unknown",
+      "detail": "no archival age (kite-demo.sputnik-dao.near has no access key; kite-demo.sputnik-dao.near did not exist at block 222505835 (2026-11-01T02:18:39Z) from archival-rpc.mainnet.fastnear.com, so it was created after that block, which is at least 7 d old; whether it is younger than 7 days is not known); could not read the account keys: no recorded response for the request",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "c285bac80a288e215900889c9f0a91bdef56e7868316e9ec910ab5e46850f694",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "unknown",
+      "detail": "the creation transaction is not known",
+      "source": {
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "pass",
+      "detail": "no contract code",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "dfdb3391f653c7b7f8f8f1f388ad0acbebf3e90e6d39331f34c51f922b5e0eaf",
+        "fetched_at": "2026-11-09T04:16:07Z"
+      }
+    }
+  ],
+  "reasons": [
+    "account_age could not run: no archival age (kite-demo.sputnik-dao.near has no access key; kite-demo.sputnik-dao.near did not exist at block 222505835 (2026-11-01T02:18:39Z) from archival-rpc.mainnet.fastnear.com, so it was created after that block, which is at least 7 d old; whether it is younger than 7 days is not known); could not read the account keys: no recorded response for the request.",
+    "dust_funded could not run: the creation transaction is not known."
+  ],
+  "labels": [],
+  "observed": {
+    "block_height": 223715435,
+    "timestamp_ms": 1794197345742
+  }
+}

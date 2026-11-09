@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "investcoin.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "58589764445269441905635",
+      "block_hash": "9pjeRxfssogAkcZjwrVAfz8K7kZzJPF89Uj4VQVCgTNV",
+      "block_height": 223717710,
+      "code_hash": "E8jZ1giWcVrps8PcV75ATauu6gFRkcwjNtKp7NKmipZG",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 924
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:37:40Z"
+}

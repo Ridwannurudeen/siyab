@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "blackhole.nuvelor.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "Df8P4J9zs8c2AuarLaAaJMm6wpCL5EU7hwJgvdhMyfg2",
+      "block_height": 223715073,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 208810156000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6PS55QTBZKmCnsxuhprVpPDaD8TLJpjpQC3JLDP4scJ9"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:12:43Z"
+}

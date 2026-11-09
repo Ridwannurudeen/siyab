@@ -1,0 +1,102 @@
+{
+  "subject": "staking.publicailab.near",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "staking.publicailab.near",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "UNKNOWN",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "pass",
+      "detail": "staking.publicailab.near exists",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "1a93cb0d0803d90b36dfc87d8e6e0862c774a81aed4a5e4f93d90be600fc816a",
+        "fetched_at": "2026-11-09T04:48:59Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "pass",
+      "detail": "no denylist or incident label on staking.publicailab.near",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "issuer_blacklist",
+      "status": "unknown",
+      "detail": "could not read get_blacklist_status on usdt.tether-token.near: no recorded response for the request; could not read is_blocklisted on 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1: no recorded response for the request",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "e9d5f2d7b5ca938fa7e52cf116ff205b3b537d41956112133c65702b99f35850",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "pass",
+      "detail": "oldest access key nonce 159565260000006 from free.rpc.fastnear.com: existed by block 159565261 (2025-08-14T08:14:06Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
+      "source": {
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "f677d1067f751a09b60c4f878855b01036e14b21d61d35eccc5be64b2689224d",
+        "fetched_at": "2026-11-09T04:49:02Z"
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "pass",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
+      "source": {
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "pass",
+      "detail": "contract code with contract_source_metadata",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "f27c30ddfb3ccdc509950b1705cfbdf8f25da625a522464d010e68768ffdc778",
+        "fetched_at": "2026-11-09T04:49:03Z"
+      }
+    }
+  ],
+  "reasons": [
+    "issuer_blacklist could not run: could not read get_blacklist_status on usdt.tether-token.near: no recorded response for the request; could not read is_blocklisted on 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1: no recorded response for the request."
+  ],
+  "labels": [],
+  "observed": {
+    "block_height": 223718899,
+    "timestamp_ms": 1794197345742
+  }
+}

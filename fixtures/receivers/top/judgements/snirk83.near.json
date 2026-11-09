@@ -1,0 +1,102 @@
+{
+  "subject": "snirk83.near",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "snirk83.near",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "UNKNOWN",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "pass",
+      "detail": "snirk83.near exists",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "9dca37b6c821b79143503272d02f5d6250270b2a9d9191f9737a00bab2580c3a",
+        "fetched_at": "2026-11-09T04:16:45Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "pass",
+      "detail": "no denylist or incident label on snirk83.near",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "issuer_blacklist",
+      "status": "pass",
+      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "e7f72e0aaccc1052b902c88486bb423b56b1dc40f5ad6fc2683792a6773e6f8e",
+        "fetched_at": "2026-11-09T04:16:46Z"
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "pass",
+      "detail": "oldest access key nonce 128739257000401 from free.rpc.fastnear.com: existed by block 128739258 (2024-09-23T19:11:04Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
+      "source": {
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "9943f7a9e9d4a5666602089f6880b44983a074be0f359f40b9deb4b338030669",
+        "fetched_at": "2026-11-09T04:16:48Z"
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "pass",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
+      "source": {
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "unknown",
+      "detail": "could not read contract_source_metadata: RPC error wasm execution failed with error: CompilationError(PrepareError(Deserialization))",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "106398939df14717d014530c7a6192a7b37459d16965ddc9de61ec9eedb83603",
+        "fetched_at": "2026-11-09T04:16:49Z"
+      }
+    }
+  ],
+  "reasons": [
+    "code_without_metadata could not run: could not read contract_source_metadata: RPC error wasm execution failed with error: CompilationError(PrepareError(Deserialization))."
+  ],
+  "labels": [],
+  "observed": {
+    "block_height": 223715504,
+    "timestamp_ms": 1794197345742
+  }
+}

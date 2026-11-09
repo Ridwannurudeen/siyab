@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "elvirad.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "WohKV4fPHT82gdcZv1CMf73ZqZpE3FWb1D5iKuckPs8",
+      "block_height": 223717636,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 223478654000004,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:7zb746xAsju5U7Jgj36ESmvKgHgDY22qDGk4DSooUTd8"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:36:57Z"
+}

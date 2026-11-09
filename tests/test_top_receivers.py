@@ -1,6 +1,9 @@
 import json
+import os
+import ssl
 import tempfile
 import unittest
+import urllib.error
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest import mock
@@ -199,6 +202,62 @@ class ScanTest(unittest.TestCase):
             self.assertNotIn("shards", batch["heights"][0])
 
 
+class ThrottledBlockClient:
+    def __init__(self, throttled_path=None, retry_count=0):
+        self.throttled_path = throttled_path
+        self.retry_count = retry_count
+        self.calls = {}
+
+    def get(self, path):
+        self.calls[path] = self.calls.get(path, 0) + 1
+        if path == self.throttled_path and self.calls[path] <= self.retry_count:
+            raise rpc.HttpError(429, path)
+        height = int(path.rsplit("/", 1)[1])
+        return synthetic_block(height, height)
+
+
+class Scan429Test(unittest.TestCase):
+    max_429_answers = top_receivers.MAX_CONSECUTIVE_429S
+
+    def run_scan(self, directory, client):
+        with mock.patch.object(top_receivers, "BATCH_SIZE", 2), \
+                mock.patch.dict(os.environ, {}, clear=True), \
+                mock.patch("intel.feed.rpc.Client", return_value=client), \
+                mock.patch.object(top_receivers.feed, "BACKOFF_S", 0):
+            return top_receivers.scan_window(1, 4, True, directory, sleep=lambda _: None, clock=lambda: 0)
+
+    def run_from_checkpoint(self, directory, client):
+        with mock.patch.object(top_receivers, "BATCH_SIZE", 2):
+            checkpoint = top_receivers._new_checkpoint(1, 1, 4, 0, 4, 0, None)
+            top_receivers.feed._write_json(directory / "checkpoint.json", checkpoint, indent=2)
+        return self.run_scan(directory, client)
+
+    def test_too_many_429_answers_stop_after_the_last_completed_batch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            client = ThrottledBlockClient("/v0/block/3", self.max_429_answers + 1)
+            with self.assertRaisesRegex(top_receivers.feed.FeedError, "HTTP 429 .* /v0/block/3"):
+                self.run_from_checkpoint(root, client)
+            checkpoint = json.loads((root / "checkpoint.json").read_text(encoding="utf-8"))
+            self.assertEqual(checkpoint["last_height"], 2)
+            self.assertEqual(client.calls["/v0/block/3"], self.max_429_answers)
+            self.assertTrue((root / "batches" / "1-2.json").is_file())
+            self.assertFalse((root / "batches" / "3-4.json").exists())
+
+            resumed = ThrottledBlockClient()
+            state = self.run_scan(root, resumed)
+            self.assertEqual(resumed.calls, {"/v0/block/3": 1, "/v0/block/4": 1})
+            self.assertEqual(state["last_height"], 4)
+
+    def test_a_few_429_answers_then_a_block_complete_the_scan(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            client = ThrottledBlockClient("/v0/block/3", 2)
+            state = self.run_from_checkpoint(root, client)
+            self.assertEqual(state["last_height"], 4)
+            self.assertEqual(client.calls["/v0/block/3"], 3)
+
+
 class FlakyFetcher:
     def __init__(self, errors, block):
         self.errors = list(errors)
@@ -250,6 +309,64 @@ class BlockReaderRetryTest(unittest.TestCase):
         self.assertIsNone(get("/v0/block/7"))
         self.assertEqual(fetcher.requests, 1)
 
+    def test_a_socket_timeout_is_retried_after_its_pause(self):
+        block = synthetic_block(7, 0)
+        fetcher = FlakyFetcher([TimeoutError("The read operation timed out")], block)
+        get, pauses = self.reader(fetcher)
+        self.assertEqual(get("/v0/block/7"), block)
+        self.assertEqual(fetcher.requests, 2)
+        self.assertEqual(pauses, [top_receivers.TRANSIENT_BACKOFF_S[0]])
+
+    def test_an_unreachable_host_is_retried_after_its_pause(self):
+        block = synthetic_block(7, 0)
+        fetcher = FlakyFetcher([urllib.error.URLError(OSError("getaddrinfo failed"))], block)
+        get, pauses = self.reader(fetcher)
+        self.assertEqual(get("/v0/block/7"), block)
+        self.assertEqual(fetcher.requests, 2)
+        self.assertEqual(pauses, [top_receivers.TRANSIENT_BACKOFF_S[0]])
+
+    def test_a_timeout_on_every_attempt_stops_the_scan_after_the_last_pause(self):
+        attempts = len(top_receivers.TRANSIENT_BACKOFF_S) + 1
+        fetcher = FlakyFetcher([TimeoutError("x") for _ in range(attempts)], synthetic_block(7, 0))
+        get, pauses = self.reader(fetcher)
+        with self.assertRaises(TimeoutError):
+            get("/v0/block/7")
+        self.assertEqual(fetcher.requests, attempts)
+        self.assertEqual(pauses, list(top_receivers.TRANSIENT_BACKOFF_S))
+
+    def test_a_local_os_error_is_not_retried(self):
+        fetcher = FlakyFetcher([PermissionError("x")], synthetic_block(7, 0))
+        get, pauses = self.reader(fetcher)
+        with self.assertRaises(PermissionError):
+            get("/v0/block/7")
+        self.assertEqual(fetcher.requests, 1)
+        self.assertEqual(pauses, [])
+
+    def test_a_reset_connection_is_retried_after_its_pause(self):
+        block = synthetic_block(7, 0)
+        fetcher = FlakyFetcher([ConnectionResetError(10054, "forcibly closed")], block)
+        get, pauses = self.reader(fetcher)
+        self.assertEqual(get("/v0/block/7"), block)
+        self.assertEqual(fetcher.requests, 2)
+        self.assertEqual(pauses, [top_receivers.TRANSIENT_BACKOFF_S[0]])
+
+    def test_a_refused_certificate_stops_the_scan_at_once(self):
+        refusal = urllib.error.URLError(ssl.SSLCertVerificationError(1, "certificate verify failed"))
+        fetcher = FlakyFetcher([refusal], synthetic_block(7, 0))
+        get, pauses = self.reader(fetcher)
+        with self.assertRaises(urllib.error.URLError):
+            get("/v0/block/7")
+        self.assertEqual(fetcher.requests, 1)
+        self.assertEqual(pauses, [])
+
+    def test_a_url_error_whose_reason_is_not_an_os_error_stops_the_scan_at_once(self):
+        fetcher = FlakyFetcher([urllib.error.URLError("no host given")], synthetic_block(7, 0))
+        get, pauses = self.reader(fetcher)
+        with self.assertRaises(urllib.error.URLError):
+            get("/v0/block/7")
+        self.assertEqual(fetcher.requests, 1)
+        self.assertEqual(pauses, [])
+
 
 class GateSpacingTest(unittest.TestCase):
     def test_workers_share_one_gate_so_request_starts_stay_spaced(self):
@@ -263,6 +380,141 @@ class GateSpacingTest(unittest.TestCase):
         with ThreadPoolExecutor(max_workers=top_receivers.SCAN_WORKERS) as pool:
             list(pool.map(lambda h: get(f"/v0/block/{h}"), range(30)))
         self.assertAlmostEqual(last_booked(), 29 * top_receivers.REQUEST_INTERVAL_S)
+
+    def test_many_workers_keep_keyed_spacing_through_one_gate(self):
+        class Recorder:
+            requests = 0
+
+            def get(self, path):
+                return synthetic_block(int(path.rsplit("/", 1)[1]), 0)
+
+        booked = [0.0]
+        get, last_booked, _ = top_receivers._block_reader(
+            Recorder(), booked.append, lambda: 0.0,
+            interval=top_receivers.KEYED_REQUEST_INTERVAL_S)
+        with ThreadPoolExecutor(max_workers=top_receivers.KEYED_SCAN_WORKERS) as pool:
+            list(pool.map(lambda h: get(f"/v0/block/{h}"), range(64)))
+        self.assertAlmostEqual(last_booked(), 63 * top_receivers.KEYED_REQUEST_INTERVAL_S)
+        booked.sort()
+        self.assertEqual(len(booked), 64)
+        for index in range(1, len(booked)):
+            self.assertAlmostEqual(booked[index] - booked[index - 1], top_receivers.KEYED_REQUEST_INTERVAL_S)
+
+
+class NeardataKeyTest(unittest.TestCase):
+    def test_no_key_file_is_keyless_at_the_keyless_interval(self):
+        with mock.patch.dict("os.environ", {}, clear=False):
+            os.environ.pop("FASTNEAR_API_KEY_FILE", None)
+            fetcher, interval = top_receivers._neardata_fetcher()
+        self.assertEqual(interval, top_receivers.REQUEST_INTERVAL_S)
+        self.assertEqual(fetcher.max_consecutive_429s, top_receivers.MAX_CONSECUTIVE_429S)
+        self.assertNotIn("Authorization", fetcher.client.headers or {})
+
+    def test_a_key_file_sends_a_bearer_header_at_the_keyed_interval(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            key = Path(tmp) / "key"
+            key.write_text("synthetic-key\n", encoding="utf-8")
+            with mock.patch.dict("os.environ", {"FASTNEAR_API_KEY_FILE": str(key)}):
+                fetcher, interval = top_receivers._neardata_fetcher()
+        self.assertEqual(interval, top_receivers.KEYED_REQUEST_INTERVAL_S)
+        self.assertEqual(fetcher.max_consecutive_429s, top_receivers.MAX_CONSECUTIVE_429S)
+        self.assertEqual(fetcher.client.headers["Authorization"], "Bearer synthetic-key")
+
+    def test_an_empty_or_missing_key_file_stops_the_scan(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            empty = Path(tmp) / "empty"
+            empty.write_text("", encoding="utf-8")
+            for path in (empty, Path(tmp) / "missing"):
+                with self.subTest(path=path.name), mock.patch.dict("os.environ", {"FASTNEAR_API_KEY_FILE": str(path)}):
+                    with self.assertRaises(top_receivers.TopReceiversError):
+                        top_receivers._neardata_fetcher()
+
+    def test_a_new_keyed_scan_spaces_batch_requests_at_the_keyed_interval(self):
+        hour = 60 * 60 * 1_000_000_000
+        blocks = {0: synthetic_block(0, 0), 1: synthetic_block(1, 10 * hour),
+                  2: synthetic_block(2, 15 * hour), 3: synthetic_block(3, 20 * hour)}
+
+        class BlockClient:
+            def get(self, path):
+                return blocks[int(path.rsplit("/", 1)[1])]
+
+        pauses = []
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            key = root / "key"
+            key.write_text("synthetic-key\n", encoding="utf-8")
+            data_dir = root / "scan"
+            with mock.patch.dict("os.environ", {"FASTNEAR_API_KEY_FILE": str(key)}), \
+                    mock.patch("intel.top_receivers.rpc.Client", return_value=BlockClient()) as client_cls:
+                state = top_receivers.scan_window(10, 3, True, data_dir, sleep=pauses.append, clock=lambda: 0.0)
+            batch = json.loads((data_dir / "batches" / "1-3.json").read_text(encoding="utf-8"))
+        client_cls.assert_called_once_with(
+            top_receivers.feed.NEARDATA_URL, "off", kind="http", headers={"Authorization": "Bearer synthetic-key"})
+        self.assertEqual((state["start_height"], state["last_height"]), (1, 3))
+        batch_pauses = sorted(pauses[2:])
+        self.assertEqual(len(batch_pauses), 3)
+        for step, actual in enumerate(batch_pauses, start=1):
+            self.assertAlmostEqual(actual, step * top_receivers.KEYED_REQUEST_INTERVAL_S)
+        self.assertAlmostEqual(batch["last_request_at"], 3 * top_receivers.KEYED_REQUEST_INTERVAL_S)
+        self.assertAlmostEqual(state["last_request_at"], 3 * top_receivers.KEYED_REQUEST_INTERVAL_S)
+
+    def test_keyed_scan_builds_pool_with_keyed_scan_workers(self):
+        hour = 60 * 60 * 1_000_000_000
+        blocks = {0: synthetic_block(0, 0), 1: synthetic_block(1, 10 * hour),
+                  2: synthetic_block(2, 15 * hour), 3: synthetic_block(3, 20 * hour)}
+
+        class BlockClient:
+            def get(self, path):
+                return blocks[int(path.rsplit("/", 1)[1])]
+
+        pool_workers = []
+        real_pool = top_receivers.ThreadPoolExecutor
+
+        def recording_pool(*args, **kwargs):
+            pool_workers.append(kwargs.get("max_workers"))
+            return real_pool(*args, **kwargs)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            key = root / "key"
+            key.write_text("synthetic-key\n", encoding="utf-8")
+            data_dir = root / "scan"
+            with mock.patch.dict("os.environ", {"FASTNEAR_API_KEY_FILE": str(key)}), \
+                    mock.patch("intel.top_receivers.rpc.Client", return_value=BlockClient()), \
+                    mock.patch("intel.top_receivers.ThreadPoolExecutor", side_effect=recording_pool):
+                top_receivers.scan_window(10, 3, True, data_dir, sleep=lambda _: None, clock=lambda: 0.0)
+        self.assertEqual(pool_workers, [top_receivers.KEYED_SCAN_WORKERS])
+
+    def test_keyless_scan_builds_pool_with_scan_workers(self):
+        hour = 60 * 60 * 1_000_000_000
+        blocks = {0: synthetic_block(0, 0), 1: synthetic_block(1, 10 * hour),
+                  2: synthetic_block(2, 15 * hour), 3: synthetic_block(3, 20 * hour)}
+
+        class BlockClient:
+            def get(self, path):
+                return blocks[int(path.rsplit("/", 1)[1])]
+
+        pool_workers = []
+        real_pool = top_receivers.ThreadPoolExecutor
+
+        def recording_pool(*args, **kwargs):
+            pool_workers.append(kwargs.get("max_workers"))
+            return real_pool(*args, **kwargs)
+
+        with tempfile.TemporaryDirectory() as tmp, \
+                mock.patch("intel.top_receivers.ThreadPoolExecutor", side_effect=recording_pool):
+            root = Path(tmp)
+            keyless_dir = root / "keyless"
+            with mock.patch.dict("os.environ", {}, clear=True), \
+                    mock.patch("intel.feed.rpc.Client", return_value=BlockClient()):
+                top_receivers.scan_window(10, 3, True, keyless_dir, sleep=lambda _: None, clock=lambda: 0.0)
+            self.assertEqual(pool_workers, [top_receivers.SCAN_WORKERS])
+
+            pool_workers.clear()
+            caller_dir = root / "caller"
+            top_receivers.scan_window(10, 3, True, caller_dir, fetcher=FakeFetcher(blocks),
+                                      sleep=lambda _: None, clock=lambda: 0.0)
+            self.assertEqual(pool_workers, [top_receivers.SCAN_WORKERS])
 
 
 class ReceiverFixtureTest(unittest.TestCase):

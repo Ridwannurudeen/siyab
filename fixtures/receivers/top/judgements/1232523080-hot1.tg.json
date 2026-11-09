@@ -1,0 +1,105 @@
+{
+  "subject": "1232523080-hot1.tg",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "1232523080-hot1.tg",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "UNKNOWN",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "unknown",
+      "detail": "could not read 1232523080-hot1.tg: no recorded response for the request",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "6546384952a7e9682c1e9e6dbd891b484f832992e7899d097a3fef702467cf8e",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "pass",
+      "detail": "no denylist or incident label on 1232523080-hot1.tg",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "issuer_blacklist",
+      "status": "pass",
+      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "eb00092e4a938984cb5d4207aa547dc9d3acca8e43da3c512e2c2109b05d64ce",
+        "fetched_at": "2026-11-09T04:59:41Z"
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "unknown",
+      "detail": "could not read the account keys: no recorded response for the request",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "a1840dadeb13f560a74e02d52bd0fd982d2932edebc898057082aee680ba762a",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "unknown",
+      "detail": "the creation transaction is not known",
+      "source": {
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "unknown",
+      "detail": "the receiver account could not be read",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "6546384952a7e9682c1e9e6dbd891b484f832992e7899d097a3fef702467cf8e",
+        "fetched_at": null
+      }
+    }
+  ],
+  "reasons": [
+    "receiver_exists could not run: could not read 1232523080-hot1.tg: no recorded response for the request.",
+    "account_age could not run: could not read the account keys: no recorded response for the request.",
+    "dust_funded could not run: the creation transaction is not known.",
+    "code_without_metadata could not run: the receiver account could not be read."
+  ],
+  "labels": [],
+  "observed": {
+    "block_height": null,
+    "timestamp_ms": 1794197345742
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "subject": "noa.v2-launchpad.justhoot.near",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "noa.v2-launchpad.justhoot.near",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "UNKNOWN",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "pass",
+      "detail": "noa.v2-launchpad.justhoot.near exists",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "0e0459d2a565a52dc434be37cc48fe17be5b22d4f59a0a51810dc2c1067d28d6",
+        "fetched_at": "2026-11-09T04:11:49Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "pass",
+      "detail": "no denylist or incident label on noa.v2-launchpad.justhoot.near",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "issuer_blacklist",
+      "status": "pass",
+      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "257b9998dc0b1dc5a8861317f29058c5b752daaee4b69ad437757febe5d7f30b",
+        "fetched_at": "2026-11-09T04:11:50Z"
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "unknown",
+      "detail": "no archival age (noa.v2-launchpad.justhoot.near has no access key; noa.v2-launchpad.justhoot.near did not exist at block 222505378 (2026-11-01T02:14:15Z) from archival-rpc.mainnet.fastnear.com, so it was created after that block, which is at least 7 d old; whether it is younger than 7 days is not known); no key of noa.v2-launchpad.justhoot.near carries a creation time",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "879300b9589de02bc0622471fa34b0df0b6e7349a37e448a8dcfbe8a1b22bbd5",
+        "fetched_at": "2026-11-09T04:11:58Z"
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "unknown",
+      "detail": "the creation transaction is not known",
+      "source": {
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "pass",
+      "detail": "no contract code",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "0e0459d2a565a52dc434be37cc48fe17be5b22d4f59a0a51810dc2c1067d28d6",
+        "fetched_at": "2026-11-09T04:11:49Z"
+      }
+    }
+  ],
+  "reasons": [
+    "account_age could not run: no archival age (noa.v2-launchpad.justhoot.near has no access key; noa.v2-launchpad.justhoot.near did not exist at block 222505378 (2026-11-01T02:14:15Z) from archival-rpc.mainnet.fastnear.com, so it was created after that block, which is at least 7 d old; whether it is younger than 7 days is not known); no key of noa.v2-launchpad.justhoot.near carries a creation time.",
+    "dust_funded could not run: the creation transaction is not known."
+  ],
+  "labels": [],
+  "observed": {
+    "block_height": 223714978,
+    "timestamp_ms": 1794197345742
+  }
+}

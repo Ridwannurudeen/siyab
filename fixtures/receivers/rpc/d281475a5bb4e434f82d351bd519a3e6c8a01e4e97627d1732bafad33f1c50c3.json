@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "thinkwell.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "61512607268376548240639794",
+      "block_hash": "3ZML49sm5JZrVrHGhs3DUsfr36C7aEtJdeqD5nA1gtGN",
+      "block_height": 223718935,
+      "code_hash": "E8jZ1giWcVrps8PcV75ATauu6gFRkcwjNtKp7NKmipZG",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 1125
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:49:19Z"
+}

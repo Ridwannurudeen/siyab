@@ -1,0 +1,43 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "protocolfee2.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "81AvP5X4VccHs8tA5188DtSdMTHbkg99p2YSBT4ajvgU",
+      "block_height": 223719214,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 217633654000180,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:CuMomHsFyLtiNZPtNyaaqkC7KmJwmJYNLio3dqDMCbhH"
+        },
+        {
+          "access_key": {
+            "nonce": 217648025000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:DvDqTJ6uULZJ7SpVChMM9MoE9T3Vedmkcnde4VXMBZX3"
+        },
+        {
+          "access_key": {
+            "nonce": 218043814000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:DyLjLKENtgazCvzpe4UnhXG1hty3kSk9YvLBRUCLV2eE"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:51:55Z"
+}

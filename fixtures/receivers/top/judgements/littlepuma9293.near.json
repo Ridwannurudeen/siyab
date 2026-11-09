@@ -1,0 +1,106 @@
+{
+  "subject": "littlepuma9293.near",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "littlepuma9293.near",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "UNKNOWN",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "unknown",
+      "detail": "could not read littlepuma9293.near: no recorded response for the request",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "3019062a0d4871be1b86761113c9bde5fb5fe7f1c512939ba35a7c83667bfa18",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "pass",
+      "detail": "no denylist or incident label on littlepuma9293.near",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "issuer_blacklist",
+      "status": "unknown",
+      "detail": "could not read get_blacklist_status on usdt.tether-token.near: no recorded response for the request; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "58a524b2571c2dc9443d485135ffc8c78cd2732b1911b9a11bc56b18937b7aff",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "unknown",
+      "detail": "could not read the account keys: no recorded response for the request",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "28fe6441a8050e290b40d27ccbb76bc50dec209b266fbb53225a908b0769f16c",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "unknown",
+      "detail": "the creation transaction is not known",
+      "source": {
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "unknown",
+      "detail": "the receiver account could not be read",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "3019062a0d4871be1b86761113c9bde5fb5fe7f1c512939ba35a7c83667bfa18",
+        "fetched_at": null
+      }
+    }
+  ],
+  "reasons": [
+    "receiver_exists could not run: could not read littlepuma9293.near: no recorded response for the request.",
+    "issuer_blacklist could not run: could not read get_blacklist_status on usdt.tether-token.near: no recorded response for the request; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false.",
+    "account_age could not run: could not read the account keys: no recorded response for the request.",
+    "dust_funded could not run: the creation transaction is not known.",
+    "code_without_metadata could not run: the receiver account could not be read."
+  ],
+  "labels": [],
+  "observed": {
+    "block_height": null,
+    "timestamp_ms": 1794197345742
+  }
+}

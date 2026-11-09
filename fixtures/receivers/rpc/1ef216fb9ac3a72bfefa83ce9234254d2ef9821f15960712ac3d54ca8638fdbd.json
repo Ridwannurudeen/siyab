@@ -1,0 +1,63 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "nearlytrade.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "3QLxKRtnNaqGQ9722QQW6EPTKhL23eBedddd3jNJ2oGo",
+      "block_height": 223714861,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 219077510022743,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "claim_fees",
+                  "split_protocol_token_fees",
+                  "push_creator_fees",
+                  "push_creator_token_fees",
+                  "push_creator_quote_fees",
+                  "split_protocol_quote_fees",
+                  "buyback",
+                  "pay_holders",
+                  "burn_token_fees"
+                ],
+                "receiver_id": "nearlytrade.near"
+              }
+            }
+          },
+          "public_key": "ed25519:3ngukadkEB9ix1GHhFVz2PbjZGRiJEsxSmXobXYUvumd"
+        },
+        {
+          "access_key": {
+            "nonce": 219077510033786,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "collect_tax",
+                  "process_tax",
+                  "pay_tax_holders",
+                  "push_owed"
+                ],
+                "receiver_id": "nearlytrade.near"
+              }
+            }
+          },
+          "public_key": "ed25519:9px7ZzfWejQYex8Czm6FVHHJRr76EYxzhgkNt1ea68mJ"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:10:45Z"
+}

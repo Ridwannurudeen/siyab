@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 222505188,
+      "account_id": "v2.ref-finance.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "32577276456250506902919753911",
+      "block_hash": "Cp4JyDZCRoAsXnRFFrMqj3tWn8LwMHbNwNyuxoSyUge1",
+      "block_height": 222505188,
+      "code_hash": "GZmkbfVLcN7ErxU9RDxP24YTaKmoVixhM6XyycP15Qvi",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 111004823
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-09T04:10:07Z"
+}

@@ -1,0 +1,30 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 222505378,
+      "account_id": "noa.v2-launchpad.justhoot.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "error": {
+      "name": "HANDLER_ERROR",
+      "cause": {
+        "info": {
+          "block_hash": "J5RXStXjULsX7XKckc6EU3D2sqxR7m7WYsZYh8Qr3qwT",
+          "block_height": 222505378,
+          "requested_account_id": "noa.v2-launchpad.justhoot.near"
+        },
+        "name": "UNKNOWN_ACCOUNT"
+      },
+      "code": -32000,
+      "message": "Server error",
+      "data": "account noa.v2-launchpad.justhoot.near does not exist while viewing"
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-09T04:11:55Z"
+}

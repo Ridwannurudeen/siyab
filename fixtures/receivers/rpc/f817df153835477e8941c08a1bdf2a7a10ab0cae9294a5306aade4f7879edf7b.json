@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "funnysite1561.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "8mz3BqS81JVhDTj7HewLVhLnAAeEtf1Zy6HcbVwTqp3v",
+      "block_height": 223715227,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 223331548000263,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:DatubUKudasAhBomth16qGut2KzpWkKPcqEp9up4zBVs"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:14:10Z"
+}

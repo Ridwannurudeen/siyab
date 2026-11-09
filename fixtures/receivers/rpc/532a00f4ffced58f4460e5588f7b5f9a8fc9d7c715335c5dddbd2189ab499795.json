@@ -1,0 +1,94 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "chopper98.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "GhJzcnr4cxg3sxNZJPmeKYU64hf6yGfuR43MFSZEXod4",
+      "block_height": 223715540,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 209706083000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "nbtc.bridge.near"
+              }
+            }
+          },
+          "public_key": "ed25519:hC2PhJgsJFVL7pPpSrT5zNkJqg6chaaDxp8Wi7vpfJD"
+        },
+        {
+          "access_key": {
+            "nonce": 211546663000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "nbtc.bridge.near"
+              }
+            }
+          },
+          "public_key": "ed25519:2JKf8jiVek6yJaJoCq84NLv2bR83hRUo7HCV6Z4itbVH"
+        },
+        {
+          "access_key": {
+            "nonce": 192082820002345,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4MFkZ3mv8yaAgGp1YSTaMSDEYvPtYngLDaC7VEVYMWwT"
+        },
+        {
+          "access_key": {
+            "nonce": 204376184000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:8HCfNxAanPwraARJRbibURwHxshNR4zEfuJSx8hUmhrv"
+        },
+        {
+          "access_key": {
+            "nonce": 210166225000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "nbtc.bridge.near"
+              }
+            }
+          },
+          "public_key": "ed25519:8uvpZf3XWjrJtdWLb87jMtkkMjXfHPPJ3R6JhUE8ptEL"
+        },
+        {
+          "access_key": {
+            "nonce": 223021471000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "linear-protocol.near"
+              }
+            }
+          },
+          "public_key": "ed25519:HL4p4KMHhtjcgRvRaKaFhpMXqwntHyFNEyT6YrdTbnAL"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:17:05Z"
+}

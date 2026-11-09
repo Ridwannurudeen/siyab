@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "dex-aggregator.intear.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "AWFNXUNwDcNiN42zq5GcHmsmVBCwC3eAWXCgQ68wCQ8z",
+      "block_height": 223715019,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 176279798000027,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:49uGQDT1pPLbNgSv8TtHYRqjYMBdQFHbSGzUJersRR2T"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:12:13Z"
+}

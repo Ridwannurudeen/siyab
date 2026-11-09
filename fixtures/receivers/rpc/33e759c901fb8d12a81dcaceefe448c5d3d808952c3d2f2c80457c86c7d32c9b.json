@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "rastonite.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "7q7be5WgXPozwwPhrsTFgsb7U3oxAHsDgvWVAQJssz4C",
+      "block_height": 223716144,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 112901229006550,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4Lh2abf9MsepEj6PWAdVevSc6N8F2vRo2eYUkP1Ja5ee"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:22:46Z"
+}

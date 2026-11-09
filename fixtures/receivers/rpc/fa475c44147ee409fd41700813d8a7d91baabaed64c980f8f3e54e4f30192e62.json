@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "holitoday.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "Hczvdh6a7khwb48xFLXZowxaQaFesTm9QQb5AGMcCVgA",
+      "block_height": 223718340,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 221656248000048,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:PerDNcEsxsxWVwdzEjXHm1dGZmzW5223PLj2Ln7hbuW"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:43:39Z"
+}

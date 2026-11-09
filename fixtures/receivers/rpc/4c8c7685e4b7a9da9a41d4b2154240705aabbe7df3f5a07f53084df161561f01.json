@@ -1,0 +1,55 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "rezebn.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "415J2SaWCHNt1jh1CtHXmTGjx7nFtwQZANr8okPWEb87",
+      "block_height": 223717411,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 222736190000011,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1",
+                "method_names": [],
+                "receiver_id": "aa-harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:457bmErKqgPU5Z8PaQbCvZR35T7dod3bAq48jnsiqYqG"
+        },
+        {
+          "access_key": {
+            "nonce": 115871404080047,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:CYHCqd2sNKd8EaetKZZiLU2ZbnPc6xR9bEaroZnXGtbY"
+        },
+        {
+          "access_key": {
+            "nonce": 174647348000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:J5DjWM98SApgCADixQtrnSAYYRqUQbkJLmPGwKo6VKRB"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:34:51Z"
+}

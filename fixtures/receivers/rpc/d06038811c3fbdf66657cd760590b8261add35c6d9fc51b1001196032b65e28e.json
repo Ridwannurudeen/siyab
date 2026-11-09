@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "meteor-migrate.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "Fw7uLoiHgwDZuxWE2Np9uaw3ETEkgBAkSPbhcJJFfnuX",
+      "block_height": 223715181,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 212834103000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:5DcUDHYmAKHvmk5jCT8N6d6xaPMVtZz4NhLpbHHBs1Tw"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:13:44Z"
+}

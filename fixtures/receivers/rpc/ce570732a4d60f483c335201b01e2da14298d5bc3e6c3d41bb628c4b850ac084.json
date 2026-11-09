@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "aa-harvest-moon.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "FSb1hSg7k6QQkQ1ZiqnpjLyD27vHf43aVoZwVNYFNqjm",
+      "block_height": 223714810,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 116021223000966,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:HAtwc1SaGffw3DmznbrSWunLusVjT2Y682afUwN7q1gi"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:10:15Z"
+}

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "morfius474.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "EfkizT27g1Zk7ETNM7daXBAHKuXmJF91gaeDbpPwKP5C",
+      "block_height": 223715479,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 111829639011882,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:EJM72459qXBDXydFszd6293L4kay67xgdP7uApsPd1hY"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:16:31Z"
+}

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "obione17.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "Dq3XM77M2gkmsXfKZKkXL9FZR1Yy6GkKszgPdkoAshr4",
+      "block_height": 223717776,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 112095303009792,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:G5EDBfvHYGfk8hLkaxVZjCizGhYMdLMZx7qamF8nNTaN"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:38:18Z"
+}

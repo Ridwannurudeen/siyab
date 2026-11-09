@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "exito.pideky_escala.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "8vBrFHwWFh3YuxaDhepwUBrAhPLPfTRxndK5FnK5y74f",
+      "block_height": 223714921,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 217961271000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:ANj7c1sYoEqzaA6qJ16vXbNCkKyyvbgZtMBgSuDEnc3r"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:11:18Z"
+}

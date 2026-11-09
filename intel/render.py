@@ -234,6 +234,40 @@ def _inferred(edges):
     return [edge for edge in edges if edge["provenance"] == "inferred"]
 
 
+def _top_receivers_summary(judgements_dir, ranking_path=TOP_RECEIVERS_RANKING_PATH):
+    paths = sorted(Path(judgements_dir).glob("*.json"))
+    if not paths:
+        return None
+
+    documents = [json.loads(path.read_text(encoding="utf-8")) for path in paths]
+    if any(document.get("subject") != path.stem or document.get("verdict") not in ("ALLOW", "DENY", "UNKNOWN")
+           or not isinstance(document.get("checks"), list)
+           or any(not isinstance(check, dict) or not isinstance(check.get("id"), str)
+                  or not isinstance(check.get("status"), str) for check in document["checks"])
+           for path, document in zip(paths, documents)):
+        raise ValueError("top receiver judgement is unreadable")
+
+    verdicts = Counter(document["verdict"] for document in documents)
+    unknown_causes = Counter()
+    deny_groups = Counter()
+    for document in documents:
+        if document["verdict"] == "UNKNOWN":
+            unknown_causes.update(check["id"] for check in document["checks"] if check["status"] == "unknown")
+        elif document["verdict"] == "DENY":
+            signals = tuple(sorted(check["id"] for check in document["checks"] if check["status"] == "signal"))
+            deny_groups[signals] += 1
+
+    ranking = {}
+    if ranking_path is not None and Path(ranking_path).is_file():
+        ranking = json.loads(Path(ranking_path).read_text(encoding="utf-8"))
+    return {"total": len(documents), "verdicts": verdicts, "unknown_causes": unknown_causes,
+            "deny_new_account": deny_groups[("account_age",)],
+            "deny_lookalike_without_metadata": deny_groups[("code_without_metadata", "lookalike")],
+            "deny_other": verdicts["DENY"] - deny_groups[("account_age",)]
+            - deny_groups[("code_without_metadata", "lookalike")],
+            "ranking": ranking}
+
+
 INDEX_SCRIPT = """
 const themeToggle = document.getElementById("theme-toggle");
 const setThemeLabel = () => {
@@ -576,6 +610,7 @@ def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVE
     counts = "".join(f"<p>{esc(line)}</p>" for line in _counts_lines())
     label_count = store.counts()
     scan_tool_label = "Is this account " + "sa" + "fe" + " to use?"
+    top_summary = _top_receivers_summary(top_judgements_dir)
     proofs = (
         ("Live report beat", "Report 0 was cited by a DENY verdict, disputed, then overturned. No payment was sent.",
          "fixtures/runs/live-beat-20261108T111313Z.txt"),
@@ -603,8 +638,10 @@ def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVE
     entity_links = " ".join(
         f'<a class="button" href="entities/{name}.html">{esc(title)}</a>'
         for name, title, _ in ENTITY_SETS)
-    top_state = ("Judgements are published." if any(Path(top_judgements_dir).glob("*.json")) else
-                 "Scan in progress, not yet published.")
+    top_state = "Judgements are published." if top_summary else "Scan in progress, not yet published."
+    top_counts = (f'<p class="muted">{top_summary["total"]} judged: {top_summary["verdicts"]["ALLOW"]} ALLOW, '
+                  f'{top_summary["verdicts"]["DENY"]} DENY, {top_summary["verdicts"]["UNKNOWN"]} UNKNOWN.</p>'
+                  if top_summary else "")
     body = (
         '<section class="hero-grid" aria-labelledby="page-title"><div class="hero-copy">'
         '<div class="hero-topline"><p class="eyebrow">NEAR PAYMENT PREFLIGHT</p>'
@@ -660,8 +697,8 @@ def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVE
         '<code>scripts/report.sh &lt;reports_account&gt; &lt;subject&gt; &lt;kind&gt; &lt;outcome&gt; &lt;evidence_sha256&gt; &lt;evidence_url&gt;</code>'
         '<p class="muted">Browser wallet signing for reports is out of scope.</p></article></section>'
         '<section aria-labelledby="receivers-title"><div class="section-head"><div><p class="eyebrow">Mainnet judgement set</p>'
-        f'<h2 id="receivers-title">Top receivers</h2><p class="muted">{esc(top_state)}</p></div>'
-        '<a class="button" href="top-receivers.html">Open leaderboard</a></div></section>'
+        f'<h2 id="receivers-title">Top receivers</h2><p class="muted">{esc(top_state)}</p>{top_counts}</div>'
+        '<a class="button" href="top-receivers.html">Open aggregate results</a></div></section>'
         '<section aria-labelledby="explore-title"><p class="eyebrow">Committed intelligence</p><h2 id="explore-title">Explore</h2>'
         '<div class="explore-grid">'
         '<article class="explore-card"><h3>Feed</h3><p>Recorded blocks and events.</p><a href="feed.html">Open feed</a></article>'
@@ -708,31 +745,38 @@ def search_index(store, pages, entities, entity_paths):
 
 
 def top_receivers_page(judgements_dir=TOP_RECEIVERS_JUDGEMENTS_DIR, ranking_path=TOP_RECEIVERS_RANKING_PATH):
-    paths = sorted(Path(judgements_dir).glob("*.json"))
-    if not paths:
+    summary = _top_receivers_summary(judgements_dir, ranking_path)
+    if not summary:
         body = ("<h1>Top receivers</h1><p class=\"empty-state\">Scan in progress, not yet published.</p>"
-                "<p>The leaderboard appears after committed judgement files are available.</p>")
+                "<p>Aggregate results appear after committed judgement files are available.</p>")
         return page("Top receivers", body)
 
-    documents = {path.stem: json.loads(path.read_text(encoding="utf-8")) for path in paths}
-    if ranking_path is not None and Path(ranking_path).is_file():
-        ranking = json.loads(Path(ranking_path).read_text(encoding="utf-8"))
-        subjects = [entry["subject"] for entry in ranking["subjects"] if entry["subject"] in documents]
-        subjects.extend(subject for subject in sorted(documents) if subject not in subjects)
+    ranking = summary["ranking"]
+    window = ranking.get("window")
+    if isinstance(window, dict):
+        window_text = (f'Window: {window["hours"]} hours, {esc(window["start_timestamp"])} '
+                       f'(height {window["start_height"]}) through {esc(window["end_timestamp"])} '
+                       f'(height {window["end_height"]}).')
     else:
-        subjects = sorted(documents)
-    rows = []
-    for subject in subjects:
-        document = documents[subject]
-        if (document.get("subject") != subject or document.get("verdict") not in ("ALLOW", "DENY", "UNKNOWN")
-                or not isinstance(document.get("reasons"), list)):
-            raise ValueError(f"top receiver judgement is unreadable: {subject}")
-        reasons = "".join(f"<li>{esc(reason)}</li>" for reason in document["reasons"])
-        rows.append(f'<tr><td class="mono">{esc(subject)}</td><td class="status-{document["verdict"].lower()}">'
-                    f'{esc(document["verdict"])}</td><td><ul>{reasons}</ul></td></tr>')
-    body = ("<h1>Top receivers</h1><p>Recorded mainnet receiver judgements, ordered by the committed ranking when available.</p>"
-            f'<div class="table"><table><thead><tr><th>Receiver</th><th>Outcome</th><th>Reasons</th></tr></thead>'
-            f'<tbody>{"".join(rows)}</tbody></table></div>')
+        window_text = "Ranking window is not available."
+    rule = ranking.get("rule", "")
+    order = re.search(r"Receivers are ordered by ([^.]+)\.", rule)
+    rule_text = f"Receivers are ordered by {order.group(1)}." if order else "Ranking rule is not available."
+    causes = "".join(f"<li>{esc(cause)}: {count}</li>"
+                      for cause, count in sorted(summary["unknown_causes"].items())) or "<li>None recorded.</li>"
+    other_deny = (f'<p>Other DENY signal groups: {summary["deny_other"]}.</p>' if summary["deny_other"] else "")
+    body = ("<h1>Top receivers</h1><p>Aggregate results for the committed mainnet receiver ranking.</p>"
+            f"<p>{window_text}</p><p>Ranking rule: {esc(rule_text)}</p>"
+            f'<p>Judged {summary["total"]}: {summary["verdicts"]["ALLOW"]} ALLOW, '
+            f'{summary["verdicts"]["DENY"]} DENY, {summary["verdicts"]["UNKNOWN"]} UNKNOWN.</p>'
+            "<h2>UNKNOWN causes</h2><p>Counts overlap.</p><ul>" + causes + "</ul>"
+            "<h2>DENY split</h2>"
+            f'<p>New account (account_age signal only): {summary["deny_new_account"]}.</p>'
+            f'<p>Lookalike with code without metadata: {summary["deny_lookalike_without_metadata"]}.</p>'
+            + other_deny + "<p>Each verdict is what an agent's 1 NEAR payment to that receiver would get, not a finding "
+            "that the account is malicious.</p>"
+            f'<p>See the <a href="{GITHUB_REPO}/tree/main/fixtures/receivers/top/judgements/">committed judgement files</a> '
+            "for per-account results.</p>")
     return page("Top receivers", body)
 
 

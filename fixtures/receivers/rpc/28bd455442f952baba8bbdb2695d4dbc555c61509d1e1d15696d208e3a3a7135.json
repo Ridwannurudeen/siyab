@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "yazaplakal.sendler-b.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "5ioNAy43SnnNW6KLYiKxd4TVAQreWFa6mWww8PEosZM3",
+      "block_height": 223719577,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 221881362000070,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:JD9ohA5Co4EQezSGuJNRW2YrSXCb9efLLhfjwvW32bH7"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:55:22Z"
+}

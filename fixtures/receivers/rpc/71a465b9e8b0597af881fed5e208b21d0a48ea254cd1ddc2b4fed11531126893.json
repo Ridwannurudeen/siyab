@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "ahmedxcf.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "9UxPjma4CGDAYARFKyC8iJ3qb499gXqKtbrjauPQTzwL",
+      "block_height": 223721360,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 111936427029520,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:7eWBc4rsxTm53VfnNj633XKbB2BwiQVd2hFCVjYr7hhU"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T05:12:07Z"
+}

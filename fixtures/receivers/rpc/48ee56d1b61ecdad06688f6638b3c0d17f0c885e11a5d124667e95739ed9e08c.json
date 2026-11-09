@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "abuzarr87.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "6HCWVi3rQjNetuGL11CGLeK8HK5A4R8TjU7xgQqftHsf",
+      "block_height": 223721267,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 112908261006452,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8VGWvv48YhoXoyt5rAPiZHPLWvP7z6PCkWZEAe4rmaSV"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T05:11:14Z"
+}

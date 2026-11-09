@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "racerbottreasury.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "CeAFeDK3AKveACUyreSEi3nQrzjSnr3cH7YSDHLSwkJ6",
+      "block_height": 223715874,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 216820261000222,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:GZ3tuMet7bW9tGTcSGS36mKSRJjvxdQVP4epqJQmVoQV"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:20:13Z"
+}

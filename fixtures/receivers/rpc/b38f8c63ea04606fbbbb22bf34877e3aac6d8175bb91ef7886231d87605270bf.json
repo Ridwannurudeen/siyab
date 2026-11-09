@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "joyantop7.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "BN4Jc29FJzn7oSEepQq3aju3ECgXKwUERkT3fXXun4Rz",
+      "block_height": 223718448,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 112057160009640,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:DaFxXy3NGfi21jP1N2LezkD2tRhW8Fvqk3uZfiVGDgyd"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:44:41Z"
+}

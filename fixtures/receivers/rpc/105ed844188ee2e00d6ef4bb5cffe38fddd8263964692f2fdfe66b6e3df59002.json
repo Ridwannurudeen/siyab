@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "contract.main.burrow.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "11017283142260863927307954197",
+      "block_hash": "DyV4ia8o1aD2xkrdB7PF1uLpR4THMfJKzuAdpjwfDYDb",
+      "block_height": 223714837,
+      "code_hash": "6Nek1MZ8cwJJ2xMQAUWup9V5AToYS9rkTxJfwo6BCpFa",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 53679418
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:10:31Z"
+}

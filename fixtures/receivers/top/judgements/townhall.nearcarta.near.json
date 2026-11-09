@@ -1,0 +1,103 @@
+{
+  "subject": "townhall.nearcarta.near",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "townhall.nearcarta.near",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "DENY",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "pass",
+      "detail": "townhall.nearcarta.near exists",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "8f3080aaae0938d8f058fcb4acb608b468dcfbe785cf86ad084dd7ce6a4bed31",
+        "fetched_at": "2026-11-09T04:57:29Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "pass",
+      "detail": "no denylist or incident label on townhall.nearcarta.near",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "issuer_blacklist",
+      "status": "pass",
+      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "60543729e36ba0febf8a2df52d44f3eb70a50398a59d055c2cc547d541d46024",
+        "fetched_at": "2026-11-09T04:57:30Z"
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "signal",
+      "detail": "oldest access key nonce 222940236000006 from free.rpc.fastnear.com: existed by block 222940237 (2026-11-03T23:39:53Z) from archival-rpc.mainnet.fastnear.com, younger than 7 days",
+      "source": {
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "e668568153b2b90e15ac07b9ad0b303276c741206ff5fa40893a20e98ac92af8",
+        "fetched_at": "2026-11-09T04:57:34Z"
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "unknown",
+      "detail": "the creation transaction is not known",
+      "source": {
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "pass",
+      "detail": "contract code with contract_source_metadata",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "4606a341cbf024d77e5984145090f7cead77ba846765ffd7b3b532670f60b768",
+        "fetched_at": "2026-11-09T04:57:34Z"
+      }
+    }
+  ],
+  "reasons": [
+    "Created less than 7 d ago.",
+    "Not on the owner's allowlist."
+  ],
+  "labels": [],
+  "observed": {
+    "block_height": 223719804,
+    "timestamp_ms": 1794197345742
+  }
+}

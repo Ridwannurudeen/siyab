@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "lock.nearlytrade.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "2273030639095379829296260",
+      "block_hash": "HDdJFssoxyWTxWKDZbXv2oCD3D6RWsvobnd9hopGW7z4",
+      "block_height": 223719246,
+      "code_hash": "J7eJu1WrzbhHe2qehW1WD7cNSvp188bctMxp6HogWgvh",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 154303
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:52:14Z"
+}

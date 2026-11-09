@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "omni.bridge.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "2067360159302238857562894171",
+      "block_hash": "3vABVNLwgsQzw4XHgqC122VkxQybYge3nhNpQAPEbuYT",
+      "block_height": 223714945,
+      "code_hash": "F2no3vqrFxm2c34mZqoMNawhRYYHbp22WuRqN6vEd3KP",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 51488469
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:11:31Z"
+}

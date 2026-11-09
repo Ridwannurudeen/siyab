@@ -1,0 +1,106 @@
+{
+  "subject": "sergeivld.tg",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "sergeivld.tg",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "UNKNOWN",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "unknown",
+      "detail": "could not read sergeivld.tg: no recorded response for the request",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "61afeed5c50f4b3bcd59a553bdd8c242d995581d4d1637b49f6b08ce1d4c9f7e",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "pass",
+      "detail": "no denylist or incident label on sergeivld.tg",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "issuer_blacklist",
+      "status": "unknown",
+      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; could not read is_blocklisted on 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1: no recorded response for the request",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "6be52ccae8e8efd4365ec68b1ada0d2e89cb16e0f6ac75df442d57ad9b2a5447",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "unknown",
+      "detail": "could not read the account keys: no recorded response for the request",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "4c9141ca5c1eae66763192cb53be185b3274aec67f52a9d3e1d8cd9b6818126c",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "unknown",
+      "detail": "the creation transaction is not known",
+      "source": {
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "unknown",
+      "detail": "the receiver account could not be read",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "61afeed5c50f4b3bcd59a553bdd8c242d995581d4d1637b49f6b08ce1d4c9f7e",
+        "fetched_at": null
+      }
+    }
+  ],
+  "reasons": [
+    "receiver_exists could not run: could not read sergeivld.tg: no recorded response for the request.",
+    "issuer_blacklist could not run: usdt.tether-token.near get_blacklist_status answers \"Allowable\"; could not read is_blocklisted on 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1: no recorded response for the request.",
+    "account_age could not run: could not read the account keys: no recorded response for the request.",
+    "dust_funded could not run: the creation transaction is not known.",
+    "code_without_metadata could not run: the receiver account could not be read."
+  ],
+  "labels": [],
+  "observed": {
+    "block_height": null,
+    "timestamp_ms": 1794197345742
+  }
+}

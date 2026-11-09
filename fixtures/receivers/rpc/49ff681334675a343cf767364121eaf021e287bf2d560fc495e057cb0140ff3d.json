@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "sparecloud.user.intear.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "6ePH2Y3QtNuMBRFfgir7HFLMS4zVcc3LtrAvomJLvWqB",
+      "block_height": 223716484,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 222029124000305,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6ZfcBEyCE5sPRLBp8fEKF3pgwbxjpxMyWXYA4FK7FvHZ"
+        },
+        {
+          "access_key": {
+            "nonce": 222027524000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9KTQuZWu56kJNH3gUg46STo9ycA2cV9b4SxazkBq5iUW"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:25:59Z"
+}

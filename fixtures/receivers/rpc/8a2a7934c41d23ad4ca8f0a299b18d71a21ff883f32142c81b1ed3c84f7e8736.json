@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "degesu.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "mRZfkuVwWWaeG5zywU7JQoqVmdczU4y7oekyPqsck9N",
+      "block_height": 223717142,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 139279387018600,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4wdDQxdpYp6hhvP274fvMWfaZxmsnaST4LffVG8erycW"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:32:17Z"
+}

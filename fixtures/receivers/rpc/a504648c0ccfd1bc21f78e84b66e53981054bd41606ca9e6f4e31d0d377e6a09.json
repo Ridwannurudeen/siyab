@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "sadcap6639.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "vfF2QHE8UyrFru2WgAPmWdFWgjHMkPHomgXDiympugz",
+      "block_height": 223716586,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 223497789000010,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9UUaNgv6FsP8Dx96bRcoGsCiN3tqakLEsVZiR6qKk41m"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:26:56Z"
+}

@@ -1,0 +1,105 @@
+{
+  "subject": "l000000.factory.shardsmarket.near",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "l000000.factory.shardsmarket.near",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "UNKNOWN",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "pass",
+      "detail": "l000000.factory.shardsmarket.near exists",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "42d2e76320c6dba55217acd422c61ed7d689995fec5857b04939e823b1919428",
+        "fetched_at": "2026-11-09T04:58:37Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "pass",
+      "detail": "no denylist or incident label on l000000.factory.shardsmarket.near",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "issuer_blacklist",
+      "status": "pass",
+      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "6087bed986a074b52932aa1efd0aa35b43ac002f3631dd8eaae291e2c86d2d3b",
+        "fetched_at": "2026-11-09T04:58:37Z"
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "unknown",
+      "detail": "no archival age (view_access_key_list could not run: no recorded response for the request); could not read the account keys: no recorded response for the request",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "8e61c20fa47c4a71b777bdbabbc91eb35e0c11d81c6021d5d4e18f49f1808824",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "unknown",
+      "detail": "the creation transaction is not known",
+      "source": {
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "l000000.factory.shardsmarket.near is itself a labelled reference account (assertion 734302417af8299e8f38dcdbaba6f93adc75ee08a1cc839669f77d4656a8b722)",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "pass",
+      "detail": "no contract code",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "42d2e76320c6dba55217acd422c61ed7d689995fec5857b04939e823b1919428",
+        "fetched_at": "2026-11-09T04:58:37Z"
+      }
+    }
+  ],
+  "reasons": [
+    "account_age could not run: no archival age (view_access_key_list could not run: no recorded response for the request); could not read the account keys: no recorded response for the request.",
+    "dust_funded could not run: the creation transaction is not known."
+  ],
+  "labels": [
+    "734302417af8299e8f38dcdbaba6f93adc75ee08a1cc839669f77d4656a8b722"
+  ],
+  "observed": {
+    "block_height": 223719924,
+    "timestamp_ms": 1794197345742
+  }
+}

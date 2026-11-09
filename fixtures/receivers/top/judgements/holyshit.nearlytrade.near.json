@@ -1,0 +1,106 @@
+{
+  "subject": "holyshit.nearlytrade.near",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "holyshit.nearlytrade.near",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "UNKNOWN",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "unknown",
+      "detail": "could not read holyshit.nearlytrade.near: no recorded response for the request",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "2ca0c8cc839ca3150717a1aa934c227f555dc196eb56460b4801d6a6359f74d7",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "pass",
+      "detail": "no denylist or incident label on holyshit.nearlytrade.near",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "issuer_blacklist",
+      "status": "unknown",
+      "detail": "could not read get_blacklist_status on usdt.tether-token.near: no recorded response for the request; could not read is_blocklisted on 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1: no recorded response for the request",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "58302da2c37940e1ee21034bc39ea9bb02a733b55fce3c5c765fb5b28c805e67",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "unknown",
+      "detail": "could not read the account keys: no recorded response for the request",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "6267e089ff6596082fb9eff4302bf5b7c123c5378eb7fbd002ee90fe20df1e7f",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "unknown",
+      "detail": "the creation transaction is not known",
+      "source": {
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "unknown",
+      "detail": "the receiver account could not be read",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "2ca0c8cc839ca3150717a1aa934c227f555dc196eb56460b4801d6a6359f74d7",
+        "fetched_at": null
+      }
+    }
+  ],
+  "reasons": [
+    "receiver_exists could not run: could not read holyshit.nearlytrade.near: no recorded response for the request.",
+    "issuer_blacklist could not run: could not read get_blacklist_status on usdt.tether-token.near: no recorded response for the request; could not read is_blocklisted on 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1: no recorded response for the request.",
+    "account_age could not run: could not read the account keys: no recorded response for the request.",
+    "dust_funded could not run: the creation transaction is not known.",
+    "code_without_metadata could not run: the receiver account could not be read."
+  ],
+  "labels": [],
+  "observed": {
+    "block_height": null,
+    "timestamp_ms": 1794197345742
+  }
+}

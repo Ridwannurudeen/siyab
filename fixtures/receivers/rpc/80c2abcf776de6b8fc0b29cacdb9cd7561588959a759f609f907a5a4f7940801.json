@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 222505142,
+      "account_id": "v2.jars.sweat"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "10182846206697945034295542980",
+      "block_hash": "EiU3kEv8JpFMqSe1FUs9jtFs9kPefErBX1pTXRbQqk1j",
+      "block_height": 222505142,
+      "code_hash": "3SLT218pCZKMG2ThLAgndWWSLNccmnK2BuaSrJTan3tc",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 680638859
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-09T04:09:39Z"
+}

@@ -1,0 +1,42 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "nuerteji.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "67RKTnWMUTphkewM14nDUj45339VXjyBugxYisB2Ecaw",
+      "block_height": 223715979,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 222704585000015,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1",
+                "method_names": [],
+                "receiver_id": "aa-harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:457bmErKqgPU5Z8PaQbCvZR35T7dod3bAq48jnsiqYqG"
+        },
+        {
+          "access_key": {
+            "nonce": 119556640001784,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:5Z4n7L6TanSHucEGYuawL6pfziSbQYxnRqShMyrZFpuM"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:21:13Z"
+}

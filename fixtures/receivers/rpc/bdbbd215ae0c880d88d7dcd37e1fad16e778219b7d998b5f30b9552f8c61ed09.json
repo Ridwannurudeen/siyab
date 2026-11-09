@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "llben.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "7E17SDyrviQX9gPNyoZofdmEBG72185zLDzCJjNQdqSi",
+      "block_height": 223719638,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 121549461061910,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:CL99pL94oQPNSZwv3fn2gebzBPdfuAUWhKkE15gRCNpk"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:55:56Z"
+}

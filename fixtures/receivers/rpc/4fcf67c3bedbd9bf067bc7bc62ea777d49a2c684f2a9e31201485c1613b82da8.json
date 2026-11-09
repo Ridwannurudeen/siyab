@@ -1,0 +1,43 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "cookinglabs.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "2JVuQuYu9G6Dy5bpFHH7Xh4KFuCq2o5J1y55FytWxEJt",
+      "block_height": 223717591,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 217628412000251,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:5Egu8kRLSS6m5yknTfaBFRFxxrFoBrHkCzsDLm3tkD6u"
+        },
+        {
+          "access_key": {
+            "nonce": 217820675000059,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:EJuNYoZvRYLBHKkQWuPhgRo497V6NCyaxhiXUreKygbj"
+        },
+        {
+          "access_key": {
+            "nonce": 218085602000201,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:EZ3h9f8aecRgutkazhz2Fg4wvHPWsM6JDm7c5Z65oWdg"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:36:32Z"
+}

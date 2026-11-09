@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "bridge-mng.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "BCqvLk7N9GdpMt5Gbd8pyMh7i7AF97zoSVmSxAGVCrE6",
+      "block_height": 223714777,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 132033443400986,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:22Rh9RxeqhJ63KxKD4EJ5AgyMZ5xMcb5iqNEPFpR86S6"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:09:56Z"
+}

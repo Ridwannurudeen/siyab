@@ -1,0 +1,63 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "burrow-liquidation-bot-04.ref-labs.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "zdGVRwzSY5njSeLP3EGwutJykUe1NZyfhoJeiSxVPu2",
+      "block_height": 223715401,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 117775540000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "contract.main.burrow.near"
+              }
+            }
+          },
+          "public_key": "ed25519:6VNKjFdZ3kghCWRFyNUA3fv14SwfNubuTt8BRzcCZSRy"
+        },
+        {
+          "access_key": {
+            "nonce": 193554720000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:FeTfABda94XBXUHVisua2ZK3aYgP5Rxo6LnYceGkQUX4"
+        },
+        {
+          "access_key": {
+            "nonce": 192028895034909,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Fyoz59MmZ3KDCUHvQ7faJScgVaNXC67iyJ58M2WuSJ4S"
+        },
+        {
+          "access_key": {
+            "nonce": 193554733000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Gh8cnXAsBHNync8hc5GHmjrNp8qWiTy4KVPRy8dyiMX8"
+        },
+        {
+          "access_key": {
+            "nonce": 192027984000008,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:HXnwovdhdYKwY5ngpcGqfLA2yKFT5fzYBVAyTkGukzrQ"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:15:48Z"
+}

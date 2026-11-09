@@ -1,0 +1,81 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "jimi_huang.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "GKXbcroezLVX7jYhs73rrZMen5PS9KahW6x8mLpdo9DL",
+      "block_height": 223716539,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 118703521000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "grid.deltatrade.near"
+              }
+            }
+          },
+          "public_key": "ed25519:3EyTMc8ZzR56FXFKc3CNyUNdUSMifxZNQ5mvXCMhDztA"
+        },
+        {
+          "access_key": {
+            "nonce": 129156536000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "contract.main.burrow.near"
+              }
+            }
+          },
+          "public_key": "ed25519:8Kxibf9ZdZpCGTRq1aRxYxuCB5vtDmuvprDmAUc1ZAaE"
+        },
+        {
+          "access_key": {
+            "nonce": 106927681001009,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9DRF2K3dsWLqMur7w4t169gahxGAdccMMHiVvZ1MBedZ"
+        },
+        {
+          "access_key": {
+            "nonce": 205388710000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "nearaipump.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BuZn1riGi5JfjHzoWSyL6fyVvS96Fu2Z9jaCw88gCm5P"
+        },
+        {
+          "access_key": {
+            "nonce": 126516775000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "grid.deltatrade.near"
+              }
+            }
+          },
+          "public_key": "ed25519:FYgy1d7tchKhYqqw63NEk8YyDb4CAvz1pQgm4sQfNsJs"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:26:29Z"
+}

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "youngibis2137.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "RZ7dcPLzRjAveFf93iGNuqRpcE36VBezkpGxTPY9qef",
+      "block_height": 223719188,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 213379824137576,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:FUrDpKK9VG1Yj7SAWjgzd8Kw8iFAJicffLpfU74DYWd6"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:51:41Z"
+}

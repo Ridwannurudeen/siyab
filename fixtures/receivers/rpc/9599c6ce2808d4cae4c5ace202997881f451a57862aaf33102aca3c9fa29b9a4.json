@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "omniiverse.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "2xYCzs1Dex9qt5HCmoBmypq6PHyAZtNqJHUSG5uUbwzE",
+      "block_height": 223718654,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 182582415002400,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Ff5NZF9QrhCmmnZBVDQAw7vcaNqBK4e2wEJtShRKqfxf"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:46:40Z"
+}

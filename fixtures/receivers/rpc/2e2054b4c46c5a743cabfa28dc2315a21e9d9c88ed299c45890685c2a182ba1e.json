@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 222505248,
+      "account_id": "meta-pool.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "3732938719378772343138635036094",
+      "block_hash": "AQNLRVjr2hXfHPZoHpdr4NgRhg8hQcGrBcJqK9a29hsP",
+      "block_height": 222505248,
+      "code_hash": "J6pS9R23vzbwxGB8eMq4qrn8UhciEYHsVbR9UJPyLNxh",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 8745794
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-09T04:10:41Z"
+}

@@ -1,0 +1,99 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "rusty_truth2.user.intear.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "3nPVcSTPumNSAsYixiTKLZwByRio4MZAsSEBjD8vRckz",
+      "block_height": 223716776,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 187674427000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:2ApnGEu7gLZsSAwbKyjFJsuH6LRdyFtME89rjxBC2zpi"
+        },
+        {
+          "access_key": {
+            "nonce": 212134010000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:2QBEhZtsuoGjkwtrDm1tqrqDnoxXDpMci4UXdsfjJA7q"
+        },
+        {
+          "access_key": {
+            "nonce": 217093165000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:2yTGJTpDTxQFHNPYkTUZeY1rNDSpENxE1H75JADjyAXA"
+        },
+        {
+          "access_key": {
+            "nonce": 217093202000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:39nrF73e2SDEC7VundzxYw1Lt52RNi2ykFgUUXRhw5f7"
+        },
+        {
+          "access_key": {
+            "nonce": 187674374000195,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6ZfcBEyCE5sPRLBp8fEKF3pgwbxjpxMyWXYA4FK7FvHZ"
+        },
+        {
+          "access_key": {
+            "nonce": 205186870000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8UpNWsWBQqRz46shWPZYUHWjcGK8unqN87nFfyHPdioB"
+        },
+        {
+          "access_key": {
+            "nonce": 217093015000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:CT6at6RDvVs8FDVivCUcdM2wDwymVh9geanxnoabbSjZ"
+        },
+        {
+          "access_key": {
+            "nonce": 217096723000003,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:CxvvpswVdbDH7xzBfERZqCYpuoovJaTc7KomAAiNjCCV"
+        },
+        {
+          "access_key": {
+            "nonce": 217095262000046,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:DN1CsivnZRz1DL6KRzbdz4wm4p3uWg1btLFmXHtGmAGi"
+        },
+        {
+          "access_key": {
+            "nonce": 217910453000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:DtUPg4QV1x6RJZ5eXREu75AGykVWwC9BVcnUYuARmDi3"
+        },
+        {
+          "access_key": {
+            "nonce": 197565013000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:FHT76jWLB541Pa4WqRoUJmAF7N1XQTzkBBSMVSJypFQk"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:28:46Z"
+}

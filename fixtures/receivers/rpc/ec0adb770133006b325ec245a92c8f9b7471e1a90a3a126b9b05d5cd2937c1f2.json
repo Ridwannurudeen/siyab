@@ -1,0 +1,208 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "albing.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "4TyD8TfTjJH6tRwHsEMea9vpksHSDzHDorkXNu8QhB5D",
+      "block_height": 223715417,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 92703470000002,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "247775108299081000000000",
+                "method_names": [],
+                "receiver_id": "contract.main.burrow.near"
+              }
+            }
+          },
+          "public_key": "ed25519:fRWm3DmiunCYqsnLNkUEaoxmwgmtCYjZPSQtphjoxcZ"
+        },
+        {
+          "access_key": {
+            "nonce": 168296180000001,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "248792102439441100000000",
+                "method_names": [],
+                "receiver_id": "contractmain2.mainfrac.near"
+              }
+            }
+          },
+          "public_key": "ed25519:wJXtyvGDfJvFva3Ss3vWYvCvUP8eFFXsurxK2guouxE"
+        },
+        {
+          "access_key": {
+            "nonce": 136826508000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "nearrewards.near"
+              }
+            }
+          },
+          "public_key": "ed25519:271VBS3xnP7jC3ds9gkNHQJ6pVQEV8k7h7egvPjz2aUN"
+        },
+        {
+          "access_key": {
+            "nonce": 55923546004128,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:2hCwiKu8x7M2Gkm7W5NAedCaZfA2zY8sUd7vg9a9yink"
+        },
+        {
+          "access_key": {
+            "nonce": 182831080000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "meta-pool.near"
+              }
+            }
+          },
+          "public_key": "ed25519:34mtCokg714PfhoDHctnhGSobPfYAa1Qx8bkzQS5w94S"
+        },
+        {
+          "access_key": {
+            "nonce": 80512064000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "contract.main.burrow.near"
+              }
+            }
+          },
+          "public_key": "ed25519:3Jw8UbwUWZg3JHEYR5wSMBswEYNohPTYWcCtxDVDo4dN"
+        },
+        {
+          "access_key": {
+            "nonce": 115996851000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "contract.main.burrow.near"
+              }
+            }
+          },
+          "public_key": "ed25519:3bjhHXyKcq5FV252up8pDj777KdDjGPPwMhFL8gtQnq7"
+        },
+        {
+          "access_key": {
+            "nonce": 110128587000020,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "217142198923721345650668",
+                "method_names": [],
+                "receiver_id": "contract.main.burrow.near"
+              }
+            }
+          },
+          "public_key": "ed25519:428nBUFrDrbqpoJyoPbiDThRiepSJuED6y53PJNf2SR3"
+        },
+        {
+          "access_key": {
+            "nonce": 222685827000011,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1",
+                "method_names": [],
+                "receiver_id": "aa-harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:457bmErKqgPU5Z8PaQbCvZR35T7dod3bAq48jnsiqYqG"
+        },
+        {
+          "access_key": {
+            "nonce": 74018528000036,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "220590388178249300000000",
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:4c5ybUhekcyomZ26fxdrbeCSW7vfxLegD8s8PHXVCfLN"
+        },
+        {
+          "access_key": {
+            "nonce": 60873742000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "v2.ref-farming.near"
+              }
+            }
+          },
+          "public_key": "ed25519:61NhjgTRVMSjsVRUSxqjmVQvF4m8pRGKaQX4dyTHBe9x"
+        },
+        {
+          "access_key": {
+            "nonce": 92653017000372,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:7HXdriKcwtkPUNfNTGEtr4SRxz9QHYtbsCKFSHHCi3Pt"
+        },
+        {
+          "access_key": {
+            "nonce": 92652992000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:7T98D28RWnRNUVHyUtxQwhwSzXz9twWcEpGtugx4oJPU"
+        },
+        {
+          "access_key": {
+            "nonce": 109743675005871,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:ChF36a7zkorCXq4uY5Y7ZvZLj5V6azfP74cCtc36pLRe"
+        },
+        {
+          "access_key": {
+            "nonce": 59713591000011,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Ey8NLfn6Brkf93oDxcvAW2FHREUaecd4P8x7aXvBhvyw"
+        },
+        {
+          "access_key": {
+            "nonce": 55911935000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:FQE8sHjTkaYAtH4oEZqtQ2eYX2LBFqgZasg6F9EnnzmX"
+        },
+        {
+          "access_key": {
+            "nonce": 59713024000067,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:FiQdNZdBwFz99LHc8tnonfpMnRVoUb49FrmUzYyDi7v9"
+        },
+        {
+          "access_key": {
+            "nonce": 63610499000411,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:GHfjSPxABDCmM1h7dBkRcmBYBzeJTTLEMt9x5thnLKaK"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:15:57Z"
+}

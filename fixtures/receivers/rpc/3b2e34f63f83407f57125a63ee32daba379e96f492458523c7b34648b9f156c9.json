@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "a1cyberbez.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "FqtgtAz4y2m429cuwFkodocQFEwPY4iFdaeiabfH1sB3",
+      "block_height": 223721139,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 113302689022500,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Eiji2Z9aJbyfAh9MzFAJPWYTtVvGb6g3XZiu3RjJpXEp"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T05:10:03Z"
+}

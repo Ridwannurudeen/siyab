@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "tahreem_fatima_1.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "5UmMkoSGpC6T1WBqohJNwN2NKsQXnNS7ajGsdnSDSr4w",
+      "block_height": 223714870,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 126078640007760,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6MtZtsiDCv4b7unpg7prFbrP9oq8J2XiqeCQb9f3HecB"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:10:49Z"
+}

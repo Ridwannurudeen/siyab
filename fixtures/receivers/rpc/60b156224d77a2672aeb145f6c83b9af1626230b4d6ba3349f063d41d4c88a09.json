@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "dao-v6.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "45567112767672226986696398",
+      "block_hash": "EjNfqoQx6GZBk1FWMqQBA43Kuuy3jaeLuCnGHAhmsE1L",
+      "block_height": 223718169,
+      "code_hash": "CLMrbqPhL5LorgALMze6tpSe9KNv1gSo3du3hzwjbj85",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 186993
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:41:59Z"
+}

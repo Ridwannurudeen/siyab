@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "delesaa32.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "Hm23Nor9ToPx2tHmrQh1nWyJJLZjpw7X9ocDDcYZ5vpy",
+      "block_height": 223718195,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 121753280001930,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:5fkVEZwH58gZMgWHdSjobuTuxKBrLpxPSB4XJhwgnV3L"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:42:14Z"
+}

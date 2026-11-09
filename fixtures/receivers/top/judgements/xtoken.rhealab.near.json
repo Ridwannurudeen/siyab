@@ -1,0 +1,105 @@
+{
+  "subject": "xtoken.rhealab.near",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "xtoken.rhealab.near",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "ALLOW",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "pass",
+      "detail": "xtoken.rhealab.near exists",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "e560f98afbbfc4cccab913269109f900636ff344d0d71d6db17e3bfaeba7c102",
+        "fetched_at": "2026-11-09T04:14:54Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "pass",
+      "detail": "no denylist or incident label on xtoken.rhealab.near",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "issuer_blacklist",
+      "status": "pass",
+      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "b1f37b9f16bdd44b76d054ed4b07db71e7437839c80d98be8baea35c042737f0",
+        "fetched_at": "2026-11-09T04:14:55Z"
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "pass",
+      "detail": "xtoken.rhealab.near has no access key; view_account finds xtoken.rhealab.near at block 222505706 (2026-11-01T02:17:25Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
+      "source": {
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "9e490a688f13279fcc3e425cb18c1fb9d30748a45394ce722021c73a92aca19d",
+        "fetched_at": "2026-11-09T04:14:59Z"
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "pass",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
+      "source": {
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "xtoken.rhealab.near is itself a labelled reference account (assertion ac5839caf15ffb9e3d3ede8c3957235001c3dad931421e08104697c0f1c3a1f8)",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "pass",
+      "detail": "contract code with contract_source_metadata",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "1e8fce82c060d7dd9a15f5017dc4de98a5f2364162e5505613a595d70dbabc5e",
+        "fetched_at": "2026-11-09T04:15:00Z"
+      }
+    }
+  ],
+  "reasons": [
+    "Every check ran and none found a signal.",
+    "Not on the owner's allowlist."
+  ],
+  "labels": [
+    "ac5839caf15ffb9e3d3ede8c3957235001c3dad931421e08104697c0f1c3a1f8"
+  ],
+  "observed": {
+    "block_height": 223715306,
+    "timestamp_ms": 1794197345742
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "tuzin.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "BgAuX8Tahn53QFXi4FH8NsXtx7soekRrYx1jC8tgzKjn",
+      "block_height": 223719570,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 221945080000009,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:52hPipUU4kZmwdyoKKzKzc3j4zrToXYMjXLRKyR5rkqn"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:55:19Z"
+}

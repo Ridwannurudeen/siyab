@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "palestone.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "5UbaAFbB2T9i8WWUwAE414Ny2kA7z6NCunhUuenhRxj9",
+      "block_height": 223717821,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 119581157009190,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:FnsZzugHuuHsHanYCS97LKhSSXJzTDQjxoDwdnzWjCw"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:38:43Z"
+}

@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "v2-pool-creator.justhoot.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "9530236862254911600044693",
+      "block_hash": "C1BGnDHzLPktnKGv8P5Ap7J7ETMWR9jzEhKUZjK7wnWQ",
+      "block_height": 223719241,
+      "code_hash": "9dP4mWxNxFk3SzMLAZjDsciDsX9e9CdZjfam4UFDyqps",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 409852
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-09T04:52:10Z"
+}
