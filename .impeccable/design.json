@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-09T23:23:22.904542+00:00",
+  "title": "Design System: Siyab",
+  "extensions": {
+    "shadows": [
+      {
+        "name": "search-dialog",
+        "value": "0 24px 80px rgb(0 0 0/.35)",
+        "purpose": "Elevated search over a dimmed backdrop."
+      },
+      {
+        "name": "view-controls",
+        "value": "0 12px 30px rgb(0 0 0/.25)",
+        "purpose": "Graph view-control popover."
+      }
+    ],
+    "motion": [
+      {
+        "name": "control-transition",
+        "value": "140ms",
+        "purpose": "Background and boundary response."
+      },
+      {
+        "name": "search-entry",
+        "value": "160ms ease-out",
+        "purpose": "Native search dialog entry."
+      },
+      {
+        "name": "inspector-entry",
+        "value": "180ms ease-out",
+        "purpose": "Evidence selection response."
+      },
+      {
+        "name": "path-selection",
+        "value": "900ms ease-out 1",
+        "purpose": "Bounded selected-path emphasis."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "phone",
+        "value": "480px"
+      },
+      {
+        "name": "stacked",
+        "value": "760px"
+      },
+      {
+        "name": "profile-stack",
+        "value": "900px"
+      },
+      {
+        "name": "wrapped-header",
+        "value": "980px"
+      },
+      {
+        "name": "compact-desktop",
+        "value": "1180px"
+      },
+      {
+        "name": "wide",
+        "value": "1700px"
+      }
+    ],
+    "typographyMeta": {
+      "navigation": {
+        "displayName": "Navigation",
+        "purpose": "Extracted from the corresponding current stylesheet role, including responsive overrides."
+      },
+      "brand": {
+        "displayName": "Brand",
+        "purpose": "Extracted from the corresponding current stylesheet role, including responsive overrides."
+      },
+      "workspace-heading": {
+        "displayName": "Workspace Heading",
+        "purpose": "Extracted from the corresponding current stylesheet role, including responsive overrides."
+      },
+      "body-mobile": {
+        "displayName": "Body Mobile",
+        "purpose": "Extracted from the corresponding current stylesheet role, including responsive overrides."
+      },
+      "workspace-heading-mobile": {
+        "displayName": "Workspace Heading Mobile",
+        "purpose": "Extracted from the corresponding current stylesheet role, including responsive overrides."
+      },
+      "brand-mobile": {
+        "displayName": "Brand Mobile",
+        "purpose": "Extracted from the corresponding current stylesheet role, including responsive overrides."
+      },
+      "retained-hero-heading-mobile": {
+        "displayName": "Retained Hero Heading Mobile",
+        "purpose": "Retained legacy heading stylesheet rule; current original introduction is prose."
+      },
+      "page-heading-mobile": {
+        "displayName": "Page Heading Mobile",
+        "purpose": "Extracted from the corresponding current stylesheet role, including responsive overrides."
+      },
+      "input-mobile": {
+        "displayName": "Input Mobile",
+        "purpose": "Extracted from the corresponding current stylesheet role, including responsive overrides."
+      },
+      "profile-heading": {
+        "displayName": "Profile Heading",
+        "purpose": "Extracted from the corresponding current stylesheet role, including responsive overrides."
+      },
+      "source-note": {
+        "displayName": "Source Note",
+        "purpose": "Extracted from the corresponding current stylesheet role, including responsive overrides."
+      }
+    }
+  },
+  "components": [
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "A direct operational action.",
+      "html": "<button type=\"button\" class=\"ds-primary\">Check payment</button>",
+      "css": ".ds-primary{font:inherit;border-radius:5px;min-height:36px;padding:7px 12px;cursor:pointer;background:rgb(var(--accent-fill));color:white;border:1px solid rgb(var(--accent-fill));transition:background-color 140ms,border-color 140ms}.ds-primary:hover{background:rgb(var(--accent-fill));color:white}.ds-primary:focus-visible{outline:2px solid rgb(var(--focus));outline-offset:3px;}"
+    },
+    {
+      "name": "Secondary button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "An inspection or view action.",
+      "html": "<button type=\"button\" class=\"ds-secondary\">Reset view</button>",
+      "css": ".ds-secondary{font:inherit;border-radius:5px;min-height:36px;padding:7px 12px;cursor:pointer;background:rgb(var(--panel));color:rgb(var(--ink));border:1px solid rgb(var(--hairline-strong))}.ds-secondary:hover{background:rgb(var(--ground-alt));border-color:rgb(var(--edge))}.ds-secondary:focus-visible{outline:2px solid rgb(var(--focus));outline-offset:3px;}"
+    },
+    {
+      "name": "Search field",
+      "kind": "input",
+      "refersTo": "search-field",
+      "description": "A compact account or entity query.",
+      "html": "<input class=\"ds-search\" aria-label=\"Account or entity\" placeholder=\"account.near\">",
+      "css": ".ds-search{font:inherit;min-height:40px;padding:9px 11px;border:1px solid rgb(var(--edge));border-radius:5px;background:rgb(var(--ground));color:rgb(var(--ink))}.ds-search::placeholder{color:rgb(var(--secondary));opacity:1}.ds-search:focus-visible{outline:2px solid rgb(var(--focus));outline-offset:3px;}"
+    },
+    {
+      "name": "Navigation",
+      "kind": "nav",
+      "description": "Compact source navigation.",
+      "html": "<nav class=\"ds-nav\"><a href=\"/index.html\">Home</a><a href=\"/feed.html\">Feed</a></nav>",
+      "css": ".ds-nav{display:flex;gap:22px;flex-wrap:wrap;font-size:13px}.ds-nav a{color:rgb(var(--secondary));text-decoration:none}.ds-nav a:hover{color:rgb(var(--ink))}.ds-nav a:focus-visible{outline:2px solid rgb(var(--focus));outline-offset:3px;}"
+    },
+    {
+      "name": "Written outcome",
+      "kind": "chip",
+      "description": "Semantic text with supporting outcome color.",
+      "html": "<span class=\"ds-outcome\">ALLOW</span>",
+      "css": ".ds-outcome{display:inline-flex;padding:3px 7px;border:1px solid rgb(var(--allow)/.6);border-radius:3px;color:rgb(var(--allow-text));font:11px var(--font-code)}"
+    },
+    {
+      "name": "Evidence panel",
+      "kind": "card",
+      "description": "A flat, bounded source panel.",
+      "html": "<article class=\"ds-panel\"><h2>Recorded evidence</h2><p>Source and recording limits remain adjacent to the result.</p></article>",
+      "css": ".ds-panel{background:rgb(var(--ground-alt));color:rgb(var(--ink));border:1px solid rgb(var(--hairline));border-radius:8px;padding:18px}.ds-panel h2{font-size:14px;font-weight:600;margin:0 0 12px}.ds-panel p{color:rgb(var(--secondary));font-size:12px;margin:0}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The evidence workspace",
+    "overview": "Deep navy chrome and cool layered surfaces hold precise sans text, tabular values and restrained blue selection. Written states and adjacent source detail carry meaning; color reinforces them. The light theme preserves the same hierarchy with pale surfaces and darker text.",
+    "keyCharacteristics": [
+      "Compact operational controls and consistent thin boundaries.",
+      "Readable identifiers, numeric columns and source panels.",
+      "Bounded selection motion with a reduced-motion alternative."
+    ],
+    "rules": [],
+    "dos": [
+      "Do keep source detail and recorded coverage visible beside conclusions.",
+      "Do use written semantic states alongside color.",
+      "Do preserve keyboard focus, reduced motion and reader-controlled feed updates."
+    ],
+    "donts": [
+      "Don't turn missing USD values into zero.",
+      "Don't imply a filtered graph or truncated recording is complete.",
+      "Don't add decorative neon or generic hero tiles."
+    ]
+  }
+}

@@ -5,6 +5,8 @@ import importlib.util
 import io
 import json
 import re
+import shutil
+import subprocess
 import tempfile
 import unittest
 from html.parser import HTMLParser
@@ -63,7 +65,8 @@ def make_row(**fields):
 
 def own_text(page):
     """The visible text of a page with every quoted source string removed."""
-    text = QUOTED.sub(" ", page)
+    text = re.sub(r"<script\b[^>]*>.*?</script>", " ", page, flags=re.DOTALL)
+    text = QUOTED.sub(" ", text)
     text = re.sub(r"<style>.*?</style>", " ", text, flags=re.DOTALL)
     return html.unescape(re.sub(r"<[^>]+>", " ", text))
 
@@ -128,6 +131,16 @@ def write_decision_record(directory, text):
     return records.write(record, directory)
 
 
+class BrowserRuntimeTest(unittest.TestCase):
+    @unittest.skipUnless(shutil.which("node"), "Node is unavailable")
+    def test_feed_and_search_boundary_regressions(self):
+        for scenario in ("stall", "body-stall", "queue-revert", "bfcache", "url-shell", "url-index"):
+            with self.subTest(scenario=scenario):
+                result = subprocess.run([shutil.which("node"), "tests/frontend_runtime.cjs", scenario],
+                                        cwd=ROOT, capture_output=True, text=True, timeout=15)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+
 class RenderTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -150,8 +163,106 @@ class RenderTest(unittest.TestCase):
     def test_the_homepage_uses_the_siyab_project_name(self):
         page = self.pages["index.html"]
         self.assertIn("<title>Siyab</title>", page)
-        self.assertIn('<h1 id="page-title">Siyab ', page)
+        self.assertIn(render.HEADLINE, html.unescape(page))
         self.assertNotIn("ShieldBot for NEAR", page)
+
+    def test_workspace_keeps_evidence_and_adds_shared_investigation_shell(self):
+        home = self.pages["index.html"]
+        self.assertIn('data-siyab-graph', home)
+        self.assertLess(home.index('data-siyab-graph'), home.index('class="hero-grid"'))
+        self.assertIn(render.HEADLINE, html.unescape(home))
+        self.assertIn('id="global-search"', home)
+        self.assertIn('id="feed-health"', home)
+        for name, page in self.pages.items():
+            self.assertIn('class="site-brand"', page, name)
+            if name.startswith("records/"):
+                self.assertNotIn("<script", page, name)
+        for prefix in ("flows/", "clusters/"):
+            for name, page in self.pages.items():
+                if name.startswith(prefix):
+                    self.assertIn('data-siyab-graph', page, name)
+
+    def test_graph_json_is_inert_complete_and_links_work_at_any_depth(self):
+        for name, page in self.pages.items():
+            if 'data-siyab-graph' not in page:
+                continue
+            encoded = re.search(r'<script type="application/json">(.*?)</script>', page, re.DOTALL).group(1)
+            payload = json.loads(encoded)
+            self.assertNotIn("<", encoded)
+            self.assertEqual(payload["total_records"], len(payload["records"]))
+            self.assertTrue(all(node["url"] is None or node["url"].startswith("/accounts/")
+                                for node in payload["nodes"]), name)
+
+    def test_self_hosted_fonts_are_copied_without_modification(self):
+        for source in (ROOT / "intel/ui/fonts").iterdir():
+            self.assertEqual(source.read_bytes(), (self.out / "fonts" / source.name).read_bytes())
+
+    def test_polling_and_search_keep_lifecycle_and_keyboard_controls(self):
+        home = self.pages["index.html"]
+        for required in ('new AbortController()', 'request !== generation', 'visibilitychange',
+                         'document.hidden', 'pagehide', 'pending = data.events', 'rows.slice(-50)',
+                         'localStorage.getItem("siyab-theme")', '"ArrowDown", "ArrowUp"',
+                         'dialog.addEventListener("close"', 'data-open-search'):
+            self.assertIn(required, home)
+        self.assertIn('source', home)
+        self.assertNotIn('setInterval(', home)
+
+    def test_flow_timeline_partitions_only_root_outbound_records(self):
+        document = render._flows()[0][1]
+        root = [row for row in document["hops"] if row["from"] == document["subject"]]
+        bins = render._flow_timeline(document)
+        self.assertEqual(len(root), 947)
+        self.assertEqual(len(bins), 12)
+        self.assertEqual(sum(row["count"] for row in bins), len(root))
+        for row in bins:
+            self.assertEqual(row["count"], sum(row["from_ns"] <= hop["block_timestamp"] < row["to_ns"] for hop in root))
+        self.assertEqual(bins[0]["from_ns"], min(hop["block_timestamp"] for hop in root))
+        self.assertEqual(bins[-1]["to_ns"], max(hop["block_timestamp"] for hop in root) + 1)
+
+    def test_flow_analytics_preserves_exact_shares_and_separate_unknown_usd(self):
+        document = render._flows()[0][1]
+        chart = render._flow_analytics(document, {})
+        self.assertEqual(chart.count('data-share-bucket='), 13)
+        for bucket in document["shares"]["buckets"]:
+            self.assertIn(f'data-usd="{bucket["usd"]}"', chart)
+            self.assertIn(f'{bucket["percent"]}%', chart)
+        self.assertIn(document["shares"]["direct_outbound_usd"], chart)
+        self.assertIn("422 rows below", chart)
+        self.assertIn("not the current graph filter", chart)
+        changed = json.loads(json.dumps(document))
+        changed["hops"][0]["usd_amount"] = None
+        changed["shares"] = trace.shares(changed["subject"], changed["hops"], set(), set())
+        changed["shares"]["buckets"][0]["to"] = '<img src=x onerror="bad">'
+        chart = render._flow_analytics(changed, {})
+        self.assertIn("1 rows without a USD amount; their value is unknown", chart)
+        self.assertNotIn('<img src=x', chart)
+        self.assertIn('&lt;img', chart)
+        self.assertEqual(sum(row["count"] for row in render._flow_timeline(changed)), 947)
+
+    def test_flow_analytics_empty_and_single_timestamp_bounds(self):
+        document = render._flows()[0][1]
+        document["hops"] = []
+        document["shares"] = trace.shares(document["subject"], [], set(), set())
+        self.assertEqual(render._flow_timeline(document), [])
+        self.assertIn("No recorded root outbound transfers", render._flow_analytics(document, {}))
+        document["hops"] = [{"from": document["subject"], "block_timestamp": 100},
+                            {"from": document["subject"], "block_timestamp": 100},
+                            {"from": "deeper.near", "block_timestamp": 500}]
+        self.assertEqual(render._flow_timeline(document), [{"from_ns": 100, "to_ns": 101, "count": 2}])
+
+    def test_account_tables_keep_accessible_labels_when_stacked(self):
+        page = self.pages["accounts/intents.near.html"]
+        self.assertIn('class="account-assertions"', page)
+        self.assertIn('scope="col"', page)
+        self.assertIn('<span class="cell-label" aria-hidden="true">Source</span>', page)
+        self.assertNotIn('<p class="eyebrow">Account profile</p>', page)
+
+    def test_generated_styles_preserve_native_hidden_control_semantics(self):
+        stylesheet = (self.out / "style.css").read_text(encoding="utf-8")
+        self.assertRegex(stylesheet, r"(?:^|})\s*\[hidden\]\s*\{[^}]*display\s*:\s*none\s*!important")
+        for name in ("index.html", "feed.html"):
+            self.assertIn('<button id="feed-apply" type="button" hidden>', self.pages[name])
+        self.assertIn('button,.button{display:inline-flex', stylesheet)
 
     def test_every_page_is_written(self):
         incidents = [p.stem for p in (ROOT / "intel" / "incidents").glob("*.json")]
@@ -169,7 +280,8 @@ class RenderTest(unittest.TestCase):
                     + ["records/index.html"] + [f"records/{record['record_id']}.html" for record in record_documents]
                     + [f"entities/{page_name(entity)}.html" for entity in entities]
                     + [f"accounts/{page_name(subject)}.html" for subject in self.subjects]
-                    + ["search.json", "style.css"])
+                    + ["search.json", "style.css"]
+                    + [f"fonts/{p.name}" for p in (ROOT / "intel/ui/fonts").iterdir()])
         self.assertEqual(sorted(self.written), sorted(expected))
 
     def test_record_pages_show_each_stored_field_value(self):
@@ -361,7 +473,7 @@ class RenderTest(unittest.TestCase):
         self.assertNotRegex(page, r"<link[^>]+(?:Geist|Plex|fonts\.googleapis)")
         self.assertNotIn("@import", stylesheet)
         self.assertNotRegex(stylesheet, r"url\(\s*['\"]?https?://")
-        self.assertIn("--ground:11 11 10", stylesheet)
+        self.assertIn("--ground:11 15 23", stylesheet)
         self.assertIn('id="theme-toggle"', page)
 
     def test_top_receivers_page_has_an_honest_empty_state_and_renders_aggregates(self):
@@ -490,17 +602,22 @@ class RenderTest(unittest.TestCase):
 
     def test_every_local_link_resolves_inside_the_site(self):
         root = self.out.resolve()
+        checked_fragments = set()
         for name, page in self.pages.items():
             for link in LINK.findall(page):
                 if link.startswith("https://"):
                     continue
                 with self.subTest(page=name, link=link):
+                    link, _, fragment = link.partition("#")
                     # A root absolute href resolves against the site root, any other against the page's directory.
                     rooted = link.startswith("/") and not link.startswith("//")
                     base = self.out if rooted else (self.out / name).parent
-                    target = (base / html.unescape(link[1:] if rooted else link)).resolve()
+                    target = ((base / html.unescape(link[1:] if rooted else link)) if link else self.out / name).resolve()
                     self.assertIn(root, target.parents)
                     self.assertTrue(target.is_file())
+                    if fragment and (target, fragment) not in checked_fragments:
+                        self.assertIn(f'id="{fragment}"', self.pages[target.relative_to(root).as_posix()])
+                        checked_fragments.add((target, fragment))
 
     def test_the_index_carries_the_counts_lines(self):
         for line in render._counts_lines():
@@ -600,7 +717,7 @@ class RenderTest(unittest.TestCase):
         self.assertNotIn("No signal fired", page)
 
     def test_the_index_headline_is_the_requested_account_sentence(self):
-        self.assertIn(f'<h1 id="page-title">{html.escape(render.HEADLINE)}</h1>', self.pages["index.html"])
+        self.assertIn(f'<p id="payment-introduction">{html.escape(render.HEADLINE)}</p>', self.pages["index.html"])
         self.assertIn("checks whether an account is safe to pay", self.pages["index.html"])
 
     def test_the_verify_page_inputs_carry_placeholders_from_committed_records(self):
@@ -637,8 +754,9 @@ class RenderTest(unittest.TestCase):
         page = self.pages["flows/rhea-collector.html"]
         self.assertEqual(page.count('<div class="card">'), len(document["hops"]))
         summary = page.index('<div class="card summary">')
-        self.assertLess(summary, page.index("<table>"))
-        self.assertLess(page.index("<table>"), page.index('<div class="card state">'))
+        shares_table = page.index("<table>", page.index("<h2>Shares of the gross outbound transfer value</h2>"))
+        self.assertLess(summary, shares_table)
+        self.assertLess(shares_table, page.index('<div class="card state">'))
         self.assertLess(page.index('<div class="card state">'), page.index('<div class="card">'))
         self.assertIn(render.data_text(trace.summary(document)), page)
         self.assertIn(f"stopped while reading {document['completeness']['account']} (1 hop from the subject): the page "
@@ -765,7 +883,7 @@ class RenderTest(unittest.TestCase):
     def test_indexable_drops_the_robots_meta_and_the_default_keeps_it(self):
         with tempfile.TemporaryDirectory() as tmp, contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(intel_main.main(["render", "--out", tmp, "--indexable"]), 0)
-            indexable = {name: (Path(tmp) / name).read_text(encoding="utf-8") for name in self.written}
+            indexable = {name: (Path(tmp) / name).read_text(encoding="utf-8") for name in self.written if name.endswith(".html")}
         for name in (page for page in self.written if page.endswith(".html")):
             with self.subTest(page=name):
                 self.assertIn(ROBOTS, self.pages[name])
@@ -829,11 +947,11 @@ class RenderTest(unittest.TestCase):
                 plain, hypothesis = page[:heading], page[heading:]
                 stated = [a for a in store.assertions if a.subject == row.subject and a.superseded_by is None
                           and a.provenance != "inferred"]
-                self.assertEqual(plain.count("<tr><td>"), len(stated))
-                self.assertNotIn("<td>inferred</td>", plain)
+                self.assertEqual(plain.count('<tr role="row"><td role="cell">'), len(stated))
+                self.assertNotIn('<span class="cell-label" aria-hidden="true">Provenance</span>inferred</td>', plain)
                 self.assertIn(render.data_text(row.label), hypothesis)
-                self.assertIn(f"<td>{row.confidence}</td>", hypothesis)
-                self.assertIn(f'<td class="mono"><q class="data">{row.rule_id}</q></td>', hypothesis)
+                self.assertIn(f'<span class="cell-label" aria-hidden="true">Confidence</span>{row.confidence}</td>', hypothesis)
+                self.assertIn(f'<span class="cell-label" aria-hidden="true">Rule</span><q class="data">{row.rule_id}</q></td>', hypothesis)
                 self.assertNotIn(row.rule_id, plain)
                 for input_id in row.source["inputs"]:
                     self.assertIn(f'<a href="../accounts/{page_name(by_id[input_id].subject)}.html">{input_id}</a>',
@@ -856,8 +974,8 @@ class RenderTest(unittest.TestCase):
         subject = max(chains, key=lambda key: len(set(chains[key])))
         self.assertGreaterEqual(len(set(chains[subject])), 12)
         page = self.pages[f"accounts/{page_name(subject)}.html"]
-        self.assertIn("<th>Chain</th>", page)
-        self.assertEqual(sorted(re.findall(r"<tr><td>([a-z0-9]+)</td>", page)), sorted(chains[subject]))
+        self.assertIn('<th scope="col" role="columnheader">Chain</th>', page)
+        self.assertEqual(sorted(re.findall(r'<td role="cell"><span class="cell-label" aria-hidden="true">Chain</span>([a-z0-9]+)</td>', page)), sorted(chains[subject]))
 
     def test_the_account_page_lists_each_trace_edge_once_with_its_count(self):
         subject, counts = "intents.near", {}

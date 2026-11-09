@@ -42,9 +42,11 @@ import importlib.util
 import json
 import re
 from collections import Counter
+from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 
-from intel import cluster, feed, issuers, labels, records, trace
+from intel import cluster, feed, graph, issuers, labels, records, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 INCIDENTS_DIR = Path(__file__).resolve().parent / "incidents"
@@ -69,67 +71,8 @@ ENTITY_SETS = (("treasuries", "Treasuries", ("treasury",)),
                ("infrastructure", "Infrastructure and bridge accounts", ("infrastructure", "bridge")),
                ("organisations", "Organisations from on chain registries", ("organisation",)))
 ROBOTS = "<meta name=\"robots\" content=\"noindex\">\n"
-STYLE = """
-:root{color-scheme:dark;--ground:11 11 10;--ground-alt:23 23 22;--panel:31 31 30;--ink:247 246 242;
---secondary:163 163 158;--hairline:35 35 34;--hairline-strong:52 52 51;--edge:118 118 113;
---accent:234 102 216;--accent-fill:163 22 143;--focus:234 102 216;--allow:45 180 124;
---allow-text:79 207 149;--block:194 31 48;--block-text:240 117 106;--unknown:139 139 134}
-:root[data-theme="light"]{color-scheme:light;--ground:255 255 255;--ground-alt:247 246 242;--panel:255 255 255;
---ink:20 20 20;--secondary:107 107 102;--hairline:230 229 225;--hairline-strong:205 204 199;
---edge:107 107 102;--accent:163 22 143;--accent-fill:163 22 143;--focus:163 22 143;
---allow:45 180 124;--allow-text:23 112 77;--block:194 31 48;--block-text:168 26 41;--unknown:107 107 102}
-*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:rgb(var(--ground));color:rgb(var(--ink));
-font:16px/1.55 "Geist",Arial,Helvetica,sans-serif}main,header,footer{max-width:1200px;margin:0 auto;padding-left:20px;padding-right:20px}
-header{display:flex;align-items:center;justify-content:space-between;gap:20px;padding-top:16px;padding-bottom:16px;border-bottom:1px solid rgb(var(--hairline))}
-header nav{display:flex;flex-wrap:wrap;gap:18px}header a{font-size:13px;text-decoration:none}main{padding-top:32px;padding-bottom:72px}
-footer{padding-top:20px;padding-bottom:20px;border-top:1px solid rgb(var(--hairline));color:rgb(var(--secondary));font-size:13px}
-a{color:rgb(var(--accent));text-underline-offset:3px}a:hover{color:rgb(var(--accent))}
-h1,h2,h3,p{margin-top:0}h1{max-width:900px;margin-bottom:20px;font-size:clamp(2.5rem,7vw,5.5rem);line-height:1.02;letter-spacing:-.055em}
-h2{font-size:clamp(1.5rem,3vw,2.25rem);line-height:1.15;letter-spacing:-.035em;margin:0 0 18px}
-h3{font-size:1rem;line-height:1.35;margin-bottom:8px}p{margin-bottom:12px}.mono,code{font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.9em;overflow-wrap:anywhere}
-button,input,select{font:inherit}button,.button{min-height:42px;padding:9px 14px;border:1px solid rgb(var(--hairline-strong));
-border-radius:4px;background:rgb(var(--panel));color:rgb(var(--ink));cursor:pointer;text-decoration:none}
-button:hover,.button:hover{border-color:rgb(var(--accent));color:rgb(var(--ink))}button:disabled{opacity:.55;cursor:wait}
-:focus-visible{outline:3px solid rgb(var(--focus));outline-offset:3px}
-input,select{min-height:46px;padding:10px 12px;border:1px solid rgb(var(--edge));border-radius:4px;
-background:rgb(var(--ground));color:rgb(var(--ink))}label{display:grid;gap:7px;font-size:13px;color:rgb(var(--secondary))}
-.eyebrow{margin-bottom:12px;color:rgb(var(--secondary));font:12px/1.3 "IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;text-transform:uppercase;letter-spacing:.1em}
-.hero-topline{display:flex;align-items:center;justify-content:space-between;gap:16px}.hero-topline .eyebrow{margin:0}
-.hero-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(280px,.8fr);gap:48px;align-items:end;padding:30px 0 42px}
-.hero-copy{max-width:780px}.lede{font-size:clamp(1.05rem,2vw,1.3rem);color:rgb(var(--secondary));max-width:720px}
-.outcomes{display:flex;flex-wrap:wrap;gap:8px;margin:24px 0 10px}.outcome{padding:5px 9px;border:1px solid rgb(var(--hairline-strong));border-radius:3px;
-font:12px "IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;letter-spacing:.08em}
-.outcome.allow,.status-allow{color:rgb(var(--allow-text))}.outcome.ask,.status-ask{color:rgb(var(--unknown))}.outcome.deny,.status-deny{color:rgb(var(--block-text))}
-.lookup-card,.panel,.proof-card,.explore-card{border:1px solid rgb(var(--hairline));border-radius:5px;background:rgb(var(--panel));padding:20px}
-.lookup-card{display:grid;gap:14px}.lookup-card button,.primary{background:rgb(var(--accent-fill));border-color:rgb(var(--accent-fill));color:white}
-.lookup-card button:hover,.primary:hover{color:white}
-.account-results{display:grid;gap:12px;padding-top:16px;border-top:1px solid rgb(var(--hairline))}.account-label{padding-top:10px;border-top:1px solid rgb(var(--hairline))}
-.source-line{font-size:13px;color:rgb(var(--secondary));overflow-wrap:anywhere}.live-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-.panel{min-width:0}.panel h3{font-size:1.1rem}.panel-status{margin-top:12px;color:rgb(var(--secondary));font-size:13px}
-.verdict{font:600 1.7rem/1.1 "IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}.verdict.allow{color:rgb(var(--allow-text))}
-.verdict.ask{color:rgb(var(--unknown))}.verdict.deny{color:rgb(var(--block-text))}.check-list,.report-list{display:grid;gap:10px;padding:0;list-style:none}
-.check-list li,.report-card{padding-top:10px;border-top:1px solid rgb(var(--hairline))}.check-status{font:12px "IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;text-transform:uppercase}
-section{margin:72px 0}.section-head{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:20px}
-.tool-tabs{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 12px}.tool-tabs button[aria-selected="true"]{border-color:rgb(var(--accent));color:rgb(var(--accent))}
-.tool-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:end}.tool-form button{grid-column:1/-1;justify-self:start}
-.tool-panel[hidden]{display:none}.results{margin-top:18px}.results:empty{display:none}.proof-grid,.explore-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.proof-card p:last-child,.explore-card p:last-child{margin-bottom:0}.report-tools{display:grid;grid-template-columns:1fr 1fr;gap:14px}.report-form{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end}
-.summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.summary-item{padding:10px;border:1px solid rgb(var(--hairline));border-radius:3px}
-.summary-item strong{display:block;font:14px "IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}.summary-item span{color:rgb(var(--secondary));font-size:12px}
-.coverage{margin-top:20px}.coverage details{padding:16px;border:1px solid rgb(var(--hairline));border-radius:4px}.coverage summary{cursor:pointer;color:rgb(var(--secondary))}
-.limits{padding:24px;border:1px solid rgb(var(--hairline-strong));border-radius:5px;background:rgb(var(--ground-alt))}.limits ul{padding-left:20px}
-.muted{color:rgb(var(--secondary))}.card{background:rgb(var(--panel));border:1px solid rgb(var(--hairline));border-radius:4px;padding:14px 16px;margin:12px 0}
-blockquote.data{margin:8px 0;padding:4px 12px;border-left:3px solid rgb(var(--hairline-strong));color:rgb(var(--secondary))}q.data{color:rgb(var(--secondary))}
-table{border-collapse:collapse}td,th{border-bottom:1px solid rgb(var(--hairline));padding:8px;text-align:left;vertical-align:top}
-.table{overflow-x:auto}.state{overflow-wrap:anywhere}.empty-state{padding:14px;border:1px dashed rgb(var(--edge));color:rgb(var(--secondary))}
-@media(max-width:760px){.hero-grid{grid-template-columns:1fr;gap:24px}.live-grid,.report-tools{grid-template-columns:1fr}
-.tool-form{grid-template-columns:1fr}.tool-form button{grid-column:auto}.proof-grid,.explore-grid{grid-template-columns:1fr}
-.section-head{display:block}.summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:480px){main{padding-top:18px}header{align-items:flex-start;flex-direction:column}
-.lookup-card,.panel,.proof-card,.explore-card{padding:16px}.report-form{grid-template-columns:1fr}.summary-grid{grid-template-columns:1fr}}
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;
-animation-iteration-count:1!important;transition-duration:.01ms!important}}
-"""
+STYLE = (ROOT / "intel/ui/site.css").read_text(encoding="utf-8")
+
 
 # A double quoted source string, which may itself hold escaped quotes and backslashes (JSON text).
 _QUOTED = re.compile(r'"((?:[^"\\]|\\.)*)"')
@@ -196,18 +139,26 @@ def _inputs(assertion, by_id, accounts):
                        for i in assertion.source["inputs"])
 
 
-def page(title, body, depth=0, rooted=False):
+def page(title, body, depth=0, rooted=False, *, inert=False):
     """A whole HTML page; depth is how many directories below the site root it sits, and a rooted page
     links root absolute because it is served at any path."""
     up = "/" if rooted else "../" * depth
     nav = "".join(f'<a href="{up}{href}">{label}</a>' for href, label in (
-        ("index.html", "Home"), ("feed.html", "Feed"), ("verify.html", "Verify")))
+        ("index.html", "Home"), ("flows/rhea-collector.html", "Trace"), ("feed.html", "Feed"), ("index.html#tools", "Payment checks"), ("verify.html", "Verify")))
+    shell = "" if inert else (ROOT / "intel/ui/shell.js").read_text(encoding="utf-8")
+    search = (f'<a class="site-search-link" href="{up}index.html#search">Search accounts / entities</a>' if inert else
+              '<button class="site-search-button" type="button" data-open-search>Search accounts / entities <kbd class="search-key">Ctrl K</kbd></button>'
+              '<button class="theme-toggle" type="button" id="theme-toggle">Use light theme</button>')
+    dialog = "" if inert else (
+        '<dialog class="search-dialog" id="global-search" aria-label="Search accounts and entities">'
+        '<form class="search-dialog-head" method="dialog"><input id="global-search-input" aria-label="Account or entity" autocomplete="off" placeholder="Search accounts and entities">'
+        '<button aria-label="Close search">Close</button></form><div class="search-results" id="global-search-results" aria-live="polite"></div></dialog>')
     return ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"
             f"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n{ROBOTS}"
             f"<title>{esc(title)}</title>\n<link rel=\"stylesheet\" href=\"/style.css\">\n</head>\n<body>\n"
-            f"<header><nav>{nav}</nav></header>\n<main>\n{body}\n</main>\n"
+            f'<header><a class="site-brand" href="{up}index.html">Siyab</a><nav>{nav}</nav><div class="header-actions">{search}</div></header>{dialog}\n<main>\n{body}\n</main>\n'
             "<footer><p>Data: NearBlocks. Blocks: mainnet.neardata.xyz. Transfers: FastNEAR.</p></footer>\n"
-            "</body>\n</html>\n")
+            f'{"<script>" + shell + "</script>" if shell else ""}</body>\n</html>\n')
 
 
 def _counts_lines():
@@ -268,342 +219,61 @@ def _top_receivers_summary(judgements_dir, ranking_path=TOP_RECEIVERS_RANKING_PA
             "ranking": ranking}
 
 
-INDEX_SCRIPT = """
-const themeToggle = document.getElementById("theme-toggle");
-const setThemeLabel = () => {
-  const light = document.documentElement.dataset.theme === "light";
-  themeToggle.textContent = light ? "Use dark theme" : "Use light theme";
-  themeToggle.setAttribute("aria-label", light ? "Switch to dark theme" : "Switch to light theme");
-};
-setThemeLabel();
-themeToggle.addEventListener("click", () => {
-  document.documentElement.dataset.theme = document.documentElement.dataset.theme === "light" ? "dark" : "light";
-  setThemeLabel();
-});
+INDEX_SCRIPT = (ROOT / "intel/ui/index.js").read_text(encoding="utf-8")
 
-const labelForm = document.getElementById("account-form");
-const accountInput = document.getElementById("account-input");
-const amountInput = document.getElementById("account-amount");
-const labelsPanel = document.getElementById("account-labels");
-let searchIndex;
-const liveUnavailable = "Live checks are not available on this copy";
-const requestTokens = new WeakMap();
-const beginRequest = panel => {
-  const token = (requestTokens.get(panel) || 0) + 1;
-  requestTokens.set(panel, token);
-  return token;
-};
-const isCurrentRequest = (panel, token) => requestTokens.get(panel) === token;
-const addText = (parent, tag, text, className = "") => {
-  const element = document.createElement(tag);
-  element.textContent = String(text);
-  if (className) element.className = className;
-  parent.append(element);
-  return element;
-};
-const showUnavailable = (panel, token) => {
-  if (!isCurrentRequest(panel, token)) return;
-  panel.replaceChildren();
-  addText(panel, "p", liveUnavailable, "empty-state");
-};
-const readJson = async (path, panel, token) => {
-  try {
-    const response = await fetch(path, {headers: {Accept: "application/json"}});
-    if (!isCurrentRequest(panel, token)) return null;
-    const contentType = (response.headers.get("content-type") || "").toLowerCase();
-    if (response.status === 404 || !contentType.includes("application/json")) {
-      showUnavailable(panel, token);
-      return null;
-    }
-    const data = await response.json();
-    if (!isCurrentRequest(panel, token)) return null;
-    if (!data || typeof data !== "object") {
-      showUnavailable(panel, token);
-      return null;
-    }
-    if (!response.ok) {
-      panel.replaceChildren();
-      addText(panel, "p", data.message || "The live request did not return a result.", "empty-state");
-      return null;
-    }
-    return data;
-  } catch (error) {
-    showUnavailable(panel, token);
-    return null;
-  }
-};
-const renderSource = (parent, entry) => {
-  const line = document.createElement("p");
-  line.className = "source-line";
-  const source = entry.source;
-  if (source.url && source.url.startsWith("https://")) {
-    const link = document.createElement("a");
-    link.href = source.url;
-    link.textContent = source.url;
-    line.append(link);
-  } else if (source.method && source.rpc) {
-    line.textContent = `${entry.provenance} source: ${source.method} at block ${source.block} via ${source.rpc}`;
-  } else if (source.rule_id) {
-    line.textContent = `${entry.provenance} source: rule ${source.rule_id}, ${source.inputs.length} input assertions`;
-  } else {
-    line.textContent = `${entry.provenance} source recorded at ${entry.observed_at}`;
-  }
-  parent.append(line);
-};
-const renderLabels = () => {
-  if (!searchIndex) return;
-  const subject = accountInput.value.trim();
-  labelsPanel.replaceChildren();
-  if (!subject) return;
-  const entry = searchIndex.accounts.find(row => row.subject.toLowerCase() === subject.toLowerCase());
-  if (!entry) {
-    addText(labelsPanel, "p", "Not in the label store.", "empty-state");
-    return;
-  }
-  const link = addText(labelsPanel, "a", `Open account page for ${entry.subject}`);
-  link.href = `/${entry.url}`;
-  for (const assertion of entry.label_sources) {
-    const item = document.createElement("article");
-    item.className = "account-label";
-    addText(item, "h3", assertion.label);
-    addText(item, "p", `${assertion.chain} · ${assertion.provenance}`, "muted");
-    renderSource(item, assertion);
-    labelsPanel.append(item);
-  }
-};
-const renderVerdict = (panel, data, showOfac = false, token) => {
-  const ofac = showOfac && Array.isArray(data.checks)
-    ? data.checks.find(item => item && typeof item.name === "string" && item.name.toLowerCase().includes("ofac"))
-    : null;
-  const valid = ["ALLOW", "ASK", "DENY"].includes(data.outcome)
-    && data.verdict === null && typeof data.action === "string" && typeof data.evidence_hash === "string"
-    && "freshness" in data && data.signing === "never" && Number.isFinite(data.latency_ms)
-    && Array.isArray(data.reasons) && data.reasons.every(reason => typeof reason === "string")
-    && Array.isArray(data.checks) && data.checks.length > 0
-    && data.checks.every(check => check && typeof check.name === "string"
-      && typeof check.status === "string" && typeof check.detail === "string")
-    && data.checks.every(check => ["pass", "signal", "unknown"].includes(check.status.trim().toLowerCase()))
-    && (data.outcome !== "ALLOW" || data.checks.every(check => check.status.trim().toLowerCase() === "pass"))
-    && (!showOfac || ofac);
-  if (!valid) {
-    showUnavailable(panel, token);
-    return;
-  }
-  const isGreen = data.outcome === "ALLOW" && data.action === "sign"
-    && data.evidence_hash.trim().length > 0 && data.freshness !== null
-    && data.checks.every(check => check.status.trim().toLowerCase() === "pass");
-  const displayOutcome = data.outcome === "ALLOW" && !isGreen ? "ASK" : data.outcome;
-  panel.replaceChildren();
-  addText(panel, "p", displayOutcome, `verdict ${isGreen ? "allow" : displayOutcome.toLowerCase()}`);
-  if (typeof data.action === "string") addText(panel, "p", `Action: ${data.action}`);
-  if (data.outcome === "ALLOW" && data.action === "ask") {
-    addText(panel, "p", "A person must decide before this payment can proceed.", "panel-status");
-  }
-  if (showOfac) {
-    addText(panel, "p", `OFAC sanctions: ${ofac.status}. ${ofac.detail}`, "panel-status");
-  }
-  addText(panel, "h4", "Reasons");
-  const reasons = document.createElement("ul");
-  for (const reason of data.reasons) addText(reasons, "li", reason);
-  panel.append(reasons);
-  addText(panel, "h4", "Checks");
-  const checks = document.createElement("ul");
-  checks.className = "check-list";
-  for (const check of data.checks) {
-    const item = document.createElement("li");
-    addText(item, "span", `${check.name}: ${check.status}`, "check-status");
-    addText(item, "p", check.detail);
-    checks.append(item);
-  }
-  panel.append(checks);
-  if (typeof data.evidence_hash === "string") addText(panel, "p", `Evidence hash: ${data.evidence_hash}`, "mono");
-  addText(panel, "p", `Freshness: ${JSON.stringify(data.freshness)}`, "panel-status");
-  addText(panel, "p", `Signing: ${data.signing}`, "panel-status");
-  addText(panel, "p", `Read time: ${data.latency_ms} ms`, "panel-status");
-};
-const renderScan = (panel, data, token) => {
-  const listFields = ["full_access_keys", "empty_method_names", "dead_keys", "unlimited_allowance", "findings"];
-  if (!Number.isInteger(data.access_keys) || !listFields.every(key => Array.isArray(data[key]))
-      || !data.findings.every(item => typeof item === "string")
-      || !listFields.slice(0, 4).every(key => data[key].every(item => typeof item === "string"))
-      || !(typeof data.read_at_block === "number" || typeof data.read_at_block === "string")) {
-    showUnavailable(panel, token);
-    return;
-  }
-  panel.replaceChildren();
-  addText(panel, "p", `${data.access_keys} access keys read at block ${data.read_at_block}.`);
-  for (const [key, label] of [["full_access_keys", "Full access keys"], ["empty_method_names", "Keys with an empty method list"],
-    ["dead_keys", "Keys with a zero allowance"], ["unlimited_allowance", "Keys without an allowance limit"]]) {
-    const section = document.createElement("section");
-    addText(section, "h4", `${label}: ${data[key].length}`);
-    if (data[key].length) {
-      const list = document.createElement("ul");
-      for (const value of data[key]) addText(list, "li", value, "mono");
-      section.append(list);
-    }
-    panel.append(section);
-  }
-  addText(panel, "h4", "Read findings");
-  if (data.findings.length) {
-    const list = document.createElement("ul");
-    for (const finding of data.findings) addText(list, "li", finding);
-    panel.append(list);
-  } else {
-    addText(panel, "p", "No key findings were returned in this read. This is not a payment verdict.", "panel-status");
-  }
-};
-const runAccountChecks = async () => {
-  const subject = accountInput.value.trim();
-  if (!subject) return;
-  const verdictPanel = document.getElementById("account-verdict");
-  const scanPanel = document.getElementById("account-scan");
-  const verdictToken = beginRequest(verdictPanel);
-  const scanToken = beginRequest(scanPanel);
-  verdictPanel.replaceChildren();
-  scanPanel.replaceChildren();
-  addText(verdictPanel, "p", "Reading the live verdict route.", "panel-status");
-  addText(scanPanel, "p", "Reading the live scan route.", "panel-status");
-  const amount = amountInput.value.trim();
-  const verdictUrl = `/live/verdict?${new URLSearchParams({receiver: subject, amount, token: "near"})}`;
-  const [verdict, scan] = await Promise.all([
-    readJson(verdictUrl, verdictPanel, verdictToken),
-    readJson(`/live/scan/${encodeURIComponent(subject)}`, scanPanel, scanToken)
-  ]);
-  if (verdict && isCurrentRequest(verdictPanel, verdictToken)) {
-    renderVerdict(verdictPanel, verdict, false, verdictToken);
-    addText(verdictPanel, "p", `Amount checked: ${amount} NEAR to ${subject}.`, "panel-status");
-  }
-  if (scan && isCurrentRequest(scanPanel, scanToken)) renderScan(scanPanel, scan, scanToken);
-};
-labelForm.addEventListener("submit", event => {
-  event.preventDefault();
-  renderLabels();
-  runAccountChecks();
-});
-accountInput.addEventListener("input", renderLabels);
-fetch("/search.json", {headers: {Accept: "application/json"}}).then(response => {
-  if (!response.ok) throw new Error("search index unavailable");
-  return response.json();
-}).then(data => {
-  if (!data || !Array.isArray(data.accounts)) throw new Error("search index unreadable");
-  searchIndex = data;
-  renderLabels();
-}).catch(() => {
-  labelsPanel.replaceChildren();
-  addText(labelsPanel, "p", "Committed label search is unavailable.", "empty-state");
-});
 
-const tabs = Array.from(document.querySelectorAll("[role=tab]"));
-for (const tab of tabs) tab.addEventListener("click", () => {
-  for (const other of tabs) {
-    const active = other === tab;
-    other.setAttribute("aria-selected", String(active));
-    document.getElementById(other.getAttribute("aria-controls")).hidden = !active;
-  }
-});
-const addVerdictForm = (formId, panelId, route, showOfac = false) => {
-  document.getElementById(formId).addEventListener("submit", async event => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const values = new FormData(form);
-    const panel = document.getElementById(panelId);
-    const requestToken = beginRequest(panel);
-    panel.replaceChildren();
-    addText(panel, "p", "Reading the live route.", "panel-status");
-    const data = await readJson(route(values), panel, requestToken);
-    if (data && isCurrentRequest(panel, requestToken)) renderVerdict(panel, data, showOfac, requestToken);
-  });
-};
-addVerdictForm("tool-verdict-form", "tool-verdict-result", values => {
-  const params = new URLSearchParams({receiver: values.get("receiver"), amount: values.get("amount"),
-    token: values.get("token")});
-  return `/live/verdict?${params}`;
-});
-document.getElementById("tool-scan-form").addEventListener("submit", async event => {
-  event.preventDefault();
-  const subject = new FormData(event.currentTarget).get("account").trim();
-  const panel = document.getElementById("tool-scan-result");
-  const requestToken = beginRequest(panel);
-  panel.replaceChildren();
-  addText(panel, "p", "Reading the live scan route.", "panel-status");
-  const data = await readJson(`/live/scan/${encodeURIComponent(subject)}`, panel, requestToken);
-  if (data && isCurrentRequest(panel, requestToken)) renderScan(panel, data, requestToken);
-});
-addVerdictForm("tool-intent-form", "tool-intent-result", values => {
-  const params = new URLSearchParams({destination_asset: values.get("destination_asset"),
-    recipient: values.get("recipient"), amount: values.get("amount")});
-  return `/live/intents?${params}`;
-}, true);
+def _graph_section(payload, evidence_url=None):
+    if evidence_url:
+        payload["source"]["evidence_url"] = evidence_url
+    for node in payload["nodes"]:
+        if node["url"]:
+            node["url"] = "/" + node["url"].removeprefix("../")
+    encoded = json.dumps(payload, ensure_ascii=True, separators=(",", ":")).replace("<", "\\u003c")
+    script = (ROOT / "intel/ui/graphs.js").read_text(encoding="utf-8")
+    return ('<section data-siyab-graph aria-label="Recorded investigation graph">'
+            f'<script type="application/json">{encoded}</script></section><script>{script}</script>')
 
-const appendReport = (parent, report) => {
-  const item = document.createElement("article");
-  item.className = "report-card";
-  addText(item, "h4", `Report ${report.id}: ${report.subject}`);
-  addText(item, "p", `${report.kind} · ${report.outcome} · ${report.status}`);
-  addText(item, "p", `Submitter: ${report.submitter}; moderator: ${report.moderator || "pending"}`);
-  if (typeof report.evidence_url === "string" && report.evidence_url.startsWith("https://")) {
-    const link = addText(item, "a", "Open cited evidence");
-    link.href = report.evidence_url;
-  }
-  addText(item, "p", `Evidence SHA-256: ${report.evidence_sha256}`, "mono");
-  parent.append(item);
-};
-const validReports = reports => Array.isArray(reports) && reports.every(report => report
-  && (typeof report.id === "number" || typeof report.id === "string")
-  && ["subject", "kind", "outcome", "status", "evidence_url", "evidence_sha256", "submitter"]
-    .every(key => typeof report[key] === "string")
-  && (typeof report.moderator === "string" || report.moderator === null));
-const renderRecentReports = (panel, data, token) => {
-  const reports = Array.isArray(data) ? data : data.reports;
-  if (!validReports(reports)) {
-    showUnavailable(panel, token);
-    return;
-  }
-  panel.replaceChildren();
-  if (!reports.length) addText(panel, "p", "No reports were returned by this read.", "panel-status");
-  for (const report of reports) appendReport(panel, report);
-};
-const recentPanel = document.getElementById("recent-reports");
-const recentToken = beginRequest(recentPanel);
-readJson("/live/reports/recent", recentPanel, recentToken).then(data => {
-  if (data && isCurrentRequest(recentPanel, recentToken)) renderRecentReports(recentPanel, data, recentToken);
-});
-document.getElementById("report-lookup-form").addEventListener("submit", async event => {
-  event.preventDefault();
-  const subject = new FormData(event.currentTarget).get("subject").trim();
-  const panel = document.getElementById("report-lookup-result");
-  const requestToken = beginRequest(panel);
-  panel.replaceChildren();
-  addText(panel, "p", "Reading the live reports route.", "panel-status");
-  const data = await readJson(`/live/reports?${new URLSearchParams({subject})}`, panel, requestToken);
-  if (!data || !isCurrentRequest(panel, requestToken)) return;
-  const summary = data.subject_summary;
-  const fields = ["accepted", "contested", "deny", "pending", "latest_accepted_id", "latest_deny_id"];
-  const validSummary = summary && typeof summary === "object"
-    && Number.isInteger(summary.accepted) && Number.isInteger(summary.contested)
-    && typeof summary.deny === "boolean" && Number.isInteger(summary.pending)
-    && (summary.latest_accepted_id === null || Number.isInteger(summary.latest_accepted_id))
-    && (summary.latest_deny_id === null || Number.isInteger(summary.latest_deny_id));
-  if (!validSummary
-      || !validReports(data.reports)) {
-    showUnavailable(panel, requestToken);
-    return;
-  }
-  panel.replaceChildren();
-  addText(panel, "h4", `Report summary for ${subject}`);
-  const summaryGrid = document.createElement("div");
-  summaryGrid.className = "summary-grid";
-  for (const key of fields) {
-    const item = document.createElement("div");
-    item.className = "summary-item";
-    addText(item, "strong", summary[key] === null ? "none" : summary[key]);
-    addText(item, "span", key);
-    summaryGrid.append(item);
-  }
-  panel.append(summaryGrid);
-  for (const report of data.reports) appendReport(panel, report);
-});
-"""
+
+def _feed_panel():
+    return ('<article class="analytics-panel"><div class="analytics-panel-head"><h2>Follower health</h2>'
+            '<a href="/feed.html">Open feed</a></div><div class="workspace-panel-body" id="feed-health" aria-live="polite">'
+            '<p>Reading follower state. Live data may be unavailable on a static copy.</p></div>'
+            '<div class="workspace-panel-body"><button id="feed-pause" type="button">Pause updates</button> '
+            '<button id="feed-apply" type="button" hidden>Show new events</button>'
+            '<div id="feed-events"></div></div></article>')
+
+
+def _workspace(flows, clusters, store, summary):
+    accounts = account_pages(store)
+    graph_view = (_graph_section(graph.flow_payload(flows[0][1], accounts), f"/flows/{flows[0][0]}.html") if flows else
+                  _graph_section(graph.cluster_payload(clusters[0][1], accounts), f"/clusters/{clusters[0][0]}.html") if clusters else
+                  '<p>No recorded investigation is available.</p>')
+    graph_link = (f'<a href="flows/{esc(flows[0][0])}.html">Open recorded trace and evidence</a>' if flows else "")
+    provenance = Counter(a.provenance for a in store.assertions if a.superseded_by is None)
+    total = sum(provenance.values())
+    def bars(items, denominator):
+        return ''.join(f'<div class="analytics-row"><span>{esc(label)}</span><div class="analytics-track">'
+                       f'<div class="analytics-fill {esc(label.lower())}" style="width:{100 * count / max(1, denominator):.3f}%"></div>'
+                       f'</div><strong class="num">{count}</strong></div>' for label, count in items)
+    cohort = (bars(((key, summary["verdicts"][key]) for key in ("ALLOW", "DENY", "UNKNOWN")), summary["total"])
+              if summary else '<p>Judgements are not yet published.</p>')
+    return ('<section class="workspace-overview"><div class="workspace-heading"><div>'
+            '<h1 id="page-title">Investigate</h1></div>'
+            '<a class="button" href="#tools">Check a payment</a></div>'
+            '<form class="workspace-search" id="search" action="/index.html" method="get">'
+            '<input name="q" aria-label="Search recorded accounts and entities" placeholder="Find an account or entity" autocomplete="off">'
+            '<button type="submit" data-workspace-search>Investigate</button></form>'
+            '<noscript><p>Browse <a href="entities/infrastructure.html">infrastructure accounts</a>, <a href="entities/organisations.html">organisations</a> and the <a href="#explore-title">recorded investigations</a>.</p></noscript>'
+            f'<p class="workspace-context">Recorded mainnet investigation. {graph_link}</p>'
+            + graph_view + (_flow_analytics(flows[0][1], accounts) if flows else "") + '<div class="analytics-grid"><article class="analytics-panel">'
+            '<div class="analytics-panel-head"><h2>Recorded receiver cohort</h2><a href="top-receivers.html">Sources and limits</a></div>'
+            f'<div class="analytics-chart">{cohort}</div><p class="analytics-note">Recorded receiver judgements, not a rate over all NEAR payees.</p></article>'
+            '<article class="analytics-panel"><div class="analytics-panel-head"><h2>Current label provenance</h2>'
+            '<a href="#explore-title">Explore sources</a></div>'
+            f'<div class="analytics-chart">{bars(sorted(provenance.items()), total)}</div>'
+            '<p class="analytics-note">Current assertions in the committed label store. Inferred labels remain hypotheses.</p></article>'
+            + _feed_panel() + '</div></section><script>'
+            + (ROOT / "intel/ui/feed.js").read_text(encoding="utf-8") + '</script>')
 
 
 def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVERS_JUDGEMENTS_DIR):
@@ -643,10 +313,10 @@ def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVE
                   f'{top_summary["verdicts"]["DENY"]} DENY, {top_summary["verdicts"]["UNKNOWN"]} UNKNOWN.</p>'
                   if top_summary else "")
     body = (
-        '<section class="hero-grid" aria-labelledby="page-title"><div class="hero-copy">'
+        '<section class="hero-grid" aria-labelledby="payment-introduction"><div class="hero-copy">'
         '<div class="hero-topline"><p class="eyebrow">NEAR PAYMENT PREFLIGHT</p>'
-        '<button class="theme-toggle" type="button" id="theme-toggle" aria-label="Switch to light theme">Use light theme</button></div>'
-        f'<h1 id="page-title">{esc(HEADLINE)}</h1>'
+        '</div>'
+        f'<p id="payment-introduction">{esc(HEADLINE)}</p>'
         '<p class="lede">Every answer names its source. ALLOW, ASK and DENY are the outcomes. Only an ALLOW is signed, and the Gate contract enforces it.</p>'
         '<div class="outcomes" aria-label="Verdict outcomes"><span class="outcome allow">ALLOW</span>'
         '<span class="outcome ask">ASK</span><span class="outcome deny">DENY</span></div>'
@@ -716,15 +386,16 @@ def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVE
         '<code>scripts/counts.py</code>.</p></details></div></section>'
         '<section class="limits" aria-labelledby="limits-title"><p class="eyebrow">Scope and limits</p><h2 id="limits-title">What these reads mean</h2>'
         '<ul><li>The Gate and Reports contracts shown here run on testnet. Live verdict, scan and swap checks read mainnet.</li>'
-        '<li>One team moderator today.</li>'
+        '<li>8 Nov demonstration configuration: One team moderator today.</li>'
         f'<li>Label store size: {label_count["assertions"]} assertions over {label_count["subjects"]} subjects.</li>'
         '<li>Live API checks are read only, rate limited and never sign.</li></ul>'
+        f'<p class="muted">The following quotation describes the recorded 8 Nov demonstration, not current contract totals. <a href="{GITHUB_REPO}/blob/main/docs/TESTNET.md">Dated reports updates</a> include the later threshold run.</p>'
         '<blockquote class="data">The only report on the testnet Reports contract is the synthetic one filed on 8 Nov by our own accounts against our demo account and overturned by the same owner in that run; a totals read of 1 is not a community signal.</blockquote>'
         '<blockquote class="data">The receiver lines of the counts block are the replay of a recorded mainnet receiver set, not a rate over all NEAR payees.</blockquote>'
         '<p class="muted">An unreadable check returns no ALLOW. Unknown never passes.</p></section>'
         f'<script>{INDEX_SCRIPT}</script>'
     )
-    return page("Siyab", body)
+    return page("Siyab", _workspace(flows, clusters, store, top_summary) + body)
 
 
 def search_index(store, pages, entities, entity_paths):
@@ -843,7 +514,7 @@ def feed_page(state_path=feed.STATE_PATH, events_dir=feed.EVENTS_DIR, *, state=N
     body = (f"<h1>Feed over finalized mainnet blocks</h1>\n{window}<ul>{stats}</ul>\n<h2>Events</h2>\n{count}"
             + (cards or ("" if unreadable else "<p>No signal fired over the recorded blocks.</p>"))
             + "\n<p class=\"muted\">The signals: " + ", ".join(feed.SIGNALS) + ".</p>")
-    return page("Feed", body)
+    return page("Feed", _feed_panel() + body + '<script>' + (ROOT / "intel/ui/feed.js").read_text(encoding="utf-8") + '</script>')
 
 
 def incident_page(document, accounts):
@@ -916,26 +587,33 @@ def entity_page(title, categories, store):
 
 def account_page(subject, store, accounts, incidents, flows, clusters, events_dir=feed.EVENTS_DIR):
     assertions = [a for a in store.assertions if a.subject == subject and a.superseded_by is None]
-    rows = "".join(f'<tr><td>{esc(a.chain)}</td><td>{data_text(a.label)}</td><td>{esc(a.category)}</td>'
-                   f'<td>{esc(a.provenance)}</td><td>{data_text(a.note)}</td><td class="mono"><q class="data">'
+    rows = "".join(f'<tr role="row"><td role="cell"><span class="cell-label" aria-hidden="true">Chain</span>{esc(a.chain)}</td><td role="cell"><span class="cell-label" aria-hidden="true">Label</span>{data_text(a.label)}</td><td role="cell"><span class="cell-label" aria-hidden="true">Category</span>{esc(a.category)}</td>'
+                   f'<td role="cell"><span class="cell-label" aria-hidden="true">Provenance</span>{esc(a.provenance)}</td><td role="cell"><span class="cell-label" aria-hidden="true">Note</span>{data_text(a.note)}</td><td role="cell" class="mono"><span class="cell-label" aria-hidden="true">Source</span><q class="data">'
                    f'{esc(json.dumps(a.source, ensure_ascii=False, sort_keys=True))}</q></td></tr>'
                    for a in assertions if a.provenance != "inferred")
-    body = (f'<h1>Account</h1><p class="mono"><q class="data">{esc(subject)}</q></p>'
-            f'<h2>Current label rows from sources and chain reads</h2><div class="table"><table><thead><tr>'
-            f'<th>Chain</th><th>Label</th><th>Category</th><th>Provenance</th><th>Note</th><th>Source</th></tr>'
-            f'</thead><tbody>{rows}</tbody></table></div>')
+    provenance = Counter(a.provenance for a in assertions)
+    overview = "".join(f'<span>{esc(kind)}<strong>{count}</strong></span>' for kind, count in sorted(provenance.items()))
+    body = (f'<div class="profile-heading"><div><h1>Account</h1>'
+            f'<p class="mono"><q class="data">{esc(subject)}</q></p></div>'
+            '<a class="button" href="/index.html#tools">Payment and key checks</a></div>'
+            f'<section class="workspace-panel"><div class="workspace-panel-head"><h2>Recorded evidence overview</h2></div>'
+            f'<div class="workspace-panel-body analytics-inline">{overview}</div>'
+            '<p class="analytics-note">Current label assertions by provenance. These records do not establish a live balance or payment result.</p></section>'
+            f'<h2>Current label rows from sources and chain reads</h2><div class="table"><table class="account-assertions" role="table"><thead role="rowgroup"><tr role="row">'
+            f'<th scope="col" role="columnheader">Chain</th><th scope="col" role="columnheader">Label</th><th scope="col" role="columnheader">Category</th><th scope="col" role="columnheader">Provenance</th><th scope="col" role="columnheader">Note</th><th scope="col" role="columnheader">Source</th></tr>'
+            f'</thead><tbody role="rowgroup">{rows}</tbody></table></div>')
     inferred = [a for a in assertions if a.provenance == "inferred"]
     if inferred:
         by_id = {a.id: a for a in store.assertions}
-        rows = "".join(f'<tr><td>{esc(a.chain)}</td><td>{data_text(a.label)}</td><td>{esc(a.category)}</td>'
-                       f'<td class="mono"><q class="data">{esc(a.rule_id)}</q></td>'
-                       f'<td class="mono">{_inputs(a, by_id, accounts)}</td><td>{a.confidence}</td>'
-                       f'<td>{data_text(a.note)}</td></tr>' for a in inferred)
+        rows = "".join(f'<tr role="row"><td role="cell"><span class="cell-label" aria-hidden="true">Chain</span>{esc(a.chain)}</td><td role="cell"><span class="cell-label" aria-hidden="true">Label</span>{data_text(a.label)}</td><td role="cell"><span class="cell-label" aria-hidden="true">Category</span>{esc(a.category)}</td>'
+                       f'<td role="cell" class="mono"><span class="cell-label" aria-hidden="true">Rule</span><q class="data">{esc(a.rule_id)}</q></td>'
+                       f'<td role="cell" class="mono"><span class="cell-label" aria-hidden="true">Inputs</span>{_inputs(a, by_id, accounts)}</td><td role="cell"><span class="cell-label" aria-hidden="true">Confidence</span>{a.confidence}</td>'
+                       f'<td role="cell"><span class="cell-label" aria-hidden="true">Note</span>{data_text(a.note)}</td></tr>' for a in inferred)
         body += ('<h2>Attribution hypothesis</h2><p>Each row below is inferred: it names the rule that inferred '
-                 'it, the assertions the rule read as its inputs and its confidence.</p><div class="table"><table>'
-                 '<thead><tr><th>Chain</th><th>Label</th><th>Category</th><th>Rule</th><th>Inputs</th>'
-                 '<th>Confidence</th><th>Note</th></tr></thead>'
-                 f'<tbody>{rows}</tbody></table></div>')
+                 'it, the assertions the rule read as its inputs and its confidence.</p><div class="table"><table class="account-inferred" role="table">'
+                 '<thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Chain</th><th scope="col" role="columnheader">Label</th><th scope="col" role="columnheader">Category</th><th scope="col" role="columnheader">Rule</th><th scope="col" role="columnheader">Inputs</th>'
+                 '<th scope="col" role="columnheader">Confidence</th><th scope="col" role="columnheader">Note</th></tr></thead>'
+                 f'<tbody role="rowgroup">{rows}</tbody></table></div>')
     named = [(document["id"], document["title"]) for document in incidents
              if any(account["subject"] == subject for account in document.get("accounts", []))]
     body += "<h2>Incident pages naming this account</h2>" + ("<ul>" + "".join(
@@ -975,7 +653,9 @@ def account_page(subject, store, accounts, incidents, flows, clusters, events_di
 def registry_entity_page(entity, accounts):
     source = entity["source"]
     members = "".join(f'<li>{_subject_cell(member, accounts)}</li>' for member in entity["members"])
-    body = (f'<h1>{esc(entity["kind"].replace("_", " ").title())}</h1>'
+    body = ('<div class="profile-heading"><div>'
+            f'<h1>{esc(entity["kind"].replace("_", " ").title())}</h1></div>'
+            f'<p>{len(entity["members"])} recorded members</p></div>'
             f'<p><q class="data">{esc(entity["name"])}</q></p>'
             f'<p>Registry read: {esc(source["method"])} at block {source["block"]}, '
             f'arguments {esc(json.dumps(source["args"], sort_keys=True))}</p>'
@@ -1027,7 +707,7 @@ def cluster_page(name, document, accounts):
             f"<h2>Precision</h2><ul>{precision}</ul><h2>Depositors</h2>{counted}"
             f"<p class=\"muted\">Read {esc(document['fetched_at'])}. docs/CLUSTER.md states the heuristics and their "
             "limits.</p>")
-    return page(f"Account relationship edges: {name}", body, depth=1)
+    return page(f"Account relationship edges: {name}", _graph_section(graph.cluster_payload(document, accounts), f"/clusters/{name}.html") + body, depth=1)
 
 
 def _hop_card(hop, accounts):
@@ -1037,6 +717,67 @@ def _hop_card(hop, accounts):
             f'<span class="mono">{esc(hop["asset_id"])}</span>{esc(usd)}, method {esc(hop["method_name"] or "none")}</p>'
             f'<p class="mono muted">block {hop["block"]} at {esc(trace.utc_minute(hop["block_timestamp"]))}<br>transaction '
             f'{esc(hop["transaction_hash"])}<br>receipt {esc(hop["receipt_id"])}</p></div>')
+
+
+def _flow_timeline(document):
+    timestamps = [int(hop["block_timestamp"]) for hop in document["hops"] if hop["from"] == document["subject"]]
+    if not timestamps:
+        return []
+    first, last = min(timestamps), max(timestamps)
+    span = last - first + 1
+    size = min(12, span)
+    counts = Counter(min(size - 1, (stamp - first) * size // span) for stamp in timestamps)
+    return [{"from_ns": first + (index * span + size - 1) // size,
+             "to_ns": first + ((index + 1) * span + size - 1) // size,
+             "count": counts[index]} for index in range(size)]
+
+
+def _flow_analytics(document, accounts):
+    shares = document["shares"]
+    distribution = "".join(
+        f'<div class="analytics-row" data-share-bucket="{index}" data-usd="{esc(bucket["usd"])}">'
+        f'<span class="analytics-label">{_subject_cell(bucket["to"], accounts).replace('href="../', 'href="/')}'
+        f'<small>{esc(bucket["kind"])}; {Decimal(bucket["usd"]):,.2f} USD; {bucket["count"]} rows</small></span>'
+        f'<div class="analytics-track"><div class="analytics-fill" style="width:{max(0, min(100, float(bucket["percent"]))):.2f}%"></div></div>'
+        f'<strong class="num">{esc(bucket["percent"])}%</strong></div>'
+        for index, bucket in enumerate(shares["buckets"]))
+    below, unknown = shares["below_min_usd"], shares["without_usd"]
+    units = ", ".join(f"{amount} of {asset}" for asset, amount in unknown["base_units"].items()) or "none recorded"
+    timeline = _flow_timeline(document)
+    if timeline:
+        def utc(stamp, exact=False):
+            seconds = datetime.fromtimestamp(stamp // 1000000000, UTC).strftime("%Y-%m-%d %H:%M:%S")
+            return seconds + (f'.{stamp % 1000000000:09d} UTC' if exact else " UTC")
+        maximum = max(row["count"] for row in timeline)
+        bars, rows = [], []
+        for index, row in enumerate(timeline):
+            height = 100 * row["count"] / maximum
+            bars.append(f'<rect x="{index * 40 + 3}" y="{110 - height:.3f}" width="34" height="{height:.3f}">'
+                        f'<title>{row["count"]} transfers</title></rect>')
+            rows.append(f'<tr data-from-ns="{row["from_ns"]}" data-to-ns="{row["to_ns"]}">'
+                        f'<td>{utc(row["from_ns"], True)}</td><td>{utc(row["to_ns"], True)}</td><td class="num">{row["count"]}</td></tr>')
+        total = sum(row["count"] for row in timeline)
+        chart = (f'<p class="analytics-note">{total} root outbound transfers from {utc(timeline[0]["from_ns"])} '
+                 f'to {utc(timeline[-1]["to_ns"] - 1)}. Counts include rows with unknown USD; deeper hops are excluded.</p>'
+                 f'<svg class="analytics-histogram" viewBox="0 0 {len(timeline) * 40} 120" role="img" aria-label="Recorded root outbound transfer counts">'
+                 f'<title>{total} recorded transfers in {len(timeline)} time bins</title>{"".join(bars)}</svg>'
+                 '<details class="analytics-bin-values"><summary>Exact time bounds and transfer counts</summary>'
+                 '<p>Bins include their start and exclude their end; nanosecond bounds come from recorded block timestamps.</p>'
+                 '<div class="table"><table><thead><tr><th>From UTC (inclusive)</th><th>To UTC (exclusive)</th><th>Transfers</th></tr></thead>'
+                 f'<tbody>{"".join(rows)}</tbody></table></div></details>')
+    else:
+        chart = '<p class="analytics-note">No recorded root outbound transfers.</p>'
+    return ('<section class="analytics-grid flow-analytics" aria-label="Full recorded flow analytics">'
+            f'<article class="analytics-panel" data-direct-usd="{esc(shares["direct_outbound_usd"])}"><div class="analytics-panel-head"><h2>Direct outbound distribution</h2></div>'
+            f'<p class="analytics-note">Full recorded dataset, not the current graph filter. Denominator: {Decimal(shares["direct_outbound_usd"]):,.2f} USD '
+            f'across {shares["rows"]} root outbound rows valued at or above {esc(shares["min_usd"])} USD by the Transfers API. '
+            'Deeper hops are excluded; this is gross transfer value, not loss.</p>'
+            f'<div class="analytics-chart">{distribution or "<p>No direct outbound rows meet the USD threshold.</p>"}</div>'
+            f'<p class="analytics-note">{below["count"]} rows below {esc(shares["min_usd"])} USD: {Decimal(below["usd"]):,.2f} USD, counted separately. '
+            f'{unknown["count"]} rows without a USD amount; their value is unknown, not zero. Base units: {esc(units)}.</p></article>'
+            '<article class="analytics-panel"><div class="analytics-panel-head"><h2>Recorded transfer activity</h2></div>'
+            '<p class="analytics-note">Full recorded dataset, not the current graph filter. Transfer counts, not a USD or price history.</p>'
+            f'{chart}</article></section>')
 
 
 def _shares_table(shares, accounts):
@@ -1067,7 +808,7 @@ def _state_card(reads):
     return '<div class="card state">' + ("".join(lines) or "<p>No issuer read.</p>") + "</div>"
 
 
-def flow_page(document, accounts):
+def flow_page(document, accounts, *, evidence_url=None):
     depths = trace.hop_depths(document)
     groups = []
     for depth in sorted(set(depths)):
@@ -1085,7 +826,7 @@ def flow_page(document, accounts):
             "<h2>The subject at a block</h2>" + _state_card(document["state_at_block"]) +
             "<p class=\"muted\">Only an account that carries an incident label is traced. Each card is one transfer "
             "read from the FastNEAR Transfers API.</p>" + "".join(groups))
-    return page("Exit trace", body, depth=1)
+    return page("Exit trace", _graph_section(graph.flow_payload(document, accounts), evidence_url) + _flow_analytics(document, accounts) + body, depth=1)
 
 
 def _status_reads(reads):
@@ -1204,7 +945,7 @@ def record_page(record):
     body = ("<h1>Incident record</h1>" + "".join(sections)
             + '<p class="muted">Re-check from the repository root with '
             + f"<code>python -m intel record-check fixtures/records/{record_id}.json</code>.</p>")
-    return page("Incident record", body, depth=1)
+    return page("Incident record", body, depth=1, inert=True)
 
 
 def record_index_page(documents):
@@ -1214,7 +955,7 @@ def record_index_page(documents):
         for record in documents
     )
     body = ("<h1>Incident records</h1>" + (f"<ul>{entries}</ul>" if entries else "<p>No valid records.</p>"))
-    return page("Incident records", body, depth=1)
+    return page("Incident records", body, depth=1, inert=True)
 
 
 def _incident_record_pages(records_dir=None):
@@ -1282,11 +1023,11 @@ def verify_page():
             "<p>The examples in the empty fields are the vendor's latest record, "
             "<code>fixtures/registry/testnet-latest-kestrelridge-shop.json</code>, and the sha256 of its evidence "
             "document.</p>"
-            f'<div class="card"><label>Registry account<input id="registry" autocomplete="off" placeholder="{registry}">'
+            f'<div class="card verify-form"><label>Registry account<input id="registry" autocomplete="off" placeholder="{registry}">'
             f'</label><label>Subject (a NEAR account id)<input id="subject" autocomplete="off" placeholder="{subject}">'
             f'</label><label>Evidence hash (64 hex)<input id="hash" autocomplete="off" placeholder="{evidence_hash}">'
             '</label><button id="read" type="button">Read the record</button></div>'
-            f'<pre id="out" class="card mono"></pre><script>{script}</script>')
+            f'<pre id="out" class="verify-result mono" aria-live="polite"></pre><script>{script}</script>')
     return page("Verify a record", body)
 
 
@@ -1321,7 +1062,7 @@ def render(out_dir, store=None, incidents_dir=INCIDENTS_DIR, flows_dir=trace.FLO
     pages.update({path: account_page(subject, store, accounts, incidents, flows, clusters)
                   for subject, path in accounts.items()})
     for name, document in flows:
-        pages[f"flows/{name}.html"] = flow_page(document, accounts)
+        pages[f"flows/{name}.html"] = flow_page(document, accounts, evidence_url=f"/flows/{name}.html")
     for name, document in clusters:
         pages[f"clusters/{name}.html"] = cluster_page(name, document, accounts)
     for relative, text in pages.items():
@@ -1331,4 +1072,10 @@ def render(out_dir, store=None, incidents_dir=INCIDENTS_DIR, flows_dir=trace.FLO
     (out / "style.css").write_text(STYLE, encoding="utf-8", newline="\n")
     (out / "search.json").write_text(json.dumps(search, ensure_ascii=False, separators=(",", ":")) + "\n",
                                      encoding="utf-8", newline="\n")
-    return sorted([*pages, "search.json", "style.css"])
+    fonts = []
+    for source in sorted((ROOT / "intel/ui/fonts").iterdir()):
+        relative = f"fonts/{source.name}"
+        (out / "fonts").mkdir(exist_ok=True)
+        (out / relative).write_bytes(source.read_bytes())
+        fonts.append(relative)
+    return sorted([*pages, "search.json", "style.css", *fonts])

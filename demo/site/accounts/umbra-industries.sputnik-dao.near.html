@@ -8,10 +8,95 @@
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<header><nav><a href="../index.html">Home</a><a href="../feed.html">Feed</a><a href="../verify.html">Verify</a></nav></header>
+<header><a class="site-brand" href="../index.html">Siyab</a><nav><a href="../index.html">Home</a><a href="../flows/rhea-collector.html">Trace</a><a href="../feed.html">Feed</a><a href="../index.html#tools">Payment checks</a><a href="../verify.html">Verify</a></nav><div class="header-actions"><button class="site-search-button" type="button" data-open-search>Search accounts / entities <kbd class="search-key">Ctrl K</kbd></button><button class="theme-toggle" type="button" id="theme-toggle">Use light theme</button></div></header><dialog class="search-dialog" id="global-search" aria-label="Search accounts and entities"><form class="search-dialog-head" method="dialog"><input id="global-search-input" aria-label="Account or entity" autocomplete="off" placeholder="Search accounts and entities"><button aria-label="Close search">Close</button></form><div class="search-results" id="global-search-results" aria-live="polite"></div></dialog>
 <main>
-<h1>Account</h1><p class="mono"><q class="data">umbra-industries.sputnik-dao.near</q></p><h2>Current label rows from sources and chain reads</h2><div class="table"><table><thead><tr><th>Chain</th><th>Label</th><th>Category</th><th>Provenance</th><th>Note</th><th>Source</th></tr></thead><tbody><tr><td>near</td><td>DAO created by the Sputnik DAO factory</td><td>organisation</td><td>onchain</td><td>listed by <q class="data">sputnik-dao.near</q> get_dao_list at block 222756212; index 589 of 2060</td><td class="mono"><q class="data">{&quot;args&quot;: {}, &quot;block&quot;: 222756212, &quot;method&quot;: &quot;get_dao_list&quot;, &quot;rpc&quot;: &quot;https://free.rpc.fastnear.com&quot;}</q></td></tr></tbody></table></div><h2>Incident pages naming this account</h2><p>No incident page names this account.</p><h2>Trace edges</h2><p>No committed trace edge touches this account.</p><h2>Cluster edges</h2><p>No committed cluster edge touches this account.</p><h2>Feed events</h2><p>No committed feed event names this account.</p>
+<div class="profile-heading"><div><h1>Account</h1><p class="mono"><q class="data">umbra-industries.sputnik-dao.near</q></p></div><a class="button" href="/index.html#tools">Payment and key checks</a></div><section class="workspace-panel"><div class="workspace-panel-head"><h2>Recorded evidence overview</h2></div><div class="workspace-panel-body analytics-inline"><span>onchain<strong>1</strong></span></div><p class="analytics-note">Current label assertions by provenance. These records do not establish a live balance or payment result.</p></section><h2>Current label rows from sources and chain reads</h2><div class="table"><table class="account-assertions" role="table"><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Chain</th><th scope="col" role="columnheader">Label</th><th scope="col" role="columnheader">Category</th><th scope="col" role="columnheader">Provenance</th><th scope="col" role="columnheader">Note</th><th scope="col" role="columnheader">Source</th></tr></thead><tbody role="rowgroup"><tr role="row"><td role="cell"><span class="cell-label" aria-hidden="true">Chain</span>near</td><td role="cell"><span class="cell-label" aria-hidden="true">Label</span>DAO created by the Sputnik DAO factory</td><td role="cell"><span class="cell-label" aria-hidden="true">Category</span>organisation</td><td role="cell"><span class="cell-label" aria-hidden="true">Provenance</span>onchain</td><td role="cell"><span class="cell-label" aria-hidden="true">Note</span>listed by <q class="data">sputnik-dao.near</q> get_dao_list at block 222756212; index 589 of 2060</td><td role="cell" class="mono"><span class="cell-label" aria-hidden="true">Source</span><q class="data">{&quot;args&quot;: {}, &quot;block&quot;: 222756212, &quot;method&quot;: &quot;get_dao_list&quot;, &quot;rpc&quot;: &quot;https://free.rpc.fastnear.com&quot;}</q></td></tr></tbody></table></div><h2>Incident pages naming this account</h2><p>No incident page names this account.</p><h2>Trace edges</h2><p>No committed trace edge touches this account.</p><h2>Cluster edges</h2><p>No committed cluster edge touches this account.</p><h2>Feed events</h2><p>No committed feed event names this account.</p>
 </main>
 <footer><p>Data: NearBlocks. Blocks: mainnet.neardata.xyz. Transfers: FastNEAR.</p></footer>
-</body>
+<script>(() => {
+  "use strict";
+  const toggle = document.getElementById("theme-toggle");
+  const labelTheme = () => {
+    const light = document.documentElement.dataset.theme === "light";
+    toggle.textContent = light ? "Use dark theme" : "Use light theme";
+    toggle.setAttribute("aria-label", light ? "Switch to dark theme" : "Switch to light theme");
+  };
+  try {
+    const saved = localStorage.getItem("siyab-theme");
+    if (saved === "light" || saved === "dark") document.documentElement.dataset.theme = saved;
+  } catch (error) { toggle.title = "Theme choice applies to this page; browser storage is unavailable."; }
+  labelTheme();
+  toggle.addEventListener("click", () => {
+    document.documentElement.dataset.theme = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+    labelTheme();
+    try { localStorage.setItem("siyab-theme", document.documentElement.dataset.theme); }
+    catch (error) { toggle.title = "Theme choice applies to this page; browser storage is unavailable."; }
+  });
+  const dialog = document.getElementById("global-search");
+  const input = document.getElementById("global-search-input");
+  const results = document.getElementById("global-search-results");
+  let entries = null;
+  let failed = false;
+  let opener = null;
+  const render = () => {
+    results.replaceChildren();
+    const query = input.value.trim().toLowerCase();
+    const matches = entries && query ? entries.filter(row => `${row.label} ${row.detail}`.toLowerCase().includes(query)) : [];
+    const message = failed ? "Search is unavailable. Browse the account and entity collections below." : !entries ? "Loading recorded search index." : !query ? "Type an account or entity name." : !matches.length ? "No recorded match. This does not imply a favorable payment result." : `${matches.length} recorded matches; showing up to 30.`;
+    const note = document.createElement("p");
+    note.className = "search-empty"; note.textContent = message; results.append(note);
+    for (const row of matches.slice(0, 30)) {
+      const link = document.createElement("a"); link.className = "search-result"; link.href = `/${row.url}`;
+      const text = document.createElement("span"); text.textContent = row.label;
+      const detail = document.createElement("small"); detail.textContent = row.detail; text.append(detail);
+      const kind = document.createElement("span"); kind.className = "search-result-type"; kind.textContent = row.type;
+      link.append(text, kind); results.append(link);
+    }
+  };
+  const open = (query = "") => {
+    if (typeof dialog.showModal !== "function") { location.href = "/index.html#search"; return; }
+    if (!dialog.open) opener = document.activeElement;
+    input.value = query; if (!dialog.open) dialog.showModal(); input.focus(); render();
+  };
+  document.querySelectorAll("[data-open-search]").forEach(button => button.addEventListener("click", () => open()));
+  document.addEventListener("keydown", event => {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") { event.preventDefault(); open(); }
+    if (event.key === "ArrowDown" && dialog.open && document.activeElement === input) {
+      const first = results.querySelector("a"); if (first) { event.preventDefault(); first.focus(); }
+    }
+  });
+  dialog.addEventListener("close", () => { if (opener) opener.focus(); });
+  dialog.addEventListener("keydown", event => {
+    if (event.key === "Enter" && document.activeElement === input) {
+      const first = results.querySelector("a");
+      event.preventDefault(); if (first) first.click(); return;
+    }
+    if (!["ArrowDown", "ArrowUp"].includes(event.key)) return;
+    const links = Array.from(results.querySelectorAll("a"));
+    const index = links.indexOf(document.activeElement);
+    if (index < 0 || !links.length) return;
+    event.preventDefault();
+    if (event.key === "ArrowUp" && index === 0) input.focus();
+    else links[(index + (event.key === "ArrowDown" ? 1 : -1) + links.length) % links.length].focus();
+  });
+  input.addEventListener("input", render);
+  const form = document.getElementById("search");
+  if (form) form.addEventListener("submit", event => { event.preventDefault(); open(new FormData(form).get("q") || ""); });
+  fetch("/search.json", {headers: {Accept: "application/json"}}).then(response => {
+    if (!response.ok) throw new Error("Search unavailable"); return response.json();
+  }).then(data => {
+    if (!Array.isArray(data.accounts) || !Array.isArray(data.entities)) throw new Error("Search unreadable");
+    const localPath = /^(accounts|entities)\/[A-Za-z0-9._-]+\.html$/;
+    if (!data.accounts.every(row => row && typeof row.subject === "string" && Array.isArray(row.labels)
+        && row.labels.every(label => typeof label === "string") && typeof row.url === "string" && localPath.test(row.url))
+        || !data.entities.every(row => row && typeof row.id === "string" && typeof row.name === "string"
+        && typeof row.url === "string" && localPath.test(row.url))) throw new Error("Search index paths unreadable");
+    entries = [...data.accounts.map(row => ({label: row.subject, detail: row.labels.join(", "), url: row.url, type: "Account"})),
+      ...data.entities.map(row => ({label: row.name, detail: row.id, url: row.url, type: "Entity"}))];
+    render();
+  }).catch(() => { failed = true; render(); });
+  const query = new URLSearchParams(location.search).get("q");
+  if (query) open(query);
+})();
+</script></body>
 </html>
