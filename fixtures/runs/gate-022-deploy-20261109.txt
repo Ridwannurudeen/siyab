@@ -1,6 +1,6 @@
 Gate 0.2.2 deploy, payments and owner-key handover, 9 Nov 2026.
 
-Verified summary of captured public RPC readbacks and FINAL transaction responses. This is not a verbatim terminal transcript. Selected public RPC fields are in gate-022-transactions-20261109.json, and the six block-pinned snapshots are in gate-022-readbacks-20261109.json. Full immutable RPC captures remain in the operator handoff. Transaction signatures, verdict signatures and outcome Merkle proofs are omitted from the selected records; FunctionCall args are decoded as args_json. The DeployContract code field is preserved and decodes to the 32-byte artifact SHA-256, not the full wasm bytes. No key files were read to prepare these records.
+Verified summary of captured public RPC readbacks and FINAL transaction responses. This is not a verbatim terminal transcript. Selected public RPC fields are in gate-022-transactions-20261109.json, and the six block-pinned snapshots are in gate-022-readbacks-20261109.json. Full immutable RPC captures remain in the operator handoff. Transaction signatures, verdict signatures and outcome Merkle proofs and gas-profile metadata are omitted from the selected records; FunctionCall args are decoded as args_json. The DeployContract code field is preserved and decodes to the 32-byte artifact SHA-256, not the full wasm bytes. No key files were read to prepare these records.
 
 Checkout: 9693281540dafef353f2da4e4ef054649e0a1d84
 Artifact source: 57860c96f071fac0f7bb99f242fcae7e6c4430d2
@@ -76,6 +76,6 @@ Token balances: Gate 999929000000 -> 999928000000; vendor 71000000 -> 72000000; 
 Agent regular cap spent: 2000000 base units; unknown cap spent: 0
 Version 0.2.2 and code_hash still match the committed artifact. The exact two-key permissions remain owner FullAccess plus agent request_transfer only.
 
-A second provider read by the operator through https://rpc.testnet.near.org at final block 276948092 independently confirmed version 0.2.2, the matching code_hash and the same exact two-key permissions. It is included as second_rpc_final in the readbacks JSON. This is a second RPC source, not verification by an outside person.
+A read by the operator through the second RPC endpoint https://rpc.testnet.near.org at final block 276948092 agreed on version 0.2.2, the matching code_hash and the same exact two-key permissions. It is included as second_rpc_final in the readbacks JSON. This records agreement from a distinct endpoint, not independent infrastructure or verification by an outside person.
 
 Neither payment was recorded in the registry. These team-run checks and the internal verification kit do not satisfy registry mainnet gate 6, which still requires a real outside verifier.
