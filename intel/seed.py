@@ -83,7 +83,7 @@ def snapshot(source, mode=None, raw_dir=RAW_DIR, clock=time.time):
     name, ext, url = SNAPSHOTS[source]
     raw_dir = Path(raw_dir)
     if _mode(mode) == "record":
-        request = urllib.request.Request(url, headers={"User-Agent": "shieldbot-near"})
+        request = urllib.request.Request(url, headers={"User-Agent": "siyab"})
         with urllib.request.urlopen(request, timeout=rpc.TIMEOUT_S) as reply:
             data = reply.read()
         now = datetime.fromtimestamp(clock(), UTC)
@@ -274,7 +274,7 @@ _POOLS = re.compile(r"pools ([0-9]+) through ([0-9]+)")
 # The page's headings for the accounts it lists: (role key, heading, how many accounts it names).
 RHEA_LISTS = (("collector", "Collector account:", 1), ("master", "Master account:", 1),
               ("worker", "Worker accounts:", 5), ("token", "Fake Token Contracts:", 4))
-# Each role as the report words it, in ShieldBot's text; the report's own sentence goes in the quote.
+# Each role as the report words it, in Siyab's text; the report's own sentence goes in the quote.
 RHEA_ROLES = {
     "collector": "the collector account, which the report also prints as the attacker NEAR wallet",
     "master": "the master account",

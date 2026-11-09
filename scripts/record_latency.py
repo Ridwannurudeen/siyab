@@ -156,7 +156,7 @@ def main(argv=None):
         print(f"cannot read get_agent on {demo.GATE}: {type(error).__name__}: {error}; nothing written",
               file=sys.stderr)
         return 1
-    evidence_dir = Path(tempfile.mkdtemp(prefix="shieldbot-near-latency-"))
+    evidence_dir = Path(tempfile.mkdtemp(prefix="siyab-latency-"))
     if os.environ.get(demo.KEEP_EVIDENCE) != "1":
         atexit.register(shutil.rmtree, evidence_dir)
     try:

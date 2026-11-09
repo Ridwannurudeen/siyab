@@ -1,4 +1,4 @@
-"""Map ShieldBot verdict answers to the proposed Intear address safety response."""
+"""Map Siyab verdict answers to the proposed Intear address safety response."""
 
 import json
 import time

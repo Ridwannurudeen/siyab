@@ -1,6 +1,6 @@
 # Sanctions
 
-ShieldBot reads one sanctions source: the Specially Designated Nationals and Blocked Persons list (the SDN list) of the US Treasury's Office of Foreign Assets Control (OFAC), and from it only the digital currency addresses. The list is applied to the destination recipient of NEAR Intents quotes in the EVM preflight. The NEAR payment checks remain separate because OFAC publishes no NEAR account.
+Siyab reads one sanctions source: the Specially Designated Nationals and Blocked Persons list (the SDN list) of the US Treasury's Office of Foreign Assets Control (OFAC), and from it only the digital currency addresses. The list is applied to the destination recipient of NEAR Intents quotes in the EVM preflight. The NEAR payment checks remain separate because OFAC publishes no NEAR account.
 
 ## Source
 

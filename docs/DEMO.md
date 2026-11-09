@@ -8,7 +8,7 @@ The commands run from the repository root. The live shots run in one terminal wi
 
 ### 1. 0 to 5 seconds: the title card
 
-No command runs; the card is made in the cut. It reads "An AI agent pays invoices from its NEAR account. What if an invoice is poisoned?" and, under it, "ShieldBot for NEAR, planned for 13 Nov 2026 on NEAR testnet". Caption: the card itself.
+No command runs; the card is made in the cut. It reads "An AI agent pays invoices from its NEAR account. What if an invoice is poisoned?" and, under it, "Siyab, planned for 13 Nov 2026 on NEAR testnet". Caption: the card itself.
 
 ### 2. 5 to 15 seconds: the vendor message
 
@@ -139,8 +139,8 @@ The owner posts the video with this text, one line:
 
 <!-- post:start -->
 ```
-A poisoned invoice tells an AI agent to pay an account an exploit report names. With ShieldBot on NEAR its only key can ask a guard contract, which pays only on a signed ALLOW. Built at NEAR HACKATHON. What would you check? @NEARProtocol #NEARHackathon <repo URL>
+A poisoned invoice tells an AI agent to pay an account an exploit report names. With Siyab its only key can ask a guard contract, which pays only on a signed ALLOW. Built at NEAR HACKATHON. What would you check? @NEARProtocol #NEARHackathon <repo URL>
 ```
 <!-- post:end -->
 
-Measured with Python `len`: 253 characters before the URL, counting the space before it, 276 with the URL counted as 23. Both limits are UNVERIFIED: the 280 character limit and the 23 character weight of a link are not checked against the platform's own documentation, and the owner reads the composer's counter before posting. `@NearLegion` and `@NearBuilders` are optional: by the count above either one takes the post past 280, so each fits only if the composer's own counter allows.
+Measured with Python `len`: 241 characters before the URL, counting the space before it, 264 with the URL counted as 23. Both limits are UNVERIFIED: the 280 character limit and the 23 character weight of a link are not checked against the platform's own documentation, and the owner reads the composer's counter before posting. `@NearLegion` and `@NearBuilders` are optional: by the count above either one individually fits below 280, but use each only if the composer's own counter allows.

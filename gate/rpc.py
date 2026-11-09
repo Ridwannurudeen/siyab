@@ -418,7 +418,7 @@ class Client:
 
 
 def _fetch(url, body, extra_headers=None, record_http_errors=()):
-    headers = {"Accept": "application/json", "User-Agent": "shieldbot-near"}
+    headers = {"Accept": "application/json", "User-Agent": "siyab"}
     data = None
     if body is not None:
         data = json.dumps(body).encode("utf-8")

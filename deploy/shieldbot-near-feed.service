@@ -1,5 +1,5 @@
 [Unit]
-Description=ShieldBot NEAR finalized block feed
+Description=Siyab finalized block feed
 After=network-online.target
 Wants=network-online.target
 

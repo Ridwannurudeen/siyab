@@ -1,1 +1,1 @@
-"""ShieldBot for NEAR intelligence: the label store and its seeds."""
+"""Siyab intelligence: the label store and its seeds."""

@@ -1,8 +1,8 @@
-# ShieldBot for NEAR: security intelligence with a source on every row, enforced on chain.
+# Siyab: security intelligence with a source on every row, enforced on chain.
 
 **Every label has a source. Every verdict has evidence. Unknown never passes.**
 
-For NEAR agent payments, ShieldBot provides payment destination intelligence and enforces signed verdicts. It does not simulate transactions or calldata.
+For NEAR agent payments, Siyab provides payment destination intelligence and enforces signed verdicts. It does not simulate transactions or calldata.
 
 What it is: a verdict service that judges an agent payment on NEAR before the agent signs, and a Gate contract that holds the agent's funds and pays only on a signed ALLOW bound to that exact transfer.
 
@@ -26,7 +26,7 @@ python -m gate incident rhea
 
 ## What it is
 
-ShieldBot for NEAR is a security intelligence layer for NEAR: a label store in which every assertion names its provenance class and its source, scoped to payment destination intelligence and enforcement for NEAR agent payments. The store covers the NEAR Intents token catalog and the treasury accounts its documentation lists, the Sputnik DAO factory, the current validators, the Ref Finance whitelist and the Rainbow Bridge token factory.
+Siyab is a security intelligence layer for NEAR: a label store in which every assertion names its provenance class and its source, scoped to payment destination intelligence and enforcement for NEAR agent payments. The store covers the NEAR Intents token catalog and the treasury accounts its documentation lists, the Sputnik DAO factory, the current validators, the Ref Finance whitelist and the Rainbow Bridge token factory.
 
 The issuer source records current token blacklist views as `onchain` `denylist` assertions with `python -m intel issuers seed`.
 
@@ -180,7 +180,7 @@ To check our work from outside, `docs/VERIFY.md` is the verification guide: offl
 1. `python -m gate demo --offline` replays the recorded testnet responses through the rules: the allowlisted vendor (ALLOW, signed with the TEST key and verified back), the lookalike (DENY), the aged payee whose archival block is left out of the fixtures (UNKNOWN, the checks that could not run named), and the EVM leg (DENY). It exits 0. The first lines:
 
    ```
-   ShieldBot for NEAR offline demo v1: testnet responses recorded on 1 and 2 Nov 2026, replayed from
+   Siyab offline demo v1: testnet responses recorded on 1 and 2 Nov 2026, replayed from
    fixtures/demo with the TEST verifier key and no network. The TEST key is derived from a published
    seed and is never registered on testnet. The demo clock is pinned to 2026-11-02T07:00:00Z, inside
    the recording window, so the 7 day checks replay as recorded.
@@ -298,7 +298,7 @@ To check our work from outside, `docs/VERIFY.md` is the verification guide: offl
    ```
 
    ```
-   {"jsonrpc": "2.0", "id": 1, "result": {"protocolVersion": "2025-06-18", "capabilities": {"tools": {}}, "serverInfo": {"name": "shieldbot-near", "versi
+   {"jsonrpc": "2.0", "id": 1, "result": {"protocolVersion": "2025-06-18", "capabilities": {"tools": {}}, "serverInfo": {"name": "siyab", "versi
    {"jsonrpc": "2.0", "id": 2, "result": {"tools": [{"name": "check_near_payment", "description": "Judge one NEAR agent payment (receiver, token, amount,
    ```
 
@@ -493,7 +493,7 @@ Copied from `docs/ATTACKS.md`. Each NEAR command is `python -m gate attack <name
 - No TEE. The rules are view call heuristics; a check that cannot run reads Unknown, and Unknown is refused. `account_age` tries the archival read first and uses NearBlocks only when that path cannot date the account. On testnet, NearBlocks API v1 was retired on 2026-11-05 and returns HTTP 410 with `API v1 was retired on 2026-11-05. Use /v3`; mainnet v1 still answers. A testnet verdict that needs the NearBlocks fallback therefore reads Unknown. When `REPORTS_ACCOUNT_ID` is set, an unreadable reports summary also reads Unknown; unset it to omit that check.
 - No warn literal: the verdict stays ALLOW, DENY or UNKNOWN; the wrapper maps warn handling to the `ask` action for UNKNOWN or an ALLOW the Gate would refuse as it stands (exit 3 from `python -m gate pay`). An agent that ignores it and submits is refused by the Gate whenever the Gate's own rules refuse; an UNKNOWN carries no signature, so its submission reads `REFUSED:no_verdict`.
 - No open reporter path to the registry: every write goes through the one recorder account, because a list anyone writes to without review lets anyone list a rival, and a report that names no source is refused (`intel/labels.py` takes a row only with an https document and its content hash, an RPC read at a block, or a rule over other rows).
-- The 9 Nov threshold demo took testnet totals to 2 reports and 2 disputes. Its final `subject_summary` was all zeros with `deny` false, so this demo is not a community signal (`fixtures/runs/reports-threshold-demo-20261109.txt`). All moderator accounts are controlled by the ShieldBot team. The threshold demo proves the contract rule, not independent review.
+- The 9 Nov threshold demo took testnet totals to 2 reports and 2 disputes. Its final `subject_summary` was all zeros with `deny` false, so this demo is not a community signal (`fixtures/runs/reports-threshold-demo-20261109.txt`). All moderator accounts are controlled by the Siyab team. The threshold demo proves the contract rule, not independent review.
 - A recent code change on an unlabelled receiver is not read at verdict time: `code_without_metadata` reads the code as it is, and the follower's `deploy_on_labelled_contract` signal, which the rules do not read, covers labelled mainnet accounts only.
 - No cap on the number of transfers per window, only on their amounts; a count cap is a contract change that was not made.
 - No NEAR AI Cloud inference and no attestation in the verdict path: an ALLOW is the rules' answer signed with the operator's key, and nothing attests to the code that produced it.
