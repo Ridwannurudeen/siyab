@@ -55,8 +55,9 @@ read only API judges the follower stopped once updated_at, else last_time, else 
 than FOLLOWER_STOPPED_AFTER_S old), requests (the neardata requests made on request_day),
 transfer_requests (the Transfers API requests made on request_day), request_day (the UTC date both
 counts are for, checked before every neardata request; a new date resets them) and
-disabled_signals (a signal that is off and why: the transfer signal when FASTNEAR_API_KEY_FILE is
-unset or names a file that cannot be read or is empty; never the path or the key). The transfer
+disabled_signals (a signal temporarily unavailable after HTTP 401, 402 or 403; never the path or
+the key). Optional coverage_reset metadata records a previous window's last height and restart
+reason; stats disclose the intervening heights and missing context at the new window's start. The transfer
 poll adds last_large_transfer_poll_ms (the start of the last complete poll, or POLL_S before the
 first one: the next window's from_timestamp_ms), large_transfer_next_poll_ms (the earliest start
 of the next poll), last_large_transfer_error (the UTC time, the HTTP status or null, and the error
@@ -86,8 +87,9 @@ The signals, each written as an evidence document under <state dir>/events/<sha2
 
 The transfer poll runs in follow mode only, from the follower's loop both while it walks heights
 and while it waits at the final height, every POLL_S (600 s), sooner after a 429 as below. It
-reads the key once at start from the file FASTNEAR_API_KEY_FILE names and sends it only as the
-Authorization Bearer header of clients that write no fixture. Each poll asks POST
+uses the optional key read once at start from the file FASTNEAR_API_KEY_FILE names and sends it
+only as the Authorization Bearer header of clients that write no fixture; without a usable key
+it still polls keylessly. Each poll asks POST
 https://transfers.main.fastnear.com/v0/transfers for each subject, FOLLOW_INTERVAL_S apart
 (direction sender, min_usd_amount 1000, ignore_system true, limit 100, from_timestamp_ms the last
 complete poll's start, to_timestamp_ms this poll's start, which the API treats as exclusive, so no
@@ -100,7 +102,8 @@ written and the window moves on only when every request of the poll succeeded. A
 next poll to Retry-After seconds later, at most POLL_S (TRANSFER_BACKOFF_S, 60 s, when the header
 is absent or not a number of seconds), and keeps the window; any other HTTP, transport or parse
 error is recorded in last_large_transfer_error and the window is asked again at the next poll.
-Neither stops the block walk. feed-stats and the feed page show the last failed poll.
+Neither stops the block walk. HTTP 401, 402 and 403 temporarily mark the signal unavailable until
+a complete poll succeeds. feed-stats and the feed page retain the last failed poll as history.
 """
 
 import base64
@@ -487,6 +490,8 @@ def poll_transfers(client, state, state_path, context, events_dir, clock, sleep,
         status = error.status if isinstance(error, rpc.HttpError) else None
         state["last_large_transfer_error"] = {"at": datetime.fromtimestamp(now_ms / 1000, UTC).strftime(_TIME),
                                               "status": status, "error": type(error).__name__}
+        if status in (401, 402, 403):
+            state.setdefault("disabled_signals", {})[SIGNALS[3]] = f"Transfers API returned HTTP {status}; retry pending"
         wait_s = POLL_S
         if status == 429:
             retry_after = (error.retry_after or "").strip()
@@ -518,6 +523,7 @@ def poll_transfers(client, state, state_path, context, events_dir, clock, sleep,
     state["skipped_rows"] = state.get("skipped_rows", 0) + skipped
     state["last_large_transfer_poll_ms"] = now_ms
     state["large_transfer_next_poll_ms"] = now_ms + POLL_S * 1000
+    state.setdefault("disabled_signals", {}).pop(SIGNALS[3], None)
     if stamp:
         _stamp(state, clock)
     _write_json(Path(state_path), state, indent=2)
@@ -559,18 +565,14 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
            max_blocks=None, sleep=time.sleep, clock=time.time, stopped=lambda: False):
     """Follow finalized heights, retaining only event blocks and the moving state."""
     key_file = os.environ.get("FASTNEAR_API_KEY_FILE")
-    headers, disabled_reason = {}, "FASTNEAR_API_KEY_FILE is not set"
+    headers = {}
     if key_file:
         try:
             api_key = Path(key_file).read_text(encoding="utf-8").strip()
         except (OSError, UnicodeDecodeError):
             api_key = None
-        if api_key is None:
-            disabled_reason = "the file FASTNEAR_API_KEY_FILE names cannot be read"
-        elif not api_key:
-            disabled_reason = "the file FASTNEAR_API_KEY_FILE names is empty"
-        else:
-            headers, disabled_reason = {"Authorization": f"Bearer {api_key}"}, None
+        if api_key:
+            headers = {"Authorization": f"Bearer {api_key}"}
     interval_s = FOLLOW_INTERVAL_KEYED_S if headers else FOLLOW_INTERVAL_S
     fetcher = fetcher or Fetcher(rpc.Client(NEARDATA_URL, "off", kind="http", headers=headers), max_requests=None)
     state_dir = Path(os.environ.get("FEED_STATE_DIR", FEED_DIR))
@@ -587,13 +589,8 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
     for signal in SIGNALS:
         state["events"].setdefault(signal, 0)
     context = Context(store or labels.load())
-    disabled = state.setdefault("disabled_signals", {})
-    transfers_client = None
-    if disabled_reason is None:
-        transfers_client = rpc.Client(TRANSFERS_URL, "off", kind="http", headers=headers)
-        disabled.pop(SIGNALS[3], None)
-    else:
-        disabled[SIGNALS[3]] = disabled_reason
+    state.setdefault("disabled_signals", {})
+    transfers_client = rpc.Client(TRANSFERS_URL, "off", kind="http", headers=headers)
     walked = 0
     last_request = None
     stamped = False
@@ -603,8 +600,7 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
         request_day = datetime.fromtimestamp(clock(), UTC).strftime("%Y-%m-%d")
         if state["request_day"] != request_day:
             state["request_day"], state["requests"], state["transfer_requests"] = request_day, 0, 0
-        if transfers_client is not None:
-            poll_transfers(transfers_client, state, state_path, context, events_dir, clock, sleep, stamp=stamped)
+        poll_transfers(transfers_client, state, state_path, context, events_dir, clock, sleep, stamp=stamped)
         requests_before = fetcher.requests
         final_block = fetcher.final_block()
         final_height = final_block["block"]["header"]["height"]
@@ -627,8 +623,7 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
             request_day = datetime.fromtimestamp(clock(), UTC).strftime("%Y-%m-%d")
             if state["request_day"] != request_day:
                 state["request_day"], state["requests"], state["transfer_requests"] = request_day, 0, 0
-            if transfers_client is not None:
-                poll_transfers(transfers_client, state, state_path, context, events_dir, clock, sleep, stamp=stamped)
+            poll_transfers(transfers_client, state, state_path, context, events_dir, clock, sleep, stamp=stamped)
             if next_height == final_height:
                 raw = final_block
             else:
@@ -683,6 +678,14 @@ def stats_lines(state, stopped_since=None):
                  f"blocks {state['blocks']}, skipped heights {len(state['skipped_heights'])}"]
         events = [f"{name} {count}" for name, count in state['events'].items()]
     lines += events
+    reset = state.get("coverage_reset")
+    if reset and state.get("start_height") is not None:
+        first, last = reset["previous_last_height"] + 1, state["start_height"] - 1
+        if first <= last:
+            lines.append(f"coverage reset: {reset['reason']}; blocks {first} to {last} not scanned by follower")
+        lines.append(f"current window starts at block {state['start_height']}; prior context missing at window start: "
+                     "up to 10 minutes for key/outflow and 24 hours for fresh accounts")
+        lines.append("Transfers API poll windows are separate and may include earlier data")
     lines += [f"{name} disabled: {reason}" for name, reason in state.get("disabled_signals", {}).items()]
     error = state.get("last_large_transfer_error")
     if error:

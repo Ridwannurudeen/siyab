@@ -385,6 +385,15 @@ class FollowModeTest(unittest.TestCase):
         self.addCleanup(patcher.stop)
         os.environ.pop("FASTNEAR_API_KEY_FILE", None)
 
+        def answer(request, timeout):
+            if request.full_url.startswith(feed.TRANSFERS_URL):
+                return http_reply(b'{"transfers": [], "resume_token": null}')
+            return no_network(request, timeout)
+
+        network = mock.patch("urllib.request.urlopen", side_effect=answer)
+        network.start()
+        self.addCleanup(network.stop)
+
     def blocks(self, end):
         return {height: raw_block(height, []) for height in range(1, end + 1)}
 
@@ -496,7 +505,7 @@ class FollowModeTest(unittest.TestCase):
                                         events_dir=root / "events", event_blocks_dir=root / "event-blocks",
                                         sleep=sleep, clock=lambda: now[0], stopped=lambda: 1 in log)
         self.assertEqual((walked, state["last_height"], state["requests"]), (5, 5, 5))
-        self.assertEqual(log, ["get", 0.4, "get", 0.4, "get", 0.4, "get", 0.4, "get", 1])
+        self.assertEqual(log[log.index("get"):], ["get", 0.4, "get", 0.4, "get", 0.4, "get", 0.4, "get", 1])
 
     def test_a_follower_that_keeps_up_with_the_chain_makes_about_one_request_a_height(self):
         now = [T0]
@@ -732,6 +741,8 @@ class FollowModeTest(unittest.TestCase):
         fake = Timed(self.blocks(4), 4)
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
+            feed._write_json(root / "state.json", {**feed.new_state(),
+                                                   "large_transfer_next_poll_ms": int((midnight + feed.POLL_S) * 1000)})
             state, walked = feed.follow(start=1, fetcher=fake.inner, state_path=root / "state.json",
                                         events_dir=root / "events", event_blocks_dir=root / "event-blocks",
                                         max_blocks=4, sleep=sleep, clock=lambda: now[0])
@@ -984,21 +995,99 @@ class FollowModeTest(unittest.TestCase):
         self.assertEqual(log[:2 * count - 1], ["post", feed.FOLLOW_INTERVAL_S] * (count - 1) + ["post"])
         self.assertEqual((state["transfer_requests"], state["requests"]), (len(self.subjects), 1))
 
-    def test_large_transfer_signal_is_disabled_without_the_key_file_and_the_state_says_so(self):
+    def test_a_keyless_follower_polls_provider_usd_rows_without_an_authorization_header(self):
+        subject = self.subjects[0]
+        requests = []
+
+        def answer(request, timeout):
+            requests.append(request)
+            self.assertEqual(request.full_url, feed.TRANSFERS_URL + "/v0/transfers")
+            self.assertIsNone(request.get_header("Authorization"))
+            body = json.loads(request.data)
+            rows = [transfer_row(subject, T0_MS - 1000, 1)] if body["account_id"] == subject else []
+            return http_reply(json.dumps({"transfers": rows, "resume_token": None}).encode("utf-8"))
+
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {}, clear=True), \
+                mock.patch("urllib.request.urlopen", side_effect=answer):
+            root = Path(tmp)
+            state, walked = feed.follow(start=1, fetcher=FakeFetcher(self.blocks(1), 1).inner,
+                                        state_path=root / "state.json", events_dir=root / "events",
+                                        event_blocks_dir=root / "event-blocks", max_blocks=1,
+                                        sleep=lambda _: None, clock=lambda: T0)
+            events = self.transfer_events(root)
+        self.assertEqual(len(requests), len(self.subjects))
+        self.assertEqual((walked, state["last_height"], state["transfer_requests"]), (1, 1, len(self.subjects)))
+        self.assertNotIn(feed.SIGNALS[3], state["disabled_signals"])
+        self.assertEqual([(event["usd_amount"], event["direction"]) for event in events], [("1200.5", "outbound")])
+        self.assertEqual(events[0]["source"]["provider"], "transfers.main.fastnear.com")
+        self.assertEqual(state["last_large_transfer_poll_ms"], T0_MS)
+        self.assertNotIn("last_large_transfer_error", state)
+
+    def test_access_refusals_disable_the_signal_until_a_complete_poll_succeeds(self):
+        for status in (401, 402, 403):
+            with self.subTest(status=status), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                state = {**feed.new_state(), "transfer_requests": 0}
+                context = feed.Context(labels.load())
+                client = TransfersStub()
+                with mock.patch.object(client, "post", side_effect=rpc.HttpError(status, "/v0/transfers")):
+                    feed.poll_transfers(client, state, root / "state.json", context, root / "events",
+                                        lambda: T0, lambda _: None)
+                self.assertIn(f"HTTP {status}", state["disabled_signals"][feed.SIGNALS[3]])
+                self.assertEqual(state["last_large_transfer_poll_ms"], T0_MS - 600_000)
+                with mock.patch.object(client, "post", side_effect=rpc.HttpError(500, "/v0/transfers")):
+                    feed.poll_transfers(client, state, root / "state.json", context, root / "events",
+                                        lambda: T0 + feed.POLL_S, lambda _: None)
+                self.assertIn(feed.SIGNALS[3], state["disabled_signals"])
+                feed.poll_transfers(client, state, root / "state.json", context, root / "events",
+                                    lambda: T0 + 2 * feed.POLL_S, lambda _: None)
+                self.assertNotIn(feed.SIGNALS[3], state["disabled_signals"])
+                self.assertEqual(state["last_large_transfer_error"]["status"], 500)
+                self.assertEqual(state["last_large_transfer_poll_ms"], T0_MS + 1_200_000)
+
+    def test_a_new_window_preserves_and_publicly_discloses_the_unscanned_gap_and_warmup(self):
+        reset = {"previous_last_height": 5, "reason": "restarted at latest finalized block"}
+        with tempfile.TemporaryDirectory() as tmp, mock.patch("intel.feed.rpc.Client", return_value=TransfersStub()):
+            root = Path(tmp)
+            feed._write_json(root / "state.json", {**feed.new_state(), "coverage_reset": reset}, indent=2)
+            state, walked = feed.follow(start=10, fetcher=FakeFetcher(self.blocks(10), 10).inner,
+                                        state_path=root / "state.json", events_dir=root / "events",
+                                        event_blocks_dir=root / "event-blocks", max_blocks=1,
+                                        sleep=lambda _: None, clock=lambda: T0)
+            self.assertEqual((walked, state["start_height"], state["last_height"], state["blocks"]), (1, 10, 10, 1))
+            self.assertEqual(state["skipped_heights"], [])
+            self.assertEqual(feed.load_state(root / "state.json")["coverage_reset"], reset)
+            with mock.patch.dict(os.environ, {"FEED_STATE_DIR": str(root)}):
+                status, body = api.route("/feed", labels.load())
+                page = api._live_feed_page().decode("utf-8")
+        self.assertEqual((status, body["stats"]["coverage_reset"]), (200, reset))
+        for text in ("blocks 6 to 9 not scanned by follower", "current window starts at block 10",
+                     "10 minutes for key/outflow", "24 hours for fresh accounts",
+                     "Transfers API poll windows are separate and may include earlier data"):
+            self.assertIn(text, "\n".join(feed.stats_lines(state)))
+            self.assertIn(text, page)
+
+    def test_coverage_reset_never_invents_a_gap_before_the_first_block_or_for_adjacent_windows(self):
+        state = {**feed.new_state(), "coverage_reset": {
+            "previous_last_height": 5, "reason": "restarted at latest finalized block"}}
+        self.assertFalse(any("not scanned" in line for line in feed.stats_lines(state)))
+        state["start_height"] = 6
+        self.assertFalse(any("not scanned" in line for line in feed.stats_lines(state)))
+        self.assertTrue(any("current window starts at block 6" in line for line in feed.stats_lines(state)))
+
+    def test_large_transfer_signal_uses_an_unkeyed_client_without_the_key_file(self):
         import os
 
         fake = FakeFetcher(self.blocks(1), 1)
         with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {}, clear=True), \
-                mock.patch("intel.feed.rpc.Client") as client:
+                mock.patch("intel.feed.rpc.Client", return_value=TransfersStub()) as client:
             root = Path(tmp)
             state, _ = feed.follow(start=1, fetcher=fake.inner, state_path=root / "state.json",
                                    events_dir=root / "events", event_blocks_dir=root / "event-blocks",
                                    max_blocks=1, sleep=lambda _: None, clock=lambda: 1793707200)
-        self.assertEqual(state["disabled_signals"], {"labelled_account_large_transfer":
-                                                      "FASTNEAR_API_KEY_FILE is not set"})
-        self.assertIn("labelled_account_large_transfer disabled: FASTNEAR_API_KEY_FILE is not set",
-                      feed.stats_lines(state))
-        client.assert_not_called()
+        self.assertEqual(state["disabled_signals"], {})
+        self.assertEqual(state["transfer_requests"], len(self.subjects))
+        self.assertEqual(client.call_args.kwargs["headers"], {})
 
     def test_a_usable_key_goes_to_neardata_as_a_bearer_header_and_into_no_file(self):
         import os
@@ -1042,30 +1131,28 @@ class FollowModeTest(unittest.TestCase):
                     self.assertNotIn(b"Bearer", path.read_bytes())
         self.assertEqual(sorted(path.name for path in BLOCKS.glob("*.json")), fixtures)
 
-    def test_large_transfer_signal_is_disabled_when_the_key_file_is_missing_unreadable_or_empty(self):
+    def test_large_transfer_signal_is_keyless_when_the_key_file_is_missing_unreadable_or_empty(self):
         import os
 
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / "empty.key").write_text(" \n", encoding="utf-8")
             (root / "binary.key").write_bytes(b"\xff\xfe\xfa")
-            unreadable = "the file FASTNEAR_API_KEY_FILE names cannot be read"
-            cases = [(root / "absent.key", unreadable), (root, unreadable), (root / "binary.key", unreadable),
-                     (root / "empty.key", "the file FASTNEAR_API_KEY_FILE names is empty")]
-            for index, (key_file, reason) in enumerate(cases):
+            cases = [root / "absent.key", root, root / "binary.key", root / "empty.key"]
+            for index, key_file in enumerate(cases):
                 state_dir = root / f"state-{index}"
                 with self.subTest(key_file=key_file.name), mock.patch.dict(
                         os.environ, {"FASTNEAR_API_KEY_FILE": str(key_file)}), \
-                        mock.patch("intel.feed.rpc.Client") as client:
+                        mock.patch("intel.feed.rpc.Client", return_value=TransfersStub()) as client:
                     state, walked = feed.follow(start=1, fetcher=FakeFetcher(self.blocks(1), 1).inner,
                                                 state_path=state_dir / "state.json", events_dir=state_dir / "events",
                                                 event_blocks_dir=state_dir / "event-blocks", max_blocks=1,
                                                 sleep=lambda _: None, clock=lambda: T0)
                     self.assertEqual(walked, 1)
-                    self.assertEqual(state["disabled_signals"], {"labelled_account_large_transfer": reason})
-                    self.assertIn(f"labelled_account_large_transfer disabled: {reason}", feed.stats_lines(state))
+                    self.assertEqual(state["disabled_signals"], {})
+                    self.assertEqual(state["transfer_requests"], len(self.subjects))
                     self.assertNotIn(key_file.name, (state_dir / "state.json").read_text(encoding="utf-8"))
-                    client.assert_not_called()
+                    self.assertEqual(client.call_args.kwargs["headers"], {})
 
     def test_follow_paces_and_backs_off(self):
         fake = FakeFetcher(self.blocks(2), 2, throttled=1)
@@ -1090,7 +1177,9 @@ class FollowModeTest(unittest.TestCase):
 
         client = Throttled()
         with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {}, clear=True), \
-                mock.patch("intel.feed.rpc.Client", return_value=client), mock.patch.object(feed, "BACKOFF_S", 0):
+                mock.patch("intel.feed.rpc.Client", side_effect=lambda url, *a, **k:
+                           client if url == feed.NEARDATA_URL else TransfersStub()), \
+                mock.patch.object(feed, "BACKOFF_S", 0):
             root = Path(tmp)
             state, walked = feed.follow(start=1, state_path=root / "state.json", events_dir=root / "events",
                                         event_blocks_dir=root / "event-blocks", max_blocks=1,
@@ -1139,7 +1228,7 @@ class FollowModeTest(unittest.TestCase):
 
     def test_a_keyless_follower_paces_neardata_at_four_tenths_of_a_second(self):
         log = self.paced_log(3, keyed=False)
-        self.assertEqual(log, ["get", 0.4, "get", 0.4, "get"])
+        self.assertEqual(log[log.index("get"):], ["get", 0.4, "get", 0.4, "get"])
         self.assertNotIn(feed.FOLLOW_INTERVAL_KEYED_S, log)
 
     def test_a_keyed_follower_keeps_the_transfers_poll_four_tenths_of_a_second_apart(self):
