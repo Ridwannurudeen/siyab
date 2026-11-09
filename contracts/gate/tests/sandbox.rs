@@ -609,6 +609,56 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         .unwrap();
     assert_eq!(redeployed_policy, rollback_policy);
 
+    let before_refusals: Value = gate
+        .view(gate.id(), "get_agent")
+        .args_json(json!({"public_key": public_key.to_string()}))
+        .await
+        .unwrap()
+        .json()
+        .unwrap();
+    let mut native_memo = vector("02-near-happy-sandbox");
+    native_memo["memo"] = json!("invoice 1");
+    let mut native_empty_memo = vector("02-near-happy-sandbox");
+    native_empty_memo["memo"] = json!("");
+    let mut unknown_token = vector("01-ft-happy-sandbox");
+    unknown_token["token_id"] = json!("unknown-token.test.near");
+    for (request, expected) in [
+        (native_memo, "REFUSED:bad_request"),
+        (native_empty_memo, "REFUSED:bad_request"),
+        (unknown_token, "REFUSED:unknown_token"),
+    ] {
+        let request = fresh_request(&worker, gate.id(), request, 300_000).await;
+        let refused = agent
+            .call(gate.id(), "request_transfer")
+            .args_json(transfer_args(&request))
+            .gas(Gas::from_tgas(100))
+            .transact()
+            .await
+            .unwrap();
+        let error = refused.clone().into_result().unwrap_err();
+        assert!(format!("{error:?}").contains(expected));
+        assert!(!refused
+            .logs()
+            .iter()
+            .any(|line| line.contains("transfer_scheduled")));
+        let used: bool = gate
+            .view(gate.id(), "is_verdict_used")
+            .args_json(json!({"verdict_id": request["verdict_id"]}))
+            .await
+            .unwrap()
+            .json()
+            .unwrap();
+        assert!(!used);
+        let after_refusal: Value = gate
+            .view(gate.id(), "get_agent")
+            .args_json(json!({"public_key": public_key.to_string()}))
+            .await
+            .unwrap()
+            .json()
+            .unwrap();
+        assert_eq!(after_refusal, before_refusals);
+    }
+
     let no_verdict = agent
         .call(gate.id(), "request_transfer")
         .args_json(json!({"request": transfer_args(&happy)["request"], "verdict": null}))
