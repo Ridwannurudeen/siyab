@@ -32,3 +32,4 @@
 8 Nov: top receivers scan stops at a height after five consecutive neardata 429 responses and resumes from the last completed batch; the follower keeps unbounded 429 retries; a new keyed scan keeps the keyed request interval for its batches instead of falling back to the keyless 4 s.
 8 Nov: the top receivers scan also retries a socket timeout, an unreachable host or a reset connection after each TRANSIENT_BACKOFF_S pause; a refused TLS certificate stops it at once, and a local OSError such as a file error still stops it.
 8 Nov: a keyed scan runs 32 workers so it reaches its request spacing, with block reads measured at 1.35 s in the morning and 3.3 s in the afternoon.
+9 Nov: demo shot list extended to 130 seconds with real human narration, a 2 to 4 minute export at 720p or above, live transaction capture and a final recording review; fixture and scripted agent disclosures retained.
