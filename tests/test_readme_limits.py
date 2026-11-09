@@ -88,7 +88,7 @@ def deployed_line(record):
     return lines[0].strip()
 
 
-def testnet_version(res, crate):
+def _testnet_version(res, crate):
     record = build_record(res, crate)
     line = deployed_line(record)
     if line == "Deployed: pending":
@@ -115,7 +115,7 @@ def version_errors(readme_text, res, contracts):
         name, stated = match.group(1), match.group(2)
         crate = CRATES[name]
         checked.append(match.span(2))
-        on_testnet = testnet_version(res, crate)
+        on_testnet = _testnet_version(res, crate)
         if stated != on_testnet:
             errors.append(f"the first screen says the {name} runs {stated}; res/BUILD-{crate}.md puts "
                           f"{on_testnet} on testnet")

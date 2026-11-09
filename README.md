@@ -2,6 +2,8 @@
 
 **Every label has a source. Every verdict has evidence. Unknown never passes.**
 
+For NEAR agent payments, ShieldBot provides payment destination intelligence and enforces signed verdicts. It does not simulate transactions or calldata.
+
 What it is: a verdict service that judges an agent payment on NEAR before the agent signs, and a Gate contract that holds the agent's funds and pays only on a signed ALLOW bound to that exact transfer.
 
 Who it is for: teams that let an AI agent pay from a NEAR account; the agent's only credential is a function call key to the Gate, so the protocol refuses it a direct transfer, a deposit or a call to the token.
@@ -24,7 +26,7 @@ python -m gate incident rhea
 
 ## What it is
 
-ShieldBot for NEAR is a security intelligence layer for NEAR: a label store in which every assertion names its provenance class and its source. The store covers the NEAR Intents token catalog and the treasury accounts its documentation lists, the Sputnik DAO factory, the current validators, the Ref Finance whitelist and the Rainbow Bridge token factory.
+ShieldBot for NEAR is a security intelligence layer for NEAR: a label store in which every assertion names its provenance class and its source, scoped to payment destination intelligence and enforcement for NEAR agent payments. The store covers the NEAR Intents token catalog and the treasury accounts its documentation lists, the Sputnik DAO factory, the current validators, the Ref Finance whitelist and the Rainbow Bridge token factory.
 
 The issuer source records current token blacklist views as `onchain` `denylist` assertions with `python -m intel issuers seed`.
 
@@ -107,7 +109,7 @@ Three layers on one data model:
 - **Protocol** (`docs/VERDICT-RECORD.md`, `docs/REGISTRY.md`, `contracts/registry/`): an open verdict and label record format with an on chain NEAR registry, and the offline verifier `python -m gate verify`.
 - **Security** (`contracts/gate/`, `mcp/`, `gate/scan.py`): the guard contract, a stdio MCP server with three tools, and the key hygiene scanner `python -m gate scan`.
 
-Every line below is written by `python scripts/counts.py --readme README.md` from committed files. The first two count the recorded mainnet receivers the rules judged, in all and by cohort. The latency line covers live testnet verdicts for the allowlisted payee, tier 1 checks only (`docs/EVIDENCE.md`); the second covers live testnet verdicts for `examples.testnet`, a payee off the allowlist, through tier 1 and tier 2 checks (`fixtures/latency/verdict-runs-tier2.json`). That fixture records the 7 November archive-first runs; `docs/EVIDENCE.md` separates them from the 4 November NearBlocks-first runs. The feed line reads `intel/feed/follow-snapshot.json`, a copy of the hosted follower's state (`docs/EVIDENCE.md` gives its date and height).
+Every line below is written by `python scripts/counts.py --readme README.md` from committed files. The first two count the recorded mainnet receivers the rules judged, in all and by cohort. The two latency lines are ALLOW path only: the first covers live testnet verdicts for the allowlisted payee, tier 1 checks only (`docs/EVIDENCE.md`); the second covers live testnet verdicts for `examples.testnet`, a payee off the allowlist, through tier 1 and tier 2 checks (`fixtures/latency/verdict-runs-tier2.json`). That fixture records the 7 November archive-first runs; `docs/EVIDENCE.md` separates them from the 4 November NearBlocks-first runs. The feed line reads `intel/feed/follow-snapshot.json`, a copy of the hosted follower's state (`docs/EVIDENCE.md` gives its date and height).
 
 <!-- counts:start -->
 
@@ -128,6 +130,8 @@ Latency: p50 1843 ms, p95 2300 ms over 20 verdict runs.
 Latency, payee off the allowlist: p50 2148 ms, p95 2765 ms over 20 verdict runs.
 
 <!-- counts:end -->
+
+Those outcomes cover the selected 84 receivers only and are not a network-wide receiver detection rate.
 
 The exit trace is partial: depth 2 of 3.
 
@@ -386,11 +390,12 @@ fixtures/, tests/     recorded responses replayed offline; the Python tests
 ## Trust model
 
 - The live verifier key is held by the team's operator, outside the repository, in the file `VERIFIER_KEY_FILE` names. The TEST key is derived from the public seed `sha256(b"gate test verifier v1")`, signs the test vectors, the offline runs, `python -m gate demo --live` and the MCP server's ALLOWs by default, and is not registered on testnet, so the testnet Gate does not trust them: `scan` above shows the on chain key differs from it. An ALLOW a Gate pays on is signed with the live key, by `python -m gate verdict --live`, `python -m gate pay` without `--verdict-file`, or the MCP server when the operator sets its five live conditions (`mcp/README.md`), each reading `VERIFIER_KEY_FILE`.
+- `kestrelridge-owner.testnet` holds the Gate, registry and reports owner roles and is one of three team moderators, so one key compromise covers them all on testnet (`docs/KEYS.md:11,16-18`; `docs/TESTNET.md:44`; `fixtures/runs/reports-threshold-demo-20261109.txt:5-21`).
 - The MCP server signs verdicts, never transactions; `intel/` and the API sign nothing.
 - The MCP server is a stdio process with no caller authentication: whoever can start it and call its tools can obtain verdicts for the configured agent, so the operator controls access to it. Each live ALLOW is bounded by the Gate's caps and the 5 minute expiry. The evidence document of a live verdict is written to the temporary directory the server names on stderr, which the server removes when it exits unless `GATE_KEEP_EVIDENCE=1`; to record the verdict in the registry, the operator sets `GATE_KEEP_EVIDENCE=1` or copies the document before the server exits.
 - Today the team's operator holds the full access key on the funded Gate account and the other testnet keys, including owner, verifier, agent function call, recorder and contract deploy keys, while the registered agent is capped at 10 DMT per call and 50 DMT per 24 h window for the vendor, and 1 DMT per call and per 24 h window for unknown payees (`docs/KEYS.md`, `docs/TESTNET.md`). The owner key signs the recorded `set_allowlist.sh` calls from a key file on the operator's machine, outside the repository. The kill switch drill was performed on testnet on 8 Nov 2026 (`fixtures/runs/kill-switch-drill-2026-11-08.txt`); the demo plan includes it as shot 8 of the 13 Nov 2026 testnet video (`docs/DEMO.md`). Every mainnet key is held by the owner. No private key is in the repository.
 - Without `--verdict-file`, `python -m gate pay` runs the verdict service and the agent in one process on one machine.
-- Verdict latency: the latency lines of the counts block. The first, `Latency:`, covers live testnet verdicts for the allowlisted payee, tier 1 checks; the second, `Latency, payee off the allowlist:`, covers live testnet verdicts for `examples.testnet`, a payee off the allowlist, through tier 1 and tier 2 checks.
+- Verdict latency: the latency lines of the counts block are ALLOW path only. The first, `Latency:`, covers live testnet verdicts for the allowlisted payee, tier 1 checks; the second, `Latency, payee off the allowlist:`, covers live testnet verdicts for `examples.testnet`, a payee off the allowlist, through tier 1 and tier 2 checks.
 - A wrong ALLOW costs at most the per call cap, then the window cap; for a payee off the allowlist, the separate unknown payee caps (`per_call_cap_is_enforced`, `window_cap_is_enforced`, `unknown_payee_cap_is_enforced` in `contracts/gate/src/lib.rs`).
 - Rate limits: each agent has a per call cap and a per window cap per asset for allowlisted payees, and separate unknown payee caps for payees off the allowlist (`AssetCap` in `contracts/gate/src/types.rs`). The agent key's gas allowance bounds how many calls the key can make before the owner replaces it with `revoke_agent` and `register_agent` (Limits says how to size it); there is no top up. There is no cap on the number of transfers per window; a count cap is a contract change that was not made.
 - The testnet Gate kept a full access key during the build (`scan` above).
@@ -410,8 +415,8 @@ Copied from `docs/CLAIMS.md`; `tests/test_readme_claims.py` asserts the two tabl
 | In follow mode the block feed walks finalized mainnet heights in order and writes each event of its six signals with the block it came from. | `intel/feed.py:follow` | `tests/test_feed.py::FollowModeTest.test_follow_writes_the_event_block_and_points_the_event_source_at_it` | `deploy/shieldbot-near-feed.service` | no |
 | Every subject with a current label store row gets a search entry and an account page, and a subject without one gets neither. | `intel/render.py:account_pages` | `tests/test_render.py::RenderTest.test_no_account_page_for_a_subject_without_a_row` | `demo/site/search.json`, `demo/site/accounts/` | no |
 | The registry records a label once per assertion hash; on testnet it holds the Rhea incident rows as labels beside its verdict records. | `contracts/registry/src/lib.rs:record_label` | `contracts/registry/src/lib.rs::tests::record_label_is_once_per_assertion_hash` | `fixtures/registry/labels-20261103.json`, `docs/TESTNET.md` | yes |
-| The receiver rules check available evidence and return Unknown when a required check cannot run. | `gate/rules.py:judge` | `tests/test_rules.py::OutputsTest.test_missing_fixture_is_unknown_never_a_pass` | offline | yes |
-| The Gate requires a verdict and rejects a missing verdict. | `contracts/gate/src/lib.rs:request_transfer` | `contracts/gate/src/lib.rs::tests::missing_verdict_is_refused` | offline | no |
+| NEAR destination rules return Unknown when checks cannot run; no transaction or calldata simulation. | `gate/rules.py:judge` | `tests/test_rules.py::OutputsTest.test_missing_fixture_is_unknown_never_a_pass` | offline | yes |
+| The Gate enforces a signed ALLOW for NEAR agent payment destinations and rejects a missing verdict. | `contracts/gate/src/lib.rs:request_transfer` | `contracts/gate/src/lib.rs::tests::missing_verdict_is_refused` | offline | no |
 | The Gate refuses a verdict with a forged signature. | `contracts/gate/src/lib.rs:request_transfer` | `contracts/gate/src/lib.rs::tests::flipped_signature_is_refused` | `fixtures/rpc/attacks/02-forged-signature.json` | no |
 | A non ALLOW verdict is refused by the Gate. | `contracts/gate/src/lib.rs:request_transfer` | `contracts/gate/src/lib.rs::tests::non_allow_literal_is_refused` | offline | no |
 | A valid ALLOW schedules a bounded transfer and emits the transfer event. | `contracts/gate/src/lib.rs:request_transfer` | `contracts/gate/src/lib.rs::tests::happy_path_debits_cap_and_emits_events` | offline | no |
@@ -438,7 +443,7 @@ Copied from `docs/CLAIMS.md`; `tests/test_readme_claims.py` asserts the two tabl
 | The label store count is generated from committed assertions and provenance. | `scripts/counts.py:labels_line` | `tests/test_counts.py::CountsTest.test_the_label_and_incident_lines_equal_a_recount` | `intel/labels.jsonl` | no |
 | Incident page totals are generated from committed incident files. | `scripts/counts.py:incidents_line` | `tests/test_counts.py::CountsTest.test_the_label_and_incident_lines_equal_a_recount` | `intel/incidents/` | no |
 | Feed and flow totals are generated from committed state, events and traces. | `scripts/counts.py:feed_line` | `tests/test_counts.py::CountsTest.test_the_feed_and_flows_lines_equal_a_recount` | `intel/feed/`, `intel/flows/` | no |
-| Verdict latency percentiles are generated from the recorded run fixtures. | `scripts/counts.py:latency_line` | `tests/test_counts.py::CountsTest.test_latency_is_not_measured_without_files_and_nearest_rank_with_them` | `fixtures/latency/` | no |
+| Recorded verdict latency percentiles cover the ALLOW path only. | `scripts/counts.py:latency_line` | `tests/test_counts.py::CountsTest.test_latency_is_not_measured_without_files_and_nearest_rank_with_them` | `fixtures/latency/` | no |
 | README count lines are generated by `scripts/counts.py` from committed files. | `scripts/counts.py:lines` | `tests/test_counts.py::CountsTest.test_the_lines_follow_the_fixed_format_in_order` | offline | no |
 | The committed wasm files are the reproducible build of the source commit its `res/BUILD-<crate>.md` record names, their sha256 files match their bytes, and the testnet Gate, registry and Reports 0.1.3 run their matching code hashes. | `gate/wasm.py:codehash` | `tests/test_res.py::WasmArtifactsTest.test_sha256_files_match_the_wasm_bytes` | `res/BUILD-gate.md`, `res/BUILD-registry.md`, `res/BUILD-reports.md`, `fixtures/runs/reproducible-two-clones-20261102.txt`, `fixtures/runs/reproducible-gate-0.2.1-20261107-clones.txt`, `fixtures/runs/reproducible-reports-0.1.1-20261107-clones.txt`, `fixtures/runs/reproducible-reports-0.1.2-20261107-clones.txt`, `fixtures/runs/reproducible-reports-0.1.3-20261108-clones.txt`, `fixtures/runs/reports-013-deploy-20261109.txt`, `docs/TESTNET.md` | no |
 | A TEE is not built. | `tests/test_attack_evidence.py:unbuilt_limit_rows` | `tests/test_attack_evidence.py::AttackEvidenceTest.test_unbuilt_surfaces_are_stated_as_limits` | offline | no |
@@ -480,6 +485,10 @@ Copied from `docs/ATTACKS.md`. Each NEAR command is `python -m gate attack <name
 
 ## Limits
 
+- The Gate binds the evidence hash into the signed verdict but does not compare it with the registry. The registry is an audit record, and the Gate trusts its configured verifier key (`contracts/gate/src/verdict.rs:22-47`; `contracts/gate/src/lib.rs:194-210`; `contracts/registry/src/lib.rs:141-191`).
+- For FT payments, the Gate requires the token in the owner-configured caps for the selected payee category. It has no separate Gate-wide token allowlist or token behavior check, so those caps and the verifier define token trust (`contracts/gate/src/lib.rs:187-192,228-237`).
+- For native NEAR, the signed memo hash is part of the verdict, but the Gate sends a plain NEAR Transfer with no memo field, so the memo has no on chain effect (`contracts/gate/src/verdict.rs:22-47`; `contracts/gate/src/lib.rs:295-300`).
+- The 0.03 NEAR report deposit is a spam cost, not a deterrent. There is no per block submission budget and no queue expiry; the pending limit is per submitter (`contracts/reports/src/lib.rs:9,323-422,853-858`).
 - No TEE. The rules are view call heuristics; a check that cannot run reads Unknown, and Unknown is refused. `account_age` tries the archival read first and uses NearBlocks only when that path cannot date the account. On testnet, NearBlocks API v1 was retired on 2026-11-05 and returns HTTP 410 with `API v1 was retired on 2026-11-05. Use /v3`; mainnet v1 still answers. A testnet verdict that needs the NearBlocks fallback therefore reads Unknown. When `REPORTS_ACCOUNT_ID` is set, an unreadable reports summary also reads Unknown; unset it to omit that check.
 - No warn literal: the verdict stays ALLOW, DENY or UNKNOWN; the wrapper maps warn handling to the `ask` action for UNKNOWN or an ALLOW the Gate would refuse as it stands (exit 3 from `python -m gate pay`). An agent that ignores it and submits is refused by the Gate whenever the Gate's own rules refuse; an UNKNOWN carries no signature, so its submission reads `REFUSED:no_verdict`.
 - No open reporter path to the registry: every write goes through the one recorder account, because a list anyone writes to without review lets anyone list a rival, and a report that names no source is refused (`intel/labels.py` takes a row only with an https document and its content hash, an RPC read at a block, or a rule over other rows).
