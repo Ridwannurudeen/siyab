@@ -185,7 +185,7 @@ impl Gate {
         );
         near_sdk::require!(request.amount.0 > 0, "REFUSED:bad_request");
         let asset = match (&request.kind[..], &request.token_id) {
-            ("near", None) => Asset::Near,
+            ("near", None) if request.memo.is_none() => Asset::Near,
             ("ft", Some(token_id)) if env::is_valid_account_id(token_id.as_bytes()) => {
                 Asset::Ft(token_id.clone())
             }
@@ -209,6 +209,16 @@ impl Gate {
             !self.used_verdicts.contains_key(&verdict.verdict_id),
             "REFUSED:verdict_used"
         );
+        if matches!(&asset, Asset::Ft(_)) {
+            near_sdk::require!(
+                agent
+                    .caps
+                    .iter()
+                    .chain(agent.unknown_caps.iter().flatten())
+                    .any(|cap| cap.asset == asset),
+                "REFUSED:unknown_token"
+            );
+        }
         let caps = if allowlisted {
             &mut agent.caps
         } else {
@@ -766,6 +776,97 @@ mod tests {
             gate.agents.get(&agent_pk).unwrap().caps[0].spent,
             1_000_000_000_000_000_000_000_000
         );
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:bad_request")]
+    fn native_near_signed_memo_is_refused() {
+        let (mut gate, mut request, mut verdict, agent_pk) =
+            prepare("02-near-happy-sandbox", true);
+        request.memo = Some("invoice 1".to_owned());
+        let message = verdict::canonical_message(
+            &env::current_account_id(),
+            &agent_key_bytes(&agent_pk),
+            &request,
+            &verdict,
+        );
+        let seed: [u8; 32] = env::sha256(b"gate test verifier v1").try_into().unwrap();
+        verdict.signature = lower_hex(
+            &SigningKey::from_bytes(&seed)
+                .sign(&env::sha256(&message))
+                .to_bytes(),
+        );
+        submit(&mut gate, request, Some(verdict), agent_pk);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:bad_request")]
+    fn native_near_signed_empty_memo_is_refused() {
+        let (mut gate, mut request, mut verdict, agent_pk) =
+            prepare("02-near-happy-sandbox", true);
+        request.memo = Some(String::new());
+        let message = verdict::canonical_message(
+            &env::current_account_id(),
+            &agent_key_bytes(&agent_pk),
+            &request,
+            &verdict,
+        );
+        let seed: [u8; 32] = env::sha256(b"gate test verifier v1").try_into().unwrap();
+        verdict.signature = lower_hex(
+            &SigningKey::from_bytes(&seed)
+                .sign(&env::sha256(&message))
+                .to_bytes(),
+        );
+        submit(&mut gate, request, Some(verdict), agent_pk);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:unknown_token")]
+    fn ft_absent_from_both_cap_sets_is_unknown_for_allowlisted_payee() {
+        let (mut gate, request, verdict, agent_pk) = prepare("04-ft-happy-unit", true);
+        gate.agents.get_mut(&agent_pk).unwrap().caps.clear();
+        submit(&mut gate, request, Some(verdict), agent_pk);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:unknown_token")]
+    fn ft_absent_from_both_cap_sets_is_unknown_for_unlisted_payee() {
+        let (mut gate, request, verdict, agent_pk) = prepare("04-ft-happy-unit", false);
+        let agent = gate.agents.get_mut(&agent_pk).unwrap();
+        agent.caps.clear();
+        agent.unknown_caps.as_mut().unwrap().clear();
+        submit(&mut gate, request, Some(verdict), agent_pk);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:per_call_cap")]
+    fn ft_only_in_unknown_caps_keeps_allowlisted_cap_refusal() {
+        let (mut gate, request, verdict, agent_pk) = prepare("04-ft-happy-unit", true);
+        let agent = gate.agents.get_mut(&agent_pk).unwrap();
+        agent.unknown_caps = Some(std::mem::take(&mut agent.caps));
+        submit(&mut gate, request, Some(verdict), agent_pk);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:unknown_payee_cap")]
+    fn ft_only_in_regular_caps_keeps_unlisted_cap_refusal() {
+        let (mut gate, request, verdict, agent_pk) = prepare("04-ft-happy-unit", false);
+        gate.agents
+            .get_mut(&agent_pk)
+            .unwrap()
+            .unknown_caps
+            .as_mut()
+            .unwrap()
+            .clear();
+        submit(&mut gate, request, Some(verdict), agent_pk);
+    }
+
+    #[test]
+    #[should_panic(expected = "REFUSED:per_call_cap")]
+    fn native_near_without_cap_keeps_cap_refusal() {
+        let (mut gate, request, verdict, agent_pk) = prepare("02-near-happy-sandbox", true);
+        gate.agents.get_mut(&agent_pk).unwrap().caps.clear();
+        submit(&mut gate, request, Some(verdict), agent_pk);
     }
 
     #[test]
