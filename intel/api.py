@@ -361,9 +361,10 @@ def make_server(host, port, site=None, store=None, live_routes=None, workspace_r
                     return
                 status, body, headers = live_routes.handle(self.path, self.client_address[0], self.headers)
                 data = body if isinstance(body, bytes) else (json.dumps(body, ensure_ascii=False) + "\n").encode("utf-8")
-                observation = re.fullmatch(r"/live/account-(?:data|events)/([0-9a-f]{64})\.json", request_path)
-                immutable = status == 200 and observation and hashlib.sha256(data).hexdigest() == observation.group(1)
-                self._send(status, JSON_TYPE, data, headers,
+                observation = re.fullmatch(r"/live/(?:account-data|account-events|portfolio-data)/([0-9a-f]{64})\.json", request_path)
+                immutable = status == 200 and observation and not urllib.parse.urlsplit(self.path).query and hashlib.sha256(data).hexdigest() == observation.group(1)
+                response_headers = {name: value for name, value in headers.items() if name.lower() != "cache-control"}
+                self._send(status, JSON_TYPE, data, response_headers,
                            cache_control="public, max-age=31536000, immutable" if immutable else "no-store")
                 return
             answer = route(self.path, store)
@@ -508,8 +509,10 @@ def serve(host, port, site=None, live=False, state_dir=None, workspace_origin="h
     live_routes = None
     workspace_routes = None
     history_store = None
+    portfolio_store = None
+    jobs = None
     if state_dir is not None:
-        from intel import history, monitor
+        from intel import delivery, history, investigation_jobs, monitor, portfolio
         from intel.workspace import SQLiteWorkspaceStore
         from intel.workspace_api import WorkspaceAPI
 
@@ -517,16 +520,22 @@ def serve(host, port, site=None, live=False, state_dir=None, workspace_origin="h
         if state == ROOT or ROOT in state.parents:
             raise ValueError("workspace state must be outside the source repository")
         history_store = history.AccountHistory(state / "history.sqlite3")
+        portfolio_store = portfolio.PortfolioHistory(state / "portfolio.sqlite3")
+        jobs = investigation_jobs.InvestigationJobs(state / "investigation-jobs.sqlite3", history_store)
         def monitor_status():
             return {**monitor.read_status(state / "monitor.sqlite3"), "configured": True,
-                    "account_polling": history.read_status(state / "history.sqlite3")}
-        workspace_routes = WorkspaceAPI(SQLiteWorkspaceStore(state / "workspace.sqlite3"), origin=workspace_origin,
+                    "account_polling": history.read_status(state / "history.sqlite3"), "investigations": jobs.status()}
+        workspace_store = SQLiteWorkspaceStore(state / "workspace.sqlite3")
+        telegram = delivery.TelegramDelivery(workspace_store, delivery.configured_client())
+        workspace_routes = WorkspaceAPI(workspace_store, origin=workspace_origin,
                                         secure_cookie=urllib.parse.urlsplit(workspace_origin).scheme == "https",
-                                        monitor_status=monitor_status)
+                                        monitor_status=monitor_status, investigation_jobs=jobs, delivery=telegram)
     if live:
+        from intel import accounts, enrichment, portfolio
         from intel.live import LiveAPI
 
-        live_routes = LiveAPI(store, history_store=history_store) if history_store is not None else LiveAPI(store)
+        live_routes = LiveAPI(store, history_store=history_store, entity_directory=enrichment.EntityDirectory(state if state_dir is not None else None),
+                              portfolio_data=portfolio.PortfolioData(accounts.AccountData(store)), portfolio_history=portfolio_store)
     server = make_server(host, port, site, store=store, live_routes=live_routes, workspace_routes=workspace_routes)
     mode = " with live routes" if live else ""
     access = "public read-only API and authenticated workspace" if workspace_routes is not None else "read only API"

@@ -1,0 +1,44 @@
+<section id="account-portfolio" class="investigate-section portfolio" aria-labelledby="portfolio-title">
+<h2 id="portfolio-title" tabindex="-1">Portfolio valuation</h2>
+<p class="portfolio-intro">Native NEAR plus indexed fungible-token balances, valued from a separate price observation. Each read runs only when you request it. Nothing is signed or sent.</p>
+<div class="portfolio-block" id="portfolio-current-block">
+<h3 id="portfolio-current-heading" tabindex="-1">Current valuation</h3>
+<div class="portfolio-controls"><button id="portfolio-read" type="button" disabled>Read current valuation</button></div>
+<p id="portfolio-current-status" class="portfolio-status" role="status" aria-live="polite"></p>
+<div id="portfolio-current" class="portfolio-content" aria-busy="false"><p class="portfolio-empty">Select an account, then read its current valuation. Up to 40 indexed tokens are read; unpriced assets stay unavailable rather than counting as zero.</p></div>
+</div>
+<div class="portfolio-block" id="portfolio-history-block">
+<h3 id="portfolio-history-heading" tabindex="-1">Retained observations</h3>
+<form id="portfolio-history-form" class="portfolio-controls" action="/investigate.html" method="get">
+<label for="portfolio-history-asset">Series<select id="portfolio-history-asset" name="portfolio_series" disabled><option value="">Portfolio value</option><option value="native:near">NEAR (native)</option></select></label>
+<label for="portfolio-history-measure">Measure<select id="portfolio-history-measure" name="portfolio_measure" disabled><option value="total">Complete total (USD)</option><option value="known">Known priced subtotal (USD)</option></select></label>
+<label for="portfolio-history-scope">Inventory scope<select id="portfolio-history-scope" name="portfolio_scope" disabled><option value="">Load observations to choose a scope</option></select></label>
+<button id="portfolio-history-load" type="submit" disabled>Load retained observations</button>
+</form>
+<p class="portfolio-note">Only valuations that were actually read and retained are shown. Different inventory scopes are charted separately, gaps are never joined, and no return or profit figure is derived.</p>
+<p id="portfolio-history-status" class="portfolio-status" role="status" aria-live="polite"></p>
+<div id="portfolio-history" class="portfolio-content" aria-busy="false"><p class="portfolio-empty">Select an account, then load its retained valuation observations.</p></div>
+</div>
+<div class="portfolio-block" id="portfolio-block-block">
+<h3 id="portfolio-block-heading" tabindex="-1">Archived balances at a block</h3>
+<form id="portfolio-block-form" class="portfolio-block-form" action="/investigate.html" method="get" novalidate>
+<div class="portfolio-field">
+<label for="portfolio-block-height">Block height<input id="portfolio-block-height" name="portfolio_block_height" inputmode="numeric" autocomplete="off" spellcheck="false" maxlength="20" required aria-describedby="portfolio-block-height-hint portfolio-block-height-error" disabled></label>
+<p id="portfolio-block-height-hint" class="portfolio-hint">A positive mainnet block height. Balances are read from archival RPC at exactly that block.</p>
+<p id="portfolio-block-height-error" class="portfolio-field-error"></p>
+</div>
+<div class="portfolio-field">
+<label for="portfolio-block-contracts">Token contracts (optional)<textarea id="portfolio-block-contracts" name="portfolio_block_contracts" rows="3" autocomplete="off" spellcheck="false" maxlength="1400" aria-describedby="portfolio-block-contracts-hint portfolio-block-contracts-error" disabled></textarea></label>
+<p id="portfolio-block-contracts-hint" class="portfolio-hint">Up to 20 exact contract accounts, separated by commas or new lines. Native NEAR is always read; contracts you do not list are not read.</p>
+<p id="portfolio-block-contracts-error" class="portfolio-field-error"></p>
+</div>
+<div class="portfolio-controls">
+<button id="portfolio-use-current" type="button" disabled>Use contracts from current valuation</button>
+<button id="portfolio-block-read" type="submit" disabled>Read archived balances</button>
+</div>
+</form>
+<p id="portfolio-block-status" class="portfolio-status" role="status" aria-live="polite"></p>
+<div id="portfolio-block" class="portfolio-content" aria-busy="false"><p class="portfolio-empty">Enter a block height to read the balances recorded at that block. The result covers only native NEAR and the contracts you list.</p></div>
+</div>
+<noscript><p class="portfolio-empty">Portfolio reads need JavaScript. Account records and their evidence remain available without it.</p></noscript>
+</section>

@@ -27,6 +27,7 @@ function environment(url = path, protocol = 'https:') {
   document.querySelectorAll = () => [container];
   const location = new URL(protocol === 'file:' ? 'file:///site/index.html' : 'https://siyab.xyz/index.html');
   const window = {location};
+  vm.runInNewContext(fs.readFileSync('intel/ui/number-format.js','utf8'),{window});
   const requests = [], timers = new Map();
   let timerId = 0;
   const fetch = (url, options) => new Promise((resolve, reject) => {

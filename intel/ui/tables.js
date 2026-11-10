@@ -5,6 +5,8 @@
     const search = panel.querySelector("[data-table-search]");
     const chain = panel.querySelector("[data-table-chain]");
     const sort = panel.querySelector("[data-table-sort]");
+    const group = panel.querySelector("[data-table-group]");
+    const groupIds = group ? new Set(Array.from(group.options, option => option.value).filter(Boolean)) : new Set();
     const status = panel.querySelector(".entity-table-status");
     const navigation = panel.querySelector(".entity-table-pagination");
     const retry = panel.querySelector("[data-table-retry]");
@@ -16,7 +18,8 @@
 
     function validRow(row) {
       return row && /^[a-f0-9]{64}$/.test(row.id) && ["stated", "inferred"].includes(row.kind)
-        && ["subject", "chain", "label", "search"].every(key => typeof row[key] === "string")
+        && ["subject", "chain", "label", "note", "search"].every(key => typeof row[key] === "string")
+        && (!group || typeof row.source_group === "string" && groupIds.has(row.source_group))
         && Array.isArray(row.cells) && row.cells.length === (row.kind === "inferred" ? 8 : 6)
         && row.cells.every(cell => Array.isArray(cell) && cell.every(part => part && typeof part.text === "string"
           && (part.quoted === undefined || typeof part.quoted === "boolean")
@@ -32,9 +35,25 @@
           try {
             const response = await fetch(panel.dataset.source, {signal: controller.signal, headers: {Accept: "application/json"}});
             if (!response.ok) throw new Error("Collection unavailable");
-            const data = await response.json();
-            if (!data || !Array.isArray(data.rows) || !data.rows.every(validRow)) throw new Error("Collection unreadable");
+            const maximum = 4 * 1024 * 1024, length = response.headers.get("Content-Length");
+            if (length !== null && (!/^\d+$/.test(length) || Number(length) > maximum)) throw new Error("Collection exceeds the read bound");
+            const reader = response.body.getReader(), decoder = new TextDecoder("utf-8", {fatal: true});
+            let size = 0, text = "";
+            try {
+              for (;;) {
+                const part = await reader.read();
+                if (part.done) break;
+                size += part.value.byteLength;
+                if (size > maximum) throw new Error("Collection exceeds the read bound");
+                text += decoder.decode(part.value, {stream: true});
+              }
+              text += decoder.decode();
+            } finally { reader.releaseLock(); }
+            const data = JSON.parse(text);
+            if (!data || !Array.isArray(data.rows) || data.rows.length > 10000 || !data.rows.every(validRow)) throw new Error("Collection unreadable");
             rows = data.rows;
+          } catch (error) {
+            controller.abort(); throw error;
           } finally {
             clearTimeout(timeout);
             loading = null;
@@ -51,6 +70,8 @@
       row.cells.forEach((parts, index) => {
         const td = document.createElement("td");
         td.setAttribute("role", "cell");
+        td.setAttribute("data-export-value", index === 0 ? row.subject : index === 1 ? row.chain : index === 2 ? row.label
+          : index === headers.length - 1 ? row.note : parts.map(part => part.text).join(""));
         if (index === 0 || ["Rule", "Inputs"].includes(headers[index])) td.className = "mono";
         const label = document.createElement("span");
         label.className = "cell-label";
@@ -82,7 +103,7 @@
     function render() {
       const query = search.value.trim().toLocaleLowerCase();
       const matches = rows.filter(row => (!query || row.search.toLocaleLowerCase().includes(query))
-        && (!chain.value || row.chain === chain.value));
+        && (!chain.value || row.chain === chain.value) && (!group || !group.value || row.source_group === group.value));
       if (sort.value !== "recorded") {
         const field = sort.value === "subject-desc" ? "subject" : sort.value;
         const direction = sort.value === "subject-desc" ? -1 : 1;
@@ -155,5 +176,25 @@
     chain.addEventListener("change", refresh);
     sort.addEventListener("change", refresh);
     retry.addEventListener("click", refresh);
+    if (group) {
+      const disclosure = document.getElementById("individual-assertions");
+      const selectGroup = value => {
+        if (value && !groupIds.has(value)) return;
+        group.value = value; disclosure.open = true;
+        const url = new URL(window.location.href);
+        if (value) url.searchParams.set("source", value); else url.searchParams.delete("source");
+        url.hash = "individual-assertions"; window.history.replaceState(null, "", url);
+        refresh();
+      };
+      group.addEventListener("change", () => selectGroup(group.value));
+      for (const link of document.querySelectorAll("[data-registry-group]")) link.addEventListener("click", event => { event.preventDefault(); selectGroup(link.dataset.registryGroup); });
+      const value = new URL(window.location.href).searchParams.get("source");
+      if (value && /^[a-f0-9]{64}$/.test(value) && groupIds.has(value)) selectGroup(value);
+      else if (value) {
+        group.value = ""; disclosure.open = true;
+        const url = new URL(window.location.href); url.searchParams.delete("source"); window.history.replaceState(null, "", url);
+        status.textContent = "The source filter is not in this recorded collection. All static rows remain available.";
+      }
+    }
   }
 })();

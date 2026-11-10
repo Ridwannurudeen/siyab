@@ -21,6 +21,11 @@ HEX_EXTENSIONS = {".md", ".py", ".rs", ".sh", ".toml", ".yml"}
 HEX_EXEMPT_DIRS = ("fixtures/", "tests/", "intel/seeds/raw/", "res/")
 PHRASE_EXTENSIONS = {".md", ".py", ".rs", ".sh", ".html", ".json", ".toml", ".yml"}
 RAW_DIR = "intel/seeds/raw/"
+# Byte-for-byte publisher documents; their catalog digests are checked by intel.enrichment.
+RAW_SOURCE_FILES = frozenset({"fixtures/enrichment/intents.md", "fixtures/enrichment/linear.md",
+                              "fixtures/enrichment/meta.html", "fixtures/enrichment/pyth.md",
+                              "fixtures/enrichment/ref.md", "fixtures/enrichment/social.md",
+                              "fixtures/enrichment/templar.html", "fixtures/enrichment/wrap.md"})
 # This file has to name the phrases and the word it rejects, so the phrase and word rules skip it.
 SELF = "scripts/check_hygiene.py"
 
@@ -120,8 +125,9 @@ def repo_root():
 def check_text(path, text):
     ext = os.path.splitext(path)[1].lower()
     hex_rule = ext in HEX_EXTENSIONS and not path.startswith(HEX_EXEMPT_DIRS)
-    dash_rule = not path.startswith(RAW_DIR) and path != "LICENSE"
-    phrase_rule = ext in PHRASE_EXTENSIONS and not path.startswith(RAW_DIR) and path != SELF
+    raw_source = path.startswith(RAW_DIR) or path in RAW_SOURCE_FILES
+    dash_rule = not raw_source and path != "LICENSE"
+    phrase_rule = ext in PHRASE_EXTENSIONS and not raw_source and path != SELF
     hex128_rule = path.startswith(RPC_FIXTURES)
     word_rule = path != SELF and (
         path.startswith(("gate/", "docs/", "mcp/", "scripts/"))

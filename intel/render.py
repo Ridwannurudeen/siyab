@@ -46,7 +46,7 @@ import json
 import re
 from collections import Counter
 from datetime import UTC, datetime
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP, localcontext
 from pathlib import Path
 
 from intel import cluster, feed, graph, issuers, labels, records, trace
@@ -177,6 +177,7 @@ def page(title, body, depth=0, rooted=False, *, inert=False):
     shell = "" if inert else (ROOT / "intel/ui/shell.js").read_text(encoding="utf-8")
     workspace_script = "" if inert else (ROOT / "intel/ui/workspace.js").read_text(encoding="utf-8")
     cloud_script = "" if inert else (ROOT / "intel/ui/cloud-workspace.js").read_text(encoding="utf-8")
+    number_script = "" if inert else (ROOT / "intel/ui/number-format.js").read_text(encoding="utf-8")
     search_label = '<span class="site-search-label">Search accounts / entities</span><span class="site-search-short" aria-hidden="true">Search</span>'
     search = (f'<a class="site-search-link" aria-label="Search accounts and entities" href="{up}index.html#search">{search_label}</a>' if inert else
               f'<button class="site-search-button" type="button" aria-label="Search accounts and entities" data-open-search>{search_label} <kbd class="search-key">Ctrl K</kbd></button>'
@@ -202,7 +203,8 @@ def page(title, body, depth=0, rooted=False, *, inert=False):
                 '<link rel="icon" type="image/svg+xml" href="/brand/favicon.svg"><link rel="alternate icon" href="/favicon.ico">\n')
     return ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"
             f"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n{ROBOTS}"
-            f"<title>{esc(title)}</title>\n{metadata}<link rel=\"stylesheet\" href=\"/style.css\">\n</head>\n<body>\n"
+            f"<title>{esc(title)}</title>\n{metadata}<link rel=\"stylesheet\" href=\"/style.css\">\n"
+            + (_script_tag(number_script) if number_script else "") + "</head>\n<body>\n"
             '<a class="skip-link" href="#main-content">Skip to content</a>'
             f'<aside class="app-sidebar"><a class="site-brand" href="{up}index.html">{BRAND_MARK}<span>Siyab</span></a>{nav}</aside>'
             f'<header class="app-topbar"><a class="app-mobile-brand" href="{up}index.html">{BRAND_MARK}<span>Siyab</span></a>'
@@ -299,6 +301,25 @@ def _graph_section(payload, evidence_url=None):
             f'</section>{_script_tag(script)}')
 
 
+def _display_amount(value, places, *, decimals=0):
+    try:
+        if len(str(value)) > 160:
+            return "Unavailable"
+        with localcontext() as context:
+            context.prec = 340
+            amount = Decimal(str(value)).scaleb(-decimals)
+            if not amount.is_finite() or abs(amount.adjusted()) > 255:
+                return "Unavailable"
+            quantum = Decimal(1).scaleb(-places)
+            rounded = amount.quantize(quantum, rounding=ROUND_HALF_UP)
+            if amount != 0 and rounded == 0:
+                return (">-" if amount < 0 else "<") + format(quantum, "f")
+            result = format(rounded, ",f")
+            return result.rstrip("0").rstrip(".") if "." in result else result
+    except (InvalidOperation, ValueError):
+        return "Unavailable"
+
+
 def _feed_panel(event_rows=()):
     rows = []
     for event, event_id in reversed(event_rows):
@@ -310,8 +331,10 @@ def _feed_panel(event_rows=()):
                     f'{instant.strftime("%H:%M:%S")} UTC</time>' if instant else "Not recorded")
         except (OverflowError, OSError, ValueError):
             when = "Not recorded"
-        amount = (f'{esc(event["usd_amount"])} USD (provider value)' if event.get("usd_amount") is not None else
-                  f'{esc(event["amount_yocto"])} yoctoNEAR' if event.get("amount_yocto") is not None else "Not recorded")
+        amount = (f'{esc(_display_amount(event["usd_amount"], 2))} USD (provider value)' if event.get("usd_amount") is not None else
+                  f'{esc(_display_amount(event["amount_yocto"], 4, decimals=24))} NEAR' if event.get("amount_yocto") is not None else "Not recorded")
+        exact_amount = (f'{event["usd_amount"]} USD (provider value)' if event.get("usd_amount") is not None else
+                        f'{event["amount_yocto"]} yoctoNEAR' if event.get("amount_yocto") is not None else "Not recorded")
         source = event.get("source") if isinstance(event.get("source"), dict) else {}
         evidence_link = (f'<a href="/evidence/{event_id}">Open evidence</a>'
                          if re.fullmatch(r"[0-9a-f]{64}", event_id) else "Unlinked record")
@@ -326,8 +349,8 @@ def _feed_panel(event_rows=()):
                  f'<p>Transaction {_event_field(event, "tx_hash")}</p><p>Receipt {_event_field(event, "receipt_id")}</p>'
                  f'<p>Evidence identifier {esc(event_id)}</p><pre>{esc(json.dumps(event, ensure_ascii=False, indent=2))}</pre></details>']
         labels_for_cells = ("Observed (UTC)", "Signal", "Account", "Counterparty", "Amount", "Source and evidence")
-        rows.append('<tr>' + ''.join(f'<td data-label="{label}">{value}</td>'
-                                    for label, value in zip(labels_for_cells, cells)) + '</tr>')
+        rows.append('<tr>' + ''.join(f'<td data-label="{label}"' + (f' data-export-value="{esc(exact_amount)}"' if label == "Amount" else "")
+                                    + f'>{value}</td>' for label, value in zip(labels_for_cells, cells)) + '</tr>')
     headers = ''.join(f'<th scope="col">{label}</th>' for label in
                       ("Observed (UTC)", "Signal", "Account", "Counterparty", "Amount", "Source and evidence"))
     initial = ('<button type="button" data-export-table="feed-signals">Export shown events CSV</button>'
@@ -825,6 +848,30 @@ def _entity_parts(text):
     return parts
 
 
+def _organisation_group_id(assertion):
+    payload = {"chain": assertion.chain, "provenance": assertion.provenance, "source": assertion.source,
+               "label": assertion.label, "observed_at": assertion.observed_at}
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+def _organisation_groups(store):
+    groups = {}
+    for assertion in store.assertions:
+        if assertion.category != "organisation" or assertion.superseded_by is not None:
+            continue
+        key = _organisation_group_id(assertion)
+        if key not in groups:
+            method = assertion.source.get("method")
+            title = ("Sputnik DAO factory" if assertion.provenance == "onchain" and method == "get_dao_list" else
+                     "Validators in recorded epoch" if assertion.provenance == "onchain" and method == "validators" else
+                     "Recorded source assertions")
+            groups[key] = {"id": key, "title": title, "assertions": 0, "subjects": set(), "chain": assertion.chain,
+                           "provenance": assertion.provenance, "source": assertion.source, "observed_at": assertion.observed_at}
+        groups[key]["assertions"] += 1
+        groups[key]["subjects"].add(assertion.subject)
+    return [{**group, "subjects": len(group["subjects"])} for group in groups.values()]
+
+
 def _entity_rows(categories, store):
     accounts, by_id = account_pages(store), {a.id: a for a in store.assertions}
     rows = []
@@ -849,9 +896,11 @@ def _entity_rows(categories, store):
             cells.append([{"text": a.provenance}])
         cells.append(_entity_parts(a.note))
         rows.append({"id": a.id, "kind": "inferred" if a.provenance == "inferred" else "stated",
-                     "subject": a.subject, "chain": a.chain, "label": a.label,
+                     "subject": a.subject, "chain": a.chain, "label": a.label, "note": a.note,
                      "search": " ".join((a.subject, a.chain, a.label, a.category, a.provenance, a.note)),
                      "cells": cells})
+        if a.category == "organisation":
+            rows[-1]["source_group"] = _organisation_group_id(a)
     return sorted(rows, key=lambda row: row["kind"] == "inferred")
 
 
@@ -871,14 +920,18 @@ def _entity_table(rows, kind):
                     text = f'<a href="{esc(part["url"])}">{text}</a>'
                 values.append(text)
             css = ' class="mono"' if index == 0 or label in ("Rule", "Inputs") else ""
-            cells.append(f'<td role="cell"{css}><span class="cell-label" aria-hidden="true">{label}</span>{"".join(values)}</td>')
+            exact = (row["subject"] if index == 0 else row["chain"] if index == 1 else row["label"] if index == 2
+                     else row["note"] if label == "Note" else ''.join(part["text"] for part in parts))
+            cells.append(f'<td role="cell"{css} data-export-value="{esc(exact)}"><span class="cell-label" aria-hidden="true">{label}</span>{"".join(values)}</td>')
         body.append(f'<tr role="row" data-assertion-id="{row["id"]}">{"".join(cells)}</tr>')
     heading = "" if kind == "stated" else (
         '<h2>Attribution hypothesis</h2><p>Each row below is inferred: it names the rule that inferred '
         'it, the assertions the rule read as its inputs and its confidence.</p>')
     headers = "".join(f'<th scope="col" role="columnheader">{label}</th>' for label in columns)
     css = "entity-table entity-table-inferred" if kind == "inferred" else "entity-table"
-    return (f'<section data-entity-kind="{kind}">{heading}<p class="entity-table-status" data-table-section-count>{len(rows)} {"hypotheses" if kind == "inferred" else "source assertions"} on this page.</p><div class="table"><table class="{css}" role="table">'
+    return (f'<section data-entity-kind="{kind}">{heading}<p class="entity-table-status" data-table-section-count>{len(rows)} {"hypotheses" if kind == "inferred" else "source assertions"} on this page.</p>'
+            f'<button type="button" data-export-table="entity-collection-{kind}">Export shown rows CSV</button>'
+            f'<div class="table"><table class="{css}" role="table" id="entity-collection-{kind}">'
             f'<thead role="rowgroup"><tr role="row">{headers}</tr></thead><tbody role="rowgroup">{"".join(body)}</tbody></table></div></section>')
 
 
@@ -898,16 +951,37 @@ def entity_page(title, categories, store, *, page_number=1, collection_name=None
     following = f'<a href="{path(page_number + 1)}" rel="next">Next</a>' if page_number < pages else "<span>Next</span>"
     chains = "".join(f'<option value="{esc(chain)}">{esc(chain)}</option>' for chain in sorted({row["chain"] for row in rows}))
     script = (ROOT / "intel/ui/tables.js").read_text(encoding="utf-8")
+    groups = _organisation_groups(store) if collection_name == "organisations" else []
+    group_filter = ('<label>Recorded registry<select data-table-group><option value="">All recorded reads</option>'
+                    + ''.join(f'<option value="{group["id"]}">{esc(group["title"])}</option>' for group in groups)
+                    + '</select></label>') if groups else ''
     body = (f'<h1>{esc(title)}</h1><p>{count} current assertions from the label store.</p>'
             f'<div class="entity-table-panel" data-entity-table data-source="{collection_name}.table.json" data-page="{page_number}">'
             '<div class="entity-table-toolbar" hidden><label>Search this collection<input type="search" data-table-search autocomplete="off" placeholder="Account, label or evidence text"></label>'
             f'<label>Chain<select data-table-chain><option value="">All chains</option>{chains}</select></label>'
+            + group_filter +
             '<label>Sort<select data-table-sort><option value="recorded">Recorded order</option><option value="subject">Account A to Z</option>'
             '<option value="subject-desc">Account Z to A</option><option value="chain">Chain A to Z</option><option value="label">Label A to Z</option></select></label></div>'
             f'<p class="entity-table-status" role="status" aria-live="polite">Showing {start + 1 if count else 0} to {min(start + 50, count)} of {count} assertions.</p>'
             f'<button type="button" data-table-retry hidden>Retry collection</button>{tables}<p class="empty-state" data-table-empty hidden>No matching recorded assertions. Clear the search or choose another chain.</p>'
             f'<nav class="entity-table-pagination" aria-label="Collection pages">{previous}<span>Page {page_number} of {pages}</span>{following}</nav>'
             f'</div><script>{script}</script>')
+    if groups:
+        overview = []
+        for group in groups:
+            source = esc(json.dumps(group["source"], ensure_ascii=False, indent=2))
+            overview.append(f'<li class="registry-group"><div><h2>{esc(group["title"])}</h2>'
+                            f'<p>{group["subjects"]:,} accounts in this recorded read</p>'
+                            f'<p class="registry-recorded">{esc(group["provenance"])} on {esc(group["chain"])}. Recorded <time>{esc(group["observed_at"])}</time>.</p>'
+                            f'<details><summary>Registry read evidence</summary><blockquote class="data"><pre>{source}</pre></blockquote></details></div>'
+                            f'<a class="button" data-registry-group="{group["id"]}" href="?source={group["id"]}#individual-assertions">View matching assertions</a></li>')
+        heading = f'<h1>{esc(title)}</h1>'
+        body = (heading + '<section class="registry-overview" aria-label="Recorded registry overview">'
+                f'<p class="registry-count">{count:,} assertions from {len(groups)} recorded registry reads.</p>'
+                '<p class="registry-scope">Factory listings and epoch membership describe recorded associations, not shared ownership or current control.</p>'
+                f'<ul class="registry-groups">{"".join(overview)}</ul></section>'
+                f'<details class="registry-individuals" id="individual-assertions"{" open" if page_number > 1 else ""}>'
+                '<summary>Individual recorded assertions</summary>' + body[len(heading):] + '</details>')
     return page(title, body, depth=1)
 
 
@@ -1569,13 +1643,17 @@ def investigate_page():
              '<button id="investigate-load-graph" type="button" disabled>Load neighborhood</button></div>'
              '<div id="investigate-graph"><p class="investigate-empty">Load a bounded neighborhood from indexed transfers. It is not complete account history.</p></div></section>'
              '<noscript><p>JavaScript is required for live account reads. Recorded evidence remains available through the navigation.</p></noscript></div>')
+    body += (ROOT / "intel/ui/enrichment-panel.html").read_text(encoding="utf-8")
+    body += (ROOT / "intel/ui/portfolio-panel.html").read_text(encoding="utf-8")
     body += _script_tag((ROOT / "intel/ui/graphs.js").read_text(encoding="utf-8"))
     body += _script_tag((ROOT / "intel/ui/investigate.js").read_text(encoding="utf-8"))
+    body += _script_tag((ROOT / "intel/ui/enrichment.js").read_text(encoding="utf-8"))
+    body += _script_tag((ROOT / "intel/ui/portfolio.js").read_text(encoding="utf-8"))
     return page("Investigate account", body)
 
 
 def _cloud_workspace_panel():
-    return ('<details id="cloud-workspace" class="cloud-workspace"><summary>Shared workspace</summary>'
+    return ('<details id="cloud-workspace" class="cloud-workspace" open><summary>Shared workspace</summary>'
             '<div id="cloud-shell"><p class="source-line">Reading your shared workspace session…</p></div>'
             '<noscript><p>JavaScript is needed to sign in to a shared workspace. Browser workspace controls remain below.</p></noscript></details>')
 
@@ -1584,8 +1662,10 @@ def workspace_page():
     body = ('<div class="workspace-page-head"><div><h1>Workspace</h1></div>'
             '<a class="button primary" href="/index.html">Start investigation</a></div>'
             + _cloud_workspace_panel() +
+            (ROOT / "intel/ui/investigation-jobs-panel.html").read_text(encoding="utf-8") +
+            (ROOT / "intel/ui/delivery-panel.html").read_text(encoding="utf-8") +
             '<section id="browser-workspace"><h2>In this browser</h2><p>Saved in this browser. Export a backup to move your work between devices.</p>'
-            '<p id="workspace-status" role="status" aria-live="polite"></p><div class="workbench-grid">'
+            '<p id="workspace-status" role="status" aria-live="polite"></p><div class="workbench-grid workbench-grid--stacked">'
             '<section class="workspace-section"><div class="section-head"><h2>Investigations</h2><span id="case-count" class="source-line">0 saved investigations</span></div>'
             '<label for="case-search">Search saved work<input type="search" id="case-search" placeholder="Title, notes or account"></label>'
             '<div id="saved-cases"></div></section><div class="workspace-side">'
@@ -1603,6 +1683,8 @@ def workspace_page():
             '<label>Import workspace JSON<input id="import-workspace" type="file" accept="application/json,.json"></label>'
             '<button id="reset-workspace" type="button">Reset local workspace</button></div></section>'
             '<noscript><p>JavaScript is needed to save investigations, export tables and manage browser alerts. Recorded accounts and evidence remain available through the navigation.</p></noscript></section>')
+    body += _script_tag((ROOT / "intel/ui/investigation-jobs.js").read_text(encoding="utf-8"))
+    body += _script_tag((ROOT / "intel/ui/delivery.js").read_text(encoding="utf-8"))
     return page("Workspace", body)
 
 
@@ -1658,7 +1740,7 @@ def render(out_dir, store=None, incidents_dir=INCIDENTS_DIR, flows_dir=trace.FLO
         path.write_text(encoded, encoding="utf-8", newline="\n")
     script_paths = []
     (out / "assets").mkdir(exist_ok=True)
-    for name in ("graphs.js", "workspace.js", "investigate.js", "cloud-workspace.js"):
+    for name in ("number-format.js", "graphs.js", "workspace.js", "investigate.js", "cloud-workspace.js", "enrichment.js", "portfolio.js", "investigation-jobs.js", "delivery.js"):
         script = (ROOT / "intel/ui" / name).read_text(encoding="utf-8")
         script_path, _ = _script_asset(script)
         (out / script_path.lstrip("/")).write_text(script, encoding="utf-8", newline="\n")

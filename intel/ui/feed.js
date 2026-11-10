@@ -47,7 +47,9 @@
       add(cells[2], "q", text(row.subject), "data");
       if (typeof row.subject === "string" && /^[a-z0-9._-]{2,64}$/.test(row.subject)) add(cells[2], "a", "Investigate").href = "/index.html?q=" + encodeURIComponent(row.subject);
       add(cells[3], "q", text(row.other_account_id), "data");
-      const amount = typeof row.usd_amount === "string" || typeof row.usd_amount === "number" ? `${row.usd_amount} USD (provider value)` : typeof row.amount_yocto === "string" ? `${row.amount_yocto} yoctoNEAR` : "Not recorded";
+      const exactAmount = typeof row.usd_amount === "string" || typeof row.usd_amount === "number" ? `${row.usd_amount} USD (provider value)` : typeof row.amount_yocto === "string" ? `${row.amount_yocto} yoctoNEAR` : "Not recorded";
+      const amount = typeof row.usd_amount === "string" || typeof row.usd_amount === "number" ? `${window.SiyabNumbers.decimal(row.usd_amount, 2)} USD (provider value)` : typeof row.amount_yocto === "string" ? `${window.SiyabNumbers.baseUnits(row.amount_yocto, 24)} NEAR` : "Not recorded";
+      cells[4].setAttribute("data-export-value", exactAmount);
       add(cells[4], "span", amount, "feed-amount"); if (typeof row.asset_id === "string") add(cells[4], "small", row.asset_id);
       add(cells[5], "span", provider(row));
       if (typeof id === "string" && /^[0-9a-f]{64}$/.test(id)) add(cells[5], "a", "Open evidence").href = "/evidence/" + id;
@@ -125,5 +127,6 @@
   });
   window.addEventListener("pagehide", () => { generation++; clearTimeout(timer); if (controller) controller.abort(); });
   window.addEventListener("pageshow", event => { if (event.persisted && !document.hidden && !paused) poll(); });
-  poll();
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", poll, {once: true});
+  else poll();
 })();

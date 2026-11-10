@@ -9,6 +9,7 @@ User=shieldbot-near
 Group=shieldbot-near
 WorkingDirectory=/opt/siyab
 EnvironmentFile=/etc/shieldbot-near/env
+EnvironmentFile=-/etc/shieldbot-near/siyab-provider.conf
 ExecStart=/usr/bin/python3 -m intel history-follow --state-dir /var/lib/shieldbot-near/siyab
 Restart=on-failure
 RestartSec=5

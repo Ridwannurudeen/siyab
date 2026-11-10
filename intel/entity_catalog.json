@@ -1,0 +1,572 @@
+{
+  "version": 1,
+  "network": "mainnet",
+  "sources": [
+    {
+      "id": "ref",
+      "url": "https://raw.githubusercontent.com/ref-finance/guide/main/developers/contracts.md",
+      "publisher": "RHEA Finance",
+      "format": "markdown",
+      "required_markers": [
+        "### Mainnet Contracts",
+        "### Testnet Contracts"
+      ],
+      "fixture": "fixtures/enrichment/ref.md",
+      "content_sha256": "b66717d933b415544ce2793f88b2a86de4f441809047087f816ce71844124f95",
+      "retrieved_at": "2026-11-10T14:32:49Z"
+    },
+    {
+      "id": "meta",
+      "url": "https://docs.metapool.app/for-developers/meta-pool-contracts/near-network/",
+      "publisher": "Meta Pool",
+      "format": "html",
+      "required_markers": [
+        "stNEAR Token",
+        "mpDAO Governance Token"
+      ],
+      "fixture": "fixtures/enrichment/meta.html",
+      "content_sha256": "90e465aeddac0a7fbc9233c049e4b2163cadd46345eab27d1c49a2904e37d35b",
+      "retrieved_at": "2026-11-10T14:32:51Z"
+    },
+    {
+      "id": "linear",
+      "url": "https://raw.githubusercontent.com/linear-protocol/LiNEAR/main/README.md",
+      "publisher": "LiNEAR Protocol",
+      "format": "markdown",
+      "required_markers": [
+        "### Mainnet",
+        "### Testnet"
+      ],
+      "fixture": "fixtures/enrichment/linear.md",
+      "content_sha256": "0d949095408fd70fc8e9d364c03b5c347eeb69cda4882e23eba72e6693fe2960",
+      "retrieved_at": "2026-11-10T14:32:52Z"
+    },
+    {
+      "id": "social",
+      "url": "https://raw.githubusercontent.com/NearSocial/social-db/master/README.md",
+      "publisher": "NEAR Social",
+      "format": "markdown",
+      "required_markers": [
+        "### Mainnet account ID",
+        "Deployed at `social.near`"
+      ],
+      "fixture": "fixtures/enrichment/social.md",
+      "content_sha256": "2f59ce8ada36a4e76370ce68296ac66a526ec6d5cdb82494f49519c9f2dca00f",
+      "retrieved_at": "2026-11-10T14:32:53Z"
+    },
+    {
+      "id": "wrap",
+      "url": "https://raw.githubusercontent.com/near/core-contracts/master/w-near/README.md",
+      "publisher": "NEAR core contracts",
+      "format": "markdown",
+      "required_markers": [
+        "wNEAR",
+        "on mainnet"
+      ],
+      "fixture": "fixtures/enrichment/wrap.md",
+      "content_sha256": "8dac4571e1fcf1a5b5af8e999cf614377bb87e2a010310e5b1589c1171673a40",
+      "retrieved_at": "2026-11-10T14:32:54Z"
+    },
+    {
+      "id": "intents",
+      "url": "https://raw.githubusercontent.com/near/intents/main/README.md",
+      "publisher": "NEAR Intents",
+      "format": "markdown",
+      "required_markers": [
+        "NEAR Intents",
+        "NEAR Intents smart contract"
+      ],
+      "fixture": "fixtures/enrichment/intents.md",
+      "content_sha256": "d5be87c4c0bee064ecbb560bc7d017528fd4a18ee8cefb02372f7276354a8f4c",
+      "retrieved_at": "2026-11-10T14:32:54Z"
+    },
+    {
+      "id": "templar",
+      "url": "https://docs.templarfi.org/guide/oracles.html",
+      "publisher": "Templar Protocol",
+      "format": "html",
+      "required_markers": [
+        "Oracle Addresses",
+        "Mainnet"
+      ],
+      "fixture": "fixtures/enrichment/templar.html",
+      "content_sha256": "0b2fbd904eacff43bfe9d0dc84a166c125c9aeec41a38918697f8affffc6098d",
+      "retrieved_at": "2026-11-10T14:32:55Z"
+    },
+    {
+      "id": "pyth",
+      "url": "https://docs.pyth.network/pyth-token/pyth-token-addresses.md",
+      "publisher": "Pyth Network",
+      "format": "markdown",
+      "required_markers": [
+        "PYTH Token Contract Addresses",
+        "NEAR"
+      ],
+      "fixture": "fixtures/enrichment/pyth.md",
+      "content_sha256": "61185b891fb72c4a2eb5330ee3cefe0d6f4501d3ae2eff6d79e742a9467cb3be",
+      "retrieved_at": "2026-11-10T14:32:56Z"
+    }
+  ],
+  "entries": [
+    {
+      "entity_id": "rhea-finance",
+      "name": "RHEA Finance",
+      "aliases": [
+        "Ref Finance",
+        "REF"
+      ],
+      "category": "dex",
+      "account_id": "v2.ref-finance.near",
+      "role": "Exchange Contract",
+      "lifecycle": "documented",
+      "source_id": "ref",
+      "anchor": "| v2.ref-finance.near                                              | Exchange Contract                            | Manage the Automated Market Maker functions; Swap and Provide Liquidity                   | Yes              | ref-finance.sputnik-dao.near                                                                    | [Link](https://github.com/ref-finance/ref-contracts/tree/main/ref-exchange)          |"
+    },
+    {
+      "entity_id": "rhea-finance",
+      "name": "RHEA Finance",
+      "aliases": [
+        "Ref Finance",
+        "REF"
+      ],
+      "category": "dex",
+      "account_id": "boostfarm.ref-labs.near",
+      "role": "Farming Contract",
+      "lifecycle": "documented",
+      "source_id": "ref",
+      "anchor": "| boostfarm.ref-labs.near                                          | Farming Contract                             | Manage liquidity incentives                                                               | Yes              | ref-finance.sputnik-dao.near                                                                    | [Link](https://github.com/ref-finance/boost-farm)                                    |"
+    },
+    {
+      "entity_id": "rhea-finance",
+      "name": "RHEA Finance",
+      "aliases": [
+        "Ref Finance",
+        "REF"
+      ],
+      "category": "dex",
+      "account_id": "ref-ve.ref-labs.near",
+      "role": "Vetokenomics Contract",
+      "lifecycle": "documented",
+      "source_id": "ref",
+      "anchor": "| ref-ve.ref-labs.near                                             | Vetokenomics Contract                        | Manage Vote-Escrowed Token (veToken)                                                      | No (In Progress) | ref-dev-team.near                                                                               | [Link](https://github.com/ref-finance/ref-ve)                                        |"
+    },
+    {
+      "entity_id": "rhea-finance",
+      "name": "RHEA Finance",
+      "aliases": [
+        "Ref Finance",
+        "REF"
+      ],
+      "category": "dex",
+      "account_id": "xtoken.ref-finance.near",
+      "role": "Staking Contract",
+      "lifecycle": "documented",
+      "source_id": "ref",
+      "anchor": "| xtoken.ref-finance.near                                          | Staking Contract                             | Mint and burn xREF, and Distribute time-based rewards                                     | Yes              | ref-finance.sputnik-dao.near                                                                    | [Link](https://github.com/ref-finance/ref-token/tree/master/xref-token)              |"
+    },
+    {
+      "entity_id": "rhea-finance",
+      "name": "RHEA Finance",
+      "aliases": [
+        "Ref Finance",
+        "REF"
+      ],
+      "category": "dex",
+      "account_id": "dclv2.ref-labs.near",
+      "role": "Concentrated Liquidity Contract (Ref v2)",
+      "lifecycle": "documented",
+      "source_id": "ref",
+      "anchor": "| dclv2.ref-labs.near                                              | Concentrated Liquidity Contract (Ref v2)     | Manage concentrated liquidity and limit order functions                                   | No (In Progress) | ref-dev-team.near                                                                               | [Link](https://github.com/ref-finance/ref-dcl)                                       |"
+    },
+    {
+      "entity_id": "rhea-finance",
+      "name": "RHEA Finance",
+      "aliases": [
+        "Ref Finance",
+        "REF"
+      ],
+      "category": "dex",
+      "account_id": "ref-finance.sputnik-dao.near",
+      "role": "Sputnik DAO Contract",
+      "lifecycle": "documented",
+      "source_id": "ref",
+      "anchor": "| ref-finance.sputnik-dao.near                                     | Sputnik DAO Contract                         | Ensure the success of Ref by taking strategic decisions (incl. smart contract amendments) | Yes              | Multisig ([Link](https://app.astrodao.com/dao/ref-finance.sputnik-dao.near/groups/all))         | [Link](https://github.com/near-daos/sputnik-dao-contract)                            |"
+    },
+    {
+      "entity_id": "rhea-finance",
+      "name": "RHEA Finance",
+      "aliases": [
+        "Ref Finance",
+        "REF"
+      ],
+      "category": "dex",
+      "account_id": "ref-community-board.sputnik-dao.near",
+      "role": "Sputnik DAO Contract",
+      "lifecycle": "documented",
+      "source_id": "ref",
+      "anchor": "| ref-community-board.sputnik-dao.near                             | Sputnik DAO Contract                         | Manage and allocate funds to specific community contributors                              | Yes              | Multisig ([Link](https://app.astrodao.com/dao/ref-community-board.sputnik-dao.near/groups/all)) | [Link](https://github.com/near-daos/sputnik-dao-contract)                            |"
+    },
+    {
+      "entity_id": "rhea-finance",
+      "name": "RHEA Finance",
+      "aliases": [
+        "Ref Finance",
+        "REF"
+      ],
+      "category": "dex",
+      "account_id": "dao.ref-dev-team.near",
+      "role": "Sputnik DAO Contract",
+      "lifecycle": "documented",
+      "source_id": "ref",
+      "anchor": "| dao.ref-dev-team.near                                            | Sputnik DAO Contract                         | Execute the Strategy and Roadmap                                                          | Yes              | Multisig ([Link](https://dev-fund.ref-finance.com/#/dao.ref-dev-team.near/))                    | [Link](https://github.com/near-daos/sputnik-dao-contract)                            |"
+    },
+    {
+      "entity_id": "rhea-finance",
+      "name": "RHEA Finance",
+      "aliases": [
+        "Ref Finance",
+        "REF"
+      ],
+      "category": "dex",
+      "account_id": "ref.ref-dev-fund.near",
+      "role": "Vesting Contract",
+      "lifecycle": "documented",
+      "source_id": "ref",
+      "anchor": "| ref.ref-dev-fund.near                                            | Vesting Contract                             | Manage REF vesting contracts of Dev DAO members                                           | Yes              | dao.ref-dev-team.near                                                                           | [Link](https://github.com/ref-finance/ref-dev-fund/tree/session_vault/session_vault) |"
+    },
+    {
+      "entity_id": "rhea-finance",
+      "name": "RHEA Finance",
+      "aliases": [
+        "Ref Finance",
+        "REF"
+      ],
+      "category": "dex",
+      "account_id": "s01.ref-airdrop.near",
+      "role": "Airdrop Contract",
+      "lifecycle": "documented",
+      "source_id": "ref",
+      "anchor": "| s01.ref-airdrop.near                                             | Airdrop Contract                             | Manage first REF airdrop                                                                  | Yes              | N/A                                                                                             | [Link](https://github.com/skyward-finance/contracts/tree/master/lockup)              |"
+    },
+    {
+      "entity_id": "rhea-finance",
+      "name": "RHEA Finance",
+      "aliases": [
+        "Ref Finance",
+        "REF"
+      ],
+      "category": "dex",
+      "account_id": "ref-bug-bounty-1.near",
+      "role": "Simple Address",
+      "lifecycle": "documented",
+      "source_id": "ref",
+      "anchor": "| ref-bug-bounty-1.near                                            | Simple Address                               | Manage one-time bug bounty payments                                                       | N/A              | N/A                                                                                             | N/A                                                                                  |"
+    },
+    {
+      "entity_id": "rhea-finance",
+      "name": "RHEA Finance",
+      "aliases": [
+        "Ref Finance",
+        "REF"
+      ],
+      "category": "dex",
+      "account_id": "token.v2.ref-finance.near",
+      "role": "$REF Fungible Token Contract",
+      "lifecycle": "documented",
+      "source_id": "ref",
+      "anchor": "| token.v2.ref-finance.near                                        | $REF Fungible Token Contract                 | Mint REF token                                                                            | Yes              | N/A                                                                                             | [Link](https://github.com/ref-finance/ref-token/tree/deployed-ref-token/ref-token)   |"
+    },
+    {
+      "entity_id": "rhea-finance",
+      "name": "RHEA Finance",
+      "aliases": [
+        "Ref Finance",
+        "REF"
+      ],
+      "category": "dex",
+      "account_id": "ref-finance.near",
+      "role": "Exchange Contract",
+      "lifecycle": "deprecated",
+      "source_id": "ref",
+      "anchor": "| ref-finance.near                                                 | Exchange Contract                            | v1 (obsolete) - Manage the Automated Market Maker functions; Swap and Provide Liquidity   | No               | N/A                                                                                             | [Link](https://github.com/ref-finance/ref-contracts/tree/main/ref-exchange)          |"
+    },
+    {
+      "entity_id": "rhea-finance",
+      "name": "RHEA Finance",
+      "aliases": [
+        "Ref Finance",
+        "REF"
+      ],
+      "category": "dex",
+      "account_id": "token.ref-finance.near",
+      "role": "Fungible Token Contract",
+      "lifecycle": "deprecated",
+      "source_id": "ref",
+      "anchor": "| token.ref-finance.near                                           | Fungible Token Contract                      | v1 (obsolete) - Mint REF token                                                            | Yes              | N/A                                                                                             | N/A                                                                                  |"
+    },
+    {
+      "entity_id": "rhea-finance",
+      "name": "RHEA Finance",
+      "aliases": [
+        "Ref Finance",
+        "REF"
+      ],
+      "category": "dex",
+      "account_id": "v2.ref-farming.near",
+      "role": "Farming Contract",
+      "lifecycle": "deprecated",
+      "source_id": "ref",
+      "anchor": "| v2.ref-farming.near                                              | Farming Contract                             | v2 (obsolete) - Manage liquidity incentives                                               | Yes              | ref-finance.sputnik-dao.near                                                                    | [Link](https://github.com/ref-finance/ref-contracts/tree/main/ref-farming)           |"
+    },
+    {
+      "entity_id": "rhea-finance",
+      "name": "RHEA Finance",
+      "aliases": [
+        "Ref Finance",
+        "REF"
+      ],
+      "category": "dex",
+      "account_id": "dcl.ref-labs.near",
+      "role": "Concentrated Liquidity Contract (Ref v2)",
+      "lifecycle": "deprecated",
+      "source_id": "ref",
+      "anchor": "| dcl.ref-labs.near                                                | Concentrated Liquidity Contract (Ref v2)     | Beta (obsolete) - Manage concentrated liquidity and limit order functions                 | No               | ref-dev-team.near                                                                               | [Link](https://github.com/ref-finance/ref-dcl)                                       |"
+    },
+    {
+      "entity_id": "rhea-finance",
+      "name": "RHEA Finance",
+      "aliases": [
+        "Ref Finance",
+        "REF"
+      ],
+      "category": "dex",
+      "account_id": "refchef.near",
+      "role": "Simple Address",
+      "lifecycle": "documented",
+      "source_id": "ref",
+      "anchor": "| refchef.near                                                     | Simple Address                               | Manage inter-account transactions                                                         | N/A              | N/A                                                                                             | N/A                                                                                  |"
+    },
+    {
+      "entity_id": "rhea-finance",
+      "name": "RHEA Finance",
+      "aliases": [
+        "Ref Finance",
+        "REF"
+      ],
+      "category": "dex",
+      "account_id": "ref-farm-reward-proxy.near",
+      "role": "Simple Address",
+      "lifecycle": "documented",
+      "source_id": "ref",
+      "anchor": "| ref-farm-reward-proxy.near                                       | Simple Address                               | Manage third-party deposits for liquidity incentives                                      | N/A              | N/A                                                                                             | N/A                                                                                  |"
+    },
+    {
+      "entity_id": "rhea-finance",
+      "name": "RHEA Finance",
+      "aliases": [
+        "Ref Finance",
+        "REF"
+      ],
+      "category": "dex",
+      "account_id": "ref-dev-teller.near",
+      "role": "Simple Address",
+      "lifecycle": "documented",
+      "source_id": "ref",
+      "anchor": "| ref-dev-teller.near                                              | Simple Address                               | Manage inter-account transactions                                                         | N/A              | N/A                                                                                             | N/A                                                                                  |"
+    },
+    {
+      "entity_id": "rhea-finance",
+      "name": "RHEA Finance",
+      "aliases": [
+        "Ref Finance",
+        "REF"
+      ],
+      "category": "dex",
+      "account_id": "lst.rhealab.near",
+      "role": "LST Contract",
+      "lifecycle": "documented",
+      "source_id": "ref",
+      "anchor": "| lst.rhealab.near                                                 | LST Contract                                 | Manage rNear Token                                                                        | Yes              |                                                                                                 |                                                                                      |"
+    },
+    {
+      "entity_id": "meta-pool",
+      "name": "Meta Pool",
+      "aliases": [
+        "MetaPool",
+        "stNEAR",
+        "mpDAO"
+      ],
+      "category": "liquid_staking",
+      "account_id": "meta-pool.near",
+      "role": "stNEAR liquid staking contract",
+      "lifecycle": "documented",
+      "source_id": "meta",
+      "anchor": "<code dir=\"auto\">meta-pool.near</code>"
+    },
+    {
+      "entity_id": "meta-pool",
+      "name": "Meta Pool",
+      "aliases": [
+        "MetaPool",
+        "stNEAR",
+        "mpDAO"
+      ],
+      "category": "liquid_staking",
+      "account_id": "mpdao-token.near",
+      "role": "mpDAO governance token",
+      "lifecycle": "documented",
+      "source_id": "meta",
+      "anchor": "<code dir=\"auto\">mpdao-token.near</code>"
+    },
+    {
+      "entity_id": "meta-pool",
+      "name": "Meta Pool",
+      "aliases": [
+        "MetaPool",
+        "stNEAR",
+        "mpDAO"
+      ],
+      "category": "liquid_staking",
+      "account_id": "mpdao-vote.near",
+      "role": "mpDAO voting contract",
+      "lifecycle": "documented",
+      "source_id": "meta",
+      "anchor": "<code dir=\"auto\">mpdao-vote.near</code>"
+    },
+    {
+      "entity_id": "meta-pool",
+      "name": "Meta Pool",
+      "aliases": [
+        "MetaPool",
+        "stNEAR",
+        "mpDAO"
+      ],
+      "category": "liquid_staking",
+      "account_id": "lockup-meta-pool.near",
+      "role": "Lockup staking contract",
+      "lifecycle": "documented",
+      "source_id": "meta",
+      "anchor": "<code dir=\"auto\">lockup-meta-pool.near</code>"
+    },
+    {
+      "entity_id": "meta-pool",
+      "name": "Meta Pool",
+      "aliases": [
+        "MetaPool",
+        "stNEAR",
+        "mpDAO"
+      ],
+      "category": "liquid_staking",
+      "account_id": "meta-token.near",
+      "role": "Deprecated META governance token",
+      "lifecycle": "deprecated",
+      "source_id": "meta",
+      "anchor": "<code dir=\"auto\">meta-token.near</code>"
+    },
+    {
+      "entity_id": "linear-protocol",
+      "name": "LiNEAR Protocol",
+      "aliases": [
+        "LiNEAR"
+      ],
+      "category": "liquid_staking",
+      "account_id": "linear-protocol.near",
+      "role": "LiNEAR staking and token contract",
+      "lifecycle": "documented",
+      "source_id": "linear",
+      "anchor": "- LiNEAR contract and $LiNEAR token: [`linear-protocol.near`](https://explorer.near.org/accounts/linear-protocol.near)"
+    },
+    {
+      "entity_id": "near-social",
+      "name": "NEAR Social",
+      "aliases": [
+        "Social DB",
+        "SocialDB"
+      ],
+      "category": "social",
+      "account_id": "social.near",
+      "role": "Social DB contract",
+      "lifecycle": "documented",
+      "source_id": "social",
+      "anchor": "Deployed at `social.near`"
+    },
+    {
+      "entity_id": "wrapped-near",
+      "name": "Wrapped NEAR",
+      "aliases": [
+        "wNEAR"
+      ],
+      "category": "token",
+      "account_id": "wrap.near",
+      "role": "Wrapped NEAR token contract",
+      "lifecycle": "documented",
+      "source_id": "wrap",
+      "anchor": "Source code for the wNEAR contract deployed at `wrap.near` on mainnet."
+    },
+    {
+      "entity_id": "near-intents",
+      "name": "NEAR Intents",
+      "aliases": [
+        "Intents"
+      ],
+      "category": "settlement",
+      "account_id": "intents.near",
+      "role": "NEAR Intents settlement contract",
+      "lifecycle": "documented",
+      "source_id": "intents",
+      "anchor": "[NEAR Intents smart contract](https://nearblocks.io/address/intents.near)"
+    },
+    {
+      "entity_id": "templar",
+      "name": "Templar Protocol",
+      "aliases": [
+        "Templar"
+      ],
+      "category": "oracle",
+      "account_id": "pyth-lazer.v1.tmplr.near",
+      "role": "Pyth Lazer adapter",
+      "lifecycle": "documented",
+      "source_id": "templar",
+      "anchor": "<code>pyth-lazer.v1.tmplr.near</code>"
+    },
+    {
+      "entity_id": "templar",
+      "name": "Templar Protocol",
+      "aliases": [
+        "Templar"
+      ],
+      "category": "oracle",
+      "account_id": "redstone-adapter.v1.tmplr.near",
+      "role": "RedStone adapter",
+      "lifecycle": "documented",
+      "source_id": "templar",
+      "anchor": "<code>redstone-adapter.v1.tmplr.near</code>"
+    },
+    {
+      "entity_id": "templar",
+      "name": "Templar Protocol",
+      "aliases": [
+        "Templar"
+      ],
+      "category": "oracle",
+      "account_id": "lst.oracle.tmplr.near",
+      "role": "Legacy LST oracle adapter",
+      "lifecycle": "documented",
+      "source_id": "templar",
+      "anchor": "<code>lst.oracle.tmplr.near</code>"
+    },
+    {
+      "entity_id": "pyth-network",
+      "name": "Pyth Network",
+      "aliases": [
+        "PYTH"
+      ],
+      "category": "token",
+      "account_id": "21.contract.portalbridge.near",
+      "role": "Bridged PYTH token representation",
+      "lifecycle": "documented",
+      "source_id": "pyth",
+      "anchor": "<CopyAddress address=\"21.contract.portalbridge.near\""
+    }
+  ]
+}

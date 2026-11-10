@@ -1,0 +1,25 @@
+<section id="entity-enrichment" class="enrichment-panel investigate-section" aria-labelledby="enrichment-title">
+  <div class="enrichment-heading">
+    <div><h2 id="enrichment-title">Documented associations</h2><p id="enrichment-account">Select an account to read its documented associations.</p></div>
+    <button id="enrichment-retry" type="button" hidden>Retry associations</button>
+  </div>
+  <p class="enrichment-scope">An official source documents these exact accounts. This does not establish current ownership, contract integrity or a payment verdict.</p>
+  <div id="enrichment-associations" aria-live="polite" aria-busy="false"></div>
+  <details id="enrichment-directory" class="enrichment-directory">
+    <summary>Entity directory</summary>
+    <p class="enrichment-scope">Search documented mainnet accounts by organisation, alias or address. Unlisted accounts remain unknown.</p>
+    <form id="enrichment-search" class="enrichment-search">
+      <label for="enrichment-query">Organisation or account<input id="enrichment-query" type="search" maxlength="128" autocomplete="off" placeholder="Search the directory"></label>
+      <label for="enrichment-category">Category<select id="enrichment-category"><option value="">All categories</option></select></label>
+      <button type="submit">Search directory</button>
+    </form>
+    <p id="enrichment-directory-status" class="enrichment-directory-status" role="status" aria-live="polite"></p>
+    <div id="enrichment-results" aria-busy="false"></div>
+    <nav class="enrichment-pagination" aria-label="Entity directory pages">
+      <button id="enrichment-previous" type="button" disabled>Previous page</button>
+      <span id="enrichment-page-count"></span>
+      <button id="enrichment-next" type="button" disabled>Next page</button>
+    </nav>
+  </details>
+  <noscript><p>Enable JavaScript to read documented account associations and search the entity directory.</p></noscript>
+</section>

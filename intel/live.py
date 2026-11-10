@@ -13,7 +13,7 @@ import urllib.parse
 from collections import OrderedDict
 
 from gate import canon, evidence, intents, rpc, rules, scan
-from intel import accounts, history, identity, labels, reports
+from intel import accounts, enrichment, history, identity, labels, portfolio, reports
 
 RATE_PER_MINUTE = 60
 RATE_WINDOW_S = 60
@@ -41,7 +41,8 @@ class LiveAPI:
     def __init__(self, store=None, *, clock=time.monotonic, wall_clock=time.time,
                  perf_clock=time.perf_counter, rate_per_minute=RATE_PER_MINUTE,
                  request_timeout_s=REQUEST_TIMEOUT_S, cache_ttl_s=CACHE_TTL_S,
-                 cache_size=MAX_CACHE_ENTRIES, max_in_flight=MAX_IN_FLIGHT, history_store=None):
+                 cache_size=MAX_CACHE_ENTRIES, max_in_flight=MAX_IN_FLIGHT, history_store=None,
+                 entity_directory=None, portfolio_data=None, portfolio_history=None):
         if type(rate_per_minute) is not int or rate_per_minute < 1:
             raise ValueError("rate_per_minute must be a positive integer")
         if not isinstance(request_timeout_s, (int, float)) or isinstance(request_timeout_s, bool) or not (
@@ -51,6 +52,9 @@ class LiveAPI:
             raise ValueError("cache_size must be a positive integer")
         self.store = store or labels.load()
         self.history_store = history_store
+        self.entity_directory = entity_directory
+        self.portfolio_data = portfolio_data
+        self.portfolio_history = portfolio_history
         self.clock = clock
         self.wall_clock = wall_clock
         self.perf_clock = perf_clock
@@ -81,8 +85,8 @@ class LiveAPI:
                 return self._error(429, "rate_limited", "The client rate limit was reached.",
                                    {"Retry-After": str(retry_after)})
             key = (parsed.path, parsed.query)
-            cacheable = not (parsed.path.startswith(("/live/account-data/", "/live/account-events/")) or
-                             (parsed.path.startswith("/live/accounts/") and parsed.path.rsplit("/", 1)[-1] in ("history", "backfill")))
+            cacheable = not (parsed.path.startswith(("/live/account-data/", "/live/account-events/", "/live/portfolio-data/")) or parsed.path == "/live/entity-directory" or
+                             (parsed.path.startswith("/live/accounts/") and parsed.path.rsplit("/", 1)[-1] in ("history", "backfill", "enrichment", "portfolio", "portfolio-history", "portfolio-at-block")))
             cached = self._cache_get(key) if cacheable else None
             if cached is not None:
                 return cached
@@ -100,14 +104,14 @@ class LiveAPI:
                     return self._error(503, "response_too_large", "The live response exceeds the size limit.")
                 if time.monotonic() >= deadline:
                     raise TimeoutError("request deadline exceeded")
-            except LiveInputError as error:
+            except (LiveInputError, enrichment.EnrichmentInputError, portfolio.PortfolioInputError) as error:
                 return self._error(400, "invalid_input", str(error))
             except TimeoutError:
                 return self._error(504, "timeout", "The live read exceeded its request deadline.")
-            except history.HistoryCapacityError as error:
+            except (history.HistoryCapacityError, portfolio.PortfolioCapacityError) as error:
                 return 503, {"error": "archive_capacity", "message": str(error),
                              "coverage": {"history_complete": False, "new_observations_paused": True}}, {"Retry-After": "60"}
-            except LiveReadError:
+            except (LiveReadError, enrichment.EnrichmentReadError, portfolio.PortfolioReadError):
                 return self._error(503, "read_failed", "A required live view could not be read.")
             except rules.UNAVAILABLE:
                 return self._error(503, "read_failed", "A required live view could not be read.")
@@ -121,19 +125,20 @@ class LiveAPI:
             self._slots.release()
 
     def exact_snapshot(self, path, query):
-        if not path.startswith(("/live/account-data/", "/live/account-events/")):
+        if not path.startswith(("/live/account-data/", "/live/account-events/", "/live/portfolio-data/")):
             return None
-        match = re.fullmatch(r"/live/(account-data|account-events)/([a-f0-9]{64})\.json", path)
+        match = re.fullmatch(r"/live/(account-data|account-events|portfolio-data)/([a-f0-9]{64})\.json", path)
         if match is None or query:
             return self._error(400, "invalid_input", "A snapshot URL contains one lowercase SHA-256 identifier and no query fields.")
-        if self.history_store is None:
+        archive = self.portfolio_history if match[1] == "portfolio-data" else self.history_store
+        if archive is None:
             return self._error(503, "archive_unavailable", "The account observation archive is unavailable.")
         try:
-            body = (self.history_store.get_graph_bytes(match[2]) if match[1] == "account-data"
-                    else self.history_store.get_event_bytes(match[2]))
+            body = (archive.get_graph_bytes(match[2]) if match[1] == "account-data" else
+                    archive.get_event_bytes(match[2]) if match[1] == "account-events" else archive.get_bytes(match[2]))
         except TimeoutError:
             raise
-        except (history.HistoryInputError, history.HistoryReadError, OSError, sqlite3.Error):
+        except (history.HistoryInputError, history.HistoryReadError, portfolio.PortfolioInputError, portfolio.PortfolioReadError, OSError, sqlite3.Error):
             return self._error(503, "read_failed", "The stored public observation could not be read.")
         if body is None:
             return self._error(404, "not_found", "No retained public observation matches this identifier.")
@@ -142,6 +147,22 @@ class LiveAPI:
     def _route(self, path, query):
         if path.startswith("/live/accounts/"):
             return self._account_read(path, query)
+        if path == "/live/entity-directory":
+            try:
+                pairs = urllib.parse.parse_qsl(query, keep_blank_values=True, strict_parsing=True, max_num_fields=4)
+            except ValueError:
+                raise LiveInputError("Directory query fields are malformed.") from None
+            if len({name for name, _ in pairs}) != len(pairs) or any(name not in {"query", "category", "limit", "offset"} for name, _ in pairs):
+                raise LiveInputError("Directory query fields are unsupported or repeated.")
+            values = dict(pairs)
+            for field, lower, upper in (("limit", 1, 100), ("offset", 0, enrichment.MAX_ENTRIES)):
+                if field in values:
+                    if re.fullmatch(r"0|[1-9][0-9]{0,3}", values[field]) is None or not lower <= int(values[field]) <= upper:
+                        raise LiveInputError("Directory pagination is outside its supported range.")
+                    values[field] = int(values[field])
+            if self.entity_directory is None:
+                raise LiveReadError("The sourced entity directory is unavailable.")
+            return 200, self.entity_directory.search(**values)
         if path == "/live/health":
             self._no_query(query)
             return 200, {"ok": True, "network": "mainnet", "rate_per_minute": self.rate_per_minute}
@@ -176,7 +197,9 @@ class LiveAPI:
         kind = parts[4]
         allowed = {"profile": set(), "holdings": {"offset", "limit"},
                    "transactions": {"cursor", "limit"}, "transfers": {"cursor", "limit"}, "graph": {"depth"},
-                   "identity": set(), "history": {"kind", "before", "limit"}, "backfill": {"kind", "cursor", "max_pages"}}
+                   "identity": set(), "history": {"kind", "before", "limit"}, "backfill": {"kind", "cursor", "max_pages"},
+                   "enrichment": set(), "portfolio": {"max_tokens"}, "portfolio-history": {"before", "limit", "asset_id"},
+                   "portfolio-at-block": {"block_height", "contracts"}}
         if kind not in allowed:
             return self._error(404, "not_found", "No account investigation view matches this path.")[:2]
         try:
@@ -188,35 +211,67 @@ class LiveAPI:
         values = dict(pairs)
         if kind in ("history", "backfill") and values.get("kind") not in ("transactions", "transfers"):
             raise LiveInputError("The archive kind must be transactions or transfers.")
-        for field in ("offset", "limit", "depth", "before", "max_pages"):
+        if kind == "portfolio-at-block" and "block_height" not in values:
+            raise LiveInputError("A historical portfolio requires block_height.")
+        for field in ("offset", "limit", "depth", "before", "max_pages", "max_tokens", "block_height"):
             if field in values:
-                upper = 2 ** 63 - 1 if field == "before" else 10000 if field == "offset" else 2 if field in ("depth", "max_pages") else 20 if kind == "holdings" else 100
+                upper = canon.U64_MAX if field == "block_height" else 2 ** 63 - 1 if field == "before" else 10000 if field == "offset" else 2 if field in ("depth", "max_pages") else 20 if kind == "holdings" else 100
                 lower = 0 if field in ("offset", "before") else 1
-                if not re.fullmatch(r"0|[1-9][0-9]{0,18}", values[field]) or not lower <= int(values[field]) <= upper:
+                if not re.fullmatch(r"0|[1-9][0-9]{0,19}", values[field]) or not lower <= int(values[field]) <= upper:
                     raise LiveInputError("Investigation pagination or graph depth is outside its supported range.")
                 values[field] = int(values[field])
+        if "contracts" in values:
+            contracts = values["contracts"].split(",")
+            if len(contracts) > portfolio.MAX_HISTORICAL_TOKENS or len(set(contracts)) != len(contracts):
+                raise LiveInputError("Historical portfolios accept at most 20 distinct token contracts.")
+            for contract in contracts:
+                validated = self._account(contract, "contract")
+                if validated == "testnet" or validated.endswith(".testnet"):
+                    raise LiveInputError("Historical portfolios read mainnet token contracts only.")
+            values["contracts"] = contracts
         try:
-            reader = accounts.AccountData(self.store)
-            if kind in ("history", "backfill"):
+            if kind == "enrichment":
+                if self.entity_directory is None:
+                    raise LiveReadError("The sourced entity directory is unavailable.")
+                result = self.entity_directory.lookup(account)
+            elif kind == "portfolio-history":
+                if self.portfolio_history is None:
+                    raise LiveReadError("The portfolio observation archive is unavailable.")
+                result = self.portfolio_history.list_records(account, **values)
+            elif kind in ("portfolio", "portfolio-at-block"):
+                if self.portfolio_data is None:
+                    raise LiveReadError("The portfolio data service is unavailable.")
+                if kind == "portfolio":
+                    result = self.portfolio_data.inspect(account, **values)
+                else:
+                    result = self.portfolio_data.historical(account, values.pop("block_height"), **values)
+                if self.portfolio_history is not None:
+                    result = {**result, "snapshot": self.portfolio_history.save(result)}
+            elif kind in ("history", "backfill"):
                 if self.history_store is None:
                     raise LiveReadError("The account observation archive is unavailable.")
                 archive_kind = values.pop("kind")
                 if kind == "history":
                     result = self.history_store.list_records(account, archive_kind, **values)
                 else:
-                    result = self.history_store.backfill_account(reader, account, archive_kind, **values)
+                    result = self.history_store.backfill_account(accounts.AccountData(self.store), account, archive_kind, **values)
             elif kind == "identity":
                 result = identity.IdentityData(self.store).inspect(account)
             elif kind == "profile":
-                result = reader.profile(account)
+                result = accounts.AccountData(self.store).profile(account)
             elif kind == "holdings":
-                result = reader.holdings(account, **values)
+                result = accounts.AccountData(self.store).holdings(account, **values)
             elif kind == "transactions":
-                result = reader.transactions(account, **values)
+                result = accounts.AccountData(self.store).transactions(account, **values)
             elif kind == "transfers":
-                result = reader.transfers(account, **values)
+                result = accounts.AccountData(self.store).transfers(account, **values)
             else:
-                result = reader.neighborhood(account, **values)
+                result = accounts.AccountData(self.store).neighborhood(account, **values)
+            if self.entity_directory is not None:
+                if kind in ("profile", "identity"):
+                    result = {**result, "enrichment": self.entity_directory.lookup(account)}
+                elif kind == "graph":
+                    result = {**result, "nodes": [{**node, "enrichment": self.entity_directory.lookup(node["id"])} for node in result["nodes"]]}
             if self.history_store is not None:
                 if kind in history.KINDS:
                     self.history_store.record_page(account, kind, result)

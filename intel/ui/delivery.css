@@ -1,0 +1,24 @@
+.team-delivery{margin:28px 0;min-width:0;padding:24px 0;border-top:1px solid rgb(var(--hairline));font-family:var(--font-ui)}
+.delivery-heading{display:flex;justify-content:space-between;align-items:start;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.delivery-heading h2{margin:0}
+.team-delivery p{font-size:14px;line-height:1.65;max-width:80ch;overflow-wrap:anywhere}
+.team-delivery button,.team-delivery a{min-height:44px;overflow-wrap:anywhere;white-space:normal}
+.team-delivery a{text-underline-offset:3px}
+.team-delivery :is(button,a,summary):focus-visible{outline:2px solid rgb(var(--focus));outline-offset:3px}
+.team-delivery button:disabled{opacity:.55;cursor:not-allowed}
+.delivery-scope,#delivery-context,.delivery-meta{color:rgb(var(--secondary))}
+#delivery-status:empty{display:none}
+#delivery-status{padding:10px 12px;background:rgb(var(--ground-alt));border:1px solid rgb(var(--hairline));border-radius:5px}
+.delivery-actions{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+.delivery-link{display:block;width:fit-content;font-size:14px;padding:10px 0}
+.delivery-counts{display:flex;flex-wrap:wrap;gap:14px 28px;padding:0;margin:18px 0}
+.delivery-counts>div{min-width:100px}
+.delivery-counts dt{font-size:12px;color:rgb(var(--secondary));margin-bottom:6px}
+.delivery-counts dd{margin:0;font:500 18px/1.4 var(--font-code);font-variant-numeric:tabular-nums}
+#delivery-history>summary{padding:12px 0;font-size:15px;cursor:pointer}
+.delivery-log-list{list-style:none;margin:0;padding:0}
+.delivery-log-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 20px;padding:18px 0;border-top:1px solid rgb(var(--hairline));min-width:0}
+.delivery-log-list h3{margin:0;font-size:14px}
+.delivery-log-list p{margin:7px 0;font-size:13px}
+.delivery-log-list a{display:inline-block;padding:10px 0;font:12px/1.6 var(--font-code)}
+@media(max-width:600px){.delivery-log-list li{grid-template-columns:minmax(0,1fr)}.delivery-counts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.delivery-counts>div{min-width:0}.delivery-actions>button{flex:1}.delivery-heading{align-items:center}.delivery-heading button{width:100%}}

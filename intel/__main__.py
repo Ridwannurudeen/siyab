@@ -603,6 +603,33 @@ def _history_follow(args):
     return 0
 
 
+def _investigation_follow(args):
+    from intel import accounts, history, investigation_jobs
+
+    state = Path(args.state_dir).expanduser().resolve()
+    if state == ROOT or ROOT in state.parents:
+        print("stopped: workspace state must be outside the source repository", file=sys.stderr)
+        return 2
+    result = investigation_jobs.run(state / "investigation-jobs.sqlite3",
+                                    history.AccountHistory(state / "history.sqlite3"),
+                                    accounts.AccountData(labels.load()), once=args.once)
+    print(json.dumps(result, sort_keys=True))
+    return 0
+
+
+def _delivery_follow(args):
+    from intel import delivery
+    from intel.workspace import SQLiteWorkspaceStore
+
+    state = Path(args.state_dir).expanduser().resolve()
+    if state == ROOT or ROOT in state.parents:
+        print("stopped: workspace state must be outside the source repository", file=sys.stderr)
+        return 2
+    result = delivery.run(SQLiteWorkspaceStore(state / "workspace.sqlite3"), once=args.once)
+    print(json.dumps(result, sort_keys=True))
+    return 0
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="python -m intel")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -631,6 +658,14 @@ def main(argv=None):
     following.add_argument("--state-dir", required=True)
     following.add_argument("--once", action="store_true")
     following.set_defaults(handler=_history_follow)
+    investigating = commands.add_parser("investigation-follow", help="advance bounded historical investigation jobs")
+    investigating.add_argument("--state-dir", required=True)
+    investigating.add_argument("--once", action="store_true")
+    investigating.set_defaults(handler=_investigation_follow)
+    delivering = commands.add_parser("delivery-follow", help="deliver confirmed team Telegram alerts")
+    delivering.add_argument("--state-dir", required=True)
+    delivering.add_argument("--once", action="store_true")
+    delivering.set_defaults(handler=_delivery_follow)
     backup = commands.add_parser("workspace-backup", help="back up an existing external workspace database")
     backup.add_argument("--state-dir", required=True)
     backup.add_argument("--out", required=True)

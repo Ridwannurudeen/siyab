@@ -98,6 +98,37 @@ class WorkspaceCLITest(unittest.TestCase):
         run.assert_not_called()
         self.assertFalse((self.root / "state").exists())
 
+    def test_investigation_once_runs_without_network_when_no_jobs(self):
+        with patch("intel.accounts.AccountData") as reader:
+            result, output, _ = self.invoke("investigation-follow", "--state-dir", str(self.state), "--once")
+        self.assertEqual(result, 0)
+        self.assertFalse(json.loads(output)["running"])
+        self.assertTrue((self.state / "investigation-jobs.sqlite3").is_file())
+        self.assertTrue((self.state / "history.sqlite3").is_file())
+        self.assertEqual(reader.return_value.method_calls, [])
+
+    def test_investigation_refuses_internal_state(self):
+        with patch.object(cli, "ROOT", self.root), patch("intel.investigation_jobs.run") as run:
+            result, _, _ = self.invoke("investigation-follow", "--state-dir", str(self.root / "state"), "--once")
+        self.assertEqual(result, 2)
+        run.assert_not_called()
+        self.assertFalse((self.root / "state").exists())
+
+    def test_delivery_once_without_credentials_makes_no_network_calls(self):
+        with patch.dict("os.environ", {"SIYAB_TELEGRAM_TOKEN_FILE": ""}), patch("intel.delivery.TelegramClient.call") as call:
+            result, output, _ = self.invoke("delivery-follow", "--state-dir", str(self.state), "--once")
+        self.assertEqual(result, 0)
+        self.assertFalse(json.loads(output)["configured"])
+        self.assertEqual(json.loads(output)["reason"], "credentials_missing")
+        call.assert_not_called()
+
+    def test_delivery_refuses_internal_state(self):
+        with patch.object(cli, "ROOT", self.root), patch("intel.delivery.run") as run:
+            result, _, _ = self.invoke("delivery-follow", "--state-dir", str(self.root / "state"), "--once")
+        self.assertEqual(result, 2)
+        run.assert_not_called()
+        self.assertFalse((self.root / "state").exists())
+
     def test_backup_reserves_destination_exclusively(self):
         SQLiteWorkspaceStore(self.state / "workspace.sqlite3")
         destination = self.base / "race.sqlite3"

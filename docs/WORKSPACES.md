@@ -40,7 +40,7 @@ History schema version 2 tracks archive budgets: 128 MiB of retained document/ro
 
 ## State and services
 
-Use one external state directory for the API and both workers. The service templates use:
+Use one external state directory for the API and all workers. The service templates use:
 
 | Purpose | Path |
 | --- | --- |
@@ -50,22 +50,27 @@ Use one external state directory for the API and both workers. The service templ
 | Accounts, teams, cases, watches, inbox and audit | `workspace.sqlite3` in the state directory |
 | Public account observations, graph/event evidence and polling progress | `history.sqlite3` in the state directory |
 | Retained-feed indexing progress and retry leases | `monitor.sqlite3` in the state directory |
+| Private queued investigation requests and progress | `investigation-jobs.sqlite3` in the state directory |
+| Public immutable portfolio observations | `portfolio.sqlite3` in the state directory |
+| Entity source recheck state | `entity-sources.sqlite3` in the state directory |
 
 The state directory must be outside the source checkout and generated site. The service user is `shieldbot-near`; give that user ownership of the directory, mode 0700, and keep database/backup files private. SQLite databases use WAL, so sidecar files may exist. Do not publish the state directory as a static asset or copy it into a release archive.
 
 `FASTNEAR_API_KEY_FILE` names a provider credential file outside the repository. Its contents must be readable by the service user without being placed in command arguments, browser code or logs. `FEED_STATE_DIR` names the existing external feed state directory; the retained-feed monitor reads its `events` subdirectory. The account reader also uses the configured mainnet RPC endpoint where applicable. Keep existing environment names and deployed contract identifiers unchanged.
 
-The three commands are:
+The service commands are:
 
 ```sh
 python -m intel serve --host 127.0.0.1 --port 8792 --site demo/site --live --state-dir /var/lib/shieldbot-near/siyab --workspace-origin https://siyab.xyz
 python -m intel monitor --state-dir /var/lib/shieldbot-near/siyab
 python -m intel history-follow --state-dir /var/lib/shieldbot-near/siyab
+python -m intel investigation-follow --state-dir /var/lib/shieldbot-near/siyab
+python -m intel delivery-follow --state-dir /var/lib/shieldbot-near/siyab
 ```
 
-Use `--once` on either worker for a bounded pass. That flag does not wait for all watched accounts to be polled. The API requires `--state-dir` for shared workspaces and durable account history; `--live` enables live account reads. An explicit localhost HTTP workspace origin is supported for local development; production uses the exact HTTPS origin.
+Use `--once` on a worker for a bounded pass. That flag does not drain all work. The API requires `--state-dir` for shared workspaces and durable observations; `--live` enables live account reads. An explicit localhost HTTP workspace origin is supported for local development; production uses the exact HTTPS origin.
 
-After release review, install the matching `deploy/siyab-api.service`, `deploy/siyab-monitor.service` and `deploy/siyab-history.service` templates in systemd. They use the external environment file and shared state directory, restart on failure, run without root, and restrict filesystem writes to that directory. Create the state directory before starting them. The monitor reads local feed evidence; the API and history worker need outbound provider network access.
+After release review, install the matching API, monitor, history, investigation and delivery templates from `deploy/` in systemd. They use the external environment file and shared state directory, restart on failure, run without root, and restrict filesystem writes to that directory. Create the state directory before starting them. The monitor reads local feed evidence; the other services need outbound provider access. API, history and investigation units load the optional `siyab-provider.conf` override after the base environment. API and delivery also load optional `siyab-delivery.conf` containing the `SIYAB_TELEGRAM_TOKEN_FILE` path. Keep credentials outside releases and restart both token-using services after rotating the token.
 
 The reverse proxy must send `/workspace-api/` and `/live/` to the loopback API while preserving their paths. Do not cache workspace responses. Overwrite `X-Forwarded-For` with the actual client address rather than passing client-supplied values through, because rate limits use that address behind a loopback proxy. Keep the public site origin aligned with `--workspace-origin`.
 
@@ -78,7 +83,19 @@ The workers serve different sources; one healthy heartbeat does not establish th
 - Initial ordinary-transfer observations seed archive rows and deduplication state without enqueueing historical inbox events. Later unseen rows can enter matching team inboxes. If the previous anchor is not found within the bounded pages, the account records a coverage gap. A running process does not clear that gap or establish complete event recovery.
 - Monitor status exposes retained-feed health separately from `account_polling`, including heartbeat, last successful poll, initialized accounts, retries, gaps, backfills and pending event delivery. An empty inbox does not establish absence of activity or risk.
 
-Delivery is persistent storage in the team's inbox, which can be read after reopening the browser. Email, chat, webhook and closed-browser desktop notification delivery are not configured by these workers. The separate alert library/test command does not imply that team inbox events have an external delivery integration.
+Telegram is the first external delivery channel. The dedicated bot is `@siyabonnearbot`. A team owner starts an expiring, single-use link, opens it in a private Telegram chat, then explicitly confirms the observed account in the workspace. Entering an arbitrary chat ID cannot activate delivery. Missing credentials, wrong bot identity or an existing webhook prevent worker delivery. The worker never removes another webhook. Only new eligible alerts after confirmation are queued; historical candidates and private investigation notes are excluded. Disconnect cancels queued deliveries, but an already in-flight request may finish. Delivery is at least once: an uncertain provider acknowledgement can cause a duplicate. Failed deliveries retry with bounded attempts and provider cooldowns, then remain available as dead letters for owner retry. Binding, queue and attempt state are included in the workspace database backup. Email and user-configured webhooks are not integrated.
+
+Delivery retention is shared across the installation: at most 10,000 queue rows across all states and 50,000 attempt rows. Evidence is not automatically deleted. Queue capacity pauses collection before the first eligible unqueued inbox item, preserving its cursor and the inbox record. Attempt capacity pauses new sends and manual retries without resetting the failed delivery. Status and worker results expose these pauses. Resume requires backed-up operator maintenance to make retention capacity available; the interface does not silently evict old evidence. These are row budgets, not a byte limit for the entire workspace database or its WAL.
+
+## Extended investigations and valuations
+
+Historical jobs are private to a team. Viewers can read results; editors and owners can create, cancel and retry jobs. Jobs advance one provider page per tick, share history provider budgets and yield to overdue watched accounts. Transfers and transaction jobs retain at most 100 pages and 5,000 rows. Graph jobs support depth up to five, at most 50 queried accounts and 200 retained transfers. These bounds do not establish complete history or account ownership. Progress retains source observations and reports unread pages, failures and limits.
+
+Valid provider Retry-After delta-seconds or HTTP dates are retained as cooldown deadlines. A job retry cannot bypass that deadline; other jobs, backfills and watches using the same account and provider kind share it. Unrelated accounts and provider kinds remain eligible. The history database retains its base schema version 2 with an additive cooldown table, so the previous release can read the retained state during a code rollback.
+
+The entity directory is a curated collection of exact mainnet account associations supported by official publisher excerpts, hashes and retrieval dates. It is separate from verdict labels. An association is not proof of current ownership. Missing source excerpts are withdrawn; changed documents and stale checks remain visible rather than silently refreshing evidence.
+
+Portfolio observations use exact balance strings, contract metadata and contract-keyed prices. Missing, stale or low-confidence prices stay unavailable. A known subtotal is distinct from a complete total. Current indexed token balances may come from different blocks; delegated staking positions, NFTs and DeFi deposits are excluded. Historical reads use actual archival state at the selected block and only the explicitly selected contracts, so the inventory remains incomplete. Retained chart points describe actual observations, grouped by asset scope; they do not reconstruct continuous history or establish investment returns.
 
 The workspace API allows 120 requests per client per minute and accepts JSON mutations up to 32 KiB. Authentication has tighter limits: 10 requests per minute per client, with registration and recovery each capped at five per hour per client. The live API's default is 60 requests per client per minute with at most eight in flight. Provider plans impose their own additional limits. Requests can return unavailable, busy or rate-limited responses; these must remain visible.
 
@@ -90,10 +107,10 @@ For a transactionally consistent workspace-only backup, choose a new external de
 python -m intel workspace-backup --state-dir /var/lib/shieldbot-near/siyab --out /var/backups/siyab/workspace-YYYYMMDD-HHMMSS.sqlite3
 ```
 
-Replace the timestamp before running. The destination must be outside the repository and must not already exist. The command reserves the path exclusively and uses SQLite's backup API. It includes private account/team state, sessions, recovery hashes and notes; restrict access accordingly. It does not include `history.sqlite3`, `monitor.sqlite3`, external feed evidence or browser-only data.
+Replace the timestamp before running. The destination must be outside the repository and must not already exist. The command reserves the path exclusively and uses SQLite's backup API. It includes private account/team state, sessions, recovery hashes, notes and Telegram delivery state; restrict access accordingly. It does not include other state databases, external feed evidence or browser-only data.
 
-For a full state snapshot, stop the API and both workers, then copy the entire external state directory, including any WAL/SHM sidecars, before restarting. Retain the external feed evidence separately if replay of retained-feed files is required. Keep release code and state backups distinct.
+For a full state snapshot, stop the API and all four workers, then copy the entire external state directory, including any WAL/SHM sidecars, before restarting. Retain the external feed evidence separately if replay of retained-feed files is required. Keep release code and state backups distinct.
 
-To restore, stop all three services and restore into a separate external directory. Check each restored SQLite database with `PRAGMA integrity_check`, restore the service user's ownership and private permissions, and point all three service commands to the same restored directory before restarting. Retain the previous state directory for rollback. Restoring workspace state also restores session and recovery hashes from that snapshot; do not assume a code rollback revokes sessions.
+To restore, stop all five services and restore into a separate external directory. Check each restored SQLite database with `PRAGMA integrity_check`, restore the service user's ownership and private permissions, and point all five service commands to the same restored directory before restarting. Retain the previous state directory for rollback. Restoring workspace state also restores session and recovery hashes from that snapshot; do not assume a code rollback revokes sessions.
 
 Team JSON exports are portable case/watch backups, not full account, inbox or audit backups. Browser-only JSON exports remain separate and are the user's responsibility. Neither the shared platform nor these operational commands change financial signing, Gate policy, testnet contract configuration or mainnet write authorization.

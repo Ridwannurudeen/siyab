@@ -1,0 +1,30 @@
+<section id="investigation-jobs" class="investigation-jobs" aria-labelledby="jobs-title">
+  <div class="jobs-heading"><h2 id="jobs-title">Background investigations</h2><button id="jobs-refresh" type="button">Refresh jobs</button></div>
+  <p id="jobs-context" class="jobs-context">Sign in to a team workspace to collect a bounded history or expand a transfer graph.</p>
+  <p id="jobs-status" class="jobs-status" role="status" aria-live="polite"></p>
+  <form id="jobs-form" hidden>
+    <div class="jobs-primary-fields">
+      <label for="jobs-account">NEAR mainnet account<input id="jobs-account" name="account" required minlength="2" maxlength="64" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="account.near"></label>
+      <label for="jobs-kind">Collect<select id="jobs-kind" name="kind"><option value="transfers">Transfers</option><option value="transactions">Transactions</option><option value="graph">Transfer graph</option></select></label>
+      <button id="jobs-submit" type="submit" class="primary">Start investigation</button>
+    </div>
+    <details class="jobs-limits"><summary>Date window and collection limits</summary>
+      <div class="jobs-limit-fields">
+        <label for="jobs-from">From (UTC)<input id="jobs-from" name="from" type="datetime-local" step="1"></label>
+        <label for="jobs-until">Before (UTC)<input id="jobs-until" name="until" type="datetime-local" step="1"></label>
+        <label for="jobs-pages">Page limit<input id="jobs-pages" name="max_pages" type="number" inputmode="numeric" min="1" max="100" value="20" required></label>
+        <label for="jobs-rows">Row limit<input id="jobs-rows" name="max_rows" type="number" inputmode="numeric" min="1" max="5000" value="1000" required></label>
+      </div>
+      <div id="jobs-graph-fields" class="jobs-limit-fields" hidden>
+        <label for="jobs-depth">Graph depth<input id="jobs-depth" name="depth" type="number" inputmode="numeric" min="1" max="5" value="3" required></label>
+        <label for="jobs-accounts">Account limit<input id="jobs-accounts" name="max_accounts" type="number" inputmode="numeric" min="1" max="50" value="20" required></label>
+        <label for="jobs-account-pages">Pages per account<input id="jobs-account-pages" name="pages_per_account" type="number" inputmode="numeric" min="1" max="5" value="2" required></label>
+      </div>
+      <p class="jobs-source">An empty end date fixes the window at creation time. Transfers use provider date filters; dated transaction jobs scan newest pages within your limits. Graphs retain at most 200 transfer records.</p>
+    </details>
+  </form>
+  <p class="jobs-source">One page per worker tick, up to 100 rows. Account history reads wait at least one minute between pages and yield to due watch polling. Stopping at a limit or the provider’s last page does not establish complete chain history.</p>
+  <div id="jobs-list" class="jobs-list"><p>No team selected.</p></div>
+  <section id="jobs-results" class="jobs-results" aria-labelledby="jobs-results-title" hidden><h3 id="jobs-results-title" tabindex="-1">Retained results</h3><div id="jobs-result-body"></div></section>
+  <noscript><p>JavaScript and a signed-in team session are required to manage background investigations. Existing evidence pages remain readable without JavaScript.</p></noscript>
+</section>

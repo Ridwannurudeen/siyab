@@ -12,6 +12,10 @@ class Node {
   emit(event) { this.listeners[event](); }
 }
 const flush = () => new Promise(resolve => setImmediate(resolve));
+const response = rows => {
+  const body = new TextEncoder().encode(JSON.stringify({rows})); let sent = false;
+  return {ok: true, headers: {get: () => null}, body: {getReader: () => ({async read() {if (sent) return {done: true}; sent = true; return {done: false, value: body};}, releaseLock() {}})}};
+};
 function setup() {
   const selectors = [".entity-table-toolbar", "[data-table-search]", "[data-table-chain]", "[data-table-sort]", ".entity-table-status", ".entity-table-pagination", "[data-table-retry]", "[data-table-empty]"];
   const nodes = Object.fromEntries(selectors.map(selector => [selector, new Node()]));
@@ -30,13 +34,13 @@ function setup() {
   vm.runInNewContext(fs.readFileSync("intel/ui/tables.js", "utf8"), {
     document,
     fetch: () => new Promise((resolve, reject) => requests.push({resolve, reject})),
-    AbortController, setTimeout, clearTimeout,
+    AbortController, TextDecoder, setTimeout, clearTimeout,
   });
   return {nodes, panel, tbody, requests, document};
 }
 function row(index) {
   const subject = `account-${index}.near`;
-  return {id: index.toString(16).padStart(64, "0"), kind: "stated", subject, chain: index % 2 ? "near" : "eth", label: `Label ${index}`, search: `${subject} Label ${index}`, cells: [[{text: subject, quoted: true, url: `../accounts/${subject}.html`}], [{text: "near"}], [{text: `Label ${index}`}], [{text: "organisation"}], [{text: "onchain"}], [{text: "recorded"}]]};
+  return {id: index.toString(16).padStart(64, "0"), kind: "stated", subject, chain: index % 2 ? "near" : "eth", label: `Label ${index}`, note: "recorded", search: `${subject} Label ${index}`, cells: [[{text: subject, quoted: true, url: `../accounts/${subject}.html`}], [{text: "near"}], [{text: `Label ${index}`}], [{text: "organisation"}], [{text: "onchain"}], [{text: "recorded"}]]};
 }
 async function main() {
   const rows = Array.from({length: 70}, (_, index) => row(index + 1));
@@ -47,7 +51,7 @@ async function main() {
   env.nodes["[data-table-search]"].value = "account-69";
   env.nodes["[data-table-search]"].emit("input");
   assert.equal(env.requests.length, 1, "Concurrent changes share one dataset load");
-  env.requests[0].resolve({ok: true, json: async () => ({rows})}); await flush();
+  env.requests[0].resolve(response(rows)); await flush();
   assert.equal(env.tbody.children.length, 1);
   assert.equal(env.tbody.children[0].dataset.assertionId, rows[68].id, "Latest query wins after an asynchronous load, including records beyond page one");
   env.nodes["[data-table-search]"].value = ""; env.nodes["[data-table-search]"].emit("input"); await flush();
@@ -69,18 +73,18 @@ async function main() {
   failure.nodes["[data-table-retry]"].emit("click");
   assert.equal(failure.document.activeElement, failure.nodes[".entity-table-status"], "Retry moves focus to the visible loading status before hiding its control");
   const malicious = row(1); malicious.cells[0][0].url = "javascript:alert(1)";
-  failure.requests[1].resolve({ok: true, json: async () => ({rows: [malicious]})}); await flush();
+  failure.requests[1].resolve(response([malicious])); await flush();
   assert.equal(failure.tbody.children[0].tag, "original-row", "Invalid paths never replace the static page");
   assert.equal(failure.document.activeElement, failure.nodes["[data-table-retry]"], "Failed retry restores the retry control");
   failure.nodes["[data-table-retry]"].emit("click");
-  failure.requests[2].resolve({ok: true, json: async () => ({rows})}); await flush();
+  failure.requests[2].resolve(response(rows)); await flush();
   assert.equal(failure.tbody.children.length, 50, "Retry recovers without losing data");
   assert.equal(failure.document.activeElement, failure.nodes["[data-table-search]"], "Successful retry restores a usable search control");
   const moved = setup();
   moved.nodes["[data-table-search]"].emit("input"); moved.requests[0].reject(new Error("offline")); await flush();
   moved.nodes["[data-table-retry]"].focus(); moved.nodes["[data-table-retry]"].emit("click");
   moved.nodes["[data-table-chain]"].focus();
-  moved.requests[1].resolve({ok: true, json: async () => ({rows})}); await flush();
+  moved.requests[1].resolve(response(rows)); await flush();
   assert.equal(moved.document.activeElement, moved.nodes["[data-table-chain]"], "Retry completion never steals focus after the reader moves away");
   console.log("Entity table runtime: lazy loading, query race, cross-page search, pagination, filtering, empty state, retry and URL validation passed.");
 }

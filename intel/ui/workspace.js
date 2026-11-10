@@ -86,6 +86,8 @@
     const table = document.getElementById(id);
     if (!table) { message("The table is not available to export."); return; }
     const rows = [...table.querySelectorAll("tr")].filter(row => !row.hidden).map(row => [...row.querySelectorAll("th,td")].map(cell => {
+      const exact = cell.getAttribute("data-export-value");
+      if (exact !== null) return exact;
       const copy = cell.cloneNode(true);
       copy.querySelectorAll('[aria-hidden="true"]').forEach(node => node.remove());
       return copy.textContent.trim().replace(/\s+/g, " ");

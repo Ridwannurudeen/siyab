@@ -17,6 +17,7 @@ const text = node => node.textContent + node.children.map(text).join(' ');
 function environment(source, ignoreAbort = false) {
   const nodes = {}, requests = [], timers = new Map(), notifications = [];
   const document = new Element(), window = new Element();
+  vm.runInNewContext(fs.readFileSync('intel/ui/number-format.js','utf8'),{window});
   document.hidden = false;
   document.getElementById = id => nodes[id] ||= new Element();
   document.createElement = tag => new Element(tag);
@@ -51,7 +52,9 @@ async function main() {
     const b = signal('labelled_account_large_transfer', {other_account_id: 'counterparty.near', usd_amount: '1000.0001', asset_id: 'native:near', source: {provider: 'FastNEAR Transfers'}});
     await env.reply(0, response([a, b], ['a'.repeat(64), 'b'.repeat(64)]));
     assert.match(text(env.nodes['feed-events']), /1970-01-01/);
-    assert.match(text(env.nodes['feed-events']), /1000\.0001 USD/);
+    assert.match(text(env.nodes['feed-events']), /1,000 USD/);
+    assert.match(text(env.nodes['feed-events']), /"usd_amount": "1000\.0001"/);
+    assert.ok(env.nodes['feed-events'].querySelectorAll('td').some(node=>node.getAttribute('data-export-value')==='1000.0001 USD (provider value)'));
     assert.equal(env.nodes['feed-events'].querySelectorAll('a').some(node => /implicit/.test(node.href)), false);
     assert.equal(env.nodes['feed-events'].querySelectorAll('a').some(node => node.href === '/evidence/' + 'b'.repeat(64)), true);
     env.nodes['feed-source'].value = 'FastNEAR Transfers'; env.nodes['feed-source'].emit('change');
@@ -60,7 +63,8 @@ async function main() {
     env.nodes['feed-since'].value = '2026-01-01T00:00'; env.nodes['feed-since'].emit('input');
     assert.match(text(env.nodes['feed-events']), /No events match/);
     env.nodes['feed-clear'].emit('click');
-    assert.match(text(env.nodes['feed-events']), /1000000000000000000000000 yoctoNEAR/);
+    assert.match(text(env.nodes['feed-events']), /1 NEAR/);
+    assert.ok(env.nodes['feed-events'].querySelectorAll('td').some(node=>node.getAttribute('data-export-value')==='1000000000000000000000000 yoctoNEAR'));
   } else if (scenario === 'feed-acceptance') {
     await env.reply(0, response([signal('A')], ['a'.repeat(64)]));
     assert.equal(env.notifications.length, 1);

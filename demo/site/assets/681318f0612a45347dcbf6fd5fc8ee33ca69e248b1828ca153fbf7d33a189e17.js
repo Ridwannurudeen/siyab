@@ -6,6 +6,13 @@
   const pending = new Set();
   const privateDialogs = new Set();
   const state = {session: null, teams: [], team: null, panel: "cases", epoch: 0, offset: 0, after: 0, before: null};
+  function publishContext(clear = false) {
+    window.dispatchEvent(new CustomEvent("siyab:workspace-context", {detail: {
+      authenticated: !clear && Boolean(state.session), userId: clear ? null : state.session?.user.id || null,
+      team: !clear && state.team ? {id: state.team.id, name: state.team.name, role: state.team.role} : null,
+      csrfToken: clear ? null : state.session?.csrf_token || null
+    }}));
+  }
   const node = (tag, text, className) => {
     const element = document.createElement(tag);
     if (text !== undefined) element.textContent = String(text);
@@ -149,6 +156,7 @@
     invalidate();
     scrubDialogs(record => record.kind === "editor");
     state.session = null; state.teams = []; state.team = null; updateDestination(); addGlobalWatches();
+    publishContext();
     if (shell) shell.replaceChildren(node("p", "Reading your shared workspace session…", "source-line"));
     let data;
     try {
@@ -172,6 +180,7 @@
     if (root && (open || data.authenticated)) root.open = true;
   }
   function render() {
+    publishContext();
     if (!shell) return;
     shell.replaceChildren();
     const feedback = node("p", undefined, "cloud-status"); feedback.id = "cloud-status"; feedback.setAttribute("role", "status"); feedback.setAttribute("aria-live", "polite"); shell.append(feedback);
@@ -512,7 +521,9 @@
       control.dataset.cloudWatch = ""; local.after(control);
     }
   }
-  window.addEventListener("pagehide", () => { scrubDialogs(); invalidate(); });
+  window.addEventListener("siyab:workspace-context-request", () => publishContext());
+  window.addEventListener("siyab:workspace-refresh-request", () => loadSession().catch(report));
+  window.addEventListener("pagehide", () => { scrubDialogs(); invalidate(); publishContext(true); });
   window.addEventListener("pageshow", event => { if (event.persisted) loadSession().catch(report); });
   loadSession().catch(report);
 })();

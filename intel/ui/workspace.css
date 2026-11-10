@@ -14,6 +14,9 @@ code,.mono,.graph-identifier,.graph-number{font-variant-numeric:tabular-nums;let
 .workspace-page-head>.button{flex:none}
 .workbench-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr);gap:24px;align-items:start}
 .workbench-grid>*{min-width:0}
+#browser-workspace .workbench-grid--stacked{grid-template-columns:minmax(0,1fr)}
+#browser-workspace .workbench-grid--stacked>.workspace-side{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+@media(max-width:760px){#browser-workspace .workbench-grid--stacked>.workspace-side{grid-template-columns:minmax(0,1fr)}}
 .workspace-side{display:grid;gap:24px;min-width:0}
 .workspace-section{padding:22px;border:1px solid rgb(var(--hairline));border-radius:8px;background:rgb(var(--ground-alt));min-width:0}
 .workspace-section .section-head{margin-bottom:18px;gap:12px}

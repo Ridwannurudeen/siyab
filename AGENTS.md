@@ -33,6 +33,8 @@ cd contracts/<build-crate> && cargo near build reproducible-wasm # network, Dock
 - `python -m intel serve --host 127.0.0.1 --port 8792 --site demo/site --live --state-dir /var/lib/shieldbot-near/siyab --workspace-origin https://siyab.xyz`: public account reads and authenticated team workspaces with external SQLite state.
 - `python -m intel monitor --state-dir /var/lib/shieldbot-near/siyab --once`: one retained-feed indexing pass for team inboxes; omit `--once` for the worker.
 - `python -m intel history-follow --state-dir /var/lib/shieldbot-near/siyab --once`: one bounded ordinary-transfer watch polling pass; omit `--once` for the worker.
+- `python -m intel investigation-follow --state-dir /var/lib/shieldbot-near/siyab --once`: advance one bounded historical investigation page; omit `--once` for the worker.
+- `python -m intel delivery-follow --state-dir /var/lib/shieldbot-near/siyab --once`: one confirmed Telegram delivery pass; requires the external bot token file for network access.
 - `python -m intel workspace-backup --state-dir /var/lib/shieldbot-near/siyab --out <new-external-backup-path>`: SQLite workspace backup, refusing an existing destination or a path inside the repository. This does not back up the separate history and monitor databases. See `docs/WORKSPACES.md` for configuration, permissions, restore procedures and source bounds.
 - Network: `python -m gate pay`, `python -m gate attack <name>`, `python -m gate scan <account>` with `GATE_FIXTURES_MODE=off`, and the testnet scripts in `scripts/` (`scripts/README.md`; `DRY_RUN=1` prints the command lines only).
 
@@ -76,6 +78,7 @@ Python variables:
 - `AGENT_PUB`: agent public key used by the MCP live verdict and testnet registration scripts.
 - `FEED_STATE_DIR`: feed state directory; defaults to `intel/feed`.
 - `FASTNEAR_API_KEY_FILE`: path to an external file holding the FastNEAR key; the feed follower and account reader use it for authenticated provider requests.
+- `SIYAB_TELEGRAM_TOKEN_FILE`: path to the dedicated Siyab Telegram bot token file outside the repository; missing credentials leave delivery unconfigured.
 
 Testnet script variables:
 

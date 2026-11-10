@@ -186,7 +186,7 @@ class AttackEvidenceTest(unittest.TestCase):
         self.assertEqual(set(unbuilt_limit_rows()), {
             "A TEE is not built.",
             "A browser extension for NEAR is not built.",
-            "A Telegram bot for NEAR is not built.",
+            "An interactive Telegram scanner for NEAR is not built.",
         })
         for name in ("extension", "telegram", "tee"):
             with self.subTest(directory=name):
@@ -194,6 +194,12 @@ class AttackEvidenceTest(unittest.TestCase):
         for root_name in ("gate", "mcp"):
             with self.subTest(approver_root=root_name):
                 self.assertFalse(list((ROOT / root_name).rglob("*approver*.py")))
+
+    def test_telegram_alerts_are_distinct_from_unbuilt_interactive_scanning(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("Optional Telegram alerts are implemented; dedicated-bot credentials and live recipient activation are pending.", readme)
+        self.assertIn("An interactive Telegram scanner for NEAR is not built.", unbuilt_limit_rows())
+        self.assertIn("TelegramDelivery.run_once", declared_functions(ROOT / "intel" / "delivery.py"))
 
     def test_claims_cover_signature_verdict_and_agent_key_scope(self):
         rows = table_rows(CLAIMS.read_text(encoding="utf-8"), "| Claim | File:function |")

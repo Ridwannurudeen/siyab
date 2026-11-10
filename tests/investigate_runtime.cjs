@@ -7,6 +7,7 @@ const graphSource = fs.readFileSync('intel/ui/graphs.js', 'utf8').replace(
   '  window.graphTest = {recordingCoverage, graphAddress};\n  window.SiyabGraph ='
 );
 const window = {location: new URL('https://siyab.xyz/investigate.html?account=wrap.near')};
+vm.runInNewContext(fs.readFileSync('intel/ui/number-format.js','utf8'),{window});
 vm.runInNewContext(graphSource, {window, URL, document: {readyState: 'loading', addEventListener() {}}});
 const live = {kind: 'flow', source: {recorded: false}, bounds: {requested_depth: 2, reached_depth: 1},
   coverage: {truncated: true, queried_accounts: ['wrap.near'], completeness: {reason: 'bounded live observation'}}};
@@ -72,6 +73,7 @@ async function appBehavior() {
     history: {pushState(state, text, url) {win.location = new URL(url);},replaceState(state,text,url) {win.location = new URL(url);}},
     addEventListener(name, callback) {events[name] = callback;},
     SiyabGraph: {mount: async () => {}, destroy: () => destroyed++}};
+  vm.runInNewContext(fs.readFileSync('intel/ui/number-format.js','utf8'),{window:win});
   vm.runInNewContext(fs.readFileSync('intel/ui/investigate.js','utf8'), {window:win,document:doc,URL,URLSearchParams,AbortController,
     CustomEvent: class {constructor(type, options) {this.type=type; this.detail=options.detail;}},
     setTimeout(callback) {const id=++timerIndex;timers.set(id,callback);return id;},clearTimeout(id){timers.delete(id);},
@@ -89,7 +91,8 @@ async function appBehavior() {
   reply(pending[4],{account_id:'other.near',network:'mainnet',exists:true,native:{amount_yocto:'1000000000000000000000001',locked_yocto:'0',block_height:'9007199254740993',storage_usage:12},labels:[],source:{provider:'RPC'},coverage:{scope:'Includes storage backing'}});
   const holdings=page('other.near');holdings.items=[{contract_id:'wrap.near',balance:'9007199254740993123456789',metadata:{name:'<img src=x onerror=bad()>',symbol:'TEST',decimals:6},balance_status:'indexed',last_update_block_height:'1'}];holdings.pagination.next_offset=10;
   reply(pending[5],holdings);reply(pending[6],page('other.near'));reply(pending[7],page('other.near'));await tick();
-  assert.match(contentText(ids['investigate-profile']),/1\.000000000000000000000001/);
+  assert.match(contentText(ids['investigate-profile']),/Account balance 1/);
+  assert.match(contentText(ids['investigate-profile']),/1000000000000000000000001/,'Exact finalized JSON retains every base unit');
   assert.match(contentText(ids['investigate-holdings']),/9007199254740993123\.456789/);
   assert.match(contentText(ids['investigate-holdings']),/<img src=x onerror=bad\(\)>/,'Provider text is rendered as literal text');
   assert.equal(ids['investigate-holdings'].attributes['aria-busy'],'false');
@@ -160,6 +163,7 @@ async function graphBehavior() {
   const timers=new Map(), pending=[];let timerId=0;
   const doc={readyState:'loading',addEventListener(){},createElement:tag=>new Element(tag)};
   const win={location:new URL('https://siyab.xyz/investigate.html?account=wrap.near')};
+  vm.runInNewContext(fs.readFileSync('intel/ui/number-format.js','utf8'),{window:win});
   vm.runInNewContext(fs.readFileSync('intel/ui/graphs.js','utf8'),{window:win,document:doc,URL,AbortController,
     setTimeout(callback,delay){const id=++timerId;timers.set(id,{callback,delay});return id;},clearTimeout(id){timers.delete(id);},
     fetch(url,options){return new Promise((resolve,reject)=>{pending.push({url,options,resolve,reject});options.signal.addEventListener('abort',()=>reject(new Error('aborted')));});}});

@@ -13,6 +13,7 @@ import unittest
 from html.parser import HTMLParser
 from pathlib import Path
 from unittest import mock
+from urllib.parse import urlsplit
 
 from intel import __main__ as intel_main
 from intel import cluster, feed, issuers, labels, records, render, trace
@@ -240,7 +241,7 @@ class RenderTest(unittest.TestCase):
 
     def assert_local_script_assets(self, page):
         expected = {}
-        for name in ("graphs", "workspace", "investigate", "cloud-workspace"):
+        for name in ("number-format", "graphs", "workspace", "investigate", "cloud-workspace", "enrichment", "portfolio", "investigation-jobs", "delivery"):
             source = (ROOT / f"intel/ui/{name}.js").read_text(encoding="utf-8").encode("utf-8")
             digest = hashlib.sha256(source)
             expected[f"/assets/{digest.hexdigest()}.js"] = (name, source, "sha256-" + base64.b64encode(digest.digest()).decode("ascii"))
@@ -260,6 +261,10 @@ class RenderTest(unittest.TestCase):
         self.assertEqual(found.count("workspace"), 0 if 'class="app-content record-content"' in page else 1)
         self.assertEqual(found.count("cloud-workspace"), 0 if 'class="app-content record-content"' in page else 1)
         self.assertEqual(found.count("investigate"), 1 if 'id="account-investigation"' in page else 0)
+        self.assertEqual(found.count("number-format"), 0 if 'class="app-content record-content"' in page else 1)
+        for name, mount in (("enrichment", "entity-enrichment"), ("portfolio", "account-portfolio"),
+                            ("investigation-jobs", "investigation-jobs"), ("delivery", "team-delivery")):
+            self.assertEqual(found.count(name), 1 if f'id="{mount}"' in page else 0)
 
     def test_the_homepage_uses_the_siyab_project_name(self):
         page = self.pages["index.html"]
@@ -395,7 +400,7 @@ class RenderTest(unittest.TestCase):
         for path in (ROOT / "intel/flows").glob("*.json"):
             count = len(json.loads(path.read_text(encoding="utf-8"))["hops"])
             expected.extend(f"flows/{path.stem}.page-{number}.html" for number in range(2, (count + 49) // 50 + 1))
-        for name in ("graphs", "workspace", "investigate", "cloud-workspace"):
+        for name in ("number-format", "graphs", "workspace", "investigate", "cloud-workspace", "enrichment", "portfolio", "investigation-jobs", "delivery"):
             source = (ROOT / f"intel/ui/{name}.js").read_text(encoding="utf-8").encode("utf-8")
             expected.append(f"assets/{hashlib.sha256(source).hexdigest()}.js")
         expected.extend(f"brand/{source.name}" for source in (ROOT / "intel/ui/brand").iterdir() if source.is_file())
@@ -730,7 +735,8 @@ class RenderTest(unittest.TestCase):
                 if link.startswith("https://"):
                     continue
                 with self.subTest(page=name, link=link):
-                    link, _, fragment = link.partition("#")
+                    parsed = urlsplit(html.unescape(link))
+                    link, fragment = parsed.path, parsed.fragment
                     # A root absolute href resolves against the site root, any other against the page's directory.
                     rooted = link.startswith("/") and not link.startswith("//")
                     base = self.out if rooted else (self.out / name).parent

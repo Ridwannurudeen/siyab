@@ -90,8 +90,9 @@
       const native = data.native;
       if (!native || typeof native.block_height !== "string" || !/^\d+$/.test(native.amount_yocto || "") || !/^\d+$/.test(native.locked_yocto || "")) throw new Error("The account balance response was incomplete.");
       const facts = node("dl", undefined, "investigate-native");
-      for (const [label, value, unit] of [["Account balance", baseUnits(native.amount_yocto, 24), "NEAR"], ["Locked balance", baseUnits(native.locked_yocto, 24), "NEAR"], ["Storage used", native.storage_usage, "bytes"], ["Finalized block", native.block_height, ""]]) {
+      for (const [label, value, unit, exact] of [["Account balance", window.SiyabNumbers.baseUnits(native.amount_yocto, 24), "NEAR", baseUnits(native.amount_yocto, 24)], ["Locked balance", window.SiyabNumbers.baseUnits(native.locked_yocto, 24), "NEAR", baseUnits(native.locked_yocto, 24)], ["Storage used", native.storage_usage, "bytes"], ["Finalized block", native.block_height, ""]]) {
         const item = node("div"); item.append(node("dt", label)); const dd = node("dd", value, "mono");
+        if (exact !== undefined) dd.title = "Exact: " + exact + " " + unit;
         if (unit) dd.append(node("span", unit, "investigate-unit")); item.append(dd); facts.append(item);
       }
       parent.append(facts);

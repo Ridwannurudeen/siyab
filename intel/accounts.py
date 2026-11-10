@@ -3,12 +3,14 @@
 import dataclasses
 import hashlib
 import json
+import math
 import os
 import re
 import time
 import urllib.parse
 from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 
 from gate import canon, rpc
@@ -36,6 +38,27 @@ class AccountInputError(ValueError):
 
 class AccountReadError(ValueError):
     """A provider response cannot establish the requested account data."""
+
+    def __init__(self, message, *, status=None, retry_after=None, now=None):
+        super().__init__(message)
+        self.status = status if type(status) is int and 100 <= status <= 599 else None
+        self.retry_at_ms = None
+        if self.status is None or not isinstance(retry_after, str) or len(retry_after) > 128:
+            return
+        value = retry_after.strip(" \t")
+        if not value or any(ord(char) < 32 or ord(char) > 126 for char in value):
+            return
+        current = math.ceil((time.time() if now is None else now) * 1000)
+        if re.fullmatch(r"[0-9]+", value):
+            self.retry_at_ms = min(2 ** 63 - 1, current + int(value) * 1000)
+            return
+        try:
+            parsed = parsedate_to_datetime(value)
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=UTC)
+            self.retry_at_ms = min(2 ** 63 - 1, max(current, math.ceil(parsed.timestamp() * 1000)))
+        except (TypeError, ValueError, OverflowError, OSError):
+            self.retry_at_ms = None
 
 
 def _account(value):
@@ -250,6 +273,8 @@ class AccountData:
                 data = client.post("/v0/account", body)
             except TimeoutError:
                 raise
+            except rpc.HttpError as error:
+                raise AccountReadError("The indexed transaction history could not be read.", status=error.status, retry_after=error.retry_after, now=self.clock()) from None
             except _UNAVAILABLE:
                 raise AccountReadError("The indexed transaction history could not be read.") from None
         if not isinstance(data, dict) or not isinstance(data.get("account_txs"), list) or len(data["account_txs"]) > limit:
@@ -277,17 +302,21 @@ class AccountData:
                 "source": self._source(client, "indexed_history"), "observed_at": self._observed(),
                 "coverage": {"scope": "One indexed transaction page, newest first. Participation flags do not establish a transfer amount or counterparty."}}
 
-    def _transfer_page(self, account, cursor, limit, *, until=None):
+    def _transfer_page(self, account, cursor, limit, *, until=None, since=None):
         client = self._client(TRANSFERS_URL, kind="http")
         body = {"account_id": account, "desc": True, "limit": limit}
         if cursor is not None:
             body["resume_token"] = cursor
         if until is not None:
             body["to_timestamp_ms"] = until
+        if since is not None:
+            body["from_timestamp_ms"] = since
         try:
             data = client.post("/v0/transfers", body)
         except TimeoutError:
             raise
+        except rpc.HttpError as error:
+            raise AccountReadError("The indexed transfer history could not be read.", status=error.status, retry_after=error.retry_after, now=self.clock()) from None
         except _UNAVAILABLE:
             raise AccountReadError("The indexed transfer history could not be read.") from None
         if not isinstance(data, dict) or not isinstance(data.get("transfers"), list) or len(data["transfers"]) > limit:
@@ -329,6 +358,22 @@ class AccountData:
         account, cursor, limit = _account(account), _cursor(cursor), _limit(limit)
         with rpc.request_deadline(READ_TIMEOUT_S):
             return self._transfer_page(account, cursor, limit)
+
+    def history_page(self, account, kind, cursor=None, limit=100, *, from_timestamp_ms=None, to_timestamp_ms=None):
+        account, cursor, limit = _account(account), _cursor(cursor), _limit(limit)
+        if kind not in ("transactions", "transfers"):
+            raise AccountInputError("Historical pages contain transactions or transfers.")
+        for value in (from_timestamp_ms, to_timestamp_ms):
+            if value is not None and (type(value) is not int or not 0 <= value <= canon.U64_MAX // 1000000):
+                raise AccountInputError("Historical timestamps must be integer milliseconds within the chain timestamp range.")
+        if from_timestamp_ms is not None and to_timestamp_ms is not None and from_timestamp_ms >= to_timestamp_ms:
+            raise AccountInputError("The historical date window must have increasing bounds.")
+        with rpc.request_deadline(READ_TIMEOUT_S):
+            result = (self._transfer_page(account, cursor, limit, since=from_timestamp_ms, until=to_timestamp_ms)
+                      if kind == "transfers" else self.transactions(account, cursor=cursor, limit=limit))
+        result["coverage"]["requested_window"] = {"from_timestamp_ms": from_timestamp_ms, "to_timestamp_ms": to_timestamp_ms}
+        result["coverage"]["date_filter"] = "provider_time_bounds" if kind == "transfers" else "worker_filters_bounded_newest_first_scan"
+        return result
 
     def neighborhood(self, account, depth=1):
         account = _account(account)

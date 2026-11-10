@@ -8,6 +8,7 @@ class Element {
   prepend(...children) { this.children.unshift(...children); }
   replaceChildren(...children) { this.children = children; this.textContent = ''; }
   addEventListener(name, fn) { this.listeners[name] = fn; }
+  dispatchEvent(event) { this.listeners[event.type]?.(event); return true; }
   setAttribute(name, value) { this.attributes[name] = value; }
   getAttribute(name) { return this.attributes[name] || null; }
   querySelectorAll(selector) { return this.children.flatMap(child => [...(selector.split(',').includes(child.tag) ? [child] : []), ...child.querySelectorAll(selector)]); }
@@ -35,7 +36,7 @@ function environment(options = {}) {
   const source = fs.readFileSync('intel/ui/cloud-workspace.js', 'utf8');
   const marker = source.lastIndexOf('})();');
   const code = source.slice(0, marker) + 'globalThis.cloudTest={localUrl,importValue,chunks,request,invalidate,allCases,importWorkspace,loadSession,renderCases,renderWatches,renderHistory,editCase,recovery,report,state};\n' + source.slice(marker);
-  const context = {document, window, location: {origin: 'https://siyab.xyz'}, URL: class extends URL {static createObjectURL(blob) {downloads.push(blob); return 'blob:download';} static revokeObjectURL() {}}, Blob, TextEncoder, AbortController,
+  const context = {document, window, CustomEvent: class {constructor(type, options = {}) {this.type = type; this.detail = options.detail;}}, location: {origin: 'https://siyab.xyz'}, URL: class extends URL {static createObjectURL(blob) {downloads.push(blob); return 'blob:download';} static revokeObjectURL() {}}, Blob, TextEncoder, AbortController,
     confirm: () => { confirmations++; return options.confirm !== false; },
     localStorage: {getItem() { return options.local || null; }, setItem(...value) {writes.push(value);}},
     setTimeout: (callback, delay) => {const id = ++next; timers.set(id, {callback, delay}); return id;}, clearTimeout: id => timers.delete(id),

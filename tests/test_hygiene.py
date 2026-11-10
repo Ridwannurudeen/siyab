@@ -186,5 +186,20 @@ class ImageDigestTest(unittest.TestCase):
                 self.assertTrue(self.hygiene.check_text(path, self.line))
 
 
+class EntitySourceSnapshotTest(unittest.TestCase):
+    def setUp(self):
+        self.hygiene = load()
+
+    def test_only_named_publisher_snapshots_skip_authored_style_rules(self):
+        vendor = "trust" + "less " + chr(0x2014) + " source quotation"
+        self.assertFalse(self.hygiene.check_text("fixtures/enrichment/intents.md", vendor))
+        for path in ("fixtures/enrichment/notes.md", "fixtures/enrichment/new.html", "docs/example.md", "intel/enrichment.py"):
+            self.assertTrue(self.hygiene.check_text(path, vendor), path)
+
+    def test_source_snapshot_exemption_keeps_secret_checks_active(self):
+        secret = json.dumps({"private_" + "key": "synthetic"})
+        self.assertIn((1, "secret_key or private_key value"), self.hygiene.check_text("fixtures/enrichment/intents.md", secret))
+
+
 if __name__ == "__main__":
     unittest.main()

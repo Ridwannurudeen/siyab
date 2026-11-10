@@ -90,7 +90,7 @@
     if (payload.kind === "flow") {
       const summary = valueSummary(edgeRecords(payload, edge));
       detail = " · " + (summary.human === null ? summary.base + " base units" : summary.human) + " " + edge.asset_id +
-        " · " + (summary.usd === null ? "USD unknown" : summary.usd + " known USD") +
+        " · " + (summary.usd === null ? "USD unknown" : window.SiyabNumbers.decimal(summary.usd, 2) + " known USD") +
         (summary.unknownUsd ? " · " + summary.unknownUsd + " transfers have unknown USD" : "") +
         " · " + exactUtc(summary.first) + " to " + exactUtc(summary.last);
     }
@@ -695,7 +695,7 @@
         hit.addEventListener("pointerleave", () => { tooltip.hidden = true; });
         if (value && (selected || path)) {
           const amount = svgElement("text", {x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 - 8, class: "graph-edge-amount", "text-anchor": "middle"});
-          amount.textContent = value.usd === null ? "USD unknown" : value.usd + " known USD";
+          amount.textContent = value.usd === null ? "USD unknown" : window.SiyabNumbers.decimal(value.usd, 2) + " known USD";
           group.append(amount);
         }
         overviewDrawing.append(svgElement("path", {d, class: "graph-overview-edge" + (edge.provenance === "inferred" ? " is-inferred" : "")}));
@@ -852,7 +852,7 @@
       if (payload.kind === "flow") {
         const relevant = [...recordIds].map(id => recordById.get(id));
         const value = valueSummary(relevant);
-        metadata(inspector, [["Known gross USD", value.usd, "graph-number"], ["Transfers without USD", value.unknownUsd],
+        metadata(inspector, [["Known gross USD", value.usd === null ? "Unknown" : window.SiyabNumbers.decimal(value.usd, 2), "graph-number"], ["Transfers without USD", value.unknownUsd],
           [(live ? "First observed transfer (UTC)" : "First recorded transfer (UTC)"), exactUtc(value.first)], [(live ? "Last observed transfer (UTC)" : "Last recorded transfer (UTC)"), exactUtc(value.last)]]);
         if (state.selected.kind === "edge") metadata(inspector, [["Asset", edges[0].asset_id],
           ["Human amount as recorded", value.human, "graph-number"], ["Total base units", value.base, "graph-number"]]);
@@ -863,7 +863,7 @@
             .sort((a, b) => Number(b.value.usd || -1) - Number(a.value.usd || -1));
           for (const {edge, value} of ranked.slice(0, 5)) button(counterparties,
             (edge.from === state.selected.id ? "To " + edge.to : "From " + edge.from) + " · " + edge.asset_id + " · " +
-            (value.usd === null ? "USD unknown" : value.usd + " known USD") + (value.unknownUsd ? " (some USD unavailable)" : ""),
+            (value.usd === null ? "USD unknown" : window.SiyabNumbers.decimal(value.usd, 2) + " known USD") + (value.unknownUsd ? " (some USD unavailable)" : ""),
             () => choose("edge", edge.id), "graph-counterparty");
           inspector.append(counterparties);
         }

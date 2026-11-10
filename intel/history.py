@@ -41,6 +41,10 @@ class HistoryReadError(ValueError):
 class HistoryCapacityError(HistoryReadError):
     """An archive retention or upstream-read budget has been reached."""
 
+    def __init__(self, message, *, retry_at_ms=None):
+        super().__init__(message)
+        self.retry_at_ms = retry_at_ms
+
 
 def _account(value):
     try:
@@ -190,6 +194,11 @@ class AccountHistory:
                 PRAGMA user_version=2;
                 COMMIT;
                 """)
+            connection.executescript("""
+            BEGIN IMMEDIATE;
+            CREATE TABLE IF NOT EXISTS provider_cooldowns(account TEXT NOT NULL,kind TEXT NOT NULL,not_before_ms INTEGER NOT NULL,PRIMARY KEY(account,kind));
+            COMMIT;
+            """)
         os.chmod(self.path, 0o600)
 
     @contextmanager
@@ -317,6 +326,43 @@ class AccountHistory:
         body = self.get_graph_bytes(identifier)
         return json.loads(body) if body is not None else None
 
+    def defer_account(self, account, kind, retry_at_ms):
+        account = _account(account)
+        if kind not in ("transactions", "transfers") or type(retry_at_ms) is not int or not 0 <= retry_at_ms <= 2 ** 63 - 1:
+            raise HistoryInputError("A provider cooldown needs a supported history kind and timestamp.")
+        with self._connection(write=True) as connection:
+            connection.execute("INSERT INTO provider_cooldowns VALUES(?,?,?) ON CONFLICT(account,kind) DO UPDATE SET not_before_ms=MAX(not_before_ms,excluded.not_before_ms)", (account, kind, retry_at_ms))
+
+    def claim_job_read(self, account, kind="transfers"):
+        account, now, token = _account(account), self._now(), secrets.token_hex(16)
+        if kind not in ("transactions", "transfers"):
+            raise HistoryInputError("Choose a supported history kind for the bounded read.")
+        with self._connection(write=True) as connection:
+            cooldown = connection.execute("SELECT not_before_ms FROM provider_cooldowns WHERE account=? AND kind=?", (account, kind)).fetchone()
+            if cooldown and cooldown["not_before_ms"] > now:
+                raise HistoryCapacityError("The account's history source requested a cooldown; retained observations remain available.", retry_at_ms=cooldown["not_before_ms"])
+            if connection.execute("SELECT 1 FROM watch_poll WHERE next_due_ms<=? AND lease_until_ms<=? LIMIT 1", (now, now)).fetchone() is not None:
+                raise HistoryCapacityError("A watched account is due; background investigations yield to the watch monitor.")
+            active = connection.execute("SELECT MAX(last_start_ms) AS last_start,MAX(lease_until_ms) AS lease_until FROM backfill_control WHERE account=?", (account,)).fetchone()
+            if active["lease_until"] is not None and active["lease_until"] > now:
+                raise HistoryCapacityError("This account already has an active bounded read.")
+            if active["last_start"] is not None and now - active["last_start"] < ACCOUNT_INTERVAL_MS:
+                raise HistoryCapacityError("Account history budget reached; retry after one minute.")
+            budget = connection.execute("SELECT window,pages FROM backfill_budget WHERE singleton=1").fetchone()
+            window = now // 60000
+            reserved = budget["pages"] if budget["window"] == window else 0
+            if reserved >= 12:
+                raise HistoryCapacityError("Global history budget reached; retry after one minute.")
+            if connection.execute("SELECT 1 FROM backfill_control WHERE account=? AND kind='job'", (account,)).fetchone() is None and connection.execute("SELECT COUNT(*) FROM backfill_control").fetchone()[0] >= 20000:
+                raise HistoryCapacityError("History read checkpoint capacity reached.")
+            connection.execute("UPDATE backfill_budget SET window=?,pages=? WHERE singleton=1", (window, reserved + 1))
+            connection.execute("INSERT INTO backfill_control VALUES (?,'job',?,?,?) ON CONFLICT(account,kind) DO UPDATE SET last_start_ms=excluded.last_start_ms,lease_token=excluded.lease_token,lease_until_ms=excluded.lease_until_ms", (account, now, token, now + LEASE_MS))
+        return token
+
+    def release_job_read(self, account, token):
+        with self._connection(write=True) as connection:
+            connection.execute("UPDATE backfill_control SET lease_token=NULL,lease_until_ms=0 WHERE account=? AND kind='job' AND lease_token=?", (account, token))
+
     def backfill_account(self, reader, account, kind, cursor=None, max_pages=2):
         account, kind, cursor = _account(account), _kind(kind), _cursor(cursor)
         if kind not in ("transactions", "transfers") or type(max_pages) is not int or not 1 <= max_pages <= 2:
@@ -330,6 +376,9 @@ class AccountHistory:
             if state and state["exhausted"]:
                 return {"pages": 0, "inserted": 0, "next_cursor": None,
                         "coverage": {"provider_pages_exhausted": True, "history_complete": False}}
+            cooldown = connection.execute("SELECT not_before_ms FROM provider_cooldowns WHERE account=? AND kind=?", (account, kind)).fetchone()
+            if cooldown and cooldown["not_before_ms"] > now:
+                raise HistoryCapacityError("The account's history source requested a cooldown; retained observations remain available.", retry_at_ms=cooldown["not_before_ms"])
             cursor = expected
             active = connection.execute("SELECT MAX(last_start_ms) AS last_start,MAX(lease_until_ms) AS lease_until FROM backfill_control WHERE account=?", (account,)).fetchone()
             if active["lease_until"] is not None and active["lease_until"] > now:
@@ -369,6 +418,10 @@ class AccountHistory:
                     cursor = next_cursor
                     if cursor is None:
                         break
+        except AccountReadError as error:
+            if error.retry_at_ms is not None:
+                self.defer_account(account, kind, error.retry_at_ms)
+            raise
         finally:
             with self._connection(write=True) as connection:
                 connection.execute("UPDATE backfill_control SET lease_token=NULL,lease_until_ms=0 WHERE account=? AND kind=? AND lease_token=?", (account, kind, token))
@@ -435,6 +488,7 @@ class AccountHistory:
             self._reserve(connection, seen=-deleted)
             for account in watched:
                 connection.execute("INSERT OR IGNORE INTO watch_poll(account,next_due_ms) VALUES (?,?)", (account, now))
+                connection.execute("UPDATE watch_poll SET next_due_ms=MAX(next_due_ms,COALESCE((SELECT not_before_ms FROM provider_cooldowns WHERE account=? AND kind='transfers'),0)) WHERE account=?", (account, account))
             state = connection.execute("SELECT last_tick_ms FROM history_state WHERE singleton=1").fetchone()
             claim = None
             if state["last_tick_ms"] is None or now - state["last_tick_ms"] >= GLOBAL_INTERVAL_MS:
@@ -484,10 +538,15 @@ class AccountHistory:
                         connection.execute("UPDATE history_state SET last_success_ms=?,last_error=NULL WHERE singleton=1", (self._now(),))
             except (AccountReadError, AccountInputError, HistoryInputError, HistoryReadError, OSError, sqlite3.Error) as error:
                 code = "provider_timeout" if isinstance(error, TimeoutError) else type(error).__name__
+                if isinstance(error, AccountReadError) and error.status is not None:
+                    code = "provider_http_" + str(error.status)
                 attempts = state["attempts"] + 1
                 delay = min(300000, ACCOUNT_INTERVAL_MS * 2 ** min(attempts, 3))
+                provider_retry = error.retry_at_ms if isinstance(error, AccountReadError) else None
+                if provider_retry is not None:
+                    self.defer_account(account, "transfers", provider_retry)
                 with self._connection(write=True) as connection:
-                    connection.execute("UPDATE watch_poll SET attempts=?,last_error=?,next_due_ms=?,lease_token=NULL,lease_until_ms=0 WHERE account=? AND lease_token=?", (attempts, code, self._now() + delay, account, token))
+                    connection.execute("UPDATE watch_poll SET attempts=?,last_error=?,next_due_ms=?,lease_token=NULL,lease_until_ms=0 WHERE account=? AND lease_token=?", (attempts, code, max(self._now() + delay, provider_retry or 0), account, token))
                     connection.execute("UPDATE history_state SET last_error=? WHERE singleton=1", (code,))
             self._flush_events(workspace_store)
         with self._connection(write=True) as connection:

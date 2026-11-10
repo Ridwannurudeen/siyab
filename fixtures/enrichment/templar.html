@@ -1,0 +1,420 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Oracles - Templar Protocol Guide</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="User guide to Templar Protocol smart contract ecosystem">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Templar Protocol Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/Templar-Protocol/contracts/" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/Templar-Protocol/contracts/edit/dev/docs/src/oracles.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="oracles"><a class="header" href="#oracles">Oracles</a></h1>
+<p>Templar Protocol relies on external price oracles to determine asset valuations when calculating collateralization ratios and performing liquidations. Every market operation that needs a price (borrowing, withdrawing collateral from a position with outstanding debt, and liquidating) reads the market's configured oracle account and <strong>fails closed</strong> if no acceptably fresh price is available.</p>
+<h2 id="oracle-providers"><a class="header" href="#oracle-providers">Oracle Providers</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Provider</th><th>Status</th><th>How Templar uses it</th></tr></thead><tbody>
+<tr><td><a href="https://pyth.network/">Pyth Network</a></td><td>Live</td><td>Primary price source. Newer markets read <a href="https://docs.pyth.network/lazer">Pyth Lazer</a> (marketed by Pyth as Pyth Pro) through Templar's Lazer adapter contract; markets deployed before the proxy oracle read Pyth's on-chain pull oracle (<a href="https://nearblocks.io/address/pyth-oracle.near"><code>pyth-oracle.near</code></a>) directly.</td></tr>
+<tr><td><a href="https://redstone.finance/">RedStone</a></td><td>Live</td><td>Independent second source through Templar's RedStone adapter contract. RedStone is also the sole source for some tokenized real-world-asset feeds (for example tokenized treasury and fund products) that Pyth does not yet publish.</td></tr>
+<tr><td><a href="https://chain.link/">Chainlink</a></td><td>Planned by end of 2026</td><td>Will be added as an additional proxy oracle source.</td></tr>
+<tr><td>Atlas</td><td>Planned by end of 2026</td><td>Will be added as an additional proxy oracle source.</td></tr>
+</tbody></table>
+</div>
+<p>Where a market reads more than one provider, the sources are combined by a <a href="#proxy-oracle">proxy oracle</a> rather than by the market itself. Source weights, quorum, freshness bounds, and circuit breakers are configured per market and can be adjusted through the proxy oracle's timelocked governance.</p>
+<p>Adding a new provider does not require changes to the market contract: a new adapter is deployed and registered as a source on the relevant proxy oracles.</p>
+<h2 id="how-markets-read-prices"><a class="header" href="#how-markets-read-prices">How Markets Read Prices</a></h2>
+<p>Every market is <a href="/doc/templar_common/market/struct.PriceOracleConfiguration.html">configured</a> with a single oracle account and a price identifier for each of its two assets:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct PriceOracleConfiguration {
+    /// Account ID of the oracle contract.
+    pub account_id: AccountId,
+    /// Price identifier of the collateral asset in the oracle contract.
+    pub collateral_asset_price_id: PriceIdentifier,
+    /// Collateral asset decimals, to convert the oracle price.
+    pub collateral_asset_decimals: i32,
+    /// Price identifier of the borrow asset in the oracle contract.
+    pub borrow_asset_price_id: PriceIdentifier,
+    /// Borrow asset decimals, to convert the oracle price.
+    pub borrow_asset_decimals: i32,
+    /// Maximum price age to accept from the oracle, after which the price
+    /// will be considered stale and rejected.
+    pub price_maximum_age_s: u32,
+}
+<span class="boring">}</span></code></pre></pre>
+<p>The market calls <code>list_ema_prices_no_older_than</code> on that account, the same read interface exposed by Pyth's NEAR contract. Templar's proxy oracle implements the same interface, so a market can read a proxy oracle, the Pyth contract, or the LST adapter without any change to the market code. Which one a market uses is visible in its <code>get_configuration</code> output.</p>
+<p>Because this configuration is immutable, an existing market cannot be repointed to a different oracle account by an administrator. Markets deployed before the proxy oracle existed were migrated to proxy oracles through a reviewed, dry-run-verified storage patch (see <a href="./deployments.html#patching-contract-storage">Deploying a market</a>); new markets are deployed reading a proxy oracle from the start.</p>
+<h2 id="proxy-oracle"><a class="header" href="#proxy-oracle">Proxy Oracle</a></h2>
+<p>The proxy oracle is Templar's oracle aggregation and safety layer. Each market typically has its own proxy oracle and governance contract, deployed alongside the market through the registry.</p>
+<ul>
+<li>Source: <a href="https://github.com/Templar-Protocol/contracts/tree/dev/contract/proxy-oracle"><code>contract/proxy-oracle</code></a></li>
+<li>Audit: <a href="https://drive.google.com/file/d/1KOVYEiz8pGcWRWJ_-NFDa94LJ_f2zMWw/view?usp=sharing">Halborn, proxy oracle security assessment (August 2026)</a>. The source remediations are recorded in <a href="https://github.com/Templar-Protocol/contracts/pull/595">#595</a>; they postdate the released <code>0.4.1</code> NEAR runtime.</li>
+</ul>
+<p>The logic is split between a chain-agnostic kernel (aggregation, freshness, circuit breakers) and per-chain runtimes. The NEAR runtime serves Templar markets; a Soroban runtime with the same kernel serves Stellar consumers through SEP-40 adapters.</p>
+<h3 id="price-pipeline"><a class="header" href="#price-pipeline">Price Pipeline</a></h3>
+<p>For each proxied price identifier, an update runs through the following stages:</p>
+<ol>
+<li><strong>Sources.</strong> The proxy fetches each configured source asynchronously. A source is a Pyth Lazer feed, a classic Pyth feed, a RedStone feed, or a <em>transformer</em> (for example, a liquid-staking-token normalization that multiplies an underlying price by an on-chain redemption rate).</li>
+<li><strong>Freshness filter.</strong> Prices older than the configured <code>max_age</code> or timestamped further in the future than <code>max_clock_drift</code> are discarded before aggregation, so a stale or pre-manufactured price can never be replayed into the aggregate.</li>
+<li><strong>Aggregation.</strong> Surviving prices are combined by the proxy's aggregator. The production configuration uses a <strong>weighted median</strong>: <code>median_low</code> for collateral assets and <code>median_high</code> for borrow assets, so that any tie or ambiguity resolves to the valuation that is safer for the protocol. A <code>min_sources</code> quorum is enforced; if fewer fresh sources than the quorum survive, the update fails and nothing is cached. A priority aggregator (first fresh source wins) is also available.</li>
+<li><strong>Circuit breakers.</strong> The aggregated candidate is checked against the feed's <a href="#circuit-breakers">circuit breaker set</a>. An enforced breaker that trips blocks the feed; a breaker running in observe-only mode records the trip and emits an event without blocking.</li>
+<li><strong>Cache.</strong> The accepted price is cached with its status. Markets read only accepted, fresh cached prices; a missing, blocked, failed, or stale cache entry reads as <em>no price</em>, and the market operation fails closed.</li>
+</ol>
+<p>Standard mainnet feeds are configured with a Pyth Lazer source at weight 8 and a RedStone source at weight 2 with <code>min_sources = 1</code>. With that weighting the Pyth price determines the aggregate while both sources are fresh, and RedStone keeps the feed alive if Pyth is stale or unavailable. Because the quorum is one, a single fresh source can determine the price when the other is stale, and the higher-weighted source determines it while both are fresh: this quorum provides liveness, not manipulation resistance. For a feed configured this way, the freshness filter and the enforced circuit breakers are the defence against a compromised provider. Weights, quorum, and sources are governed per feed and can be raised (for example to a quorum of two once a third provider is live) as additional providers come online.</p>
+<h3 id="circuit-breakers"><a class="header" href="#circuit-breakers">Circuit Breakers</a></h3>
+<p>Circuit breakers are the on-chain defence against oracle manipulation and runaway prices. They evaluate each candidate price against the feed's <em>accepted</em> history (not against the previous raw sample, which an attacker may already have manipulated). Four rule types are available and can be combined:</p>
+<div class="table-wrapper"><table><thead><tr><th>Rule</th><th>Trips when</th></tr></thead><tbody>
+<tr><td><code>StepwiseChange</code></td><td>A single update moves more than <code>max_relative_change</code> from the last accepted price. Catches sudden jumps.</td></tr>
+<tr><td><code>MonotonicRun</code></td><td>At least <code>max_streak</code> consecutive accepted updates move in the same direction by at least <code>min_relative_step_change</code> each. Catches staged ramps.</td></tr>
+<tr><td><code>WindowedChangeDelta</code></td><td>The mean of the most recent <code>window_len</code> observations differs from the mean of an earlier window by more than <code>max_relative_mean_change</code>.</td></tr>
+<tr><td><code>CumulativeChange</code></td><td>The price drifts more than <code>max_relative_change</code> from an immutable baseline captured when the rule was installed.</td></tr>
+</tbody></table>
+</div>
+<p>In addition to automatic rules, an operator holding the <code>ManualTripper</code> role can <strong>trip a feed manually with no timelock</strong>. Because market contracts have no pause function, the manual trip is the emergency brake for an immutable market: while a feed is blocked, borrowing, collateral withdrawal against debt, and liquidation on every market reading that feed stop, while supply withdrawals, repayments, and collateral withdrawal from debt-free positions continue.</p>
+<p>Each feed keeps up to 32 accepted observations of history and up to 16 breakers. Breakers can be installed in observe-only mode (they trip and emit events but do not block) before being enforced. Re-arming a tripped breaker is a separate governed action, so a block cannot be lifted by the same automation that detected the problem.</p>
+<p>Every configuration change, trip, re-arm, and enforcement change emits an on-chain event, which is what Templar's <a href="./monitoring.html">monitoring</a> watches.</p>
+<h3 id="governance-and-timelocks"><a class="header" href="#governance-and-timelocks">Governance and Timelocks</a></h3>
+<p>Each proxy oracle is owned by its own governance contract. Feed configuration (sources, weights, aggregator, freshness filter, circuit breaker rules) and contract upgrades change only through proposals that mature under a per-method timelock and can only be executed by an account holding the role that method requires. Circuit breaker <em>operation</em> is different: tripping and untripping a feed, re-arming a breaker, and switching enforcement on or off are role-gated actions with no delay.</p>
+<p>Timelocks and roles are configured per governance contract. The table below is the typical production setup; it is not guaranteed to apply to every proxy oracle, so confirm the policy in force on a specific contract as shown at the end of this section.</p>
+<div class="table-wrapper"><table><thead><tr><th>Action</th><th>Timelock</th><th>Required role</th></tr></thead><tbody>
+<tr><td>Trip or untrip a feed manually</td><td>none (immediate)</td><td><code>ManualTripper</code></td></tr>
+<tr><td>Re-arm a tripped breaker; enable or disable enforcement</td><td>none (immediate)</td><td><code>CircuitBreakerOperator</code></td></tr>
+<tr><td>Set or change a feed's sources, weights, aggregator, or freshness filter</td><td>24 hours</td><td><code>ProxyConfigurationManager</code></td></tr>
+<tr><td>Add, remove, or reconfigure circuit breakers</td><td>24 hours</td><td><code>ProxyConfigurationManager</code></td></tr>
+<tr><td>Any other proxy oracle method (conservative default)</td><td>72 hours</td><td><code>Admin</code></td></tr>
+<tr><td>Upgrade the proxy oracle contract code</td><td>72 hours</td><td><code>Admin</code></td></tr>
+<tr><td>Change the governance policy (timelocks, roles)</td><td>48 hours</td><td><code>Admin</code></td></tr>
+<tr><td>Upgrade the governance contract itself</td><td>168 hours</td><td><code>Admin</code></td></tr>
+</tbody></table>
+</div>
+<p>The immediate actions include their risk-increasing inverses: a <code>ManualTripper</code> can untrip a feed and a <code>CircuitBreakerOperator</code> can disable enforcement without delay. Those roles are therefore held by the same multisig as <code>Admin</code>, every use emits an on-chain event that monitoring alerts on, and a change to a breaker's <em>rules</em> still waits out the configuration timelock. A proposal's timelock is fixed when it is created, and shortening any timelock must itself mature under the timelock being shortened, so governance cannot be weakened faster than it currently protects. The <code>Admin</code> role is held by Templar's 2-of-3 multisig; see <a href="./governance.html">Protocol Governance</a>.</p>
+<p>The policy in force on a specific proxy oracle can be read from its governance contract:</p>
+<pre><code class="language-bash">near contract call-function as-read-only \
+    proxy-gov-&lt;market&gt;.v1.tmplr.near get_governance_policy \
+    json-args '{}' network-config mainnet now
+</code></pre>
+<p>and pending proposals with <code>list_proposals</code> and <code>get_proposal</code>.</p>
+<h3 id="updating-proxy-prices"><a class="header" href="#updating-proxy-prices">Updating Proxy Prices</a></h3>
+<p>The proxy oracle is a <strong>pull</strong> design: someone must refresh it before a price-dependent action.</p>
+<ol>
+<li>Push fresh data to the underlying adapters (a signed Pyth Lazer payload to the Lazer adapter, a signed RedStone data package to the RedStone adapter, or a Pyth proof to <code>pyth-oracle.near</code>).</li>
+<li>Call <code>update_prices</code> on the proxy oracle with the price identifiers the market uses. The proxy fetches the sources, runs the pipeline above, and caches the result.</li>
+<li>Perform the market action.</li>
+</ol>
+<p>Templar's relayer and liquidation bots do this automatically ahead of the actions they submit, and the Templar gateway exposes <code>oracle.updatePrices</code> to perform every required update for a market in one call. Integrators submitting their own transactions must do the same. For a market configured with a proxy oracle, reading the underlying Pyth or RedStone contracts directly bypasses the aggregation and circuit-breaker guarantees and is not the price the market will use; for a legacy market that reads <code>pyth-oracle.near</code> or the LST adapter directly, that configured contract is the market price.</p>
+<h3 id="inspecting-a-proxy-oracle"><a class="header" href="#inspecting-a-proxy-oracle">Inspecting a Proxy Oracle</a></h3>
+<pre><code class="language-bash"># Which price identifiers this proxy serves
+near contract call-function as-read-only \
+    proxy-oracle-&lt;market&gt;.v1.tmplr.near list_proxies \
+    json-args '{}' network-config mainnet now
+
+# Sources, weights, aggregator, and freshness filter for one feed
+near contract call-function as-read-only \
+    proxy-oracle-&lt;market&gt;.v1.tmplr.near get_proxy \
+    json-args '{"id":"&lt;price-id&gt;"}' network-config mainnet now
+
+# Circuit breakers, their state, and accepted history for one feed
+near contract call-function as-read-only \
+    proxy-oracle-&lt;market&gt;.v1.tmplr.near get_proxy_circuit_breaker_set \
+    json-args '{"id":"&lt;price-id&gt;"}' network-config mainnet now
+
+# Latest cached result and its status (accepted, blocked, stale, failed)
+near contract call-function as-read-only \
+    proxy-oracle-&lt;market&gt;.v1.tmplr.near get_cached_proxy_price \
+    json-args '{"id":"&lt;price-id&gt;"}' network-config mainnet now
+</code></pre>
+<h2 id="oracle-addresses"><a class="header" href="#oracle-addresses">Oracle Addresses</a></h2>
+<h3 id="mainnet"><a class="header" href="#mainnet">Mainnet</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Contract</th><th>Account ID</th><th>Purpose</th></tr></thead><tbody>
+<tr><td>Proxy oracle (one per market)</td><td><code>proxy-oracle-&lt;market&gt;.v1.tmplr.near</code></td><td>Aggregated, circuit-breaker-protected feed read by the market <code>&lt;market&gt;.v1.tmplr.near</code>. Example: <a href="https://nearblocks.io/address/proxy-oracle-ixlmdejaaa-ixlmusdc-2.v1.tmplr.near"><code>proxy-oracle-ixlmdejaaa-ixlmusdc-2.v1.tmplr.near</code></a>.</td></tr>
+<tr><td>Proxy oracle governance (one per proxy)</td><td><code>proxy-gov-&lt;market&gt;.v1.tmplr.near</code></td><td>Timelocked governance for the matching proxy oracle. Example: <a href="https://nearblocks.io/address/proxy-gov-ixlmdejaaa-ixlmusdc-2.v1.tmplr.near"><code>proxy-gov-ixlmdejaaa-ixlmusdc-2.v1.tmplr.near</code></a>.</td></tr>
+<tr><td>Pyth Lazer adapter</td><td><a href="https://nearblocks.io/address/pyth-lazer.v1.tmplr.near"><code>pyth-lazer.v1.tmplr.near</code></a></td><td>Verifies signed Pyth Lazer payloads (ed25519, trusted signer set, freshness window, per-feed anti-replay) and serves them by Lazer feed ID. Updates are permissionless because authenticity is cryptographic.</td></tr>
+<tr><td>RedStone adapter</td><td><a href="https://nearblocks.io/address/redstone-adapter.v1.tmplr.near"><code>redstone-adapter.v1.tmplr.near</code></a></td><td>Verifies RedStone signed data packages against the configured signer threshold and serves them by feed ID.</td></tr>
+<tr><td>Pyth (classic pull oracle)</td><td><a href="https://nearblocks.io/address/pyth-oracle.near"><code>pyth-oracle.near</code></a></td><td>Pyth's own contract. Read directly by markets deployed before the proxy oracle, and usable as a proxy source.</td></tr>
+<tr><td>LST oracle adapter</td><td><a href="https://nearblocks.io/address/lst.oracle.tmplr.near"><code>lst.oracle.tmplr.near</code></a></td><td>Legacy adapter deriving liquid-staking-token prices; see below.</td></tr>
+</tbody></table>
+</div>
+<p>The exact oracle account and price identifiers a market uses are always available from the market's <code>get_configuration</code> view; see <a href="./addresses.html">Smart Contract Addresses</a> for the market list. A market can also read a proxy oracle that was deployed separately from it (for example <code>ixlmustry-ixlmusdc.v1.tmplr.near</code> reads <code>proxy-oracle-ixlmustry-ixlmusdc.v1.tmplr.near</code>, deployed on its own), so the governance account is not always <code>proxy-gov-&lt;market&gt;</code>; the authoritative link is the proxy oracle's owner, returned by its <code>own_get_owner</code> view.</p>
+<h3 id="testnet"><a class="header" href="#testnet">Testnet</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Contract</th><th>Account ID</th></tr></thead><tbody>
+<tr><td>Pyth (classic pull oracle)</td><td><a href="https://testnet.nearblocks.io/address/pyth-oracle.testnet"><code>pyth-oracle.testnet</code></a></td></tr>
+</tbody></table>
+</div>
+<h2 id="price-identifiers"><a class="header" href="#price-identifiers">Price Identifiers</a></h2>
+<ul>
+<li><strong>Proxy oracle feeds</strong> use a 32-byte identifier chosen when the feed is configured. Use <code>list_proxies</code> on the proxy oracle to enumerate them, and <code>get_proxy</code> to see which underlying feeds each one aggregates.</li>
+<li><strong>Pyth</strong> price identifiers can be found on <a href="https://docs.pyth.network/price-feeds/price-feeds#feed-ids">Pyth's documentation site</a>. Pyth Lazer feeds are addressed by their numeric Lazer feed ID.</li>
+<li><strong>RedStone</strong> feeds are addressed by their feed ID (for example <code>BTC</code>, <code>USDC</code>, or a fundamental-value feed such as <code>deJAAA_FUNDAMENTAL/USD</code>).</li>
+</ul>
+<h2 id="lst-oracle-adapter"><a class="header" href="#lst-oracle-adapter">LST Oracle Adapter</a></h2>
+<p>For Liquid Staking Tokens (LSTs), Templar uses <a href="./contract/lst-oracle.html">a custom oracle adapter</a> (<a href="https://nearblocks.io/address/lst.oracle.tmplr.near"><code>lst.oracle.tmplr.near</code></a>) to derive the LST price from the underlying asset price and the staking contract's redemption rate. The same normalization is available inside the proxy oracle as a <em>transformer</em> source, which is the path new LST markets use.</p>
+<h2 id="update-frequency-and-freshness"><a class="header" href="#update-frequency-and-freshness">Update Frequency and Freshness</a></h2>
+<ul>
+<li><strong>Update model</strong>: Pull. Prices are pushed on-chain as needed by relayers, bots, and users, and the proxy oracle is refreshed before price-dependent operations.</li>
+<li><strong>Source freshness</strong>: Enforced per feed by the proxy oracle's freshness filter before aggregation.</li>
+<li><strong>Market staleness bound</strong>: Each market rejects prices older than its configured <code>price_maximum_age_s</code>, typically 60 to 120 seconds.</li>
+<li><strong>Confidence and smoothing</strong>: Markets consume Pyth-style prices with a confidence interval and use exponentially-weighted moving average (EMA) prices where the source provides them.</li>
+</ul>
+<h2 id="price-validation"><a class="header" href="#price-validation">Price Validation</a></h2>
+<p>Markets validate price freshness before use. If no fresh, accepted price is available, operations that require prices (borrow, collateral withdrawal against debt, liquidate) fail, and callers must refresh the oracle first. Supply deposits, supply withdrawals, repayments, and collateral withdrawals from positions with no liability do not depend on the oracle.</p>
+<h2 id="oracle-security-measures"><a class="header" href="#oracle-security-measures">Oracle Security Measures</a></h2>
+<ul>
+<li><strong>Multiple independent sources</strong>: Pyth and RedStone are aggregated per feed with a configurable quorum. With the standard quorum of one this guarantees liveness through a single-provider outage; raising the quorum trades liveness for manipulation resistance.</li>
+<li><strong>Freshness filters</strong>: Stale and future-dated source prices are discarded before aggregation.</li>
+<li><strong>Conservative aggregation</strong>: Weighted median, biased low for collateral and high for liabilities.</li>
+<li><strong>Confidence intervals</strong>: Pyth prices include confidence bands. The lower bound is used for collateral valuations and the upper bound for liability valuations.</li>
+<li><strong>Circuit breakers</strong>: Automatic rules against jumps, ramps, and drift, plus an instant manual trip. See <a href="#circuit-breakers">Circuit Breakers</a>.</li>
+<li><strong>Timelocked governance</strong>: No feed configuration can change without a maturing proposal; only risk-reducing actions are immediate.</li>
+<li><strong>Maximum age limits</strong>: Markets reject stale price data using a configurable expiration duration.</li>
+<li><strong>Fail-closed reads</strong>: A blocked, failed, or stale feed reads as no price, never as the last known price.</li>
+<li><strong>Monitoring</strong>: Oracle divergence and downtime alerts run continuously; see <a href="./monitoring.html">Monitoring and Risk Management</a>.</li>
+</ul>
+<h2 id="oracle-failure-scenarios"><a class="header" href="#oracle-failure-scenarios">Oracle Failure Scenarios</a></h2>
+<h3 id="temporary-outage-of-a-provider"><a class="header" href="#temporary-outage-of-a-provider">Temporary Outage of a Provider</a></h3>
+<ul>
+<li>If one provider is stale but the feed's quorum is still met, the aggregate continues from the remaining fresh sources.</li>
+<li>If no fresh source meets the quorum, the feed reads as no price and price-dependent operations pause until data returns.</li>
+<li>Users can still withdraw supply, repay debt, and withdraw collateral from positions with zero liability.</li>
+</ul>
+<h3 id="circuit-breaker-trip"><a class="header" href="#circuit-breaker-trip">Circuit Breaker Trip</a></h3>
+<ul>
+<li>Automatic trips and manual trips have the same effect: the affected feed is blocked and every market reading it stops borrowing, collateral withdrawal against debt, and liquidations.</li>
+<li>Positions are not liquidated on a blocked price. When the feed is re-armed, liquidations resume against the newly accepted price.</li>
+<li>Trips are announced on the public alerts channel; see <a href="./monitoring.html">Monitoring and Risk Management</a>.</li>
+</ul>
+<h3 id="price-manipulation-attack"><a class="header" href="#price-manipulation-attack">Price Manipulation Attack</a></h3>
+<ul>
+<li>An attacker who controls a source must move the weighted median (with the standard weighting the Pyth feed determines it, and a lone fresh source determines it while the other is stale), survive the freshness filter, and pass every enforced breaker in the same update. The breakers compare against accepted history, so a manipulated prior sample does not weaken them.</li>
+<li>Markets reject stale prices automatically, and defensive valuations (lower bound for collateral, upper bound for liabilities) protect solvency in most cases.</li>
+<li>The required maintenance collateralization ratio protects borrowers from unexpected liquidation in most cases.</li>
+</ul>
+<h2 id="roadmap"><a class="header" href="#roadmap">Roadmap</a></h2>
+<p>Templar plans to add a third and fourth independent provider by the end of 2026. The classic-Pyth migration is also planned but has no separate published completion date.</p>
+<ul>
+<li><strong>Add two providers and raise the per-feed quorum.</strong> Chainlink and Atlas are planned as the third and fourth providers. With Pyth and RedStone as the only sources, <code>min_sources = 1</code> is what keeps a feed live through a single-provider outage. Once a third independent provider is configured on a feed, the quorum can be raised to two so that no single provider determines the price on its own. The change is a timelocked configuration proposal on each proxy oracle's governance contract.</li>
+<li><strong>Retire classic Pyth reads in favour of Pyth Lazer.</strong> Several proxy oracles still read <code>pyth-oracle.near</code>; the shared asset profiles in <a href="https://github.com/Templar-Protocol/contracts/tree/dev/deployments/profiles"><code>deployments/profiles/</code></a> already describe the Lazer configuration each feed migrates to. Each migration is a timelocked configuration proposal.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="deployments.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="governance.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="deployments.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="governance.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

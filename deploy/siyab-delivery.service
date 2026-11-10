@@ -1,0 +1,29 @@
+[Unit]
+Description=Siyab confirmed Telegram alert delivery
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=shieldbot-near
+Group=shieldbot-near
+WorkingDirectory=/opt/siyab
+EnvironmentFile=/etc/shieldbot-near/env
+EnvironmentFile=-/etc/shieldbot-near/siyab-provider.conf
+EnvironmentFile=-/etc/shieldbot-near/siyab-delivery.conf
+ExecStart=/usr/bin/python3 -m intel delivery-follow --state-dir /var/lib/shieldbot-near/siyab
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGINT
+TimeoutStopSec=30
+Nice=10
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/shieldbot-near/siyab
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

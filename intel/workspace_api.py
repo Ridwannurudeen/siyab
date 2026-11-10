@@ -14,6 +14,7 @@ from datetime import UTC, datetime
 from email.utils import format_datetime
 from http.cookies import CookieError, SimpleCookie
 
+from intel import investigation_jobs
 from intel.workspace import WorkspaceError
 
 
@@ -25,7 +26,7 @@ IDENTIFIER = re.compile(r"[A-Za-z0-9_-]{1,64}")
 
 class WorkspaceAPI:
     def __init__(self, store, *, origin="https://siyab.xyz", secure_cookie=True,
-                 clock=time.monotonic, monitor_status=None):
+                 clock=time.monotonic, monitor_status=None, investigation_jobs=None, delivery=None):
         parsed = urllib.parse.urlsplit(origin)
         if (parsed.scheme not in ("http", "https") or not parsed.netloc or parsed.path
                 or parsed.query or parsed.fragment or parsed.username is not None
@@ -39,6 +40,8 @@ class WorkspaceAPI:
         self.cookie_name = "__Host-siyab-session" if secure_cookie else "siyab-local-session"
         self.clock = clock
         self.monitor_status = monitor_status
+        self.investigation_jobs = investigation_jobs
+        self.delivery = delivery
         self._rates = OrderedDict()
         self._lock = threading.Lock()
 
@@ -121,7 +124,13 @@ class WorkspaceAPI:
             raise WorkspaceError(404, "not_found", "No workspace route matches this path.")
         except WorkspaceError as error:
             return error.status, {"error": error.code, "message": error.message}, {}
-        except sqlite3.OperationalError:
+        except investigation_jobs.JobNotFound as error:
+            return 404, {"error": "not_found", "message": str(error)}, {}
+        except investigation_jobs.JobInputError as error:
+            return 400, {"error": "invalid_job", "message": str(error)}, {}
+        except investigation_jobs.JobCapacityError as error:
+            return 503, {"error": "job_capacity", "message": str(error)}, {"Retry-After": "60"}
+        except (sqlite3.Error, OSError):
             return 503, {"error": "storage_unavailable", "message": "Workspace storage is temporarily unavailable. Try again."}, {}
 
     def _auth(self, parts, values, client, headers):
@@ -174,6 +183,61 @@ class WorkspaceAPI:
         return self._auth_reply(self.store.change_password(token, values["current_password"], values["new_password"]))
 
     def _team(self, actor, team, parts, method, query, values):
+        if parts[0] == "delivery":
+            with self.store._connection() as connection:
+                self.store._member(connection, actor, team)
+            if self.delivery is None:
+                raise WorkspaceError(503, "delivery_unavailable", "Telegram delivery is unavailable.")
+            if method in ("GET", "HEAD"):
+                if parts == ["delivery"]:
+                    self._query(query, set())
+                    return 200, self.delivery.status(actor, team), {}
+                if parts == ["delivery", "log"]:
+                    params = self._numbers(self._query(query, {"before", "limit"}), {"before": (1, 2**63 - 1), "limit": (1, 100)})
+                    return 200, self.delivery.list_deliveries(actor, team, **params), {}
+            elif parts == ["delivery", "link"]:
+                self._fields(values, set())
+                return 201, self.delivery.begin_link(actor, team), {}
+            elif parts == ["delivery", "confirm"]:
+                self._fields(values, {"generation"})
+                return 200, self.delivery.confirm_link(actor, team, values["generation"]), {}
+            elif parts == ["delivery", "revoke"]:
+                self._fields(values, set())
+                return 200, self.delivery.revoke(actor, team), {}
+            elif len(parts) == 3 and parts[2] == "retry":
+                self._fields(values, set())
+                identifier = self._numbers({"id": parts[1]}, {"id": (1, 2**63 - 1)})["id"]
+                return 200, self.delivery.retry_dead(actor, team, identifier), {}
+            raise WorkspaceError(404, "not_found", "No delivery route matches this path.")
+        if parts[0] == "investigation-jobs":
+            with self.store._connection(write=method == "POST") as connection:
+                self.store._member(connection, actor, team, write=method == "POST")
+                if self.investigation_jobs is None:
+                    raise WorkspaceError(503, "jobs_unavailable", "Queued investigations are unavailable.")
+                if method in ("GET", "HEAD"):
+                    if len(parts) == 1:
+                        params = self._numbers(self._query(query, {"limit"}), {"limit": (1, 100)})
+                        return 200, self.investigation_jobs.list(team, **params), {}
+                    if len(parts) == 2:
+                        self._query(query, set())
+                        return 200, self.investigation_jobs.get(team, parts[1]), {}
+                    if len(parts) == 3 and parts[2] == "result":
+                        params = self._numbers(self._query(query, {"before", "limit"}), {"before": (0, 2**63 - 1), "limit": (1, 100)})
+                        return 200, self.investigation_jobs.result(team, parts[1], **params), {}
+                elif len(parts) == 1:
+                    allowed = {"account", "kind", "from_timestamp_ms", "to_timestamp_ms", "max_pages", "max_rows", "depth", "max_accounts", "pages_per_account"}
+                    if "account" not in values or set(values) - allowed:
+                        raise WorkspaceError(400, "invalid_fields", "Send an account and supported investigation bounds only.")
+                    params = {key: value for key, value in values.items() if key != "account"}
+                    job = self.investigation_jobs.create(team, actor, values["account"], **params)
+                    self.store._audit(connection, team, actor, "investigation.created", job["id"], {"kind": job["kind"], "account": job["account_id"]})
+                    return 201, job, {}
+                elif len(parts) == 3 and parts[2] in ("cancel", "retry"):
+                    self._fields(values, set())
+                    job = (self.investigation_jobs.cancel(team, parts[1]) if parts[2] == "cancel" else self.investigation_jobs.retry(team, parts[1]))
+                    self.store._audit(connection, team, actor, "investigation." + parts[2], job["id"])
+                    return 200, job, {}
+            raise WorkspaceError(404, "not_found", "No queued investigation route matches this path.")
         if method in ("GET", "HEAD"):
             if parts == ["cases"]:
                 params = self._query(query, {"offset", "limit"})

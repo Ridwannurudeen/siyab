@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 
 const window = {location: new URL('https://siyab.xyz/flows/example.html')};
+vm.runInNewContext(fs.readFileSync('intel/ui/number-format.js','utf8'),{window});
 const source = fs.readFileSync('intel/ui/graphs.js', 'utf8').replace(
   '  window.SiyabGraph =',
   '  window.vizTest = {decimalSum, valueSummary, filteredEdges, restoredView, exactUtc, arrangeControls};\n  window.SiyabGraph ='
