@@ -1,7 +1,7 @@
 Outside offline verification received, 10 November 2026
 
 The supplied transcript identifies the verifier as Rising Technology and states that
-this person is outside the team, is not Saint, and ran both commands on their laptop.
+this person is outside the team, is not the internal reviewer, and ran both commands on their laptop.
 These statements and publication consent are self-reported; execution was not witnessed.
 The transcript discloses Claude Code assistance with preparation, the runner and report.
 The person reportedly typed the command that started the two checks.
