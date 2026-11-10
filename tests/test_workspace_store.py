@@ -197,6 +197,27 @@ class WorkspaceStoreTest(unittest.TestCase):
         self.error(400, self.store.remove_watch, self.a, self.team, {"account": "wrap.near"})
         self.assertEqual(self.store.events_after()["items"], [])
 
+    def test_case_urls_match_supported_investigation_pages(self):
+        valid = {"title": "Preserved", "notes": "Original", "url": "/"}
+        saved = self.store.create_case(self.a, self.team, **valid)
+        before = self.store.list_audit(self.a, self.team)
+        for url in ("/foo", "/404.html", "/live/accounts/wrap.near/profile", "/workspace-api/session",
+                    "/graph-data/" + "a" * 64 + ".json", "/accounts/nested/wrap.near.html"):
+            with self.subTest(url=url):
+                self.error(400, self.store.create_case, self.a, self.team, "Bad", "", url)
+                self.error(400, self.store.update_case, self.a, self.team, saved["id"], "Bad", "", url, 1)
+                self.error(400, self.store.import_workspace, self.a, self.team, [valid, {**valid, "url": url}], ["wrap.near"])
+        self.assertEqual(self.store.list_cases(self.a, self.team)["cases"], [saved])
+        self.assertEqual(self.store.list_watchlist(self.a, self.team), [])
+        self.assertEqual(self.store.list_audit(self.a, self.team), before)
+        paths = ["/"] + ["/" + page + ".html" for page in
+                          ("index", "workspace", "investigate", "feed", "verify", "issuers", "top-receivers")]
+        paths += ["/" + section + "/sample-1.near.html" for section in
+                  ("accounts", "entities", "flows", "clusters", "incidents", "records")]
+        for url in paths:
+            with self.subTest(valid_url=url):
+                self.store.create_case(self.a, self.team, "Valid", "", url + "?query=value#section")
+
     def test_import_is_explicit_atomic_and_idempotent_without_overwriting_notes(self):
         original = self.store.create_case(self.a, self.team, "Existing", "Original notes", "/investigate.html?account=wrap.near")
         cases = [{"title": "Existing", "notes": "Original notes", "url": original["url"]},

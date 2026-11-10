@@ -94,8 +94,9 @@ def _case_values(title, notes, url):
         parsed = urlsplit(url)
     except ValueError as error:
         raise WorkspaceError(400, "invalid_url", "Use a local investigation page address.") from error
-    if (parsed.scheme or parsed.netloc or re.fullmatch(r"/[A-Za-z0-9._/-]*", parsed.path) is None
-            or any(part in (".", "..") for part in parsed.path.split("/"))):
+    if (parsed.scheme or parsed.netloc or re.fullmatch(
+            r"/|/(?:index|workspace|investigate|feed|verify|issuers|top-receivers)\.html|"
+            r"/(?:accounts|entities|flows|clusters|incidents|records)/[A-Za-z0-9._-]+\.html", parsed.path) is None):
         raise WorkspaceError(400, "invalid_url", "Use a local investigation page address.")
     return title, notes, url
 

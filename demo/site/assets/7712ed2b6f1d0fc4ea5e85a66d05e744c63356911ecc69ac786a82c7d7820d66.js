@@ -15,19 +15,19 @@
   const date = value => Number.isFinite(value) && value >= 0 && value <= 8640000000000000 ? new Date(value).toLocaleString() : "Time unavailable";
   const writable = () => state.team && state.team.role !== "viewer";
   const localUrl = value => {
-    if (typeof value !== "string" || value.length > 2048 || !value.startsWith("/") || value.startsWith("//") || /[\\\u0000-\u001f]/.test(value)) return null;
+    if (typeof value !== "string" || Array.from(value).length > 2048 || !value.startsWith("/") || value.startsWith("//") || /[\\\u0000-\u001f]/.test(value)) return null;
     try {
       const url = new URL(value, location.origin);
-      return url.origin === location.origin && (/^\/$|^\/(?:index|workspace|investigate|feed|verify|issuers|top-receivers)\.html$|^\/(?:accounts|entities|flows|clusters|incidents|records)\/[A-Za-z0-9._-]+\.html$/).test(url.pathname) ? url.pathname + url.search + url.hash : null;
+      return url.origin === location.origin && (/^\/$|^\/(?:index|workspace|investigate|feed|verify|issuers|top-receivers)\.html$|^\/(?:accounts|entities|flows|clusters|incidents|records)\/[A-Za-z0-9._-]+\.html$/).test(url.pathname) ? value : null;
     } catch (error) { return null; }
   };
-  const caseValue = item => item && typeof item.title === "string" && item.title.trim() && item.title.length <= 120
-    && typeof item.notes === "string" && item.notes.length <= 4000 && localUrl(item.url);
+  const caseValue = item => item && typeof item.title === "string" && item.title.length > 0 && Array.from(item.title).length <= 120
+    && typeof item.notes === "string" && Array.from(item.notes).length <= 4000 && localUrl(item.url);
   const accountValue = value => typeof value === "string" && /^[a-z0-9][a-z0-9._-]{0,62}[a-z0-9]$/.test(value) && !value.endsWith(".testnet");
   function importValue(value) {
     if (!value || value.version !== 1 || !Array.isArray(value.cases) || value.cases.length > 500 || !value.cases.every(caseValue)
         || !Array.isArray(value.watchlist) || value.watchlist.length > 100 || !value.watchlist.every(accountValue)) throw new Error("Choose a valid Siyab workspace JSON backup.");
-    return {cases: value.cases.map(item => ({title: item.title.trim(), notes: item.notes, url: localUrl(item.url)})), watchlist: [...new Set(value.watchlist)]};
+    return {cases: value.cases.map(item => ({title: item.title, notes: item.notes, url: localUrl(item.url)})), watchlist: [...new Set(value.watchlist)]};
   }
   function chunks(value) {
     const result = [];

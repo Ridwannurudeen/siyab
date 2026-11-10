@@ -66,6 +66,15 @@ async function main() {
     env.api.renderCases(parent, {total: 1, cases: [{...malicious.cases[0], id: 'case1', version: 1, updated_ms: 0}], next_offset: null}, '/teams/team1');
     assert.equal(parent.querySelectorAll('img').length, 0);
     assert.match(parent.querySelectorAll('a')[0].textContent, /<img/);
+    const emoji = '\u{1f600}';
+    const unicode = {title: emoji.repeat(120), notes: emoji.repeat(4000), url: '/investigate.html?q=' + emoji.repeat(1100)};
+    const restored = env.api.importValue({...example(), cases: [unicode]});
+    assert.equal(restored.cases[0].url, unicode.url, 'Valid Unicode URLs must round-trip without expanding their stored length');
+    env.api.renderCases(new Element('section'), {total: 1, cases: [{...unicode, id: 'unicode', version: 1, updated_ms: 0}], next_offset: null}, '/teams/team1');
+    env.api.renderCases(new Element('section'), {total: 1, cases: [{...example().cases[0], title: '\ufeff', id: 'unicode-space', version: 1, updated_ms: 0}], next_offset: null}, '/teams/team1');
+    assert.equal(env.api.importValue({...example(), cases: [{...example().cases[0], title: '\ufeff'}]}).cases[0].title, '\ufeff');
+    assert.throws(() => env.api.importValue({...example(), cases: [{...unicode, title: emoji.repeat(121)}]}));
+    assert.throws(() => env.api.importValue({...example(), cases: [{...unicode, notes: emoji.repeat(4001)}]}));
   } else if (scenario === 'stale-export') {
     const env = environment({ignoreAbort: true}); await reply(env.requests[0], {authenticated: false, teams: []});
     const promise = env.api.allCases('/teams/team1'); const rejected = assert.rejects(promise);
