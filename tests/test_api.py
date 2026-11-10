@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 EVIDENCE = min((ROOT / "fixtures" / "evidence").glob("*.json"))
 TREASURY = "0x2CfF890f0378a11913B6129B2E97417a2c302680"
 JSON_TYPE = "application/json; charset=utf-8"
-LINK = re.compile(r'href="([^"]*)"')
+LINK = re.compile(r'<a\b[^>]*\bhref="([^"]*)"')
 
 
 def get(server, path):
@@ -136,7 +136,7 @@ class ApiTest(unittest.TestCase):
     def test_feed_is_empty_without_the_feed_files(self):
         with tempfile.TemporaryDirectory() as tmp, \
                 mock.patch.object(api, "FEED_STATE", Path(tmp) / "state.json"):
-            self.assertEqual(self.get_json("/feed"), (200, {"follower": None, "stats": None, "events": []}))
+            self.assertEqual(self.get_json("/feed"), (200, {"follower": None, "stats": None, "events": [], "event_ids": []}))
 
     def test_feed_returns_the_state_and_the_last_50_events_in_block_order(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -151,6 +151,7 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(body["stats"], {"blocks": 300})
         self.assertEqual([event["n"] for event in body["events"]], list(range(49, -1, -1)))
+        self.assertEqual(body["event_ids"], [f"{number:064x}" for number in range(49, -1, -1)])
 
     def test_the_follower_reads_stopped_a_second_past_the_threshold_by_updated_at_else_last_time_else_started_at(self):
         written = datetime(2026, 11, 5, 5, 3, 12, tzinfo=UTC).timestamp()
@@ -383,7 +384,8 @@ class HostedSiteTest(unittest.TestCase):
         self.assertEqual(heights, list(range(1011, 1061)))
         self.assertEqual([int(height) for height in re.findall(r"at block (\d+)</p>", page)], heights)
         self.assertNotIn("<p>event 1010</p>", page)
-        self.assertNotIn("could not be read", page)
+        recorded_details = page.split('<details class="feed-recorded-details">', 1)[1].split('</details>', 1)[0]
+        self.assertNotIn("could not be read", recorded_details)
 
     def test_feed_page_skips_and_counts_a_torn_a_non_json_and_a_keyless_event_file(self):
         good = json.dumps({"signal": "new receiver", "observed": {"block_height": 1001}, "detail": "readable event",

@@ -12,6 +12,29 @@ const beginRequest = panel => {
   return token;
 };
 const isCurrentRequest = (panel, token) => requestTokens.get(panel) === token;
+const tokenInput = document.getElementById("tool-token");
+const updateAmountLabel = () => {
+  document.getElementById("tool-amount-label").textContent = tokenInput.value.trim() === "near"
+    ? "Amount in NEAR" : "Amount in base units";
+};
+tokenInput.addEventListener("input", updateAmountLabel);
+updateAmountLabel();
+const paymentAmount = (value, token) => {
+  const amount = value.trim();
+  let units;
+  if (token === "near") {
+    const match = /^(0|[1-9][0-9]{0,14})(?:\.([0-9]{1,24}))?$/.exec(amount);
+    if (!match) throw new Error("Enter a NEAR amount with up to 24 decimal places, without a sign or exponent.");
+    units = BigInt(match[1] + (match[2] || "").padEnd(24, "0"));
+  } else {
+    if (!/^[1-9][0-9]{0,38}$/.test(amount)) throw new Error("Enter the token amount as a positive integer in base units.");
+    units = BigInt(amount);
+  }
+  if (units < 1n || units > (1n << 128n) - 1n) {
+    throw new Error("The amount must be between 1 and 340282366920938463463374607431768211455 base units.");
+  }
+  return units.toString();
+};
 const addText = (parent, tag, text, className = "") => {
   const element = document.createElement(tag);
   element.textContent = String(text);
@@ -179,10 +202,18 @@ const runAccountChecks = async () => {
   const scanToken = beginRequest(scanPanel);
   verdictPanel.replaceChildren();
   scanPanel.replaceChildren();
+  const amount = amountInput.value.trim();
+  let baseUnits;
+  try {
+    baseUnits = paymentAmount(amount, "near");
+  } catch (error) {
+    addText(verdictPanel, "p", error.message, "empty-state");
+    addText(scanPanel, "p", "Correct the payment amount to run the checks.", "panel-status");
+    return;
+  }
   addText(verdictPanel, "p", "Reading the live verdict route.", "panel-status");
   addText(scanPanel, "p", "Reading the live scan route.", "panel-status");
-  const amount = amountInput.value.trim();
-  const verdictUrl = `/live/verdict?${new URLSearchParams({receiver: subject, amount, token: "near"})}`;
+  const verdictUrl = `/live/verdict?${new URLSearchParams({receiver: subject, amount: baseUnits, token: "near"})}`;
   const [verdict, scan] = await Promise.all([
     readJson(verdictUrl, verdictPanel, verdictToken),
     readJson(`/live/scan/${encodeURIComponent(subject)}`, scanPanel, scanToken)
@@ -198,6 +229,15 @@ labelForm.addEventListener("submit", event => {
   renderLabels();
   runAccountChecks();
 });
+labelForm.addEventListener("invalid", event => {
+  if (!event.target.validity.valueMissing) return;
+  for (const id of ["account-verdict", "account-scan"]) {
+    const panel = document.getElementById(id);
+    beginRequest(panel);
+    panel.replaceChildren();
+    addText(panel, "p", "Complete the required fields to run the checks.", "empty-state");
+  }
+}, true);
 accountInput.addEventListener("input", renderLabels);
 fetch("/search.json", {headers: {Accept: "application/json"}}).then(response => {
   if (!response.ok) throw new Error("search index unavailable");
@@ -221,6 +261,13 @@ for (const tab of tabs) tab.addEventListener("click", () => {
   }
 });
 const addVerdictForm = (formId, panelId, route, showOfac = false) => {
+  document.getElementById(formId).addEventListener("invalid", event => {
+    if (!event.target.validity.valueMissing) return;
+    const panel = document.getElementById(panelId);
+    beginRequest(panel);
+    panel.replaceChildren();
+    addText(panel, "p", "Complete the required fields to run the check.", "empty-state");
+  }, true);
   document.getElementById(formId).addEventListener("submit", async event => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -228,14 +275,22 @@ const addVerdictForm = (formId, panelId, route, showOfac = false) => {
     const panel = document.getElementById(panelId);
     const requestToken = beginRequest(panel);
     panel.replaceChildren();
+    let path;
+    try {
+      path = route(values);
+    } catch (error) {
+      addText(panel, "p", error.message, "empty-state");
+      return;
+    }
     addText(panel, "p", "Reading the live route.", "panel-status");
-    const data = await readJson(route(values), panel, requestToken);
+    const data = await readJson(path, panel, requestToken);
     if (data && isCurrentRequest(panel, requestToken)) renderVerdict(panel, data, showOfac, requestToken);
   });
 };
 addVerdictForm("tool-verdict-form", "tool-verdict-result", values => {
-  const params = new URLSearchParams({receiver: values.get("receiver"), amount: values.get("amount"),
-    token: values.get("token")});
+  const token = values.get("token").trim();
+  const params = new URLSearchParams({receiver: values.get("receiver"), amount: paymentAmount(values.get("amount"), token),
+    token});
   return `/live/verdict?${params}`;
 });
 document.getElementById("tool-scan-form").addEventListener("submit", async event => {

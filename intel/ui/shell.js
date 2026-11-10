@@ -1,9 +1,12 @@
 (() => {
   "use strict";
   const toggle = document.getElementById("theme-toggle");
+  const themeLabel = document.createElement("span");
+  themeLabel.className = "theme-toggle-label";
+  toggle.replaceChildren(themeLabel);
   const labelTheme = () => {
     const light = document.documentElement.dataset.theme === "light";
-    toggle.textContent = light ? "Use dark theme" : "Use light theme";
+    themeLabel.textContent = light ? "Use dark theme" : "Use light theme";
     toggle.setAttribute("aria-label", light ? "Switch to dark theme" : "Switch to light theme");
   };
   try {

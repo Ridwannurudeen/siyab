@@ -1,4 +1,5 @@
 import contextlib
+import base64
 import hashlib
 import html
 import importlib.util
@@ -237,6 +238,27 @@ class RenderTest(unittest.TestCase):
         text = html.escape(subject)
         return f'<a href="../accounts/{page_name(subject)}.html">{text}</a>' if subject in self.subjects else text
 
+    def assert_local_script_assets(self, page):
+        expected = {}
+        for name in ("graphs", "workspace"):
+            source = (ROOT / f"intel/ui/{name}.js").read_text(encoding="utf-8").encode("utf-8")
+            digest = hashlib.sha256(source)
+            expected[f"/assets/{digest.hexdigest()}.js"] = (name, source, "sha256-" + base64.b64encode(digest.digest()).decode("ascii"))
+        found = []
+        for attributes, _ in re.findall(r"<script\b([^>]*)>(.*?)</script>", page, re.DOTALL):
+            if not re.search(r"\bsrc\s*=", attributes):
+                continue
+            match = re.fullmatch(r' src="(/assets/[a-f0-9]{64}\.js)" integrity="(sha256-[A-Za-z0-9+/]+=)" defer', attributes)
+            self.assertIsNotNone(match, attributes)
+            path, integrity = match.groups()
+            self.assertIn(path, expected)
+            name, source, expected_integrity = expected[path]
+            self.assertEqual(integrity, expected_integrity)
+            self.assertEqual((self.out / path.lstrip("/")).read_bytes(), source)
+            found.append(name)
+        self.assertEqual(found.count("graphs"), 1 if 'data-siyab-graph' in page else 0)
+        self.assertEqual(found.count("workspace"), 0 if 'class="app-content record-content"' in page else 1)
+
     def test_the_homepage_uses_the_siyab_project_name(self):
         page = self.pages["index.html"]
         self.assertIn("<title>Siyab</title>", page)
@@ -263,7 +285,9 @@ class RenderTest(unittest.TestCase):
         for name, page in self.pages.items():
             if 'data-siyab-graph' not in page:
                 continue
-            encoded = re.search(r'<script type="application/json">(.*?)</script>', page, re.DOTALL).group(1)
+            asset = re.search(r'data-graph-src="(/graph-data/[a-f0-9]{64}\.json)"', page).group(1)
+            encoded = (self.out / asset.lstrip('/')).read_text(encoding='utf-8')
+            self.assertEqual(hashlib.sha256(encoded.encode('utf-8')).hexdigest(), Path(asset).stem)
             payload = json.loads(encoded)
             self.assertNotIn("<", encoded)
             self.assertEqual(payload["total_records"], len(payload["records"]))
@@ -277,7 +301,8 @@ class RenderTest(unittest.TestCase):
     def test_polling_and_search_keep_lifecycle_and_keyboard_controls(self):
         home = self.pages["index.html"]
         for required in ('new AbortController()', 'request !== generation', 'visibilitychange',
-                         'document.hidden', 'pagehide', 'pending = data.events', 'rows.slice(-50)',
+                         'document.hidden', 'pagehide', 'pending = data;', '.slice(-50).reverse()',
+                         'previous = JSON.stringify([data.events, data.event_ids || null])',
                          'localStorage.getItem("siyab-theme")', '"ArrowDown", "ArrowUp"',
                          'dialog.addEventListener("close"', 'data-open-search'):
             self.assertIn(required, home)
@@ -349,7 +374,7 @@ class RenderTest(unittest.TestCase):
                             if path.name != "body-vector.json"]
         entities = [json.loads(line)["id"] for line in (ROOT / "intel" / "entities.jsonl").read_text(
             encoding="utf-8").splitlines()]
-        expected = (["index.html", "feed.html", "verify.html", "404.html", "issuers.html"]
+        expected = (["index.html", "feed.html", "verify.html", "404.html", "issuers.html", "workspace.html"]
                     + ["top-receivers.html"]
                     + [f"incidents/{i}.html" for i in incidents]
                     + [f"entities/{name}.html" for name, _, _ in render.ENTITY_SETS] + [f"flows/{f}.html" for f in flows]
@@ -358,7 +383,22 @@ class RenderTest(unittest.TestCase):
                     + [f"entities/{page_name(entity)}.html" for entity in entities]
                     + [f"accounts/{page_name(subject)}.html" for subject in self.subjects]
                     + ["search.json", "style.css"]
+                    + sorted({re.search(r'data-graph-src="/([^\"]+)"', page).group(1)
+                              for page in self.pages.values() if 'data-siyab-graph' in page})
                     + [f"fonts/{p.name}" for p in (ROOT / "intel/ui/fonts").iterdir()])
+        for name, _, categories in render.ENTITY_SETS:
+            count = sum(a.category in categories and a.superseded_by is None for a in labels.load().assertions)
+            expected.append(f"entities/{name}.table.json")
+            expected.extend(f"entities/{name}.page-{number}.html" for number in range(2, (count + 49) // 50 + 1))
+        for path in (ROOT / "intel/flows").glob("*.json"):
+            count = len(json.loads(path.read_text(encoding="utf-8"))["hops"])
+            expected.extend(f"flows/{path.stem}.page-{number}.html" for number in range(2, (count + 49) // 50 + 1))
+        for name in ("graphs", "workspace"):
+            source = (ROOT / f"intel/ui/{name}.js").read_text(encoding="utf-8").encode("utf-8")
+            expected.append(f"assets/{hashlib.sha256(source).hexdigest()}.js")
+        expected.extend(f"brand/{source.name}" for source in (ROOT / "intel/ui/brand").iterdir() if source.is_file())
+        if (ROOT / "intel/ui/brand/favicon.ico").is_file():
+            expected.append("favicon.ico")
         self.assertEqual(sorted(self.written), sorted(expected))
 
     def test_record_pages_show_each_stored_field_value(self):
@@ -434,7 +474,7 @@ class RenderTest(unittest.TestCase):
         self.assertEqual({entry["id"] for entry in search["entities"]}, {entity["id"] for entity in entities})
         self.assertIn("account-form", self.pages["index.html"])
         self.assertIn("<script>", self.pages["index.html"])
-        self.assertNotIn("<script src", self.pages["index.html"])
+        self.assert_local_script_assets(self.pages["index.html"])
         for entry in search["accounts"]:
             with self.subTest(subject=entry["subject"]):
                 self.assertTrue(entry["label_sources"])
@@ -496,7 +536,8 @@ class RenderTest(unittest.TestCase):
         self.assertIn("readJson(`/live/scan/${encodeURIComponent(subject)}`, scanPanel, scanToken)", page)
         self.assertIn("if (verdict && isCurrentRequest(verdictPanel, verdictToken))", page)
         self.assertIn("if (scan && isCurrentRequest(scanPanel, scanToken))", page)
-        self.assertIn("readJson(route(values), panel, requestToken)", page)
+        self.assertIn("path = route(values)", page)
+        self.assertIn("readJson(path, panel, requestToken)", page)
         self.assertIn("readJson(`/live/scan/${encodeURIComponent(subject)}`, panel, requestToken)", page)
         self.assertIn('readJson("/live/reports/recent", recentPanel, recentToken)', page)
         self.assertIn("readJson(`/live/reports?${new URLSearchParams({subject})}`, panel, requestToken)", page)
@@ -543,10 +584,10 @@ class RenderTest(unittest.TestCase):
     def test_index_has_no_unexpected_host_or_remote_script_or_font(self):
         page = self.pages["index.html"]
         stylesheet = (self.out / "style.css").read_text(encoding="utf-8")
-        urls = [link for link in LINK.findall(page) if link.startswith(("http://", "https://"))]
+        urls = [link for link in re.findall(r'<a\b[^>]*\bhref="([^"]*)"', page) if link.startswith(("http://", "https://"))]
         self.assertTrue(urls)
         self.assertTrue(all(url.startswith(f"{render.GITHUB_REPO}/blob/main/") for url in urls))
-        self.assertNotRegex(page, r"<script[^>]+src=")
+        self.assert_local_script_assets(page)
         self.assertNotRegex(page, r"<link[^>]+(?:Geist|Plex|fonts\.googleapis)")
         self.assertNotIn("@import", stylesheet)
         self.assertNotRegex(stylesheet, r"url\(\s*['\"]?https?://")
@@ -625,10 +666,12 @@ class RenderTest(unittest.TestCase):
             self.assertIn(self.linked(subject), self.pages["incidents/rhea.html"])
         store = labels.load()
         for name, _, categories in render.ENTITY_SETS:
+            collection = "".join(page for path, page in self.pages.items()
+                                 if path == f"entities/{name}.html" or path.startswith(f"entities/{name}.page-"))
             for row in (a for a in store.assertions if a.category in categories and a.superseded_by is None):
                 with self.subTest(set=name, subject=row.subject):
                     self.assertIn(f'<a href="../accounts/{page_name(row.subject)}.html"><q class="data">'
-                                  f'{html.escape(row.subject)}</q></a>', self.pages[f"entities/{name}.html"])
+                                  f'{html.escape(row.subject)}</q></a>', collection)
         entity = json.loads((ROOT / "intel" / "entities.jsonl").read_text(encoding="utf-8").splitlines()[0])
         member = entity["members"][0]
         self.assertIn(member, self.subjects)
@@ -641,7 +684,7 @@ class RenderTest(unittest.TestCase):
                 self.assertTrue(page.startswith("<!doctype html>"))
                 self.assertIn('<meta name="robots" content="noindex">', page)
                 self.assertIn("Data: NearBlocks", page)
-                self.assertNotIn("<script src", page)
+                self.assert_local_script_assets(page)
                 self.assertIn('rel="stylesheet" href="/style.css"', page)
                 self.assertNotIn("<style>", page)
 
@@ -753,7 +796,8 @@ class RenderTest(unittest.TestCase):
                 (events_dir / f"{stem}.json").write_text(json.dumps(event), encoding="utf-8")
             page = render.feed_page(path, events_dir)
         self.assertEqual(page.count('<div class="card">'), 4)
-        positions = [page.index(f"<p>event {stem}</p>") for stem in "cbda"]
+        recorded_details = page.split('<details class="feed-recorded-details">', 1)[1].split('</details>', 1)[0]
+        positions = [recorded_details.index(f"<p>event {stem}</p>") for stem in "cbda"]
         self.assertEqual(positions, sorted(positions))
 
     def test_the_feed_page_states_the_total_the_events_were_selected_from(self):
@@ -829,12 +873,18 @@ class RenderTest(unittest.TestCase):
     def test_the_flow_page_has_the_summary_the_shares_and_one_card_per_hop(self):
         document = json.loads((ROOT / "intel" / "flows" / "rhea-collector.json").read_text(encoding="utf-8"))
         page = self.pages["flows/rhea-collector.html"]
-        self.assertEqual(page.count('<div class="card">'), len(document["hops"]))
+        evidence_pages = [self.pages["flows/rhea-collector.html"]] + [
+            self.pages[f"flows/rhea-collector.page-{number}.html"]
+            for number in range(2, (len(document["hops"]) + 49) // 50 + 1)]
+        for evidence_page in evidence_pages:
+            self.assertLessEqual(evidence_page.count('<div class="card flow-transfer">'), 50)
+        all_evidence = "".join(evidence_pages)
+        self.assertEqual(all_evidence.count('<div class="card flow-transfer">'), len(document["hops"]))
         summary = page.index('<div class="card summary">')
-        shares_table = page.index("<table>", page.index("<h2>Shares of the gross outbound transfer value</h2>"))
+        shares_table = page.index('<table class="flow-shares-table"', page.index("<h2>Shares of the gross outbound transfer value</h2>"))
         self.assertLess(summary, shares_table)
         self.assertLess(shares_table, page.index('<div class="card state">'))
-        self.assertLess(page.index('<div class="card state">'), page.index('<div class="card">'))
+        self.assertLess(page.index('<div class="card state">'), page.index('<div class="card flow-transfer">'))
         self.assertIn(render.data_text(trace.summary(document)), page)
         self.assertIn(f"stopped while reading {document['completeness']['account']} (1 hop from the subject): the page "
                       "budget of 150 requests", page)
@@ -843,18 +893,22 @@ class RenderTest(unittest.TestCase):
                       f"summed.</p><p>{html.escape(trace.gross_sentence(document))}</p>", page)
         self.assertIn("older outbound rows are outside it", page)
         for bucket in document["shares"]["buckets"]:
-            self.assertIn(f'<td class="mono">{self.linked(bucket["to"])}</td><td>{html.escape(bucket["kind"])}</td>'
-                          f'<td>{trace.usd_text(bucket["usd"])}</td><td>{bucket["count"]}</td><td>{bucket["percent"]}</td>', page)
+            row = re.search(r'<tr role="row"><td role="cell" class="mono"><span class="cell-label" aria-hidden="true">To</span>'
+                            + re.escape(self.linked(bucket["to"])) + r'</td>(.*?)</tr>', page, re.DOTALL)
+            self.assertIsNotNone(row, bucket["to"])
+            for label, value in (("Kind", html.escape(bucket["kind"])), ("USD", trace.usd_text(bucket["usd"])),
+                                 ("Rows", bucket["count"]), ("Percent", bucket["percent"])):
+                self.assertIn(f'<span class="cell-label" aria-hidden="true">{label}</span>{value}</td>', row.group(1))
         self.assertIn('banned by the issuer, get_blacklist_status answers <q class="data">Banned</q>', page)
         for read in document["state_at_block"]:
             self.assertIn(f"{read['method']} at block {read['block']}", page)
         depths = trace.hop_depths(document)
         for depth in sorted(set(depths)):
-            self.assertIn(f"<h2>Depth {depth}: {depths.count(depth)} hops</h2>", page)
+            self.assertIn(f"<h2>Depth {depth}: {depths.count(depth)} hops</h2>", all_evidence)
         self.assertNotIn("hops to depth", page)
         for hop in document["hops"]:
-            self.assertIn(hop["transaction_hash"], page)
-            self.assertIn(f"block {hop['block']}", page)
+            self.assertIn(hop["transaction_hash"], all_evidence)
+            self.assertIn(f"block {hop['block']}", all_evidence)
         self.assertIn(f"depth {document['depth_reached']} of {document['depth']}, "
                       f"{trace.stop_state(document['completeness'])}", self.pages["index.html"])
 
@@ -976,7 +1030,7 @@ class RenderTest(unittest.TestCase):
                               note="derived from the onchain assertion in source.inputs")
         page = render.entity_page("Infrastructure", ("infrastructure",), labels.Store([hypothesis, stated], "0" * 64))
         heading = page.index("<h2>Attribution hypothesis</h2>")
-        self.assertEqual(page.count("<tr><td"), 2)
+        self.assertEqual(page.count('data-assertion-id='), 2)
         self.assertLess(page.index(stated.subject), heading)
         hypothesis_part = page[heading:]
         self.assertNotIn(stated.subject + "<", hypothesis_part)
@@ -996,7 +1050,9 @@ class RenderTest(unittest.TestCase):
             rows = [a for a in store.assertions if a.category in categories and a.superseded_by is None]
             with self.subTest(set=name):
                 self.assertTrue(rows)
-                self.assertEqual(self.pages[f"entities/{name}.html"].count("<tr><td"), len(rows))
+                collection = "".join(page for path, page in self.pages.items()
+                                     if path == f"entities/{name}.html" or path.startswith(f"entities/{name}.page-"))
+                self.assertEqual(collection.count('data-assertion-id='), len(rows))
 
     def test_no_account_page_for_a_subject_without_a_row(self):
         subject = "no-current-row.example.near"
@@ -1024,7 +1080,8 @@ class RenderTest(unittest.TestCase):
                 plain, hypothesis = page[:heading], page[heading:]
                 stated = [a for a in store.assertions if a.subject == row.subject and a.superseded_by is None
                           and a.provenance != "inferred"]
-                self.assertEqual(plain.count('<tr role="row"><td role="cell">'), len(stated))
+                source_table = plain.split('class="account-assertions"', 1)[1].split('</table>', 1)[0]
+                self.assertEqual(source_table.count('<tr role="row"><td role="cell">'), len(stated))
                 self.assertNotIn('<span class="cell-label" aria-hidden="true">Provenance</span>inferred</td>', plain)
                 self.assertIn(render.data_text(row.label), hypothesis)
                 self.assertIn(f'<span class="cell-label" aria-hidden="true">Confidence</span>{row.confidence}</td>', hypothesis)
@@ -1040,7 +1097,7 @@ class RenderTest(unittest.TestCase):
                        source={"rule_id": "a_test_rule", "inputs": [fact.id]}, rule_id="a_test_rule", confidence=0.9)
         page = render.entity_page("Treasuries", ("treasury",), labels.Store([fact, row], "0" * 64))
         heading = page.index("<h2>Attribution hypothesis</h2>")
-        self.assertIn('<td class="mono"><q class="data">a_test_rule</q></td>', page[heading:])
+        self.assertIn('<span class="cell-label" aria-hidden="true">Rule</span><q class="data">a_test_rule</q></td>', page[heading:])
         self.assertNotIn("a_test_rule", own_text(page))
 
     def test_the_account_page_shows_the_chain_of_every_row(self):
@@ -1052,7 +1109,8 @@ class RenderTest(unittest.TestCase):
         self.assertGreaterEqual(len(set(chains[subject])), 12)
         page = self.pages[f"accounts/{page_name(subject)}.html"]
         self.assertIn('<th scope="col" role="columnheader">Chain</th>', page)
-        self.assertEqual(sorted(re.findall(r'<td role="cell"><span class="cell-label" aria-hidden="true">Chain</span>([a-z0-9]+)</td>', page)), sorted(chains[subject]))
+        source_table = page.split('class="account-assertions"', 1)[1].split('</table>', 1)[0]
+        self.assertEqual(sorted(re.findall(r'<td role="cell"><span class="cell-label" aria-hidden="true">Chain</span>([a-z0-9]+)</td>', source_table)), sorted(chains[subject]))
 
     def test_the_account_page_lists_each_trace_edge_once_with_its_count(self):
         subject, counts = "intents.near", {}
@@ -1087,7 +1145,8 @@ class RenderTest(unittest.TestCase):
         self.assertIn('fetch("https://test.rpc.fastnear.com"', page)
         self.assertIn('method_name: "latest"', page)
         self.assertNotIn("shieldbotsecurity", page)
-        self.assertEqual(re.findall(r"https://[a-z.]+", page.split("<script>", 1)[1]), ["https://test.rpc.fastnear.com"])
+        scripts = "\n".join(re.findall(r'<script>(.*?)</script>', page, re.DOTALL))
+        self.assertEqual(re.findall(r'fetch\("(https://[^\"]+)"', scripts), ["https://test.rpc.fastnear.com"])
 
     def test_the_committed_site_equals_a_fresh_render(self):
         committed = sorted(p.relative_to(SITE).as_posix() for p in SITE.rglob("*") if p.is_file())

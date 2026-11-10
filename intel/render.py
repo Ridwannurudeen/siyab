@@ -1,6 +1,7 @@
 """python -m intel render --out <dir>: the static hosted pages, built from the committed JSON files.
 
-No framework and no external script; one shared stylesheet, style.css, that every page links. The
+No framework or third-party script; shared local content-hashed scripts and one stylesheet, style.css.
+The
 pages: index.html (the headline, what the counts are of, a search box whose inline script filters
 search.json in the browser, the counts block of scripts/counts.py, the links), search.json (one entry
 per subject with a current row and per registry entity of intel/entities.jsonl, each with the path of
@@ -38,6 +39,8 @@ a test can tell it from Siyab's own words.
 """
 
 import html
+import hashlib
+import base64
 import importlib.util
 import json
 import re
@@ -71,7 +74,21 @@ ENTITY_SETS = (("treasuries", "Treasuries", ("treasury",)),
                ("infrastructure", "Infrastructure and bridge accounts", ("infrastructure", "bridge")),
                ("organisations", "Organisations from on chain registries", ("organisation",)))
 ROBOTS = "<meta name=\"robots\" content=\"noindex\">\n"
-STYLE = (ROOT / "intel/ui/site.css").read_text(encoding="utf-8")
+STYLE = (ROOT / "intel/ui/site.css").read_text(encoding="utf-8") + "".join(
+    "\n" + path.read_text(encoding="utf-8") for path in sorted((ROOT / "intel/ui").glob("*.css"))
+    if path.name != "site.css")
+SITE_ORIGIN = "https://siyab.xyz"
+BRAND_MARK = '<svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M26 6H12L6 14l19 5-6 7H5" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="square" stroke-linejoin="bevel"/></svg>'
+
+
+def _script_asset(source):
+    digest = hashlib.sha256(source.encode("utf-8"))
+    return f"/assets/{digest.hexdigest()}.js", "sha256-" + base64.b64encode(digest.digest()).decode("ascii")
+
+
+def _script_tag(source):
+    url, integrity = _script_asset(source)
+    return f'<script src="{url}" integrity="{integrity}" defer></script>'
 
 
 # A double quoted source string, which may itself hold escaped quotes and backslashes (JSON text).
@@ -143,10 +160,10 @@ def page(title, body, depth=0, rooted=False, *, inert=False):
     """A whole HTML page; depth is how many directories below the site root it sits, and a rooted page
     links root absolute because it is served at any path."""
     up = "/" if rooted else "../" * depth
-    current = {"Siyab": "index.html", "Feed": "feed.html", "Verify a record": "verify.html",
+    current = {"Siyab": "index.html", "Workspace": "workspace.html", "Feed": "feed.html", "Verify a record": "verify.html",
                "Incident records": "records/index.html", "Issuer actions": "issuers.html",
                **{label: f"entities/{name}.html" for name, label, _ in ENTITY_SETS}}.get(title)
-    primary = (("index.html", "Home"), ("flows/rhea-collector.html", "Trace"), ("feed.html", "Feed"),
+    primary = (("index.html", "Home"), ("flows/rhea-collector.html", "Trace"), ("feed.html", "Feed"), ("workspace.html", "Workspace"),
                ("index.html#tools", "Payment checks"), ("verify.html", "Verify"))
     secondary = (("index.html#explore-title", "Incidents"),
                  *((f"entities/{name}.html", label) for name, label, _ in ENTITY_SETS),
@@ -158,27 +175,44 @@ def page(title, body, depth=0, rooted=False, *, inert=False):
         navigation.append(f'<nav class="app-{name}-navigation" aria-label="{name.title()}">{items}</nav>')
     nav = "".join(navigation)
     shell = "" if inert else (ROOT / "intel/ui/shell.js").read_text(encoding="utf-8")
+    workspace_script = "" if inert else (ROOT / "intel/ui/workspace.js").read_text(encoding="utf-8")
     search_label = '<span class="site-search-label">Search accounts / entities</span><span class="site-search-short" aria-hidden="true">Search</span>'
     search = (f'<a class="site-search-link" aria-label="Search accounts and entities" href="{up}index.html#search">{search_label}</a>' if inert else
               f'<button class="site-search-button" type="button" aria-label="Search accounts and entities" data-open-search>{search_label} <kbd class="search-key">Ctrl K</kbd></button>'
-              '<button class="theme-toggle" type="button" id="theme-toggle">Use light theme</button>')
+              '<button class="theme-toggle" type="button" id="theme-toggle" aria-label="Switch to light theme"><span class="theme-toggle-label">Use light theme</span></button>')
     dialog = "" if inert else (
         '<dialog class="search-dialog" id="global-search" aria-label="Search accounts and entities">'
         '<form class="search-dialog-head" method="dialog"><input id="global-search-input" aria-label="Account or entity" autocomplete="off" placeholder="Search accounts and entities">'
-        '<button aria-label="Close search">Close</button></form><div class="search-results" id="global-search-results" aria-live="polite"></div></dialog>')
+        '<button aria-label="Close search">Close</button></form><div class="search-results" id="global-search-results" aria-live="polite"></div></dialog>'
+        '<dialog class="case-dialog" id="save-investigation" aria-labelledby="case-dialog-title"><h2 id="case-dialog-title">Save investigation</h2>'
+        '<form id="case-form"><label for="case-title">Title<input id="case-title" maxlength="120" required></label>'
+        '<label for="case-notes">Notes<textarea id="case-notes" maxlength="4000" rows="5"></textarea></label>'
+        '<p id="case-source" class="source-line"></p><p id="case-error" role="alert"></p><div class="workspace-actions">'
+        '<button class="primary" type="submit">Save investigation</button><button id="case-cancel" type="button">Cancel</button></div></form></dialog>')
     content_class = "app-content record-content" if inert else "app-content"
+    description = "Investigate NEAR accounts with sourced labels, recorded activity and read-only payment checks. Inspect the evidence and its coverage."
+    metadata = (f'<meta name="description" content="{esc(description)}">\n<meta property="og:type" content="website">\n'
+                f'<meta property="og:title" content="{esc(title if title == "Siyab" else title + " | Siyab")}">\n'
+                f'<meta property="og:description" content="{esc(description)}">\n'
+                f'<meta property="og:image" content="{SITE_ORIGIN}/brand/social.png">\n'
+                '<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">\n'
+                '<meta name="twitter:card" content="summary_large_image">\n'
+                f'<meta name="twitter:image" content="{SITE_ORIGIN}/brand/social.png">\n'
+                '<link rel="icon" type="image/svg+xml" href="/brand/favicon.svg"><link rel="alternate icon" href="/favicon.ico">\n')
     return ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"
             f"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n{ROBOTS}"
-            f"<title>{esc(title)}</title>\n<link rel=\"stylesheet\" href=\"/style.css\">\n</head>\n<body>\n"
+            f"<title>{esc(title)}</title>\n{metadata}<link rel=\"stylesheet\" href=\"/style.css\">\n</head>\n<body>\n"
             '<a class="skip-link" href="#main-content">Skip to content</a>'
-            f'<aside class="app-sidebar"><a class="site-brand" href="{up}index.html">Siyab</a>{nav}</aside>'
-            f'<header class="app-topbar"><a class="app-mobile-brand" href="{up}index.html">Siyab</a>'
+            f'<aside class="app-sidebar"><a class="site-brand" href="{up}index.html">{BRAND_MARK}<span>Siyab</span></a>{nav}</aside>'
+            f'<header class="app-topbar"><a class="app-mobile-brand" href="{up}index.html">{BRAND_MARK}<span>Siyab</span></a>'
             f'<span class="app-context">{esc("Investigate" if title == "Siyab" else title)}</span>'
             f'<div class="header-actions">{search}</div>'
             f'<details class="mobile-navigation" id="mobile-navigation"><summary>Menu</summary><div class="mobile-navigation-panel">{nav}</div></details>'
             f'</header>{dialog}\n<main class="{content_class}" id="main-content">\n{body}\n</main>\n'
             '<footer class="app-footer"><p>Data: NearBlocks. Blocks: mainnet.neardata.xyz. Transfers: FastNEAR.</p></footer>\n'
-            f'{"<script>" + shell + "</script>" if shell else ""}</body>\n</html>\n')
+            + ('' if inert else '<p id="workspace-feedback" class="workspace-feedback" role="status" aria-live="polite"></p>')
+            + f'{"<script>" + shell + "</script>" if shell else ""}'
+            + f'{_script_tag(workspace_script) if workspace_script else ""}</body>\n</html>\n')
 
 
 def _counts_lines():
@@ -242,25 +276,74 @@ def _top_receivers_summary(judgements_dir, ranking_path=TOP_RECEIVERS_RANKING_PA
 INDEX_SCRIPT = (ROOT / "intel/ui/index.js").read_text(encoding="utf-8")
 
 
-def _graph_section(payload, evidence_url=None):
+def _graph_asset(payload, evidence_url=None):
+    payload = {**payload, "source": dict(payload["source"]), "nodes": [dict(node) for node in payload["nodes"]]}
     if evidence_url:
         payload["source"]["evidence_url"] = evidence_url
     for node in payload["nodes"]:
         if node["url"]:
-            node["url"] = "/" + node["url"].removeprefix("../")
+            node["url"] = "/" + node["url"].removeprefix("../").lstrip("/")
     encoded = json.dumps(payload, ensure_ascii=True, separators=(",", ":")).replace("<", "\\u003c")
+    return f'/graph-data/{hashlib.sha256(encoded.encode("utf-8")).hexdigest()}.json', encoded
+
+
+def _graph_section(payload, evidence_url=None):
+    url, _ = _graph_asset(payload, evidence_url)
     script = (ROOT / "intel/ui/graphs.js").read_text(encoding="utf-8")
-    return ('<section data-siyab-graph aria-label="Recorded investigation graph">'
-            f'<script type="application/json">{encoded}</script></section><script>{script}</script>')
+    evidence = f'<a href="{esc(evidence_url)}">Open recorded evidence</a>' if evidence_url else 'Recorded evidence follows below.'
+    return (f'<section class="siyab-graph" data-siyab-graph data-graph-src="{url}" aria-label="Recorded investigation graph">'
+            '<div class="graph-loading" role="status"><h2>Recorded investigation</h2><p>Interactive graph with recorded evidence.</p></div>'
+            f'<noscript><p>JavaScript is needed for the interactive graph. {evidence}</p></noscript>'
+            f'</section>{_script_tag(script)}')
 
 
-def _feed_panel():
-    return ('<article class="analytics-panel"><div class="analytics-panel-head"><h2>Follower health</h2>'
+def _feed_panel(event_rows=()):
+    rows = []
+    for event, event_id in reversed(event_rows):
+        observed = event.get("observed") if isinstance(event.get("observed"), dict) else {}
+        stamp = observed.get("timestamp_ms")
+        try:
+            instant = datetime.fromtimestamp(stamp / 1000, UTC) if type(stamp) in (int, float) else None
+            when = (f'<time datetime="{instant.isoformat()}">{instant.strftime("%Y-%m-%d")}<br>'
+                    f'{instant.strftime("%H:%M:%S")} UTC</time>' if instant else "Not recorded")
+        except (OverflowError, OSError, ValueError):
+            when = "Not recorded"
+        amount = (f'{esc(event["usd_amount"])} USD (provider value)' if event.get("usd_amount") is not None else
+                  f'{esc(event["amount_yocto"])} yoctoNEAR' if event.get("amount_yocto") is not None else "Not recorded")
+        source = event.get("source") if isinstance(event.get("source"), dict) else {}
+        evidence_link = (f'<a href="/evidence/{event_id}">Open evidence</a>'
+                         if re.fullmatch(r"[0-9a-f]{64}", event_id) else "Unlinked record")
+        cells = [when,
+                 f'<strong>{_event_field(event, "signal")}</strong><p>{_event_field(event, "detail")}</p>',
+                 f'<q class="data">{_event_field(event, "subject")}</q>',
+                 f'<q class="data">{_event_field(event, "other_account_id")}</q>'
+                 if event.get("other_account_id") else "Not recorded",
+                 f'<span class="feed-amount">{amount}</span><small>{_event_field(event, "asset_id")}</small>',
+                 f'{esc(source.get("provider", "Provider not recorded"))}<br>{evidence_link}'
+                 f'<details><summary>Record details</summary><p>Block {_event_field(event, "observed", "block_height")}</p>'
+                 f'<p>Transaction {_event_field(event, "tx_hash")}</p><p>Receipt {_event_field(event, "receipt_id")}</p>'
+                 f'<p>Evidence identifier {esc(event_id)}</p><pre>{esc(json.dumps(event, ensure_ascii=False, indent=2))}</pre></details>']
+        labels_for_cells = ("Observed (UTC)", "Signal", "Account", "Counterparty", "Amount", "Source and evidence")
+        rows.append('<tr>' + ''.join(f'<td data-label="{label}">{value}</td>'
+                                    for label, value in zip(labels_for_cells, cells)) + '</tr>')
+    headers = ''.join(f'<th scope="col">{label}</th>' for label in
+                      ("Observed (UTC)", "Signal", "Account", "Counterparty", "Amount", "Source and evidence"))
+    initial = ('<button type="button" data-export-table="feed-signals">Export shown events CSV</button>'
+               f'<table class="feed-table" id="feed-signals"><caption>Recorded signals, newest first</caption>'
+               f'<thead><tr>{headers}</tr></thead><tbody>{"".join(rows)}</tbody></table>' if rows else
+               '<p class="feed-empty">No events loaded. Read follower health for the observed window; an empty feed does not establish a favorable payment result.</p>')
+    return ('<article class="analytics-panel feed-panel"><div class="analytics-panel-head"><h2>Follower health</h2>'
             '<a href="/feed.html">Open feed</a></div><div class="workspace-panel-body" id="feed-health" aria-live="polite">'
             '<p>Reading follower state. Live data may be unavailable on a static copy.</p></div>'
-            '<div class="workspace-panel-body"><button id="feed-pause" type="button">Pause updates</button> '
+            '<div class="feed-actions"><button id="feed-pause" type="button">Pause updates</button> '
             '<button id="feed-apply" type="button" hidden>Show new events</button>'
-            '<div id="feed-events"></div></div></article>')
+            '<button id="feed-retry" type="button" hidden>Retry feed</button><span id="feed-update-status" role="status" aria-live="polite">Awaiting current read</span></div>'
+            '<div class="feed-filters" id="feed-filters" hidden><label>Signal<select id="feed-signal"><option value="">All signals</option></select></label>'
+            '<label>Account or evidence<input id="feed-query" type="search" autocomplete="off" placeholder="Search this response"></label>'
+            '<label>Source<select id="feed-source"><option value="">All sources</option></select></label>'
+            '<label>Observed since (UTC)<input id="feed-since" type="datetime-local"></label>'
+            '<button id="feed-clear" type="button">Clear filters</button></div>'
+            f'<div class="feed-results" id="feed-events">{initial}</div></article>')
 
 
 def _workspace(flows, clusters, store, summary):
@@ -359,7 +442,7 @@ def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVE
         '</div><section class="tool-panel panel" id="panel-verdict" role="tabpanel" aria-labelledby="tab-verdict">'
         '<form class="tool-form" id="tool-verdict-form"><label for="tool-receiver">Receiver'
         '<input id="tool-receiver" name="receiver" type="text" required></label>'
-        '<label for="tool-amount">Amount in NEAR<input id="tool-amount" name="amount" type="text" '
+        '<label for="tool-amount"><span id="tool-amount-label">Amount in NEAR</span><input id="tool-amount" name="amount" type="text" '
         'inputmode="decimal" value="1" required></label><label for="tool-token">Token'
         '<input id="tool-token" name="token" type="text" value="near" required></label>'
         '<button class="primary" type="submit">Check payment</button></form><div id="tool-verdict-result" class="results" aria-live="polite"></div></section>'
@@ -505,7 +588,8 @@ def feed_page(state_path=feed.STATE_PATH, events_dir=feed.EVENTS_DIR, *, state=N
     judged stopped, comes from the caller that judged it."""
     if state is None:
         if not Path(state_path).is_file():
-            return page("Feed", "<h1>Feed</h1><p>The feed has not run.</p>")
+            return page("Feed", "<h1>Feed</h1><p>The feed has not run.</p>" + _feed_panel()
+                        + '<script>' + (ROOT / "intel/ui/feed.js").read_text(encoding="utf-8") + '</script>')
         state = json.loads(Path(state_path).read_text(encoding="utf-8"))
     window = ""
     if state.get("mode") != "follow":
@@ -530,10 +614,128 @@ def feed_page(state_path=feed.STATE_PATH, events_dir=feed.EVENTS_DIR, *, state=N
     count = "" if total is None else f"<p>{total} event{'' if total == 1 else 's'} in total{shown}.</p>\n"
     if unreadable:
         count += f"<p>{unreadable} event file{'' if unreadable == 1 else 's'} could not be read.</p>\n"
-    body = (f"<h1>Feed over finalized mainnet blocks</h1>\n{window}<ul>{stats}</ul>\n<h2>Events</h2>\n{count}"
+    details_title = "Read details" if state.get("mode") == "follow" else "Recorded window details"
+    body = (f'<details class="feed-recorded-details"><summary>{details_title}</summary>{window}<ul>{stats}</ul>\n<h2>Events</h2>\n{count}'
             + (cards or ("" if unreadable else "<p>No signal fired over the recorded blocks.</p>"))
-            + "\n<p class=\"muted\">The signals: " + ", ".join(feed.SIGNALS) + ".</p>")
-    return page("Feed", _feed_panel() + body + '<script>' + (ROOT / "intel/ui/feed.js").read_text(encoding="utf-8") + '</script>')
+            + "\n<p class=\"muted\">The signals: " + ", ".join(feed.SIGNALS) + ".</p></details>")
+    return page("Feed", '<h1>Feed over finalized mainnet blocks</h1><p>Inspect observed signals and their evidence. The current read contains at most 50 recent events; filters apply to that response.</p>'
+                + _feed_panel(event_rows) + body + '<script>' + (ROOT / "intel/ui/feed.js").read_text(encoding="utf-8") + '</script>')
+
+
+def _profile_script():
+    return '<script>' + (ROOT / "intel/ui/profiles.js").read_text(encoding="utf-8") + '</script>'
+
+
+def _profile_table(name, headings, rows, search="Search records"):
+    head = ''.join(f'<th scope="col" role="columnheader">{esc(label)}</th>' for label in headings)
+    body = ''.join('<tr role="row">' + ''.join(
+        f'<td role="cell"><span class="cell-label" aria-hidden="true">{esc(label)}</span>{value}</td>'
+        for label, value in zip(headings, row)) + '</tr>' for row in rows)
+    return (f'<section class="profile-records" data-profile-table="{esc(name)}">'
+            f'<div class="profile-table-tools" hidden><label>{esc(search)}<input type="search" data-profile-search autocomplete="off"></label>'
+            f'<button type="button" data-export-table="{esc(name)}">Export shown rows</button></div>'
+            f'<div class="table"><table class="profile-data-table" id="{esc(name)}" role="table"><thead role="rowgroup"><tr role="row">{head}</tr></thead>'
+            f'<tbody role="rowgroup">{body}</tbody></table></div><p data-profile-table-status role="status"></p>'
+            '<nav class="profile-pagination" data-profile-table-pages aria-label="Record pages" hidden></nav></section>')
+
+
+def _profile_source(assertion):
+    source = assertion.source
+    if source.get("url"):
+        provider = source["url"].split("/")[2]
+        summary = f'<a href="{esc(source["url"])}">{esc(provider)}</a>'
+    elif source.get("method"):
+        summary = f'{esc(source["method"])} at block {source["block"]}'
+    else:
+        summary = f'Rule <q class="data">{esc(assertion.rule_id)}</q>'
+    return (f'{summary}<time class="profile-observed" datetime="{esc(assertion.observed_at)}">{esc(assertion.observed_at)}</time>'
+            f'<details class="profile-source-detail"><summary>Evidence</summary><p class="mono">Assertion {esc(assertion.id)}</p>'
+            f'<pre><q class="data">{esc(json.dumps(source, ensure_ascii=False, sort_keys=True))}</q></pre></details>')
+
+
+def _profile_number(value):
+    return "Unavailable" if value is None else format(Decimal(str(value)), ",f")
+
+
+def _profile_transfer_rows(subject, flows):
+    rows = []
+    for name, document in flows:
+        for index, hop in enumerate(document.get("hops", [])):
+            if subject in (hop["from"], hop["to"]):
+                rows.append(dict(hop, recording=name, fetched_at=document["fetched_at"], row_index=index))
+    return sorted(rows, key=lambda row: int(row["block_timestamp"]), reverse=True)
+
+
+def _profile_transfer_cells(subject, row, accounts):
+    direction = "Self" if row["from"] == row["to"] else "Outbound" if row["from"] == subject else "Inbound"
+    counterparty = row["to"] if row["from"] == subject else row["from"]
+    instant = datetime.fromtimestamp(int(row["block_timestamp"]) // 1000000000, UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
+    amount = (f'{_profile_number(row["human_amount"])}' if row["human_amount"] is not None else f'{esc(row["amount"])} base units')
+    return [f'<time>{instant}</time>', direction, _subject_cell(counterparty, accounts),
+            f'<span class="profile-value">{amount}</span><q class="data profile-asset">{esc(row["asset_id"])}</q>',
+            f'<span class="profile-value">{_profile_number(row["usd_amount"])}</span>',
+            f'<a href="/flows/{esc(row["recording"])}.html">Recorded evidence</a>'
+            f'<details class="profile-source-detail"><summary>Transfer details</summary><p class="mono">Block {row["block"]}<br>'
+            f'Transaction {esc(row["transaction_hash"])}<br>Receipt {esc(row["receipt_id"])}<br>'
+            f'Base units {esc(row["amount"])}<br>Recorded {esc(row["fetched_at"])}</p></details>']
+
+
+def _profile_account_summary(subject, assertions, accounts, flows):
+    activity = _profile_transfer_rows(subject, flows)
+    observed = sorted({row.observed_at for row in assertions})
+    categories = sorted({row.category.replace("_", " ") for row in assertions if row.provenance != "inferred"})
+    labels_rows = [[data_text(row.label), esc(row.chain), esc(row.provenance.replace("_", " ")), _profile_source(row)]
+                   for row in assertions if row.provenance != "inferred"]
+    source_rows = ''.join('<tr role="row" data-profile-transfer-row>' + ''.join(
+        f'<td role="cell"><span class="cell-label" aria-hidden="true">{label}</span>{value}</td>'
+        for label, value in zip(("Time UTC", "Direction", "Counterparty", "Amount and asset", "USD value", "Evidence"),
+                                _profile_transfer_cells(subject, row, accounts))) + '</tr>' for row in activity[:20])
+    counterparties = Counter(row["to"] if row["from"] == subject else row["from"] for row in activity)
+    counter_rows = [[_subject_cell(account, accounts), str(count)] for account, count in counterparties.most_common(12)]
+    sources = []
+    for name, document in flows:
+        if any(subject in (hop["from"], hop["to"]) for hop in document.get("hops", [])):
+            url, _ = _graph_asset(graph.flow_payload(document, accounts), f"/flows/{name}.html")
+            sources.append({"url": url, "name": name})
+    payload = json.dumps({"subject": subject, "sources": sources, "total_rows": len(activity)}, ensure_ascii=True).replace("<", "\\u003c")
+    summary = ('<section class="profile-intelligence"><div class="profile-account-context"><div>'
+               '<h2>Recorded account evidence</h2><p>Recorded labels describe evidence, not a current payment decision.</p>'
+               f'<p class="profile-tags">{"".join(f"<span>{esc(category)}</span>" for category in categories)}</p>'
+               f'<dl class="profile-facts"><div><dt>Label assertions</dt><dd>{len(assertions)}</dd></div>'
+               f'<div><dt>Recorded transfer rows</dt><dd>{len(activity)}</dd></div>'
+               f'<div><dt>Latest label observation</dt><dd>{esc(observed[-1]) if observed else "Unavailable"}</dd></div></dl>'
+               '<p class="profile-scope">Current balance unavailable. Account creation time is not established by these records.</p>'
+               f'<div class="profile-actions"><button type="button" data-watch-account="{esc(subject)}">Watch account</button>'
+               '<button type="button" data-save-investigation>Save investigation</button></div></div>'
+               f'<section class="profile-live-read" data-profile-live="{esc(subject)}"><h3>Read current mainnet checks</h3>'
+               '<p>The payment read checks exactly 1 NEAR. It never signs or sends a payment.</p>'
+               '<div class="profile-actions"><button type="button" data-profile-payment>Check 1 NEAR payment</button>'
+               '<button type="button" data-profile-keys>Read access keys</button></div>'
+               '<div class="profile-live-result" data-profile-live-result role="status" aria-live="polite">Payment result not checked. No live read requested.</div></section></div></section>')
+    if not any(row.chain == "near" for row in assertions) or subject.endswith(".testnet"):
+        start = summary.index('<section class="profile-live-read"')
+        summary = summary[:start] + ('<section class="profile-live-read"><h3>Live check availability</h3>'
+                                    '<p>Live checks on this site read NEAR mainnet. This recorded subject is outside that read scope.</p></section></div></section>')
+    tables = ('<section class="profile-section" id="account-labels"><h2>Sourced labels</h2>'
+              + _profile_table("profile-labels", ("Label", "Chain", "Provenance", "Source and observation"), labels_rows, "Search labels") + '</section>')
+    activity_html = (f'<section class="profile-section" id="account-activity" data-profile-activity><h2>Recorded activity</h2>'
+                     '<p>Rows touching this account in the committed transfer recordings. This is not a complete or live account history. USD values come from the recorded provider; unavailable values are not zero.</p>'
+                     f'<script type="application/json" data-profile-sources>{payload}</script>'
+                     '<div class="profile-table-tools" hidden><label>Find a counterparty or asset<input type="search" data-activity-search></label>'
+                     '<label>Direction<select data-activity-direction><option value="">All directions</option><option value="outbound">Outbound</option>'
+                     '<option value="inbound">Inbound</option></select></label><button type="button" data-export-table="profile-transfers">Export shown rows</button></div>'
+                     '<p data-activity-status role="status">'
+                     f'Showing {min(20, len(activity))} of {len(activity)} recorded rows, newest first.</p>'
+                     '<button type="button" data-activity-retry hidden>Retry recording</button>'
+                     '<div class="table"><table class="profile-data-table profile-transfer-table" id="profile-transfers" role="table"><thead role="rowgroup"><tr role="row">'
+                     + ''.join(f'<th scope="col" role="columnheader">{label}</th>' for label in ("Time UTC", "Direction", "Counterparty", "Amount and asset", "USD value", "Evidence"))
+                     + f'</tr></thead><tbody role="rowgroup">{source_rows}</tbody></table></div>'
+                     + ('<p>No committed transfer row touches this account. No activity is inferred from that absence.</p>' if not activity else '')
+                     + '<nav class="profile-pagination" data-activity-pages aria-label="Activity pages" hidden></nav>'
+                     + '<h2>Recorded counterparties</h2><p>Ranked by row count within the same recordings; counts do not measure value or loss.</p>'
+                     + _profile_table("profile-counterparties", ("Counterparty", "Recorded rows"), counter_rows, "Search counterparties")
+                     + f'<p data-counterparties-scope>{min(12, len(counterparties))} of {len(counterparties)} recorded counterparties initially shown. Search loads the full recording.</p></section>')
+    return summary + tables + activity_html
 
 
 def incident_page(document, accounts):
@@ -577,31 +779,134 @@ def incident_page(document, accounts):
                      f'<strong{css}>{esc(entry["verdict"])}</strong></p><p class="muted">{esc(checks)}</p></div>')
     parts.append("<h2>Not public</h2><ul>" + "".join(f"<li>{esc(i)}</li>" for i in document["not_public"]) + "</ul>")
     parts.append(f"<h2>Standard</h2><p>{esc(document['standard'])}</p>")
-    return page(document["title"], "\n".join(parts), depth=1)
+    timeline = [(document["date"], "Incident date reported by the sources", "")]
+    timeline.extend((source["fetched_at"], "Source snapshot collected", source["publisher"]) for source in document["sources"])
+    if document.get("rules_today_at_ms"):
+        when = datetime.fromtimestamp(document["rules_today_at_ms"] / 1000, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+        timeline.append((when, "Recorded rule evaluation", "This is a dated evaluation, not a current verdict."))
+    timeline_html = ''.join(f'<li><time datetime="{esc(when)}">{esc(when)}</time><div><strong>{esc(event)}</strong>'
+                            f'<p>{esc(detail)}</p></div></li>' for when, event, detail in sorted(timeline))
+    lead = next((account["quote"] for account in document["accounts"]), None)
+    if lead is None:
+        lead = next((value["quote"] for key, value in document.items() if key.endswith("_as_reported") and "quote" in value), None)
+    brief = (f'<section class="profile-case-brief"><h2>Case brief</h2><p>{len(document["accounts"])} named accounts across '
+             f'{len(document["chains"])} chains; {len(document["sources"])} recorded source snapshots.</p>'
+             + (quote_block(lead, sources) if lead else '<p>The source snapshots do not name a public account.</p>')
+             + '<button type="button" data-save-investigation>Save investigation</button></section>')
+    related = [(name, flow) for name, flow in _flows() if flow["subject"] in {account["subject"] for account in document["accounts"]}]
+    routes = []
+    for name, flow in related:
+        selected = [row for row in flow["hops"] if row["from"] == flow["subject"]][:3]
+        for hop in selected:
+            routes.append('<li class="profile-route"><div>' + _subject_cell(hop["from"], accounts) + '</div>'
+                          '<div class="profile-route-bridge"><svg viewBox="0 0 100 20" aria-hidden="true"><path d="M1 10H95M89 4L95 10L89 16"/></svg>'
+                          f'<span>{_profile_number(hop["human_amount"])}<br><q class="data">{esc(hop["asset_id"])}</q></span></div>'
+                          '<div>' + _subject_cell(hop["to"], accounts) + '</div></li>')
+    route = ('<section class="profile-section"><h2>Recorded transfer route</h2><p>First three direct outbound rows in each linked recording, in provider order. These rows do not establish loss or causal attribution.</p>'
+             + ('<ol class="profile-routes">' + ''.join(routes) + '</ol>' if routes else '<p>No recorded transfer route is available for this case.</p>')
+             + ''.join(f'<a class="button" href="/flows/{esc(name)}.html">Open the complete recorded trace</a>' for name, _ in related) + '</section>')
+    body = ('\n'.join(parts[:2]) + brief + '<section class="profile-section"><h2>Evidence timeline</h2>'
+            '<p>Dates track source collection and evaluation. They are not a reconstructed sequence of attack transactions.</p>'
+            f'<ol class="profile-timeline">{timeline_html}</ol></section>' + route
+            + '<details class="profile-evidence"><summary>Source records, account roles and full evidence</summary>'
+            + '\n'.join(parts[2:]) + '</details>' + _profile_script())
+    return page(document["title"], body, depth=1)
 
 
-def entity_page(title, categories, store):
-    rows = [a for a in store.assertions if a.category in categories and a.superseded_by is None]
-    stated = [a for a in rows if a.provenance != "inferred"]
-    inferred = [a for a in rows if a.provenance == "inferred"]
+def _entity_parts(text):
+    parts, last = [], 0
+    for match in _QUOTED.finditer(str(text)):
+        parts.append({"text": str(text)[last:match.start()]})
+        parts.append({"text": _UNESCAPE.sub(r"\1", match.group(1)), "quoted": True})
+        last = match.end()
+    parts.append({"text": str(text)[last:]})
+    return parts
+
+
+def _entity_rows(categories, store):
     accounts, by_id = account_pages(store), {a.id: a for a in store.assertions}
-    body = "".join(f'<tr><td class="mono">{_subject_cell(a.subject, accounts)}</td><td>{esc(a.chain)}</td>'
-                   f'<td>{data_text(a.label)}</td><td>{esc(a.category)}</td><td>{esc(a.provenance)}</td>'
-                   f'<td>{data_text(a.note)}</td></tr>' for a in stated)
-    table = ("<div class=\"table\"><table><thead><tr><th>Subject</th><th>Chain</th><th>Label</th><th>Category</th>"
-             f"<th>Provenance</th><th>Note</th></tr></thead><tbody>{body}</tbody></table></div>")
-    if inferred:
-        body = "".join(f'<tr><td class="mono">{_subject_cell(a.subject, accounts)}</td><td>{esc(a.chain)}</td>'
-                       f'<td>{data_text(a.label)}</td><td>{esc(a.category)}</td>'
-                       f'<td class="mono"><q class="data">{esc(a.rule_id)}</q></td>'
-                       f'<td class="mono">{_inputs(a, by_id, accounts)}</td><td>{a.confidence}</td>'
-                       f'<td>{data_text(a.note)}</td></tr>' for a in inferred)
-        table += ("<h2>Attribution hypothesis</h2><p>Each row below is inferred: it names the rule that inferred "
-                  "it, the assertions the rule read as its inputs and its confidence.</p><div class=\"table\"><table>"
-                  "<thead><tr><th>Subject</th><th>Chain</th><th>Label</th><th>Category</th><th>Rule</th>"
-                  f"<th>Inputs</th><th>Confidence</th><th>Note</th></tr></thead><tbody>{body}</tbody></table></div>")
-    return page(title, f"<h1>{esc(title)}</h1><p>{len(rows)} current assertions from the label store.</p>{table}",
-                depth=1)
+    rows = []
+    for a in store.assertions:
+        if a.category not in categories or a.superseded_by is not None:
+            continue
+        subject = {"text": a.subject, "quoted": True}
+        if a.subject in accounts:
+            subject["url"] = "../" + accounts[a.subject]
+        cells = [[subject], [{"text": a.chain}], _entity_parts(a.label), [{"text": a.category}]]
+        if a.provenance == "inferred":
+            inputs = []
+            for assertion_id in a.source["inputs"]:
+                part = {"text": assertion_id}
+                if assertion_id in by_id and by_id[assertion_id].subject in accounts:
+                    part["url"] = "../" + accounts[by_id[assertion_id].subject]
+                if inputs:
+                    inputs.append({"text": "\n"})
+                inputs.append(part)
+            cells.extend([[{"text": a.rule_id, "quoted": True}], inputs, [{"text": str(a.confidence)}]])
+        else:
+            cells.append([{"text": a.provenance}])
+        cells.append(_entity_parts(a.note))
+        rows.append({"id": a.id, "kind": "inferred" if a.provenance == "inferred" else "stated",
+                     "subject": a.subject, "chain": a.chain, "label": a.label,
+                     "search": " ".join((a.subject, a.chain, a.label, a.category, a.provenance, a.note)),
+                     "cells": cells})
+    return sorted(rows, key=lambda row: row["kind"] == "inferred")
+
+
+def _entity_table(rows, kind):
+    columns = (["Subject", "Chain", "Label", "Category", "Rule", "Inputs", "Confidence", "Note"]
+               if kind == "inferred" else ["Subject", "Chain", "Label", "Category", "Provenance", "Note"])
+    body = []
+    for row in rows:
+        cells = []
+        for index, (label, parts) in enumerate(zip(columns, row["cells"])):
+            values = []
+            for part in parts:
+                text = esc(part["text"]).replace("\n", "<br>")
+                if part.get("quoted"):
+                    text = f'<q class="data">{text}</q>'
+                if part.get("url"):
+                    text = f'<a href="{esc(part["url"])}">{text}</a>'
+                values.append(text)
+            css = ' class="mono"' if index == 0 or label in ("Rule", "Inputs") else ""
+            cells.append(f'<td role="cell"{css}><span class="cell-label" aria-hidden="true">{label}</span>{"".join(values)}</td>')
+        body.append(f'<tr role="row" data-assertion-id="{row["id"]}">{"".join(cells)}</tr>')
+    heading = "" if kind == "stated" else (
+        '<h2>Attribution hypothesis</h2><p>Each row below is inferred: it names the rule that inferred '
+        'it, the assertions the rule read as its inputs and its confidence.</p>')
+    headers = "".join(f'<th scope="col" role="columnheader">{label}</th>' for label in columns)
+    css = "entity-table entity-table-inferred" if kind == "inferred" else "entity-table"
+    return (f'<section data-entity-kind="{kind}">{heading}<p class="entity-table-status" data-table-section-count>{len(rows)} {"hypotheses" if kind == "inferred" else "source assertions"} on this page.</p><div class="table"><table class="{css}" role="table">'
+            f'<thead role="rowgroup"><tr role="row">{headers}</tr></thead><tbody role="rowgroup">{"".join(body)}</tbody></table></div></section>')
+
+
+def entity_page(title, categories, store, *, page_number=1, collection_name=None, rows=None):
+    rows = _entity_rows(categories, store) if rows is None else rows
+    collection_name = collection_name or next(name for name, _, kinds in ENTITY_SETS if set(categories) <= set(kinds))
+    count = len(rows)
+    pages = max(1, (count + 49) // 50)
+    start = (page_number - 1) * 50
+    selected = rows[start:start + 50]
+    tables = _entity_table([row for row in selected if row["kind"] == "stated"], "stated")
+    if any(row["kind"] == "inferred" for row in rows):
+        tables += _entity_table([row for row in selected if row["kind"] == "inferred"], "inferred")
+    def path(number):
+        return f"{collection_name}.html" if number == 1 else f"{collection_name}.page-{number}.html"
+    previous = f'<a href="{path(page_number - 1)}" rel="prev">Previous</a>' if page_number > 1 else "<span>Previous</span>"
+    following = f'<a href="{path(page_number + 1)}" rel="next">Next</a>' if page_number < pages else "<span>Next</span>"
+    chains = "".join(f'<option value="{esc(chain)}">{esc(chain)}</option>' for chain in sorted({row["chain"] for row in rows}))
+    script = (ROOT / "intel/ui/tables.js").read_text(encoding="utf-8")
+    body = (f'<h1>{esc(title)}</h1><p>{count} current assertions from the label store.</p>'
+            f'<div class="entity-table-panel" data-entity-table data-source="{collection_name}.table.json" data-page="{page_number}">'
+            '<div class="entity-table-toolbar" hidden><label>Search this collection<input type="search" data-table-search autocomplete="off" placeholder="Account, label or evidence text"></label>'
+            f'<label>Chain<select data-table-chain><option value="">All chains</option>{chains}</select></label>'
+            '<label>Sort<select data-table-sort><option value="recorded">Recorded order</option><option value="subject">Account A to Z</option>'
+            '<option value="subject-desc">Account Z to A</option><option value="chain">Chain A to Z</option><option value="label">Label A to Z</option></select></label></div>'
+            f'<p class="entity-table-status" role="status" aria-live="polite">Showing {start + 1 if count else 0} to {min(start + 50, count)} of {count} assertions.</p>'
+            f'<button type="button" data-table-retry hidden>Retry collection</button>{tables}<p class="empty-state" data-table-empty hidden>No matching recorded assertions. Clear the search or choose another chain.</p>'
+            f'<nav class="entity-table-pagination" aria-label="Collection pages">{previous}<span>Page {page_number} of {pages}</span>{following}</nav>'
+            f'</div><script>{script}</script>')
+    return page(title, body, depth=1)
 
 
 def account_page(subject, store, accounts, incidents, flows, clusters, events_dir=feed.EVENTS_DIR):
@@ -666,6 +971,10 @@ def account_page(subject, store, accounts, incidents, flows, clusters, events_di
         f'{document["observed"]["block_height"]}</p><p>{esc(document["detail"])}</p>'
         f'<p class="mono">evidence {esc(stem)}</p></div>' for stem, document in events)
         if events else "<p>No committed feed event names this account.</p>")
+    split = body.index('<section class="workspace-panel profile-overview">')
+    body = (body[:split] + _profile_account_summary(subject, assertions, accounts, flows)
+            + '<details class="profile-evidence"><summary>Source records and attribution evidence</summary>'
+            + body[split:] + '</details>' + _profile_script())
     return page("Account", body, depth=1)
 
 
@@ -679,8 +988,13 @@ def registry_entity_page(entity, accounts):
             f'<div class="profile-provenance"><p>Registry read: {esc(source["method"])} at block {source["block"]}, '
             f'arguments {esc(json.dumps(source["args"], sort_keys=True))}</p>'
             f'<p>Observed at {esc(entity["observed_at"])} on {esc(source["rpc"])}</p></div>'
-            f'<h2>Members</h2><ul>{members}</ul>')
-    return page("Entity", body, depth=1)
+            '<div class="profile-actions"><button type="button" data-save-investigation>Save investigation</button></div>'
+            '<h2>Members</h2>'
+            + _profile_table("registry-members", ("Account", "Membership evidence"),
+                             [[_subject_cell(member, accounts), f'Registry read at block {source["block"]}'] for member in entity["members"]], "Search members")
+            + f'<details class="profile-evidence"><summary>Original member list and registry source</summary><ul>{members}</ul>'
+            f'<pre><q class="data">{esc(json.dumps(source, ensure_ascii=False, sort_keys=True))}</q></pre></details>')
+    return page("Entity", body + _profile_script(), depth=1)
 
 
 def _edge_card(edge, facts, accounts):
@@ -715,27 +1029,37 @@ def cluster_page(name, document, accounts):
                f'{_linked(depositors["collector"], esc(depositors["collector"]), accounts)}</span> '
                f'since {esc(depositors["since"])}, {depositors["implicit_count"]} of them implicit accounts; the '
                "cluster file counts them and lists none.</p>")
-    context = f"<h1>Account relationship edges: {esc(name)}</h1><p>{esc(document['standard'])}</p>"
+    payload = graph.cluster_payload(document, accounts)
+    context = (f"<h1>Account relationship edges: {esc(name)}</h1><p>{esc(document['standard'])}</p>"
+               '<dl class="investigation-summary">'
+               f'<div><dt>Recorded accounts</dt><dd>{payload["total_nodes"]}</dd></div>'
+               f'<div><dt>Edges from chain reads</dt><dd>{len(chain)}</dd></div>'
+               f'<div><dt>Attribution hypotheses</dt><dd>{len(inferred)}</dd></div></dl>'
+               '<nav class="investigation-actions" aria-label="Relationship evidence"><a href="#chain-relationships">Chain evidence</a>'
+               '<a href="#attribution-relationships">Attribution inputs</a></nav>')
     body = (f"<h2>Seeds</h2><p>{len(document['seeds'])} seeds, each with a current incident label in the label "
             f"store.</p><ul>{seeds}</ul>"
-            "<h2>Edges from chain reads</h2>" + ("".join(_edge_card(edge, facts, accounts) for edge in chain)
-                                                 or "<p>No edge from chain reads.</p>") +
-            "<h2>Attribution hypothesis</h2><p>Each edge below is inferred from the facts named as its inputs, at "
+            '<section id="chain-relationships"><h2>Edges from chain reads</h2>' + ("".join(_edge_card(edge, facts, accounts) for edge in chain)
+                                                 or "<p>No edge from chain reads.</p>") + '</section>' +
+            '<section id="attribution-relationships"><h2>Attribution hypothesis</h2><p>Each edge below is inferred from the facts named as its inputs, at '
             "the confidence shown; it is a hypothesis, not a chain read, and no verdict reads it.</p>"
-            + ("".join(_edge_card(edge, facts, accounts) for edge in inferred) or "<p>No inferred edge.</p>") +
+            + ("".join(_edge_card(edge, facts, accounts) for edge in inferred) or "<p>No inferred edge.</p>") + '</section>' +
             f"<h2>Precision</h2><ul>{precision}</ul><h2>Depositors</h2>{counted}"
             f"<p class=\"muted\">Read {esc(document['fetched_at'])}. docs/CLUSTER.md states the heuristics and their "
             "limits.</p>")
-    return page(f"Account relationship edges: {name}", context + _graph_section(graph.cluster_payload(document, accounts), f"/clusters/{name}.html") + body, depth=1)
+    return page(f"Account relationship edges: {name}", context + _graph_section(payload, f"/clusters/{name}.html") + body, depth=1)
 
 
 def _hop_card(hop, accounts):
-    usd = "" if hop["usd_amount"] is None else f', {hop["usd_amount"]} USD as the Transfers API values it'
-    return (f'<div class="card"><p class="mono">{_linked(hop["from"], esc(hop["from"]), accounts)} to '
-            f'{_linked(hop["to"], esc(hop["to"]), accounts)}</p><p>{esc(hop["amount"])} of '
+    usd = ', USD unknown' if hop["usd_amount"] is None else f', {hop["usd_amount"]} USD as the Transfers API values it'
+    human = '' if hop['human_amount'] is None else f'<p>{esc(hop["human_amount"])} units as recorded by the provider.</p>'
+    return (f'<div class="card flow-transfer"><p class="mono">{_linked(hop["from"], esc(hop["from"]), accounts)} to '
+            f'{_linked(hop["to"], esc(hop["to"]), accounts)}</p><p>{esc(hop["amount"])} base units of '
             f'<span class="mono">{esc(hop["asset_id"])}</span>{esc(usd)}, method {esc(hop["method_name"] or "none")}</p>'
-            f'<p class="mono muted">block {hop["block"]} at {esc(trace.utc_minute(hop["block_timestamp"]))}<br>transaction '
-            f'{esc(hop["transaction_hash"])}<br>receipt {esc(hop["receipt_id"])}</p></div>')
+            f'{human}<p class="mono muted">block {hop["block"]} at {esc(trace.utc_minute(hop["block_timestamp"]))}<br>transaction '
+            f'{esc(hop["transaction_hash"])}<br>receipt {esc(hop["receipt_id"])}</p>'
+            f'<p class="flow-transfer-action"><a href="https://nearblocks.io/txns/{esc(hop["transaction_hash"])}" '
+            'rel="noreferrer">Open transaction on NearBlocks</a></p></div>')
 
 
 def _flow_timeline(document):
@@ -781,8 +1105,11 @@ def _flow_analytics(document, accounts):
         bars, rows = [], []
         for index, row in enumerate(timeline):
             height = 100 * row["count"] / maximum
-            bars.append(f'<rect x="{index * 40 + 3}" y="{100 - height:.3f}" width="34" height="{height:.3f}">'
-                        f'<title>{row["count"]} transfers</title></rect>')
+            description = f'{row["count"]} root outbound transfers, {utc(row["from_ns"], True)} until {utc(row["to_ns"], True)}, end excluded'
+            bars.append(f'<g tabindex="0" role="button" aria-label="{esc(description)}" data-bin-index="{index}" '
+                        f'data-chart-start="{row["from_ns"]}" data-chart-end="{row["to_ns"]}" data-chart-count="{row["count"]}">'
+                        f'<title>{esc(description)}</title><rect class="chart-bin-bar" x="{index * 40 + 3}" y="{100 - height:.3f}" '
+                        f'width="34" height="{height:.3f}"/><rect class="chart-bin-hit" x="{index * 40}" y="0" width="40" height="100"/></g>')
             rows.append(f'<tr data-from-ns="{row["from_ns"]}" data-to-ns="{row["to_ns"]}">'
                         f'<td>{utc(row["from_ns"], True)}</td><td>{utc(row["to_ns"], True)}</td><td class="num">{row["count"]}</td></tr>')
         total = sum(row["count"] for row in timeline)
@@ -793,20 +1120,29 @@ def _flow_analytics(document, accounts):
             ticks.append(f'<time datetime="{instant.strftime("%Y-%m-%dT%H:%M:%SZ")}">{instant.strftime("%Y-%m-%d")}<br>{instant.strftime("%H:%M")} UTC</time>')
         gridlines = ''.join(f'<line class="analytics-gridline" x1="0" x2="{len(timeline) * 40}" y1="{level}" y2="{level}"/>'
                             for level in (0, 50, 100))
+        options = ''.join(f'<option value="{index}">{utc(row["from_ns"])} ({row["count"]} transfers)</option>'
+                          for index, row in enumerate(timeline))
+        end_options = options.replace(f'value="{len(timeline) - 1}"', f'value="{len(timeline) - 1}" selected')
         chart = (f'<p class="analytics-note">{total} root outbound transfers from {utc(timeline[0]["from_ns"])} '
                  f'to {utc(timeline[-1]["to_ns"] - 1)}. Counts include rows with unknown USD; deeper hops are excluded.</p>'
                  '<div class="analytics-timeline-chart">'
-                 f'<div class="analytics-count-axis" aria-label="Transfer count scale"><span>{maximum}</span><span>{(maximum + 1) // 2}</span><span>0</span></div>'
+                 f'<div class="analytics-count-axis" aria-label="Transfer count scale"><span>{maximum}</span><span>{maximum / 2:g}</span><span>0</span></div>'
                  f'<svg class="analytics-histogram" viewBox="0 0 {len(timeline) * 40} 100" preserveAspectRatio="none" role="img" aria-label="Recorded root outbound transfer counts">'
-                 f'<title>{total} recorded transfers in {len(timeline)} time bins</title>{gridlines}{"".join(bars)}</svg>'
+                 f'<title>{total} recorded transfers in {len(timeline)} time bins</title>{gridlines}{"".join(bars)}'
+                 '<line class="chart-crosshair" x1="0" x2="0" y1="0" y2="100" hidden/></svg>'
                  f'<div class="analytics-time-axis">{"".join(ticks)}</div></div>'
+                 f'<p class="chart-readout" role="status">Peak interval: {maximum} root outbound transfers. Select a bar to inspect its exact interval.</p>'
+                 '<div class="chart-range-controls" hidden><label>From interval<select data-chart-from>' + options +
+                 '</select></label><label>Through interval<select data-chart-through>' + end_options +
+                 '</select></label><button type="button" data-chart-inspect>Inspect interval in graph</button></div>'
+                 '<p class="chart-selection" role="status"></p>'
                  '<details class="analytics-bin-values"><summary>Exact time bounds and transfer counts</summary>'
                  '<p>Bins include their start and exclude their end; nanosecond bounds come from recorded block timestamps.</p>'
-                 '<div class="table"><table><thead><tr><th>From UTC (inclusive)</th><th>To UTC (exclusive)</th><th>Transfers</th></tr></thead>'
+                 '<div class="table"><table><thead><tr><th scope="col">From UTC (inclusive)</th><th scope="col">To UTC (exclusive)</th><th scope="col">Transfers</th></tr></thead>'
                  f'<tbody>{"".join(rows)}</tbody></table></div></details>')
     else:
         chart = '<p class="analytics-note">No recorded root outbound transfers.</p>'
-    return ('<section class="analytics-grid flow-analytics" aria-label="Full recorded flow analytics">'
+    return ('<section class="analytics-grid flow-analytics" id="recorded-dataset" aria-label="Full recorded flow analytics">'
             f'<article class="analytics-panel" data-direct-usd="{esc(shares["direct_outbound_usd"])}"><div class="analytics-panel-head"><h2>Direct outbound distribution</h2></div>'
             f'<p class="analytics-note">Full recorded dataset, not the current graph filter. Denominator: {Decimal(shares["direct_outbound_usd"]):,.2f} USD '
             f'across {shares["rows"]} root outbound rows valued at or above {esc(shares["min_usd"])} USD by the Transfers API. '
@@ -815,21 +1151,28 @@ def _flow_analytics(document, accounts):
             f'{distribution or "<p>No direct outbound rows meet the USD threshold.</p>"}</div>'
             f'<p class="analytics-note">{below["count"]} rows below {esc(shares["min_usd"])} USD: {Decimal(below["usd"]):,.2f} USD, counted separately. '
             f'{unknown["count"]} rows without a USD amount; their value is unknown, not zero. Base units: {esc(units)}.</p></article>'
-            '<article class="analytics-panel"><div class="analytics-panel-head"><h2>Recorded transfer activity</h2></div>'
+            f'<article class="analytics-panel" data-recorded-timeline="{esc(document["subject"])}"><div class="analytics-panel-head"><h2>Recorded transfer activity</h2></div>'
             '<p class="analytics-note">Full recorded dataset, not the current graph filter. Transfer counts, not a USD or price history.</p>'
             f'{chart}</article></section>')
 
 
 def _shares_table(shares, accounts):
-    rows = "".join(f'<tr><td class="mono">{_linked(b["to"], esc(b["to"]), accounts)}</td><td>{esc(b["kind"])}</td><td>{esc(trace.usd_text(b["usd"]))}</td>'
-                   f'<td>{b["count"]}</td><td>{b["percent"]}</td></tr>' for b in shares["buckets"])
+    values = [[_linked(bucket["to"], esc(bucket["to"]), accounts), esc(bucket["kind"]),
+               esc(trace.usd_text(bucket["usd"])), str(bucket["count"]), str(bucket["percent"])] for bucket in shares["buckets"]]
     below, without = shares["below_min_usd"], shares["without_usd"]
     units = ", ".join(f"{amount} of {asset}" for asset, amount in without["base_units"].items()) or "none"
-    rows += (f'<tr><td>rows below {shares["min_usd"]} USD, counted apart</td><td></td><td>{esc(trace.usd_text(below["usd"]))}</td>'
-             f'<td>{below["count"]}</td><td></td></tr><tr><td>rows without a USD amount, counted apart</td><td></td>'
-             f'<td>{esc(units)} (base units)</td><td>{without["count"]}</td><td></td></tr>')
-    return ("<div class=\"table\"><table><thead><tr><th>To</th><th>Kind</th><th>USD</th><th>Rows</th><th>Percent</th>"
-            f"</tr></thead><tbody>{rows}</tbody></table></div>")
+    values.extend([[f'rows below {esc(shares["min_usd"])} USD, counted apart', '', esc(trace.usd_text(below["usd"])), str(below["count"]), ''],
+                   ['rows without a USD amount, counted apart', '', f'{esc(units)} (base units)', str(without['count']), '']])
+    columns = ('To', 'Kind', 'USD', 'Rows', 'Percent')
+    rows = []
+    for values_row in values:
+        cells = ''.join(f'<td role="cell" class="{"mono" if index == 0 else "num" if index >= 2 else ""}">'
+                        f'<span class="cell-label" aria-hidden="true">{label}</span>{value}</td>'
+                        for index, (label, value) in enumerate(zip(columns, values_row)))
+        rows.append(f'<tr role="row">{cells}</tr>')
+    headers = ''.join(f'<th scope="col" role="columnheader">{label}</th>' for label in columns)
+    return (f'<div class="table"><table class="flow-shares-table" role="table"><thead role="rowgroup"><tr role="row">{headers}'
+            f'</tr></thead><tbody role="rowgroup">{"".join(rows)}</tbody></table></div>')
 
 
 def _state_card(reads):
@@ -848,14 +1191,36 @@ def _state_card(reads):
     return '<div class="card state">' + ("".join(lines) or "<p>No issuer read.</p>") + "</div>"
 
 
-def flow_page(document, accounts, *, evidence_url=None):
+def flow_page(document, accounts, *, evidence_url=None, page_number=1):
     depths = trace.hop_depths(document)
+    ordered = sorted(zip(document["hops"], depths), key=lambda item: item[1])
+    pages = max(1, (len(ordered) + 49) // 50)
+    if not 1 <= page_number <= pages:
+        raise ValueError("flow evidence page is outside the recorded range")
+    start = (page_number - 1) * 50
+    selected = ordered[start:start + 50]
     groups = []
     for depth in sorted(set(depths)):
-        hops = [hop for hop, d in zip(document["hops"], depths) if d == depth]
-        groups.append(f"<h2>Depth {depth}: {len(hops)} hops</h2>" + "".join(_hop_card(hop, accounts) for hop in hops))
+        hops = [hop for hop, d in selected if d == depth]
+        total = depths.count(depth)
+        if hops:
+            groups.append(f"<h2>Depth {depth}: {total} hops</h2><p>{len(hops)} of these hops appear on this evidence page.</p>" +
+                          "".join(_hop_card(hop, accounts) for hop in hops))
+    stem = Path(evidence_url).stem if evidence_url else page_names([document["subject"]])[document["subject"]]
+    def evidence_path(number):
+        return f"{stem}.html#transfers" if number == 1 else f"{stem}.page-{number}.html#transfers"
+    previous = f'<a href="{evidence_path(page_number - 1)}" rel="prev">Previous transfers</a>' if page_number > 1 else '<span>Previous transfers</span>'
+    following = f'<a href="{evidence_path(page_number + 1)}" rel="next">Next transfers</a>' if page_number < pages else '<span>Next transfers</span>'
+    pagination = (f'<nav class="flow-evidence-pagination" aria-label="Recorded transfer evidence pages">{previous}'
+                  f'<span>Page {page_number} of {pages}</span>{following}</nav>')
     window = document["window"]
     context = f'<h1>Exit trace</h1><p class="mono">{_linked(document["subject"], esc(document["subject"]), accounts)}</p>'
+    context += ('<dl class="investigation-summary">'
+                f'<div><dt>Recorded transfers</dt><dd>{len(document["hops"]):,}</dd></div>'
+                f'<div><dt>Depth reached</dt><dd>{document["depth_reached"]} of {document["depth"]}</dd></div>'
+                f'<div><dt>Evidence page</dt><dd>{page_number} of {pages}</dd></div></dl>'
+                '<nav class="investigation-actions" aria-label="Recorded trace sections"><a href="#recorded-dataset">Dataset analytics</a>'
+                '<a href="#transfers">Transfer evidence</a></nav>')
     body = (f'<div class="card summary"><p>{data_text(trace.summary(document))}</p><p class="muted">Read '
             f'{esc(document["fetched_at"])}.</p></div>'
             f"<p>The window starts at {esc(window['from'])}, {esc(window['rule'])} {esc(window['incident_date'])}; "
@@ -865,7 +1230,11 @@ def flow_page(document, accounts, *, evidence_url=None):
             f"<p>{esc(trace.gross_sentence(document))}</p>"
             "<h2>The subject at a block</h2>" + _state_card(document["state_at_block"]) +
             "<p class=\"muted\">Only an account that carries an incident label is traced. Each card is one transfer "
-            "read from the FastNEAR Transfers API.</p>" + "".join(groups))
+            "read from the FastNEAR Transfers API.</p>"
+            f'<section class="flow-evidence" id="transfers" aria-label="Recorded transfer evidence"><h2>Recorded transfers</h2>'
+            f'<p>Showing {start + 1 if selected else 0} to {start + len(selected)} of {len(ordered)} transfers, grouped by recorded depth. '
+            'Every transfer remains available across the linked evidence pages; the graph uses the full recorded dataset.</p>'
+            + pagination + "".join(groups) + pagination + '</section>')
     return page("Exit trace", context + _graph_section(graph.flow_payload(document, accounts), evidence_url) + _flow_analytics(document, accounts) + body, depth=1)
 
 
@@ -927,7 +1296,29 @@ def issuers_page():
             f"<code>intel/issuers/status.jsonl</code>; a status read is a view call, so no transaction.</p>{status_cards}"
             f"<h2>Issuer action history</h2><p>{data_text(_history_coverage(history))}</p><p>{len(history)} rows in "
             f"<code>intel/issuers/history.jsonl</code>, one per action, newest block first.</p>{history_cards}")
-    return page("Issuer actions", body)
+    reads = issuers.reads()
+    accounts = account_pages(labels.load())
+    status_rows = [[_subject_cell(row.subject, accounts).replace('href="../', 'href="/'),
+                    f'<q class="data">{esc(row.entity.removesuffix(" issuer action"))}</q>',
+                    'Banned at recorded block', str(row.source["block"]),
+                    f'<time datetime="{esc(row.observed_at)}">{esc(row.observed_at)}</time>', _profile_source(row)] for row in status]
+    history_rows = []
+    for row in history:
+        action = next((method for method, phrase in issuers.HISTORY_METHODS.items() if row.label.startswith(phrase)), row.source["method"])
+        history_rows.append([_subject_cell(row.subject, accounts).replace('href="../', 'href="/'), esc(action), str(row.source["block"]),
+                             f'<time datetime="{esc(row.observed_at)}">{esc(row.observed_at)}</time>', _profile_source(row)])
+    summary = ('<h1>Issuer actions</h1><p>Recorded token-issuer status reads and successful issuer actions. An issuer status is not a current payment verdict.</p>'
+               f'<dl class="profile-facts"><div><dt>Status reads</dt><dd>{len(reads)}</dd></div>'
+               f'<div><dt>Account IDs covered</dt><dd>{len({read["subject"] for read in reads})}</dd></div>'
+               f'<div><dt>Recorded banned-status rows</dt><dd>{len(status)}</dd></div>'
+               f'<div><dt>Recorded issuer actions</dt><dd>{len(history)}</dd></div></dl>'
+               '<section class="profile-section"><h2>Recorded issuer status</h2>'
+               + _profile_table("issuer-status", ("Account", "Issuer", "Answer", "Block", "Observed UTC", "Evidence"), status_rows, "Search issuer status")
+               + '</section><section class="profile-section"><h2>Recorded action ledger</h2>'
+               + _profile_table("issuer-history", ("Named account string", "Action", "Block", "Observed UTC", "Evidence"), history_rows, "Search issuer actions")
+               + '</section><details class="profile-evidence"><summary>Coverage, original status reads and action evidence</summary>'
+               + body.removeprefix('<h1>Issuer actions</h1>') + '</details>')
+    return page("Issuer actions", summary + _profile_script())
 
 
 _RECORD_SECTIONS = (
@@ -989,12 +1380,32 @@ def record_page(record):
 
 
 def record_index_page(documents):
-    entries = "".join(
-        f'<li><a href="{esc(record["record_id"])}.html">{esc(record["record_id"])}</a>, '
-        f'kind {esc(record["kind"])}, outcome {esc(record["outcome"])}</li>'
-        for record in documents
-    )
-    body = ("<h1>Incident records</h1>" + (f"<ul>{entries}</ul>" if entries else "<p>No valid records.</p>"))
+    successors = {record["supersedes"]: record["record_id"] for record in documents if record["supersedes"]}
+    rows = []
+    for record in documents:
+        subjects = '<br>'.join(f'<q class="data">{esc(subject["account"])}</q> ({esc(subject["chain"])})'
+                                for subject in record["subjects"]) or "No subject named"
+        evidence = '<ul>' + ''.join(f'<li><a href="{esc(source["url"])}">{esc(source["url"])}</a>'
+                                   f'<br>Fetched {esc(source["fetched_at"])}<br><code>{esc(source["content_sha256"])}</code></li>'
+                                   for source in record["evidence"]) + '</ul>'
+        successor = successors.get(record["record_id"])
+        state = (f'Superseded by <a href="{successor}.html">{successor}</a>' if successor else
+                 "No local successor")
+        cells = [subjects, f'<time datetime="{esc(record["timeline"][-1]["at"])}">{esc(record["timeline"][-1]["at"])}</time>',
+                 f'kind {esc(record["kind"])}<br>outcome {esc(record["outcome"])}',
+                 f'{state}<br>{len(record["reports"])} report citations',
+                 f'<details><summary>{len(record["evidence"])} evidence source{"s" if len(record["evidence"]) != 1 else ""}</summary>{evidence}</details>',
+                 f'<a href="{esc(record["record_id"])}.html">{esc(record["record_id"])}</a>']
+        names = ("Subject", "Recorded (UTC)", "Kind and outcome", "Record status", "Evidence", "Full record")
+        rows.append('<tr>' + ''.join(f'<td data-label="{name}">{cell}</td>' for name, cell in zip(names, cells)) + '</tr>')
+    headers = ''.join(f'<th scope="col">{name}</th>' for name in
+                      ("Subject", "Recorded (UTC)", "Kind and outcome", "Record status", "Evidence", "Full record"))
+    table = (f'<table class="record-index-table"><caption>{len(documents)} valid immutable records</caption><thead><tr>{headers}</tr></thead>'
+             f'<tbody>{"".join(rows)}</tbody></table>' if rows else '<p>No valid records.</p>')
+    body = ('<h1>Incident records</h1><p>Read the subjects, cited evidence and recorded decisions behind an incident record.</p>'
+            '<p class="record-index-note">Synthetic examples: the two committed examples describe a synthetic report. They are not findings about a real incident.</p>'
+            '<p>Record status describes supersession within this index. A report\'s current on-chain state must be read from its contract; it is not established by this saved record. Recorded time is when the publisher wrote the record, not when an incident occurred.</p>'
+            + table)
     return page("Incident records", body, depth=1, inert=True)
 
 
@@ -1014,34 +1425,62 @@ def _incident_record_pages(records_dir=None):
 
 
 VERIFY_SCRIPT = """
-document.getElementById("read").addEventListener("click", async function () {
-  var out = document.getElementById("out");
-  var registry = document.getElementById("registry").value.trim();
-  var subject = document.getElementById("subject").value.trim();
-  var pasted = document.getElementById("hash").value.trim().toLowerCase();
-  out.textContent = "reading";
-  try {
-    var args = btoa(unescape(encodeURIComponent(JSON.stringify({subject: subject}))));
-    var reply = await fetch("RPC_URL", {method: "POST", headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({jsonrpc: "2.0", id: "verify", method: "query", params: {request_type: "call_function",
-        finality: "final", account_id: registry, method_name: "latest", args_base64: args}})});
-    var body = await reply.json();
-    if (body.error || !body.result || body.result.error) {
-      out.textContent = "the read failed: " + JSON.stringify(body.error || (body.result && body.result.error));
-      return;
+(() => {
+  "use strict";
+  const read = document.getElementById("read"), example = document.getElementById("verify-example"), out = document.getElementById("out");
+  const registryInput = document.getElementById("registry"), subjectInput = document.getElementById("subject"), hashInput = document.getElementById("hash");
+  let generation = 0, controller = null;
+  const add = (parent, tag, text) => { const node = document.createElement(tag); if (text !== undefined) node.textContent = String(text); parent.append(node); return node; };
+  const account = value => value.length >= 2 && value.length <= 64 && /^(([a-z0-9]+[-_])*[a-z0-9]+\\.)*([a-z0-9]+[-_])*[a-z0-9]+$/.test(value);
+  const integer = value => Number.isInteger(value) && Math.abs(value) <= 9007199254740991;
+  const message = (title, detail) => { out.replaceChildren(); add(out, "h3", title); add(out, "p", detail); };
+  example.addEventListener("click", () => {
+    for (const input of [registryInput, subjectInput, hashInput]) input.value = input.getAttribute("placeholder");
+    generation++; if (controller) controller.abort(); read.disabled = false; read.textContent = "Read the record"; out.setAttribute("aria-busy", "false");
+    message("Recorded example loaded into the form", "No network read has run. Choose Read the record to request the current testnet registry value.");
+  });
+  const invalidate = () => {
+    generation++; if (controller) controller.abort(); read.disabled = false; read.textContent = "Read the record"; out.setAttribute("aria-busy", "false");
+    message("Inputs changed", "Choose Read the record to compare these inputs with a new direct testnet RPC read.");
+  };
+  for (const input of [registryInput, subjectInput, hashInput]) input.addEventListener("input", invalidate);
+  read.addEventListener("click", async () => {
+    const registry = registryInput.value.trim(), subject = subjectInput.value.trim(), pasted = hashInput.value.trim().toLowerCase();
+    if (!account(registry) || !account(subject) || pasted && !/^[0-9a-f]{64}$/.test(pasted)) {
+      message("Check the inputs", "Enter valid NEAR account IDs for the registry and subject. An evidence hash, if supplied, must contain exactly 64 hexadecimal characters."); return;
     }
-    var record = JSON.parse(new TextDecoder().decode(new Uint8Array(body.result.result)));
-    if (record === null) {
-      out.textContent = "no record for this subject (the registry reads it as Unknown)";
-      return;
-    }
-    var same = pasted && record.evidence_hash === pasted;
-    out.textContent = JSON.stringify(record, null, 2) + "\\n\\nevidence hash you pasted: " + (pasted || "none") +
-      "\\n" + (pasted ? (same ? "equal to the recorded evidence hash" : "different from the recorded evidence hash") : "");
-  } catch (error) {
-    out.textContent = "the read failed: " + error;
-  }
-});
+    if (controller) controller.abort(); controller = new AbortController(); const active = controller, request = ++generation;
+    const deadline = setTimeout(() => active.abort(), 12000);
+    read.disabled = true; read.textContent = "Reading testnet…"; out.setAttribute("aria-busy", "true");
+    message("Reading current testnet registry", "The request goes directly from this browser to the public RPC. The recorded example remains separate below.");
+    try {
+      const args = btoa(unescape(encodeURIComponent(JSON.stringify({subject}))));
+      const reply = await fetch("RPC_URL", {method: "POST", headers: {"Content-Type": "application/json", Accept: "application/json"}, signal: active.signal,
+        body: JSON.stringify({jsonrpc: "2.0", id: "verify", method: "query", params: {request_type: "call_function", finality: "final", account_id: registry, method_name: "latest", args_base64: args}})});
+      if (!reply.ok) throw new Error("The testnet RPC returned HTTP " + reply.status + ".");
+      const body = await reply.json();
+      if (request !== generation) return;
+      if (!body || body.error || !body.result || body.result.error || !Array.isArray(body.result.result) || body.result.result.length > 1048576 || !body.result.result.every(value => Number.isInteger(value) && value >= 0 && value <= 255)) throw new Error("The RPC did not return a readable registry view.");
+      const record = JSON.parse(new TextDecoder("utf-8", {fatal: true}).decode(new Uint8Array(body.result.result)));
+      if (record === null) { message("No current record", "No record for this subject (the registry reads it as Unknown). This is not an ALLOW result."); return; }
+      if (!record || typeof record !== "object" || !["Allow", "Deny", "Unknown", "ALLOW", "DENY", "UNKNOWN"].includes(record.verdict) || typeof record.evidence_hash !== "string" || !/^[0-9a-f]{64}$/.test(record.evidence_hash) || !integer(record.observed_block) || record.observed_block < 0 || !integer(record.recorded_ms) || record.recorded_ms < 0 || record.recorded_ms > 8640000000000000 || typeof record.verdict_id !== "string") throw new Error("The registry record has an unexpected shape; no comparison is established.");
+      const same = pasted && record.evidence_hash === pasted;
+      out.replaceChildren();
+      add(out, "h3", !pasted ? "Registry read complete; no evidence hash supplied" : same ? "Evidence hashes match" : "Evidence hashes differ");
+      add(out, "p", "Read directly from testnet at " + new Date().toISOString() + ". This compares the pasted hash with the returned value; it does not hash an evidence file or verify a signature.");
+      const table = add(out, "table"); table.className = "verify-comparison";
+      const head = add(add(table, "thead"), "tr"); for (const title of ["Field", "Registry read", "Your comparison"]) add(head, "th", title).setAttribute("scope", "col");
+      const rows = [["Subject", subject, "Requested subject"], ["Verdict", record.verdict, "Registry value; no payment is signed"], ["Evidence hash", record.evidence_hash, pasted || "Not supplied"], ["Comparison", !pasted ? "Not compared" : same ? "Equal" : "Different", !pasted ? "Paste a hash to compare" : same ? "Equal to the recorded evidence hash" : "Different from the recorded evidence hash"], ["Observed block", record.observed_block, "Block named by the saved judgement"], ["Recorded time (UTC)", new Date(record.recorded_ms).toISOString(), "When the recorder wrote this value"], ["Verdict ID", record.verdict_id, "Returned by the registry"]];
+      const tbody = add(table, "tbody"); for (const values of rows) { const tr = add(tbody, "tr"); for (let index = 0; index < values.length; index++) { const td = add(tr, "td", values[index]); td.setAttribute("data-label", ["Field", "Registry read", "Your comparison"][index]); } }
+      const explorer = add(out, "a", "Open registry on the testnet explorer"); explorer.href = "https://testnet.nearblocks.io/address/" + encodeURIComponent(registry);
+      const raw = add(out, "details"); add(raw, "summary", "Raw registry response"); add(raw, "pre", JSON.stringify(record, null, 2));
+    } catch (error) {
+      if (request === generation) message("Testnet read unavailable", active.signal.aborted ? "The read exceeded 12 seconds or was interrupted. Your inputs are retained; choose Read the record to retry." : "The read failed: " + error.message + " Your inputs are retained; choose Read the record to retry.");
+    } finally { clearTimeout(deadline); if (request === generation) { read.disabled = false; read.textContent = "Read the record"; out.setAttribute("aria-busy", "false"); } }
+  });
+  window.addEventListener("pagehide", () => { generation++; if (controller) controller.abort(); });
+  window.addEventListener("pageshow", event => { if (event.persisted) { read.disabled = false; read.textContent = "Read the record"; out.setAttribute("aria-busy", "false"); message("Read interrupted", "Choose Read the record for a fresh direct testnet response."); } });
+})();
 """
 
 
@@ -1057,17 +1496,39 @@ def verify_example(record_path=VERIFY_RECORD, evidence_dir=EVIDENCE_DIR):
 def verify_page():
     script = VERIFY_SCRIPT.replace("RPC_URL", TESTNET_RPC)
     registry, subject, evidence_hash = (esc(value) for value in verify_example())
+    record = json.loads(VERIFY_RECORD.read_text(encoding="utf-8"))
+    computed_hash = hashlib.sha256((EVIDENCE_DIR / f'{record["evidence_hash"]}.json').read_bytes()).hexdigest()
+    recorded_at = datetime.fromtimestamp(record["recorded_ms"] / 1000, UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
+    example_rows = ''.join(f'<tr><th scope="row">{label}</th><td>{esc(value)}</td></tr>' for label, value in
+                           (("Subject", subject), ("Registry verdict", record["verdict"]),
+                            ("Observed block", record["observed_block"]), ("Recorded time", recorded_at),
+                            ("Record evidence hash", record["evidence_hash"]), ("Saved file SHA-256", computed_hash),
+                            ("Saved file comparison", "Equal" if computed_hash == record["evidence_hash"] else "Different"),
+                            ("Verdict ID", record["verdict_id"])))
     body = ("<h1>Read a registry record</h1><p>The page calls <code>latest</code> on the registry contract over the "
             f"public testnet RPC <code>{TESTNET_RPC}</code> from your browser and shows the record next to the "
             "evidence hash you paste. Compute the hash yourself with <code>sha256sum</code> of the evidence file.</p>"
             "<p>The examples in the empty fields are the vendor's latest record, "
             "<code>fixtures/registry/testnet-latest-kestrelridge-shop.json</code>, and the sha256 of its evidence "
             "document.</p>"
+            '<div class="verification-workspace"><section class="verify-live"><h2>Live testnet read</h2>'
+            '<p>A current read runs only when you choose Read the record. It does not use the website API or sign a transaction.</p>'
+            '<button id="verify-example" type="button">Use recorded example</button>'
             f'<div class="card verify-form"><label>Registry account<input id="registry" autocomplete="off" placeholder="{registry}">'
             f'</label><label>Subject (a NEAR account id)<input id="subject" autocomplete="off" placeholder="{subject}">'
             f'</label><label>Evidence hash (64 hex)<input id="hash" autocomplete="off" placeholder="{evidence_hash}">'
             '</label><button id="read" type="button">Read the record</button></div>'
-            f'<pre id="out" class="verify-result mono" aria-live="polite"></pre><script>{script}</script>')
+            '<div id="out" class="verify-result" aria-live="polite" aria-busy="false"><h3>Ready for a direct read</h3>'
+            '<p>Enter the registry and subject, and optionally paste an evidence hash. Unavailable reads and absent records do not establish ALLOW.</p></div></section>'
+            '<section class="verify-saved"><h2>Recorded example</h2>'
+            f'<p>Saved testnet registry view recorded at {recorded_at}. This is a historical example, not a current network response.</p>'
+            f'<table class="verify-example-table"><caption>Committed registry view and saved evidence bytes</caption><tbody>{example_rows}</tbody></table>'
+            f'<p><a href="https://testnet.nearblocks.io/address/{registry}">Open registry on the testnet explorer</a></p>'
+            f'<details><summary>Saved record JSON</summary><pre>{esc(json.dumps(record, indent=2))}</pre></details></section></div>'
+            '<section class="verify-limits"><h2>What the comparison establishes</h2>'
+            '<p>A matching pasted hash establishes equality with the value returned by the registry. It does not verify a signature, establish the truth of the evidence sources, or prove that the Gate consulted the registry. The live comparison does not compute the hash of an evidence file for you.</p>'
+            '<p>The registry and enforcement demonstrations are on testnet. A registry verdict is distinct from a fresh payment check; this browser read sends no payment.</p></section>'
+            f'<script>{script}</script>')
     return page("Verify a record", body)
 
 
@@ -1075,6 +1536,30 @@ def not_found_page():
     body = ("<h1>Not found</h1><p>No page of this site and no route of the read only API answers this path.</p>"
             '<p><a href="/index.html">Back to the index</a></p>')
     return page("Not found", body, rooted=True)
+
+
+def workspace_page():
+    body = ('<div class="workspace-page-head"><div><h1>Workspace</h1><p>Saved in this browser. Export a backup to move your work between devices.</p></div>'
+            '<a class="button primary" href="/index.html">Start investigation</a></div>'
+            '<p id="workspace-status" role="status" aria-live="polite"></p><div class="workbench-grid">'
+            '<section class="workspace-section"><div class="section-head"><h2>Investigations</h2><span id="case-count" class="source-line">0 saved investigations</span></div>'
+            '<label for="case-search">Search saved work<input type="search" id="case-search" placeholder="Title, notes or account"></label>'
+            '<div id="saved-cases"></div></section><div class="workspace-side">'
+            '<section class="workspace-section"><h2>Watchlist</h2><form id="watch-form" class="watch-form">'
+            '<label for="watch-account">Account<input id="watch-account" maxlength="128" autocomplete="off" required placeholder="account.near"></label>'
+            '<button type="submit">Watch account</button></form><ul id="watched-accounts" class="watchlist"><li>No watched accounts yet.</li></ul></section>'
+            '<section class="workspace-section"><h2>Alerts</h2><label class="monitor-toggle"><input id="alerts-enabled" type="checkbox">Monitor watched accounts</label>'
+            '<p>Monitoring runs while a Siyab page stays open. It checks the current feed window; it cannot cover time when the browser is closed.</p>'
+            '<p id="alert-state" role="status" aria-live="polite">Browser monitoring is off.</p>'
+            '<button id="desktop-alerts" type="button">Allow desktop notifications</button>'
+            '<p class="source-line">Browser permission is optional. Matches are also kept below. Display pause controls and alert monitoring are separate.</p>'
+            '<ul id="watch-notifications" class="watch-notifications"></ul><button id="clear-notifications" type="button">Clear alert history</button></section></div></div>'
+            '<section class="workspace-portability"><h2>Your workspace data</h2><p>Investigations, notes, watchlists and alert history stay on this device. Import merges investigations and accounts without replacing existing notes or enabling monitoring.</p>'
+            '<div class="workspace-actions"><button id="export-workspace" type="button">Export workspace JSON</button>'
+            '<label>Import workspace JSON<input id="import-workspace" type="file" accept="application/json,.json"></label>'
+            '<button id="reset-workspace" type="button">Reset local workspace</button></div></section>'
+            '<noscript><p>JavaScript is needed to save investigations, export tables and manage browser alerts. Recorded accounts and evidence remain available through the navigation.</p></noscript>')
+    return page("Workspace", body)
 
 
 def render(out_dir, store=None, incidents_dir=INCIDENTS_DIR, flows_dir=trace.FLOWS_DIR,
@@ -1090,32 +1575,74 @@ def render(out_dir, store=None, incidents_dir=INCIDENTS_DIR, flows_dir=trace.FLO
                     for entity_id, name in page_names(entity["id"] for entity in registry_entities).items()}
     search = search_index(store, accounts, registry_entities, entity_paths)
     pages = {"index.html": index_page(incidents, flows, clusters, store, top_judgements_dir),
+             "workspace.html": workspace_page(),
              "top-receivers.html": top_receivers_page(top_judgements_dir), "feed.html": feed_page(),
              "verify.html": verify_page(), "404.html": not_found_page(), "issuers.html": issuers_page()}
     pages.update(_incident_record_pages())
     for document in incidents:
         pages[f"incidents/{document['id']}.html"] = incident_page(document, accounts)
+    entity_data = {}
     for name, title, categories in ENTITY_SETS:
-        pages[f"entities/{name}.html"] = entity_page(title, categories, store)
+        rows = _entity_rows(categories, store)
+        entity_data[f"entities/{name}.table.json"] = {"rows": rows}
+        for number in range(1, max(1, (len(rows) + 49) // 50) + 1):
+            filename = f"{name}.html" if number == 1 else f"{name}.page-{number}.html"
+            pages[f"entities/{filename}"] = entity_page(title, categories, store, page_number=number,
+                                                        collection_name=name, rows=rows)
     for entity in registry_entities:
+        if entity_paths[entity["id"]] in pages:
+            raise ValueError(f"entity page collides with a collection page: {entity['id']}")
         pages[entity_paths[entity["id"]]] = registry_entity_page(entity, accounts)
     pages.update({path: account_page(subject, store, accounts, incidents, flows, clusters)
                   for subject, path in accounts.items()})
     for name, document in flows:
-        pages[f"flows/{name}.html"] = flow_page(document, accounts, evidence_url=f"/flows/{name}.html")
+        for number in range(1, max(1, (len(document["hops"]) + 49) // 50) + 1):
+            filename = f"{name}.html" if number == 1 else f"{name}.page-{number}.html"
+            pages[f"flows/{filename}"] = flow_page(document, accounts, evidence_url=f"/flows/{name}.html", page_number=number)
     for name, document in clusters:
         pages[f"clusters/{name}.html"] = cluster_page(name, document, accounts)
+    graph_assets = {}
+    for kind, documents, make_payload in (("flows", flows, graph.flow_payload),
+                                          ("clusters", clusters, graph.cluster_payload)):
+        for name, document in documents:
+            url, encoded = _graph_asset(make_payload(document, accounts), f"/{kind}/{name}.html")
+            graph_assets[url.lstrip("/")] = encoded
+    for relative, encoded in graph_assets.items():
+        path = out / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(encoded, encoding="utf-8", newline="\n")
+    script_paths = []
+    (out / "assets").mkdir(exist_ok=True)
+    for name in ("graphs.js", "workspace.js"):
+        script = (ROOT / "intel/ui" / name).read_text(encoding="utf-8")
+        script_path, _ = _script_asset(script)
+        (out / script_path.lstrip("/")).write_text(script, encoding="utf-8", newline="\n")
+        script_paths.append(script_path.lstrip("/"))
     for relative, text in pages.items():
         path = out / relative
         path.parent.mkdir(parents=True, exist_ok=True)
+        canonical = SITE_ORIGIN + "/" + ("" if relative == "index.html" else relative)
+        text = text.replace('</head>', f'<link rel="canonical" href="{esc(canonical)}">\n<meta property="og:url" content="{esc(canonical)}">\n</head>')
         path.write_bytes((text.replace(ROBOTS, "") if indexable else text).encode("utf-8"))
     (out / "style.css").write_text(STYLE, encoding="utf-8", newline="\n")
     (out / "search.json").write_text(json.dumps(search, ensure_ascii=False, separators=(",", ":")) + "\n",
                                      encoding="utf-8", newline="\n")
+    for relative, dataset in entity_data.items():
+        (out / relative).write_text(json.dumps(dataset, ensure_ascii=False, separators=(",", ":")) + "\n",
+                                   encoding="utf-8", newline="\n")
     fonts = []
     for source in sorted((ROOT / "intel/ui/fonts").iterdir()):
         relative = f"fonts/{source.name}"
         (out / "fonts").mkdir(exist_ok=True)
         (out / relative).write_bytes(source.read_bytes())
         fonts.append(relative)
-    return sorted([*pages, "search.json", "style.css", *fonts])
+    brand_assets = []
+    for source in sorted((ROOT / "intel/ui/brand").glob("*")):
+        relative = "brand/" + source.name
+        (out / "brand").mkdir(exist_ok=True)
+        (out / relative).write_bytes(source.read_bytes())
+        brand_assets.append(relative)
+    if (out / "brand/favicon.ico").is_file():
+        (out / "favicon.ico").write_bytes((out / "brand/favicon.ico").read_bytes())
+        brand_assets.append("favicon.ico")
+    return sorted([*pages, *graph_assets, *entity_data, *script_paths, "search.json", "style.css", *fonts, *brand_assets])

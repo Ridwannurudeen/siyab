@@ -244,9 +244,15 @@ class LiveRouteTest(unittest.TestCase):
                     self.live._slots.release()
 
     def test_timeout_is_504_and_below_30_seconds(self):
-        self.live.request_timeout_s = 0.02
         self.assertLess(self.live.request_timeout_s, 30)
-        with mock.patch("intel.live.rules.judge", side_effect=lambda *args, **kwargs: (time.sleep(0.04),
+        handle = self.live.handle
+
+        def route_budget(*args):
+            with mock.patch.object(self.live, "request_timeout_s", 0.02):
+                return handle(*args)
+
+        with mock.patch.object(self.live, "handle", side_effect=route_budget), \
+                mock.patch("intel.live.rules.judge", side_effect=lambda *args, **kwargs: (time.sleep(0.04),
                                                                                        self.allow_judgement())[1]), \
                 mock.patch("intel.live.rules.issuers_for", return_value=[]):
             status, _, body = self.request("/live/verdict?receiver=alice.near&amount=1&token=near")

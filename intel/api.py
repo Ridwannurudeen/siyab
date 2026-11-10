@@ -10,7 +10,8 @@ Routes (GET only; without --live, no route opens the network):
                           and an empty list, with follower: "running" for a follower's state, or
                           "stopped" with lag_blocks null once its last update (updated_at, else
                           last_time, else started_at) is more than FOLLOWER_STOPPED_AFTER_S old;
-                          null for any other state
+                          null for any other state; event_ids parallels events with their evidence-file
+                          hashes, or null where a legacy filename is not a lowercase SHA-256 identifier
     /feed.html            with FEED_STATE_DIR naming a follower's state, the feed page built from it,
                           which gives a stopped follower's last update time and says the lag is
                           unknown; else the static file as below
@@ -31,10 +32,13 @@ Routes (GET only; without --live, no route opens the network):
                           and /incidents/<id> the JSON; a path that is neither answers 404 with the
                           site's 404.html when it has one, else with JSON
 
-Every answer is JSON (static files aside) and carries Cache-Control: no-store.
+Every answer is JSON (static files aside) and carries Cache-Control: no-store, except successful
+static /graph-data/<sha256>.json and /assets/<sha256>.js reads whose bytes match the filename hash;
+these are public and immutable.
 """
 
 import dataclasses
+import hashlib
 import io
 import json
 import mimetypes
@@ -103,6 +107,14 @@ def _evidence(evidence_hash):
         path = directory / f"{evidence_hash}.json"
         if path.is_file():
             return 200, _read_json(path)
+    state_dir = os.environ.get("FEED_STATE_DIR")
+    if state_dir is not None:
+        directory = (Path(state_dir) / "events").resolve()
+        path = directory / f"{evidence_hash}.json"
+        if path.is_file() and path.resolve().parent == directory:
+            data = path.read_bytes()
+            if hashlib.sha256(data).hexdigest() == evidence_hash:
+                return 200, json.loads(data)
     return 404, {"error": f"no evidence document {evidence_hash}"}
 
 
@@ -152,6 +164,7 @@ def _feed():
             stats["lag_blocks"] = None
     events = render.feed_events(events_dir)[0]
     return 200, {"follower": follower, "stats": stats,
+                 "event_ids": [stem if _HEX64.fullmatch(stem) else None for _, stem, _ in events[-FEED_LIMIT:]],
                  "events": [document for _, _, document in events[-FEED_LIMIT:]]}
 
 
@@ -356,13 +369,19 @@ def make_server(host, port, site=None, store=None, live_routes=None):
                 else:
                     self._send(404, *missing[1:])
                 return
-            self._send(*static)
+            asset_hash = (re.fullmatch(r"/graph-data/([0-9a-f]{64})\.json", request_path)
+                          or re.fullmatch(r"/assets/([0-9a-f]{64})\.js", request_path))
+            cache_control = ("public, max-age=31536000, immutable"
+                             if static[0] == 200 and asset_hash
+                             and hashlib.sha256(static[2]).hexdigest() == asset_hash.group(1)
+                             else "no-store")
+            self._send(*static, cache_control=cache_control)
 
-        def _send(self, status, content_type, data, headers=None):
+        def _send(self, status, content_type, data, headers=None, *, cache_control="no-store"):
             self.send_response(status)
             self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(data)))
-            self.send_header("Cache-Control", "no-store")
+            self.send_header("Cache-Control", cache_control)
             for name, value in (headers or {}).items():
                 self.send_header(name, value)
             self.end_headers()

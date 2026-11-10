@@ -1,0 +1,53 @@
+Outside offline verification received, 10 November 2026
+
+The supplied transcript identifies the verifier as Rising Technology and states that
+this person is outside the team, is not Saint, and ran both commands on their laptop.
+These statements and publication consent are self-reported; execution was not witnessed.
+The transcript discloses Claude Code assistance with preparation, the runner and report.
+The person reportedly typed the command that started the two checks.
+
+Both reported commands exited 0 with empty stderr and printed verified. Trusted local
+reruns reproduced the outputs. The distributed kit matches its supplied digest and its
+69 original source files match source commit d8636690188180f1e65a418110448ebbfd5a4905.
+This establishes saved record/evidence consistency. It does not establish chain state,
+live signatures, payment execution, evidence-source truth or a security audit.
+
+Original received results ZIP SHA-256: e606c433f93a025e202ab41bef1ede5147ddbe2a2bcc719521575a58fd905de1
+
+sample.meta.txt
+start: 2026-11-10 02:06:46 +0100
+end: 2026-11-10 02:06:50 +0100
+exit code: 0
+command: python -B -m gate verify fixtures/registry/sample-allow.json fixtures/registry/sample-allow-evidence.json
+
+sample.stdout.txt
+record shape: view
+evidence sha256: c9afcae56b4f7e1d5ab6b4cb9b1a01d8fa8a129e4f510a8aab63acc49b3a2782
+record evidence_hash: c9afcae56b4f7e1d5ab6b4cb9b1a01d8fa8a129e4f510a8aab63acc49b3a2782
+NEP-297 fields to compare with the explorer:
+  standard shieldbot-near, version 1.0.0, event verdict_recorded
+  subject vendor.testnet (from the evidence; the view shape has none)
+  verdict ALLOW, evidence_hash c9afcae56b4f7e1d5ab6b4cb9b1a01d8fa8a129e4f510a8aab63acc49b3a2782
+  observed_block 230000000, verdict_id 2ebb8f1dcba43f2861590189bfa9c2fa
+ok   evidence sha256 equals the record's evidence_hash
+ok   evidence verdict equals the record's verdict
+verified
+
+testnet-record.meta.txt
+start: 2026-11-10 02:06:50 +0100
+end: 2026-11-10 02:06:52 +0100
+exit code: 0
+command: python -B -m gate verify fixtures/registry/testnet-vendor.json fixtures/evidence/7e77187d3438ef7303d4d6f796cbecfb58e52bb7519156a951661f67c88bb2cc.json
+
+testnet-record.stdout.txt
+record shape: view
+evidence sha256: 7e77187d3438ef7303d4d6f796cbecfb58e52bb7519156a951661f67c88bb2cc
+record evidence_hash: 7e77187d3438ef7303d4d6f796cbecfb58e52bb7519156a951661f67c88bb2cc
+NEP-297 fields to compare with the explorer:
+  standard shieldbot-near, version 1.0.0, event verdict_recorded
+  subject kestrelridge-shop.testnet (from the evidence; the view shape has none)
+  verdict ALLOW, evidence_hash 7e77187d3438ef7303d4d6f796cbecfb58e52bb7519156a951661f67c88bb2cc
+  observed_block 275799179, verdict_id 1b29052381ecf3fc1937b36db2539678
+ok   evidence sha256 equals the record's evidence_hash
+ok   evidence verdict equals the record's verdict
+verified

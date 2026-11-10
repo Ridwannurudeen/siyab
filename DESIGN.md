@@ -39,16 +39,16 @@ colors:
 typography:
   headline:
     fontFamily: "Inter, Arial, Helvetica, sans-serif"
-    fontSize: "20px"
+    fontSize: "28px"
     fontWeight: 600
-    lineHeight: "28px"
-    letterSpacing: "-0.01em"
+    lineHeight: 1.25
+    letterSpacing: "-0.035em"
   title:
     fontFamily: "Inter, Arial, Helvetica, sans-serif"
-    fontSize: "18px"
+    fontSize: "20px"
     fontWeight: 600
-    lineHeight: 1.4
-    letterSpacing: "-0.01em"
+    lineHeight: 1.35
+    letterSpacing: "-0.025em"
   panel-title:
     fontFamily: "Inter, Arial, Helvetica, sans-serif"
     fontSize: "16px"
@@ -60,7 +60,7 @@ typography:
     fontSize: "14px"
     fontWeight: 400
     lineHeight: 1.6
-    letterSpacing: "0.15px"
+    letterSpacing: "0"
   label:
     fontFamily: "Inter, Arial, Helvetica, sans-serif"
     fontSize: "12px"
@@ -81,12 +81,12 @@ typography:
     fontSize: "12px"
     fontWeight: 400
     lineHeight: "18px"
-    letterSpacing: "0.15px"
+    letterSpacing: "0"
   identifier:
     fontFamily: "IBM Plex Mono, Consolas, monospace"
     fontSize: "12px"
     fontWeight: 400
-    letterSpacing: "0.15px"
+    letterSpacing: "0"
   body-mobile:
     fontFamily: "Inter, Arial, Helvetica, sans-serif"
     fontSize: "15px"
@@ -132,7 +132,7 @@ typography:
     fontSize: "12px"
     fontWeight: 400
     lineHeight: "18px"
-    letterSpacing: "0.15px"
+    letterSpacing: "0"
   inline-value:
     fontFamily: "Inter, Arial, Helvetica, sans-serif"
     fontSize: "19px"
@@ -216,11 +216,11 @@ Ground frames the application, panel holds working content, and alternate ground
 **Interface Font:** Inter, Arial, Helvetica, sans-serif.
 **Numeric and Identifier Font:** IBM Plex Mono, Consolas, monospace.
 
-The three families have separate jobs: Manrope appears only in the brand, Inter carries interface text, and IBM Plex Mono carries data and identifiers. This keeps the geometric display treatment out of dense tables and controls. Manrope is an independently licensed open font, not a reproduction of the reference's proprietary face.
+The three families have separate jobs: Manrope appears only in the brand, Inter carries interface text, and IBM Plex Mono carries data and identifiers. This keeps the geometric display treatment out of dense tables and controls. Manrope is an independently licensed open font, not a reproduction of the reference's proprietary face. The authored teal route mark accompanies the wordmark; SVG, favicon ICO and 1200×630 social artwork are local assets.
 
 All three families are self-hosted. Manrope has a semibold file; Inter has regular and semibold files; IBM Plex Mono has regular and medium files. Font licenses and provenance live with the assets in intel/ui/fonts. Font display is swap; synthetic font styling is disabled.
 
-Page, workspace and profile headings are 20px semibold with a 28px line height and -0.01em tracking, equivalent to -0.2px at that size. Ordinary section headings are 18px with -0.01em tracking; panel headings are 16px. Body text is 14px with 1.6 leading and +0.15px tracking; prose is capped at 85ch. Navigation remains 14px with a 22px line height. Tabular numeric columns use 12px regular monospace, an 18px line height, +0.15px tracking and right alignment. Generic identifiers retain 12px regular monospace with inherited leading; inspector identifiers and counts explicitly use the same 12px/18px regular data role. Inline provenance totals retain their 19px semibold interface role.
+General page headings are 28px semibold with 1.25 leading and -0.035em tracking; compact investigation and profile headings retain their 20px/28px role. Ordinary section headings are 20px with 1.35 leading and -0.025em tracking; panel headings are 16px. Body text is 14px with 1.6 leading and zero added tracking; prose is capped at 85ch. Navigation remains 14px with a 22px line height. Tabular numeric columns use 12px regular monospace, an 18px line height and right alignment. Identifiers and figures use zero added tracking and tabular numerals. Inline provenance totals retain their 19px semibold interface role. Phone general headings are 24px, with compact investigation headings retaining 20px.
 
 The Siyab wordmark uses 24px Manrope semibold with -0.035em tracking. At 760px and below it becomes 20px, then 18px at 480px and below. Those brand sizes do not change the interface font. Body text becomes 15px and form inputs 16px at 760px and below; the workspace heading stays 20px/28px. Stacked account cells use 14px values and 12px labels. Small source notes retain their observed 11px role; do not substitute that size for ordinary body text.
 
@@ -244,7 +244,7 @@ Reflow without page-wide horizontal scrolling is a required acceptance condition
 
 ## Elevation & Depth
 
-Panels are flat at rest; tonal surfaces and thin boundaries establish hierarchy. Shadows are reserved for overlays: search uses 0 24px 80px rgb(0 0 0/.35), graph view controls use 0 12px 30px rgb(0 0 0/.25), and mobile navigation uses 0 16px 32px rgb(0 0 0/.25). The search backdrop is rgb(2 5 12/.72). Focus uses a two-pixel accent outline with a three-pixel offset.
+Panels are flat at rest; tonal surfaces and thin boundaries establish hierarchy. Shadows are reserved for overlays: search and case dialogs use 0 24px 80px rgb(0 0 0/.35), graph view controls use 0 12px 30px rgb(0 0 0/.25), mobile navigation uses 0 16px 32px rgb(0 0 0/.25), and workspace feedback uses 0 6px 24px rgb(0 0 0/.2). The search backdrop is rgb(2 5 12/.72); the case-dialog backdrop is rgb(0 0 0/.65). Focus uses a two-pixel accent outline with a three-pixel offset.
 
 ## Shapes
 
@@ -262,6 +262,12 @@ Desktop navigation is an aligned vertical list. Its active row uses ten-percent 
 
 ### Data panels, tables and graphs
 
+Collection pages render at most 50 assertions at a time, with static Previous and Next links retaining access without JavaScript. Search, chain filtering and sorting load a separate recorded collection on demand. Source assertions and attribution hypotheses retain separate tables and disclosures. Headers use 12px semibold interface text; short values wrap at word boundaries, while account identifiers can wrap when needed. Six-column entity rows become labelled records at 900px and below; eight-column hypothesis rows do so at 1399px and below. Phone records use a single column at 480px and below.
+
+Graph datasets load from content-addressed JSON after the document is available. A neutral panel reserves space while loading; failed requests retain recorded evidence and offer Retry. Retry and pagination preserve keyboard focus. Static graph JSON and local JavaScript bytes matching their filename hash receive immutable caching; mutable API and collection responses remain uncached. Graph and workspace scripts use local SHA-256 asset names, SRI and deferred execution; records remain script-free.
+
+At 480px and below the workspace search and graph filters stack. At 760px and below the theme control uses a 44px icon target with its full accessible action name; its text label remains visible at wider sizes. Existing motion definitions and timings are unchanged.
+
 Panels have charcoal surfaces, 8px corners, 16px body padding and thin structural borders. Table headers recede while values and source quotations remain readable. Graph nodes use written identifiers and depth, with selected paths and nodes in teal; dashed relationships retain attribution-hypothesis meaning. Full evidence, filtered display counts and acquisition limits remain distinct. Numeric values do not become fictional portfolio or loss measures.
 
 Standalone graph pages place the page heading and subject context before the canvas. Retained section labels follow their headings as ordinary muted prose; they do not form a separate eyebrow style.
@@ -269,6 +275,12 @@ Standalone graph pages place the page heading and subject context before the can
 Direct outbound distribution keeps the full recorded dataset separate from graph filters. A compact identifier may represent a 64-character account in the row, while native Full identifier disclosure retains the complete linked or quoted value without JavaScript. Its phone summary has a 44px minimum height. USD, row count and share remain written values; the bar supplements them. Compact header and phone metric labels reuse the 11px interface role, identifiers use 12px monospace, and values use the existing numeric role.
 
 Recorded transfer activity exposes count ticks and three UTC time labels alongside the histogram. Native disclosure below it retains exact time bounds and transfer counts. Unknown USD and deeper-hop exclusions remain explicit; chart geometry does not replace the underlying records.
+
+### Saved workspace and exports
+
+The workspace uses a two-column investigation list and watch/monitoring rail, stacking below 801px. Native save dialogs restore focus and keep validation feedback inside the dialog. Cases, notes and account watchlists are browser-local; backup import merges validated data without enabling monitoring or overwriting existing notes. An explicit reset requires confirmation. No cloud persistence or closed-browser alert coverage is implied.
+
+Graph exports capture the active recorded filters and source. Table exports include shown rows and protect spreadsheet formula prefixes. Browser monitoring is opt-in, baselines the first feed response and retains at most 20 matching alerts; desktop delivery requires separate browser permission.
 
 ### Chips and status
 

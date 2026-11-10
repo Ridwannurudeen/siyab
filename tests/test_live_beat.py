@@ -1,6 +1,7 @@
 import hashlib
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -294,12 +295,14 @@ class LiveBeatScriptTest(unittest.TestCase):
         git("update-ref", "refs/remotes/origin/main", head_commit)
         fake_git_dir = Path(self.tempdir.name) / "fake-git"
         fake_git_dir.mkdir()
+        fake_git_called = fake_git_dir / "called"
         fake_git = fake_git_dir / "git"
         fake_git.write_text(
             '#!/bin/sh\n'
             'for arg in "$@"; do\n'
             '  case "$arg" in\n'
             '    *:docs/demo/synthetic-report.md)\n'
+            f'      printf "git show\\n" > {shlex.quote(posix(fake_git_called))}\n'
             '      printf "tampered\\n"\n'
             '      exit 0\n'
             '      ;;\n'
@@ -309,11 +312,20 @@ class LiveBeatScriptTest(unittest.TestCase):
             encoding="utf-8",
         )
         fake_git.chmod(0o755)
+        startup = fake_git_dir / "startup.sh"
+        original_startup = live_env.get("BASH_ENV")
+        startup.write_text(
+            (f'source {shlex.quote(original_startup)}\n' if original_startup else "")
+            + f'export PATH={shlex.quote(posix(fake_git_dir))}:"$PATH"\n',
+            encoding="utf-8",
+        )
         tampered_env = {
             **live_env,
             "PATH": os.pathsep.join((str(fake_git_dir), live_env["PATH"])),
+            "BASH_ENV": posix(startup),
         }
         mismatch = run_in_repo(env=tampered_env)
+        self.assertTrue(fake_git_called.exists(), "the fake git show was not invoked")
         self.assertEqual(mismatch.returncode, 2, mismatch.stdout + mismatch.stderr)
         self.assertIn("has sha256", mismatch.stderr)
         self.assertFalse(self.marker.exists())
