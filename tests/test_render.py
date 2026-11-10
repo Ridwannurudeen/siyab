@@ -134,11 +134,88 @@ def write_decision_record(directory, text):
 class BrowserRuntimeTest(unittest.TestCase):
     @unittest.skipUnless(shutil.which("node"), "Node is unavailable")
     def test_feed_and_search_boundary_regressions(self):
-        for scenario in ("stall", "body-stall", "queue-revert", "bfcache", "url-shell", "url-index"):
+        for scenario in ("stall", "body-stall", "queue-revert", "bfcache", "url-shell", "url-index", "menu"):
             with self.subTest(scenario=scenario):
                 result = subprocess.run([shutil.which("node"), "tests/frontend_runtime.cjs", scenario],
                                         cwd=ROOT, capture_output=True, text=True, timeout=15)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+
+class AppShellTest(unittest.TestCase):
+    def test_shell_has_shared_landmarks_and_native_mobile_navigation(self):
+        page = render.page("Feed", "<h1>Feed</h1>")
+        for markup in ('<aside class="app-sidebar">', '<header class="app-topbar">',
+                       '<main class="app-content" id="main-content">', '<footer class="app-footer">',
+                       '<details class="mobile-navigation" id="mobile-navigation">', '<summary>Menu</summary>',
+                       '<div class="mobile-navigation-panel">', '<a class="app-mobile-brand"',
+                       '<span class="site-search-label">Search accounts / entities</span>',
+                       '<span class="site-search-short" aria-hidden="true">Search</span>',
+                       'href="#main-content"'):
+            self.assertIn(markup, page)
+        sidebar = page.split('<aside class="app-sidebar">', 1)[1].split('</aside>', 1)[0]
+        mobile = page.split('<details class="mobile-navigation"', 1)[1].split('</details>', 1)[0]
+        self.assertEqual(LINK.findall(sidebar)[1:], LINK.findall(mobile))
+        self.assertEqual(page.count('href="feed.html" aria-current="page"'), 2)
+        self.assertNotIn('href="index.html" aria-current', page)
+
+    def test_record_shell_is_inert_and_nested_navigation_resolves(self):
+        page = render.page("Incident record", "<h1>Incident record</h1>", depth=1, inert=True)
+        self.assertNotIn('<script', page)
+        self.assertNotIn('<button', page)
+        self.assertIn('<main class="app-content record-content" id="main-content">', page)
+        self.assertIn('<details class="mobile-navigation" id="mobile-navigation">', page)
+        for path in ('index.html', 'flows/rhea-collector.html', 'feed.html', 'index.html#tools',
+                     'verify.html', 'entities/infrastructure.html', 'records/index.html', 'issuers.html'):
+            self.assertIn(f'href="../{path}"', page)
+        self.assertNotIn('aria-current=', page)
+
+
+class AnalyticsPresentationTest(unittest.TestCase):
+    def test_distribution_compacts_only_hashes_and_keeps_full_identifiers_and_facts(self):
+        document = render._flows()[0][1]
+        chart = render._flow_analytics(document, {})
+        self.assertIn('class="analytics-distribution-head"', chart)
+        for bucket in document["shares"]["buckets"]:
+            self.assertIn(render.data_text(bucket["kind"]), chart)
+            self.assertIn(f'data-usd="{bucket["usd"]}"', chart)
+            if re.fullmatch(r"[0-9a-f]{64}", bucket["to"]):
+                self.assertIn(bucket["to"][:12] + "…" + bucket["to"][-10:], chart)
+                self.assertIn(f'<q class="data">{bucket["to"]}</q></details>', chart)
+        self.assertEqual(chart.count('class="analytics-full-account"'), 10)
+        self.assertIn('accounts the report does not name, not terminal', chart)
+        for label in ("USD", "Rows", "Share"):
+            self.assertIn(f'<span class="cell-label" aria-hidden="true">{label}</span>', chart)
+
+    def test_timeline_has_visible_count_and_utc_scales_with_exact_table(self):
+        document = render._flows()[0][1]
+        chart = render._flow_analytics(document, {})
+        bins = render._flow_timeline(document)
+        self.assertIn('<div class="analytics-count-axis" aria-label="Transfer count scale"><span>354</span><span>177</span><span>0</span></div>', chart)
+        self.assertIn('class="analytics-time-axis"', chart)
+        self.assertEqual(len(re.findall(r'<time datetime="[^"]+">', chart)), 3)
+        self.assertIn('preserveAspectRatio="none"', chart)
+        for row in bins:
+            self.assertIn(f'data-from-ns="{row["from_ns"]}" data-to-ns="{row["to_ns"]}"', chart)
+
+    def test_standalone_investigation_context_precedes_the_graph(self):
+        document = render._flows()[0][1]
+        flow = render.flow_page(document, {})
+        self.assertLess(flow.index('<h1>Exit trace</h1>'), flow.index('data-siyab-graph'))
+        self.assertLess(flow.index(f'<p class="mono">{document["subject"]}</p>'), flow.index('data-siyab-graph'))
+        name, document = render._clusters()[0]
+        cluster = render.cluster_page(name, document, {})
+        self.assertLess(cluster.index(f'<h1>Account relationship edges: {name}</h1>'), cluster.index('data-siyab-graph'))
+        self.assertLess(cluster.index(html.escape(document["standard"])), cluster.index('data-siyab-graph'))
+
+    def test_preserved_section_labels_follow_their_headings(self):
+        page = render.index_page([], [], [], labels.load())
+        self.assertNotIn('class="eyebrow"', page)
+        for heading, label in (("Payment and key checks", "Live read"), ("Run a check", "Live tools"),
+                               ("Proven on testnet", "Committed run logs"), ("Reports with evidence", "Community reports"),
+                               ("Top receivers", "Mainnet judgement set"), ("Explore", "Committed intelligence"),
+                               ("What these reads mean", "Scope and limits")):
+            self.assertIn(f'>{heading}</h2><p class="muted">{label}</p>', page)
+        self.assertIn(f'{html.escape(render.HEADLINE)}</p><div class="hero-topline"><p class="muted">NEAR PAYMENT PREFLIGHT</p></div>', page)
 
 
 class RenderTest(unittest.TestCase):
@@ -427,7 +504,7 @@ class RenderTest(unittest.TestCase):
     def test_rendered_text_and_fill_pairs_meet_contrast_in_both_themes(self):
         stylesheet = (self.out / "style.css").read_text(encoding="utf-8")
         self.assertIn("a:hover{color:rgb(var(--accent))}", stylesheet)
-        self.assertIn(".lookup-card button:hover,.primary:hover{color:white}", stylesheet)
+        self.assertIn(".lookup-card button:hover,.primary:hover{color:rgb(var(--primary-ink))}", stylesheet)
         self.assertNotRegex(stylesheet, r"(?<!border-)color:rgb\(var\(--accent-fill\)\)")
         theme_blocks = (
             ("dark", re.search(r":root\{(.*?)\}", stylesheet, re.DOTALL).group(1)),
@@ -436,7 +513,7 @@ class RenderTest(unittest.TestCase):
         text_surfaces = {
             "--ink": ("--ground", "--panel", "--ground-alt"),
             "--secondary": ("--ground", "--panel", "--ground-alt"),
-            "--accent": ("--ground", "--panel"),
+            "--accent": ("--ground", "--panel", "--ground-alt"),
             "--allow-text": ("--ground", "--panel"),
             "--unknown": ("--ground", "--panel"),
             "--block-text": ("--ground", "--panel"),
@@ -460,8 +537,8 @@ class RenderTest(unittest.TestCase):
                 for surface in surfaces:
                     with self.subTest(theme=theme, foreground=foreground, surface=surface):
                         self.assertGreaterEqual(contrast(colors[foreground], colors[surface]), 4.5)
-            with self.subTest(theme=theme, foreground="white", surface="--accent-fill"):
-                self.assertGreaterEqual(contrast((255, 255, 255), colors["--accent-fill"]), 4.5)
+            with self.subTest(theme=theme, foreground="--primary-ink", surface="--accent-fill"):
+                self.assertGreaterEqual(contrast(colors["--primary-ink"], colors["--accent-fill"]), 4.5)
 
     def test_index_has_no_unexpected_host_or_remote_script_or_font(self):
         page = self.pages["index.html"]
@@ -473,7 +550,7 @@ class RenderTest(unittest.TestCase):
         self.assertNotRegex(page, r"<link[^>]+(?:Geist|Plex|fonts\.googleapis)")
         self.assertNotIn("@import", stylesheet)
         self.assertNotRegex(stylesheet, r"url\(\s*['\"]?https?://")
-        self.assertIn("--ground:11 15 23", stylesheet)
+        self.assertIn("--ground:6 16 26", stylesheet)
         self.assertIn('id="theme-toggle"', page)
 
     def test_top_receivers_page_has_an_honest_empty_state_and_renders_aggregates(self):

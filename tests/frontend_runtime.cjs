@@ -41,9 +41,23 @@ const payload = label => ({stats: null, follower: null, events: [event(label)]})
 const text = node => node.textContent + node.children.map(text).join(' ');
 async function main() {
   const scenario = process.argv[2];
-  const script = scenario.startsWith('url-') ? `intel/ui/${scenario.slice(4)}.js` : 'intel/ui/feed.js';
+  const script = scenario === 'menu' ? 'intel/ui/shell.js' : scenario.startsWith('url-') ? `intel/ui/${scenario.slice(4)}.js` : 'intel/ui/feed.js';
   const env = environment(script, scenario === 'url-shell' ? '?q=victim' : '');
-  if (scenario === 'stall' || scenario === 'body-stall') {
+  if (scenario === 'menu') {
+    const menu = env.document.getElementById('mobile-navigation');
+    const summary = Object.assign(new Element(), {tag: 'summary'});
+    summary.focus = () => { env.document.activeElement = summary; };
+    menu.append(summary); menu.open = true;
+    menu.emit('click', {target: {closest: () => null}});
+    assert.equal(menu.open, true, 'Native summary click must retain its own toggle behavior');
+    menu.emit('click', {target: {closest: () => ({href: '/index.html#tools'})}});
+    assert.equal(menu.open, false, 'Same-page navigation must close the mobile sheet');
+    menu.open = true; env.document.emit('keydown', {key: 'Escape'});
+    assert.equal(menu.open, false); assert.equal(env.document.activeElement, summary);
+    menu.open = true; env.nodes['global-search'].open = true;
+    env.document.emit('keydown', {key: 'Escape'});
+    assert.equal(menu.open, true, 'Search dialog Escape must not also close navigation');
+  } else if (scenario === 'stall' || scenario === 'body-stall') {
     if (scenario === 'body-stall') {
       const request = env.requests[0];
       request.resolve({ok: true, headers: {get: () => 'application/json'}, json: () => new Promise((resolve, reject) => request.options.signal.addEventListener('abort', () => reject(new Error('body aborted'))))});

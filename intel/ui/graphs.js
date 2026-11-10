@@ -505,8 +505,8 @@
 
     function metadata(parent, entries) {
       const dl = element("dl", "graph-meta");
-      for (const [name, value] of entries) {
-        dl.append(element("dt", "", name), element("dd", "", value === null || value === undefined ? "Unknown" :
+      for (const [name, value, role] of entries) {
+        dl.append(element("dt", "", name), element("dd", role || (typeof value === "number" ? "graph-number" : ""), value === null || value === undefined ? "Unknown" :
           typeof value === "object" ? JSON.stringify(value) : value));
       }
       parent.append(dl);
@@ -544,23 +544,23 @@
           record.rule + " · " + (record.provenance === "inferred" ? "Hypothesis" : "Chain read");
         details.append(element("summary", "", heading));
         if (payload.kind === "flow") {
-          metadata(details, [["From", record.from], ["To", record.to], ["Asset", record.asset_id],
-            ["Human amount as recorded", record.human_amount], ["Amount (base units)", record.amount],
-            ["USD at provider", record.usd_amount === null ? "Unknown" : record.usd_amount],
+          metadata(details, [["From", record.from, "graph-identifier"], ["To", record.to, "graph-identifier"], ["Asset", record.asset_id, "graph-identifier"],
+            ["Human amount as recorded", record.human_amount, "graph-identifier"], ["Amount (base units)", record.amount, "graph-identifier"],
+            ["USD at provider", record.usd_amount === null ? "Unknown" : record.usd_amount, "graph-identifier"],
             ["Block", record.block], ["Time (UTC)", record.timestamp_ms === null ? null : new Date(record.timestamp_ms).toISOString()],
-            ["Timestamp (ns)", record.block_timestamp], ["Transaction", record.transaction_hash],
-            ["Receipt", record.receipt_id], ["Method", record.method_name || "None"], ["Source", payload.source.provider]]);
+            ["Timestamp (ns)", record.block_timestamp, "graph-identifier"], ["Transaction", record.transaction_hash, "graph-identifier"],
+            ["Receipt", record.receipt_id, "graph-identifier"], ["Method", record.method_name || "None"], ["Source", payload.source.provider]]);
         } else {
-          metadata(details, [["From", record.from], ["To", record.to], ["Rule", record.rule],
+          metadata(details, [["From", record.from, "graph-identifier"], ["To", record.to, "graph-identifier"], ["Rule", record.rule],
             ["Provenance", record.provenance === "inferred" ? "Attribution hypothesis" : "Recorded chain read"],
             ["Confidence", record.confidence], ["Source", record.source]]);
           for (const factId of record.inputs) {
             const fact = facts.get(factId);
-            if (fact) metadata(details, [["Input fact", fact.id], ["Subject", fact.subject], ["Kind", fact.kind],
+            if (fact) metadata(details, [["Input fact", fact.id, "graph-identifier"], ["Subject", fact.subject, "graph-identifier"], ["Kind", fact.kind],
               ["Value", fact.value], ["Fact provenance", fact.provenance], ["Fact confidence", fact.confidence], ["Fact source", fact.source]]);
           }
         }
-        metadata(details, [["Record", record.id]]);
+        metadata(details, [["Record", record.id, "graph-identifier"]]);
         rows.append(details);
       }
       if (!records.length) rows.append(element("p", "graph-empty", "No recorded evidence matches these filters for this account."));
@@ -575,7 +575,7 @@
       let edges;
       if (state.selected.kind === "node") {
         const node = nodeById.get(state.selected.id);
-        inspector.append(element("h3", "graph-inspector-title", node.label));
+        inspector.append(element("h3", "graph-inspector-title graph-identifier", node.label));
         const actions = element("div", "graph-inspector-actions");
         button(actions, "Focus neighborhood", () => {
           state.focus = node.id; state.limit = state.compact ? 4 : 8; state.path = null; pathStatus.textContent = "";
@@ -595,8 +595,8 @@
         }
         inspector.append(actions);
         edges = state.matches.filter((edge) => edge.from === node.id || edge.to === node.id);
-        metadata(inspector, [["Account", node.id], ...(payload.kind === "flow" ? [["Recorded depth", node.depth]] :
-          [["Recording root", payload.root]]), ["Matching edges", edges.length],
+        metadata(inspector, [["Account", node.id, "graph-identifier"], ...(payload.kind === "flow" ? [["Recorded depth", node.depth]] :
+          [["Recording root", payload.root, "graph-identifier"]]), ["Matching edges", edges.length],
           ["Scope", "All matching recorded edges for this account, including outside the visible neighborhood"]]);
       } else {
         const edge = payload.edges.find((candidate) => candidate.id === state.selected.id);
@@ -606,7 +606,7 @@
         const toButton = button(inspector, edge.to, () => choose("node", edge.to), "graph-account-button");
         toButton.setAttribute("aria-label", "Inspect receiver " + edge.to);
         metadata(inspector, [["Provenance", edge.provenance === "inferred" ? "Attribution hypothesis" : "Recorded chain reads"],
-          ["Confidence", edge.confidence], ...(edge.asset_id ? [["Asset", edge.asset_id]] : [])]);
+          ["Confidence", edge.confidence], ...(edge.asset_id ? [["Asset", edge.asset_id, "graph-identifier"]] : [])]);
         edges = [edge];
       }
       const recordIds = new Set(edges.flatMap((edge) => edge.record_ids));

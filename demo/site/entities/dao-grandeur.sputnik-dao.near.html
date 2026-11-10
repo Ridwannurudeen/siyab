@@ -8,11 +8,11 @@
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<header><a class="site-brand" href="../index.html">Siyab</a><nav><a href="../index.html">Home</a><a href="../flows/rhea-collector.html">Trace</a><a href="../feed.html">Feed</a><a href="../index.html#tools">Payment checks</a><a href="../verify.html">Verify</a></nav><div class="header-actions"><button class="site-search-button" type="button" data-open-search>Search accounts / entities <kbd class="search-key">Ctrl K</kbd></button><button class="theme-toggle" type="button" id="theme-toggle">Use light theme</button></div></header><dialog class="search-dialog" id="global-search" aria-label="Search accounts and entities"><form class="search-dialog-head" method="dialog"><input id="global-search-input" aria-label="Account or entity" autocomplete="off" placeholder="Search accounts and entities"><button aria-label="Close search">Close</button></form><div class="search-results" id="global-search-results" aria-live="polite"></div></dialog>
-<main>
-<div class="profile-heading"><div><h1>Dao</h1></div><p>1 recorded members</p></div><p><q class="data">Sputnik DAO: &quot;grandeur&quot;</q></p><p>Registry read: get_dao_list at block 222756212, arguments {}</p><p>Observed at 2026-11-02T18:28:45Z on https://free.rpc.fastnear.com</p><h2>Members</h2><ul><li><a href="../accounts/grandeur.sputnik-dao.near.html"><q class="data">grandeur.sputnik-dao.near</q></a></li></ul>
+<a class="skip-link" href="#main-content">Skip to content</a><aside class="app-sidebar"><a class="site-brand" href="../index.html">Siyab</a><nav class="app-primary-navigation" aria-label="Primary"><a href="../index.html">Home</a><a href="../flows/rhea-collector.html">Trace</a><a href="../feed.html">Feed</a><a href="../index.html#tools">Payment checks</a><a href="../verify.html">Verify</a></nav><nav class="app-secondary-navigation" aria-label="Secondary"><a href="../index.html#explore-title">Incidents</a><a href="../entities/treasuries.html">Treasuries</a><a href="../entities/catalog.html">Catalog tokens</a><a href="../entities/infrastructure.html">Infrastructure and bridge accounts</a><a href="../entities/organisations.html">Organisations from on chain registries</a><a href="../records/index.html">Incident records</a><a href="../issuers.html">Issuers</a></nav></aside><header class="app-topbar"><a class="app-mobile-brand" href="../index.html">Siyab</a><span class="app-context">Entity</span><div class="header-actions"><button class="site-search-button" type="button" aria-label="Search accounts and entities" data-open-search><span class="site-search-label">Search accounts / entities</span><span class="site-search-short" aria-hidden="true">Search</span> <kbd class="search-key">Ctrl K</kbd></button><button class="theme-toggle" type="button" id="theme-toggle">Use light theme</button></div><details class="mobile-navigation" id="mobile-navigation"><summary>Menu</summary><div class="mobile-navigation-panel"><nav class="app-primary-navigation" aria-label="Primary"><a href="../index.html">Home</a><a href="../flows/rhea-collector.html">Trace</a><a href="../feed.html">Feed</a><a href="../index.html#tools">Payment checks</a><a href="../verify.html">Verify</a></nav><nav class="app-secondary-navigation" aria-label="Secondary"><a href="../index.html#explore-title">Incidents</a><a href="../entities/treasuries.html">Treasuries</a><a href="../entities/catalog.html">Catalog tokens</a><a href="../entities/infrastructure.html">Infrastructure and bridge accounts</a><a href="../entities/organisations.html">Organisations from on chain registries</a><a href="../records/index.html">Incident records</a><a href="../issuers.html">Issuers</a></nav></div></details></header><dialog class="search-dialog" id="global-search" aria-label="Search accounts and entities"><form class="search-dialog-head" method="dialog"><input id="global-search-input" aria-label="Account or entity" autocomplete="off" placeholder="Search accounts and entities"><button aria-label="Close search">Close</button></form><div class="search-results" id="global-search-results" aria-live="polite"></div></dialog>
+<main class="app-content" id="main-content">
+<div class="profile-heading"><div><h1>Dao</h1></div><p>1 recorded members</p></div><p><q class="data">Sputnik DAO: &quot;grandeur&quot;</q></p><div class="profile-provenance"><p>Registry read: get_dao_list at block 222756212, arguments {}</p><p>Observed at 2026-11-02T18:28:45Z on https://free.rpc.fastnear.com</p></div><h2>Members</h2><ul><li><a href="../accounts/grandeur.sputnik-dao.near.html"><q class="data">grandeur.sputnik-dao.near</q></a></li></ul>
 </main>
-<footer><p>Data: NearBlocks. Blocks: mainnet.neardata.xyz. Transfers: FastNEAR.</p></footer>
+<footer class="app-footer"><p>Data: NearBlocks. Blocks: mainnet.neardata.xyz. Transfers: FastNEAR.</p></footer>
 <script>(() => {
   "use strict";
   const toggle = document.getElementById("theme-toggle");
@@ -33,6 +33,10 @@
     catch (error) { toggle.title = "Theme choice applies to this page; browser storage is unavailable."; }
   });
   const dialog = document.getElementById("global-search");
+  const menu = document.getElementById("mobile-navigation");
+  menu.addEventListener("click", event => {
+    if (event.target.closest("a")) menu.open = false;
+  });
   const input = document.getElementById("global-search-input");
   const results = document.getElementById("global-search-results");
   let entries = null;
@@ -60,6 +64,9 @@
   };
   document.querySelectorAll("[data-open-search]").forEach(button => button.addEventListener("click", () => open()));
   document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && menu.open && !dialog.open) {
+      event.preventDefault(); menu.open = false; menu.querySelector("summary").focus();
+    }
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") { event.preventDefault(); open(); }
     if (event.key === "ArrowDown" && dialog.open && document.activeElement === input) {
       const first = results.querySelector("a"); if (first) { event.preventDefault(); first.focus(); }

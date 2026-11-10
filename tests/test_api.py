@@ -462,6 +462,10 @@ class HostedSiteTest(unittest.TestCase):
         self.assertIn("/index.html", links)
         for link in links:
             with self.subTest(link=link):
+                if link.startswith("#"):
+                    self.assertEqual(link, "#main-content")
+                    self.assertIn(b'id="main-content"', body)
+                    continue
                 self.assertTrue(link.startswith("/") and not link.startswith("//"))
                 status, content_type, _, page = get(self.server, link)
                 if link == "/style.css":

@@ -18,6 +18,10 @@
     catch (error) { toggle.title = "Theme choice applies to this page; browser storage is unavailable."; }
   });
   const dialog = document.getElementById("global-search");
+  const menu = document.getElementById("mobile-navigation");
+  menu.addEventListener("click", event => {
+    if (event.target.closest("a")) menu.open = false;
+  });
   const input = document.getElementById("global-search-input");
   const results = document.getElementById("global-search-results");
   let entries = null;
@@ -45,6 +49,9 @@
   };
   document.querySelectorAll("[data-open-search]").forEach(button => button.addEventListener("click", () => open()));
   document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && menu.open && !dialog.open) {
+      event.preventDefault(); menu.open = false; menu.querySelector("summary").focus();
+    }
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") { event.preventDefault(); open(); }
     if (event.key === "ArrowDown" && dialog.open && document.activeElement === input) {
       const first = results.querySelector("a"); if (first) { event.preventDefault(); first.focus(); }

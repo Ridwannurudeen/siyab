@@ -56,6 +56,57 @@ PHRASES = re.compile(
 HOSTILE_ROLE_WORDS = re.compile(r"\b(attacker|victim|hacker|scammer|thief|exploiter)\b", re.IGNORECASE)
 PRIVATE_FILE_PATTERNS = ("FABLE-*", "CRITIQUE-*", "RUN-*.prompt.md", "AUTO-REVIEW-*", "VOTE-*", "SAINT-*",
                          "*-handoff*")
+JSON_TOKENS = re.compile(r'"(?:[^"\\]|\\.)*"|[{}\[\]]')
+CSS_TOKENS = re.compile(
+    r'''/\*.*?(?:\*/|$)|"(?:[^"\\]|\\.)*(?:"|\\?$)|'(?:[^'\\]|\\.)*(?:'|\\?$)|[()]'''
+    r'|(?P<width>(?:^|[;{])\s*(?:max-)?width\s*:\s*)100%(?=\s*(?:!important\s*)?(?:[;}]|$))',
+    re.DOTALL | re.IGNORECASE,
+)
+
+
+def css_phrase_text(css):
+    parts, last, parentheses = [], 0, 0
+    for token in CSS_TOKENS.finditer(css):
+        if token.group() == "(":
+            parentheses += 1
+        elif token.group() == ")":
+            parentheses -= 1
+        elif token.group("width") is not None and parentheses == 0:
+            parts.append(css[last:token.start()] + token.group("width"))
+            last = token.end()
+    return "".join(parts) + css[last:]
+
+
+def design_phrase_text(text):
+    try:
+        json.loads(text, parse_constant=reject_json_constant)
+    except ValueError:
+        return text
+    decoder = json.JSONDecoder()
+    stack, replacements = [], []
+    components = None
+    for token in JSON_TOKENS.finditer(text):
+        value = token.group()
+        if value in ("{", "["):
+            stack.append((value, token.start()))
+        elif value in ("}", "]"):
+            stack.pop()
+        else:
+            field = re.match(r'\s*:\s*', text[token.end():])
+            if field is None:
+                continue
+            start = token.end() + field.end()
+            key = json.loads(value)
+            if len(stack) == 1 and key == "components" and text[start:start + 1] == "[":
+                components = start
+            elif (len(stack) == 3 and stack[1] == ("[", components) and stack[2][0] == "{"
+                  and key == "css"):
+                css, end = decoder.raw_decode(text, start)
+                if isinstance(css, str) and len(text[start:end].splitlines()) == 1:
+                    replacements.append((start, end, json.dumps(css_phrase_text(css))))
+    for start, end, replacement in reversed(replacements):
+        text = text[:start] + replacement + text[end:]
+    return text
 
 
 def git(root, *args):
@@ -78,6 +129,7 @@ def check_text(path, text):
         or path in AUTHORED_FILES
     )
     hits = []
+    phrase_lines = (design_phrase_text(text) if path == ".impeccable/design.json" else text).splitlines()
     for number, line in enumerate(text.splitlines(), start=1):
         digest_line = os.path.basename(path) == "Cargo.toml" and IMAGE_DIGEST_LINE.fullmatch(line)
         if hex_rule and HEX64.search(line) and not digest_line:
@@ -88,7 +140,7 @@ def check_text(path, text):
         if dash_rule and DASHES.search(line):
             hits.append((number, "em or en dash"))
         if phrase_rule:
-            match = PHRASES.search(line)
+            match = PHRASES.search(phrase_lines[number - 1])
             if match:
                 hits.append((number, f"forbidden phrase {match.group(0)!r}"))
         if hex128_rule and HEX128.search(line):

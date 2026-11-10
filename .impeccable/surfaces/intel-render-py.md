@@ -15,11 +15,11 @@ Scope: shared shell/search, home workspace, account/entity profiles, recorded fl
 
 THESIS: An investigation connects search to a relationship, a transaction and its evidence in one coherent workspace. Working information leads the first screen.
 
-OWN-WORLD: Deep navy chrome, cool layered surfaces, pale text, restrained blue selection and written semantic states. Precise sans text and tabular numeric columns; compact panels and consistent thin boundaries, with no decorative neon or generic hero tiles.
+OWN-WORLD: Dark navy ground, charcoal navy panels, pale text and bright teal actions and selection. Inter carries the interface; IBM Plex Mono carries identifiers and numeric columns. Compact working panels, aligned rows and thin structural boundaries carry the approved analytics-app arrangement. Written semantic states distinguish payment outcomes from navigation and selection.
 
 STORY: Find an account/entity, inspect sourced labels or a recorded investigation, select an edge/event and read the facts behind it. Payment checks remain a direct action.
 
-FIRST VIEWPORT: A compact header holds Siyab, navigation, persistent search and theme. A wide investigation canvas occupies the left work area; its selected evidence sits in a right inspector. Recorded cohort analytics and real feed health are secondary panels. At phone width the same reading order stacks with usable controls and wrapping identifiers.
+FIRST VIEWPORT: A persistent 248px desktop rail holds Siyab and the existing destinations. A 64px top bar holds route context, search and theme. The investigation canvas and adjacent evidence inspector lead the work area; paired distribution/activity panels and cohort/provenance panels follow, with follower health across the available width. At narrow widths native navigation opens from the top bar, the inspector stacks when needed for readable graph labels, and phone evidence remains labelled records with wrapping identifiers.
 
 FORM: Pinned reference convention, selected explicitly by the owner, overrides the random assignment. Signature interaction: selecting a real relationship illuminates its contributing recorded transfers and opens their evidence, with a bounded path transition and reduced-motion alternative. Graph bounds and omitted records remain visible.
 

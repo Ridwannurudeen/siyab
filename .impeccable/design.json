@@ -1,40 +1,50 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-09T23:23:22.904542+00:00",
+  "generatedAt": "2026-11-10T00:55:57.732785+00:00",
   "title": "Design System: Siyab",
   "extensions": {
     "shadows": [
       {
         "name": "search-dialog",
         "value": "0 24px 80px rgb(0 0 0/.35)",
-        "purpose": "Elevated search over a dimmed backdrop."
+        "purpose": "Search overlay."
       },
       {
         "name": "view-controls",
         "value": "0 12px 30px rgb(0 0 0/.25)",
         "purpose": "Graph view-control popover."
+      },
+      {
+        "name": "mobile-navigation",
+        "value": "0 16px 32px rgb(0 0 0/.25)",
+        "purpose": "Native navigation panel."
       }
     ],
     "motion": [
       {
         "name": "control-transition",
-        "value": "140ms",
-        "purpose": "Background and boundary response."
+        "value": "background-color 140ms,border-color 140ms",
+        "purpose": "Existing control feedback."
       },
       {
-        "name": "search-entry",
-        "value": "160ms ease-out",
-        "purpose": "Native search dialog entry."
+        "name": "search-enter",
+        "value": "160ms ease-out both",
+        "purpose": "Search dialog open. Exact keyframe: @keyframes search-enter{from{opacity:0;transform:translateY(6px) scale(.99)}to{opacity:1;transform:none}}"
       },
       {
-        "name": "inspector-entry",
-        "value": "180ms ease-out",
-        "purpose": "Evidence selection response."
+        "name": "inspector-enter",
+        "value": "180ms ease-out 1",
+        "purpose": "Declared selector requires data-changed=\"true\"; runtime attachment is not asserted. Exact keyframe: @keyframes inspector-enter{from{opacity:.65;transform:translateX(6px)}to{opacity:1;transform:none}}"
       },
       {
-        "name": "path-selection",
+        "name": "event-arrival",
+        "value": "1100ms ease-out 1",
+        "purpose": "Declared selector requires feed-event-new; runtime attachment is not asserted. Exact keyframe: @keyframes event-arrival{from{background:rgb(var(--accent)/.14)}to{background:transparent}}"
+      },
+      {
+        "name": "path-select",
         "value": "900ms ease-out 1",
-        "purpose": "Bounded selected-path emphasis."
+        "purpose": "Selected-path emphasis. Exact keyframe: @keyframes path-select{from{stroke-dasharray:4 4;stroke-dashoffset:32}to{stroke-dasharray:4 4;stroke-dashoffset:0}}"
       }
     ],
     "breakpoints": [
@@ -51,12 +61,24 @@
         "value": "900px"
       },
       {
-        "name": "wrapped-header",
+        "name": "content-stack",
         "value": "980px"
       },
       {
-        "name": "compact-desktop",
+        "name": "rail-hidden-max",
+        "value": "1099px"
+      },
+      {
+        "name": "compact-search-max",
         "value": "1180px"
+      },
+      {
+        "name": "stacked-inspector-max",
+        "value": "1279px"
+      },
+      {
+        "name": "flow-analytics-stack-max",
+        "value": "1399px"
       },
       {
         "name": "wide",
@@ -64,49 +86,81 @@
       }
     ],
     "typographyMeta": {
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "20px semibold Inter page, workspace and profile headings, with 28px leading and -0.01em tracking."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Observed stylesheet role; responsive roles apply at the documented breakpoint."
+      },
+      "panel-title": {
+        "displayName": "Panel Title",
+        "purpose": "Observed stylesheet role; responsive roles apply at the documented breakpoint."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "14px Inter interface body with 1.6 leading and +0.15px tracking; separate from the wordmark and data faces."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Observed stylesheet role; responsive roles apply at the documented breakpoint."
+      },
       "navigation": {
         "displayName": "Navigation",
-        "purpose": "Extracted from the corresponding current stylesheet role, including responsive overrides."
+        "purpose": "Observed stylesheet role; responsive roles apply at the documented breakpoint."
       },
       "brand": {
         "displayName": "Brand",
-        "purpose": "Extracted from the corresponding current stylesheet role, including responsive overrides."
+        "purpose": "Manrope semibold wordmark only: 24px desktop, independent of the Inter interface and IBM Plex Mono data roles."
       },
-      "workspace-heading": {
-        "displayName": "Workspace Heading",
-        "purpose": "Extracted from the corresponding current stylesheet role, including responsive overrides."
+      "numeric": {
+        "displayName": "Numeric",
+        "purpose": "Regular 400, 12px/18px IBM Plex Mono tabular values with +0.15px tracking and right alignment."
+      },
+      "identifier": {
+        "displayName": "Identifier",
+        "purpose": "Regular 12px IBM Plex Mono identifiers; generic inline identifiers inherit leading, while inspector IDs use the fixed 18px data leading."
       },
       "body-mobile": {
         "displayName": "Body Mobile",
-        "purpose": "Extracted from the corresponding current stylesheet role, including responsive overrides."
-      },
-      "workspace-heading-mobile": {
-        "displayName": "Workspace Heading Mobile",
-        "purpose": "Extracted from the corresponding current stylesheet role, including responsive overrides."
-      },
-      "brand-mobile": {
-        "displayName": "Brand Mobile",
-        "purpose": "Extracted from the corresponding current stylesheet role, including responsive overrides."
-      },
-      "retained-hero-heading-mobile": {
-        "displayName": "Retained Hero Heading Mobile",
-        "purpose": "Retained legacy heading stylesheet rule; current original introduction is prose."
-      },
-      "page-heading-mobile": {
-        "displayName": "Page Heading Mobile",
-        "purpose": "Extracted from the corresponding current stylesheet role, including responsive overrides."
+        "purpose": "Observed stylesheet role; responsive roles apply at the documented breakpoint."
       },
       "input-mobile": {
         "displayName": "Input Mobile",
-        "purpose": "Extracted from the corresponding current stylesheet role, including responsive overrides."
+        "purpose": "Observed stylesheet role; responsive roles apply at the documented breakpoint."
       },
-      "profile-heading": {
-        "displayName": "Profile Heading",
-        "purpose": "Extracted from the corresponding current stylesheet role, including responsive overrides."
+      "workspace-heading-mobile": {
+        "displayName": "Workspace Heading Mobile",
+        "purpose": "Workspace heading remains 20px/28px semibold Inter on small screens."
+      },
+      "brand-mobile": {
+        "displayName": "Brand Mobile",
+        "purpose": "Manrope wordmark at 20px for 760px and below; retains semibold weight and -0.035em tracking."
+      },
+      "brand-phone": {
+        "displayName": "Brand Phone",
+        "purpose": "Manrope wordmark at 18px for 480px and below; retains semibold weight and -0.035em tracking."
       },
       "source-note": {
         "displayName": "Source Note",
-        "purpose": "Extracted from the corresponding current stylesheet role, including responsive overrides."
+        "purpose": "Observed 11px interface role for compact source notes, distribution headings and phone metric labels; ordinary prose keeps its body size."
+      },
+      "graph-label": {
+        "displayName": "Graph Label",
+        "purpose": "Recorded graph account labels use 14px regular IBM Plex Mono."
+      },
+      "graph-detail": {
+        "displayName": "Graph Detail",
+        "purpose": "Recorded graph detail lines use 13px regular Inter."
+      },
+      "inspector-data": {
+        "displayName": "Inspector Data",
+        "purpose": "Account IDs and numeric counts use 12px/18px regular 400 IBM Plex Mono with +0.15px tracking."
+      },
+      "inline-value": {
+        "displayName": "Inline Value",
+        "purpose": "Inline provenance totals retain 19px semibold Inter."
       }
     }
   },
@@ -115,66 +169,77 @@
       "name": "Primary button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "A direct operational action.",
+      "description": "Direct action with dark text on bright teal.",
       "html": "<button type=\"button\" class=\"ds-primary\">Check payment</button>",
-      "css": ".ds-primary{font:inherit;border-radius:5px;min-height:36px;padding:7px 12px;cursor:pointer;background:rgb(var(--accent-fill));color:white;border:1px solid rgb(var(--accent-fill));transition:background-color 140ms,border-color 140ms}.ds-primary:hover{background:rgb(var(--accent-fill));color:white}.ds-primary:focus-visible{outline:2px solid rgb(var(--focus));outline-offset:3px;}"
+      "css": ".ds-primary{font:14px/1.6 var(--font-ui,Inter,Arial,sans-serif);display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;padding:7px 12px;border-radius:5px;cursor:pointer;text-decoration:none;transition:background-color 140ms,border-color 140ms;background:rgb(var(--accent-fill,0 255 167));color:rgb(var(--primary-ink,6 16 26));border:1px solid rgb(var(--accent-fill,0 255 167))}.ds-primary:hover{background:rgb(var(--accent-fill,0 255 167));color:rgb(var(--primary-ink,6 16 26))}.ds-primary:focus-visible{outline:2px solid rgb(var(--focus,0 255 167));outline-offset:3px}.ds-primary:disabled{opacity:.5;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-primary,.ds-secondary{transition-duration:.01ms!important}}"
     },
     {
       "name": "Secondary button",
       "kind": "button",
       "refersTo": "button-secondary",
-      "description": "An inspection or view action.",
-      "html": "<button type=\"button\" class=\"ds-secondary\">Reset view</button>",
-      "css": ".ds-secondary{font:inherit;border-radius:5px;min-height:36px;padding:7px 12px;cursor:pointer;background:rgb(var(--panel));color:rgb(var(--ink));border:1px solid rgb(var(--hairline-strong))}.ds-secondary:hover{background:rgb(var(--ground-alt));border-color:rgb(var(--edge))}.ds-secondary:focus-visible{outline:2px solid rgb(var(--focus));outline-offset:3px;}"
+      "description": "Inspection or view action.",
+      "html": "<button type=\"button\" class=\"ds-secondary\">Fit</button>",
+      "css": ".ds-secondary{font:14px/1.6 var(--font-ui,Inter,Arial,sans-serif);display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;padding:7px 12px;border-radius:5px;cursor:pointer;text-decoration:none;transition:background-color 140ms,border-color 140ms;background:rgb(var(--panel,18 28 38));color:rgb(var(--ink,242 244 245));border:1px solid rgb(var(--hairline-strong,99 119 137))}.ds-secondary:hover{background:rgb(var(--ground-alt,12 23 34));border-color:rgb(var(--edge,121 142 159))}.ds-secondary:focus-visible{outline:2px solid rgb(var(--focus,0 255 167));outline-offset:3px}.ds-secondary:disabled{opacity:.5;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-primary,.ds-secondary{transition-duration:.01ms!important}}"
     },
     {
       "name": "Search field",
       "kind": "input",
       "refersTo": "search-field",
-      "description": "A compact account or entity query.",
+      "description": "Account or entity query with a visible boundary.",
       "html": "<input class=\"ds-search\" aria-label=\"Account or entity\" placeholder=\"account.near\">",
-      "css": ".ds-search{font:inherit;min-height:40px;padding:9px 11px;border:1px solid rgb(var(--edge));border-radius:5px;background:rgb(var(--ground));color:rgb(var(--ink))}.ds-search::placeholder{color:rgb(var(--secondary));opacity:1}.ds-search:focus-visible{outline:2px solid rgb(var(--focus));outline-offset:3px;}"
+      "css": ".ds-search{font:14px/1.6 var(--font-ui,Inter,Arial,sans-serif);min-height:40px;max-width:100%;padding:9px 11px;border:1px solid rgb(var(--edge,121 142 159));border-radius:5px;background:rgb(var(--ground,6 16 26));color:rgb(var(--ink,242 244 245))}.ds-search::placeholder{color:rgb(var(--secondary,148 159 168));opacity:1}.ds-search:focus-visible{outline:2px solid rgb(var(--focus,0 255 167));outline-offset:3px}"
     },
     {
-      "name": "Navigation",
+      "name": "Sidebar navigation",
       "kind": "nav",
-      "description": "Compact source navigation.",
-      "html": "<nav class=\"ds-nav\"><a href=\"/index.html\">Home</a><a href=\"/feed.html\">Feed</a></nav>",
-      "css": ".ds-nav{display:flex;gap:22px;flex-wrap:wrap;font-size:13px}.ds-nav a{color:rgb(var(--secondary));text-decoration:none}.ds-nav a:hover{color:rgb(var(--ink))}.ds-nav a:focus-visible{outline:2px solid rgb(var(--focus));outline-offset:3px;}"
+      "refersTo": "sidebar",
+      "description": "Compact vertical destinations with a written active state.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Example destinations\"><a href=\"/index.html\" aria-current=\"page\">Home</a><a href=\"/feed.html\">Feed</a></nav>",
+      "css": ".ds-nav{display:grid;gap:4px;padding:12px;background:rgb(var(--ground,6 16 26))}.ds-nav a{font:14px/22px var(--font-ui,Inter,Arial,sans-serif);letter-spacing:.15px;display:flex;align-items:center;min-height:36px;padding:7px 12px;border-radius:6px;color:rgb(var(--secondary,148 159 168));text-decoration:none}.ds-nav a:hover{background:rgb(var(--panel,18 28 38));color:rgb(var(--ink,242 244 245))}.ds-nav a[aria-current=\"page\"]{background:rgb(var(--accent,0 255 167)/.1);color:rgb(var(--accent,0 255 167));font-weight:600}.ds-nav a:focus-visible{outline:2px solid rgb(var(--focus,0 255 167));outline-offset:3px}"
     },
     {
       "name": "Written outcome",
       "kind": "chip",
-      "description": "Semantic text with supporting outcome color.",
+      "description": "Semantic text remains authoritative over color.",
       "html": "<span class=\"ds-outcome\">ALLOW</span>",
-      "css": ".ds-outcome{display:inline-flex;padding:3px 7px;border:1px solid rgb(var(--allow)/.6);border-radius:3px;color:rgb(var(--allow-text));font:11px var(--font-code)}"
+      "css": ".ds-outcome{display:inline-flex;padding:3px 7px;border:1px solid rgb(var(--allow,52 207 130)/.6);border-radius:3px;color:rgb(var(--allow-text,100 220 157));letter-spacing:.15px;font:11px var(--font-code,\"IBM Plex Mono\",Consolas,monospace)}"
     },
     {
       "name": "Evidence panel",
       "kind": "card",
-      "description": "A flat, bounded source panel.",
-      "html": "<article class=\"ds-panel\"><h2>Recorded evidence</h2><p>Source and recording limits remain adjacent to the result.</p></article>",
-      "css": ".ds-panel{background:rgb(var(--ground-alt));color:rgb(var(--ink));border:1px solid rgb(var(--hairline));border-radius:8px;padding:18px}.ds-panel h2{font-size:14px;font-weight:600;margin:0 0 12px}.ds-panel p{color:rgb(var(--secondary));font-size:12px;margin:0}"
+      "refersTo": "data-panel",
+      "description": "Flat working surface with a restrained title and source note.",
+      "html": "<article class=\"ds-panel\"><div class=\"ds-panel-head\"><h2>Recorded evidence</h2></div><p>Source and recording limits remain adjacent to the result.</p></article>",
+      "css": ".ds-panel{font:14px/1.6 var(--font-ui,Inter,Arial,sans-serif);letter-spacing:.15px;background:rgb(var(--panel,18 28 38));color:rgb(var(--ink,242 244 245));border:1px solid rgb(var(--hairline,43 53 64));border-radius:8px;overflow:hidden}.ds-panel-head{padding:14px 16px;border-bottom:1px solid rgb(var(--hairline,43 53 64))}.ds-panel h2{font:600 16px/1.4 var(--font-ui,Inter,Arial,sans-serif);letter-spacing:-.01em;margin:0}.ds-panel p{padding:16px;margin:0;color:rgb(var(--secondary,148 159 168));font-size:12px}"
+    },
+    {
+      "name": "Numeric evidence row",
+      "kind": "custom",
+      "description": "Tabular monospace values in a bounded source table.",
+      "html": "<table class=\"ds-table\"><thead><tr><th>Evidence</th><th>Records</th></tr></thead><tbody><tr><td>Selected recording</td><td class=\"ds-num\">1</td></tr></tbody></table>",
+      "css": ".ds-table{width:100%;border-collapse:collapse;font:13px/1.6 var(--font-ui,Inter,Arial,sans-serif);letter-spacing:.15px;color:rgb(var(--ink,242 244 245));background:rgb(var(--panel,18 28 38))}.ds-table th,.ds-table td{padding:10px 12px;border-bottom:1px solid rgb(var(--hairline,43 53 64));text-align:left;vertical-align:top}.ds-table th{font-size:11px;font-weight:400;color:rgb(var(--secondary,148 159 168));background:rgb(var(--ground-alt,12 23 34))}.ds-table tbody tr:hover{background:rgb(var(--accent,0 255 167)/.035)}.ds-table .ds-num{text-align:right;font:400 12px/18px var(--font-code,\"IBM Plex Mono\",Consolas,monospace);letter-spacing:.15px;font-variant-numeric:tabular-nums}"
     }
   ],
   "narrative": {
     "northStar": "The evidence workspace",
-    "overview": "Deep navy chrome and cool layered surfaces hold precise sans text, tabular values and restrained blue selection. Written states and adjacent source detail carry meaning; color reinforces them. The light theme preserves the same hierarchy with pale surfaces and darker text.",
+    "overview": "Dark navy ground and charcoal panels carry bright teal actions and selection. Manrope gives only the Siyab wordmark its geometric character. Inter provides compact interface hierarchy; IBM Plex Mono separates identifiers and numeric data. A persistent desktop rail and a compact context header frame the work without displacing the evidence.\n\nThe light theme keeps the same structure with pale green-neutral surfaces and darker teal links. Written states, source detail and recording limits carry meaning alongside color. This document records the built visual system in intel/ui/site.css; it does not certify that every page or interaction has passed final review.",
     "keyCharacteristics": [
-      "Compact operational controls and consistent thin boundaries.",
-      "Readable identifiers, numeric columns and source panels.",
-      "Bounded selection motion with a reduced-motion alternative."
+      "Persistent desktop navigation with a compact context header.",
+      "Aligned chart and table panels with readable source detail.",
+      "Teal actions, written semantic states and preserved bounded motion."
     ],
     "rules": [],
     "dos": [
-      "Do keep source detail and recorded coverage visible beside conclusions.",
-      "Do use written semantic states alongside color.",
-      "Do preserve keyboard focus, reduced motion and reader-controlled feed updates."
+      "Do keep source detail and recording coverage beside conclusions.",
+      "Do distinguish selection from payment outcomes with written states.",
+      "Do preserve every existing motion definition, duration, Pause control and reduced-motion alternative.",
+      "Do retain full evidence and accessible textual alternatives when layouts reflow."
     ],
     "donts": [
-      "Don't turn missing USD values into zero.",
-      "Don't imply a filtered graph or truncated recording is complete.",
-      "Don't add decorative neon or generic hero tiles."
+      "Don't turn missing USD values into zero or imply a truncated recording is complete.",
+      "Don't use white text on the bright teal primary fill.",
+      "Don't add unsupported portfolios, trading controls or conversational AI claims.",
+      "Don't treat a documented motion selector as proof that its runtime trigger is attached."
     ]
   }
 }

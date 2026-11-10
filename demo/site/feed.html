@@ -8,8 +8,8 @@
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<header><a class="site-brand" href="index.html">Siyab</a><nav><a href="index.html">Home</a><a href="flows/rhea-collector.html">Trace</a><a href="feed.html">Feed</a><a href="index.html#tools">Payment checks</a><a href="verify.html">Verify</a></nav><div class="header-actions"><button class="site-search-button" type="button" data-open-search>Search accounts / entities <kbd class="search-key">Ctrl K</kbd></button><button class="theme-toggle" type="button" id="theme-toggle">Use light theme</button></div></header><dialog class="search-dialog" id="global-search" aria-label="Search accounts and entities"><form class="search-dialog-head" method="dialog"><input id="global-search-input" aria-label="Account or entity" autocomplete="off" placeholder="Search accounts and entities"><button aria-label="Close search">Close</button></form><div class="search-results" id="global-search-results" aria-live="polite"></div></dialog>
-<main>
+<a class="skip-link" href="#main-content">Skip to content</a><aside class="app-sidebar"><a class="site-brand" href="index.html">Siyab</a><nav class="app-primary-navigation" aria-label="Primary"><a href="index.html">Home</a><a href="flows/rhea-collector.html">Trace</a><a href="feed.html" aria-current="page">Feed</a><a href="index.html#tools">Payment checks</a><a href="verify.html">Verify</a></nav><nav class="app-secondary-navigation" aria-label="Secondary"><a href="index.html#explore-title">Incidents</a><a href="entities/treasuries.html">Treasuries</a><a href="entities/catalog.html">Catalog tokens</a><a href="entities/infrastructure.html">Infrastructure and bridge accounts</a><a href="entities/organisations.html">Organisations from on chain registries</a><a href="records/index.html">Incident records</a><a href="issuers.html">Issuers</a></nav></aside><header class="app-topbar"><a class="app-mobile-brand" href="index.html">Siyab</a><span class="app-context">Feed</span><div class="header-actions"><button class="site-search-button" type="button" aria-label="Search accounts and entities" data-open-search><span class="site-search-label">Search accounts / entities</span><span class="site-search-short" aria-hidden="true">Search</span> <kbd class="search-key">Ctrl K</kbd></button><button class="theme-toggle" type="button" id="theme-toggle">Use light theme</button></div><details class="mobile-navigation" id="mobile-navigation"><summary>Menu</summary><div class="mobile-navigation-panel"><nav class="app-primary-navigation" aria-label="Primary"><a href="index.html">Home</a><a href="flows/rhea-collector.html">Trace</a><a href="feed.html" aria-current="page">Feed</a><a href="index.html#tools">Payment checks</a><a href="verify.html">Verify</a></nav><nav class="app-secondary-navigation" aria-label="Secondary"><a href="index.html#explore-title">Incidents</a><a href="entities/treasuries.html">Treasuries</a><a href="entities/catalog.html">Catalog tokens</a><a href="entities/infrastructure.html">Infrastructure and bridge accounts</a><a href="entities/organisations.html">Organisations from on chain registries</a><a href="records/index.html">Incident records</a><a href="issuers.html">Issuers</a></nav></div></details></header><dialog class="search-dialog" id="global-search" aria-label="Search accounts and entities"><form class="search-dialog-head" method="dialog"><input id="global-search-input" aria-label="Account or entity" autocomplete="off" placeholder="Search accounts and entities"><button aria-label="Close search">Close</button></form><div class="search-results" id="global-search-results" aria-live="polite"></div></dialog>
+<main class="app-content" id="main-content">
 <article class="analytics-panel"><div class="analytics-panel-head"><h2>Follower health</h2><a href="/feed.html">Open feed</a></div><div class="workspace-panel-body" id="feed-health" aria-live="polite"><p>Reading follower state. Live data may be unavailable on a static copy.</p></div><div class="workspace-panel-body"><button id="feed-pause" type="button">Pause updates</button> <button id="feed-apply" type="button" hidden>Show new events</button><div id="feed-events"></div></div></article><h1>Feed over finalized mainnet blocks</h1>
 <p>Recorded window: blocks 222138899 to 222139198, read on 2026-10-29 UTC. The follower snapshot <code>intel/feed/follow-snapshot.json</code> covers 64697 blocks from height 222910582 to height 222975380.</p>
 <ul><li>start 2026-10-29T14:51:35Z at block 222138899</li><li>last 2026-10-29T14:54:33Z at block 222139198</li><li>blocks 300, skipped heights 0</li><li>code_hash_matches_incident 0</li><li>fresh_dust_funded_pays_labelled 0</li><li>watch_account_key_added 0</li><li>labelled_account_large_transfer 0</li><li>deploy_on_labelled_contract 0</li><li>full_access_key_then_outflow 0</li></ul>
@@ -90,7 +90,7 @@
 })();
 </script>
 </main>
-<footer><p>Data: NearBlocks. Blocks: mainnet.neardata.xyz. Transfers: FastNEAR.</p></footer>
+<footer class="app-footer"><p>Data: NearBlocks. Blocks: mainnet.neardata.xyz. Transfers: FastNEAR.</p></footer>
 <script>(() => {
   "use strict";
   const toggle = document.getElementById("theme-toggle");
@@ -111,6 +111,10 @@
     catch (error) { toggle.title = "Theme choice applies to this page; browser storage is unavailable."; }
   });
   const dialog = document.getElementById("global-search");
+  const menu = document.getElementById("mobile-navigation");
+  menu.addEventListener("click", event => {
+    if (event.target.closest("a")) menu.open = false;
+  });
   const input = document.getElementById("global-search-input");
   const results = document.getElementById("global-search-results");
   let entries = null;
@@ -138,6 +142,9 @@
   };
   document.querySelectorAll("[data-open-search]").forEach(button => button.addEventListener("click", () => open()));
   document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && menu.open && !dialog.open) {
+      event.preventDefault(); menu.open = false; menu.querySelector("summary").focus();
+    }
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") { event.preventDefault(); open(); }
     if (event.key === "ArrowDown" && dialog.open && document.activeElement === input) {
       const first = results.querySelector("a"); if (first) { event.preventDefault(); first.focus(); }

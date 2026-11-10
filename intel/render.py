@@ -143,21 +143,41 @@ def page(title, body, depth=0, rooted=False, *, inert=False):
     """A whole HTML page; depth is how many directories below the site root it sits, and a rooted page
     links root absolute because it is served at any path."""
     up = "/" if rooted else "../" * depth
-    nav = "".join(f'<a href="{up}{href}">{label}</a>' for href, label in (
-        ("index.html", "Home"), ("flows/rhea-collector.html", "Trace"), ("feed.html", "Feed"), ("index.html#tools", "Payment checks"), ("verify.html", "Verify")))
+    current = {"Siyab": "index.html", "Feed": "feed.html", "Verify a record": "verify.html",
+               "Incident records": "records/index.html", "Issuer actions": "issuers.html",
+               **{label: f"entities/{name}.html" for name, label, _ in ENTITY_SETS}}.get(title)
+    primary = (("index.html", "Home"), ("flows/rhea-collector.html", "Trace"), ("feed.html", "Feed"),
+               ("index.html#tools", "Payment checks"), ("verify.html", "Verify"))
+    secondary = (("index.html#explore-title", "Incidents"),
+                 *((f"entities/{name}.html", label) for name, label, _ in ENTITY_SETS),
+                 ("records/index.html", "Incident records"), ("issuers.html", "Issuers"))
+    navigation = []
+    for name, links in (("primary", primary), ("secondary", secondary)):
+        items = "".join(f'<a href="{up}{href}"' + (' aria-current="page"' if href == current else "")
+                        + f'>{esc(label)}</a>' for href, label in links)
+        navigation.append(f'<nav class="app-{name}-navigation" aria-label="{name.title()}">{items}</nav>')
+    nav = "".join(navigation)
     shell = "" if inert else (ROOT / "intel/ui/shell.js").read_text(encoding="utf-8")
-    search = (f'<a class="site-search-link" href="{up}index.html#search">Search accounts / entities</a>' if inert else
-              '<button class="site-search-button" type="button" data-open-search>Search accounts / entities <kbd class="search-key">Ctrl K</kbd></button>'
+    search_label = '<span class="site-search-label">Search accounts / entities</span><span class="site-search-short" aria-hidden="true">Search</span>'
+    search = (f'<a class="site-search-link" aria-label="Search accounts and entities" href="{up}index.html#search">{search_label}</a>' if inert else
+              f'<button class="site-search-button" type="button" aria-label="Search accounts and entities" data-open-search>{search_label} <kbd class="search-key">Ctrl K</kbd></button>'
               '<button class="theme-toggle" type="button" id="theme-toggle">Use light theme</button>')
     dialog = "" if inert else (
         '<dialog class="search-dialog" id="global-search" aria-label="Search accounts and entities">'
         '<form class="search-dialog-head" method="dialog"><input id="global-search-input" aria-label="Account or entity" autocomplete="off" placeholder="Search accounts and entities">'
         '<button aria-label="Close search">Close</button></form><div class="search-results" id="global-search-results" aria-live="polite"></div></dialog>')
+    content_class = "app-content record-content" if inert else "app-content"
     return ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"
             f"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n{ROBOTS}"
             f"<title>{esc(title)}</title>\n<link rel=\"stylesheet\" href=\"/style.css\">\n</head>\n<body>\n"
-            f'<header><a class="site-brand" href="{up}index.html">Siyab</a><nav>{nav}</nav><div class="header-actions">{search}</div></header>{dialog}\n<main>\n{body}\n</main>\n'
-            "<footer><p>Data: NearBlocks. Blocks: mainnet.neardata.xyz. Transfers: FastNEAR.</p></footer>\n"
+            '<a class="skip-link" href="#main-content">Skip to content</a>'
+            f'<aside class="app-sidebar"><a class="site-brand" href="{up}index.html">Siyab</a>{nav}</aside>'
+            f'<header class="app-topbar"><a class="app-mobile-brand" href="{up}index.html">Siyab</a>'
+            f'<span class="app-context">{esc("Investigate" if title == "Siyab" else title)}</span>'
+            f'<div class="header-actions">{search}</div>'
+            f'<details class="mobile-navigation" id="mobile-navigation"><summary>Menu</summary><div class="mobile-navigation-panel">{nav}</div></details>'
+            f'</header>{dialog}\n<main class="{content_class}" id="main-content">\n{body}\n</main>\n'
+            '<footer class="app-footer"><p>Data: NearBlocks. Blocks: mainnet.neardata.xyz. Transfers: FastNEAR.</p></footer>\n'
             f'{"<script>" + shell + "</script>" if shell else ""}</body>\n</html>\n')
 
 
@@ -265,14 +285,14 @@ def _workspace(flows, clusters, store, summary):
             '<button type="submit" data-workspace-search>Investigate</button></form>'
             '<noscript><p>Browse <a href="entities/infrastructure.html">infrastructure accounts</a>, <a href="entities/organisations.html">organisations</a> and the <a href="#explore-title">recorded investigations</a>.</p></noscript>'
             f'<p class="workspace-context">Recorded mainnet investigation. {graph_link}</p>'
-            + graph_view + (_flow_analytics(flows[0][1], accounts) if flows else "") + '<div class="analytics-grid"><article class="analytics-panel">'
+            + graph_view + (_flow_analytics(flows[0][1], accounts) if flows else "") + '<div class="analytics-grid workspace-cohorts"><article class="analytics-panel">'
             '<div class="analytics-panel-head"><h2>Recorded receiver cohort</h2><a href="top-receivers.html">Sources and limits</a></div>'
             f'<div class="analytics-chart">{cohort}</div><p class="analytics-note">Recorded receiver judgements, not a rate over all NEAR payees.</p></article>'
             '<article class="analytics-panel"><div class="analytics-panel-head"><h2>Current label provenance</h2>'
             '<a href="#explore-title">Explore sources</a></div>'
             f'<div class="analytics-chart">{bars(sorted(provenance.items()), total)}</div>'
-            '<p class="analytics-note">Current assertions in the committed label store. Inferred labels remain hypotheses.</p></article>'
-            + _feed_panel() + '</div></section><script>'
+            '<p class="analytics-note">Current assertions in the committed label store. Inferred labels remain hypotheses.</p></article></div>'
+            + _feed_panel() + '</section><script>'
             + (ROOT / "intel/ui/feed.js").read_text(encoding="utf-8") + '</script>')
 
 
@@ -292,7 +312,7 @@ def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVE
          "fixtures/runs/registry-readback-20261107.txt"),
     )
     proof_cards = "".join(
-        f'<article class="proof-card"><p class="eyebrow">Testnet record</p><h3>{esc(title)}</h3>'
+        f'<article class="proof-card"><h3>{esc(title)}</h3><p class="muted">Testnet record</p>'
         f'<p>{esc(description)}</p><a href="{GITHUB_REPO}/blob/main/{path}" rel="noopener">'
         f'<span class="mono">{esc(path)}</span></a></article>'
         for title, description, path in proofs)
@@ -314,9 +334,8 @@ def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVE
                   if top_summary else "")
     body = (
         '<section class="hero-grid" aria-labelledby="payment-introduction"><div class="hero-copy">'
-        '<div class="hero-topline"><p class="eyebrow">NEAR PAYMENT PREFLIGHT</p>'
-        '</div>'
         f'<p id="payment-introduction">{esc(HEADLINE)}</p>'
+        '<div class="hero-topline"><p class="muted">NEAR PAYMENT PREFLIGHT</p></div>'
         '<p class="lede">Every answer names its source. ALLOW, ASK and DENY are the outcomes. Only an ALLOW is signed, and the Gate contract enforces it.</p>'
         '<div class="outcomes" aria-label="Verdict outcomes"><span class="outcome allow">ALLOW</span>'
         '<span class="outcome ask">ASK</span><span class="outcome deny">DENY</span></div>'
@@ -326,13 +345,13 @@ def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVE
         '<label for="account-amount">Amount in NEAR<input id="account-amount" name="amount" type="text" '
         'inputmode="decimal" value="1" required></label><button class="primary" type="submit">Check account</button>'
         '<div id="account-labels" class="account-results" aria-live="polite"></div></form></section>'
-        '<section aria-labelledby="account-results-title"><div class="section-head"><div><p class="eyebrow">Live read</p>'
-        '<h2 id="account-results-title">Payment and key checks</h2></div></div><div class="live-grid">'
+        '<section aria-labelledby="account-results-title"><div class="section-head"><div>'
+        '<h2 id="account-results-title">Payment and key checks</h2><p class="muted">Live read</p></div></div><div class="live-grid">'
         '<article class="panel"><h3>Live verdict</h3><p class="muted">A live read runs when you submit an account.</p>'
         '<div id="account-verdict" class="results" aria-live="polite"></div></article>'
         '<article class="panel"><h3>Access key scan</h3><p class="muted">Key findings are a read, not a payment verdict.</p>'
         '<div id="account-scan" class="results" aria-live="polite"></div></article></div></section>'
-        '<section id="tools" aria-labelledby="tools-title"><p class="eyebrow">Live tools</p><h2 id="tools-title">Run a check</h2>'
+        '<section id="tools" aria-labelledby="tools-title"><h2 id="tools-title">Run a check</h2><p class="muted">Live tools</p>'
         '<div class="tool-tabs" role="tablist" aria-label="Live check tools">'
         '<button type="button" role="tab" id="tab-verdict" aria-controls="panel-verdict" aria-selected="true">Can I pay this?</button>'
         f'<button type="button" role="tab" id="tab-scan" aria-controls="panel-scan" aria-selected="false">{esc(scan_tool_label)}</button>'
@@ -355,9 +374,9 @@ def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVE
         '<label for="intent-amount">Amount in base units<input id="intent-amount" name="amount" type="text" '
         'inputmode="numeric" required></label><button class="primary" type="submit">Check destination</button></form>'
         '<div id="tool-intent-result" class="results" aria-live="polite"></div></section></section>'
-        '<section aria-labelledby="proof-title"><p class="eyebrow">Committed run logs</p><h2 id="proof-title">Proven on testnet</h2>'
+        '<section aria-labelledby="proof-title"><h2 id="proof-title">Proven on testnet</h2><p class="muted">Committed run logs</p>'
         f'<div class="proof-grid">{proof_cards}</div></section>'
-        '<section aria-labelledby="reports-title"><p class="eyebrow">Community reports</p><h2 id="reports-title">Reports with evidence</h2>'
+        '<section aria-labelledby="reports-title"><h2 id="reports-title">Reports with evidence</h2><p class="muted">Community reports</p>'
         '<div class="report-tools"><article class="panel"><h3>Recent reports</h3><div id="recent-reports" class="report-list" '
         'aria-live="polite"></div></article><article class="panel"><h3>Look up a subject</h3>'
         '<form class="report-form" id="report-lookup-form"><label for="report-subject">NEAR account'
@@ -366,10 +385,10 @@ def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVE
         '<article class="panel"><h3>How to report</h3><p>Use the documented testnet command with a reports account, subject, kind, outcome, evidence hash and evidence URL.</p>'
         '<code>scripts/report.sh &lt;reports_account&gt; &lt;subject&gt; &lt;kind&gt; &lt;outcome&gt; &lt;evidence_sha256&gt; &lt;evidence_url&gt;</code>'
         '<p class="muted">Browser wallet signing for reports is out of scope.</p></article></section>'
-        '<section aria-labelledby="receivers-title"><div class="section-head"><div><p class="eyebrow">Mainnet judgement set</p>'
-        f'<h2 id="receivers-title">Top receivers</h2><p class="muted">{esc(top_state)}</p>{top_counts}</div>'
+        '<section aria-labelledby="receivers-title"><div class="section-head"><div>'
+        f'<h2 id="receivers-title">Top receivers</h2><p class="muted">Mainnet judgement set</p><p class="muted">{esc(top_state)}</p>{top_counts}</div>'
         '<a class="button" href="top-receivers.html">Open aggregate results</a></div></section>'
-        '<section aria-labelledby="explore-title"><p class="eyebrow">Committed intelligence</p><h2 id="explore-title">Explore</h2>'
+        '<section aria-labelledby="explore-title"><h2 id="explore-title">Explore</h2><p class="muted">Committed intelligence</p>'
         '<div class="explore-grid">'
         '<article class="explore-card"><h3>Feed</h3><p>Recorded blocks and events.</p><a href="feed.html">Open feed</a></article>'
         '<article class="explore-card"><h3>Verify</h3><p>Compare a registry record with its evidence hash.</p><a href="verify.html">Verify a record</a></article>'
@@ -384,7 +403,7 @@ def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVE
         '<div class="coverage"><details><summary>Committed data counts</summary><p>' + esc(COUNTS_OF) + '</p>'
         f'<div class="card">{counts}</div><p class="muted">Every count is read from committed files by '
         '<code>scripts/counts.py</code>.</p></details></div></section>'
-        '<section class="limits" aria-labelledby="limits-title"><p class="eyebrow">Scope and limits</p><h2 id="limits-title">What these reads mean</h2>'
+        '<section class="limits" aria-labelledby="limits-title"><h2 id="limits-title">What these reads mean</h2><p class="muted">Scope and limits</p>'
         '<ul><li>The Gate and Reports contracts shown here run on testnet. Live verdict, scan and swap checks read mainnet.</li>'
         '<li>8 Nov demonstration configuration: One team moderator today.</li>'
         f'<li>Label store size: {label_count["assertions"]} assertions over {label_count["subjects"]} subjects.</li>'
@@ -596,8 +615,8 @@ def account_page(subject, store, accounts, incidents, flows, clusters, events_di
     body = (f'<div class="profile-heading"><div><h1>Account</h1>'
             f'<p class="mono"><q class="data">{esc(subject)}</q></p></div>'
             '<a class="button" href="/index.html#tools">Payment and key checks</a></div>'
-            f'<section class="workspace-panel"><div class="workspace-panel-head"><h2>Recorded evidence overview</h2></div>'
-            f'<div class="workspace-panel-body analytics-inline">{overview}</div>'
+            f'<section class="workspace-panel profile-overview"><div class="workspace-panel-head"><h2>Recorded evidence overview</h2></div>'
+            f'<div class="workspace-panel-body analytics-inline profile-provenance">{overview}</div>'
             '<p class="analytics-note">Current label assertions by provenance. These records do not establish a live balance or payment result.</p></section>'
             f'<h2>Current label rows from sources and chain reads</h2><div class="table"><table class="account-assertions" role="table"><thead role="rowgroup"><tr role="row">'
             f'<th scope="col" role="columnheader">Chain</th><th scope="col" role="columnheader">Label</th><th scope="col" role="columnheader">Category</th><th scope="col" role="columnheader">Provenance</th><th scope="col" role="columnheader">Note</th><th scope="col" role="columnheader">Source</th></tr>'
@@ -657,9 +676,9 @@ def registry_entity_page(entity, accounts):
             f'<h1>{esc(entity["kind"].replace("_", " ").title())}</h1></div>'
             f'<p>{len(entity["members"])} recorded members</p></div>'
             f'<p><q class="data">{esc(entity["name"])}</q></p>'
-            f'<p>Registry read: {esc(source["method"])} at block {source["block"]}, '
+            f'<div class="profile-provenance"><p>Registry read: {esc(source["method"])} at block {source["block"]}, '
             f'arguments {esc(json.dumps(source["args"], sort_keys=True))}</p>'
-            f'<p>Observed at {esc(entity["observed_at"])} on {esc(source["rpc"])}</p>'
+            f'<p>Observed at {esc(entity["observed_at"])} on {esc(source["rpc"])}</p></div>'
             f'<h2>Members</h2><ul>{members}</ul>')
     return page("Entity", body, depth=1)
 
@@ -696,8 +715,8 @@ def cluster_page(name, document, accounts):
                f'{_linked(depositors["collector"], esc(depositors["collector"]), accounts)}</span> '
                f'since {esc(depositors["since"])}, {depositors["implicit_count"]} of them implicit accounts; the '
                "cluster file counts them and lists none.</p>")
-    body = (f"<h1>Account relationship edges: {esc(name)}</h1><p>{esc(document['standard'])}</p>"
-            f"<h2>Seeds</h2><p>{len(document['seeds'])} seeds, each with a current incident label in the label "
+    context = f"<h1>Account relationship edges: {esc(name)}</h1><p>{esc(document['standard'])}</p>"
+    body = (f"<h2>Seeds</h2><p>{len(document['seeds'])} seeds, each with a current incident label in the label "
             f"store.</p><ul>{seeds}</ul>"
             "<h2>Edges from chain reads</h2>" + ("".join(_edge_card(edge, facts, accounts) for edge in chain)
                                                  or "<p>No edge from chain reads.</p>") +
@@ -707,7 +726,7 @@ def cluster_page(name, document, accounts):
             f"<h2>Precision</h2><ul>{precision}</ul><h2>Depositors</h2>{counted}"
             f"<p class=\"muted\">Read {esc(document['fetched_at'])}. docs/CLUSTER.md states the heuristics and their "
             "limits.</p>")
-    return page(f"Account relationship edges: {name}", _graph_section(graph.cluster_payload(document, accounts), f"/clusters/{name}.html") + body, depth=1)
+    return page(f"Account relationship edges: {name}", context + _graph_section(graph.cluster_payload(document, accounts), f"/clusters/{name}.html") + body, depth=1)
 
 
 def _hop_card(hop, accounts):
@@ -734,13 +753,23 @@ def _flow_timeline(document):
 
 def _flow_analytics(document, accounts):
     shares = document["shares"]
-    distribution = "".join(
-        f'<div class="analytics-row" data-share-bucket="{index}" data-usd="{esc(bucket["usd"])}">'
-        f'<span class="analytics-label">{_subject_cell(bucket["to"], accounts).replace('href="../', 'href="/')}'
-        f'<small>{esc(bucket["kind"])}; {Decimal(bucket["usd"]):,.2f} USD; {bucket["count"]} rows</small></span>'
-        f'<div class="analytics-track"><div class="analytics-fill" style="width:{max(0, min(100, float(bucket["percent"]))):.2f}%"></div></div>'
-        f'<strong class="num">{esc(bucket["percent"])}%</strong></div>'
-        for index, bucket in enumerate(shares["buckets"]))
+    distribution_rows = []
+    for index, bucket in enumerate(shares["buckets"]):
+        label = _subject_cell(bucket["to"], accounts).replace('href="../', 'href="/')
+        full_account = ""
+        if re.fullmatch(r"[0-9a-f]{64}", bucket["to"]):
+            full_account = f'<details class="analytics-full-account"><summary>Full identifier</summary>{label}</details>'
+            short = bucket["to"][:12] + "…" + bucket["to"][-10:]
+            label = _linked(bucket["to"], f'<q class="data">{esc(short)}</q>', accounts).replace('href="../', 'href="/')
+        distribution_rows.append(
+            f'<div class="analytics-row analytics-distribution-row" data-share-bucket="{index}" data-usd="{esc(bucket["usd"])}">'
+            f'<div class="analytics-counterparty">{label}<small>{esc(bucket["kind"])}</small>{full_account}</div>'
+            f'<span class="analytics-usd num"><span class="cell-label" aria-hidden="true">USD</span>{Decimal(bucket["usd"]):,.2f} USD</span>'
+            f'<span class="analytics-count num"><span class="cell-label" aria-hidden="true">Rows</span>{bucket["count"]} rows</span>'
+            f'<strong class="analytics-share num"><span class="cell-label" aria-hidden="true">Share</span>{esc(bucket["percent"])}%</strong>'
+            f'<div class="analytics-track"><div class="analytics-fill" style="width:{max(0, min(100, float(bucket["percent"]))):.2f}%"></div></div>'
+            '</div>')
+    distribution = "".join(distribution_rows)
     below, unknown = shares["below_min_usd"], shares["without_usd"]
     units = ", ".join(f"{amount} of {asset}" for asset, amount in unknown["base_units"].items()) or "none recorded"
     timeline = _flow_timeline(document)
@@ -752,15 +781,25 @@ def _flow_analytics(document, accounts):
         bars, rows = [], []
         for index, row in enumerate(timeline):
             height = 100 * row["count"] / maximum
-            bars.append(f'<rect x="{index * 40 + 3}" y="{110 - height:.3f}" width="34" height="{height:.3f}">'
+            bars.append(f'<rect x="{index * 40 + 3}" y="{100 - height:.3f}" width="34" height="{height:.3f}">'
                         f'<title>{row["count"]} transfers</title></rect>')
             rows.append(f'<tr data-from-ns="{row["from_ns"]}" data-to-ns="{row["to_ns"]}">'
                         f'<td>{utc(row["from_ns"], True)}</td><td>{utc(row["to_ns"], True)}</td><td class="num">{row["count"]}</td></tr>')
         total = sum(row["count"] for row in timeline)
+        first, last = timeline[0]["from_ns"], timeline[-1]["to_ns"] - 1
+        ticks = []
+        for stamp in (first, first + (last - first) // 2, last):
+            instant = datetime.fromtimestamp(stamp // 1000000000, UTC)
+            ticks.append(f'<time datetime="{instant.strftime("%Y-%m-%dT%H:%M:%SZ")}">{instant.strftime("%Y-%m-%d")}<br>{instant.strftime("%H:%M")} UTC</time>')
+        gridlines = ''.join(f'<line class="analytics-gridline" x1="0" x2="{len(timeline) * 40}" y1="{level}" y2="{level}"/>'
+                            for level in (0, 50, 100))
         chart = (f'<p class="analytics-note">{total} root outbound transfers from {utc(timeline[0]["from_ns"])} '
                  f'to {utc(timeline[-1]["to_ns"] - 1)}. Counts include rows with unknown USD; deeper hops are excluded.</p>'
-                 f'<svg class="analytics-histogram" viewBox="0 0 {len(timeline) * 40} 120" role="img" aria-label="Recorded root outbound transfer counts">'
-                 f'<title>{total} recorded transfers in {len(timeline)} time bins</title>{"".join(bars)}</svg>'
+                 '<div class="analytics-timeline-chart">'
+                 f'<div class="analytics-count-axis" aria-label="Transfer count scale"><span>{maximum}</span><span>{(maximum + 1) // 2}</span><span>0</span></div>'
+                 f'<svg class="analytics-histogram" viewBox="0 0 {len(timeline) * 40} 100" preserveAspectRatio="none" role="img" aria-label="Recorded root outbound transfer counts">'
+                 f'<title>{total} recorded transfers in {len(timeline)} time bins</title>{gridlines}{"".join(bars)}</svg>'
+                 f'<div class="analytics-time-axis">{"".join(ticks)}</div></div>'
                  '<details class="analytics-bin-values"><summary>Exact time bounds and transfer counts</summary>'
                  '<p>Bins include their start and exclude their end; nanosecond bounds come from recorded block timestamps.</p>'
                  '<div class="table"><table><thead><tr><th>From UTC (inclusive)</th><th>To UTC (exclusive)</th><th>Transfers</th></tr></thead>'
@@ -772,7 +811,8 @@ def _flow_analytics(document, accounts):
             f'<p class="analytics-note">Full recorded dataset, not the current graph filter. Denominator: {Decimal(shares["direct_outbound_usd"]):,.2f} USD '
             f'across {shares["rows"]} root outbound rows valued at or above {esc(shares["min_usd"])} USD by the Transfers API. '
             'Deeper hops are excluded; this is gross transfer value, not loss.</p>'
-            f'<div class="analytics-chart">{distribution or "<p>No direct outbound rows meet the USD threshold.</p>"}</div>'
+            '<div class="analytics-chart"><div class="analytics-distribution-head" aria-hidden="true"><span>Counterparty</span><span>USD</span><span>Rows</span><span>Share</span></div>'
+            f'{distribution or "<p>No direct outbound rows meet the USD threshold.</p>"}</div>'
             f'<p class="analytics-note">{below["count"]} rows below {esc(shares["min_usd"])} USD: {Decimal(below["usd"]):,.2f} USD, counted separately. '
             f'{unknown["count"]} rows without a USD amount; their value is unknown, not zero. Base units: {esc(units)}.</p></article>'
             '<article class="analytics-panel"><div class="analytics-panel-head"><h2>Recorded transfer activity</h2></div>'
@@ -815,8 +855,8 @@ def flow_page(document, accounts, *, evidence_url=None):
         hops = [hop for hop, d in zip(document["hops"], depths) if d == depth]
         groups.append(f"<h2>Depth {depth}: {len(hops)} hops</h2>" + "".join(_hop_card(hop, accounts) for hop in hops))
     window = document["window"]
-    body = (f'<h1>Exit trace</h1><p class="mono">{_linked(document["subject"], esc(document["subject"]), accounts)}</p>'
-            f'<div class="card summary"><p>{data_text(trace.summary(document))}</p><p class="muted">Read '
+    context = f'<h1>Exit trace</h1><p class="mono">{_linked(document["subject"], esc(document["subject"]), accounts)}</p>'
+    body = (f'<div class="card summary"><p>{data_text(trace.summary(document))}</p><p class="muted">Read '
             f'{esc(document["fetched_at"])}.</p></div>'
             f"<p>The window starts at {esc(window['from'])}, {esc(window['rule'])} {esc(window['incident_date'])}; "
             "older outbound rows are outside it.</p>"
@@ -826,7 +866,7 @@ def flow_page(document, accounts, *, evidence_url=None):
             "<h2>The subject at a block</h2>" + _state_card(document["state_at_block"]) +
             "<p class=\"muted\">Only an account that carries an incident label is traced. Each card is one transfer "
             "read from the FastNEAR Transfers API.</p>" + "".join(groups))
-    return page("Exit trace", _graph_section(graph.flow_payload(document, accounts), evidence_url) + _flow_analytics(document, accounts) + body, depth=1)
+    return page("Exit trace", context + _graph_section(graph.flow_payload(document, accounts), evidence_url) + _flow_analytics(document, accounts) + body, depth=1)
 
 
 def _status_reads(reads):

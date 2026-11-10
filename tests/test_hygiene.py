@@ -106,6 +106,63 @@ class PrivatePlanningFileTest(unittest.TestCase):
                 self.assertEqual(self.hygiene.check_bytes(path, b""), [(1, "private planning file")])
 
 
+class DesignCssPhraseTest(unittest.TestCase):
+    def setUp(self):
+        self.hygiene = load()
+
+    def document(self, css, **fields):
+        return json.dumps({"components": [{"css": css}], **fields}, indent=2).replace("PERCENT", "100" + "%")
+
+    def test_numeric_width_declarations_in_component_css_pass(self):
+        text = self.document('.example{width:PERCENT;max-width:PERCENT;color:red}')
+        self.assertFalse(self.hygiene.check_text(".impeccable/design.json", text))
+
+    def test_prose_and_css_strings_comments_and_other_phrases_still_fail(self):
+        for text in (
+            self.document('.example{width:PERCENT}', narrative="PERCENT accurate"),
+            self.document('.example{width:PERCENT}', description="PERCENT accurate"),
+            self.document('.example{content:"PERCENT accurate"}'),
+            self.document('.example{content:"width:PERCENT"}'),
+            self.document('.example{/*width:PERCENT*/}'),
+            self.document('.example{/* {width:PERCENT}'),
+            self.document('.example{content:"{width:PERCENT}'),
+            self.document('.example{width:PERCENT accurate}'),
+            self.document('.example{width:PERCENT;content:"trust' + 'less"}'),
+            self.document('.example{width:PERCENT}', narrative={"css": '.example{width:PERCENT}'}),
+            self.document('.example{background:url(data:text/plain,{width:PERCENT})}'),
+            self.document('.example{background:var(--fallback,{width:PERCENT})}'),
+        ):
+            with self.subTest(text=text):
+                self.assertTrue(self.hygiene.check_text(".impeccable/design.json", text))
+
+    def test_other_paths_and_malformed_json_keep_the_phrase_rule(self):
+        text = self.document('.example{width:PERCENT}')
+        self.assertTrue(self.hygiene.check_text("docs/design.json", text))
+        self.assertTrue(self.hygiene.check_text(".impeccable/design.json", text[:-1]))
+
+    def test_secret_checks_still_scan_the_original_json(self):
+        text = self.document('.example{width:PERCENT}', **{"private_" + "key": "synthetic"})
+        hits = self.hygiene.check_text(".impeccable/design.json", text)
+        self.assertTrue(any(reason == "secret_key or private_key value" for _, reason in hits))
+
+    def test_literal_line_separators_fail_closed_without_changing_line_numbers(self):
+        text = self.document('.example{width:PERCENT;content:"a\u2028b"}').replace("\\u2028", "\u2028")
+        self.assertEqual(self.hygiene.check_text(".impeccable/design.json", text),
+                         [(4, "forbidden phrase '" + "100" + "%'")])
+
+    def test_non_json_constants_do_not_enable_css_exemptions(self):
+        for value in ("NaN", "Infinity", "-Infinity"):
+            text = self.document('.example{width:PERCENT}', other=0).replace('"other": 0', '"other": ' + value)
+            with self.subTest(value=value):
+                self.assertTrue(self.hygiene.check_text(".impeccable/design.json", text))
+
+    def test_dangling_escape_inside_unclosed_css_strings_still_fails(self):
+        for quote in ('"', "'"):
+            text = self.document('.example{content:' + quote + '{width:PERCENT;' + chr(92))
+            with self.subTest(quote=quote):
+                self.assertTrue(self.hygiene.check_text(".impeccable/design.json", text))
+
+
 class ImageDigestTest(unittest.TestCase):
     def setUp(self):
         self.hygiene = load()
