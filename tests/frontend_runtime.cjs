@@ -82,12 +82,23 @@ async function main() {
     await env.reply(0, {accounts: [{subject: 'victim.near', labels: [], label_sources: [], url: '/evil.example/path'}], entities: []});
     if (scenario === 'url-index') { env.nodes['account-input'].value = 'victim.near'; env.nodes['account-input'].emit('input'); }
     const target = env.nodes[scenario === 'url-index' ? 'account-labels' : 'global-search-results'];
-    assert.equal(target.querySelectorAll('a').length, 0, 'Malformed path must not become a link');
+    const links = target.querySelectorAll('a');
+    if (scenario === 'url-shell') {
+      assert.equal(links.length, 1, 'A valid mainnet query remains investigable when the recorded index is rejected');
+      assert.equal(links[0].href, '/investigate.html?account=victim');
+      assert.equal(links[0].children[0].textContent, 'Investigate victim');
+    } else assert.equal(links.length, 0, 'Malformed path must not become a link');
+    assert.equal(links.some(link => link.href === '/evil.example/path'), false, 'Malformed recorded paths must never become links');
     const valid = environment(script, scenario === 'url-shell' ? '?q=victim' : '');
     await valid.reply(0, {accounts: [{subject: 'victim.near', labels: [], label_sources: [], url: 'accounts/victim.near.html'}], entities: []});
     if (scenario === 'url-index') { valid.nodes['account-input'].value = 'victim.near'; valid.nodes['account-input'].emit('input'); }
     const validTarget = valid.nodes[scenario === 'url-index' ? 'account-labels' : 'global-search-results'];
-    assert.equal(validTarget.querySelector('a').href, '/accounts/victim.near.html');
+    const validLinks = validTarget.querySelectorAll('a');
+    if (scenario === 'url-shell') {
+      assert.equal(validLinks.length, 2);
+      assert.equal(validLinks[0].href, '/investigate.html?account=victim');
+      assert.equal(validLinks[1].href, '/accounts/victim.near.html', 'Recorded matches remain after the live investigation result');
+    } else assert.equal(validLinks[0].href, '/accounts/victim.near.html');
   } else { throw new Error(`Unknown scenario ${scenario}`); }
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

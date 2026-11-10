@@ -6,13 +6,14 @@ import json
 import math
 import os
 import re
+import sqlite3
 import threading
 import time
 import urllib.parse
 from collections import OrderedDict
 
 from gate import canon, evidence, intents, rpc, rules, scan
-from intel import labels, reports
+from intel import accounts, history, identity, labels, reports
 
 RATE_PER_MINUTE = 60
 RATE_WINDOW_S = 60
@@ -40,7 +41,7 @@ class LiveAPI:
     def __init__(self, store=None, *, clock=time.monotonic, wall_clock=time.time,
                  perf_clock=time.perf_counter, rate_per_minute=RATE_PER_MINUTE,
                  request_timeout_s=REQUEST_TIMEOUT_S, cache_ttl_s=CACHE_TTL_S,
-                 cache_size=MAX_CACHE_ENTRIES, max_in_flight=MAX_IN_FLIGHT):
+                 cache_size=MAX_CACHE_ENTRIES, max_in_flight=MAX_IN_FLIGHT, history_store=None):
         if type(rate_per_minute) is not int or rate_per_minute < 1:
             raise ValueError("rate_per_minute must be a positive integer")
         if not isinstance(request_timeout_s, (int, float)) or isinstance(request_timeout_s, bool) or not (
@@ -49,6 +50,7 @@ class LiveAPI:
         if type(cache_size) is not int or cache_size < 1:
             raise ValueError("cache_size must be a positive integer")
         self.store = store or labels.load()
+        self.history_store = history_store
         self.clock = clock
         self.wall_clock = wall_clock
         self.perf_clock = perf_clock
@@ -79,14 +81,21 @@ class LiveAPI:
                 return self._error(429, "rate_limited", "The client rate limit was reached.",
                                    {"Retry-After": str(retry_after)})
             key = (parsed.path, parsed.query)
-            cached = self._cache_get(key)
+            cacheable = not (parsed.path.startswith(("/live/account-data/", "/live/account-events/")) or
+                             (parsed.path.startswith("/live/accounts/") and parsed.path.rsplit("/", 1)[-1] in ("history", "backfill")))
+            cached = self._cache_get(key) if cacheable else None
             if cached is not None:
                 return cached
             deadline = time.monotonic() + self.request_timeout_s
             try:
                 with rpc.request_deadline(self.request_timeout_s):
-                    status, body = self._route(parsed.path, parsed.query)
-                response_size = self._response_size(body, MAX_RESPONSE_BYTES)
+                    snapshot = self.exact_snapshot(parsed.path, parsed.query)
+                    if snapshot is None:
+                        status, body = self._route(parsed.path, parsed.query)
+                        response_headers = {}
+                    else:
+                        status, body, response_headers = snapshot
+                response_size = len(body) if isinstance(body, bytes) else self._response_size(body, MAX_RESPONSE_BYTES)
                 if response_size is None:
                     return self._error(503, "response_too_large", "The live response exceeds the size limit.")
                 if time.monotonic() >= deadline:
@@ -95,20 +104,44 @@ class LiveAPI:
                 return self._error(400, "invalid_input", str(error))
             except TimeoutError:
                 return self._error(504, "timeout", "The live read exceeded its request deadline.")
+            except history.HistoryCapacityError as error:
+                return 503, {"error": "archive_capacity", "message": str(error),
+                             "coverage": {"history_complete": False, "new_observations_paused": True}}, {"Retry-After": "60"}
             except LiveReadError:
                 return self._error(503, "read_failed", "A required live view could not be read.")
             except rules.UNAVAILABLE:
                 return self._error(503, "read_failed", "A required live view could not be read.")
             except Exception:
                 return self._error(500, "internal_error", "The live check could not be completed.")
-            answer = (status, body, {})
-            if status == 200:
+            answer = (status, body, response_headers)
+            if status == 200 and cacheable:
                 self._cache_put(key, answer, response_size)
             return answer
         finally:
             self._slots.release()
 
+    def exact_snapshot(self, path, query):
+        if not path.startswith(("/live/account-data/", "/live/account-events/")):
+            return None
+        match = re.fullmatch(r"/live/(account-data|account-events)/([a-f0-9]{64})\.json", path)
+        if match is None or query:
+            return self._error(400, "invalid_input", "A snapshot URL contains one lowercase SHA-256 identifier and no query fields.")
+        if self.history_store is None:
+            return self._error(503, "archive_unavailable", "The account observation archive is unavailable.")
+        try:
+            body = (self.history_store.get_graph_bytes(match[2]) if match[1] == "account-data"
+                    else self.history_store.get_event_bytes(match[2]))
+        except TimeoutError:
+            raise
+        except (history.HistoryInputError, history.HistoryReadError, OSError, sqlite3.Error):
+            return self._error(503, "read_failed", "The stored public observation could not be read.")
+        if body is None:
+            return self._error(404, "not_found", "No retained public observation matches this identifier.")
+        return 200, body, {"Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=31536000, immutable"}
+
     def _route(self, path, query):
+        if path.startswith("/live/accounts/"):
+            return self._account_read(path, query)
         if path == "/live/health":
             self._no_query(query)
             return 200, {"ok": True, "network": "mainnet", "rate_per_minute": self.rate_per_minute}
@@ -132,6 +165,72 @@ class LiveAPI:
                 raise LiveInputError("The live scan accepts mainnet accounts only.")
             return 200, self._scan(account)
         return self._error(404, "not_found", "No live route matches this path.")[:2]
+
+    def _account_read(self, path, query):
+        parts = path.split("/")
+        if len(parts) != 5 or not parts[3]:
+            raise LiveInputError("The investigation path must contain one mainnet account identifier.")
+        account = self._account(urllib.parse.unquote(parts[3]), "account")
+        if account == "testnet" or account.endswith(".testnet"):
+            raise LiveInputError("Account investigations read mainnet accounts only.")
+        kind = parts[4]
+        allowed = {"profile": set(), "holdings": {"offset", "limit"},
+                   "transactions": {"cursor", "limit"}, "transfers": {"cursor", "limit"}, "graph": {"depth"},
+                   "identity": set(), "history": {"kind", "before", "limit"}, "backfill": {"kind", "cursor", "max_pages"}}
+        if kind not in allowed:
+            return self._error(404, "not_found", "No account investigation view matches this path.")[:2]
+        try:
+            pairs = urllib.parse.parse_qsl(query, keep_blank_values=True, strict_parsing=True, max_num_fields=3)
+        except ValueError as error:
+            raise LiveInputError("Investigation query fields are malformed.") from error
+        if len({name for name, _ in pairs}) != len(pairs) or any(name not in allowed[kind] for name, _ in pairs):
+            raise LiveInputError("Investigation query fields are unsupported or repeated.")
+        values = dict(pairs)
+        if kind in ("history", "backfill") and values.get("kind") not in ("transactions", "transfers"):
+            raise LiveInputError("The archive kind must be transactions or transfers.")
+        for field in ("offset", "limit", "depth", "before", "max_pages"):
+            if field in values:
+                upper = 2 ** 63 - 1 if field == "before" else 10000 if field == "offset" else 2 if field in ("depth", "max_pages") else 20 if kind == "holdings" else 100
+                lower = 0 if field in ("offset", "before") else 1
+                if not re.fullmatch(r"0|[1-9][0-9]{0,18}", values[field]) or not lower <= int(values[field]) <= upper:
+                    raise LiveInputError("Investigation pagination or graph depth is outside its supported range.")
+                values[field] = int(values[field])
+        try:
+            reader = accounts.AccountData(self.store)
+            if kind in ("history", "backfill"):
+                if self.history_store is None:
+                    raise LiveReadError("The account observation archive is unavailable.")
+                archive_kind = values.pop("kind")
+                if kind == "history":
+                    result = self.history_store.list_records(account, archive_kind, **values)
+                else:
+                    result = self.history_store.backfill_account(reader, account, archive_kind, **values)
+            elif kind == "identity":
+                result = identity.IdentityData(self.store).inspect(account)
+            elif kind == "profile":
+                result = reader.profile(account)
+            elif kind == "holdings":
+                result = reader.holdings(account, **values)
+            elif kind == "transactions":
+                result = reader.transactions(account, **values)
+            elif kind == "transfers":
+                result = reader.transfers(account, **values)
+            else:
+                result = reader.neighborhood(account, **values)
+            if self.history_store is not None:
+                if kind in history.KINDS:
+                    self.history_store.record_page(account, kind, result)
+                elif kind == "graph":
+                    result = {**result, "snapshot": self.history_store.save_graph(result)}
+        except TimeoutError:
+            raise
+        except history.HistoryCapacityError:
+            raise
+        except (accounts.AccountInputError, history.HistoryInputError) as error:
+            raise LiveInputError(str(error)) from error
+        except (accounts.AccountReadError, history.HistoryReadError, OSError, sqlite3.Error) as error:
+            raise LiveReadError(str(error)) from error
+        return 200, result
 
     def _verdict(self, query):
         receiver = self._account(query["receiver"], "receiver")

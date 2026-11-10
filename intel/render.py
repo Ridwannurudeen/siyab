@@ -160,10 +160,10 @@ def page(title, body, depth=0, rooted=False, *, inert=False):
     """A whole HTML page; depth is how many directories below the site root it sits, and a rooted page
     links root absolute because it is served at any path."""
     up = "/" if rooted else "../" * depth
-    current = {"Siyab": "index.html", "Workspace": "workspace.html", "Feed": "feed.html", "Verify a record": "verify.html",
+    current = {"Siyab": "index.html", "Investigate account": "investigate.html", "Workspace": "workspace.html", "Feed": "feed.html", "Verify a record": "verify.html",
                "Incident records": "records/index.html", "Issuer actions": "issuers.html",
                **{label: f"entities/{name}.html" for name, label, _ in ENTITY_SETS}}.get(title)
-    primary = (("index.html", "Home"), ("flows/rhea-collector.html", "Trace"), ("feed.html", "Feed"), ("workspace.html", "Workspace"),
+    primary = (("index.html", "Home"), ("investigate.html", "Account lookup"), ("flows/rhea-collector.html", "Trace"), ("feed.html", "Feed"), ("workspace.html", "Workspace"),
                ("index.html#tools", "Payment checks"), ("verify.html", "Verify"))
     secondary = (("index.html#explore-title", "Incidents"),
                  *((f"entities/{name}.html", label) for name, label, _ in ENTITY_SETS),
@@ -176,6 +176,7 @@ def page(title, body, depth=0, rooted=False, *, inert=False):
     nav = "".join(navigation)
     shell = "" if inert else (ROOT / "intel/ui/shell.js").read_text(encoding="utf-8")
     workspace_script = "" if inert else (ROOT / "intel/ui/workspace.js").read_text(encoding="utf-8")
+    cloud_script = "" if inert else (ROOT / "intel/ui/cloud-workspace.js").read_text(encoding="utf-8")
     search_label = '<span class="site-search-label">Search accounts / entities</span><span class="site-search-short" aria-hidden="true">Search</span>'
     search = (f'<a class="site-search-link" aria-label="Search accounts and entities" href="{up}index.html#search">{search_label}</a>' if inert else
               f'<button class="site-search-button" type="button" aria-label="Search accounts and entities" data-open-search>{search_label} <kbd class="search-key">Ctrl K</kbd></button>'
@@ -212,7 +213,8 @@ def page(title, body, depth=0, rooted=False, *, inert=False):
             '<footer class="app-footer"><p>Data: NearBlocks. Blocks: mainnet.neardata.xyz. Transfers: FastNEAR.</p></footer>\n'
             + ('' if inert else '<p id="workspace-feedback" class="workspace-feedback" role="status" aria-live="polite"></p>')
             + f'{"<script>" + shell + "</script>" if shell else ""}'
-            + f'{_script_tag(workspace_script) if workspace_script else ""}</body>\n</html>\n')
+            + f'{_script_tag(workspace_script) if workspace_script else ""}'
+            + f'{_script_tag(cloud_script) if cloud_script else ""}</body>\n</html>\n')
 
 
 def _counts_lines():
@@ -1538,9 +1540,51 @@ def not_found_page():
     return page("Not found", body, rooted=True)
 
 
+def investigate_page():
+    body = ('<div id="account-investigation"><div class="investigate-heading"><div><h1 id="investigate-title">Investigate account</h1>'
+            '<p>Finalized account state, indexed activity and the evidence behind each observation.</p></div>'
+            '<div class="workspace-actions"><button id="investigate-refresh" type="button" disabled>Refresh reads</button>'
+            '<button id="investigate-watch" type="button" disabled>Watch account</button>'
+            '<button id="investigate-save" type="button" data-save-investigation disabled>Save investigation</button></div></div>'
+            '<form id="investigate-form" class="investigate-search" action="/investigate.html" method="get">'
+            '<label for="investigate-account">NEAR mainnet account<input id="investigate-account" name="account" maxlength="64" autocomplete="off" placeholder="account.near" required></label>'
+            '<button type="submit" class="primary">Investigate</button></form>'
+            '<p id="investigate-status" class="investigate-status" role="status">Enter an account to read mainnet data. No payment is signed or sent.</p>')
+    for kind, title in (("profile", "Finalized account state"), ("holdings", "Indexed token holdings"),
+                        ("transfers", "Transfers"), ("transactions", "Transactions")):
+        body += (f'<section id="investigate-{kind}" class="investigate-section" data-investigation-panel>'
+                 f'<h2 tabindex="-1">{title}</h2><div data-live-content><p class="investigate-empty">Select an account to read this data.</p></div></section>')
+    body += ('<section id="investigate-identity" class="investigate-section" data-investigation-panel><h2 tabindex="-1">Account identity</h2>'
+             '<button id="investigate-read-identity" type="button" disabled>Read identity evidence</button><div data-live-content>'
+             '<p class="investigate-empty">Read contract, token and validator observations on demand. Metadata does not establish ownership.</p></div></section>'
+             '<section id="investigate-history" class="investigate-section" data-investigation-panel><h2 tabindex="-1">Retained history</h2>'
+             '<div class="investigate-history-actions"><label for="investigate-history-kind">Records<select id="investigate-history-kind"><option value="transfers">Transfers</option><option value="transactions">Transactions</option></select></label>'
+             '<button id="investigate-history-load" type="button" disabled>Load retained rows</button>'
+             '<label for="investigate-backfill-pages">Provider read bound<select id="investigate-backfill-pages"><option value="1">One page · up to 100 rows</option><option value="2">Two pages · up to 200 rows</option></select></label>'
+             '<button id="investigate-backfill" type="button" disabled>Backfill older pages</button></div>'
+             '<p class="investigate-scope">Retained provider observations can have gaps. Backfill reads only the chosen bound and saves public chain data. Reaching the provider\'s last page does not establish complete history.</p>'
+             '<div id="investigate-backfill-status" role="status"></div><div data-live-content><p class="investigate-empty">Select an account, then load retained rows or request a bounded backfill.</p></div></section>'
+             '<section class="investigate-section"><h2>Observed neighborhood</h2><div class="investigate-graph-actions">'
+             '<label for="investigate-depth">Expansion depth<select id="investigate-depth"><option value="1">One hop</option><option value="2">Two hops</option></select></label>'
+             '<button id="investigate-load-graph" type="button" disabled>Load neighborhood</button></div>'
+             '<div id="investigate-graph"><p class="investigate-empty">Load a bounded neighborhood from indexed transfers. It is not complete account history.</p></div></section>'
+             '<noscript><p>JavaScript is required for live account reads. Recorded evidence remains available through the navigation.</p></noscript></div>')
+    body += _script_tag((ROOT / "intel/ui/graphs.js").read_text(encoding="utf-8"))
+    body += _script_tag((ROOT / "intel/ui/investigate.js").read_text(encoding="utf-8"))
+    return page("Investigate account", body)
+
+
+def _cloud_workspace_panel():
+    return ('<details id="cloud-workspace" class="cloud-workspace"><summary>Shared workspace</summary>'
+            '<div id="cloud-shell"><p class="source-line">Reading your shared workspace session…</p></div>'
+            '<noscript><p>JavaScript is needed to sign in to a shared workspace. Browser workspace controls remain below.</p></noscript></details>')
+
+
 def workspace_page():
-    body = ('<div class="workspace-page-head"><div><h1>Workspace</h1><p>Saved in this browser. Export a backup to move your work between devices.</p></div>'
+    body = ('<div class="workspace-page-head"><div><h1>Workspace</h1></div>'
             '<a class="button primary" href="/index.html">Start investigation</a></div>'
+            + _cloud_workspace_panel() +
+            '<section id="browser-workspace"><h2>In this browser</h2><p>Saved in this browser. Export a backup to move your work between devices.</p>'
             '<p id="workspace-status" role="status" aria-live="polite"></p><div class="workbench-grid">'
             '<section class="workspace-section"><div class="section-head"><h2>Investigations</h2><span id="case-count" class="source-line">0 saved investigations</span></div>'
             '<label for="case-search">Search saved work<input type="search" id="case-search" placeholder="Title, notes or account"></label>'
@@ -1558,7 +1602,7 @@ def workspace_page():
             '<div class="workspace-actions"><button id="export-workspace" type="button">Export workspace JSON</button>'
             '<label>Import workspace JSON<input id="import-workspace" type="file" accept="application/json,.json"></label>'
             '<button id="reset-workspace" type="button">Reset local workspace</button></div></section>'
-            '<noscript><p>JavaScript is needed to save investigations, export tables and manage browser alerts. Recorded accounts and evidence remain available through the navigation.</p></noscript>')
+            '<noscript><p>JavaScript is needed to save investigations, export tables and manage browser alerts. Recorded accounts and evidence remain available through the navigation.</p></noscript></section>')
     return page("Workspace", body)
 
 
@@ -1575,6 +1619,7 @@ def render(out_dir, store=None, incidents_dir=INCIDENTS_DIR, flows_dir=trace.FLO
                     for entity_id, name in page_names(entity["id"] for entity in registry_entities).items()}
     search = search_index(store, accounts, registry_entities, entity_paths)
     pages = {"index.html": index_page(incidents, flows, clusters, store, top_judgements_dir),
+             "investigate.html": investigate_page(),
              "workspace.html": workspace_page(),
              "top-receivers.html": top_receivers_page(top_judgements_dir), "feed.html": feed_page(),
              "verify.html": verify_page(), "404.html": not_found_page(), "issuers.html": issuers_page()}
@@ -1613,7 +1658,7 @@ def render(out_dir, store=None, incidents_dir=INCIDENTS_DIR, flows_dir=trace.FLO
         path.write_text(encoded, encoding="utf-8", newline="\n")
     script_paths = []
     (out / "assets").mkdir(exist_ok=True)
-    for name in ("graphs.js", "workspace.js"):
+    for name in ("graphs.js", "workspace.js", "investigate.js", "cloud-workspace.js"):
         script = (ROOT / "intel/ui" / name).read_text(encoding="utf-8")
         script_path, _ = _script_asset(script)
         (out / script_path.lstrip("/")).write_text(script, encoding="utf-8", newline="\n")

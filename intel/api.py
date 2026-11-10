@@ -61,6 +61,7 @@ SEARCH_INDEX = ROOT / "demo" / "site" / "search.json"
 FLOWS_DIR = ROOT / "intel" / "flows"
 CLUSTERS_DIR = ROOT / "intel" / "clusters"
 FEED_LIMIT = 50
+WORKSPACE_BODY_TIMEOUT_S = 5
 # The follower stamps updated_at at every height and at every read of the final height while it waits
 # there, and, once its run has done either, at the end of every transfer poll; a run that has done
 # neither, such as a restart on a refused key or one whose first block fetch fails, stamps nothing, so
@@ -308,25 +309,34 @@ class _DeadlineReader(io.RawIOBase):
         return self.connection.recv_into(buffer)
 
 
-def make_server(host, port, site=None, store=None, live_routes=None):
+def make_server(host, port, site=None, store=None, live_routes=None, workspace_routes=None):
     """A ThreadingHTTPServer for the API; port 0 picks a free port."""
     store = store or labels.load()
+    def request_timeout():
+        return live_routes.request_timeout_s if live_routes is not None else 10 if workspace_routes is not None else None
 
     class Handler(BaseHTTPRequestHandler):
         def setup(self):
             super().setup()
             self._route_slot = None
-            if live_routes is not None:
-                deadline = time.monotonic() + live_routes.request_timeout_s
+            timeout = request_timeout()
+            if timeout is not None:
+                deadline = time.monotonic() + timeout
                 self.rfile = io.BufferedReader(_DeadlineReader(self.connection, deadline))
 
         def parse_request(self):
             parsed = super().parse_request()
-            if live_routes is not None:
-                self.connection.settimeout(live_routes.request_timeout_s)
+            timeout = request_timeout()
+            if timeout is not None:
+                self.connection.settimeout(timeout)
                 if parsed:
                     request_path = urllib.parse.urlsplit(self.path).path
-                    if request_path != "/live" and not request_path.startswith("/live/"):
+                    if workspace_routes is not None and (request_path == "/workspace-api" or request_path.startswith("/workspace-api/")):
+                        if not self.server._workspace_slots.acquire(blocking=False):
+                            self.send_error(503)
+                            return False
+                        self._route_slot = self.server._workspace_slots
+                    elif request_path != "/live" and not request_path.startswith("/live/"):
                         if not self.server._read_only_slots.acquire(blocking=False):
                             self.send_error(503)
                             return False
@@ -342,14 +352,19 @@ def make_server(host, port, site=None, store=None, live_routes=None):
                     self._route_slot = None
 
         def do_GET(self):
+            if self._workspace_request():
+                return
             request_path = urllib.parse.urlsplit(self.path).path
             if request_path == "/live" or request_path.startswith("/live/"):
                 if live_routes is None:
                     self._send(404, JSON_TYPE, b'{"error": "not_found", "message": "No live route is enabled."}\n')
                     return
                 status, body, headers = live_routes.handle(self.path, self.client_address[0], self.headers)
-                data = (json.dumps(body, ensure_ascii=False) + "\n").encode("utf-8")
-                self._send(status, JSON_TYPE, data, headers)
+                data = body if isinstance(body, bytes) else (json.dumps(body, ensure_ascii=False) + "\n").encode("utf-8")
+                observation = re.fullmatch(r"/live/account-(?:data|events)/([0-9a-f]{64})\.json", request_path)
+                immutable = status == 200 and observation and hashlib.sha256(data).hexdigest() == observation.group(1)
+                self._send(status, JSON_TYPE, data, headers,
+                           cache_control="public, max-age=31536000, immutable" if immutable else "no-store")
                 return
             answer = route(self.path, store)
             if answer is not None:
@@ -377,28 +392,92 @@ def make_server(host, port, site=None, store=None, live_routes=None):
                              else "no-store")
             self._send(*static, cache_control=cache_control)
 
+        def do_HEAD(self):
+            self.do_GET()
+
+        def do_POST(self):
+            if not self._workspace_request():
+                self.send_error(501, "Unsupported method")
+
+        def _workspace_request(self):
+            path = urllib.parse.urlsplit(self.path).path
+            if workspace_routes is None or not (path == "/workspace-api" or path.startswith("/workspace-api/")):
+                return False
+            headers = {"Vary": "Cookie", "X-Content-Type-Options": "nosniff"}
+            def refuse(status, code, message):
+                self.close_connection = True
+                self._send(status, JSON_TYPE, json.dumps({"error": code, "message": message}).encode("utf-8"), headers)
+                return True
+            lengths = self.headers.get_all("Content-Length", [])
+            if self.headers.get_all("Transfer-Encoding", []):
+                return refuse(400, "invalid_framing", "Transfer-Encoding is not supported for workspace requests.")
+            body = b""
+            if self.command == "POST":
+                if not lengths:
+                    return refuse(411, "length_required", "Content-Length is required.")
+                if len(lengths) != 1 or re.fullmatch(r"0|[1-9][0-9]{0,9}", lengths[0]) is None:
+                    return refuse(400, "invalid_framing", "Send one unambiguous Content-Length.")
+                length = int(lengths[0])
+                if length > 32768:
+                    return refuse(413, "body_too_large", "Workspace request exceeds 32 KiB.")
+                deadline = time.monotonic() + WORKSPACE_BODY_TIMEOUT_S
+                if isinstance(self.rfile, io.BufferedReader) and isinstance(self.rfile.raw, _DeadlineReader):
+                    self.rfile.raw.deadline = min(self.rfile.raw.deadline, deadline)
+                chunks = []
+                try:
+                    while length:
+                        remaining = deadline - time.monotonic()
+                        if remaining <= 0:
+                            raise TimeoutError("workspace body deadline exceeded")
+                        self.connection.settimeout(remaining)
+                        chunk = self.rfile.read1(min(length, 8192))
+                        if not chunk:
+                            return refuse(400, "incomplete_body", "The workspace request body is incomplete.")
+                        chunks.append(chunk)
+                        length -= len(chunk)
+                    body = b"".join(chunks)
+                except TimeoutError:
+                    return refuse(408, "body_timeout", "The workspace request body exceeded its deadline.")
+            elif lengths and lengths != ["0"]:
+                return refuse(400, "invalid_framing", "GET and HEAD workspace requests do not take a body.")
+            status, data, extra = workspace_routes.handle(self.command, self.path, self.client_address[0], self.headers, body)
+            self._send(status, JSON_TYPE, (json.dumps(data, ensure_ascii=False) + "\n").encode("utf-8"), {**headers, **extra})
+            return True
+
+        def log_request(self, code="-", size="-"):
+            if hasattr(self, "path") and urllib.parse.urlsplit(self.path).path.startswith("/workspace-api"):
+                self.log_message('"%s /workspace-api %s" %s %s', self.command, self.request_version, code, size)
+            else:
+                super().log_request(code, size)
+
         def _send(self, status, content_type, data, headers=None, *, cache_control="no-store"):
+            extra = dict(headers or {})
+            content_type = extra.pop("Content-Type", content_type)
+            cache_control = extra.pop("Cache-Control", cache_control)
             self.send_response(status)
             self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(data)))
             self.send_header("Cache-Control", cache_control)
-            for name, value in (headers or {}).items():
+            for name, value in extra.items():
                 self.send_header(name, value)
             self.end_headers()
-            self.wfile.write(data)
+            if self.command != "HEAD":
+                self.wfile.write(data)
 
     class Server(ThreadingHTTPServer):
         def __init__(self, *args, **kwargs):
             self._connection_slots = (threading.BoundedSemaphore(live_routes.max_in_flight * 2)
-                                      if live_routes is not None else None)
+                                      if live_routes is not None else threading.BoundedSemaphore(8) if workspace_routes is not None else None)
             self._read_only_slots = (threading.BoundedSemaphore(live_routes.max_in_flight)
-                                     if live_routes is not None else None)
+                                     if live_routes is not None else threading.BoundedSemaphore(4) if workspace_routes is not None else None)
+            self._workspace_slots = threading.BoundedSemaphore(4) if workspace_routes is not None else None
             super().__init__(*args, **kwargs)
 
         def get_request(self):
             request, client_address = super().get_request()
-            if live_routes is not None:
-                request.settimeout(live_routes.request_timeout_s)
+            timeout = request_timeout()
+            if timeout is not None:
+                request.settimeout(timeout)
             return request, client_address
 
         def process_request(self, request, client_address):
@@ -424,16 +503,34 @@ def make_server(host, port, site=None, store=None, live_routes=None):
     return Server((host, port), Handler)
 
 
-def serve(host, port, site=None, live=False):
+def serve(host, port, site=None, live=False, state_dir=None, workspace_origin="https://siyab.xyz"):
     store = labels.load() if live else None
     live_routes = None
+    workspace_routes = None
+    history_store = None
+    if state_dir is not None:
+        from intel import history, monitor
+        from intel.workspace import SQLiteWorkspaceStore
+        from intel.workspace_api import WorkspaceAPI
+
+        state = Path(state_dir).expanduser().resolve()
+        if state == ROOT or ROOT in state.parents:
+            raise ValueError("workspace state must be outside the source repository")
+        history_store = history.AccountHistory(state / "history.sqlite3")
+        def monitor_status():
+            return {**monitor.read_status(state / "monitor.sqlite3"), "configured": True,
+                    "account_polling": history.read_status(state / "history.sqlite3")}
+        workspace_routes = WorkspaceAPI(SQLiteWorkspaceStore(state / "workspace.sqlite3"), origin=workspace_origin,
+                                        secure_cookie=urllib.parse.urlsplit(workspace_origin).scheme == "https",
+                                        monitor_status=monitor_status)
     if live:
         from intel.live import LiveAPI
 
-        live_routes = LiveAPI(store)
-    server = make_server(host, port, site, store=store, live_routes=live_routes)
+        live_routes = LiveAPI(store, history_store=history_store) if history_store is not None else LiveAPI(store)
+    server = make_server(host, port, site, store=store, live_routes=live_routes, workspace_routes=workspace_routes)
     mode = " with live routes" if live else ""
-    print(f"serving the read only API{mode} on http://{server.server_address[0]}:{server.server_address[1]}")
+    access = "public read-only API and authenticated workspace" if workspace_routes is not None else "read only API"
+    print(f"serving the {access}{mode} on http://{server.server_address[0]}:{server.server_address[1]}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

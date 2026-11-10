@@ -240,7 +240,7 @@ class RenderTest(unittest.TestCase):
 
     def assert_local_script_assets(self, page):
         expected = {}
-        for name in ("graphs", "workspace"):
+        for name in ("graphs", "workspace", "investigate", "cloud-workspace"):
             source = (ROOT / f"intel/ui/{name}.js").read_text(encoding="utf-8").encode("utf-8")
             digest = hashlib.sha256(source)
             expected[f"/assets/{digest.hexdigest()}.js"] = (name, source, "sha256-" + base64.b64encode(digest.digest()).decode("ascii"))
@@ -256,8 +256,10 @@ class RenderTest(unittest.TestCase):
             self.assertEqual(integrity, expected_integrity)
             self.assertEqual((self.out / path.lstrip("/")).read_bytes(), source)
             found.append(name)
-        self.assertEqual(found.count("graphs"), 1 if 'data-siyab-graph' in page else 0)
+        self.assertEqual(found.count("graphs"), 1 if 'data-siyab-graph' in page or 'id="account-investigation"' in page else 0)
         self.assertEqual(found.count("workspace"), 0 if 'class="app-content record-content"' in page else 1)
+        self.assertEqual(found.count("cloud-workspace"), 0 if 'class="app-content record-content"' in page else 1)
+        self.assertEqual(found.count("investigate"), 1 if 'id="account-investigation"' in page else 0)
 
     def test_the_homepage_uses_the_siyab_project_name(self):
         page = self.pages["index.html"]
@@ -374,7 +376,7 @@ class RenderTest(unittest.TestCase):
                             if path.name != "body-vector.json"]
         entities = [json.loads(line)["id"] for line in (ROOT / "intel" / "entities.jsonl").read_text(
             encoding="utf-8").splitlines()]
-        expected = (["index.html", "feed.html", "verify.html", "404.html", "issuers.html", "workspace.html"]
+        expected = (["index.html", "feed.html", "verify.html", "404.html", "issuers.html", "workspace.html", "investigate.html"]
                     + ["top-receivers.html"]
                     + [f"incidents/{i}.html" for i in incidents]
                     + [f"entities/{name}.html" for name, _, _ in render.ENTITY_SETS] + [f"flows/{f}.html" for f in flows]
@@ -393,7 +395,7 @@ class RenderTest(unittest.TestCase):
         for path in (ROOT / "intel/flows").glob("*.json"):
             count = len(json.loads(path.read_text(encoding="utf-8"))["hops"])
             expected.extend(f"flows/{path.stem}.page-{number}.html" for number in range(2, (count + 49) // 50 + 1))
-        for name in ("graphs", "workspace"):
+        for name in ("graphs", "workspace", "investigate", "cloud-workspace"):
             source = (ROOT / f"intel/ui/{name}.js").read_text(encoding="utf-8").encode("utf-8")
             expected.append(f"assets/{hashlib.sha256(source).hexdigest()}.js")
         expected.extend(f"brand/{source.name}" for source in (ROOT / "intel/ui/brand").iterdir() if source.is_file())

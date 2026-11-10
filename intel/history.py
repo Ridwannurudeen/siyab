@@ -1,0 +1,525 @@
+"""Durable public account observations, bounded backfills and ordinary-transfer monitoring."""
+
+import hashlib
+import json
+import os
+import re
+import secrets
+import sqlite3
+import time
+from contextlib import contextmanager
+from pathlib import Path
+
+from gate import canon, rpc
+from intel.accounts import AccountInputError, AccountReadError
+
+KINDS = ("profile", "holdings", "transactions", "transfers")
+MAX_DOCUMENT_BYTES = 2 * 1024 * 1024
+MAX_ARCHIVE_BYTES = 128 * 1024 * 1024
+MAX_ARCHIVE_PAGES = 10000
+MAX_ARCHIVE_ROWS = 100000
+MAX_ARCHIVE_GRAPHS = 2000
+MAX_ARCHIVE_EVENTS = 100000
+MAX_WATCH_SEEN = 200000
+GLOBAL_INTERVAL_MS = 5000
+ACCOUNT_INTERVAL_MS = 60000
+LEASE_MS = 45000
+_HEX = re.compile(r"[a-f0-9]{64}")
+_NS = re.compile(r"[0-9]{1,20}")
+_PRIVATE_FIELDS = {"password", "password_hash", "password_salt", "authorization", "cookie", "session_token",
+                   "csrf_token", "recovery_code", "team_id", "user_id", "watchlist", "notes"}
+
+
+class HistoryInputError(ValueError):
+    """An archive operation is outside the supported public account-data scope."""
+
+
+class HistoryReadError(ValueError):
+    """A durable observation or archive state cannot be read consistently."""
+
+
+class HistoryCapacityError(HistoryReadError):
+    """An archive retention or upstream-read budget has been reached."""
+
+
+def _account(value):
+    try:
+        account = canon.account_id(value, "account")
+    except canon.CanonError:
+        raise HistoryInputError("Use a valid mainnet account identifier.") from None
+    if account == "testnet" or account.endswith(".testnet"):
+        raise HistoryInputError("The account archive reads mainnet only.")
+    return account
+
+
+def _kind(value):
+    if value not in KINDS:
+        raise HistoryInputError("The account observation kind is unsupported.")
+    return value
+
+
+def _cursor(value):
+    if value is None or value == "":
+        return None
+    if not isinstance(value, str) or len(value) > 4096 or any(not 33 <= ord(char) <= 126 for char in value):
+        raise HistoryInputError("The provider cursor is invalid.")
+    return value
+
+
+def _public(value, depth=0):
+    if depth > 24:
+        raise HistoryInputError("The observation exceeds the nesting limit.")
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if not isinstance(key, str) or key.lower() in _PRIVATE_FIELDS:
+                raise HistoryInputError("Private workspace fields cannot enter the public account archive.")
+            _public(item, depth + 1)
+    elif isinstance(value, list):
+        for item in value:
+            _public(item, depth + 1)
+
+
+def _canonical(value):
+    _public(value)
+    try:
+        body = (json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False) + "\n").encode("utf-8")
+    except (ValueError, TypeError, UnicodeError):
+        raise HistoryInputError("The observation must contain valid UTF-8 JSON values.") from None
+    if len(body) > MAX_DOCUMENT_BYTES:
+        raise HistoryInputError("The observation exceeds the archive document limit.")
+    return body
+
+
+def _timestamp(item, kind, now):
+    value = item.get("block_timestamp") if kind == "transfers" else item.get("tx_block_timestamp") if kind == "transactions" else str(now * 1000000)
+    if not isinstance(value, str) or _NS.fullmatch(value) is None or int(value) > canon.U64_MAX:
+        raise HistoryInputError("The observation has an invalid nanosecond timestamp.")
+    return value.zfill(20)
+
+
+def _identity(item, kind, account):
+    value = item.get("id") if kind == "transfers" else item.get("transaction_hash") if kind == "transactions" else item.get("contract_id") if kind == "holdings" else account
+    if not isinstance(value, str) or not value or len(value) > 128 or any(ord(char) < 32 for char in value):
+        raise HistoryInputError("The observation has an invalid stable identifier.")
+    return value
+
+
+def _empty_status():
+    return {"running": False, "mode": None, "heartbeat_ms": None, "last_success_ms": None,
+            "monitored_accounts": 0, "initialized_accounts": 0, "retry_pending": 0, "coverage_gap_accounts": 0,
+            "backfill_pending": 0, "pending_events": 0, "archived_rows": 0, "last_error": None,
+            "lag_blocks": None, "oldest_due_ms": None,
+            "coverage": "Bounded account polling and retained provider pages. Gaps and older unindexed history may remain.",
+            "delivery_mode": "team_inbox", "external_delivery_configured": False}
+
+
+def read_status(path, *, clock=time.time):
+    result = _empty_status()
+    database = Path(path)
+    if not database.is_file():
+        return result
+    try:
+        connection = sqlite3.connect(database.resolve().as_uri() + "?mode=ro", uri=True, timeout=5)
+        connection.row_factory = sqlite3.Row
+        try:
+            state = connection.execute("SELECT * FROM history_state WHERE singleton=1").fetchone()
+            counts = connection.execute("SELECT COUNT(*) AS monitored,COALESCE(SUM(initialized),0) AS initialized,"
+                                        "COALESCE(SUM(attempts>0),0) AS retries,COALESCE(SUM(coverage_gap),0) AS gaps,"
+                                        "MIN(next_due_ms) AS due FROM watch_poll").fetchone()
+            pending = connection.execute("SELECT COUNT(*) FROM event_outbox WHERE delivered_seq IS NULL").fetchone()[0]
+            records = connection.execute("SELECT COUNT(*) FROM history_rows").fetchone()[0]
+            backfill = connection.execute("SELECT COUNT(*) FROM backfills WHERE exhausted=0").fetchone()[0]
+        finally:
+            connection.close()
+    except (OSError, sqlite3.Error):
+        result["last_error"] = "state_unreadable"
+        return result
+    if state is None:
+        result["last_error"] = "state_unreadable"
+        return result
+    result.update(mode=state["mode"], heartbeat_ms=state["heartbeat_ms"], last_success_ms=state["last_success_ms"],
+                  last_error=state["last_error"], monitored_accounts=counts["monitored"], initialized_accounts=counts["initialized"],
+                  retry_pending=counts["retries"], coverage_gap_accounts=counts["gaps"], oldest_due_ms=counts["due"],
+                  pending_events=pending, archived_rows=records, backfill_pending=backfill)
+    heartbeat = state["heartbeat_ms"]
+    result["running"] = (state["mode"] == "service" and state["stopped_ms"] is None and heartbeat is not None
+                         and 0 <= int(clock() * 1000) - heartbeat <= 30000)
+    return result
+
+
+class AccountHistory:
+    def __init__(self, path, clock=time.time):
+        self.path, self.clock = Path(path), clock
+        if self.path.is_symlink():
+            raise HistoryInputError("The history database cannot be a symbolic link.")
+        self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        with self._connection(transaction=False) as connection:
+            connection.execute("PRAGMA journal_mode=WAL")
+            version = connection.execute("PRAGMA user_version").fetchone()[0]
+            if version not in (0, 1, 2):
+                raise HistoryReadError("The history database schema is unsupported.")
+            if version == 0:
+                connection.executescript("""
+                BEGIN IMMEDIATE;
+                CREATE TABLE IF NOT EXISTS pages (id TEXT PRIMARY KEY,account TEXT NOT NULL,kind TEXT NOT NULL,body BLOB NOT NULL,created_ms INTEGER NOT NULL);
+                CREATE TABLE IF NOT EXISTS history_rows (seq INTEGER PRIMARY KEY AUTOINCREMENT,account TEXT NOT NULL,kind TEXT NOT NULL,row_id TEXT NOT NULL,stamp TEXT NOT NULL,body BLOB NOT NULL,page_id TEXT NOT NULL REFERENCES pages(id),UNIQUE(account,kind,row_id));
+                CREATE INDEX IF NOT EXISTS rows_account ON history_rows(account,kind,stamp DESC,seq DESC);
+                CREATE TABLE IF NOT EXISTS graphs (id TEXT PRIMARY KEY,body BLOB NOT NULL,created_ms INTEGER NOT NULL);
+                CREATE TABLE IF NOT EXISTS backfills (account TEXT NOT NULL,kind TEXT NOT NULL,cursor TEXT,exhausted INTEGER NOT NULL,updated_ms INTEGER NOT NULL,PRIMARY KEY(account,kind));
+                CREATE TABLE IF NOT EXISTS watch_poll (account TEXT PRIMARY KEY,initialized INTEGER NOT NULL DEFAULT 0,next_due_ms INTEGER NOT NULL DEFAULT 0,last_success_ms INTEGER,attempts INTEGER NOT NULL DEFAULT 0,last_error TEXT,coverage_gap INTEGER NOT NULL DEFAULT 0,lease_token TEXT,lease_until_ms INTEGER NOT NULL DEFAULT 0);
+                CREATE TABLE IF NOT EXISTS watch_seen (account TEXT NOT NULL,row_id TEXT NOT NULL,PRIMARY KEY(account,row_id));
+                CREATE TABLE IF NOT EXISTS event_outbox (id TEXT PRIMARY KEY,body BLOB NOT NULL,notify INTEGER NOT NULL,created_ms INTEGER NOT NULL,delivered_seq INTEGER);
+                CREATE TABLE IF NOT EXISTS history_state (singleton INTEGER PRIMARY KEY CHECK(singleton=1),mode TEXT,heartbeat_ms INTEGER,last_success_ms INTEGER,last_tick_ms INTEGER,stopped_ms INTEGER,last_error TEXT);
+                INSERT OR IGNORE INTO history_state(singleton) VALUES (1);
+                PRAGMA user_version=1;
+                COMMIT;
+                """)
+            if version in (0, 1):
+                connection.executescript("""
+                BEGIN IMMEDIATE;
+                CREATE TABLE IF NOT EXISTS backfill_control(account TEXT NOT NULL,kind TEXT NOT NULL,last_start_ms INTEGER NOT NULL,lease_token TEXT,lease_until_ms INTEGER NOT NULL,PRIMARY KEY(account,kind));
+                CREATE INDEX IF NOT EXISTS backfill_account_budget ON backfill_control(account,last_start_ms);
+                CREATE TABLE IF NOT EXISTS backfill_budget(singleton INTEGER PRIMARY KEY CHECK(singleton=1),window INTEGER NOT NULL,pages INTEGER NOT NULL);
+                INSERT OR IGNORE INTO backfill_budget VALUES(1,0,0);
+                CREATE TABLE IF NOT EXISTS archive_usage(singleton INTEGER PRIMARY KEY CHECK(singleton=1),pages INTEGER NOT NULL,records INTEGER NOT NULL,graphs INTEGER NOT NULL,events INTEGER NOT NULL,seen INTEGER NOT NULL,bytes INTEGER NOT NULL);
+                INSERT OR IGNORE INTO archive_usage SELECT 1,
+                  (SELECT COUNT(*) FROM pages),(SELECT COUNT(*) FROM history_rows),(SELECT COUNT(*) FROM graphs),
+                  (SELECT COUNT(*) FROM event_outbox),(SELECT COUNT(*) FROM watch_seen),
+                  (SELECT COALESCE(SUM(LENGTH(body)),0) FROM pages)+(SELECT COALESCE(SUM(LENGTH(body)),0) FROM history_rows)+
+                  (SELECT COALESCE(SUM(LENGTH(body)),0) FROM graphs)+(SELECT COALESCE(SUM(LENGTH(body)),0) FROM event_outbox);
+                PRAGMA user_version=2;
+                COMMIT;
+                """)
+        os.chmod(self.path, 0o600)
+
+    @contextmanager
+    def _connection(self, *, write=False, transaction=True):
+        connection = sqlite3.connect(self.path, timeout=5, isolation_level=None)
+        connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA foreign_keys=ON")
+        connection.execute("PRAGMA busy_timeout=5000")
+        connection.execute("PRAGMA max_page_count=65536")
+        connection.execute("PRAGMA journal_size_limit=16777216")
+        connection.execute("PRAGMA wal_autocheckpoint=256")
+        try:
+            if transaction:
+                connection.execute("BEGIN IMMEDIATE" if write else "BEGIN")
+            yield connection
+            if transaction:
+                connection.commit()
+        finally:
+            connection.close()
+
+    def _now(self):
+        return int(self.clock() * 1000)
+
+    @staticmethod
+    def _reserve(connection, *, pages=0, records=0, graphs=0, events=0, seen=0, size=0):
+        usage = connection.execute("SELECT * FROM archive_usage WHERE singleton=1").fetchone()
+        changes = {"pages": (pages, MAX_ARCHIVE_PAGES), "records": (records, MAX_ARCHIVE_ROWS),
+                   "graphs": (graphs, MAX_ARCHIVE_GRAPHS), "events": (events, MAX_ARCHIVE_EVENTS),
+                   "seen": (seen, MAX_WATCH_SEEN), "bytes": (size, MAX_ARCHIVE_BYTES)}
+        if any(delta > 0 and usage[field] + delta > maximum for field, (delta, maximum) in changes.items()):
+            raise HistoryCapacityError("Archive retention capacity reached; retained evidence remains available and new observations are paused.")
+        connection.execute("UPDATE archive_usage SET pages=pages+?,records=records+?,graphs=graphs+?,events=events+?,seen=seen+?,bytes=bytes+? WHERE singleton=1",
+                           (pages, records, graphs, events, seen, size))
+
+    def record_page(self, account, kind, payload):
+        account, kind = _account(account), _kind(kind)
+        if not isinstance(payload, dict) or payload.get("account_id") != account or payload.get("network") != "mainnet" or not isinstance(payload.get("source"), dict):
+            raise HistoryInputError("The provider page must name its mainnet account and source.")
+        items = [payload] if kind == "profile" else payload.get("items")
+        if not isinstance(items, list) or len(items) > 100 or not all(isinstance(item, dict) for item in items):
+            raise HistoryInputError("The provider page exceeds its row limit or is malformed.")
+        body, now = _canonical(payload), self._now()
+        page_id = hashlib.sha256(body).hexdigest()
+        rows = [(_identity(item, kind, account), _timestamp(item, kind, now), _canonical(item)) for item in items]
+        inserted = 0
+        with self._connection(write=True) as connection:
+            if connection.execute("SELECT 1 FROM pages WHERE id=?", (page_id,)).fetchone() is None:
+                self._reserve(connection, pages=1, size=len(body))
+            connection.execute("INSERT OR IGNORE INTO pages VALUES (?,?,?,?,?)", (page_id, account, kind, body, now))
+            for row_id, stamp, encoded in rows:
+                previous = connection.execute("SELECT stamp,LENGTH(body) AS size FROM history_rows WHERE account=? AND kind=? AND row_id=?", (account, kind, row_id)).fetchone()
+                if previous:
+                    if kind in ("transactions", "transfers") and previous["stamp"] != stamp:
+                        raise HistoryInputError("A transfer or transaction identifier changed its timestamp.")
+                    self._reserve(connection, size=len(encoded) - previous["size"])
+                    connection.execute("UPDATE history_rows SET stamp=?,body=?,page_id=? WHERE account=? AND kind=? AND row_id=?", (stamp, encoded, page_id, account, kind, row_id))
+                else:
+                    self._reserve(connection, records=1, size=len(encoded))
+                    connection.execute("INSERT INTO history_rows(account,kind,row_id,stamp,body,page_id) VALUES (?,?,?,?,?,?)", (account, kind, row_id, stamp, encoded, page_id))
+                    inserted += 1
+            total = connection.execute("SELECT COUNT(*) FROM history_rows WHERE account=? AND kind=?", (account, kind)).fetchone()[0]
+        return {"page_id": page_id, "inserted": inserted, "total_rows": total}
+
+    def list_records(self, account, kind, before=0, limit=25):
+        account, kind = _account(account), _kind(kind)
+        if type(before) is not int or not 0 <= before <= 2 ** 63 - 1 or type(limit) is not int or not 1 <= limit <= 100:
+            raise HistoryInputError("Use a nonnegative archive cursor and page size from 1 to 100.")
+        with self._connection() as connection:
+            parameters, clause = [account, kind], ""
+            if before:
+                anchor = connection.execute("SELECT stamp FROM history_rows WHERE seq=? AND account=? AND kind=?", (before, account, kind)).fetchone()
+                if anchor is None:
+                    raise HistoryInputError("The archive cursor does not belong to this account and kind.")
+                clause = " AND (stamp<? OR (stamp=? AND seq<?))"
+                parameters += [anchor["stamp"], anchor["stamp"], before]
+            rows = connection.execute("SELECT seq,body,page_id FROM history_rows WHERE account=? AND kind=?" + clause + " ORDER BY stamp DESC,seq DESC LIMIT ?", [*parameters, limit + 1]).fetchall()
+            total = connection.execute("SELECT COUNT(*) FROM history_rows WHERE account=? AND kind=?", (account, kind)).fetchone()[0]
+            observations = []
+            for page_id in dict.fromkeys(row["page_id"] for row in rows[:limit]):
+                retained = json.loads(connection.execute("SELECT body FROM pages WHERE id=?", (page_id,)).fetchone()[0])
+                observations.append({"page_id": page_id, "source": retained["source"], "observed_at": retained.get("observed_at")})
+        page = rows[:limit]
+        return {"account_id": account, "network": "mainnet", "kind": kind,
+                "items": [json.loads(row["body"]) for row in page], "observations": observations,
+                "pagination": {"limit": limit, "next_before": page[-1]["seq"] if len(rows) > limit else None},
+                "coverage": {"stored_rows": total, "history_complete": False,
+                             "scope": "Retained provider observations only; archive pagination ending does not establish complete chain history."}}
+
+    def save_graph(self, payload):
+        allowed = {"kind", "root", "nodes", "edges", "records", "total_nodes", "total_edges", "total_records",
+                   "bounds", "coverage", "source", "assertion_ids", "shares", "state_at_block"}
+        if not isinstance(payload, dict) or set(payload) - allowed or payload.get("kind") != "flow" or not isinstance(payload.get("source"), dict) or payload["source"].get("network") != "mainnet":
+            raise HistoryInputError("Only public mainnet graph observations can be archived.")
+        _account(payload.get("root"))
+        for name, maximum in (("nodes", 200), ("edges", 200), ("records", 200)):
+            values = payload.get(name)
+            if not isinstance(values, list) or len(values) > maximum or not all(isinstance(item, dict) for item in values):
+                raise HistoryInputError("The graph exceeds its observation limit or is malformed.")
+        body = _canonical(payload)
+        identifier = hashlib.sha256(body).hexdigest()
+        with self._connection(write=True) as connection:
+            if connection.execute("SELECT 1 FROM graphs WHERE id=?", (identifier,)).fetchone() is None:
+                self._reserve(connection, graphs=1, size=len(body))
+            connection.execute("INSERT OR IGNORE INTO graphs VALUES (?,?,?)", (identifier, body, self._now()))
+        return {"id": identifier, "url": "/live/account-data/" + identifier + ".json"}
+
+    def get_graph_bytes(self, identifier):
+        if not isinstance(identifier, str) or _HEX.fullmatch(identifier) is None:
+            raise HistoryInputError("A graph observation ID is a lowercase SHA-256 identifier.")
+        with self._connection() as connection:
+            row = connection.execute("SELECT body FROM graphs WHERE id=?", (identifier,)).fetchone()
+        if row is None:
+            return None
+        body = row["body"]
+        if hashlib.sha256(body).hexdigest() != identifier:
+            raise HistoryReadError("The stored graph bytes do not match their identifier.")
+        try:
+            if _canonical(json.loads(body)) != body:
+                raise HistoryReadError("The stored graph is not canonical JSON.")
+        except (ValueError, UnicodeError):
+            raise HistoryReadError("The stored graph is unreadable.") from None
+        return body
+
+    def get_graph(self, identifier):
+        body = self.get_graph_bytes(identifier)
+        return json.loads(body) if body is not None else None
+
+    def backfill_account(self, reader, account, kind, cursor=None, max_pages=2):
+        account, kind, cursor = _account(account), _kind(kind), _cursor(cursor)
+        if kind not in ("transactions", "transfers") or type(max_pages) is not int or not 1 <= max_pages <= 2:
+            raise HistoryInputError("Backfills read one or two transaction or transfer pages.")
+        now, token = self._now(), secrets.token_hex(16)
+        with self._connection(write=True) as connection:
+            state = connection.execute("SELECT cursor,exhausted FROM backfills WHERE account=? AND kind=?", (account, kind)).fetchone()
+            expected = state["cursor"] if state else None
+            if cursor is not None and (state is None or state["exhausted"] or cursor != expected):
+                raise HistoryInputError("The backfill cursor must match the archive's committed continuation.")
+            if state and state["exhausted"]:
+                return {"pages": 0, "inserted": 0, "next_cursor": None,
+                        "coverage": {"provider_pages_exhausted": True, "history_complete": False}}
+            cursor = expected
+            active = connection.execute("SELECT MAX(last_start_ms) AS last_start,MAX(lease_until_ms) AS lease_until FROM backfill_control WHERE account=?", (account,)).fetchone()
+            if active["lease_until"] is not None and active["lease_until"] > now:
+                raise HistoryCapacityError("This account already has an active backfill; retry after the bounded read finishes.")
+            if active["last_start"] is not None and now - active["last_start"] < ACCOUNT_INTERVAL_MS:
+                raise HistoryCapacityError("Account backfill budget reached; retry after one minute. Retained history remains available.")
+            budget = connection.execute("SELECT window,pages FROM backfill_budget WHERE singleton=1").fetchone()
+            window = now // 60000
+            reserved = budget["pages"] if budget["window"] == window else 0
+            if reserved + max_pages > 12:
+                raise HistoryCapacityError("Global backfill budget reached; retry after one minute. Retained history remains available.")
+            if state is None:
+                if connection.execute("SELECT COUNT(*) FROM backfills").fetchone()[0] >= 10000:
+                    raise HistoryCapacityError("Archive backfill checkpoint capacity reached; existing evidence remains available.")
+                connection.execute("INSERT INTO backfills VALUES (?,?,NULL,0,?)", (account, kind, now))
+            connection.execute("UPDATE backfill_budget SET window=?,pages=? WHERE singleton=1", (window, reserved + max_pages))
+            connection.execute("INSERT INTO backfill_control VALUES (?,?,?,?,?) ON CONFLICT(account,kind) DO UPDATE SET last_start_ms=excluded.last_start_ms,lease_token=excluded.lease_token,lease_until_ms=excluded.lease_until_ms", (account, kind, now, token, now + LEASE_MS))
+        pages, inserted = 0, 0
+        try:
+            with rpc.request_deadline(20):
+                for _ in range(max_pages):
+                    payload = getattr(reader, kind)(account, cursor=cursor, limit=100)
+                    next_cursor = _cursor(payload.get("pagination", {}).get("next_cursor"))
+                    if cursor is not None and next_cursor == cursor:
+                        raise HistoryReadError("The provider repeated the backfill cursor.")
+                    with self._connection() as connection:
+                        lease = connection.execute("SELECT lease_token,lease_until_ms FROM backfill_control WHERE account=? AND kind=?", (account, kind)).fetchone()
+                    if lease["lease_token"] != token or lease["lease_until_ms"] <= self._now():
+                        raise HistoryReadError("The backfill lease expired before its continuation could be committed.")
+                    saved = self.record_page(account, kind, payload)
+                    pages += 1
+                    inserted += saved["inserted"]
+                    with self._connection(write=True) as connection:
+                        committed = connection.execute("UPDATE backfills SET cursor=?,exhausted=?,updated_ms=? WHERE account=? AND kind=? AND EXISTS (SELECT 1 FROM backfill_control WHERE account=? AND kind=? AND lease_token=? AND lease_until_ms>?)", (next_cursor, int(next_cursor is None), self._now(), account, kind, account, kind, token, self._now())).rowcount
+                        if not committed:
+                            raise HistoryReadError("The backfill lease expired before its continuation could be committed.")
+                    cursor = next_cursor
+                    if cursor is None:
+                        break
+        finally:
+            with self._connection(write=True) as connection:
+                connection.execute("UPDATE backfill_control SET lease_token=NULL,lease_until_ms=0 WHERE account=? AND kind=? AND lease_token=?", (account, kind, token))
+        return {"pages": pages, "inserted": inserted, "next_cursor": cursor,
+                "coverage": {"provider_pages_exhausted": cursor is None, "history_complete": False}}
+
+    @staticmethod
+    def _event(item):
+        sender, receiver = item.get("from"), item.get("to")
+        endpoints = sorted({value for value in (sender, receiver) if isinstance(value, str)})
+        if not endpoints:
+            raise HistoryInputError("A transfer event needs a known account endpoint.")
+        document = {"kind": "feed_event", "version": "1", "signal": "account_transfer_observed",
+                    "subject": sender or receiver, "other_account_id": receiver if sender else None,
+                    "accounts": endpoints, "asset_id": item["asset_id"], "amount": item["amount"],
+                    "block_timestamp": item["block_timestamp"], "receipt_id": item["receipt_id"],
+                    "transfer_index": item["transfer_index"], "tx_hash": item.get("transaction_hash"),
+                    "detail": "Indexed transfer of " + item["amount"] + " base units of " + item["asset_id"] +
+                              " from " + (sender or "an unknown account") + " to " + (receiver or "an unknown account") + ".",
+                    "observed": {"block_height": int(item["block_height"]), "timestamp_ms": int(item["block_timestamp"]) // 1000000},
+                    "source": {"provider": "transfers.main.fastnear.com", "receipt_id": item["receipt_id"],
+                               "transfer_index": item["transfer_index"], "network": "mainnet"}}
+        if item["asset_id"] == "native:near":
+            document["amount_yocto"] = item["amount"]
+        body = _canonical(document)
+        return hashlib.sha256(body).hexdigest(), body
+
+    def _flush_events(self, store):
+        with self._connection() as connection:
+            rows = connection.execute("SELECT id,body,notify FROM event_outbox WHERE delivered_seq IS NULL ORDER BY created_ms,id LIMIT 200").fetchall()
+        for row in rows:
+            try:
+                sequence = store.ingest_event(row["id"], json.loads(row["body"]), notify=bool(row["notify"]))
+            except (OSError, ValueError, sqlite3.Error) as error:
+                with self._connection(write=True) as connection:
+                    connection.execute("UPDATE history_state SET last_error=? WHERE singleton=1", (type(error).__name__,))
+                break
+            with self._connection(write=True) as connection:
+                connection.execute("UPDATE event_outbox SET delivered_seq=? WHERE id=?", (sequence, row["id"]))
+
+    def get_event_bytes(self, identifier):
+        if not isinstance(identifier, str) or _HEX.fullmatch(identifier) is None:
+            raise HistoryInputError("An event observation ID is a lowercase SHA-256 identifier.")
+        with self._connection() as connection:
+            row = connection.execute("SELECT body FROM event_outbox WHERE id=?", (identifier,)).fetchone()
+        if row is None:
+            return None
+        if hashlib.sha256(row["body"]).hexdigest() != identifier:
+            raise HistoryReadError("The stored event bytes do not match their identifier.")
+        return row["body"]
+
+    def poll_watches(self, workspace_store, reader, limit=1):
+        if type(limit) is not int or limit != 1:
+            raise HistoryInputError("Each watch tick reads at most one account.")
+        now = self._now()
+        watched = [_account(account) for account in workspace_store.watched_accounts()]
+        with self._connection(write=True) as connection:
+            if watched:
+                deleted = connection.execute("DELETE FROM watch_seen WHERE account NOT IN (" + ",".join("?" for _ in watched) + ")", watched).rowcount
+                connection.execute("DELETE FROM watch_poll WHERE account NOT IN (" + ",".join("?" for _ in watched) + ")", watched)
+            else:
+                deleted = connection.execute("DELETE FROM watch_seen").rowcount
+                connection.execute("DELETE FROM watch_poll")
+            self._reserve(connection, seen=-deleted)
+            for account in watched:
+                connection.execute("INSERT OR IGNORE INTO watch_poll(account,next_due_ms) VALUES (?,?)", (account, now))
+            state = connection.execute("SELECT last_tick_ms FROM history_state WHERE singleton=1").fetchone()
+            claim = None
+            if state["last_tick_ms"] is None or now - state["last_tick_ms"] >= GLOBAL_INTERVAL_MS:
+                due = connection.execute("SELECT * FROM watch_poll WHERE next_due_ms<=? AND lease_until_ms<=? ORDER BY next_due_ms,account LIMIT 1", (now, now)).fetchone()
+                if due:
+                    token = secrets.token_hex(16)
+                    connection.execute("UPDATE watch_poll SET lease_token=?,lease_until_ms=? WHERE account=?", (token, now + LEASE_MS, due["account"]))
+                    connection.execute("UPDATE history_state SET last_tick_ms=? WHERE singleton=1", (now,))
+                    claim = dict(due), token
+        self._flush_events(workspace_store)
+        if claim:
+            state, token = claim
+            account = state["account"]
+            try:
+                cursor, found_anchor, pending, more = None, False, [], False
+                with rpc.request_deadline(20):
+                    for _ in range(2):
+                        payload = reader.transfers(account, cursor=cursor, limit=100)
+                        self.record_page(account, "transfers", payload)
+                        items = payload["items"]
+                        with self._connection() as connection:
+                            known = {row[0] for row in connection.execute("SELECT row_id FROM watch_seen WHERE account=?", (account,))}
+                        for item in items:
+                            found_anchor = found_anchor or item["id"] in known
+                            pending.append(item)
+                        next_cursor = _cursor(payload.get("pagination", {}).get("next_cursor"))
+                        if cursor is not None and next_cursor == cursor:
+                            raise HistoryReadError("The provider repeated the watch cursor.")
+                        cursor = next_cursor
+                        more = cursor is not None
+                        if found_anchor or cursor is None:
+                            break
+                with self._connection(write=True) as connection:
+                    active = connection.execute("SELECT lease_token FROM watch_poll WHERE account=?", (account,)).fetchone()
+                    if active is not None and active["lease_token"] == token:
+                        for item in pending:
+                            inserted = connection.execute("INSERT OR IGNORE INTO watch_seen VALUES (?,?)", (account, item["id"])).rowcount
+                            if inserted:
+                                self._reserve(connection, seen=1)
+                            if inserted and state["initialized"]:
+                                event_id, body = self._event(item)
+                                if connection.execute("SELECT 1 FROM event_outbox WHERE id=?", (event_id,)).fetchone() is None:
+                                    self._reserve(connection, events=1, size=len(body))
+                                connection.execute("INSERT OR IGNORE INTO event_outbox VALUES (?,?,?,?,NULL)", (event_id, body, 1, now))
+                        gap = int(bool(state["initialized"]) and more and not found_anchor)
+                        connection.execute("UPDATE watch_poll SET initialized=1,next_due_ms=?,last_success_ms=?,attempts=0,last_error=NULL,coverage_gap=MAX(coverage_gap,?),lease_token=NULL,lease_until_ms=0 WHERE account=? AND lease_token=?", (self._now() + ACCOUNT_INTERVAL_MS, self._now(), gap, account, token))
+                        connection.execute("UPDATE history_state SET last_success_ms=?,last_error=NULL WHERE singleton=1", (self._now(),))
+            except (AccountReadError, AccountInputError, HistoryInputError, HistoryReadError, OSError, sqlite3.Error) as error:
+                code = "provider_timeout" if isinstance(error, TimeoutError) else type(error).__name__
+                attempts = state["attempts"] + 1
+                delay = min(300000, ACCOUNT_INTERVAL_MS * 2 ** min(attempts, 3))
+                with self._connection(write=True) as connection:
+                    connection.execute("UPDATE watch_poll SET attempts=?,last_error=?,next_due_ms=?,lease_token=NULL,lease_until_ms=0 WHERE account=? AND lease_token=?", (attempts, code, self._now() + delay, account, token))
+                    connection.execute("UPDATE history_state SET last_error=? WHERE singleton=1", (code,))
+            self._flush_events(workspace_store)
+        with self._connection(write=True) as connection:
+            connection.execute("UPDATE history_state SET heartbeat_ms=? WHERE singleton=1", (self._now(),))
+        return self.status()
+
+    def status(self):
+        return read_status(self.path, clock=self.clock)
+
+
+def run(workspace_store, reader, path, *, once=False, interval=5, stop_event=None):
+    if not isinstance(interval, (int, float)) or isinstance(interval, bool) or not 5 <= interval <= 60:
+        raise HistoryInputError("History polling interval must be between 5 and 60 seconds.")
+    archive = AccountHistory(path)
+    if not once:
+        with archive._connection(write=True) as connection:
+            connection.execute("UPDATE history_state SET mode='service',stopped_ms=NULL WHERE singleton=1")
+    try:
+        while True:
+            try:
+                archive.poll_watches(workspace_store, reader)
+                if once:
+                    break
+                if stop_event is not None:
+                    if stop_event.wait(interval):
+                        break
+                else:
+                    time.sleep(interval)
+            except KeyboardInterrupt:
+                break
+    finally:
+        if not once:
+            with archive._connection(write=True) as connection:
+                connection.execute("UPDATE history_state SET stopped_ms=? WHERE singleton=1", (archive._now(),))
+    return archive.status()

@@ -67,7 +67,9 @@ def request_deadline(seconds):
     """Bound every RPC and HTTP read in the current request to one monotonic deadline."""
     if not isinstance(seconds, (int, float)) or isinstance(seconds, bool) or seconds <= 0:
         raise ValueError("request deadline must be a positive number of seconds")
-    token = _REQUEST_DEADLINE.set(time.monotonic() + seconds)
+    deadline = time.monotonic() + seconds
+    current = _REQUEST_DEADLINE.get()
+    token = _REQUEST_DEADLINE.set(min(current, deadline) if current is not None else deadline)
     try:
         yield
     finally:

@@ -5,6 +5,9 @@
   const mounts = new WeakSet();
   const loading = new WeakSet();
   const views = new WeakMap();
+  const payloads = new WeakMap();
+  const disposers = new WeakMap();
+  const controllers = new WeakMap();
   const recordIndexes = new WeakMap();
   const rangeSetters = new WeakMap();
   const timelineMounts = new WeakSet();
@@ -93,8 +96,8 @@
     }
     return edge.from + " to " + edge.to + " · " +
       (payload.kind === "flow" ? edge.asset_id : edge.rule) + " · " +
-      (edge.provenance === "inferred" ? "Attribution hypothesis" : "Recorded chain reads") + " · " +
-      edge.record_ids.length + " recorded " + (payload.kind === "flow" ? "transfers" : "relationships") + detail;
+      (edge.provenance === "inferred" ? "Attribution hypothesis" : payload.source.recorded === false ? "Live indexed reads" : "Recorded chain reads") + " · " +
+      edge.record_ids.length + (payload.source.recorded === false ? " observed " : " recorded ") + (payload.kind === "flow" ? "transfers" : "relationships") + detail;
   }
 
   function edgePath(edge, from, to, siblings, compact) {
@@ -252,7 +255,9 @@
     return { x: center.x - width / 2, y: center.y - height / 2, width, height };
   }
 
-  function recordingCoverage(payload) {
+  function recordingCoverage(payload, saved = false) {
+    if (payload.source.recorded === false) return (saved ? "Saved indexed observation: depth " : "Live indexed observation: depth ") + payload.bounds.reached_depth +
+      " of " + payload.bounds.requested_depth + " requested; bounded neighborhood, not complete account history.";
     if (payload.kind === "flow") {
       const reason = payload.coverage.completeness === "complete" ? "" :
         " at " + payload.coverage.completeness.reason;
@@ -260,6 +265,20 @@
         " requested; " + (payload.coverage.truncated ? "truncated" + reason : "acquisition complete") + ".";
     }
     return "Recording: " + payload.bounds.seeds.length + " seeds. " + payload.coverage.standard;
+  }
+
+  function graphAddress(source) {
+    const url = new URL(source, window.location.href);
+    if (url.origin !== window.location.origin || url.hash || url.username || url.password) throw new Error("The graph address is invalid.");
+    if (/^\/graph-data\/[a-f0-9]{64}\.json$/.test(url.pathname) && !url.search) return {url, live: false};
+    if (/^\/live\/account-data\/[a-f0-9]{64}\.json$/.test(url.pathname) && !url.search) return {url, live: true, snapshot: true};
+    const match = /^\/live\/accounts\/([^/]+)\/graph$/.exec(url.pathname);
+    const account = match && match[1];
+    const keys = [...url.searchParams.keys()];
+    if (!account || account.length < 2 || account.length > 64 || !/^[a-z0-9]+(?:[._-][a-z0-9]+)*$/.test(account) ||
+      account === "testnet" || account.endsWith(".testnet") || keys.some(key => key !== "depth") || keys.length > 1 ||
+      keys.length && !["1", "2"].includes(url.searchParams.get("depth"))) throw new Error("The graph address is invalid.");
+    return {url, live: true};
   }
 
   function validPayload(payload) {
@@ -343,6 +362,8 @@
     }
     container.replaceChildren();
     container.setAttribute("aria-busy", "false");
+    const live = payload.source.recorded === false;
+    const saved = /^\/live\/account-data\/[a-f0-9]{64}\.json$/.test(container.getAttribute("data-graph-src") || "");
     const prefix = "siyab-graph-" + (++sequence);
     const nodeById = new Map(payload.nodes.map((node) => [node.id, node]));
     const recordById = new Map(payload.records.map((record) => [record.id, record]));
@@ -362,7 +383,7 @@
     container.dataset.graphView = state.mode;
     container.classList.add("siyab-graph");
     const toolbar = element("div", "graph-toolbar");
-    toolbar.setAttribute("aria-label", "Recorded graph controls");
+    toolbar.setAttribute("aria-label", (live ? "Observed graph controls" : "Recorded graph controls"));
 
     function button(parent, label, handler, className) {
       const control = element("button", className || "graph-button", label);
@@ -386,17 +407,17 @@
       return control;
     }
 
-    const assetControl = select("Asset", [["", "All recorded assets"],
+    const assetControl = select("Asset", [["", (live ? "All observed assets" : "All recorded assets")],
       ...[...new Set(payload.edges.map((edge) => edge.asset_id).filter(Boolean))].sort().map((asset) => [asset, asset])],
     (value) => { state.asset = value; changeFilter(); });
     if (payload.kind === "cluster") assetControl.parentElement.hidden = true;
     const provenanceControl = select("Evidence", [["", "All evidence"],
       ...[...new Set(payload.edges.map((edge) => edge.provenance))].sort().map((value) =>
-        [value, value === "inferred" ? "Attribution hypothesis" : "Recorded chain reads"])],
+        [value, value === "inferred" ? "Attribution hypothesis" : (live ? "Live indexed reads" : "Recorded chain reads")])],
     (value) => { state.provenance = value; changeFilter(); });
     assetControl.value = state.asset; provenanceControl.value = state.provenance;
     const rangeControls = element("form", "graph-range");
-    rangeControls.setAttribute("aria-label", "Recorded transfer time range");
+    rangeControls.setAttribute("aria-label", (live ? "Observed transfer time range" : "Recorded transfer time range"));
     const dateInputs = [];
     for (const [key, text] of [["from", "From UTC"], ["to", "Until UTC (exclusive)"]]) {
       const label = element("label", "", text), input = element("input");
@@ -414,7 +435,7 @@
       }
       state.from = values[0] === null ? "" : (BigInt(values[0]) * 1000000n).toString();
       state.to = values[1] === null ? "" : (BigInt(values[1]) * 1000000n).toString();
-      changeFilter(); rangeMessage.textContent = "Graph time range applied. Full dataset charts below keep their recorded scope.";
+      changeFilter(); rangeMessage.textContent = live ? "Graph time range applied within this bounded observation." : "Graph time range applied. Full dataset charts below keep their recorded scope.";
     });
     rangeControls.addEventListener("submit", event => { event.preventDefault(); applyRange.click(); });
     rangeControls.append(rangeMessage);
@@ -465,7 +486,7 @@
     const workspace = element("div", "graph-workspace");
     const stage = element("div", "graph-stage");
     const svg = svgElement("svg", { class: "graph-svg", role: "group", "aria-label":
-      payload.kind === "flow" ? "Recorded transfer graph. Select accounts with the arrow keys, or use the account list." :
+      payload.kind === "flow" ? (live ? "Observed transfer graph. Select accounts with the arrow keys, or use the account list." : "Recorded transfer graph. Select accounts with the arrow keys, or use the account list.") :
         "Recorded relationship graph. Dashed lines are attribution hypotheses. Use the account list for full names." });
     const defs = svgElement("defs", {});
     const marker = svgElement("marker", { id: prefix + "-arrow", viewBox: "0 0 10 10", refX: 9, refY: 5,
@@ -474,7 +495,7 @@
     defs.append(marker);
     const drawing = svgElement("g", {});
     svg.append(defs, drawing);
-    const empty = element("p", "graph-empty", "No recorded edges match these filters. Change a filter or reset the graph.");
+    const empty = element("p", "graph-empty", (live ? "No observed edges match these filters. Change a filter or reset the graph." : "No recorded edges match these filters. Change a filter or reset the graph."));
     empty.hidden = true;
     const pathStatus = element("p", "graph-path-status");
     pathStatus.setAttribute("role", "status");
@@ -486,7 +507,7 @@
     const list = element("details", "graph-list");
     list.open = state.mode === "list";
     list.append(element("summary", "", "Accounts and relationships"));
-    const searchLabel = element("label", "graph-search", "Find an account in this recording");
+    const searchLabel = element("label", "graph-search", (live ? "Find an observed account" : "Find an account in this recording"));
     const search = element("input");
     search.type = "search"; search.autocomplete = "off";
     search.addEventListener("input", () => {
@@ -496,8 +517,8 @@
     const accountList = element("div", "graph-account-list");
     const edgeList = element("div", "graph-relationship-list");
     list.append(searchLabel, accountList, edgeList);
-    const acquisition = element("p", "graph-source graph-coverage", recordingCoverage(payload));
-    const source = element("p", "graph-source graph-provenance", "Recorded mainnet data · " + payload.source.provider +
+    const acquisition = element("p", "graph-source graph-coverage", recordingCoverage(payload, saved));
+    const source = element("p", "graph-source graph-provenance", (saved ? "Saved indexed observation · " : live ? "Live indexed mainnet observation · " : "Recorded mainnet data · ") + payload.source.provider +
       " · Read " + payload.source.fetched_at + ". ");
     if (payload.source.evidence_url && /^\/(?:flows|clusters)\/[a-zA-Z0-9_.%-]+\.html$/.test(payload.source.evidence_url)) {
       const evidenceLink = element("a", "", "Open recorded evidence and limits");
@@ -506,7 +527,7 @@
     }
     const legend = element("div", "graph-legend");
     legend.setAttribute("aria-label", "Graph legend");
-    legend.append(element("span", "graph-legend-line", "Recorded direction"),
+    legend.append(element("span", "graph-legend-line", (live ? "Observed direction" : "Recorded direction")),
       element("span", "graph-legend-hypothesis", "Dashed: attribution hypothesis"),
       element("span", "graph-legend-selected", "Teal: selected account or path"));
     if (payload.kind === "flow") legend.append(element("span", "", "Width: known provider USD, logarithmic; thin lines can have unknown value. Gross value is not loss."));
@@ -518,7 +539,7 @@
     const overviewDrawing = svgElement("g", {});
     const overviewViewport = svgElement("rect", {class: "graph-overview-viewport"});
     overviewSvg.append(overviewDrawing, overviewViewport);
-    overview.append(overviewSvg, element("p", "", "Overview of the displayed neighborhood. Fit shows this entire neighborhood; Expand adds recorded accounts."));
+    overview.append(overviewSvg, element("p", "", (live ? "Fit shows this bounded neighborhood; Expand reveals already loaded accounts. It does not request further history." : "Overview of the displayed neighborhood. Fit shows this entire neighborhood; Expand adds recorded accounts.")));
     button(overview, "Show entire neighborhood", fit);
     const shareResult = element("div", "graph-share-result"); shareResult.setAttribute("aria-live", "polite");
     const shareControl = button(toolbar, "Share view", async () => {
@@ -530,7 +551,7 @@
       for (const [key, value] of Object.entries(fields)) if (value) url.searchParams.set("g_" + key, value);
       const label = element("label", "", "View permalink"), input = element("input");
       input.value = url.href; input.readOnly = true; label.append(input);
-      const message = element("p", "", "Copy this link to reopen the recorded view.");
+      const message = element("p", "", (live ? "Copy this link to request this account view again. Live observations can change." : "Copy this link to reopen the recorded view."));
       shareResult.replaceChildren(message, label);
       try {
         if (!navigator.clipboard || !navigator.clipboard.writeText) return;
@@ -630,7 +651,7 @@
       const visibleRecords = new Set(state.edges.flatMap((edge) => edge.record_ids));
       const matchingRecords = new Set(state.matches.flatMap((edge) => edge.record_ids));
       status.textContent = "Display: " + state.visible.length + " of " + payload.total_nodes + " accounts shown · " +
-        visibleRecords.size + " of " + payload.total_records + " recorded " +
+        visibleRecords.size + " of " + payload.total_records + (live ? " observed " : " recorded ") +
         (payload.kind === "flow" ? "transfers" : "relationships") + " shown · " + state.edges.length + " edges" +
         (state.asset || state.provenance || state.from || state.to ? " · " + matchingRecords.size + " records match filters" : "");
       expandButton.hidden = false;
@@ -689,15 +710,15 @@
             (id === state.focus ? " is-focused" : ""),
           role: "button", tabindex: selected ||
             (!(state.selected.kind === "node" && ids.has(state.selected.id)) && index === 0) ? "0" : "-1",
-          "aria-label": node.label + (node.depth !== null ? ", depth " + node.depth : "") + ", inspect recorded evidence",
+          "aria-label": node.label + (node.depth !== null ? ", depth " + node.depth : "") + (live ? ", inspect observed evidence" : ", inspect recorded evidence"),
           "aria-pressed": selected ? "true" : "false", "data-node-id": id });
         const title = svgElement("title", {}); title.textContent = node.label;
         const body = svgElement("rect", { x: -105, y: -24, width: 210, height: 48, rx: 5, class: "graph-node-body" });
         const label = svgElement("text", { x: 0, y: -2, "text-anchor": "middle", class: "graph-node-label" });
         label.textContent = shortLabel(node.label);
         const detail = svgElement("text", { x: 0, y: 15, "text-anchor": "middle", class: "graph-node-detail" });
-        detail.textContent = id === payload.root ? "Recording root" : payload.kind === "flow" ?
-          "Recorded depth " + node.depth : "Recorded account";
+        detail.textContent = id === payload.root ? (live ? "Observation root" : "Recording root") : payload.kind === "flow" ?
+          (live ? "Observed depth " : "Recorded depth ") + node.depth : (live ? "Observed account" : "Recorded account");
         group.append(title, body, label, detail);
         group.addEventListener("click", () => choose("node", id));
         group.addEventListener("focus", () => revealNode(id));
@@ -751,7 +772,7 @@
     }
 
     function renderRecords(records) {
-      inspector.append(element("h4", "", records.length + " recorded " + (payload.kind === "flow" ? "transfers" : "relationships")));
+      inspector.append(element("h4", "", records.length + (live ? " observed " : " recorded ") + (payload.kind === "flow" ? "transfers" : "relationships")));
       const rows = element("div", "graph-record-list");
       const pageRecords = records.slice(state.recordPage * 10, (state.recordPage + 1) * 10);
       for (const record of pageRecords) {
@@ -781,7 +802,7 @@
         metadata(details, [["Record", record.id, "graph-identifier"]]);
         rows.append(details);
       }
-      if (!records.length) rows.append(element("p", "graph-empty", "No recorded evidence matches these filters for this account."));
+      if (!records.length) rows.append(element("p", "graph-empty", (live ? "No observed evidence matches these filters for this account." : "No recorded evidence matches these filters for this account.")));
       inspector.append(rows);
       pagination(inspector, state.recordPage, records.length, 10, (page) => {
         state.recordPage = page; renderInspector();
@@ -799,31 +820,31 @@
           state.focus = node.id; state.limit = state.compact ? 4 : 8; state.path = null; pathStatus.textContent = "";
           renderGraph(true); renderAccounts();
         });
-        button(actions, payload.kind === "flow" ? "Show recorded path" : "Show relationship path", () => {
+        button(actions, payload.kind === "flow" ? (live ? "Show observed path" : "Show recorded path") : "Show relationship path", () => {
           state.path = recordedPath(payload, state.matches, node.id);
-          pathStatus.textContent = state.path ? state.path.edges.length + " recorded " +
-            (payload.kind === "flow" ? "transfer" : "relationship") + " edges connect the recording root to this account. " +
+          pathStatus.textContent = state.path ? state.path.edges.length + (live ? " observed " : " recorded ") +
+            (payload.kind === "flow" ? "transfer" : "relationship") + (live ? " edges connect the observation root to this account. " : " edges connect the recording root to this account. ") +
             (payload.kind === "flow" ? "This is an account path, not proof of the same funds or chronological causality." :
               "A relationship path can include attribution hypotheses; it does not establish shared ownership.") :
-            "No " + (payload.kind === "flow" ? "directed transfer" : "relationship") + " path from the recording root matches these filters.";
+            "No " + (payload.kind === "flow" ? "directed transfer" : "relationship") + (live ? " path from the observation root matches these filters." : " path from the recording root matches these filters.");
           renderGraph(true);
         });
-        if (node.url && /^(?:\.\.\/|\/)accounts\/[a-zA-Z0-9_.%-]+\.html$/.test(node.url)) {
+        if (node.url && (/^(?:\.\.\/|\/)accounts\/[a-zA-Z0-9_.%-]+\.html$/.test(node.url) || live && node.url === "/investigate.html?account=" + encodeURIComponent(node.id))) {
           const link = element("a", "graph-account-link", "Open account"); link.href = node.url; actions.append(link);
         }
         inspector.append(actions);
         edges = state.matches.filter((edge) => edge.from === node.id || edge.to === node.id);
-        metadata(inspector, [["Account", node.id, "graph-identifier"], ...(payload.kind === "flow" ? [["Recorded depth", node.depth]] :
-          [["Recording root", payload.root, "graph-identifier"]]), ["Matching edges", edges.length],
-          ["Scope", "All matching recorded edges for this account, including outside the visible neighborhood"]]);
+        metadata(inspector, [["Account", node.id, "graph-identifier"], ...(payload.kind === "flow" ? [[(live ? "Observed depth" : "Recorded depth"), node.depth]] :
+          [[(live ? "Observation root" : "Recording root"), payload.root, "graph-identifier"]]), ["Matching edges", edges.length],
+          ["Scope", (live ? "Matching observed edges in this bounded response, including outside the visible neighborhood" : "All matching recorded edges for this account, including outside the visible neighborhood")]]);
       } else {
         const edge = state.matches.find((candidate) => candidate.id === state.selected.id);
-        inspector.append(element("h3", "graph-inspector-title", payload.kind === "flow" ? "Recorded transfers" : "Recorded relationship"));
+        inspector.append(element("h3", "graph-inspector-title", payload.kind === "flow" ? (live ? "Observed transfers" : "Recorded transfers") : "Recorded relationship"));
         const fromButton = button(inspector, edge.from, () => choose("node", edge.from), "graph-account-button");
         fromButton.setAttribute("aria-label", "Inspect sender " + edge.from);
         const toButton = button(inspector, edge.to, () => choose("node", edge.to), "graph-account-button");
         toButton.setAttribute("aria-label", "Inspect receiver " + edge.to);
-        metadata(inspector, [["Provenance", edge.provenance === "inferred" ? "Attribution hypothesis" : "Recorded chain reads"],
+        metadata(inspector, [["Provenance", edge.provenance === "inferred" ? "Attribution hypothesis" : (live ? "Live indexed reads" : "Recorded chain reads")],
           ["Confidence", edge.confidence], ...(edge.asset_id ? [["Asset", edge.asset_id, "graph-identifier"]] : [])]);
         edges = [edge];
       }
@@ -832,12 +853,12 @@
         const relevant = [...recordIds].map(id => recordById.get(id));
         const value = valueSummary(relevant);
         metadata(inspector, [["Known gross USD", value.usd, "graph-number"], ["Transfers without USD", value.unknownUsd],
-          ["First recorded transfer (UTC)", exactUtc(value.first)], ["Last recorded transfer (UTC)", exactUtc(value.last)]]);
+          [(live ? "First observed transfer (UTC)" : "First recorded transfer (UTC)"), exactUtc(value.first)], [(live ? "Last observed transfer (UTC)" : "Last recorded transfer (UTC)"), exactUtc(value.last)]]);
         if (state.selected.kind === "edge") metadata(inspector, [["Asset", edges[0].asset_id],
           ["Human amount as recorded", value.human, "graph-number"], ["Total base units", value.base, "graph-number"]]);
         else {
           const counterparties = element("div", "graph-counterparties");
-          counterparties.append(element("h4", "", "Counterparties in the filtered recording"));
+          counterparties.append(element("h4", "", live ? "Counterparties in the filtered observation" : "Counterparties in the filtered recording"));
           const ranked = edges.map(edge => ({edge, value: valueSummary(edgeRecords(payload, edge))}))
             .sort((a, b) => Number(b.value.usd || -1) - Number(a.value.usd || -1));
           for (const {edge, value} of ranked.slice(0, 5)) button(counterparties,
@@ -855,7 +876,7 @@
       const matchingIds = new Set(state.matches.flatMap((edge) => [edge.from, edge.to]));
       const candidates = payload.nodes.filter((node) => (!state.asset && !state.provenance && !state.from && !state.to || matchingIds.has(node.id)) &&
         node.id.toLowerCase().includes(state.search.toLowerCase()));
-      accountList.replaceChildren(element("p", "", candidates.length + " recorded accounts"));
+      accountList.replaceChildren(element("p", "", candidates.length + (live ? " observed accounts" : " recorded accounts")));
       const size = state.compact ? 4 : 12;
       state.accountPage = Math.min(state.accountPage, Math.max(0, Math.ceil(candidates.length / size) - 1));
       for (const node of candidates.slice(state.accountPage * size, (state.accountPage + 1) * size)) {
@@ -870,7 +891,7 @@
 
     function renderRelationships() {
       edgeList.replaceChildren(element("h4", "", "Relationships in this view"));
-      if (!state.edges.length) edgeList.append(element("p", "graph-empty", "No recorded relationships in this view."));
+      if (!state.edges.length) edgeList.append(element("p", "graph-empty", (live ? "No observed relationships in this view." : "No recorded relationships in this view.")));
       const size = state.compact ? 4 : 12;
       state.edgePage = Math.min(state.edgePage, Math.max(0, Math.ceil(state.edges.length / size) - 1));
       for (const edge of state.edges.slice(state.edgePage * size, (state.edgePage + 1) * size)) {
@@ -899,8 +920,9 @@
     });
     svg.addEventListener("pointerup", () => { drag = null; });
     svg.addEventListener("pointercancel", () => { drag = null; });
-    document.addEventListener("visibilitychange", () => { if (document.hidden) drag = null; });
-    window.addEventListener("resize", () => {
+    const visibility = () => { if (document.hidden) drag = null; };
+    document.addEventListener("visibilitychange", visibility);
+    const resize = () => {
       if (state.compact !== compactQuery.matches) {
         const initial = state.limit === (state.compact ? 4 : 8);
         state.compact = compactQuery.matches;
@@ -908,7 +930,9 @@
         arrangeControls(state.compact, controls);
         renderGraph(true); renderAccounts();
       } else frameSelected();
-    });
+    };
+    window.addEventListener("resize", resize);
+    disposers.set(container, () => { document.removeEventListener("visibilitychange", visibility); window.removeEventListener("resize", resize); });
     renderGraph(true); renderInspector(); renderAccounts();
     views.set(container, () => ({asset: state.asset, provenance: state.provenance, from: state.from, to: state.to,
       selected: {...state.selected}, focus: state.focus, limit: state.limit, mode: state.mode, root: payload.root, kind: payload.kind,
@@ -922,6 +946,7 @@
       changeFilter();
     });
     mounts.add(container);
+    payloads.set(container, payload);
     return container;
   }
 
@@ -931,6 +956,7 @@
     if (!source) return mount(container);
     loading.add(container);
     container.setAttribute("aria-busy", "true");
+    const liveSource = source.startsWith("/live/");
     const panel = element("div", "graph-loading");
     panel.setAttribute("role", "status");
     const heading = element("h2", "", "Recorded investigation");
@@ -940,13 +966,13 @@
     if (restoreFocus) heading.focus({ preventScroll: true });
     let restoreAfterMount = false;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    controllers.set(container, controller);
+    let timeout;
     try {
       if (window.location.protocol === "file:") throw new Error("Serve this site over HTTP to load the recorded graph.");
-      const url = new URL(source, window.location.href);
-      if (url.origin !== window.location.origin || !/^\/graph-data\/[a-f0-9]{64}\.json$/.test(url.pathname) || url.search || url.hash) {
-        throw new Error("The recorded graph address is invalid.");
-      }
+      const {url, live, snapshot} = graphAddress(source);
+      if (live) { heading.textContent = snapshot ? "Saved indexed observation" : "Live indexed neighborhood"; panel.children[1].textContent = snapshot ? "Loading saved bounded observation…" : "Reading bounded mainnet transfers…"; }
+      timeout = setTimeout(() => controller.abort(), live ? 25000 : 15000);
       const response = await fetch(url.href, { signal: controller.signal, credentials: "same-origin" });
       if (!response.ok) throw new Error("The recorded dataset could not be loaded (HTTP " + response.status + ").");
       if (!(response.headers.get("content-type") || "").toLowerCase().includes("application/json")) {
@@ -954,28 +980,39 @@
       }
       const payload = await response.json();
       if (!validPayload(payload)) throw new Error("The recorded dataset is incomplete.");
+      const expectedAccount = snapshot ? container.getAttribute("data-graph-account") : url.pathname.split("/")[3];
+      if (live && (payload.source.recorded !== false || payload.root !== expectedAccount)) throw new Error("The indexed neighborhood does not match the requested account.");
+      if (controllers.get(container) !== controller) return container;
       restoreAfterMount = restoreFocus && document.activeElement === heading;
       mount(container, payload);
       if (restoreAfterMount) container.querySelector('.graph-mode-controls button[aria-pressed="true"]').focus({ preventScroll: true });
     } catch (error) {
+      if (controllers.get(container) !== controller) return container;
       const focusRetry = restoreAfterMount || restoreFocus && document.activeElement === heading;
       container.replaceChildren(panel);
-      panel.replaceChildren(element("h2", "", "Recorded investigation unavailable"),
+      panel.replaceChildren(element("h2", "", liveSource ? "Live neighborhood unavailable" : "Recorded investigation unavailable"),
         element("p", "", controller.signal.aborted ? "The dataset took too long to load. Try again." : error.message));
       const retry = element("button", "", "Retry loading graph");
       retry.type = "button";
       retry.addEventListener("click", () => load(container, true));
-      panel.append(retry, element("p", "", "Recorded evidence remains available on this page or through the recorded investigation links."));
+      panel.append(retry, element("p", "", liveSource ? "Account tables remain separate reads. An unavailable neighborhood does not establish absence of activity." : "Recorded evidence remains available on this page or through the recorded investigation links."));
       container.setAttribute("aria-busy", "false");
       if (focusRetry) retry.focus({ preventScroll: true });
     } finally {
       clearTimeout(timeout);
-      loading.delete(container);
+      if (controllers.get(container) === controller) { controllers.delete(container); loading.delete(container); }
     }
     return container;
   }
 
-  window.SiyabGraph = { mount: load, getView: container => views.has(container) ? views.get(container)() : null };
+  window.SiyabGraph = { mount: load, getView: container => views.has(container) ? views.get(container)() : null,
+    getPayload: container => payloads.has(container) ? JSON.parse(JSON.stringify(payloads.get(container))) : null,
+    destroy: container => {
+      const controller = controllers.get(container); controllers.delete(container); if (controller) controller.abort();
+      if (disposers.has(container)) disposers.get(container)();
+      disposers.delete(container); payloads.delete(container); views.delete(container); rangeSetters.delete(container);
+      recordIndexes.delete(container); mounts.delete(container); loading.delete(container);
+    } };
   function mountTimelines() {
     document.querySelectorAll("[data-recorded-timeline]").forEach(chart => {
       const root = chart.getAttribute("data-recorded-timeline");

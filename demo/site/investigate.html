@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Investigate account</title>
+<meta name="description" content="Investigate NEAR accounts with sourced labels, recorded activity and read-only payment checks. Inspect the evidence and its coverage.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Investigate account | Siyab">
+<meta property="og:description" content="Investigate NEAR accounts with sourced labels, recorded activity and read-only payment checks. Inspect the evidence and its coverage.">
+<meta property="og:image" content="https://siyab.xyz/brand/social.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://siyab.xyz/brand/social.png">
+<link rel="icon" type="image/svg+xml" href="/brand/favicon.svg"><link rel="alternate icon" href="/favicon.ico">
+<link rel="stylesheet" href="/style.css">
+<link rel="canonical" href="https://siyab.xyz/investigate.html">
+<meta property="og:url" content="https://siyab.xyz/investigate.html">
+</head>
+<body>
+<a class="skip-link" href="#main-content">Skip to content</a><aside class="app-sidebar"><a class="site-brand" href="index.html"><svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M26 6H12L6 14l19 5-6 7H5" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="square" stroke-linejoin="bevel"/></svg><span>Siyab</span></a><nav class="app-primary-navigation" aria-label="Primary"><a href="index.html">Home</a><a href="investigate.html" aria-current="page">Account lookup</a><a href="flows/rhea-collector.html">Trace</a><a href="feed.html">Feed</a><a href="workspace.html">Workspace</a><a href="index.html#tools">Payment checks</a><a href="verify.html">Verify</a></nav><nav class="app-secondary-navigation" aria-label="Secondary"><a href="index.html#explore-title">Incidents</a><a href="entities/treasuries.html">Treasuries</a><a href="entities/catalog.html">Catalog tokens</a><a href="entities/infrastructure.html">Infrastructure and bridge accounts</a><a href="entities/organisations.html">Organisations from on chain registries</a><a href="records/index.html">Incident records</a><a href="issuers.html">Issuers</a></nav></aside><header class="app-topbar"><a class="app-mobile-brand" href="index.html"><svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M26 6H12L6 14l19 5-6 7H5" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="square" stroke-linejoin="bevel"/></svg><span>Siyab</span></a><span class="app-context">Investigate account</span><div class="header-actions"><button class="site-search-button" type="button" aria-label="Search accounts and entities" data-open-search><span class="site-search-label">Search accounts / entities</span><span class="site-search-short" aria-hidden="true">Search</span> <kbd class="search-key">Ctrl K</kbd></button><button class="theme-toggle" type="button" id="theme-toggle" aria-label="Switch to light theme"><span class="theme-toggle-label">Use light theme</span></button></div><details class="mobile-navigation" id="mobile-navigation"><summary>Menu</summary><div class="mobile-navigation-panel"><nav class="app-primary-navigation" aria-label="Primary"><a href="index.html">Home</a><a href="investigate.html" aria-current="page">Account lookup</a><a href="flows/rhea-collector.html">Trace</a><a href="feed.html">Feed</a><a href="workspace.html">Workspace</a><a href="index.html#tools">Payment checks</a><a href="verify.html">Verify</a></nav><nav class="app-secondary-navigation" aria-label="Secondary"><a href="index.html#explore-title">Incidents</a><a href="entities/treasuries.html">Treasuries</a><a href="entities/catalog.html">Catalog tokens</a><a href="entities/infrastructure.html">Infrastructure and bridge accounts</a><a href="entities/organisations.html">Organisations from on chain registries</a><a href="records/index.html">Incident records</a><a href="issuers.html">Issuers</a></nav></div></details></header><dialog class="search-dialog" id="global-search" aria-label="Search accounts and entities"><form class="search-dialog-head" method="dialog"><input id="global-search-input" aria-label="Account or entity" autocomplete="off" placeholder="Search accounts and entities"><button aria-label="Close search">Close</button></form><div class="search-results" id="global-search-results" aria-live="polite"></div></dialog><dialog class="case-dialog" id="save-investigation" aria-labelledby="case-dialog-title"><h2 id="case-dialog-title">Save investigation</h2><form id="case-form"><label for="case-title">Title<input id="case-title" maxlength="120" required></label><label for="case-notes">Notes<textarea id="case-notes" maxlength="4000" rows="5"></textarea></label><p id="case-source" class="source-line"></p><p id="case-error" role="alert"></p><div class="workspace-actions"><button class="primary" type="submit">Save investigation</button><button id="case-cancel" type="button">Cancel</button></div></form></dialog>
+<main class="app-content" id="main-content">
+<div id="account-investigation"><div class="investigate-heading"><div><h1 id="investigate-title">Investigate account</h1><p>Finalized account state, indexed activity and the evidence behind each observation.</p></div><div class="workspace-actions"><button id="investigate-refresh" type="button" disabled>Refresh reads</button><button id="investigate-watch" type="button" disabled>Watch account</button><button id="investigate-save" type="button" data-save-investigation disabled>Save investigation</button></div></div><form id="investigate-form" class="investigate-search" action="/investigate.html" method="get"><label for="investigate-account">NEAR mainnet account<input id="investigate-account" name="account" maxlength="64" autocomplete="off" placeholder="account.near" required></label><button type="submit" class="primary">Investigate</button></form><p id="investigate-status" class="investigate-status" role="status">Enter an account to read mainnet data. No payment is signed or sent.</p><section id="investigate-profile" class="investigate-section" data-investigation-panel><h2 tabindex="-1">Finalized account state</h2><div data-live-content><p class="investigate-empty">Select an account to read this data.</p></div></section><section id="investigate-holdings" class="investigate-section" data-investigation-panel><h2 tabindex="-1">Indexed token holdings</h2><div data-live-content><p class="investigate-empty">Select an account to read this data.</p></div></section><section id="investigate-transfers" class="investigate-section" data-investigation-panel><h2 tabindex="-1">Transfers</h2><div data-live-content><p class="investigate-empty">Select an account to read this data.</p></div></section><section id="investigate-transactions" class="investigate-section" data-investigation-panel><h2 tabindex="-1">Transactions</h2><div data-live-content><p class="investigate-empty">Select an account to read this data.</p></div></section><section id="investigate-identity" class="investigate-section" data-investigation-panel><h2 tabindex="-1">Account identity</h2><button id="investigate-read-identity" type="button" disabled>Read identity evidence</button><div data-live-content><p class="investigate-empty">Read contract, token and validator observations on demand. Metadata does not establish ownership.</p></div></section><section id="investigate-history" class="investigate-section" data-investigation-panel><h2 tabindex="-1">Retained history</h2><div class="investigate-history-actions"><label for="investigate-history-kind">Records<select id="investigate-history-kind"><option value="transfers">Transfers</option><option value="transactions">Transactions</option></select></label><button id="investigate-history-load" type="button" disabled>Load retained rows</button><label for="investigate-backfill-pages">Provider read bound<select id="investigate-backfill-pages"><option value="1">One page · up to 100 rows</option><option value="2">Two pages · up to 200 rows</option></select></label><button id="investigate-backfill" type="button" disabled>Backfill older pages</button></div><p class="investigate-scope">Retained provider observations can have gaps. Backfill reads only the chosen bound and saves public chain data. Reaching the provider's last page does not establish complete history.</p><div id="investigate-backfill-status" role="status"></div><div data-live-content><p class="investigate-empty">Select an account, then load retained rows or request a bounded backfill.</p></div></section><section class="investigate-section"><h2>Observed neighborhood</h2><div class="investigate-graph-actions"><label for="investigate-depth">Expansion depth<select id="investigate-depth"><option value="1">One hop</option><option value="2">Two hops</option></select></label><button id="investigate-load-graph" type="button" disabled>Load neighborhood</button></div><div id="investigate-graph"><p class="investigate-empty">Load a bounded neighborhood from indexed transfers. It is not complete account history.</p></div></section><noscript><p>JavaScript is required for live account reads. Recorded evidence remains available through the navigation.</p></noscript></div><script src="/assets/e0fd496d2e6928f3b857c258e59276e2510d3170c6324ebb0e74dd0ee85b3043.js" integrity="sha256-4P1JbS5pKPO4V8JY5ZJ24lENMXDGMk67DnTdDuhbMEM=" defer></script><script src="/assets/fc026a84fd3b78b47c0276c821ab2f3c727dcba82b9fbe24a09e39100aff24d2.js" integrity="sha256-/AJqhP07eLR8AnbIIasvPHJ9y6grn74koJ45EAr/JNI=" defer></script>
+</main>
+<footer class="app-footer"><p>Data: NearBlocks. Blocks: mainnet.neardata.xyz. Transfers: FastNEAR.</p></footer>
+<p id="workspace-feedback" class="workspace-feedback" role="status" aria-live="polite"></p><script>(() => {
+  "use strict";
+  const toggle = document.getElementById("theme-toggle");
+  const themeLabel = document.createElement("span");
+  themeLabel.className = "theme-toggle-label";
+  toggle.replaceChildren(themeLabel);
+  const labelTheme = () => {
+    const light = document.documentElement.dataset.theme === "light";
+    themeLabel.textContent = light ? "Use dark theme" : "Use light theme";
+    toggle.setAttribute("aria-label", light ? "Switch to dark theme" : "Switch to light theme");
+  };
+  try {
+    const saved = localStorage.getItem("siyab-theme");
+    if (saved === "light" || saved === "dark") document.documentElement.dataset.theme = saved;
+  } catch (error) { toggle.title = "Theme choice applies to this page; browser storage is unavailable."; }
+  labelTheme();
+  toggle.addEventListener("click", () => {
+    document.documentElement.dataset.theme = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+    labelTheme();
+    try { localStorage.setItem("siyab-theme", document.documentElement.dataset.theme); }
+    catch (error) { toggle.title = "Theme choice applies to this page; browser storage is unavailable."; }
+  });
+  const dialog = document.getElementById("global-search");
+  const menu = document.getElementById("mobile-navigation");
+  menu.addEventListener("click", event => {
+    if (event.target.closest("a")) menu.open = false;
+  });
+  const input = document.getElementById("global-search-input");
+  const results = document.getElementById("global-search-results");
+  let entries = null;
+  let failed = false;
+  let opener = null;
+  const render = () => {
+    results.replaceChildren();
+    const query = input.value.trim().toLowerCase();
+    const matches = entries && query ? entries.filter(row => `${row.label} ${row.detail}`.toLowerCase().includes(query)) : [];
+    const message = failed ? "Search is unavailable. Browse the account and entity collections below." : !entries ? "Loading recorded search index." : !query ? "Type an account or entity name." : !matches.length ? "No recorded match. This does not imply a favorable payment result." : `${matches.length} recorded matches; showing up to 30.`;
+    const note = document.createElement("p");
+    note.className = "search-empty"; note.textContent = message; results.append(note);
+    if (query.length >= 2 && query.length <= 64 && /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/.test(query)
+        && query !== "testnet" && !query.endsWith(".testnet")) {
+      const link = document.createElement("a"); link.className = "search-result"; link.href = "/investigate.html?account=" + encodeURIComponent(query);
+      const text = document.createElement("span"); text.textContent = "Investigate " + query;
+      const kind = document.createElement("span"); kind.className = "search-result-type"; kind.textContent = "Mainnet account";
+      link.append(text, kind); results.append(link);
+    }
+    for (const row of matches.slice(0, 30)) {
+      const link = document.createElement("a"); link.className = "search-result"; link.href = `/${row.url}`;
+      const text = document.createElement("span"); text.textContent = row.label;
+      const detail = document.createElement("small"); detail.textContent = row.detail; text.append(detail);
+      const kind = document.createElement("span"); kind.className = "search-result-type"; kind.textContent = row.type;
+      link.append(text, kind); results.append(link);
+    }
+  };
+  const open = (query = "") => {
+    if (typeof dialog.showModal !== "function") { location.href = "/index.html#search"; return; }
+    if (!dialog.open) opener = document.activeElement;
+    input.value = query; if (!dialog.open) dialog.showModal(); input.focus(); render();
+  };
+  document.querySelectorAll("[data-open-search]").forEach(button => button.addEventListener("click", () => open()));
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && menu.open && !dialog.open) {
+      event.preventDefault(); menu.open = false; menu.querySelector("summary").focus();
+    }
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") { event.preventDefault(); open(); }
+    if (event.key === "ArrowDown" && dialog.open && document.activeElement === input) {
+      const first = results.querySelector("a"); if (first) { event.preventDefault(); first.focus(); }
+    }
+  });
+  dialog.addEventListener("close", () => { if (opener) opener.focus(); });
+  dialog.addEventListener("keydown", event => {
+    if (event.key === "Enter" && document.activeElement === input) {
+      const first = results.querySelector("a");
+      event.preventDefault(); if (first) first.click(); return;
+    }
+    if (!["ArrowDown", "ArrowUp"].includes(event.key)) return;
+    const links = Array.from(results.querySelectorAll("a"));
+    const index = links.indexOf(document.activeElement);
+    if (index < 0 || !links.length) return;
+    event.preventDefault();
+    if (event.key === "ArrowUp" && index === 0) input.focus();
+    else links[(index + (event.key === "ArrowDown" ? 1 : -1) + links.length) % links.length].focus();
+  });
+  input.addEventListener("input", render);
+  const form = document.getElementById("search");
+  if (form) form.addEventListener("submit", event => { event.preventDefault(); open(new FormData(form).get("q") || ""); });
+  fetch("/search.json", {headers: {Accept: "application/json"}}).then(response => {
+    if (!response.ok) throw new Error("Search unavailable"); return response.json();
+  }).then(data => {
+    if (!Array.isArray(data.accounts) || !Array.isArray(data.entities)) throw new Error("Search unreadable");
+    const localPath = /^(accounts|entities)\/[A-Za-z0-9._-]+\.html$/;
+    if (!data.accounts.every(row => row && typeof row.subject === "string" && Array.isArray(row.labels)
+        && row.labels.every(label => typeof label === "string") && typeof row.url === "string" && localPath.test(row.url))
+        || !data.entities.every(row => row && typeof row.id === "string" && typeof row.name === "string"
+        && typeof row.url === "string" && localPath.test(row.url))) throw new Error("Search index paths unreadable");
+    entries = [...data.accounts.map(row => ({label: row.subject, detail: row.labels.join(", "), url: row.url, type: "Account"})),
+      ...data.entities.map(row => ({label: row.name, detail: row.id, url: row.url, type: "Entity"}))];
+    render();
+  }).catch(() => { failed = true; render(); });
+  const query = new URLSearchParams(location.search).get("q");
+  if (query) open(query);
+})();
+</script><script src="/assets/ba45c295d8adfe44afd9f1d9794fa59fe584e0f15019cab3a9120e4ee0a3d8f0.js" integrity="sha256-ukXCldit/kSv2fHZeU+ln+WE4PFQGcqzqRIOTuCj2PA=" defer></script><script src="/assets/b5dce31eff79f2dbaf20856cf3eeebbe8c07ef624ea6827ee1bcc6479f765c22.js" integrity="sha256-tdzjHv958tuvIIVs8+7rvowH72JOpoJ+4bzGR592XCI=" defer></script></body>
+</html>

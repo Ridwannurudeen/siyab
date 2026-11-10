@@ -37,6 +37,13 @@
     const message = failed ? "Search is unavailable. Browse the account and entity collections below." : !entries ? "Loading recorded search index." : !query ? "Type an account or entity name." : !matches.length ? "No recorded match. This does not imply a favorable payment result." : `${matches.length} recorded matches; showing up to 30.`;
     const note = document.createElement("p");
     note.className = "search-empty"; note.textContent = message; results.append(note);
+    if (query.length >= 2 && query.length <= 64 && /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/.test(query)
+        && query !== "testnet" && !query.endsWith(".testnet")) {
+      const link = document.createElement("a"); link.className = "search-result"; link.href = "/investigate.html?account=" + encodeURIComponent(query);
+      const text = document.createElement("span"); text.textContent = "Investigate " + query;
+      const kind = document.createElement("span"); kind.className = "search-result-type"; kind.textContent = "Mainnet account";
+      link.append(text, kind); results.append(link);
+    }
     for (const row of matches.slice(0, 30)) {
       const link = document.createElement("a"); link.className = "search-result"; link.href = `/${row.url}`;
       const text = document.createElement("span"); text.textContent = row.label;

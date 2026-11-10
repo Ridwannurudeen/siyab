@@ -1,0 +1,27 @@
+[Unit]
+Description=Siyab background watchlist inbox monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=shieldbot-near
+Group=shieldbot-near
+WorkingDirectory=/opt/siyab
+EnvironmentFile=/etc/shieldbot-near/env
+ExecStart=/usr/bin/python3 -m intel monitor --state-dir /var/lib/shieldbot-near/siyab
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGINT
+TimeoutStopSec=30
+Nice=10
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/shieldbot-near/siyab
+RestrictAddressFamilies=AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

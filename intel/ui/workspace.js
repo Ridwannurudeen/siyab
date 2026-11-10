@@ -7,7 +7,7 @@
     let url;
     try { url = new URL(value, location.origin); }
     catch (error) { return null; }
-    if (url.origin !== location.origin || !(/^\/$|^\/(?:index|workspace|feed|verify|issuers|top-receivers)\.html$|^\/(?:accounts|entities|flows|clusters|incidents|records)\/[A-Za-z0-9._-]+\.html$/).test(url.pathname)) return null;
+    if (url.origin !== location.origin || !(/^\/$|^\/(?:index|investigate|workspace|feed|verify|issuers|top-receivers)\.html$|^\/(?:accounts|entities|flows|clusters|incidents|records)\/[A-Za-z0-9._-]+\.html$/).test(url.pathname)) return null;
     const path = url.pathname + url.search + url.hash;
     return path.length <= 2048 ? path : null;
   };
@@ -105,6 +105,9 @@
         if (view[field] !== "" && view[field] !== null && view[field] !== undefined) url.searchParams.set(name, String(view[field]));
       }
       if (view.selected) url.searchParams.set(view.selected.kind === "edge" ? "g_edge" : "g_node", view.selected.id);
+      const payload = window.SiyabGraph.getPayload ? window.SiyabGraph.getPayload(graph) : null;
+      const snapshot = payload?.snapshot?.id || graph.getAttribute("data-graph-src")?.match(/^\/live\/account-data\/([a-f0-9]{64})\.json$/)?.[1];
+      if (url.pathname === "/investigate.html" && typeof snapshot === "string" && /^[a-f0-9]{64}$/.test(snapshot)) url.searchParams.set("observation", snapshot);
     }
     return localPath(url.href);
   }
@@ -114,7 +117,7 @@
   function openSave(item = null) {
     if (!saveDialog || typeof saveDialog.showModal !== "function") { message("Open Workspace to manage saved investigations."); return; }
     opener = document.activeElement; editing = item;
-    const account = location.pathname.startsWith("/accounts/") ? document.querySelector("[data-watch-account]")?.dataset.watchAccount : null;
+    const account = document.querySelector("[data-watch-account]")?.dataset.watchAccount;
     document.getElementById("case-title").value = item ? item.title : (account ? "Account: " + account : document.querySelector("h1")?.textContent || "Investigation").slice(0, 120);
     document.getElementById("case-notes").value = item ? item.notes : "";
     document.getElementById("case-source").textContent = item ? item.url : viewUrl();
@@ -162,9 +165,9 @@
     if (control.hasAttribute("data-watch-account")) { watch(control.dataset.watchAccount); return; }
     if (control.hasAttribute("data-export-table")) { tableExport(control.dataset.exportTable, control.dataset.exportFormat || "csv"); return; }
     const graph = control.closest("[data-siyab-graph]");
-    if (!graph || !window.SiyabGraph?.getView) { message("Load a recorded graph before exporting."); return; }
+    if (!graph || !window.SiyabGraph?.getView) { message("Load a graph before exporting."); return; }
     const view = window.SiyabGraph.getView(graph);
-    if (!view) { message("Load a recorded graph before exporting."); return; }
+    if (!view) { message("Load a graph before exporting."); return; }
     const sourceUrl = viewUrl();
     if (!sourceUrl) { message("The current investigation address cannot be exported."); return; }
     control.disabled = true;
@@ -172,11 +175,14 @@
     if (graphExports.has(control)) graphExports.get(control).abort();
     graphExports.set(control, abort);
     try {
-      const source = graph.getAttribute("data-graph-src");
-      if (!/^\/graph-data\/[a-f0-9]{64}\.json$/.test(source)) throw new Error("Recorded graph address is invalid.");
-      const response = await fetch(source, {signal: abort.signal, headers: {Accept: "application/json"}});
-      if (!response.ok) throw new Error("Recorded graph export is unavailable.");
-      const payload = await response.json();
+      let payload = window.SiyabGraph.getPayload ? window.SiyabGraph.getPayload(graph) : null;
+      if (!payload) {
+        const source = graph.getAttribute("data-graph-src");
+        if (!/^\/graph-data\/[a-f0-9]{64}\.json$/.test(source)) throw new Error("Load the graph before exporting its observed records.");
+        const response = await fetch(source, {signal: abort.signal, headers: {Accept: "application/json"}});
+        if (!response.ok) throw new Error("Recorded graph export is unavailable.");
+        payload = await response.json();
+      }
       if (graphExports.get(control) !== abort) return;
       if (!Array.isArray(payload.records)) throw new Error("Recorded graph export could not be read.");
       const ids = new Set(view.recordIds);
@@ -336,4 +342,5 @@
   });
   window.addEventListener("pageshow", event => { if (event.persisted) startMonitor(); });
   render(); if (storageProblem) message(""); startMonitor();
+  document.addEventListener("siyab:account-selected", render);
 })();

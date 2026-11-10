@@ -548,6 +548,61 @@ def _snapshot(args):
     return 0
 
 
+def _monitor(args):
+    from intel import monitor
+    from intel.workspace import SQLiteWorkspaceStore
+
+    state = Path(args.state_dir).expanduser().resolve()
+    if state == ROOT or ROOT in state.parents:
+        print("stopped: workspace state must be outside the source repository", file=sys.stderr)
+        return 2
+    store = SQLiteWorkspaceStore(state / "workspace.sqlite3")
+    events = Path(os.environ.get("FEED_STATE_DIR", feed.STATE_PATH.parent)) / "events"
+    result = monitor.run(store, events, once=args.once)
+    print(json.dumps(result, sort_keys=True))
+    return 0
+
+
+def _workspace_backup(args):
+    from intel.workspace import SQLiteWorkspaceStore
+
+    state = Path(args.state_dir).expanduser().resolve()
+    source, requested = state / "workspace.sqlite3", Path(args.out).expanduser()
+    destination = requested.resolve()
+    if (state == ROOT or ROOT in state.parents or destination == ROOT or ROOT in destination.parents
+            or not source.is_file() or requested.is_symlink() or destination.exists()):
+        print("stopped: use an existing external workspace database and a new backup path", file=sys.stderr)
+        return 2
+    destination.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    try:
+        descriptor = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError:
+        print("stopped: choose a new backup path; an existing file will not be overwritten", file=sys.stderr)
+        return 2
+    os.close(descriptor)
+    try:
+        SQLiteWorkspaceStore(source).backup(destination)
+    except Exception:
+        destination.unlink()
+        raise
+    print("workspace backup completed")
+    return 0
+
+
+def _history_follow(args):
+    from intel import accounts, history
+    from intel.workspace import SQLiteWorkspaceStore
+
+    state = Path(args.state_dir).expanduser().resolve()
+    if state == ROOT or ROOT in state.parents:
+        print("stopped: workspace state must be outside the source repository", file=sys.stderr)
+        return 2
+    store = SQLiteWorkspaceStore(state / "workspace.sqlite3")
+    result = history.run(store, accounts.AccountData(labels.load()), state / "history.sqlite3", once=args.once)
+    print(json.dumps(result, sort_keys=True))
+    return 0
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="python -m intel")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -564,7 +619,22 @@ def main(argv=None):
     server.add_argument("--port", type=int, default=8787)
     server.add_argument("--site", help="a directory of static files to serve too, such as demo/site")
     server.add_argument("--live", action="store_true", help="enable keyless live mainnet checks and testnet reports")
-    server.set_defaults(handler=lambda args: api.serve(args.host, args.port, args.site, live=args.live))
+    server.add_argument("--state-dir", help="enable authenticated workspaces with state outside the source repository")
+    server.add_argument("--workspace-origin", default="https://siyab.xyz", help="exact workspace HTTPS origin; explicit localhost HTTP is supported for development")
+    server.set_defaults(handler=lambda args: api.serve(args.host, args.port, args.site, live=args.live,
+                                                      state_dir=args.state_dir, workspace_origin=args.workspace_origin))
+    monitoring = commands.add_parser("monitor", help="index retained feed evidence into background team inboxes")
+    monitoring.add_argument("--state-dir", required=True)
+    monitoring.add_argument("--once", action="store_true")
+    monitoring.set_defaults(handler=_monitor)
+    following = commands.add_parser("history-follow", help="retain account history and poll ordinary-transfer team watches")
+    following.add_argument("--state-dir", required=True)
+    following.add_argument("--once", action="store_true")
+    following.set_defaults(handler=_history_follow)
+    backup = commands.add_parser("workspace-backup", help="back up an existing external workspace database")
+    backup.add_argument("--state-dir", required=True)
+    backup.add_argument("--out", required=True)
+    backup.set_defaults(handler=_workspace_backup)
     receivers = commands.add_parser("receivers", help="judge the recorded mainnet receiver set in replay")
     receivers.add_argument("--record", action="store_true", help="choose the set and record what is missing")
     receivers.add_argument("--exclude-file", help="with --record: a file of account ids kept outside the repository, "
