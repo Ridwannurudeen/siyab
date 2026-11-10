@@ -109,6 +109,8 @@ Three layers on one data model:
 - **Protocol** (`docs/VERDICT-RECORD.md`, `docs/REGISTRY.md`, `contracts/registry/`): an open verdict and label record format with an on chain NEAR registry, and the offline verifier `python -m gate verify`.
 - **Security** (`contracts/gate/`, `mcp/`, `gate/scan.py`): the guard contract, a stdio MCP server with three tools, and the key hygiene scanner `python -m gate scan`.
 
+The web workspace adds arbitrary mainnet account profiles, holdings, transactions and transfers, contract-reported metadata, bounded live graphs and resumable account-history observations. With external state configured, authenticated teams can share versioned investigations and persistent watchlists with retained inbox alerts. Browser-only work remains the default and is uploaded only by explicit choice. Graphs, backfills and polling have source and capacity bounds; they do not establish complete history. Setup, roles, recovery and backups: [Workspaces](docs/WORKSPACES.md).
+
 Every line below is written by `python scripts/counts.py --readme README.md` from committed files. The first two count the recorded mainnet receivers the rules judged, in all and by cohort. The two latency lines are ALLOW path only: the first covers live testnet verdicts for the allowlisted payee, tier 1 checks only (`docs/EVIDENCE.md`); the second covers live testnet verdicts for `examples.testnet`, a payee off the allowlist, through tier 1 and tier 2 checks (`fixtures/latency/verdict-runs-tier2.json`). That fixture records the 7 November archive-first runs; `docs/EVIDENCE.md` separates them from the 4 November NearBlocks-first runs. The feed line reads `intel/feed/follow-snapshot.json`, a copy of the hosted follower's state (`docs/EVIDENCE.md` gives its date and height).
 
 <!-- counts:start -->
@@ -513,7 +515,7 @@ Copied from `docs/ATTACKS.md`. Each NEAR command is `python -m gate attack <name
 - Reproducing the hash from source needs Docker; checking it against testnet needs network.
 - The signature is pure Ed25519 over the sha256 digest, not Ed25519ph.
 - Dependencies: NEAR RPC and archival RPC through FastNEAR, NearBlocks as an account-age fallback, GoPlus, 1Click and the ShieldBot API; each check that needs one reads Unknown when it is down. FastNEAR publishes no terms of service or rate limits for its RPC, archival RPC or Transfers API; this dependency is unverified on those two points.
-- What waits: chain wide label coverage, exchange labels, the NEAR Intents SHIELD feed, numeric risk ratings, billing, chain signatures linking, any trace of an unlabelled account. Feed and payment alerts are available when configured; the browser extension and the Telegram bot do not cover NEAR.
+- What waits: chain wide label coverage, exchange labels, the NEAR Intents SHIELD feed, numeric risk ratings, billing, chain signatures linking and complete account tracing. The incident-oriented `python -m intel flow` command still requires a current incident label and a matching incident page; bounded live neighborhoods of arbitrary mainnet accounts are available separately. Feed and payment alerts are available when configured; the browser extension and the Telegram bot do not cover NEAR.
 - Intear: Reference code in our repository. Not reviewed, adopted or acknowledged by Intear. No contact made as of 8 Nov. HOT: Reference code in our repository. Not reviewed, adopted or acknowledged by HOT. No contact made as of 8 Nov.
 
 ## Relationship to other NEAR work
