@@ -236,6 +236,65 @@ class McpServerTest(McpSessionCase):
         self.assertEqual(by_id[1]["result"]["protocolVersion"], "2024-11-05")
         self.assertEqual(by_id[2]["error"]["code"], -32602)
 
+    def test_excessive_json_nesting_is_a_parse_error_and_the_next_frame_is_answered(self):
+        valid = json.dumps(initialize("2025-06-18")).encode("utf-8")
+        bodies = [b"[" * 100000, valid]
+        stdout, stderr = self.run_server(b"".join(b"Content-Length: %d\r\n\r\n" % len(body) + body for body in bodies))
+        replies = []
+        while stdout:
+            header, _, rest = stdout.partition(b"\r\n\r\n")
+            length = int(header.split(b": ")[1])
+            replies.append(json.loads(rest[:length]))
+            stdout = rest[length:]
+        self.assertEqual(len(replies), 2)
+        self.assertEqual((replies[0]["id"], replies[0]["error"]["code"]), (None, -32700))
+        self.assertEqual(replies[1]["result"]["protocolVersion"], "2025-06-18")
+        self.assertNotIn("Traceback", stderr)
+
+    def test_nested_tool_arguments_and_reply_ids_do_not_end_the_session(self):
+        bodies = []
+        for depth in (990, *range(2980, 3000)):
+            nested = b"[" * depth + b"0" + b"]" * depth
+            bodies.append(b'{"jsonrpc":"2.0","method":"tools/list","id":' + nested + b"}")
+            for field in PAYMENT:
+                arguments = json.dumps({key: value for key, value in PAYMENT.items() if key != field}).encode("utf-8")
+                arguments = arguments[:-1] + b', "' + field.encode("ascii") + b'":' + nested + b"}"
+                bodies.append(b'{"jsonrpc":"2.0","id":1,"method":"tools/call",'
+                              b'"params":{"name":"check_near_payment","arguments":' + arguments + b"}}")
+            for field in ("origin_asset", "destination_asset", "amount", "recipient", "recipient_type"):
+                arguments = {"origin_asset": "nep141:wrap.near", "destination_asset": USDC_BASE_ASSET,
+                             "amount": ONE_NEAR, "recipient": DEMO_RECIPIENT}
+                arguments.pop(field, None)
+                arguments = json.dumps(arguments).encode("utf-8")[:-1]
+                arguments += b', "' + field.encode("ascii") + b'":' + nested + b"}"
+                bodies.append(b'{"jsonrpc":"2.0","id":1,"method":"tools/call",'
+                              b'"params":{"name":"check_intents_quote","arguments":' + arguments + b"}}")
+        bodies.append(json.dumps(initialize("2025-06-18")).encode("utf-8"))
+        stdout, stderr = self.run_server(b"\n".join(bodies) + b"\n")
+        lines = stdout.splitlines()
+        self.assertEqual(len(lines), len(bodies))
+        self.addCleanup(sys.setrecursionlimit, sys.getrecursionlimit())
+        sys.setrecursionlimit(10000)
+        decoder = json.JSONDecoder()
+        decoder.scan_once = json.scanner.py_make_scanner(decoder)
+        for body, line in zip(bodies[:-1], lines[:-1]):
+            reply = decoder.decode(line.decode("utf-8"))
+            if "error" in reply:
+                self.assertIn(reply["error"]["code"], (-32700, -32600))
+            elif "tools" in reply["result"]:
+                reply_id, request_id = reply["id"], decoder.decode(body.decode("utf-8"))["id"]
+                while isinstance(request_id, list):
+                    self.assertIsInstance(reply_id, list)
+                    self.assertEqual(len(reply_id), len(request_id))
+                    reply_id, request_id = reply_id[0], request_id[0]
+                self.assertEqual(reply_id, request_id)
+            else:
+                self.assertTrue(reply["result"]["isError"])
+                if b'"name":"check_intents_quote"' in body:
+                    self.assertTrue(reply["result"]["content"][0]["text"].startswith("invalid request: "))
+        self.assertEqual(json.loads(lines[-1])["result"]["protocolVersion"], "2025-06-18")
+        self.assertNotIn("Traceback", stderr)
+
     def test_a_header_that_does_not_parse_is_skipped(self):
         body = json.dumps({"jsonrpc": "2.0", "id": 5, "method": "ping"}).encode("utf-8")
         data = (b"Content-Length: %d\r\nX-Note: caf\xe9\r\nContent-Length: abc\r\n\r\n" % len(body)) + body

@@ -188,7 +188,7 @@ def _check_intents_quote(arguments, evidence_dir):
                                      firewall_url=os.environ.get("SHIELDBOT_API_URL"),
                                      mode=mode,
                                      deadline=intents.RECORDED_DEADLINE if mode == "replay" else intents.live_deadline())
-    except ValueError as error:
+    except (ValueError, RecursionError) as error:
         raise ToolError(f"invalid request: {error}") from error
     quote_request = {"originAsset": arguments.get("origin_asset"),
                      "destinationAsset": arguments.get("destination_asset"), "amount": arguments.get("amount"),
@@ -305,7 +305,7 @@ def serve(stdin, stdout):
         for framed, body in _messages(stdin):
             try:
                 message = json.loads(body)
-            except ValueError as error:
+            except (UnicodeError, ValueError, RecursionError) as error:
                 reply = {"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": f"parse error: {error}"}}
             else:
                 reply = handle(message, evidence_dir)

@@ -267,6 +267,37 @@ class VerdictRouteTest(EndpointCase):
         self.assertIn("RuntimeError: boom", stderr.getvalue())
 
 
+class NestedJsonTest(EndpointCase):
+    rate = 1000
+
+    def test_excessive_json_nesting_is_400_and_the_next_request_succeeds(self):
+        for size in (10000, 100000):
+            with self.subTest(size=size), mock.patch.object(endpoint, "MAX_BODY", 100000):
+                status, _, body = self.call("POST", "/verdict", b"[" * size)
+                self.assertEqual(status, 400)
+                self.assertIn("the body is not JSON", body["error"])
+                self.assertEqual(self.call("GET", "/health")[::2], (200, {"ok": True, "mode": "replay"}))
+
+    def test_nested_transfer_fields_are_refused_without_signing(self):
+        errors = io.StringIO()
+        before = sorted(self.evidence_dir.iterdir())
+        with contextlib.redirect_stderr(errors):
+            for depth in (990, *range(2980, 3000)):
+                nested = b"[" * depth + b"0" + b"]" * depth
+                for field in endpoint.FIELDS:
+                    with self.subTest(depth=depth, field=field):
+                        fields = {key: value for key, value in ALLOW.items() if key != field}
+                        fields = json.dumps(fields).encode("utf-8")
+                        body = fields[:-1] + b', "' + field.encode("ascii") + b'":' + nested + b"}"
+                        status, _, reply = self.call("POST", "/verdict", body)
+                        self.assertEqual(status, 400)
+                        self.assertIn("error", reply)
+        self.assertEqual(sorted(self.evidence_dir.iterdir()), before)
+        self.assertNotIn("Traceback", errors.getvalue())
+        self.assertNotIn("verdict failed", errors.getvalue())
+        self.assertEqual(self.call("GET", "/health")[0], 200)
+
+
 class RateTest(EndpointCase):
     rate = 2
 

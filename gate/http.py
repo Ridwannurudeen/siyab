@@ -222,7 +222,7 @@ def make_server(host, port, config, evidence_dir, store=None, clock=time.monoton
                 return
             try:
                 body = json.loads(self.rfile.read(length))
-            except ValueError as error:
+            except (UnicodeError, ValueError, RecursionError) as error:
                 self._send(400, {"error": f"the body is not JSON: {error}"})
                 return
             if not isinstance(body, dict):
