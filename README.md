@@ -273,7 +273,7 @@ To check our work from outside, `docs/VERIFY.md` is the verification guide: offl
    version
    ```
 
-5. `python -m gate verify fixtures/registry/testnet-vendor.json fixtures/evidence/7e77187d*.json` recomputes the evidence hash, compares it and the verdict with the registry view, and prints the NEP-297 fields to compare with the explorer. The evidence file is named after the record's `evidence_hash`: `fixtures/evidence/7e77187d...c88bb2cc.json`, the only file there starting `7e77187d`; where the shell does not expand `*` (PowerShell, cmd), type its full name, which tab completion fills in:
+5. `python -m gate verify fixtures/registry/testnet-vendor.json fixtures/evidence/7e77187d*.json` recomputes the evidence hash, compares it, the verdict and the evidence block height (when present) with the registry view, and prints the NEP-297 fields to compare with the explorer. Event records also check the evidence subject against the recorded subject; views have no subject to compare. The evidence file is named after the record's `evidence_hash`: `fixtures/evidence/7e77187d...c88bb2cc.json`, the only file there starting `7e77187d`; where the shell does not expand `*` (PowerShell, cmd), type its full name, which tab completion fills in:
 
    ```
    record shape: view
@@ -286,7 +286,8 @@ To check our work from outside, `docs/VERIFY.md` is the verification guide: offl
      observed_block 275799179, verdict_id 1b29052381ecf3fc1937b36db2539678
    ok   evidence sha256 equals the record's evidence_hash
    ok   evidence verdict equals the record's verdict
-   verified
+   ok   evidence block_height equals the record's observed_block
+   verified (subject not checked)
    ```
 
 6. `python -m mcp.server` answers JSON-RPC on stdin. A scripted `initialize` and `tools/list`, cut to 150 characters a line, first in a POSIX shell, then with Python alone (any shell):

@@ -1,4 +1,5 @@
 import contextlib
+import hashlib
 import io
 import json
 import shutil
@@ -35,10 +36,10 @@ class VerifyTest(unittest.TestCase):
         code, output, _ = run(RECORD, EVIDENCE, "--verdict", VERDICT, "--key", TEST_KEY)
         self.assertEqual(code, 0)
         lines = output.splitlines()
-        self.assertEqual(lines[-1], "verified")
+        self.assertEqual(lines[-1], "verified (subject not checked)")
         self.assertIn("  standard shieldbot-near, version 1.0.0, event verdict_recorded", lines)
         self.assertNotIn("FAIL", output)
-        self.assertEqual(sum(line.startswith("ok   ") for line in lines), 6)
+        self.assertEqual(sum(line.startswith("ok   ") for line in lines), 7)
         self.assertEqual(run(RECORD, EVIDENCE)[0], 0)
 
     def test_one_flipped_byte_in_the_evidence_fails(self):
@@ -89,6 +90,118 @@ class VerifyTest(unittest.TestCase):
         code, output, _ = run(path, EVIDENCE)
         self.assertEqual(code, 1)
         self.assertIn("FAIL evidence verdict equals the record's verdict", output)
+
+    def test_a_matching_event_subject_verifies(self):
+        event = json.loads(EVENT.read_text(encoding="utf-8"))
+        for document in (event, event["data"][0]):
+            with self.subTest(document=document):
+                path = self.dir / "record.json"
+                path.write_text(json.dumps(document), encoding="utf-8")
+                code, output, _ = run(path, EVIDENCE)
+                self.assertEqual(code, 0)
+                self.assertIn("ok   evidence subject equals the record's subject", output)
+                self.assertEqual(output.splitlines()[-1], "verified")
+
+    def test_a_mismatched_event_subject_fails(self):
+        event = json.loads(EVENT.read_text(encoding="utf-8"))
+        event["data"][0]["subject"] = "other.near"
+        for document in (event, event["data"][0]):
+            with self.subTest(document=document):
+                path = self.dir / "record.json"
+                path.write_text(json.dumps(document), encoding="utf-8")
+                code, output, _ = run(path, EVIDENCE)
+                self.assertEqual(code, 1)
+                self.assertIn("FAIL evidence subject equals the record's subject", output)
+                self.assertEqual(output.splitlines()[-1], "not verified")
+
+    def test_a_mismatched_observed_block_fails(self):
+        view = json.loads(RECORD.read_text(encoding="utf-8"))
+        event = json.loads(EVENT.read_text(encoding="utf-8"))["data"][0]
+        for document in (view, event):
+            with self.subTest(document=document):
+                document["observed_block"] += 1
+                path = self.dir / "record.json"
+                path.write_text(json.dumps(document), encoding="utf-8")
+                code, output, _ = run(path, EVIDENCE)
+                self.assertEqual(code, 1)
+                self.assertIn("FAIL evidence block_height equals the record's observed_block", output)
+                self.assertEqual(output.splitlines()[-1], "not verified")
+
+    def test_an_event_with_no_judged_account_in_the_evidence_fails(self):
+        document = json.loads(EVIDENCE.read_bytes())
+        document["subject"].pop("receiver")
+        path = self.dir / "evidence.json"
+        path.write_text(json.dumps(document), encoding="utf-8")
+        record = json.loads(EVENT.read_text(encoding="utf-8"))["data"][0]
+        record["evidence_hash"] = hashlib.sha256(path.read_bytes()).hexdigest()
+        record_path = self.dir / "record.json"
+        record_path.write_text(json.dumps(record), encoding="utf-8")
+        code, output, _ = run(record_path, path)
+        self.assertEqual(code, 1)
+        self.assertIn("ok   evidence sha256 equals the record's evidence_hash", output)
+        self.assertIn("FAIL evidence subject equals the record's subject", output)
+        self.assertEqual(output.splitlines()[-1], "not verified")
+
+    def test_an_event_with_a_non_object_evidence_subject_fails(self):
+        for subject in (None, [], "vendor.testnet"):
+            with self.subTest(subject=subject):
+                document = json.loads(EVIDENCE.read_bytes())
+                document["subject"] = subject
+                path = self.dir / "evidence.json"
+                path.write_text(json.dumps(document), encoding="utf-8")
+                record = json.loads(EVENT.read_text(encoding="utf-8"))["data"][0]
+                record["evidence_hash"] = hashlib.sha256(path.read_bytes()).hexdigest()
+                record_path = self.dir / "record.json"
+                record_path.write_text(json.dumps(record), encoding="utf-8")
+                code, output, _ = run(record_path, path)
+                self.assertEqual(code, 1)
+                self.assertIn("ok   evidence sha256 equals the record's evidence_hash", output)
+                self.assertIn("FAIL evidence subject equals the record's subject", output)
+                self.assertEqual(output.splitlines()[-1], "not verified")
+
+    def test_a_view_with_no_judged_account_displays_unknown(self):
+        document = json.loads(EVIDENCE.read_bytes())
+        document["subject"].pop("receiver")
+        path = self.dir / "evidence.json"
+        path.write_text(json.dumps(document), encoding="utf-8")
+        record = json.loads(RECORD.read_text(encoding="utf-8"))
+        record["evidence_hash"] = hashlib.sha256(path.read_bytes()).hexdigest()
+        record_path = self.dir / "record.json"
+        record_path.write_text(json.dumps(record), encoding="utf-8")
+        code, output, _ = run(record_path, path)
+        self.assertEqual(code, 0)
+        self.assertIn("  subject unknown (from the evidence; the view shape has none)", output.splitlines())
+        self.assertEqual(output.splitlines()[-1], "verified (subject not checked)")
+
+    def test_a_view_says_the_subject_was_not_checked(self):
+        code, output, _ = run(RECORD, EVIDENCE)
+        self.assertEqual(code, 0)
+        self.assertEqual(output.splitlines()[-1], "verified (subject not checked)")
+        self.assertIn("ok   evidence block_height equals the record's observed_block", output)
+
+    def test_intents_evidence_uses_the_recipient(self):
+        document = json.loads(EVIDENCE.read_bytes())
+        recipient = "0x" + "12" * 20
+        document["subject"] = {"kind": "intents", "recipient": recipient}
+        document["kind"] = "intents"
+        document["observed"]["block_height"] = None
+        path = self.dir / "evidence.json"
+        path.write_text(json.dumps(document), encoding="utf-8")
+        record = json.loads(EVENT.read_text(encoding="utf-8"))["data"][0]
+        record["evidence_hash"] = hashlib.sha256(path.read_bytes()).hexdigest()
+        for subject, expected in ((recipient, 0), ("other.near", 1)):
+            with self.subTest(subject=subject):
+                record["subject"] = subject
+                record_path = self.dir / "record.json"
+                record_path.write_text(json.dumps(record), encoding="utf-8")
+                code, output, _ = run(record_path, path)
+                self.assertEqual(code, expected)
+                if expected == 0:
+                    self.assertIn("ok   evidence subject equals the record's subject", output)
+                    self.assertEqual(output.splitlines()[-1], "verified (observed block not checked)")
+                else:
+                    self.assertIn("FAIL evidence subject equals the record's subject", output)
+                    self.assertEqual(output.splitlines()[-1], "not verified")
 
     def test_the_event_data_shape_and_the_view_shape_both_parse(self):
         view = verify.load_record(json.loads(RECORD.read_text(encoding="utf-8")))

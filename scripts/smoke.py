@@ -23,7 +23,7 @@ and the judgements of step 9 included, goes into one temporary directory removed
   4 python -m gate wasm-exports prints a sorted export list holding __contract_abi and the contract's
     entry method (request_transfer, record_batch)
   5 python -m gate verify on fixtures/registry/testnet-vendor.json and the one evidence file
-    fixtures/evidence/7e77187d*.json names (the glob is resolved here) ends "verified"
+    fixtures/evidence/7e77187d*.json names (the glob is resolved here) ends "verified (subject not checked)"
   6 python -m mcp.server, fed initialize, notifications/initialized and tools/list through a pipe,
     answers both requests and lists its three tools
   7 python -m intel counts and python -m gate incident rhea print the label counts and the Rhea page
@@ -156,9 +156,9 @@ def verify(work):
     evidence = matches[0].relative_to(ROOT).as_posix()
     stdout, _ = _python(work, "gate", "verify", "fixtures/registry/testnet-vendor.json", evidence)
     lines = stdout.splitlines()
-    if not lines or lines[-1] != "verified":
-        raise StepFailed(f"the last line is {lines[-1] if lines else 'missing'!r}, not 'verified'")
-    return f"verified with fixtures/evidence/{matches[0].stem[:8]}...json"
+    if not lines or lines[-1] != "verified (subject not checked)":
+        raise StepFailed(f"the last line is {lines[-1] if lines else 'missing'!r}, not 'verified (subject not checked)'")
+    return f"verified with fixtures/evidence/{matches[0].stem[:8]}...json (subject not checked)"
 
 
 def mcp_server(work):

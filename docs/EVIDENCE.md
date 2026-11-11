@@ -34,11 +34,11 @@ The registry recorded three verdicts in transaction [`CW5TWeRyvLngggXiBY5Y7xSZTD
 
 | Subject | Record | Evidence hash | Verify command | Expected output |
 |---|---|---|---|---|
-| `kestrelridge-shop.testnet` | `fixtures/registry/testnet-vendor.json` | `7e77187d...c88bb2cc` | `python -m gate verify fixtures/registry/testnet-vendor.json fixtures/evidence/7e77187d*.json` | Both evidence comparisons print `ok`, then `verified` |
-| `kestrelridge-sh0p.testnet` | `fixtures/registry/testnet-lookalike.json` | `c5d02152...c94297b7` | `python -m gate verify fixtures/registry/testnet-lookalike.json fixtures/evidence/c5d02152*.json` | Both evidence comparisons print `ok`, then `verified` |
-| `lindenvale.testnet` | `fixtures/registry/testnet-aged-payee.json` | `ff5a89a2...0db727c3` | `python -m gate verify fixtures/registry/testnet-aged-payee.json fixtures/evidence/ff5a89a2*.json` | Both evidence comparisons print `ok`, then `verified` |
+| `kestrelridge-shop.testnet` | `fixtures/registry/testnet-vendor.json` | `7e77187d...c88bb2cc` | `python -m gate verify fixtures/registry/testnet-vendor.json fixtures/evidence/7e77187d*.json` | All three evidence comparisons print `ok`, then `verified (subject not checked)` |
+| `kestrelridge-sh0p.testnet` | `fixtures/registry/testnet-lookalike.json` | `c5d02152...c94297b7` | `python -m gate verify fixtures/registry/testnet-lookalike.json fixtures/evidence/c5d02152*.json` | All three evidence comparisons print `ok`, then `verified (subject not checked)` |
+| `lindenvale.testnet` | `fixtures/registry/testnet-aged-payee.json` | `ff5a89a2...0db727c3` | `python -m gate verify fixtures/registry/testnet-aged-payee.json fixtures/evidence/ff5a89a2*.json` | All three evidence comparisons print `ok`, then `verified (subject not checked)` |
 
-Each evidence document is stored by its sha256 filename under `fixtures/evidence/`. The vendor record is ALLOW; the lookalike and the then-young aged payee records are DENY. The verify command recomputes each evidence sha256 and compares it and the verdict with the registry view. The orchestrator's recorded registry verification also checked the vendor ALLOW signature against the live verifier key (`fixtures/runs/verify-20261101T210132Z.txt`).
+Each evidence document is stored by its sha256 filename under `fixtures/evidence/`. The vendor record is ALLOW; the lookalike and the then-young aged payee records are DENY. The verify command recomputes each evidence sha256 and compares it, the verdict and `observed.block_height` (when present) with the registry record. Event records also compare the evidence subject with the recorded subject; views omit the subject and leave it unchecked. The orchestrator's recorded registry verification also checked the vendor ALLOW signature against the live verifier key (`fixtures/runs/verify-20261101T210132Z.txt`).
 
 ## EVM preflight
 
