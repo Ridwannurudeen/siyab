@@ -12,6 +12,7 @@ import time
 from pathlib import Path
 
 from gate import canon, evidence, rules
+from gate.signer import SignerError, TestSigner
 
 EVIDENCE_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "evidence"
 DEFAULT_TTL_MS = 300000
@@ -104,6 +105,8 @@ def request(kind, token, receiver, amount, memo, *, gate, agent_pk_hex, policy, 
     action = ("refuse" if judgement.verdict == "DENY" else
               "ask" if judgement.verdict == "UNKNOWN" or ask else "sign")
     signed = judgement.verdict == "ALLOW" and action in sign_actions
+    if signed and not isinstance(signer, TestSigner):
+        require_live_clients_off((rpc, nearblocks, injection_scanner, archival))
     issued_ms = int(clock() * 1000) if signed else None
     expires_ms = issued_ms + ttl_ms if signed else None
     verdict_id = secrets.token_hex(16) if signed else None
@@ -144,3 +147,8 @@ def request(kind, token, receiver, amount, memo, *, gate, agent_pk_hex, policy, 
         "latency_ms": latency_ms,
         "message": message.decode("utf-8") if message else None,
     }
+
+
+def require_live_clients_off(clients):
+    if any(getattr(client, "mode", None) != "off" for client in clients if client is not None):
+        raise SignerError("live signing requires GATE_FIXTURES_MODE=off for every client; nothing was signed")

@@ -27,7 +27,7 @@ cd contracts/<build-crate> && cargo near build reproducible-wasm # network, Dock
 ## Run
 
 - `python -m gate demo --offline`: four verdicts over recorded testnet responses; the ALLOW is signed with the TEST key.
-- `python -m gate verdict --kind ft --token <token> --receiver <account> --amount <base units> --gate <gate>`: one verdict; `--live` signs with the key `VERIFIER_KEY_FILE` names.
+- `python -m gate verdict --kind ft --token <token> --receiver <account> --amount <base units> --gate <gate>`: one verdict; `--live` signs with the key `VERIFIER_KEY_FILE` names. `python -m gate verdict --live` needs `GATE_FIXTURES_MODE=off` for every client and reads the policy from the Gate.
 - `python -m gate verify <record.json> <evidence.json>`, `python -m gate incident rhea`, `python -m intel counts`: offline reads of committed files.
 - `python -m mcp.server`: the stdio MCP server (`mcp/README.md`).
 - `python -m intel serve --host 127.0.0.1 --port 8792 --site demo/site --live --state-dir /var/lib/shieldbot-near/siyab --workspace-origin https://siyab.xyz`: public account reads and authenticated team workspaces with external SQLite state.

@@ -405,6 +405,7 @@ def _attack_actions(name, agent, request, out, reports_account=None):
         return [_attack_transfer(agent, request, allow), _attack_transfer(agent, request, allow)], [
             "one ALLOW sent twice; the first send is a real payment, the second must be refused"]
     if name == "expired":
+        verdict.require_live_clients_off(agent.clients)
         expires_ms = now_ms - DAY_MS
         old = _attack_signer(agent, name, request, agent.verifier(), expires_ms - verdict.DEFAULT_TTL_MS, expires_ms)
         return [_attack_transfer(agent, request, old)], ["signed with the live key, expired a day ago"]
