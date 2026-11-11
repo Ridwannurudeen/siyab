@@ -86,8 +86,8 @@ class LiveHistoryTest(unittest.TestCase):
 
     def test_snapshot_and_backfill_requests_share_rate_and_deadline_enforcement(self):
         service = live.LiveAPI(history_store=self.archive, rate_per_minute=1)
-        target = "/live/account-events/" + "a" * 64 + ".json"
-        with mock.patch.object(self.archive, "get_event_bytes", return_value=b"{}\n") as read:
+        target = "/live/account-data/" + "a" * 64 + ".json"
+        with mock.patch.object(self.archive, "get_graph_bytes", return_value=b"{}\n") as read:
             self.assertEqual(service.handle(target, "203.0.113.5", {})[:2], (200, b"{}\n"))
             self.assertEqual(service.handle(target, "203.0.113.5", {})[0], 429)
             read.assert_called_once_with("a" * 64)
@@ -95,6 +95,33 @@ class LiveHistoryTest(unittest.TestCase):
             status, body, _ = self.request("/live/accounts/wrap.near/backfill?kind=transfers")
         self.assertEqual(status, 504)
         self.assertNotIn("private failure", str(body))
+
+    def test_public_event_route_answers_a_real_event_id_exactly_as_an_unknown_one(self):
+        item = {"from": "alice.near", "to": "bob.near", "asset_id": "native:near", "amount": "1",
+                "block_timestamp": "1000000000000", "receipt_id": "receipt1", "transfer_index": 0,
+                "transaction_hash": "tx1", "block_height": "12"}
+        identifier, body = history.AccountHistory._event(item)
+        with self.archive._connection(write=True) as connection:
+            connection.execute("INSERT INTO event_outbox VALUES (?,?,?,?,NULL)", (identifier, body, 1, 0))
+        self.assertEqual(self.archive.get_event_bytes(identifier), body)
+        real = self.request("/live/account-events/" + identifier + ".json")
+        unknown = self.request("/live/account-events/" + "b" * 64 + ".json")
+        self.assertEqual(real[0], 404)
+        self.assertEqual(real, unknown)
+        self.assertEqual(real, self.request("/live/account-events/" + identifier + ".json?x=1"))
+
+    def test_damaged_graph_bodies_answer_503_instead_of_failing(self):
+        nested = b"[" * 100000 + b"]" * 100000
+        text = '{"kind":"flow"}\n'
+        with self.archive._connection(write=True) as connection:
+            connection.execute("INSERT INTO graphs VALUES (?,?,?)", (hashlib.sha256(nested).hexdigest(), nested, 0))
+            connection.execute("INSERT INTO graphs VALUES (?,?,?)", (hashlib.sha256(text.encode()).hexdigest(), text, 0))
+        for identifier in (hashlib.sha256(nested).hexdigest(), hashlib.sha256(text.encode()).hexdigest()):
+            with self.subTest(identifier=identifier):
+                with self.assertRaises(history.HistoryReadError):
+                    self.archive.get_graph_bytes(identifier)
+                status, body, _ = self.request("/live/account-data/" + identifier + ".json")
+                self.assertEqual((status, body["error"]), (503, "read_failed"))
 
     def test_retention_and_read_budget_failures_return_explicit_incomplete_coverage(self):
         with mock.patch.object(self.archive, "backfill_account", side_effect=history.HistoryCapacityError("Account backfill budget reached.")):

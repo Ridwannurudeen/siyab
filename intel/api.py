@@ -361,7 +361,7 @@ def make_server(host, port, site=None, store=None, live_routes=None, workspace_r
                     return
                 status, body, headers = live_routes.handle(self.path, self.client_address[0], self.headers)
                 data = body if isinstance(body, bytes) else (json.dumps(body, ensure_ascii=False) + "\n").encode("utf-8")
-                observation = re.fullmatch(r"/live/(?:account-data|account-events|portfolio-data)/([0-9a-f]{64})\.json", request_path)
+                observation = re.fullmatch(r"/live/(?:account-data|portfolio-data)/([0-9a-f]{64})\.json", request_path)
                 immutable = status == 200 and observation and not urllib.parse.urlsplit(self.path).query and hashlib.sha256(data).hexdigest() == observation.group(1)
                 response_headers = {name: value for name, value in headers.items() if name.lower() != "cache-control"}
                 self._send(status, JSON_TYPE, data, response_headers,
@@ -442,7 +442,7 @@ def make_server(host, port, site=None, store=None, live_routes=None, workspace_r
             elif lengths and lengths != ["0"]:
                 return refuse(400, "invalid_framing", "GET and HEAD workspace requests do not take a body.")
             status, data, extra = workspace_routes.handle(self.command, self.path, self.client_address[0], self.headers, body)
-            self._send(status, JSON_TYPE, (json.dumps(data, ensure_ascii=False) + "\n").encode("utf-8"), {**headers, **extra})
+            self._send(status, JSON_TYPE, data if isinstance(data, bytes) else (json.dumps(data, ensure_ascii=False) + "\n").encode("utf-8"), {**headers, **extra})
             return True
 
         def log_request(self, code="-", size="-"):
@@ -529,7 +529,8 @@ def serve(host, port, site=None, live=False, state_dir=None, workspace_origin="h
         telegram = delivery.TelegramDelivery(workspace_store, delivery.configured_client())
         workspace_routes = WorkspaceAPI(workspace_store, origin=workspace_origin,
                                         secure_cookie=urllib.parse.urlsplit(workspace_origin).scheme == "https",
-                                        monitor_status=monitor_status, investigation_jobs=jobs, delivery=telegram)
+                                        monitor_status=monitor_status, investigation_jobs=jobs, delivery=telegram,
+                                        history_store=history_store)
     if live:
         from intel import accounts, enrichment, portfolio
         from intel.live import LiveAPI

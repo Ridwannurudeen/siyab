@@ -1,9 +1,11 @@
+import hashlib
 import json
 import tempfile
 import unittest
 from email.message import Message
 from pathlib import Path
 
+from intel import history
 from intel.workspace import SQLiteWorkspaceStore
 from intel.workspace_api import PREFIX, WorkspaceAPI
 
@@ -106,3 +108,49 @@ class WorkspaceAPITest(unittest.TestCase):
         self.assertEqual(first[1], {"created_cases": 1, "added_watches": 1, "skipped_cases": 0})
         second = self.request(route, method="POST", body=values, cookie=cookie, csrf=session["csrf_token"])
         self.assertEqual(second[1], {"created_cases": 0, "added_watches": 0, "skipped_cases": 1})
+
+    def test_team_events_are_served_only_to_a_team_whose_inbox_holds_them(self):
+        archive = history.AccountHistory(Path(self.directory.name) / "history.sqlite3")
+        self.api = WorkspaceAPI(self.store, history_store=archive)
+        alice, alice_cookie = self.register()
+        bobby, bobby_cookie = self.register("bobby")
+        team = self.store.list_teams(alice["user"]["id"])[0]["id"]
+        other = self.store.list_teams(bobby["user"]["id"])[0]["id"]
+        self.store.add_watch(alice["user"]["id"], team, "alice.near")
+        item = {"from": "alice.near", "to": "bob.near", "asset_id": "native:near", "amount": "1",
+                "block_timestamp": "4000000000000000000", "receipt_id": "receipt1", "transfer_index": 0,
+                "transaction_hash": "tx1", "block_height": "12"}
+        identifier, body = history.AccountHistory._event(item)
+        with archive._connection(write=True) as connection:
+            connection.execute("INSERT INTO event_outbox VALUES (?,?,?,?,1)", (identifier, body, 1, 0))
+        self.store.ingest_event(identifier, json.loads(body), notify=True)
+        status, served, headers = self.request(f"/teams/{team}/events/{identifier}", cookie=alice_cookie)
+        self.assertEqual(status, 200, served)
+        self.assertEqual(served, body)
+        self.assertEqual(hashlib.sha256(served).hexdigest(), identifier)
+        self.assertNotIn("Cache-Control", headers)
+        unknown = "b" * 64
+        missing = self.request(f"/teams/{team}/events/{unknown}", cookie=alice_cookie)
+        self.assertEqual(missing[0], 404)
+        for path, cookie, expected in ((f"/teams/{other}/events/", bobby_cookie, 404), (f"/teams/{team}/events/", bobby_cookie, 403),
+                                       (f"/teams/{team}/events/", None, 401), (f"/teams/{other}/events/", None, 401)):
+            with self.subTest(path=path, cookie=cookie):
+                real = self.request(path + identifier, cookie=cookie)
+                self.assertEqual(real[0], expected)
+                self.assertEqual(real, self.request(path + unknown, cookie=cookie))
+        self.assertEqual(self.request(f"/teams/{other}/events/{identifier}", cookie=bobby_cookie), missing)
+        nested = b"[" * 100000 + b"]" * 100000
+        deep = hashlib.sha256(nested).hexdigest()
+        with archive._connection(write=True) as connection:
+            connection.execute("INSERT INTO event_outbox VALUES (?,?,?,?,1)", (deep, nested, 1, 0))
+            connection.execute("UPDATE event_outbox SET body=? WHERE id=?", (body.decode(), identifier))
+        self.store.ingest_event(deep, {**json.loads(body), "receipt_id": "receipt2"}, notify=True)
+        for damaged in (identifier, deep):
+            with self.subTest(damaged=damaged):
+                status, answer, _ = self.request(f"/teams/{team}/events/{damaged}", cookie=alice_cookie)
+                self.assertEqual((status, answer["error"]), (503, "read_failed"))
+                self.assertEqual(self.request(f"/teams/{other}/events/{damaged}", cookie=bobby_cookie), missing)
+        self.api = WorkspaceAPI(self.store)
+        status, answer, _ = self.request(f"/teams/{team}/events/{identifier}", cookie=alice_cookie)
+        self.assertEqual((status, answer["error"]), (503, "events_unavailable"))
+        self.assertEqual(self.request(f"/teams/{other}/events/{identifier}", cookie=bobby_cookie), missing)

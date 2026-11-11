@@ -32,7 +32,7 @@ Global search links valid mainnet account identifiers to `/investigate.html?acco
 
 Mainnet profile, holdings, transaction and transfer reads expose RPC/indexer sources and unavailable states. Holdings metadata is read from token contracts; names, symbols and decimals are contract-reported. Contract source metadata and links are also reported values, not verified ownership or reproducible source-code matches. Validator observations apply to the returned epoch. Labels retain their own provenance and uncertainty.
 
-Live flow/relationship graphs read at most six accounts and 20 transfers per account. Edges establish observed transfer relationships within those windows, not common ownership. Public observations and immutable graph/event evidence can be retained in the account history database. Private team notes, credentials and watchlist ownership do not belong in those public artifacts.
+Live flow/relationship graphs read at most six accounts and 20 transfers per account. Edges establish observed transfer relationships within those windows, not common ownership. Public observations and immutable graph evidence can be retained in the account history database. Private team notes, credentials and watchlist ownership do not belong in those public artifacts. The same database holds the transfer events that watch polling records for team inboxes, and those are not public: an event id is a hash of public transfer fields, so `/live/account-events/` answers 404 for every id, and a team member opens an event from the team inbox at `/workspace-api/teams/<team>/events/<id>`, which serves it only to members of a team whose inbox holds it and otherwise answers exactly as for an unknown id.
 
 Transaction and transfer backfills read one or two provider pages per request, up to 100 rows per page. The shared archive allows one backfill call per account per minute across transaction/transfer kinds and reserves at most 12 backfill pages per minute globally. Continuations must match the archive's committed cursor; concurrent backfills for an account are refused. Archive browsing reads already retained rows; it does not fetch all account history automatically. An exhausted provider cursor still reports `history_complete: false`. Rate limits, provider omissions, polling gaps and history preceding the available pages can remain.
 
@@ -50,7 +50,7 @@ Use one external state directory for the API and all workers. The service templa
 | Environment file | `/etc/shieldbot-near/env` |
 | Shared state directory | `/var/lib/shieldbot-near/siyab` |
 | Accounts, teams, cases, watches, inbox and audit | `workspace.sqlite3` in the state directory |
-| Public account observations, graph/event evidence and polling progress | `history.sqlite3` in the state directory |
+| Public account observations and graph evidence, team inbox transfer events and polling progress | `history.sqlite3` in the state directory |
 | Retained-feed indexing progress and retry leases | `monitor.sqlite3` in the state directory |
 | Private queued investigation requests and progress | `investigation-jobs.sqlite3` in the state directory |
 | Public immutable portfolio observations | `portfolio.sqlite3` in the state directory |

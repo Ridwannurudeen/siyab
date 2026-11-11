@@ -188,6 +188,9 @@ async function main() {
     assert.doesNotMatch(text(history), /yoctoNEAR|452158 ms/);
     assert.equal(event.detail, detail, 'Displayed prose does not change the evidence record');
     assert.equal(history.querySelectorAll('a').find(link => link.textContent === 'Open evidence').href, '/evidence/' + hash);
+    const transfers = new Element('section');
+    env.api.renderHistory(transfers, {items: [{event: {signal: 'account_transfer_observed', detail: 'Indexed transfer.'}, event_id: hash, id: 2, account: 'alice.near'}], next_after: 2, next_before: 2, has_older: false}, '/teams/team1');
+    assert.equal(transfers.querySelectorAll('a').find(link => link.textContent === 'Open evidence').href, '/workspace-api/teams/team1/events/' + hash);
   } else throw new Error('Unknown scenario');
 }
 main().catch(error => {console.error(error); process.exitCode = 1;});
