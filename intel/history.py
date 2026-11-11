@@ -21,6 +21,7 @@ MAX_ARCHIVE_ROWS = 100000
 MAX_ARCHIVE_GRAPHS = 2000
 MAX_ARCHIVE_EVENTS = 100000
 MAX_WATCH_SEEN = 200000
+PUBLIC_ARCHIVE_PERCENT = 75
 GLOBAL_INTERVAL_MS = 5000
 ACCOUNT_INTERVAL_MS = 60000
 LEASE_MS = 45000
@@ -92,6 +93,86 @@ def _canonical(value):
     if len(body) > MAX_DOCUMENT_BYTES:
         raise HistoryInputError("The observation exceeds the archive document limit.")
     return body
+
+
+def _settled(value):
+    if isinstance(value, dict):
+        return {key: _settled(item) for key, item in value.items() if key not in ("observed_at", "fetched_at", "request_sha256")}
+    if isinstance(value, list):
+        return [_settled(item) for item in value]
+    return value
+
+
+def _comparable(value, kind):
+    value = _settled(value)
+    position = value.get("native") if kind == "profile" else value.get("metadata_source") if kind == "holdings" else None
+    if isinstance(position, dict):
+        position.pop("block_height", None)
+        position.pop("block_hash", None)
+    if value.get("items") == [] and isinstance(value.get("pagination"), dict):
+        value["pagination"].pop("limit", None)
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def _same_content(retained, current, kind):
+    return _comparable(retained, kind) == _comparable(current, kind)
+
+
+def _retained(body):
+    try:
+        value = json.loads(body)
+        canonical = _canonical(value)
+    except (ValueError, TypeError, RecursionError):
+        raise HistoryReadError("A retained archive observation is unreadable.") from None
+    if not isinstance(value, dict) or canonical != body:
+        raise HistoryReadError("A retained archive observation is not a canonical JSON object.")
+    return value
+
+
+def _retained_page(row, kind, account):
+    if row is None or not isinstance(row["body"], bytes) or hashlib.sha256(row["body"]).hexdigest() != row["id"]:
+        raise HistoryReadError("A retained archive page is missing or does not match its identifier.")
+    document = _retained(row["body"])
+    items = [document] if kind == "profile" else document.get("items")
+    if document.get("account_id") != account or document.get("network") != "mainnet" or not isinstance(document.get("source"), dict) or not isinstance(items, list) or not all(isinstance(item, dict) for item in items):
+        raise HistoryReadError("A retained archive page is malformed.")
+    try:
+        return document, {_identity(item, kind, account): item for item in items}
+    except HistoryInputError:
+        raise HistoryReadError("A retained archive page has an invalid row identifier.") from None
+
+
+def _retained_row(record, kind, account):
+    item = _retained(record["body"])
+    try:
+        sound = _identity(item, kind, account) == record["row_id"] and (kind not in ("transactions", "transfers") or _timestamp(item, kind, 0) == record["stamp"])
+    except HistoryInputError:
+        sound = False
+    if not sound:
+        raise HistoryReadError("A retained archive row does not match its identifier or timestamp.")
+    return item
+
+
+def _retained_records(connection, records, kind, account):
+    items, documents = [], {}
+    for record in records:
+        item = _retained_row(record, kind, account)
+        if record["page_id"] not in documents:
+            documents[record["page_id"]] = _retained_page(connection.execute("SELECT id,body FROM pages WHERE id=?", (record["page_id"],)).fetchone(), kind, account)
+        held = documents[record["page_id"]][1].get(record["row_id"])
+        if held is None or _canonical(held) != record["body"]:
+            raise HistoryReadError("A retained archive row cites a page that does not hold it.")
+        items.append(item)
+    return items, documents
+
+
+def _window(document):
+    pagination = document.get("pagination")
+    return (pagination.get("offset"), pagination.get("limit")) if isinstance(pagination, dict) else None
+
+
+def _observation(page_id, document):
+    return {"page_id": page_id, "source": document["source"], "observed_at": document.get("observed_at")}
 
 
 def _timestamp(item, kind, now):
@@ -197,6 +278,7 @@ class AccountHistory:
             connection.executescript("""
             BEGIN IMMEDIATE;
             CREATE TABLE IF NOT EXISTS provider_cooldowns(account TEXT NOT NULL,kind TEXT NOT NULL,not_before_ms INTEGER NOT NULL,PRIMARY KEY(account,kind));
+            CREATE INDEX IF NOT EXISTS pages_account ON pages(account,kind,created_ms);
             COMMIT;
             """)
         os.chmod(self.path, 0o600)
@@ -223,17 +305,19 @@ class AccountHistory:
         return int(self.clock() * 1000)
 
     @staticmethod
-    def _reserve(connection, *, pages=0, records=0, graphs=0, events=0, seen=0, size=0):
+    def _reserve(connection, *, pages=0, records=0, graphs=0, events=0, seen=0, size=0, reserved=False):
         usage = connection.execute("SELECT * FROM archive_usage WHERE singleton=1").fetchone()
         changes = {"pages": (pages, MAX_ARCHIVE_PAGES), "records": (records, MAX_ARCHIVE_ROWS),
                    "graphs": (graphs, MAX_ARCHIVE_GRAPHS), "events": (events, MAX_ARCHIVE_EVENTS),
                    "seen": (seen, MAX_WATCH_SEEN), "bytes": (size, MAX_ARCHIVE_BYTES)}
+        if not reserved:
+            changes = {field: (delta, maximum * PUBLIC_ARCHIVE_PERCENT // 100) for field, (delta, maximum) in changes.items()}
         if any(delta > 0 and usage[field] + delta > maximum for field, (delta, maximum) in changes.items()):
             raise HistoryCapacityError("Archive retention capacity reached; retained evidence remains available and new observations are paused.")
         connection.execute("UPDATE archive_usage SET pages=pages+?,records=records+?,graphs=graphs+?,events=events+?,seen=seen+?,bytes=bytes+? WHERE singleton=1",
                            (pages, records, graphs, events, seen, size))
 
-    def record_page(self, account, kind, payload):
+    def record_page(self, account, kind, payload, *, reserved=False):
         account, kind = _account(account), _kind(kind)
         if not isinstance(payload, dict) or payload.get("account_id") != account or payload.get("network") != "mainnet" or not isinstance(payload.get("source"), dict):
             raise HistoryInputError("The provider page must name its mainnet account and source.")
@@ -243,24 +327,83 @@ class AccountHistory:
         body, now = _canonical(payload), self._now()
         page_id = hashlib.sha256(body).hexdigest()
         rows = [(_identity(item, kind, account), _timestamp(item, kind, now), _canonical(item)) for item in items]
+        if len({(row_id, stamp) for row_id, stamp, _ in rows}) != len({row_id for row_id, _, _ in rows}):
+            raise HistoryInputError("A transfer or transaction identifier changed its timestamp.")
         inserted = 0
         with self._connection(write=True) as connection:
-            if connection.execute("SELECT 1 FROM pages WHERE id=?", (page_id,)).fetchone() is None:
-                self._reserve(connection, pages=1, size=len(body))
+            try:
+                retained = self._retained_rows(connection, account, kind, body, rows)
+            except HistoryReadError:
+                retained = None
+            if retained is not None:
+                total = connection.execute("SELECT COUNT(*) FROM history_rows WHERE account=? AND kind=?", (account, kind)).fetchone()[0]
+                return {**retained, "inserted": 0, "total_rows": total}
+            stored = connection.execute("SELECT body FROM pages WHERE id=?", (page_id,)).fetchone()
+            if stored is None:
+                self._reserve(connection, pages=1, size=len(body), reserved=reserved)
+            elif stored["body"] != body:
+                raise HistoryReadError("The retained archive page bytes disagree with the identical observation.")
             connection.execute("INSERT OR IGNORE INTO pages VALUES (?,?,?,?,?)", (page_id, account, kind, body, now))
             for row_id, stamp, encoded in rows:
-                previous = connection.execute("SELECT stamp,LENGTH(body) AS size FROM history_rows WHERE account=? AND kind=? AND row_id=?", (account, kind, row_id)).fetchone()
+                previous = connection.execute("SELECT row_id,stamp,body,page_id,LENGTH(body) AS size FROM history_rows WHERE account=? AND kind=? AND row_id=?", (account, kind, row_id)).fetchone()
                 if previous:
                     if kind in ("transactions", "transfers") and previous["stamp"] != stamp:
-                        raise HistoryInputError("A transfer or transaction identifier changed its timestamp.")
-                    self._reserve(connection, size=len(encoded) - previous["size"])
+                        try:
+                            _retained_records(connection, [previous], kind, account)
+                            changed = True
+                        except HistoryReadError:
+                            changed = False
+                        if changed:
+                            raise HistoryInputError("A transfer or transaction identifier changed its timestamp.")
+                    self._reserve(connection, size=len(encoded) - previous["size"], reserved=reserved)
                     connection.execute("UPDATE history_rows SET stamp=?,body=?,page_id=? WHERE account=? AND kind=? AND row_id=?", (stamp, encoded, page_id, account, kind, row_id))
                 else:
-                    self._reserve(connection, records=1, size=len(encoded))
+                    self._reserve(connection, records=1, size=len(encoded), reserved=reserved)
                     connection.execute("INSERT INTO history_rows(account,kind,row_id,stamp,body,page_id) VALUES (?,?,?,?,?,?)", (account, kind, row_id, stamp, encoded, page_id))
                     inserted += 1
             total = connection.execute("SELECT COUNT(*) FROM history_rows WHERE account=? AND kind=?", (account, kind)).fetchone()[0]
-        return {"page_id": page_id, "inserted": inserted, "total_rows": total}
+        return {"page_id": page_id, "inserted": inserted, "total_rows": total,
+                "observations": [_observation(page_id, payload)], "rows": [{"page_id": page_id, "item": item} for item in items]}
+
+    @staticmethod
+    def _retained_rows(connection, account, kind, body, rows):
+        current = json.loads(body)
+        records = []
+        for row_id, _, _ in rows:
+            previous = connection.execute("SELECT row_id,stamp,body,page_id FROM history_rows WHERE account=? AND kind=? AND row_id=?", (account, kind, row_id)).fetchone()
+            if previous is None:
+                return None
+            records.append(previous)
+        items, documents = _retained_records(connection, records, kind, account)
+        if not all(_same_content(item, json.loads(encoded), kind) for item, (_, _, encoded) in zip(items, rows)):
+            return None
+        pointers = [{"page_id": record["page_id"], "item": item} for record, item in zip(records, items)]
+        if kind == "holdings":
+            for stored in connection.execute("SELECT id,body FROM pages WHERE account=? AND kind=? ORDER BY created_ms DESC,rowid DESC", (account, kind)):
+                document, held = _retained_page(stored, kind, account)
+                if _window(document) == _window(current):
+                    break
+            else:
+                return None
+            same = (held.keys() == {row_id for row_id, _, _ in rows} and document.get("pagination") == current.get("pagination")
+                    and all(_same_content(held[row_id], json.loads(encoded), kind) for row_id, _, encoded in rows))
+            if not same or not rows and not _same_content(document, current, kind):
+                return None
+            return {"page_id": stored["id"], "observations": [_observation(stored["id"], document)],
+                    "rows": [{"page_id": stored["id"], "item": held[row_id]} for row_id, _, _ in rows]}
+        if not rows:
+            latest = connection.execute("SELECT id,body FROM pages WHERE account=? AND kind=? ORDER BY created_ms DESC,rowid DESC LIMIT 1", (account, kind)).fetchone()
+            if latest is None:
+                return None
+            document, _ = _retained_page(latest, kind, account)
+            if not _same_content(document, current, kind):
+                return None
+            return {"page_id": latest["id"], "observations": [_observation(latest["id"], document)], "rows": []}
+        for page_id, (document, held) in documents.items():
+            if all(row_id in held and _same_content(held[row_id], json.loads(encoded), kind) for row_id, _, encoded in rows):
+                return {"page_id": page_id, "observations": [_observation(page_id, document)],
+                        "rows": [{"page_id": page_id, "item": held[row_id]} for row_id, _, _ in rows]}
+        return {"page_id": None, "observations": [_observation(page_id, document) for page_id, (document, _) in documents.items()], "rows": pointers}
 
     def list_records(self, account, kind, before=0, limit=25):
         account, kind = _account(account), _kind(kind)
@@ -269,20 +412,18 @@ class AccountHistory:
         with self._connection() as connection:
             parameters, clause = [account, kind], ""
             if before:
-                anchor = connection.execute("SELECT stamp FROM history_rows WHERE seq=? AND account=? AND kind=?", (before, account, kind)).fetchone()
+                anchor = connection.execute("SELECT row_id,stamp,body,page_id FROM history_rows WHERE seq=? AND account=? AND kind=?", (before, account, kind)).fetchone()
                 if anchor is None:
                     raise HistoryInputError("The archive cursor does not belong to this account and kind.")
+                _retained_records(connection, [anchor], kind, account)
                 clause = " AND (stamp<? OR (stamp=? AND seq<?))"
                 parameters += [anchor["stamp"], anchor["stamp"], before]
-            rows = connection.execute("SELECT seq,body,page_id FROM history_rows WHERE account=? AND kind=?" + clause + " ORDER BY stamp DESC,seq DESC LIMIT ?", [*parameters, limit + 1]).fetchall()
+            rows = connection.execute("SELECT seq,row_id,stamp,body,page_id FROM history_rows WHERE account=? AND kind=?" + clause + " ORDER BY stamp DESC,seq DESC LIMIT ?", [*parameters, limit + 1]).fetchall()
             total = connection.execute("SELECT COUNT(*) FROM history_rows WHERE account=? AND kind=?", (account, kind)).fetchone()[0]
-            observations = []
-            for page_id in dict.fromkeys(row["page_id"] for row in rows[:limit]):
-                retained = json.loads(connection.execute("SELECT body FROM pages WHERE id=?", (page_id,)).fetchone()[0])
-                observations.append({"page_id": page_id, "source": retained["source"], "observed_at": retained.get("observed_at")})
-        page = rows[:limit]
+            page = rows[:limit]
+            items, documents = _retained_records(connection, page, kind, account)
         return {"account_id": account, "network": "mainnet", "kind": kind,
-                "items": [json.loads(row["body"]) for row in page], "observations": observations,
+                "items": items, "observations": [_observation(page_id, document) for page_id, (document, _) in documents.items()],
                 "pagination": {"limit": limit, "next_before": page[-1]["seq"] if len(rows) > limit else None},
                 "coverage": {"stored_rows": total, "history_complete": False,
                              "scope": "Retained provider observations only; archive pagination ending does not establish complete chain history."}}
@@ -507,7 +648,7 @@ class AccountHistory:
                 with rpc.request_deadline(20):
                     for _ in range(2):
                         payload = reader.transfers(account, cursor=cursor, limit=100)
-                        self.record_page(account, "transfers", payload)
+                        self.record_page(account, "transfers", payload, reserved=True)
                         items = payload["items"]
                         with self._connection() as connection:
                             known = {row[0] for row in connection.execute("SELECT row_id FROM watch_seen WHERE account=?", (account,))}
@@ -527,11 +668,11 @@ class AccountHistory:
                         for item in pending:
                             inserted = connection.execute("INSERT OR IGNORE INTO watch_seen VALUES (?,?)", (account, item["id"])).rowcount
                             if inserted:
-                                self._reserve(connection, seen=1)
+                                self._reserve(connection, seen=1, reserved=True)
                             if inserted and state["initialized"]:
                                 event_id, body = self._event(item)
                                 if connection.execute("SELECT 1 FROM event_outbox WHERE id=?", (event_id,)).fetchone() is None:
-                                    self._reserve(connection, events=1, size=len(body))
+                                    self._reserve(connection, events=1, size=len(body), reserved=True)
                                 connection.execute("INSERT OR IGNORE INTO event_outbox VALUES (?,?,?,?,NULL)", (event_id, body, 1, now))
                         gap = int(bool(state["initialized"]) and more and not found_anchor)
                         connection.execute("UPDATE watch_poll SET initialized=1,next_due_ms=?,last_success_ms=?,attempts=0,last_error=NULL,coverage_gap=MAX(coverage_gap,?),lease_token=NULL,lease_until_ms=0 WHERE account=? AND lease_token=?", (self._now() + ACCOUNT_INTERVAL_MS, self._now(), gap, account, token))

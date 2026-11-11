@@ -32,6 +32,14 @@ def page(items, *, cursor=None, account="alice.near"):
             "observed_at": "2026-11-10T00:00:00Z", "coverage": {"scope": "One provider page"}}
 
 
+def later(payload, stamp):
+    moved = json.loads(json.dumps(payload))
+    moved["observed_at"] = moved["source"]["fetched_at"] = stamp
+    for item in moved["items"]:
+        item["source"]["fetched_at"] = stamp
+    return moved
+
+
 class Reader:
     def __init__(self):
         self.pages = {}
@@ -399,7 +407,7 @@ class AccountHistoryTest(unittest.TestCase):
         with mock.patch.object(history, "MAX_ARCHIVE_PAGES", 1):
             self.history.record_page("alice.near", "transfers", original)
             with self.assertRaises(history.HistoryCapacityError):
-                self.history.record_page("alice.near", "transfers", dict(original, observed_at="later"))
+                self.history.record_page("alice.near", "transfers", page([transfer(2), transfer(1)]))
         self.assertEqual(self.history.list_records("alice.near", "transfers")["items"], original["items"])
 
     def test_graph_and_byte_capacity_keep_existing_hash_addressed_evidence(self):
@@ -427,6 +435,392 @@ class AccountHistoryTest(unittest.TestCase):
             self.assertGreater(usage["bytes"], 0)
             self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 2)
         self.assertEqual(len(restarted.list_records("alice.near", "transfers")["items"]), 1)
+
+    def page_count(self):
+        with self.history._connection() as connection:
+            return connection.execute("SELECT COUNT(*) FROM pages").fetchone()[0], connection.execute("SELECT pages FROM archive_usage").fetchone()[0]
+
+    def test_repeated_identical_reads_reuse_one_retained_page_until_a_row_is_new_or_changed(self):
+        original = page([transfer(2), transfer(1)])
+        first = self.history.record_page("alice.near", "transfers", original)
+        again = self.history.record_page("alice.near", "transfers", later(original, "2026-11-10T00:01:00Z"))
+        self.assertEqual((again["page_id"], again["inserted"], again["total_rows"]), (first["page_id"], 0, 2))
+        narrower = later(page([transfer(2)]), "2026-11-10T00:02:00Z")
+        narrower["items"][0]["source"]["request_sha256"] = "b" * 64
+        self.assertEqual(self.history.record_page("alice.near", "transfers", narrower)["page_id"], first["page_id"])
+        quiet = self.history.record_page("bob.near", "transfers", page([], account="bob.near"))
+        repeated = self.history.record_page("bob.near", "transfers", later(page([], account="bob.near"), "2026-11-10T00:03:00Z"))
+        self.assertEqual(repeated["page_id"], quiet["page_id"])
+        self.assertEqual(self.page_count(), (2, 2))
+        archived = self.history.list_records("alice.near", "transfers")
+        self.assertCountEqual(archived["items"], original["items"])
+        self.assertEqual(archived["observations"], [{"page_id": first["page_id"], "source": original["source"], "observed_at": original["observed_at"]}])
+        changed = later(original, "2026-11-10T00:04:00Z")
+        changed["items"][0]["usd_amount"] = "5"
+        revised = self.history.record_page("alice.near", "transfers", changed)
+        self.assertNotEqual(revised["page_id"], first["page_id"])
+        fresh = self.history.record_page("alice.near", "transfers", later(page([transfer(3), transfer(2)]), "2026-11-10T00:05:00Z"))
+        self.assertEqual((fresh["inserted"], fresh["total_rows"]), (1, 3))
+        self.assertEqual(self.page_count(), (4, 4))
+        with self.history._connection() as connection:
+            for identifier, body in connection.execute("SELECT id,body FROM pages"):
+                self.assertEqual(hashlib.sha256(body).hexdigest(), identifier)
+
+    def test_profile_and_holdings_reads_at_a_later_block_reuse_one_page_until_a_balance_changes(self):
+        def profile(height, stamp, amount="1234567890123456789012345"):
+            return {"account_id": "alice.near", "network": "mainnet", "exists": True,
+                    "native": {"amount_yocto": amount, "locked_yocto": "0", "storage_usage": 182, "code_hash": "11111111111111111111111111111111",
+                               "block_height": height, "block_hash": "hash" + str(height)},
+                    "labels": [], "source": {"provider": "rpc.mainnet.near.org", "request_sha256": "a" * 64, "fetched_at": stamp},
+                    "observed_at": stamp, "coverage": {"scope": "Finalized account state"}}
+
+        def holdings(height, stamp, balance="1234567890123456789012345"):
+            return dict(page([], cursor=None), observed_at=stamp, items=[
+                {"contract_id": "wrap.near", "balance": balance, "balance_status": "indexed", "last_update_block_height": 100,
+                 "metadata": {"name": "Wrapped NEAR", "symbol": "wNEAR", "decimals": 24},
+                 "metadata_source": {"provider": "rpc.mainnet.near.org", "request_sha256": "a" * 64, "fetched_at": stamp,
+                                     "read_kind": "final_rpc", "recorded": False, "network": "mainnet", "block_height": height}}])
+
+        first = self.history.record_page("alice.near", "profile", profile(200, "2026-11-10T00:00:00Z"))
+        again = self.history.record_page("alice.near", "profile", profile(260, "2026-11-10T00:01:00Z"))
+        self.assertEqual((again["page_id"], again["inserted"], again["total_rows"]), (first["page_id"], 0, 1))
+        held = self.history.record_page("alice.near", "holdings", holdings(200, "2026-11-10T00:00:00Z"))
+        self.assertEqual(self.history.record_page("alice.near", "holdings", holdings(260, "2026-11-10T00:01:00Z"))["page_id"], held["page_id"])
+        self.assertEqual(self.page_count(), (2, 2))
+        self.assertEqual(self.history.list_records("alice.near", "profile")["items"], [profile(200, "2026-11-10T00:00:00Z")])
+        changed = self.history.record_page("alice.near", "profile", profile(300, "2026-11-10T00:02:00Z", amount="1234567890123456789012346"))
+        self.assertNotEqual(changed["page_id"], first["page_id"])
+        moved = self.history.record_page("alice.near", "holdings", holdings(300, "2026-11-10T00:02:00Z", balance="1"))
+        self.assertNotEqual(moved["page_id"], held["page_id"])
+        self.assertEqual(self.page_count(), (4, 4))
+        with self.history._connection() as connection:
+            for identifier, body in connection.execute("SELECT id,body FROM pages"):
+                self.assertEqual(hashlib.sha256(body).hexdigest(), identifier)
+
+    def test_quiet_watch_polls_do_not_add_archive_pages(self):
+        store, _, _ = self.workspace()
+        reader = Reader()
+        reader.pages["alice.near", None] = page([transfer(1)])
+        self.history.poll_watches(store, reader)
+        for minute in range(1, 4):
+            self.now += 61
+            reader.pages["alice.near", None] = later(page([transfer(1)]), "2026-11-10T00:0" + str(minute) + ":00Z")
+            status = self.history.poll_watches(store, reader)
+        self.assertEqual(len(reader.calls), 4)
+        self.assertIsNone(status["last_error"])
+        self.assertEqual(self.page_count(), (1, 1))
+
+    def test_public_reads_cannot_use_the_share_reserved_for_watches_and_jobs(self):
+        with mock.patch.object(history, "MAX_ARCHIVE_PAGES", 4):
+            for number in range(3):
+                account = "public" + str(number) + ".near"
+                self.history.record_page(account, "transfers", page([], account=account))
+            with self.assertRaises(history.HistoryCapacityError):
+                self.history.record_page("public3.near", "transfers", page([], account="public3.near"))
+            self.history.record_page("watched.near", "transfers", page([], account="watched.near"), reserved=True)
+            with self.assertRaises(history.HistoryCapacityError):
+                self.history.record_page("watched2.near", "transfers", page([], account="watched2.near"), reserved=True)
+        graph = {"kind": "flow", "root": "alice.near", "nodes": [], "edges": [], "records": [], "source": {"network": "mainnet"}}
+        with mock.patch.object(history, "MAX_ARCHIVE_GRAPHS", 1), self.assertRaises(history.HistoryCapacityError):
+            self.history.save_graph(graph)
+        self.assertEqual(self.page_count(), (4, 4))
+
+    def test_watch_alerts_continue_after_public_reads_exhaust_their_share(self):
+        store, user, team = self.workspace()
+        reader = Reader()
+        old = transfer(1, timestamp="999000000000")
+        reader.pages["alice.near", None] = page([old])
+        with mock.patch.object(history, "MAX_ARCHIVE_PAGES", 4):
+            self.history.poll_watches(store, reader)
+            for number in range(2):
+                account = "public" + str(number) + ".near"
+                self.history.record_page(account, "transfers", page([], account=account))
+            with self.assertRaises(history.HistoryCapacityError):
+                self.history.record_page("public2.near", "transfers", page([], account="public2.near"))
+            self.now += 61
+            fresh = transfer(2, timestamp=str(int(self.now * 1000000000)))
+            reader.pages["alice.near", None] = later(page([fresh, old]), "2026-11-10T00:01:00Z")
+            status = self.history.poll_watches(store, reader)
+        self.assertIsNone(status["last_error"])
+        self.assertEqual(status["retry_pending"], 0)
+        inbox = store.list_inbox(user, team)["items"]
+        self.assertEqual(len(inbox), 1)
+        self.assertEqual(inbox[0]["event"]["receipt_id"], fresh["receipt_id"])
+
+    def assert_rows_held(self, saved, payload):
+        with self.history._connection() as connection:
+            bodies = {row["id"]: json.loads(row["body"]) for row in connection.execute("SELECT id,body FROM pages")}
+        self.assertEqual([row["item"]["id"] for row in saved["rows"]], [item["id"] for item in payload["items"]])
+        for row in saved["rows"]:
+            self.assertIn(row["item"], bodies[row["page_id"]]["items"])
+        cited = list(dict.fromkeys(row["page_id"] for row in saved["rows"]))
+        self.assertEqual(saved["observations"], [{"page_id": page_id, "source": bodies[page_id]["source"],
+                                                  "observed_at": bodies[page_id]["observed_at"]} for page_id in cited])
+        self.assertEqual(saved["page_id"], cited[0] if len(cited) == 1 else None)
+
+    def test_overlapping_unchanged_reads_reuse_the_pages_that_hold_their_rows(self):
+        first = self.history.record_page("alice.near", "transfers", page([transfer(2), transfer(1)]))
+        second = self.history.record_page("alice.near", "transfers", later(page([transfer(3), transfer(2)]), "2026-11-10T00:01:00Z"))
+        for minute in range(2, 6):
+            stamp = "2026-11-10T00:0" + str(minute) + ":00Z"
+            for payload, expected in ((later(page([transfer(2), transfer(1)]), stamp), first),
+                                      (later(page([transfer(3), transfer(2)]), stamp), second)):
+                saved = self.history.record_page("alice.near", "transfers", payload)
+                self.assertEqual((saved["page_id"], saved["inserted"], saved["total_rows"]), (expected["page_id"], 0, 3))
+                self.assert_rows_held(saved, payload)
+        self.assertEqual(self.page_count(), (2, 2))
+        carol = [transfer(index, subject="carol.near") for index in range(4)]
+        self.history.record_page("carol.near", "transfers", page([carol[2], carol[1]], account="carol.near"))
+        self.history.record_page("carol.near", "transfers", later(page([carol[1], carol[0]], account="carol.near"), "2026-11-10T00:06:00Z"))
+        self.history.record_page("carol.near", "transfers", later(page([carol[3], carol[2]], account="carol.near"), "2026-11-10T00:07:00Z"))
+        spread = later(page([carol[2], carol[1]], account="carol.near"), "2026-11-10T00:08:00Z")
+        for _ in range(3):
+            saved = self.history.record_page("carol.near", "transfers", spread)
+            self.assertIsNone(saved["page_id"])
+            self.assertEqual(len(saved["observations"]), 2)
+            self.assert_rows_held(saved, spread)
+        self.assertEqual(self.page_count(), (5, 5))
+        with self.history._connection() as connection:
+            for identifier, body in connection.execute("SELECT id,body FROM pages"):
+                self.assertEqual(hashlib.sha256(body).hexdigest(), identifier)
+
+    def test_alternating_public_and_watch_page_sizes_reuse_retained_pages(self):
+        rows = [transfer(index) for index in range(100, 0, -1)]
+        public = dict(page(rows[:25], cursor="next"), pagination={"limit": 25, "next_cursor": "next"})
+        quiet = dict(page([], account="bob.near"), pagination={"limit": 25, "next_cursor": None})
+        for minute in range(4):
+            stamp = "2026-11-10T00:0" + str(minute) + ":00Z"
+            for account, payload in (("alice.near", public), ("alice.near", page(rows)), ("bob.near", quiet), ("bob.near", page([], account="bob.near"))):
+                saved = self.history.record_page(account, "transfers", later(payload, stamp))
+                self.assertIsNotNone(saved["page_id"])
+        self.assertEqual(self.page_count(), (3, 3))
+
+    def test_holdings_reads_reuse_only_a_retained_page_holding_exactly_the_same_tokens(self):
+        def inventory(contracts, stamp, *, account="alice.near", offset=0, limit=20):
+            items = [{"contract_id": contract, "balance": "1", "balance_status": "indexed", "last_update_block_height": 100,
+                      "metadata": None, "metadata_source": None} for contract in contracts]
+            return {"account_id": account, "network": "mainnet", "items": items,
+                    "pagination": {"offset": offset, "limit": limit, "total": len(contracts), "next_offset": None},
+                    "source": {"provider": "test-provider", "fetched_at": stamp}, "observed_at": stamp,
+                    "coverage": {"scope": "Indexed FT inventory"}}
+
+        def newest(account):
+            with self.history._connection() as connection:
+                body = connection.execute("SELECT body FROM pages WHERE account=? AND kind='holdings' ORDER BY created_ms DESC,rowid DESC LIMIT 1", (account,)).fetchone()[0]
+            return [item["contract_id"] for item in json.loads(body)["items"]]
+
+        both = self.history.record_page("alice.near", "holdings", inventory(["a.near", "b.near"], "2026-11-10T00:00:00Z"))
+        self.assertEqual(self.history.record_page("alice.near", "holdings", inventory(["a.near", "b.near"], "2026-11-10T00:01:00Z"))["page_id"], both["page_id"])
+        self.assertEqual(self.page_count(), (1, 1))
+        steps = (["a.near"], ["a.near", "b.near"], [], ["a.near", "b.near"])
+        for count, contracts in enumerate(steps, start=2):
+            saved = self.history.record_page("alice.near", "holdings", inventory(contracts, "2026-11-10T00:0" + str(count) + ":00Z"))
+            self.assertNotEqual(saved["page_id"], both["page_id"])
+            self.assertEqual([row["item"]["contract_id"] for row in saved["rows"]], contracts)
+            self.assertEqual(newest("alice.near"), contracts)
+            self.assertEqual(self.page_count(), (count, count))
+        single = self.history.record_page("bob.near", "holdings", inventory(["a.near"], "2026-11-10T00:00:00Z", account="bob.near"))
+        grown = self.history.record_page("bob.near", "holdings", inventory(["a.near", "b.near"], "2026-11-10T00:01:00Z", account="bob.near"))
+        self.assertNotEqual(grown["page_id"], single["page_id"])
+        self.assertEqual(newest("bob.near"), ["a.near", "b.near"])
+        self.assertEqual(self.page_count(), (7, 7))
+        for minute in range(4):
+            stamp = "2026-11-10T00:0" + str(minute) + ":00Z"
+            for offset, contracts in ((0, ["a.near"]), (1, ["b.near"])):
+                self.history.record_page("carol.near", "holdings", inventory(contracts, stamp, account="carol.near", offset=offset, limit=1))
+        self.assertEqual(self.page_count(), (9, 9))
+        window = inventory(["a.near", "b.near"], "2026-11-10T00:00:00Z", account="dave.near", limit=2)
+        window["pagination"].update(total=3, next_offset=2)
+        wide = self.history.record_page("dave.near", "holdings", window)
+        window = inventory(["a.near", "b.near"], "2026-11-10T00:01:00Z", account="dave.near", limit=2)
+        window["pagination"].update(total=3, next_offset=2)
+        self.assertEqual(self.history.record_page("dave.near", "holdings", window)["page_id"], wide["page_id"])
+        narrowed = self.history.record_page("dave.near", "holdings", inventory(["a.near", "b.near"], "2026-11-10T00:02:00Z", account="dave.near", limit=2))
+        self.assertNotEqual(narrowed["page_id"], wide["page_id"])
+        self.assertEqual(self.page_count(), (11, 11))
+
+    def corrupt(self, table, body):
+        with self.history._connection(write=True) as connection:
+            connection.execute("UPDATE " + table + " SET body=?", (body,))
+
+    def test_malformed_retained_rows_and_pages_are_never_reused_or_cited(self):
+        original = page([transfer(1)])
+        rewritten = dict(original, observed_at="2026-11-09T00:00:00Z", source=dict(original["source"], provider="rewritten.example"))
+        for table, body in (("history_rows", b"null"), ("history_rows", b"[1]"), ("history_rows", b"\xff"),
+                            ("history_rows", json.dumps(transfer(1)).encode()), ("history_rows", history._canonical(transfer(2))),
+                            ("pages", b"null"), ("pages", b"{}"), ("pages", b'{"source":{},"items":[1]}'),
+                            ("pages", b'{"source":{},"items":[{"id":7}]}'), ("pages", history._canonical(page([]))),
+                            ("pages", history._canonical(rewritten))):
+            with self.subTest(table=table, body=body):
+                self.history.record_page("alice.near", "transfers", original)
+                self.corrupt(table, body)
+                with self.assertRaises(history.HistoryReadError):
+                    self.history.list_records("alice.near", "transfers")
+                fresh = later(original, "2026-11-10T00:01:00Z")
+                saved = self.history.record_page("alice.near", "transfers", fresh)
+                self.assertEqual(saved["page_id"], hashlib.sha256(history._canonical(fresh)).hexdigest())
+                self.assert_rows_held(saved, fresh)
+                self.assertEqual(self.history.record_page("alice.near", "transfers", later(original, "2026-11-10T00:02:00Z"))["page_id"], saved["page_id"])
+                archived = self.history.list_records("alice.near", "transfers")
+                self.assertEqual((archived["items"], archived["observations"]), (fresh["items"], saved["observations"]))
+                with self.history._connection(write=True) as connection:
+                    connection.execute("DELETE FROM history_rows")
+                    connection.execute("DELETE FROM pages")
+        with self.subTest(probe="a row cites a retained page that does not hold it"):
+            first = self.history.record_page("alice.near", "transfers", page([transfer(1)]))
+            second = self.history.record_page("alice.near", "transfers", page([transfer(2)]))
+            with self.history._connection(write=True) as connection:
+                connection.execute("UPDATE history_rows SET page_id=? WHERE page_id=?", (second["page_id"], first["page_id"]))
+            with self.assertRaises(history.HistoryReadError):
+                self.history.list_records("alice.near", "transfers")
+            fresh = later(page([transfer(1), transfer(2)]), "2026-11-10T00:01:00Z")
+            saved = self.history.record_page("alice.near", "transfers", fresh)
+            self.assertEqual(saved["page_id"], hashlib.sha256(history._canonical(fresh)).hexdigest())
+            self.assert_rows_held(saved, fresh)
+            self.assertEqual(self.history.list_records("alice.near", "transfers")["observations"], saved["observations"])
+        quiet = page([], account="bob.near")
+        for body in (b"[]", history._canonical(dict(quiet, observed_at="2026-11-09T00:00:00Z"))):
+            with self.subTest(account="bob.near", body=body):
+                self.history.record_page("bob.near", "transfers", quiet)
+                with self.history._connection(write=True) as connection:
+                    connection.execute("UPDATE pages SET body=? WHERE account='bob.near'", (body,))
+                fresh = later(quiet, "2026-11-10T00:01:00Z")
+                saved = self.history.record_page("bob.near", "transfers", fresh)
+                self.assertEqual(saved["page_id"], hashlib.sha256(history._canonical(fresh)).hexdigest())
+                self.assertEqual(self.history.record_page("bob.near", "transfers", later(quiet, "2026-11-10T00:02:00Z"))["page_id"], saved["page_id"])
+                with self.history._connection(write=True) as connection:
+                    connection.execute("DELETE FROM pages WHERE account='bob.near'")
+        with self.subTest(probe="an identical read cannot cite a tampered page under its own id"):
+            same = page([transfer(1)], account="carol.near")
+            self.history.record_page("carol.near", "transfers", same)
+            with self.history._connection(write=True) as connection:
+                connection.execute("UPDATE pages SET body=? WHERE account='carol.near'", (b"null",))
+            with self.assertRaises(history.HistoryReadError):
+                self.history.record_page("carol.near", "transfers", same)
+            with self.assertRaises(history.HistoryReadError):
+                self.history.list_records("carol.near", "transfers")
+        with self.subTest(probe="a retained row whose timestamp column no longer matches its body"):
+            self.history.record_page("dave.near", "transfers", page([transfer(1, subject="dave.near")], account="dave.near"))
+            with self.history._connection(write=True) as connection:
+                connection.execute("UPDATE history_rows SET stamp=? WHERE account='dave.near'", ("5".zfill(20),))
+            with self.assertRaises(history.HistoryReadError):
+                self.history.list_records("dave.near", "transfers")
+            fresh = later(page([transfer(2, subject="dave.near"), transfer(1, subject="dave.near")], account="dave.near"), "2026-11-10T00:01:00Z")
+            saved = self.history.record_page("dave.near", "transfers", fresh)
+            self.assertEqual(saved["page_id"], hashlib.sha256(history._canonical(fresh)).hexdigest())
+            again = later(page([transfer(2, subject="dave.near"), transfer(1, subject="dave.near")], account="dave.near"), "2026-11-10T00:02:00Z")
+            self.assertEqual(self.history.record_page("dave.near", "transfers", again)["page_id"], saved["page_id"])
+            self.assertEqual(self.history.list_records("dave.near", "transfers")["items"], fresh["items"])
+
+    def test_a_sound_retained_transfer_whose_timestamp_changed_is_rejected_without_writing(self):
+        original = page([transfer(1)])
+        self.history.record_page("alice.near", "transfers", original)
+        moved = later(page([transfer(2), transfer(1, timestamp="1000000000001")]), "2026-11-10T00:01:00Z")
+        with self.assertRaises(history.HistoryInputError):
+            self.history.record_page("alice.near", "transfers", moved)
+        self.assertEqual(self.page_count(), (1, 1))
+        self.assertEqual(self.history.list_records("alice.near", "transfers")["items"], original["items"])
+
+    def test_one_page_naming_a_transfer_at_two_timestamps_is_rejected_without_writing(self):
+        with self.assertRaises(history.HistoryInputError):
+            self.history.record_page("alice.near", "transfers", page([transfer(1), transfer(1, timestamp="1000000000001")]))
+        self.assertEqual(self.page_count(), (0, 0))
+
+    def test_a_retained_row_whose_timestamp_disagrees_with_its_page_does_not_block_a_fresh_read(self):
+        original = page([transfer(1)])
+        self.history.record_page("alice.near", "transfers", original)
+        with self.history._connection(write=True) as connection:
+            connection.execute("UPDATE history_rows SET body=?,stamp=?", (history._canonical(transfer(1, timestamp="1000000000001")), "1000000000001".zfill(20)))
+        with self.assertRaises(history.HistoryReadError):
+            self.history.list_records("alice.near", "transfers")
+        fresh = later(original, "2026-11-10T00:01:00Z")
+        saved = self.history.record_page("alice.near", "transfers", fresh)
+        self.assertEqual(saved["page_id"], hashlib.sha256(history._canonical(fresh)).hexdigest())
+        self.assert_rows_held(saved, fresh)
+        self.assertEqual(self.history.record_page("alice.near", "transfers", later(original, "2026-11-10T00:02:00Z"))["page_id"], saved["page_id"])
+        archived = self.history.list_records("alice.near", "transfers")
+        self.assertEqual((archived["items"], archived["observations"]), (fresh["items"], saved["observations"]))
+
+    def test_a_damaged_pagination_anchor_is_refused_instead_of_skipping_rows(self):
+        items = [transfer(index, timestamp="100000000000" + str(index)) for index in (3, 2, 1)]
+        self.history.record_page("alice.near", "transfers", page(items))
+        cursor = self.history.list_records("alice.near", "transfers", limit=1)["pagination"]["next_before"]
+        self.assertEqual(self.history.list_records("alice.near", "transfers", before=cursor)["items"], items[1:])
+        with self.history._connection(write=True) as connection:
+            connection.execute("UPDATE history_rows SET body=?,stamp=? WHERE seq=?", (b"null", "0".zfill(20), cursor))
+        with self.assertRaises(history.HistoryReadError):
+            self.history.list_records("alice.near", "transfers", before=cursor)
+
+    def test_a_retained_page_for_another_network_is_never_reused_or_cited(self):
+        token = {"contract_id": "wrap.near", "balance": "1", "balance_status": "indexed", "last_update_block_height": 100,
+                 "metadata": None, "metadata_source": None}
+        for account, kind, original in (("alice.near", "transfers", page([transfer(1)])),
+                                        ("bob.near", "transfers", page([], account="bob.near")),
+                                        ("carol.near", "holdings", dict(page([], account="carol.near"), items=[token]))):
+            with self.subTest(account=account, kind=kind):
+                first = self.history.record_page(account, kind, original)
+                body = history._canonical(dict(original, network="testnet"))
+                identifier = hashlib.sha256(body).hexdigest()
+                with self.history._connection(write=True) as connection:
+                    connection.execute("INSERT INTO pages VALUES (?,?,?,?,?)", (identifier, account, kind, body, 0))
+                    connection.execute("UPDATE history_rows SET page_id=? WHERE page_id=?", (identifier, first["page_id"]))
+                    connection.execute("DELETE FROM pages WHERE id=?", (first["page_id"],))
+                if original["items"]:
+                    with self.assertRaises(history.HistoryReadError):
+                        self.history.list_records(account, kind)
+                fresh = later(original, "2026-11-10T00:01:00Z") if kind == "transfers" else dict(original, observed_at="2026-11-10T00:01:00Z")
+                saved = self.history.record_page(account, kind, fresh)
+                self.assertEqual(saved["page_id"], hashlib.sha256(history._canonical(fresh)).hexdigest())
+                self.assertEqual(saved["observations"], [{"page_id": saved["page_id"], "source": fresh["source"], "observed_at": "2026-11-10T00:01:00Z"}])
+                if original["items"]:
+                    self.assertEqual(self.history.list_records(account, kind)["observations"], saved["observations"])
+
+    def test_a_retained_page_whose_bytes_no_longer_match_its_id_is_never_reused_or_cited(self):
+
+        token = {"contract_id": "wrap.near", "balance": "1", "balance_status": "indexed", "last_update_block_height": 100,
+                 "metadata": None, "metadata_source": None}
+        for account, kind, original in (("alice.near", "transfers", page([transfer(1)])),
+                                        ("bob.near", "transfers", page([], account="bob.near")),
+                                        ("carol.near", "holdings", dict(page([], account="carol.near"), items=[token]))):
+            with self.subTest(account=account, kind=kind):
+                first = self.history.record_page(account, kind, original)
+                rewritten = dict(original, observed_at="2026-11-09T00:00:00Z", source=dict(original["source"], fetched_at="2026-11-09T00:00:00Z"))
+                with self.history._connection(write=True) as connection:
+                    connection.execute("UPDATE pages SET body=? WHERE id=?", (history._canonical(rewritten), first["page_id"]))
+                if original["items"]:
+                    with self.assertRaises(history.HistoryReadError):
+                        self.history.list_records(account, kind)
+                fresh = dict(original, observed_at="2026-11-10T00:01:00Z")
+                saved = self.history.record_page(account, kind, fresh)
+                self.assertNotEqual(saved["page_id"], first["page_id"])
+                self.assertEqual(saved["page_id"], hashlib.sha256(history._canonical(fresh)).hexdigest())
+                self.assertEqual(saved["observations"], [{"page_id": saved["page_id"], "source": original["source"], "observed_at": "2026-11-10T00:01:00Z"}])
+                self.assertEqual(self.history.record_page(account, kind, dict(original, observed_at="2026-11-10T00:02:00Z"))["page_id"], saved["page_id"])
+                if original["items"]:
+                    self.assertEqual(self.history.list_records(account, kind)["observations"], saved["observations"])
+
+    def test_watch_service_records_a_tampered_retained_page_and_keeps_running(self):
+        store, _, _ = self.workspace()
+        reader = Reader()
+        reader.pages["alice.near", None] = page([transfer(1)])
+        archive_path = self.root / "service.sqlite3"
+        history.AccountHistory(archive_path).record_page("alice.near", "transfers", page([transfer(1)]))
+        with closing(sqlite3.connect(archive_path)) as connection, connection:
+            connection.execute("UPDATE pages SET body=?", (b"null",))
+        waits = []
+
+        class Stop:
+            def wait(inner, interval):
+                waits.append(history.read_status(archive_path))
+                return len(waits) == 2
+
+        status = history.run(store, reader, archive_path, stop_event=Stop())
+        self.assertEqual(len(reader.calls), 1)
+        self.assertEqual(len(waits), 2)
+        self.assertEqual(waits[0]["last_error"], "HistoryReadError")
+        self.assertEqual(status["retry_pending"], 1)
+        with closing(sqlite3.connect(archive_path)) as connection:
+            self.assertEqual(connection.execute("SELECT attempts,last_error,lease_token,lease_until_ms FROM watch_poll").fetchone(), (1, "HistoryReadError", None, 0))
 
 
 if __name__ == "__main__":
