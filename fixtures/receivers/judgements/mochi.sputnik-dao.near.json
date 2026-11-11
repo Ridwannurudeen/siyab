@@ -53,7 +53,7 @@
     {
       "id": "account_age",
       "status": "pass",
-      "detail": "no archival age (view_access_key_list could not run: no recorded response for the request); created 1945 d ago",
+      "detail": "no archival age (view_access_key_list could not run: no recorded response for the request); oldest listed key created 1945 d ago",
       "source": {
         "provider": "api.nearblocks.io",
         "request_sha256": "cf5ef54724b77a122a85dd6433405133c3eb297a7e9100d2a5eb72018a69ec67",
@@ -63,7 +63,7 @@
     {
       "id": "dust_funded",
       "status": "pass",
-      "detail": "created by a 6 NEAR deposit",
+      "detail": "could not read the creation transaction: MalformedResponse: transaction AqzDPXU5edmnt3EB8NEtvzaoSEGtfWnsxbZWsab57pGc of the oldest listed key does not show mochi.sputnik-dao.near being created; not needed: account_age passed and nothing is a lookalike, and a deposit is a signal only with lookalike or account_age",
       "source": {
         "provider": "api.nearblocks.io",
         "request_sha256": "9a612685afb616f10209af5c6935e068c315f7dcd8448eed0b12609046107c67",

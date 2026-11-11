@@ -8,7 +8,7 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "DENY",
+  "verdict": "UNKNOWN",
   "checks": [
     {
       "id": "receiver_exists",
@@ -52,12 +52,12 @@
     },
     {
       "id": "account_age",
-      "status": "signal",
-      "detail": "oldest access key nonce 223315826000015 from free.rpc.fastnear.com: existed by block 223315827 (2026-11-06T12:28:24Z) from archival-rpc.mainnet.fastnear.com, younger than 7 days",
+      "status": "unknown",
+      "detail": "no archival age (oldest access key nonce 223315826000015 from free.rpc.fastnear.com: existed by block 223315827 (2026-11-06T12:28:24Z) from archival-rpc.mainnet.fastnear.com, a key block younger than 7 days that does not date the account; archival block_at could not run: no recorded response for the request); could not read the account keys: no recorded response for the request",
       "source": {
-        "provider": "archival-rpc.mainnet.fastnear.com",
-        "request_sha256": "fb90dc18a97e61a95f2cc6ad73a2cb712289d321141e7a6d210893d454659d36",
-        "fetched_at": "2026-11-09T04:48:58Z"
+        "provider": "api.nearblocks.io",
+        "request_sha256": "eaa737418d70c41b612a4f50779d2d21f3923122e83fa1f91816d02dd2af5417",
+        "fetched_at": null
       }
     },
     {
@@ -92,8 +92,9 @@
     }
   ],
   "reasons": [
-    "Created less than 7 d ago.",
-    "Not on the owner's allowlist."
+    "issuer_blacklist could not run: usdt.tether-token.near get_blacklist_status answers \"Allowable\"; could not read is_blocklisted on 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1: no recorded response for the request.",
+    "account_age could not run: no archival age (oldest access key nonce 223315826000015 from free.rpc.fastnear.com: existed by block 223315827 (2026-11-06T12:28:24Z) from archival-rpc.mainnet.fastnear.com, a key block younger than 7 days that does not date the account; archival block_at could not run: no recorded response for the request); could not read the account keys: no recorded response for the request.",
+    "dust_funded could not run: the creation transaction is not known."
   ],
   "labels": [],
   "observed": {

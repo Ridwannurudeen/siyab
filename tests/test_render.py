@@ -632,13 +632,13 @@ class RenderTest(unittest.TestCase):
         self.assertEqual(len(documents), 990)
         self.assertTrue(all(document["subject"] not in page for document in documents))
         for text in (
-            "271 ALLOW, 54 DENY, 665 UNKNOWN",
-            "account_age: 491",
+            "270 ALLOW, 1 DENY, 719 UNKNOWN",
+            "account_age: 545",
             "code_without_metadata: 255",
-            "dust_funded: 491",
-            "issuer_blacklist: 535",
+            "dust_funded: 545",
+            "issuer_blacklist: 560",
             "receiver_exists: 248",
-            "New account (account_age signal only): 53.",
+            "New account (account_age signal only): 0.",
             "Lookalike with code without metadata: 1.",
             "Each verdict is what an agent's 1 NEAR payment to that receiver would get, not a finding that the account is malicious.",
             f'{render.GITHUB_REPO}/tree/main/fixtures/receivers/top/judgements/',
@@ -651,7 +651,7 @@ class RenderTest(unittest.TestCase):
         self.assertIn(f'{window["hours"]} hours, {window["start_timestamp"]}', page)
         self.assertIn(f'{window["end_timestamp"]}', page)
         index = self.pages["index.html"]
-        self.assertIn("990 judged: 271 ALLOW, 54 DENY, 665 UNKNOWN.", index)
+        self.assertIn("990 judged: 270 ALLOW, 1 DENY, 719 UNKNOWN.", index)
         self.assertIn('href="top-receivers.html">Open aggregate results</a>', index)
 
     def test_every_search_link_is_a_page_inside_the_site(self):

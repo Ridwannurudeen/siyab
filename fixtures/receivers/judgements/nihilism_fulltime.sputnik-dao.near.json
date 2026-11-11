@@ -53,7 +53,7 @@
     {
       "id": "account_age",
       "status": "pass",
-      "detail": "no archival age (view_access_key_list could not run: no recorded response for the request); created 1923 d ago",
+      "detail": "no archival age (view_access_key_list could not run: no recorded response for the request); oldest listed key created 1923 d ago",
       "source": {
         "provider": "api.nearblocks.io",
         "request_sha256": "56cc94f872094b70d36b433a50e46ce5c27557c569f4442e805b4878e88f2935",
@@ -63,7 +63,7 @@
     {
       "id": "dust_funded",
       "status": "pass",
-      "detail": "created by a 5 NEAR deposit",
+      "detail": "could not read the creation transaction: MalformedResponse: transaction HddMPPr3tN7c3bBAqCm1fkUkfMfQeNvjzwiqibyszShi of the oldest listed key does not show nihilism_fulltime.sputnik-dao.near being created; not needed: account_age passed and nothing is a lookalike, and a deposit is a signal only with lookalike or account_age",
       "source": {
         "provider": "api.nearblocks.io",
         "request_sha256": "46914f2bfbc7e2c1a1de66da24574f882c317bdab22d58e2de13dc7bb2e416dc",

@@ -53,7 +53,7 @@
     {
       "id": "account_age",
       "status": "pass",
-      "detail": "no archival age (view_access_key_list could not run: no recorded response for the request); created 1923 d ago",
+      "detail": "no archival age (view_access_key_list could not run: no recorded response for the request); oldest listed key created 1923 d ago",
       "source": {
         "provider": "api.nearblocks.io",
         "request_sha256": "f158614679d9ad19b98901b38d9ce74aa6a1fd9168f97fca47e163b8e54bc7fa",
@@ -63,7 +63,7 @@
     {
       "id": "dust_funded",
       "status": "pass",
-      "detail": "created by a 5 NEAR deposit",
+      "detail": "could not read the creation transaction: MalformedResponse: transaction DpfiwQc5frSMk3SPKxCCHey6podZapYWUhH6HzVcnuHx of the oldest listed key does not show kindessgrocerycoop.sputnik-dao.near being created; not needed: account_age passed and nothing is a lookalike, and a deposit is a signal only with lookalike or account_age",
       "source": {
         "provider": "api.nearblocks.io",
         "request_sha256": "f1186d0a3ea816b14e0a5b3ae66e6b1b41a3830e7779fedf921e7bbe0958db28",

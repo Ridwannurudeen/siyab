@@ -4,11 +4,11 @@ The fixtures under fixtures/demo/ are the testnet responses recorded on 1 and 2 
 GATE_FIXTURES_MODE=record, reduced to the fields the code reads (a block keeps its header hash,
 height and timestamp) and stored under their replay keys; policy.json is the agent policy the Gate's
 get_agent returned. The four runs: the allowlisted vendor (ALLOW, signed with the TEST key and
-verified back), a lookalike of the vendor dated by its oldest access key (DENY), the aged payee with
-the archival block its oldest access key names left out of the fixtures (UNKNOWN, naming the checks
-that could not run), and the EVM leg over the recorded dry 1Click quote and GoPlus answer (DENY,
-unsigned). The demo clock is pinned inside the recording window so the 7 day checks replay as
-recorded.
+verified back), a lookalike of the vendor, DENY while its recent oldest access key leaves its age
+unknown, the aged payee with the archival block its oldest access key names left out of the fixtures
+(UNKNOWN, naming the checks that could not run), and the EVM leg over the recorded dry 1Click
+quote and GoPlus answer (DENY, unsigned). The demo clock is pinned inside the recording window so
+the 7 day checks replay as recorded.
 
 The evidence documents go into a temporary directory, named on the last line and removed when the process
 exits unless GATE_KEEP_EVIDENCE=1.

@@ -52,9 +52,11 @@ class Fixtures:
                    {"jsonrpc": "2.0", "id": "gate", "error": error})
 
     def tier2(self, receiver):
-        keys = {"keys": [{"created": {"transaction_hash": "creation", "block_timestamp": 100000000000}}]}
+        keys = {"keys": [{"created": {"transaction_hash": "creation", "block_timestamp": 1700000000 * 10**9}}]}
         self.write(f"{NEARBLOCKS_URL}/v1/account/{receiver}/keys", "GET", None, keys)
-        txn = {"txns": [{"actions_agg": {"deposit": 5 * 10**23}}]}
+        txn = {"txns": [{"transaction_hash": "creation", "receiver_account_id": receiver, "outcomes": {"status": True},
+                         "actions": [{"action": "CREATE_ACCOUNT", "method": None, "args": None}],
+                         "actions_agg": {"deposit": 5 * 10**23}}]}
         self.write(f"{NEARBLOCKS_URL}/v1/txns/creation", "GET", None, txn)
 
 

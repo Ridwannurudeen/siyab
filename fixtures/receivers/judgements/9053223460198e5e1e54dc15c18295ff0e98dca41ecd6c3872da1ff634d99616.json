@@ -53,7 +53,7 @@
     {
       "id": "account_age",
       "status": "pass",
-      "detail": "created 201 d ago",
+      "detail": "oldest listed key created 201 d ago",
       "source": {
         "provider": "api.nearblocks.io",
         "request_sha256": "14afd1aad1e778816b6676b21d29974753a31a9b2cf862a2fda075bb26b6bace",
@@ -63,7 +63,7 @@
     {
       "id": "dust_funded",
       "status": "pass",
-      "detail": "created by a 15 NEAR deposit",
+      "detail": "could not read the creation transaction: MalformedResponse: transaction 7EWXTEPaVM2iFgthFBgMPA4hT1VeDAQGFy7vfcEYpEcM of the oldest listed key does not show 9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616 being created; not needed: account_age passed and nothing is a lookalike, and a deposit is a signal only with lookalike or account_age",
       "source": {
         "provider": "api.nearblocks.io",
         "request_sha256": "1272fdb9af23590fc7582969381fe15e16247535397474dc604781dee1a95525",

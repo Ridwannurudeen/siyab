@@ -102,9 +102,16 @@ class Fixtures:
                  "deleted": {"transaction_hash": None, "block_timestamp": None}} for ns in created_ns]
         self.write(f"{NEARBLOCKS_URL}/v1/account/{account_id}/keys", "GET", None, {"keys": keys})
 
-    def transaction(self, deposit_yocto, transaction_hash="CreationTx"):
-        txn = {"transaction_hash": transaction_hash, "actions": [{"action": "CREATE_ACCOUNT"}],
-               "actions_agg": {"deposit": deposit_yocto, "gas_attached": 0}}
+    def transaction(self, deposit_yocto, receiver, transaction_hash="CreationTx", actions=None,
+                    outcomes={"status": True}, returned_hash=None):
+        """A NearBlocks transaction answer; outcomes None leaves the field out, and returned_hash is the hash
+        the answer names when it differs from the one requested."""
+        if actions is None:
+            actions = [{"action": "CREATE_ACCOUNT", "method": None, "args": None}]
+        txn = {"transaction_hash": returned_hash or transaction_hash, "receiver_account_id": receiver,
+               "actions": actions, "actions_agg": {"deposit": deposit_yocto, "gas_attached": 0}}
+        if outcomes is not None:
+            txn["outcomes"] = outcomes
         self.write(f"{NEARBLOCKS_URL}/v1/txns/{transaction_hash}", "GET", None, {"txns": [txn]})
 
     def scan(self, memo, answer):
@@ -189,7 +196,7 @@ class RulesCase(unittest.TestCase):
         self.fx.account(name, code_hash)
         self.token_ok(name)
         self.fx.keys(name, NOW_MS * 10**6 - age_ns)
-        self.fx.transaction(deposit)
+        self.fx.transaction(deposit, name)
 
     def judge(self, req, policy=POLICY, scanner=None, archival=None):
         return rules.judge(req, policy, self.store, self.rpc, self.nearblocks, now_ms=NOW_MS,
@@ -278,7 +285,7 @@ class TierTwoTest(RulesCase):
         self.assertEqual(judgement.verdict, "ALLOW")
         self.assertEqual(judgement.reasons, ["Every check ran and none found a signal.",
                                              "Not on the owner's allowlist."])
-        self.assertEqual(self.detail(judgement, "account_age"), "created 30 d ago")
+        self.assertEqual(self.detail(judgement, "account_age"), "oldest listed key created 30 d ago")
         self.assertEqual(self.detail(judgement, "dust_funded"), "created by a 0.5 NEAR deposit")
 
     def test_no_code_alone_is_never_deny(self):
@@ -476,7 +483,7 @@ class TierTwoTest(RulesCase):
         self.stranger("stranger.testnet")
         self.fx.keys("stranger.testnet", NOW_MS * 10**6 - HOUR_NS, NOW_MS * 10**6 - 40 * DAY_NS)
         self.assertEqual(self.detail(self.judge(request("stranger.testnet")), "account_age"),
-                         "created 40 d ago")
+                         "oldest listed key created 40 d ago")
 
 
 class NonceAgeTest(RulesCase):
@@ -508,19 +515,276 @@ class NonceAgeTest(RulesCase):
         self.assertEqual(providers["account_age"], "archival.example")
         self.assertEqual(providers["dust_funded"], "nearblocks")
 
-    def test_a_young_key_block_is_deny_and_keeps_the_deposit_unknown(self):
-        self.unaged("stranger.testnet", None)
+    YOUNG_KEY = ("oldest access key nonce 275336350000001 from rpc.example: existed by block 275336351 "
+                 "(2026-10-28T12:00:00Z) from archival.example, a key block younger than 7 days that does not "
+                 "date the account")
+
+    def recent_key(self, *created_ns):
+        """A receiver whose oldest current key was added 1 d ago, read now at ACCOUNT_HEIGHT."""
+        self.fx.account("stranger.testnet", block_height=ACCOUNT_HEIGHT)
+        self.token_ok("stranger.testnet")
+        self.fx.keys("stranger.testnet", *created_ns)
         self.fx.access_keys("stranger.testnet", KEY_NONCE + 1)
         self.fx.block_at(KEY_HEIGHT, NOW_MS * 10**6 - DAY_NS)
+
+    def test_a_young_key_block_without_creation_proof_reads_unknown(self):
+        self.recent_key(None)
         judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+        self.assertEqual(self.status(judgement, "account_age"), "unknown")
+        self.assertEqual(self.detail(judgement, "account_age"),
+                         f"no archival age ({self.YOUNG_KEY}; archival block_at could not run: no recorded "
+                         "response for the request); no key of stranger.testnet carries a creation time")
+        self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
+        self.assertEqual(judgement.verdict, "UNKNOWN")
+
+    def test_an_old_account_with_a_young_key_block_passes_on_its_block_state(self):
+        self.recent_key(None)
+        self.fx.block_at(STATE_HEIGHT, OLD_NS)
+        self.fx.account_at("stranger.testnet", STATE_HEIGHT)
+        judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+        self.assertEqual(self.status(judgement, "account_age"), "pass")
+        self.assertEqual(self.detail(judgement, "account_age"),
+                         f"{self.YOUNG_KEY}; view_account finds stranger.testnet at block 221701472 "
+                         "(2026-10-22T11:50:00Z) from archival.example, at least 7 d old")
+        self.assertEqual(self.status(judgement, "dust_funded"), "pass")
+        self.assertEqual(judgement.verdict, "ALLOW")
+
+    def test_a_young_key_block_with_a_young_creation_time_is_deny(self):
+        self.recent_key(NOW_MS * 10**6 - 2 * DAY_NS)
+        self.fx.transaction(5e23, "stranger.testnet")
+        self.fx.block_at(STATE_HEIGHT, OLD_NS)
+        self.fx.account_missing_at("stranger.testnet", STATE_HEIGHT)
+        with mock.patch.object(self.nearblocks, "get", wraps=self.nearblocks.get) as nearblocks_get:
+            judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+        self.assertEqual(nearblocks_get.call_args_list, [mock.call("/v1/account/stranger.testnet/keys"),
+                                                         mock.call("/v1/txns/CreationTx")])
         self.assertEqual(self.status(judgement, "account_age"), "signal")
         self.assertEqual(self.detail(judgement, "account_age"),
-                         "oldest access key nonce 275336350000001 from rpc.example: existed by block 275336351 "
-                         "(2026-10-28T12:00:00Z) from archival.example, younger than 7 days")
-        self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
-        self.assertEqual(self.detail(judgement, "dust_funded"), "the creation transaction is not known")
+                         f"no archival age ({self.YOUNG_KEY}; stranger.testnet did not exist at block 221701472 "
+                         "(2026-10-22T11:50:00Z) from archival.example, so it was created after that block, which "
+                         "is at least 7 d old; whether it is younger than 7 days is not known); created 2 d ago, "
+                         "younger than 7 days")
+        self.assertEqual(self.age_provider(judgement), "nearblocks.example")
         self.assertEqual(judgement.verdict, "DENY")
-        self.assertEqual(judgement.reasons, ["Created less than 7 d ago.", "Not on the owner's allowlist."])
+        self.assertEqual(judgement.reasons, ["Created 2 d ago.", "Not on the owner's allowlist."])
+
+    def unproven(self, *created_ns, receiver="stranger.testnet", actions=None, outcomes={"status": True},
+                 returned_hash=None):
+        """recent_key with no archival proof of age and the oldest key's transaction recorded, sent to receiver."""
+        self.recent_key(*created_ns)
+        self.fx.transaction(5e23, receiver, actions=actions, outcomes=outcomes, returned_hash=returned_hash)
+        self.fx.block_at(STATE_HEIGHT, OLD_NS)
+        self.fx.account_missing_at("stranger.testnet", STATE_HEIGHT)
+        return self.judge(request("stranger.testnet"), archival=self.archival)
+
+    def assert_age_unknown(self, judgement, detail_end):
+        self.assertEqual(self.status(judgement, "account_age"), "unknown")
+        self.assertTrue(self.detail(judgement, "account_age").endswith(detail_end),
+                        self.detail(judgement, "account_age"))
+        self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
+        self.assertEqual(judgement.verdict, "UNKNOWN")
+
+    def test_an_undated_key_beside_a_young_one_reads_unknown(self):
+        judgement = self.unproven(None, NOW_MS * 10**6 - 2 * DAY_NS,
+                                  actions=[{"action": "ADD_KEY", "method": None, "args": None}])
+        self.assert_age_unknown(judgement, "; a key of stranger.testnet carries no creation time, so the oldest key "
+                                "NearBlocks lists may not be its first")
+
+    def test_an_undated_key_beside_an_old_one_reads_unknown(self):
+        self.stranger("stranger.testnet")
+        self.fx.keys("stranger.testnet", None, NOW_MS * 10**6 - 40 * DAY_NS)
+        judgement = self.judge(request("stranger.testnet"))
+        self.assertEqual(self.detail(judgement, "account_age"), "a key of stranger.testnet carries no creation time, "
+                         "so the oldest key NearBlocks lists may not be its first")
+        self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
+        self.assertEqual(judgement.verdict, "UNKNOWN")
+
+    def test_a_full_page_of_keys_reads_unknown(self):
+        young, old = NOW_MS * 10**6 - 2 * DAY_NS, NOW_MS * 10**6 - 40 * DAY_NS
+        self.assert_age_unknown(self.unproven(*[young] * 25),
+                                "; NearBlocks lists 25 keys, a full page that may leave out older ones")
+        self.stranger("stranger.testnet")
+        self.fx.keys("stranger.testnet", *[old] * 25)
+        judgement = self.judge(request("stranger.testnet"))
+        self.assertEqual(self.detail(judgement, "account_age"),
+                         "NearBlocks lists 25 keys, a full page that may leave out older ones")
+        self.assertEqual(judgement.verdict, "UNKNOWN")
+        self.assertEqual(self.status(self.unproven(*[young] * 24), "account_age"), "signal")
+
+    def test_a_young_key_whose_transaction_does_not_create_the_account_reads_unknown(self):
+        def call(method, args):
+            return [{"action": "FUNCTION_CALL", "method": method, "args": args}]
+
+        named = '{"new_account_id": "stranger.testnet", "new_public_key": "ed25519:K"}'
+        for receiver, actions in (
+                ("stranger.testnet", [{"action": "ADD_KEY", "method": None, "args": None}]),
+                ("stranger.testnet", [{"action": "TRANSFER", "method": None, "args": None}]),
+                ("stranger.testnet", "CREATE_ACCOUNT"),
+                ("other.testnet", None),
+                ("testnet", call("create_account", '{"new_account_id": "other.testnet"}')),
+                ("testnet", call("create_account", "not json")),
+                ("testnet", call("create_account", None)),
+                ("testnet", call("create", named)),
+                ("near", call("create_account", named))):
+            with self.subTest(receiver=receiver, actions=actions):
+                self.assert_age_unknown(self.unproven(NOW_MS * 10**6 - 2 * DAY_NS, receiver=receiver, actions=actions),
+                                        "; the oldest key NearBlocks lists was created 2 d ago by transaction "
+                                        "CreationTx, which does not show stranger.testnet being created, so the "
+                                        "account may be older")
+
+    def test_a_young_key_whose_transaction_cannot_be_read_reads_unknown(self):
+        self.recent_key(NOW_MS * 10**6 - 2 * DAY_NS)
+        self.fx.block_at(STATE_HEIGHT, OLD_NS)
+        self.fx.account_missing_at("stranger.testnet", STATE_HEIGHT)
+        self.assert_age_unknown(self.judge(request("stranger.testnet"), archival=self.archival),
+                                "; the oldest key NearBlocks lists was created 2 d ago; could not read its "
+                                "transaction: no recorded response for the request")
+        key = {"public_key": "ed25519:K", "account_id": "stranger.testnet", "permission_kind": "FULL_ACCESS",
+               "created": {"transaction_hash": None, "block_timestamp": NOW_MS * 10**6 - 2 * DAY_NS},
+               "deleted": {"transaction_hash": None, "block_timestamp": None}}
+        self.fx.write(f"{NEARBLOCKS_URL}/v1/account/stranger.testnet/keys", "GET", None, {"keys": [key]})
+        self.assert_age_unknown(self.judge(request("stranger.testnet"), archival=self.archival),
+                                "; the oldest key NearBlocks lists was created 2 d ago; could not read its "
+                                "transaction: MalformedResponse: the key creation names no transaction")
+
+    def test_a_young_creation_through_the_parent_registrar_is_deny(self):
+        judgement = self.unproven(NOW_MS * 10**6 - 2 * DAY_NS, receiver="testnet", actions=[
+            {"action": "FUNCTION_CALL", "method": "create_account",
+             "args": '{"new_account_id": "stranger.testnet", "new_public_key": "ed25519:K"}'}])
+        self.assertEqual(self.status(judgement, "account_age"), "signal")
+        self.assertEqual(self.status(judgement, "dust_funded"), "pass")
+        self.assertEqual(judgement.verdict, "DENY")
+        self.assertEqual(judgement.reasons, ["Created 2 d ago.", "Not on the owner's allowlist."])
+
+    def test_deeply_nested_create_account_args_read_unknown(self):
+        judgement = self.unproven(NOW_MS * 10**6 - 2 * DAY_NS, receiver="testnet", actions=[
+            {"action": "FUNCTION_CALL", "method": "create_account", "args": "[" * 100000}])
+        self.assert_age_unknown(judgement, "; the oldest key NearBlocks lists was created 2 d ago by transaction "
+                                "CreationTx, which does not show stranger.testnet being created, so the account "
+                                "may be older")
+
+    def test_a_creation_without_a_successful_outcome_reads_unknown(self):
+        named = '{"new_account_id": "stranger.testnet", "new_public_key": "ed25519:K"}'
+        for receiver, actions in (
+                ("stranger.testnet", [{"action": "CREATE_ACCOUNT", "method": None, "args": None}]),
+                ("testnet", [{"action": "FUNCTION_CALL", "method": "create_account", "args": named}])):
+            for outcomes in (None, {}, {"status": False}, {"status": None}, {"status": 1}, {"status": "true"},
+                             {"status": [True]}, "true", [True], True):
+                with self.subTest(receiver=receiver, outcomes=outcomes):
+                    judgement = self.unproven(NOW_MS * 10**6 - 2 * DAY_NS, receiver=receiver, actions=actions,
+                                              outcomes=outcomes)
+                    self.assert_age_unknown(judgement, "; the oldest key NearBlocks lists was created 2 d ago by "
+                                            "transaction CreationTx, which does not show stranger.testnet being "
+                                            "created, so the account may be older")
+            with self.subTest(receiver=receiver, returned_hash="OtherTx"):
+                judgement = self.unproven(NOW_MS * 10**6 - 2 * DAY_NS, receiver=receiver, actions=actions,
+                                          returned_hash="OtherTx")
+                self.assert_age_unknown(judgement, "; the oldest key NearBlocks lists was created 2 d ago by "
+                                        "transaction CreationTx, which does not show stranger.testnet being "
+                                        "created, so the account may be older")
+            with self.subTest(receiver=receiver, outcomes={"status": True}):
+                judgement = self.unproven(NOW_MS * 10**6 - 2 * DAY_NS, receiver=receiver, actions=actions)
+                self.assertEqual(self.status(judgement, "account_age"), "signal")
+                self.assertEqual(judgement.verdict, "DENY")
+
+    def test_a_receiver_without_a_dot_has_no_parent_to_create_it(self):
+        self.stranger("stranger", age_ns=2 * DAY_NS)
+        self.fx.transaction(5e23, "", actions=[
+            {"action": "FUNCTION_CALL", "method": "create_account", "args": '{"new_account_id": "stranger"}'}])
+        judgement = self.judge(request("stranger"))
+        self.assertEqual(self.status(judgement, "account_age"), "unknown")
+        self.assertEqual(self.detail(judgement, "account_age"),
+                         "the oldest key NearBlocks lists was created 2 d ago by transaction CreationTx, which does "
+                         "not show stranger being created, so the account may be older")
+        self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
+        self.assertEqual(judgement.verdict, "UNKNOWN")
+        self.fx.transaction(5e23, "stranger")
+        self.assertEqual(self.status(self.judge(request("stranger")), "account_age"), "signal")
+
+    def test_an_old_key_whose_transaction_does_not_create_the_account_needs_no_deposit_without_a_lookalike(self):
+        for actions, outcomes in (([{"action": "ADD_KEY", "method": None, "args": None}], {"status": True}),
+                                  (None, {"status": False}), (None, None)):
+            with self.subTest(actions=actions, outcomes=outcomes):
+                self.stranger("stranger.testnet")
+                self.fx.transaction(5e23, "stranger.testnet", actions=actions, outcomes=outcomes)
+                judgement = self.judge(request("stranger.testnet"))
+                self.assertEqual(self.status(judgement, "account_age"), "pass")
+                self.assertEqual(self.detail(judgement, "account_age"), "oldest listed key created 30 d ago")
+                self.assertEqual(self.status(judgement, "dust_funded"), "pass")
+                self.assertEqual(self.detail(judgement, "dust_funded"),
+                                 "could not read the creation transaction: MalformedResponse: transaction CreationTx "
+                                 "of the oldest listed key does not show stranger.testnet being created; not needed: "
+                                 "account_age passed and nothing is a lookalike, and a deposit is a signal only with "
+                                 "lookalike or account_age")
+                self.assertEqual(self.status(judgement, "lookalike"), "pass")
+                self.assertEqual(judgement.verdict, "ALLOW")
+        self.stranger("fresh.testnet", age_ns=2 * DAY_NS, deposit=1e22)
+        self.fx.transaction(1e22, "fresh.testnet", actions=[{"action": "ADD_KEY", "method": None, "args": None}])
+        judgement = self.judge(request("fresh.testnet"))
+        self.assertEqual(self.status(judgement, "account_age"), "unknown")
+        self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
+        self.assertEqual(judgement.verdict, "UNKNOWN")
+        self.stranger("fresh.testnet", age_ns=2 * DAY_NS, deposit="NaN")
+        judgement = self.judge(request("fresh.testnet"))
+        self.assertEqual(self.status(judgement, "account_age"), "signal")
+        self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
+        self.assertEqual(judgement.verdict, "DENY")
+        self.stranger("vend0r.testnet", deposit=0)
+        self.fx.transaction(0, "vend0r.testnet", actions=[{"action": "ADD_KEY", "method": None, "args": None}])
+        judgement = self.judge(request("vend0r.testnet"))
+        self.assertEqual(self.status(judgement, "lookalike"), "signal")
+        self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
+        self.assertEqual(judgement.verdict, "DENY")
+        self.assertNotIn("Created by a 0 NEAR deposit.", judgement.reasons)
+
+    def test_an_account_missing_at_the_old_block_never_passes_on_an_old_nearblocks_key(self):
+        old, young = NOW_MS * 10**6 - 400 * DAY_NS, NOW_MS * 10**6 - 2 * DAY_NS
+        for created_ns, age in (((old,), "400 d"), ((NOW_MS * 10**6 - 30 * DAY_NS,), "30 d"), ((old, young), "400 d")):
+            with self.subTest(age=age, keys=len(created_ns)):
+                self.assert_age_unknown(self.unproven(*created_ns),
+                                        f"; the oldest key NearBlocks lists was created {age} ago, but the archival "
+                                        "node found no stranger.testnet at the old block, so that key does not "
+                                        "date the account")
+        self.unaged("stranger.testnet", old)
+        self.fx.account("stranger.testnet", block_height=ACCOUNT_HEIGHT)
+        self.fx.access_keys("stranger.testnet")
+        self.fx.transaction(5e23, "stranger.testnet")
+        self.fx.block_at(STATE_HEIGHT, OLD_NS)
+        self.fx.account_missing_at("stranger.testnet", STATE_HEIGHT)
+        self.assert_age_unknown(self.judge(request("stranger.testnet"), archival=self.archival),
+                                "; the oldest key NearBlocks lists was created 400 d ago, but the archival node found "
+                                "no stranger.testnet at the old block, so that key does not date the account")
+
+    def test_a_malformed_creation_time_reads_unknown(self):
+        for value in (True, False, [], {}, -1, "abc", "-5", "", 1.7e18, 1, NOW_MS * 10**6 + DAY_NS):
+            with self.subTest(value=value):
+                judgement = self.unproven(value)
+                self.assertEqual(self.status(judgement, "account_age"), "unknown")
+                self.assertIn("could not read the account keys: MalformedResponse: ",
+                              self.detail(judgement, "account_age"))
+                self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
+                self.assertEqual(judgement.verdict, "UNKNOWN")
+
+    def test_a_malformed_creation_entry_reads_unknown(self):
+        for created in ("CreationTx", [], {"transaction_hash": ["CreationTx"], "block_timestamp": OLD_NS},
+                        {"transaction_hash": "../../v1/x", "block_timestamp": OLD_NS},
+                        {"transaction_hash": "", "block_timestamp": OLD_NS}):
+            with self.subTest(created=created):
+                self.stranger("stranger.testnet")
+                key = {"public_key": "ed25519:K", "account_id": "stranger.testnet", "permission_kind": "FULL_ACCESS",
+                       "created": created, "deleted": {"transaction_hash": None, "block_timestamp": None}}
+                self.fx.write(f"{NEARBLOCKS_URL}/v1/account/stranger.testnet/keys", "GET", None, {"keys": [key]})
+                judgement = self.judge(request("stranger.testnet"))
+                self.assertIn("could not read the account keys: MalformedResponse: ",
+                              self.detail(judgement, "account_age"))
+                self.assertEqual(judgement.verdict, "UNKNOWN")
+
+    def test_a_creation_time_as_a_digit_string_is_read(self):
+        self.stranger("stranger.testnet")
+        self.fx.keys("stranger.testnet", str(NOW_MS * 10**6 - 40 * DAY_NS))
+        judgement = self.judge(request("stranger.testnet"))
+        self.assertEqual(self.detail(judgement, "account_age"), "oldest listed key created 40 d ago")
+        self.assertEqual(judgement.verdict, "ALLOW")
 
     def test_the_smallest_nonce_over_the_keys_decides(self):
         self.unaged()
@@ -688,20 +952,10 @@ class NonceAgeTest(RulesCase):
         self.assertEqual(block_at.call_args_list, [mock.call(KEY_HEIGHT)])
         self.assertEqual(self.detail(judgement, "account_age"),
                          "no archival age (archival block_at could not run: RPC error UNKNOWN_BLOCK); "
-                         "created 30 d ago")
+                         "oldest listed key created 30 d ago")
         self.assertEqual(self.age_provider(judgement), "nearblocks.example")
         self.assertEqual(self.detail(judgement, "dust_funded"), "created by a 0.5 NEAR deposit")
         self.assertEqual(judgement.verdict, "ALLOW")
-
-    def test_a_young_archival_account_is_denied_without_a_nearblocks_request(self):
-        self.unaged("stranger.testnet", None)
-        self.fx.access_keys("stranger.testnet", KEY_NONCE + 1)
-        self.fx.block_at(KEY_HEIGHT, NOW_MS * 10**6 - DAY_NS)
-        with mock.patch.object(self.nearblocks, "get", wraps=self.nearblocks.get) as nearblocks_get:
-            judgement = self.judge(request("stranger.testnet"), archival=self.archival)
-        nearblocks_get.assert_not_called()
-        self.assertEqual(self.status(judgement, "account_age"), "signal")
-        self.assertEqual(judgement.verdict, "DENY")
 
     def test_failed_archival_and_nearblocks_reads_leave_age_unknown_with_both_reasons(self):
         self.unaged()
@@ -1057,7 +1311,7 @@ class RecordedMainnetTest(unittest.TestCase):
                                {"allowlist": [], "caps": []})
         details = {c["id"]: c["detail"] for c in judgement.checks}
         self.assertEqual(judgement.verdict, "ALLOW")
-        self.assertEqual(details["account_age"], "created 39 d ago")
+        self.assertEqual(details["account_age"], "oldest listed key created 39 d ago")
         self.assertEqual(details["dust_funded"], "created by a 0.5 NEAR deposit")
         self.assertEqual(details["code_without_metadata"], "no contract code")
 
@@ -1237,11 +1491,40 @@ class FailClosedTest(RulesCase):
         self.assertEqual(judgement.verdict, "UNKNOWN")
 
     def test_malformed_creation_transaction_reads_unknown(self):
-        self.stranger("stranger.testnet")
-        for body in ({"txns": []}, {"txns": [{"actions_agg": None}]}, {"txns": [{"actions_agg": {"deposit": "x"}}]}):
+        self.stranger("vend0r.testnet")
+        for body in ({"txns": []}, {"txns": [{"actions_agg": None}]}, {"txns": [{"actions_agg": {"deposit": "x"}}]},
+                     {"txns": ["CreationTx"]}, {"txns": [None]}):
             with self.subTest(body=body):
                 self.fx.write(f"{NEARBLOCKS_URL}/v1/txns/CreationTx", "GET", None, body)
-                self.assertEqual(self.status(self.judge(request("stranger.testnet")), "dust_funded"), "unknown")
+                self.assertEqual(self.status(self.judge(request("vend0r.testnet")), "dust_funded"), "unknown")
+
+    def test_a_deposit_that_is_not_a_finite_amount_reads_unknown(self):
+        for deposit in ("NaN", "sNaN", "Infinity", "-Infinity", "-5", "1e1000030", str(2**128), "0.5", 0.5, 5.5,
+                        "1_000", " 5 ", "\u0663", "5e+23", "", True):
+            for name, age_ns, status, verdict in (("stranger.testnet", 30 * DAY_NS, "pass", "ALLOW"),
+                                                  ("vend0r.testnet", 30 * DAY_NS, "unknown", "DENY"),
+                                                  ("stranger.testnet", 2 * DAY_NS, "unknown", "DENY")):
+                with self.subTest(deposit=deposit, name=name, age_ns=age_ns):
+                    self.stranger(name, age_ns=age_ns, deposit=deposit)
+                    judgement = self.judge(request(name))
+                    self.assertEqual(self.status(judgement, "dust_funded"), status)
+                    self.assertIn("could not read the creation transaction: MalformedResponse: ",
+                                  self.detail(judgement, "dust_funded"))
+                    self.assertEqual(judgement.verdict, verdict)
+        with self.assertRaises(rpc.MalformedResponse):
+            rules._creation_deposit({"txns": ["CreationTx"]})
+
+    def test_a_negative_zero_deposit_reads_as_zero(self):
+        self.stranger("stranger.testnet", age_ns=2 * DAY_NS, deposit=-0.0)
+        judgement = self.judge(request("stranger.testnet"))
+        self.assertEqual(self.detail(judgement, "dust_funded"), "created by a 0 NEAR deposit, below 0.1 NEAR")
+        self.assertEqual(judgement.reasons[0], "Created 2 d ago by a 0 NEAR deposit.")
+
+    def test_a_deposit_of_ascii_digits_is_read(self):
+        self.stranger("stranger.testnet", age_ns=2 * DAY_NS, deposit="10000000000000000000000")
+        judgement = self.judge(request("stranger.testnet"))
+        self.assertEqual(self.detail(judgement, "dust_funded"), "created by a 0.01 NEAR deposit, below 0.1 NEAR")
+        self.assertEqual(judgement.verdict, "DENY")
 
     def test_code_check_on_a_missing_account_reads_unknown(self):
         self.fx.missing("gone.testnet")
