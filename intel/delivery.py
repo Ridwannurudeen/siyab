@@ -23,6 +23,7 @@ LEASE_MS = 45000
 MAX_ATTEMPTS = 5
 MAX_QUEUE_ROWS = 10000
 MAX_ATTEMPT_ROWS = 50000
+RETENTION_MS = 30 * 86400 * 1000
 _USERNAME = re.compile(r"[A-Za-z0-9_]{5,32}")
 _BOT_TOKEN = re.compile(r"[0-9]{5,20}:[A-Za-z0-9_-]{20,128}")
 _START = re.compile(r"/start(?:@[A-Za-z0-9_]{5,32})? ([a-f0-9]{64})")
@@ -152,7 +153,9 @@ class TelegramDelivery:
                                "observed_chat_id INTEGER,observed_label TEXT,observed_ms INTEGER,"
                                "active INTEGER NOT NULL DEFAULT 0,active_ms INTEGER,baseline_id INTEGER NOT NULL DEFAULT 0,"
                                "cursor_id INTEGER NOT NULL DEFAULT 0,send_after_ms INTEGER NOT NULL DEFAULT 0,"
-                               "created_ms INTEGER NOT NULL,updated_ms INTEGER NOT NULL)")
+                               "created_ms INTEGER NOT NULL,updated_ms INTEGER NOT NULL,user_id TEXT REFERENCES users(id))")
+            if "user_id" not in {row["name"] for row in connection.execute("PRAGMA table_info(delivery_bindings)")}:
+                connection.execute("ALTER TABLE delivery_bindings ADD COLUMN user_id TEXT REFERENCES users(id)")
             connection.execute("CREATE TABLE IF NOT EXISTS delivery_queue ("
                                "id INTEGER PRIMARY KEY AUTOINCREMENT,binding_id INTEGER NOT NULL REFERENCES delivery_bindings(id) ON DELETE CASCADE,"
                                "team_id TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,generation INTEGER NOT NULL,"
@@ -166,14 +169,31 @@ class TelegramDelivery:
             connection.execute("CREATE TABLE IF NOT EXISTS delivery_attempts ("
                                "id INTEGER PRIMARY KEY AUTOINCREMENT,queue_id INTEGER NOT NULL REFERENCES delivery_queue(id) ON DELETE CASCADE,"
                                "attempt INTEGER NOT NULL,started_ms INTEGER NOT NULL,finished_ms INTEGER,error TEXT)")
+            connection.execute("CREATE INDEX IF NOT EXISTS delivery_team ON delivery_queue(team_id,state)")
+            connection.execute("CREATE INDEX IF NOT EXISTS delivery_attempt_queue ON delivery_attempts(queue_id)")
 
     def _now(self):
         return int(self.clock() * 1000)
 
     @staticmethod
-    def _capacity(connection):
-        queue = connection.execute("SELECT COUNT(*) FROM delivery_queue").fetchone()[0] >= MAX_QUEUE_ROWS
-        attempts = connection.execute("SELECT COUNT(*) FROM delivery_attempts").fetchone()[0] >= MAX_ATTEMPT_ROWS
+    def _room(connection, team_id, attempts, *, prune, need=1, keep=None):
+        limit = (MAX_ATTEMPT_ROWS if attempts else MAX_QUEUE_ROWS) - need + 1
+        count = ("SELECT COUNT(*) FROM delivery_attempts a JOIN delivery_queue q ON q.id=a.queue_id WHERE q.team_id=?" if attempts
+                 else "SELECT COUNT(*) FROM delivery_queue WHERE team_id=?")
+        while connection.execute(count, (team_id,)).fetchone()[0] >= limit:
+            oldest = connection.execute("SELECT id FROM delivery_queue q WHERE team_id=? AND id IS NOT ? AND state IN ('sent','cancelled','dead')"
+                                        + (" AND EXISTS(SELECT 1 FROM delivery_attempts a WHERE a.queue_id=q.id)" if attempts else "")
+                                        + " ORDER BY state='dead',id LIMIT 1", (team_id, keep)).fetchone()
+            if oldest is None or not prune:
+                return oldest is not None
+            connection.execute("DELETE FROM delivery_queue WHERE id=?", (oldest["id"],))
+        return True
+
+    @classmethod
+    def _capacity(cls, connection, team_id=None):
+        teams = [team_id] if team_id is not None else [row["team_id"] for row in connection.execute("SELECT team_id FROM delivery_bindings")]
+        queue = any(not cls._room(connection, team, False, prune=False) for team in teams)
+        attempts = any(not cls._room(connection, team, True, prune=False) for team in teams)
         return {"paused": queue or attempts, "queue_paused": queue, "attempts_paused": attempts,
                 "queue_rows_limit": MAX_QUEUE_ROWS, "attempt_rows_limit": MAX_ATTEMPT_ROWS}
 
@@ -183,7 +203,7 @@ class TelegramDelivery:
             role = self.store._member(connection, user_id, team_id)
             binding = connection.execute("SELECT * FROM delivery_bindings WHERE team_id=?", (team_id,)).fetchone()
             meta = connection.execute("SELECT * FROM delivery_state WHERE singleton=1").fetchone()
-            capacity = self._capacity(connection)
+            capacity = self._capacity(connection, team_id)
             counts = {row["state"]: row["n"] for row in connection.execute(
                 "SELECT state,COUNT(*) AS n FROM delivery_queue WHERE team_id=? GROUP BY state", (team_id,))}
             failure = connection.execute("SELECT last_error FROM delivery_queue WHERE team_id=? AND state IN ('pending','dead') "
@@ -216,11 +236,11 @@ class TelegramDelivery:
             generation = previous["generation"] + 1 if previous else 1
             connection.execute("UPDATE delivery_queue SET state='cancelled',lease_token=NULL,lease_until_ms=0,updated_ms=? "
                                "WHERE team_id=? AND state IN ('pending','sending')", (now, team_id))
-            connection.execute("INSERT INTO delivery_bindings(team_id,generation,nonce_hash,nonce_expires_ms,created_ms,updated_ms) "
-                               "VALUES(?,?,?,?,?,?) ON CONFLICT(team_id) DO UPDATE SET generation=excluded.generation,"
+            connection.execute("INSERT INTO delivery_bindings(team_id,generation,nonce_hash,nonce_expires_ms,created_ms,updated_ms,user_id) "
+                               "VALUES(?,?,?,?,?,?,?) ON CONFLICT(team_id) DO UPDATE SET generation=excluded.generation,"
                                "nonce_hash=excluded.nonce_hash,nonce_expires_ms=excluded.nonce_expires_ms,observed_chat_id=NULL,"
-                               "observed_label=NULL,observed_ms=NULL,active=0,active_ms=NULL,updated_ms=excluded.updated_ms",
-                               (team_id, generation, hashlib.sha256(nonce.encode("ascii")).hexdigest(), now + LINK_MS, now, now))
+                               "observed_label=NULL,observed_ms=NULL,active=0,active_ms=NULL,updated_ms=excluded.updated_ms,user_id=excluded.user_id",
+                               (team_id, generation, hashlib.sha256(nonce.encode("ascii")).hexdigest(), now + LINK_MS, now, now, user_id))
             self.store._audit(connection, team_id, user_id, "telegram.link_started", str(generation))
         return {"link": "https://t.me/" + self.bot_username + "?start=" + nonce,
                 "expires_at": now + LINK_MS, "generation": generation}
@@ -276,11 +296,14 @@ class TelegramDelivery:
                                      (delivery_id, team_id)).fetchone()
             if row is None:
                 raise WorkspaceError(409, "delivery_not_retryable", "Only a current connected destination's dead letters can be retried.")
-            if self._capacity(connection)["attempts_paused"]:
-                raise WorkspaceError(503, "delivery_capacity", "Delivery attempt retention is full. Ask the operator to review retained records before retrying.")
+            dropped = connection.execute("DELETE FROM delivery_attempts WHERE queue_id=?", (delivery_id,)).rowcount
+            retained = connection.execute("SELECT COUNT(*) FROM delivery_queue WHERE team_id=?", (team_id,)).fetchone()[0]
+            if not self._room(connection, team_id, True, prune=True, need=MAX_ATTEMPTS, keep=delivery_id):
+                raise WorkspaceError(503, "delivery_capacity", "This team's undelivered alerts hold its delivery attempt records, so this retry has no room until they finish.")
+            pruned = retained - connection.execute("SELECT COUNT(*) FROM delivery_queue WHERE team_id=?", (team_id,)).fetchone()[0]
             connection.execute("UPDATE delivery_queue SET state='pending',attempts=0,next_attempt_ms=?,last_error=NULL,updated_ms=? WHERE id=?",
                                (self._now(), self._now(), delivery_id))
-            self.store._audit(connection, team_id, user_id, "telegram.delivery_retried", str(delivery_id))
+            self.store._audit(connection, team_id, user_id, "telegram.delivery_retried", str(delivery_id), {"pruned": pruned, "dropped_attempts": dropped})
         return {"retried": True}
 
     def _lease(self):
@@ -372,13 +395,14 @@ class TelegramDelivery:
     def _enqueue(self):
         count, now = 0, self._now()
         with self.store._connection(write=True) as connection:
-            retained = connection.execute("SELECT COUNT(*) FROM delivery_queue").fetchone()[0]
+            connection.execute("DELETE FROM delivery_queue WHERE state IN ('sent','cancelled','dead') AND updated_ms<=?", (now - RETENTION_MS,))
             last = connection.execute("SELECT last_binding FROM delivery_state WHERE singleton=1").fetchone()[0]
             bindings = connection.execute("SELECT * FROM delivery_bindings WHERE active=1 AND id>? ORDER BY id LIMIT 20", (last,)).fetchall()
             if not bindings:
                 bindings = connection.execute("SELECT * FROM delivery_bindings WHERE active=1 ORDER BY id LIMIT 20").fetchall()
             for binding in bindings:
                 cursor = binding["cursor_id"]
+                retained = connection.execute("SELECT COUNT(*) FROM delivery_queue WHERE team_id=?", (binding["team_id"],)).fetchone()[0]
                 rows = connection.execute("SELECT inbox.id,inbox.account,inbox.candidate,events.event_id,events.body_json,events.observed_ms "
                                           "FROM inbox JOIN events ON events.seq=inbox.event_seq WHERE inbox.team_id=? AND inbox.id>? ORDER BY inbox.id LIMIT 200",
                                           (binding["team_id"], binding["cursor_id"])).fetchall()
@@ -388,7 +412,9 @@ class TelegramDelivery:
                                                     (binding["id"], binding["generation"], row["id"])).fetchone()
                         if exists is None:
                             if retained >= MAX_QUEUE_ROWS:
-                                break
+                                if not self._room(connection, binding["team_id"], False, prune=True):
+                                    break
+                                retained = MAX_QUEUE_ROWS - 1
                             connection.execute("INSERT INTO delivery_queue(binding_id,team_id,generation,inbox_id,event_id,message,state,next_attempt_ms,created_ms,updated_ms) "
                                                "VALUES(?,?,?,?,?,?,'pending',?,?,?)",
                                                (binding["id"], binding["team_id"], binding["generation"], row["id"], row["event_id"], self._message(row), now, now, now))
@@ -409,13 +435,17 @@ class TelegramDelivery:
                                "WHERE state='sending' AND lease_until_ms<=?", (MAX_ATTEMPTS, now, now))
             if connection.execute("SELECT next_send_ms FROM delivery_state WHERE singleton=1").fetchone()[0] > now:
                 return None
-            if self._capacity(connection)["attempts_paused"]:
-                return None
-            row = connection.execute("SELECT q.*,b.observed_chat_id FROM delivery_queue q JOIN delivery_bindings b ON b.id=q.binding_id "
-                                     "WHERE q.state='pending' AND q.next_attempt_ms<=? AND b.active=1 AND b.generation=q.generation "
-                                     "AND b.send_after_ms<=? ORDER BY q.id LIMIT 1", (now, now)).fetchone()
-            if row is None:
-                return None
+            full = []
+            while True:
+                row = connection.execute("SELECT q.*,b.observed_chat_id FROM delivery_queue q JOIN delivery_bindings b ON b.id=q.binding_id "
+                                         "WHERE q.state='pending' AND q.next_attempt_ms<=? AND b.active=1 AND b.generation=q.generation "
+                                         "AND b.send_after_ms<=? AND q.team_id NOT IN (" + ",".join("?" * len(full)) + ") ORDER BY q.id LIMIT 1",
+                                         (now, now, *full)).fetchone()
+                if row is None:
+                    return None
+                if self._room(connection, row["team_id"], True, prune=True):
+                    break
+                full.append(row["team_id"])
             connection.execute("UPDATE delivery_queue SET state='sending',attempts=attempts+1,lease_token=?,lease_until_ms=?,updated_ms=? WHERE id=?",
                                (token, now + LEASE_MS, now, row["id"]))
             connection.execute("UPDATE delivery_bindings SET send_after_ms=? WHERE id=?", (now + 1000, row["binding_id"]))
