@@ -392,6 +392,7 @@ class SQLiteWorkspaceStore:
             previous = self._member(connection, target_user_id, team_id)
             if previous == "owner" and role != "owner":
                 self._other_owner(connection, team_id, target_user_id)
+                self._disconnect_delivery(connection, team_id, target_user_id, user_id)
             connection.execute("UPDATE memberships SET role=? WHERE team_id=? AND user_id=?", (role, team_id, target_user_id))
             self._audit(connection, team_id, user_id, "member.role_changed", target_user_id, {"role": role})
             return {"user_id": target_user_id, "role": role}
@@ -401,12 +402,28 @@ class SQLiteWorkspaceStore:
         if connection.execute("SELECT COUNT(*) FROM memberships WHERE team_id=? AND role='owner' AND user_id!=?", (team_id, target)).fetchone()[0] == 0:
             raise WorkspaceError(409, "last_owner", "The team must retain an owner.")
 
+    def _disconnect_delivery(self, connection, team_id, member_id, actor_id):
+        columns = {row["name"] for row in connection.execute("PRAGMA table_info(delivery_bindings)")}
+        if not columns:
+            return
+        binding = connection.execute("SELECT * FROM delivery_bindings WHERE team_id=?", (team_id,)).fetchone()
+        if (binding is None or "user_id" in columns and binding["user_id"] not in (None, member_id)
+                or not binding["active"] and binding["nonce_hash"] is None and binding["observed_chat_id"] is None):
+            return
+        now = self._now()
+        connection.execute("UPDATE delivery_bindings SET active=0,nonce_hash=NULL,nonce_expires_ms=NULL,observed_chat_id=NULL,"
+                           "observed_label=NULL,observed_ms=NULL,generation=generation+1,updated_ms=? WHERE id=?", (now, binding["id"]))
+        connection.execute("UPDATE delivery_queue SET state='cancelled',lease_token=NULL,lease_until_ms=0,updated_ms=? "
+                           "WHERE team_id=? AND state IN ('pending','sending')", (now, team_id))
+        self._audit(connection, team_id, actor_id, "telegram.disconnected", team_id, {"member": member_id})
+
     def remove_member(self, user_id, team_id, target_user_id):
         with self._connection(write=True) as connection:
             self._member(connection, user_id, team_id, owner=True)
             previous = self._member(connection, target_user_id, team_id)
             if previous == "owner":
                 self._other_owner(connection, team_id, target_user_id)
+            self._disconnect_delivery(connection, team_id, target_user_id, user_id)
             connection.execute("DELETE FROM memberships WHERE team_id=? AND user_id=?", (team_id, target_user_id))
             self._audit(connection, team_id, user_id, "member.removed", target_user_id)
             return {"removed": True}

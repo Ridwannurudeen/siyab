@@ -22,7 +22,9 @@ async function main(){
   ids['delivery-refresh'].listeners.click();await load(fixture.status,fixture.log);
   assert.doesNotMatch(ids['delivery-status'].textContent,/could not be validated/);
   if(fixture.phase==='capacity'){
-   assert.match(text(ids['delivery-controls']),/retention limit reached/i);
+   assert.match(text(ids['delivery-controls']),/retention limit reached for this team/i);
+   assert.match(text(ids['delivery-controls']),/until an owner disconnects or connects Telegram again/);
+   assert.doesNotMatch(text(ids['delivery-controls']),/back up and review/);
    assert.equal(all(ids['delivery-log']).find(node=>node.textContent==='Retry this delivery').disabled,true);
   }else{
    const label={pending:'Queued',sending:'Sending',sent:'Accepted by Telegram',dead:'Stopped after retries',cancelled:'Cancelled'}[fixture.phase];
@@ -39,6 +41,12 @@ async function main(){
  reply(pending.at(-1),status({state:'active'}));await tick();await load(status({state:'active',generation:2}),{items:[{id:4,event_id:'b'.repeat(64),state:'dead',attempts:5,updated_ms:Date.now(),uncertain_ack:1}],next_before:4});
  const retry=all(ids['delivery-log']).find(node=>node.textContent==='Retry this delivery');assert.ok(retry);assert.equal(retry.disabled,false);
  assert.match(text(ids['delivery-log']),/may already have been sent/);retry.listeners.click();assert.match(pending.at(-1).url,/\/4\/retry$/);
+ reply(pending.at(-1),{error:'delivery_capacity',message:'Server text.'},503);await tick();
+ assert.match(ids['delivery-status'].textContent,/nothing changed/);assert.doesNotMatch(ids['delivery-status'].textContent,/may have been saved|not confirmed|Server text/);
+ assert.equal(control('Disconnect Telegram').disabled,false);let requests=pending.length;retry.listeners.click();assert.equal(pending.length,requests+1);assert.match(pending.at(-1).url,/\/4\/retry$/);
+ reply(pending.at(-1),{error:'workspace_busy',message:'Server text.'},503);await tick();
+ assert.match(ids['delivery-status'].textContent,/may have been saved/);assert.equal(control('Disconnect Telegram').disabled,true);requests=pending.length;retry.listeners.click();assert.equal(pending.length,requests);
+ ids['delivery-refresh'].listeners.click();await load(status({state:'active',generation:2}));assert.equal(control('Disconnect Telegram').disabled,false);retry.listeners.click();assert.match(pending.at(-1).url,/\/4\/retry$/);
  reply(pending.at(-1),{retried:true});await tick();await load(status({state:'active'}));
  ids['delivery-refresh'].listeners.click();await load(status({state:'active'}),{items:Array.from({length:25},(_,i)=>({id:50-i,state:'sent',attempts:1,updated_ms:Date.now()})),next_before:26});
  assert.equal(ids['delivery-older'].disabled,false);ids['delivery-older'].listeners.click();assert.match(pending.at(-1).url,/before=26$/);

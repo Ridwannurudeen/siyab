@@ -35,6 +35,7 @@
       const result = await response.json();
       if (epoch !== state.epoch) throw new StaleRequest();
       if (controller.signal.aborted) throw new Error("The request timed out.");
+      if (values !== undefined && response.status === 503 && result?.error === "delivery_capacity") throw Object.assign(new Error("The retry was refused and nothing changed. This team's undelivered alerts hold its delivery attempt records; retry after they finish."), {unchanged: true});
       if (!response.ok) throw new Error(values === undefined ? "Delivery could not be read. Refresh delivery to retry." : "The change was not confirmed. Refresh delivery before retrying.");
       return result;
     } catch (error) {
@@ -66,8 +67,9 @@
     const labels = {disconnected: "No Telegram destination connected.", pending: "Waiting for the Telegram account to open the link and press Start.", observed: "A Telegram account was observed. Confirm this destination before sending alerts.", expired: "The connection link expired. Create a new link to continue.", active: "Telegram destination confirmed for new eligible alerts."};
     host.append(node("p", !data.configured ? "Telegram delivery is not configured by the operator. Team inbox alerts remain available." : labels[expired && data.state !== "active" ? "expired" : data.state]));
     if (data.capacity.paused) {
-      const paused = data.capacity.queue_paused && data.capacity.attempts_paused ? "New alert queueing, send attempts and retries are paused." : data.capacity.queue_paused ? "New alert queueing is paused; retained deliveries can still be attempted." : "Send attempts and retries are paused.";
-      host.append(node("p", "Delivery retention limit reached. " + paused + " Ask the operator to back up and review retained records. Team inbox evidence remains available."));
+      const resume = " until an owner disconnects or connects Telegram again, which cancels undelivered alerts.";
+      const paused = data.capacity.queue_paused && data.capacity.attempts_paused ? "New alert queueing, send attempts and retries are paused" + resume : data.capacity.queue_paused ? "New alert queueing is paused; retained deliveries can still be attempted, and queueing resumes as they finish." : "Send attempts and retries are paused" + resume;
+      host.append(node("p", "Delivery retention limit reached for this team. " + paused + " Team inbox evidence remains available."));
     }
     if (owner() && destinationLabel(data.observed_chat_label)) host.append(node("p", "Observed Telegram account: " + data.observed_chat_label));
     if (data.state === "pending" || data.state === "observed") host.append(node("p", "Link expires " + date(data.expires_at), "delivery-meta"));
@@ -144,7 +146,7 @@
       } else if (action === "revoke" || action === "confirm") state.link = null;
       state.busy = false; await refresh(); message(action === "confirm" ? "Destination confirmed for new eligible alerts." : action === "revoke" ? "Telegram destination disconnected. In-flight sends may still complete." : action === "link" ? "Open the Telegram link, press Start, then verify the observed destination." : "Delivery queued for another attempt; an uncertain earlier send can cause a duplicate.");
     } catch (error) {
-      if (!(error instanceof StaleRequest) && state.context && error.status !== 401 && error.status !== 403) {
+      if (!(error instanceof StaleRequest) && state.context && !error.unchanged && error.status !== 401 && error.status !== 403) {
         state.uncertain = true;
         error = new Error(error.message + " Refresh delivery before retrying; the change may have been saved.");
       }

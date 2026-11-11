@@ -10,7 +10,7 @@ from unittest.mock import patch
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 
-from intel.delivery import TelegramClient, TelegramDelivery, TelegramError, configured_client, run
+from intel.delivery import MAX_ATTEMPT_ROWS, MAX_ATTEMPTS, TelegramClient, TelegramDelivery, TelegramError, configured_client, run
 from intel.workspace import SQLiteWorkspaceStore, WorkspaceError
 
 
@@ -247,7 +247,7 @@ class DeliveryTest(unittest.TestCase):
         with self.store._connection() as connection:
             self.assertEqual(connection.execute("SELECT update_offset FROM delivery_state").fetchone()[0], 2)
 
-    def test_queue_budget_preserves_first_unqueued_cursor_and_resumes_after_maintenance(self):
+    def test_queue_budget_preserves_first_unqueued_cursor_and_resumes_after_pruning_a_delivered_row(self):
         self.activate()
         self.event("a", candidate=True)
         for identifier in "bcd":
@@ -263,8 +263,7 @@ class DeliveryTest(unittest.TestCase):
             claimed = restarted._claim()
             restarted._send(claimed)
             archived = restarted.list_deliveries(self.owner, self.team)["items"]
-            with self.store._connection(write=True) as connection:
-                connection.execute("DELETE FROM delivery_queue WHERE id=? AND state='sent'", (claimed["id"],))
+            self.assertFalse(restarted.status(self.owner, self.team)["capacity"]["queue_paused"])
             self.assertEqual(restarted._enqueue(), 1)
             current = restarted.list_deliveries(self.owner, self.team)["items"]
             self.assertEqual({row["event_id"] for row in archived + current}, {char * 64 for char in "bcd"})
@@ -299,10 +298,15 @@ class DeliveryTest(unittest.TestCase):
                 self.assertEqual(connection.execute("SELECT COUNT(*) FROM delivery_queue").fetchone()[0], 250)
                 self.assertEqual(connection.execute("SELECT cursor_id FROM delivery_bindings").fetchone()[0], 250)
                 self.assertEqual(connection.execute("SELECT COUNT(*) FROM inbox").fetchone()[0], 401)
-            self.assertTrue(restarted.run_once()["capacity"]["queue_paused"])
+            self.assertTrue(restarted.status(self.owner, self.team)["capacity"]["queue_paused"])
+            self.assertFalse(restarted.run_once()["capacity"]["queue_paused"])
+            self.assertEqual(restarted._enqueue(), 1)
+            with self.store._connection() as connection:
+                self.assertEqual(connection.execute("SELECT COUNT(*) FROM delivery_queue").fetchone()[0], 250)
+                self.assertEqual(connection.execute("SELECT COUNT(*) FROM delivery_queue WHERE state='sent'").fetchone()[0], 0)
             other_team = self.store.list_teams(self.other)[0]["id"]
             status = restarted.status(self.other, other_team)
-            self.assertEqual(status["counts"], {})
+            self.assertEqual((status["counts"], status["capacity"]["paused"]), ({}, False))
             self.assertEqual(set(status["capacity"]), {"paused", "queue_paused", "attempts_paused", "queue_rows_limit", "attempt_rows_limit"})
 
     def test_full_queue_can_advance_late_historical_and_candidate_rows_without_losing_eligible_alert(self):
@@ -321,17 +325,16 @@ class DeliveryTest(unittest.TestCase):
                 self.assertEqual(connection.execute("SELECT cursor_id FROM delivery_bindings").fetchone()[0], 3)
                 self.assertEqual(connection.execute("SELECT COUNT(*) FROM inbox").fetchone()[0], 4)
 
-    def test_attempt_budget_refuses_claim_and_manual_retry_without_changing_dead_row(self):
+    def test_attempt_budget_held_by_undelivered_rows_pauses_claims_and_dead_letters_give_way(self):
         self.activate()
         for identifier in "ab":
             self.event(identifier)
         self.delivery._enqueue()
         with patch("intel.delivery.MAX_ATTEMPT_ROWS", 1, create=True):
             claimed = self.delivery._claim()
-            self.client.send_results = [TelegramError("provider_403")]
+            self.client.send_results = [TelegramError("transport_unavailable", retryable=True)]
             self.delivery._send(claimed)
             before = self.delivery.list_deliveries(self.owner, self.team)["items"]
-            self.error(503, self.delivery.retry_dead, self.owner, self.team, claimed["id"])
             restarted = TelegramDelivery(self.store, self.client, clock=lambda: self.now)
             self.now += 2
             self.assertIsNone(restarted._claim())
@@ -340,33 +343,327 @@ class DeliveryTest(unittest.TestCase):
             with self.store._connection() as connection:
                 self.assertEqual(connection.execute("SELECT COUNT(*) FROM delivery_attempts").fetchone()[0], 1)
         with patch("intel.delivery.MAX_ATTEMPT_ROWS", 2, create=True):
-            self.delivery.retry_dead(self.owner, self.team, claimed["id"])
             again = self.delivery._claim()
+            self.assertEqual(again["id"], claimed["id"])
             self.client.send_results = [TelegramError("provider_403")]
             self.delivery._send(again)
-            self.error(503, self.delivery.retry_dead, self.owner, self.team, claimed["id"])
+            self.now += 2
+            self.assertEqual(self.delivery._claim()["event_id"], "b" * 64)
+            self.assertEqual([row["event_id"] for row in self.delivery.list_deliveries(self.owner, self.team)["items"]], ["b" * 64])
             with self.store._connection() as connection:
-                self.assertEqual(connection.execute("SELECT COUNT(*) FROM delivery_attempts").fetchone()[0], 2)
+                self.assertEqual(connection.execute("SELECT COUNT(*) FROM delivery_attempts").fetchone()[0], 1)
 
     def test_attempt_budget_is_atomic_across_concurrent_claims(self):
         self.activate()
-        other_team = self.store.list_teams(self.other)[0]["id"]
-        self.store.add_watch(self.other, other_team, "wrap.near")
-        link = self.delivery.begin_link(self.other, other_team)
-        self.client.updates = [self.start_update(link["link"].split("start=")[1], update_id=2, chat_id=777)]
-        self.delivery.run_once()
-        self.delivery.confirm_link(self.other, other_team, link["generation"])
-        self.event()
-        self.delivery._enqueue()
+        for identifier in "ab":
+            self.event(identifier)
         self.delivery._enqueue()
         with self.store._connection() as connection:
             self.assertEqual(connection.execute("SELECT COUNT(*) FROM delivery_queue").fetchone()[0], 2)
         workers = [TelegramDelivery(self.store, self.client, clock=lambda: self.now) for _ in range(2)]
         with patch("intel.delivery.MAX_ATTEMPT_ROWS", 1, create=True), ThreadPoolExecutor(max_workers=2) as pool:
             claimed = list(pool.map(lambda worker: worker._claim(), workers))
-        self.assertEqual(sum(row is not None for row in claimed), 1)
+            self.assertEqual(sum(row is not None for row in claimed), 1)
+            with self.store._connection(write=True) as connection:
+                connection.execute("UPDATE delivery_bindings SET send_after_ms=0")
+            self.assertIsNone(self.delivery._claim())
         with self.store._connection() as connection:
             self.assertEqual(connection.execute("SELECT COUNT(*) FROM delivery_attempts").fetchone()[0], 1)
+        with patch("intel.delivery.MAX_ATTEMPT_ROWS", 2, create=True):
+            self.assertIsNotNone(self.delivery._claim())
+
+    def join(self, user, username, role="editor"):
+        self.store.join_team(user, self.store.invite_member(self.owner, self.team, username, role)["token"])
+
+    def link(self, user, team, update_id, chat_id):
+        link = self.delivery.begin_link(user, team)
+        self.client.updates = [self.start_update(link["link"].split("start=")[1], update_id=update_id, chat_id=chat_id)]
+        self.delivery.run_once()
+        self.delivery.confirm_link(user, team, link["generation"])
+
+    def actions(self, team):
+        with self.store._connection() as connection:
+            return [row[0] for row in connection.execute("SELECT action FROM audit WHERE team_id=? ORDER BY id", (team,))]
+
+    def test_removing_the_linking_member_disconnects_only_their_destination(self):
+        other_team = self.store.list_teams(self.other)[0]["id"]
+        self.store.add_watch(self.other, other_team, "wrap.near")
+        self.link(self.other, other_team, 1, 777)
+        self.join(self.other, "other")
+        self.store.set_role(self.owner, self.team, self.other, "owner")
+        self.link(self.other, self.team, 2, 888)
+        third = self.store.register("third", "third-password-123")["user"]["id"]
+        self.join(third, "third")
+        self.store.remove_member(self.owner, self.team, third)
+        self.assertEqual(self.delivery.status(self.owner, self.team)["state"], "active")
+        self.event("a")
+        self.assertEqual(self.delivery._enqueue() + self.delivery._enqueue(), 2)
+        self.store.remove_member(self.owner, self.team, self.other)
+        status = self.delivery.status(self.owner, self.team)
+        self.assertEqual((status["state"], status["counts"]), ("disconnected", {"cancelled": 1}))
+        self.assertEqual(self.actions(self.team)[-2:], ["telegram.disconnected", "member.removed"])
+        self.assertEqual(self.delivery.status(self.other, other_team)["state"], "active")
+        self.now += 2
+        self.delivery.run_once()
+        self.assertEqual([payload["chat_id"] for payload in self.sends()], [777])
+
+    def test_demoting_the_linking_owner_disconnects_and_other_role_changes_do_not(self):
+        third = self.store.register("third", "third-password-123")["user"]["id"]
+        self.join(self.other, "other")
+        self.join(third, "third")
+        self.store.set_role(self.owner, self.team, self.other, "owner")
+        self.link(self.other, self.team, 1, 888)
+        self.store.set_role(self.owner, self.team, third, "viewer")
+        self.store.set_role(self.owner, self.team, self.other, "owner")
+        self.store.set_role(self.other, self.team, self.owner, "editor")
+        self.store.set_role(self.other, self.team, self.owner, "owner")
+        self.assertEqual(self.delivery.status(self.owner, self.team)["state"], "active")
+        self.store.set_role(self.owner, self.team, self.other, "editor")
+        self.assertEqual(self.delivery.status(self.owner, self.team)["state"], "disconnected")
+        self.assertIn("telegram.disconnected", self.actions(self.team))
+        self.store.set_role(self.owner, self.team, self.other, "owner")
+        pending = self.delivery.begin_link(self.other, self.team)
+        self.store.set_role(self.owner, self.team, self.other, "viewer")
+        self.client.updates = [self.start_update(pending["link"].split("start=")[1], update_id=3, chat_id=888)]
+        self.delivery.run_once()
+        self.assertEqual(self.delivery.status(self.owner, self.team)["state"], "disconnected")
+        self.error(409, self.delivery.confirm_link, self.owner, self.team, pending["generation"])
+        self.event("a")
+        self.delivery.run_once()
+        self.assertEqual(self.sends(), [])
+
+    def test_one_team_at_capacity_does_not_pause_another_team(self):
+        self.activate()
+        other_team = self.store.list_teams(self.other)[0]["id"]
+        self.store.add_watch(self.other, other_team, "usdt.tether-token.near")
+        self.link(self.other, other_team, 2, 777)
+        for identifier in "abc":
+            self.event(identifier)
+        with patch("intel.delivery.MAX_QUEUE_ROWS", 2), patch("intel.delivery.MAX_ATTEMPT_ROWS", 1):
+            self.assertEqual(self.delivery._enqueue() + self.delivery._enqueue(), 2)
+            self.assertTrue(self.delivery.status(self.owner, self.team)["capacity"]["queue_paused"])
+            self.now += 1
+            self.store.ingest_event("f" * 64, {"signal": "account_transfer", "subject": "usdt.tether-token.near", "detail": "Observed transfer",
+                                    "observed": {"timestamp_ms": int(self.now * 1000)}}, notify=True)
+            self.assertEqual(self.delivery._enqueue(), 1)
+            self.assertFalse(self.delivery.status(self.other, other_team)["capacity"]["paused"])
+            first = self.delivery._claim()
+            self.assertEqual(first["team_id"], self.team)
+            self.client.send_results = [TelegramError("transport_unavailable", retryable=True)]
+            self.delivery._send(first)
+            self.now += 2
+            self.assertTrue(self.delivery.status(self.owner, self.team)["capacity"]["attempts_paused"])
+            second = self.delivery._claim()
+            self.assertEqual(second["team_id"], other_team)
+            self.assertIsNone(self.delivery._claim())
+            self.assertFalse(self.delivery.status(self.other, other_team)["capacity"]["queue_paused"])
+
+    def test_age_pruning_removes_terminal_rows_and_never_pending_or_sending(self):
+        self.activate()
+        for identifier in "abcde":
+            self.event(identifier)
+        self.delivery._enqueue()
+        with self.store._connection(write=True) as connection:
+            ids = [row[0] for row in connection.execute("SELECT id FROM delivery_queue ORDER BY id")]
+            for row_id, state in zip(ids, ("sent", "dead", "cancelled", "pending", "sending")):
+                connection.execute("UPDATE delivery_queue SET state=?,lease_until_ms=? WHERE id=?", (state, int(self.now * 1000) + 10 ** 12, row_id))
+                connection.execute("INSERT INTO delivery_attempts(queue_id,attempt,started_ms) VALUES(?,1,?)", (row_id, int(self.now * 1000)))
+        self.now += 29 * 86400
+        self.delivery._enqueue()
+        with self.store._connection() as connection:
+            self.assertEqual(connection.execute("SELECT COUNT(*) FROM delivery_queue").fetchone()[0], 5)
+        self.now += 2 * 86400
+        self.delivery._enqueue()
+        with self.store._connection() as connection:
+            self.assertEqual([row[0] for row in connection.execute("SELECT state FROM delivery_queue ORDER BY id")], ["pending", "sending"])
+            self.assertEqual(connection.execute("SELECT COUNT(*) FROM delivery_attempts").fetchone()[0], 2)
+            self.assertEqual(connection.execute("SELECT COUNT(*) FROM inbox").fetchone()[0], 5)
+
+    def test_team_at_capacity_prunes_delivered_rows_before_dead_letters_and_never_pending(self):
+        self.activate()
+        for identifier in "abcd":
+            self.event(identifier)
+        self.delivery._enqueue()
+        with self.store._connection(write=True) as connection:
+            ids = [row[0] for row in connection.execute("SELECT id FROM delivery_queue ORDER BY id")]
+            for row_id, state in zip(ids, ("dead", "sent", "cancelled", "pending")):
+                connection.execute("UPDATE delivery_queue SET state=? WHERE id=?", (state, row_id))
+        with patch("intel.delivery.MAX_QUEUE_ROWS", 4):
+            self.event("e")
+            self.assertEqual(self.delivery._enqueue(), 1)
+            self.event("f")
+            self.assertEqual(self.delivery._enqueue(), 1)
+            with self.store._connection() as connection:
+                self.assertEqual([row[0] for row in connection.execute("SELECT state FROM delivery_queue ORDER BY id")],
+                                 ["dead", "pending", "pending", "pending"])
+            self.event("9")
+            self.assertEqual(self.delivery._enqueue(), 1)
+            self.event("8")
+            self.assertEqual(self.delivery._enqueue(), 0)
+            status = self.delivery.status(self.owner, self.team)
+            self.assertEqual((status["counts"], status["capacity"]["queue_paused"]), ({"pending": 4}, True))
+            with self.store._connection() as connection:
+                self.assertEqual(connection.execute("SELECT cursor_id FROM delivery_bindings").fetchone()[0], 7)
+
+    def held_dead_letter(self, held, delivered):
+        self.activate()
+        if delivered:
+            self.event("0")
+            self.delivery._enqueue()
+            self.delivery._send(self.delivery._claim())
+            self.now += 2
+        self.event("a")
+        self.delivery._enqueue()
+        self.client.send_results = [TelegramError("provider_403")]
+        row = self.delivery._claim()
+        self.delivery._send(row)
+        with self.store._connection(write=True) as connection:
+            connection.executemany("INSERT INTO delivery_attempts(queue_id,attempt,started_ms,finished_ms,error) VALUES(?,1,0,0,'provider_403')",
+                                   [(row["id"],)] * (held - 1))
+        self.now += 2
+        return row["id"]
+
+    def retained(self):
+        with self.store._connection() as connection:
+            return ([tuple(row) for row in connection.execute("SELECT * FROM delivery_queue ORDER BY id")],
+                    [tuple(row) for row in connection.execute("SELECT queue_id,COUNT(*),MAX(id) FROM delivery_attempts GROUP BY queue_id ORDER BY queue_id")],
+                    self.actions(self.team))
+
+    def assert_team_keeps_sending(self, identifiers="bc"):
+        for identifier, wait in zip(identifiers, (0, 86400)):
+            self.now += wait
+            self.event(identifier)
+            self.delivery._enqueue()
+            row = self.delivery._claim()
+            self.assertEqual(row["event_id"], identifier * 64)
+            self.assertTrue(self.delivery._send(row))
+            self.now += 2
+
+    def retry_detail(self):
+        with self.store._connection() as connection:
+            return json.loads(connection.execute("SELECT detail_json FROM audit WHERE action='telegram.delivery_retried'").fetchone()[0])
+
+    def test_retry_of_the_only_dead_letter_at_the_attempt_cap_drops_its_old_attempts_and_the_team_keeps_sending(self):
+        target = self.held_dead_letter(MAX_ATTEMPT_ROWS, False)
+        self.assertEqual(self.delivery.retry_dead(self.owner, self.team, target), {"retried": True})
+        with self.store._connection() as connection:
+            self.assertEqual(connection.execute("SELECT COUNT(*) FROM delivery_attempts").fetchone()[0], 0)
+        self.assertEqual(self.retry_detail(), {"pruned": 0, "dropped_attempts": MAX_ATTEMPT_ROWS})
+        row = self.delivery._claim()
+        self.assertEqual(row["id"], target)
+        self.assertTrue(self.delivery._send(row))
+        self.now += 2
+        self.assert_team_keeps_sending()
+
+    def test_retry_without_room_beside_other_undelivered_rows_is_refused_and_rolls_back(self):
+        target = self.held_dead_letter(1, True)
+        self.event("b")
+        self.delivery._enqueue()
+        with self.store._connection(write=True) as connection:
+            pending = connection.execute("SELECT id FROM delivery_queue WHERE state='pending'").fetchone()[0]
+            connection.executemany("INSERT INTO delivery_attempts(queue_id,attempt,started_ms,finished_ms,error) VALUES(?,1,0,0,'transport_unavailable')",
+                                   [(pending,)] * (MAX_ATTEMPT_ROWS - MAX_ATTEMPTS + 1))
+        before = self.retained()
+        with self.assertRaises(WorkspaceError) as caught:
+            self.delivery.retry_dead(self.owner, self.team, target)
+        self.assertEqual((caught.exception.status, caught.exception.code), (503, "delivery_capacity"))
+        self.assertEqual(self.retained(), before)
+
+    def test_boundary_retry_with_other_queued_alerts_and_retryable_failures_never_stalls_the_team(self):
+        target = self.held_dead_letter(MAX_ATTEMPT_ROWS - MAX_ATTEMPTS, True)
+        self.assertEqual(self.delivery.retry_dead(self.owner, self.team, target), {"retried": True})
+        for identifier in "def123":
+            self.event(identifier)
+        self.assertEqual(self.delivery._enqueue(), 6)
+        claims = 0
+        while self.delivery.status(self.owner, self.team)["counts"].get("pending"):
+            self.assertLess(claims, 200)
+            self.now += 1.1
+            with self.store._connection() as connection:
+                due = connection.execute("SELECT COUNT(*) FROM delivery_queue WHERE state='pending' AND next_attempt_ms<=?",
+                                         (int(self.now * 1000),)).fetchone()[0]
+            row = self.delivery._claim()
+            self.assertEqual(row is None, due == 0)
+            if row is not None:
+                claims += 1
+                self.client.send_results = [TelegramError("transport_unavailable", retryable=True)]
+                self.delivery._send(row)
+            self.assertFalse(self.delivery.status(self.owner, self.team)["capacity"]["attempts_paused"])
+        self.assertEqual(claims, 7 * MAX_ATTEMPTS)
+        self.assertEqual(self.delivery.status(self.owner, self.team)["counts"], {"dead": 7, "sent": 1})
+        self.assert_team_keeps_sending()
+
+    def legacy_store(self, name):
+        path = Path(self.temp.name) / name
+        store = SQLiteWorkspaceStore(path, clock=lambda: self.now)
+        owner = store.register("legacy", "legacy-password-123")["user"]["id"]
+        member = store.register("member", "member-password-123")["user"]["id"]
+        team = store.list_teams(owner)[0]["id"]
+        store.add_watch(owner, team, "wrap.near")
+        store.join_team(member, store.invite_member(owner, team, "member", "viewer")["token"])
+        now = int(self.now * 1000)
+        with store._connection(write=True) as connection:
+            connection.execute("CREATE TABLE delivery_state (singleton INTEGER PRIMARY KEY CHECK(singleton=1),version INTEGER NOT NULL,"
+                               "bot_id INTEGER,update_offset INTEGER NOT NULL DEFAULT 0,last_update_ms INTEGER,last_poll_ms INTEGER,last_send_ms INTEGER,"
+                               "last_error TEXT,next_poll_ms INTEGER NOT NULL DEFAULT 0,next_send_ms INTEGER NOT NULL DEFAULT 0,"
+                               "lease_token TEXT,lease_until_ms INTEGER NOT NULL DEFAULT 0,last_binding INTEGER NOT NULL DEFAULT 0)")
+            connection.execute("INSERT INTO delivery_state(singleton,version,bot_id,update_offset) VALUES(1,1,?,5)", (self.client.bot_id,))
+            connection.execute("CREATE TABLE delivery_bindings (id INTEGER PRIMARY KEY AUTOINCREMENT,team_id TEXT NOT NULL UNIQUE REFERENCES teams(id) ON DELETE CASCADE,"
+                               "generation INTEGER NOT NULL,nonce_hash TEXT UNIQUE,nonce_expires_ms INTEGER,observed_chat_id INTEGER,observed_label TEXT,"
+                               "observed_ms INTEGER,active INTEGER NOT NULL DEFAULT 0,active_ms INTEGER,baseline_id INTEGER NOT NULL DEFAULT 0,"
+                               "cursor_id INTEGER NOT NULL DEFAULT 0,send_after_ms INTEGER NOT NULL DEFAULT 0,created_ms INTEGER NOT NULL,updated_ms INTEGER NOT NULL)")
+            connection.execute("CREATE TABLE delivery_queue (id INTEGER PRIMARY KEY AUTOINCREMENT,binding_id INTEGER NOT NULL REFERENCES delivery_bindings(id) ON DELETE CASCADE,"
+                               "team_id TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,generation INTEGER NOT NULL,"
+                               "inbox_id INTEGER NOT NULL REFERENCES inbox(id) ON DELETE CASCADE,event_id TEXT NOT NULL,message TEXT NOT NULL,"
+                               "state TEXT NOT NULL CHECK(state IN ('pending','sending','sent','dead','cancelled')),attempts INTEGER NOT NULL DEFAULT 0,"
+                               "next_attempt_ms INTEGER NOT NULL,lease_token TEXT,lease_until_ms INTEGER NOT NULL DEFAULT 0,last_error TEXT,message_id INTEGER,"
+                               "uncertain_ack INTEGER NOT NULL DEFAULT 0,created_ms INTEGER NOT NULL,updated_ms INTEGER NOT NULL,UNIQUE(binding_id,generation,inbox_id))")
+            connection.execute("CREATE INDEX delivery_pending ON delivery_queue(state,next_attempt_ms,lease_until_ms)")
+            connection.execute("CREATE TABLE delivery_attempts (id INTEGER PRIMARY KEY AUTOINCREMENT,queue_id INTEGER NOT NULL REFERENCES delivery_queue(id) ON DELETE CASCADE,"
+                               "attempt INTEGER NOT NULL,started_ms INTEGER NOT NULL,finished_ms INTEGER,error TEXT)")
+            connection.execute("INSERT INTO delivery_bindings(team_id,generation,observed_chat_id,observed_label,observed_ms,active,active_ms,created_ms,updated_ms) "
+                               "VALUES(?,1,555,'legacy',?,1,?,?,?)", (team, now, now, now, now))
+        return store, owner, member, team
+
+    def test_old_schema_database_opens_migrates_and_keeps_rows(self):
+        store, owner, member, team = self.legacy_store("old.sqlite3")
+        now = int(self.now * 1000)
+        for index, state in enumerate(("sent", "dead", "cancelled", "pending")):
+            self.now += 1
+            store.ingest_event(str(index) * 64, {"signal": "account_transfer", "subject": "wrap.near", "detail": "Observed transfer",
+                               "observed": {"timestamp_ms": int(self.now * 1000)}}, notify=True)
+            with store._connection(write=True) as connection:
+                inbox = connection.execute("SELECT MAX(id) FROM inbox").fetchone()[0]
+                connection.execute("INSERT INTO delivery_queue(binding_id,team_id,generation,inbox_id,event_id,message,state,next_attempt_ms,created_ms,updated_ms) "
+                                   "VALUES(1,?,1,?,?,'Siyab alert',?,0,?,?)", (team, inbox, str(index) * 64, state, now, now))
+                connection.execute("UPDATE delivery_bindings SET cursor_id=?", (inbox,))
+        with store._connection() as connection:
+            before = [tuple(row) for row in connection.execute("SELECT * FROM delivery_queue ORDER BY id")]
+        delivery = TelegramDelivery(store, self.client, clock=lambda: self.now)
+        TelegramDelivery(store, self.client, clock=lambda: self.now)
+        with store._connection() as connection:
+            columns = [row[1] for row in connection.execute("PRAGMA table_info(delivery_bindings)")]
+            self.assertEqual(columns.count("user_id"), 1)
+            self.assertEqual(connection.execute("SELECT version FROM delivery_state").fetchone()[0], 1)
+            self.assertIsNone(connection.execute("SELECT user_id FROM delivery_bindings").fetchone()[0])
+            self.assertEqual([tuple(row) for row in connection.execute("SELECT * FROM delivery_queue ORDER BY id")], before)
+        self.assertEqual(delivery.status(owner, team)["state"], "active")
+        self.now += 2
+        self.assertEqual(delivery.run_once()["sent"], 1)
+        self.assertEqual(self.sends()[0]["chat_id"], 555)
+        store.set_role(owner, team, member, "editor")
+        self.assertEqual(delivery.status(owner, team)["state"], "active")
+        store.remove_member(owner, team, member)
+        self.assertEqual(delivery.status(owner, team)["state"], "disconnected")
+
+    def test_member_removal_before_migration_treats_the_binding_as_legacy(self):
+        store, owner, member, team = self.legacy_store("unmigrated.sqlite3")
+        store.remove_member(owner, team, member)
+        with store._connection() as connection:
+            binding = connection.execute("SELECT active,generation,observed_chat_id FROM delivery_bindings").fetchone()
+            self.assertEqual(tuple(binding), (0, 2, None))
+            self.assertNotIn("user_id", [row[1] for row in connection.execute("PRAGMA table_info(delivery_bindings)")])
+            self.assertEqual(connection.execute("SELECT action FROM audit WHERE team_id=? ORDER BY id DESC LIMIT 1 OFFSET 1", (team,)).fetchone()[0], "telegram.disconnected")
 
     @unittest.skipUnless(shutil.which("node"), "Node is unavailable")
     def test_browser_consumes_actual_backend_status_and_every_delivery_state(self):
@@ -387,7 +684,7 @@ class DeliveryTest(unittest.TestCase):
         self.client.send_results = [TelegramError("provider_403")]
         self.delivery._send(self.delivery._claim())
         capture("dead")
-        with patch("intel.delivery.MAX_ATTEMPT_ROWS", 2):
+        with patch.object(TelegramDelivery, "_room", return_value=False):
             capture("capacity")
         self.event("c")
         self.delivery._enqueue()
