@@ -294,7 +294,12 @@ def state_at_block(subject, rpc_client, issuers):
             if method == "ft_balance_of":
                 read["decimals"] = entry["decimals"]
             else:
-                read["banned"] = result == entry["banned"]
+                if type(result) is type(entry["banned"]) and result == entry["banned"]:
+                    read["banned"] = True
+                elif "clear" in entry and type(result) is type(entry["clear"]) and result == entry["clear"]:
+                    read["banned"] = False
+                else:
+                    read["banned"] = None
             reads.append(read)
             fetched.append(rpc_client.last_source["fetched_at"])
     return reads, fetched

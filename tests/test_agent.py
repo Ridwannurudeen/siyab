@@ -133,7 +133,7 @@ class JudgeIssuerTest(AgentCase):
 
     def test_mainnet_gate_runs_issuer_blacklist_in_the_judgement(self):
         issuer_table = [{"token": "issuer.near", "method": "is_blacklisted", "args_key": "account_id",
-                         "banned": True}]
+                         "banned": True, "clear": False}]
         with mock.patch("gate.agent.rules.issuers_for", return_value=issuer_table) as issuer_source:
             result = self.run_judge("gate.near", "vendor.near")
         issuer_source.assert_called_once_with("mainnet")

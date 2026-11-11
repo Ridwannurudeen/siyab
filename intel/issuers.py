@@ -419,7 +419,7 @@ def build_rows(reads):
     rows = []
     for read in reads:
         issuer = entries[read["issuer"]]
-        if read["answer"] != issuer["banned"]:
+        if type(read["answer"]) is not type(issuer["banned"]) or read["answer"] != issuer["banned"]:
             continue
         answer = json.dumps(read["answer"], ensure_ascii=False)
         token = read["issuer"]
@@ -458,7 +458,8 @@ def _verified_status_read(read, fixture_dir):
         answer = client.call_function(read["issuer"], read["method"], read["args"])
     except rpc.FixtureMiss:
         return None
-    if (answer != read.get("answer") or client.last_block_height != read.get("block")
+    if (type(answer) is not type(read.get("answer")) or answer != read.get("answer")
+            or client.last_block_height != read.get("block")
             or client.last_source["fetched_at"] != read.get("observed_at")):
         raise seed.SeedError("issuer status cache does not match its recorded view fixture")
     return {"answer": answer, "rpc": client.url, "method": read["method"], "args": read["args"],
@@ -475,7 +476,8 @@ def blacklist_rows(reads_to_seed=None, fixture_dir=FIXTURE_DIR, store_path=label
     rows = []
     for read in reads_to_seed:
         entry = entries.get(read.get("issuer"))
-        if entry is None or read.get("answer") != entry["banned"]:
+        if (entry is None or type(read.get("answer")) is not type(entry["banned"])
+                or read.get("answer") != entry["banned"]):
             continue
         if read.get("subject") == entry["token"] or read.get("subject") in catalog_subjects:
             continue
@@ -529,7 +531,9 @@ def seed_blacklists(store_path=labels.STORE_PATH, fixture_dir=FIXTURE_DIR, reads
                 superseded[assertion.id] = replacement["id"]
             continue
         read = read_by_key.get(key)
-        if read is None or read.get("answer") == entries[key[0]]["banned"]:
+        entry = entries[key[0]]
+        if (read is None or "clear" not in entry or type(read.get("answer")) is not type(entry["clear"])
+                or read.get("answer") != entry["clear"]):
             continue
         if _verified_status_read(read, fixture_dir) is not None:
             stale.append((assertion, key))

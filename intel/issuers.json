@@ -5,6 +5,7 @@
       "method": "get_blacklist_status",
       "args_key": "account_id",
       "banned": "Banned",
+      "clear": "Allowable",
       "note": "the Tether USD contract on NEAR; get_blacklist_status answers \"Allowable\" or \"Banned\" for an account id"
     },
     {
@@ -12,6 +13,7 @@
       "method": "is_blocklisted",
       "args_key": "account_id",
       "banned": true,
+      "clear": false,
       "note": "the native USDC contract on NEAR; is_blocklisted called with account_id answered false for the Rhea collector account at block 222750804 (recorded under fixtures/receivers/rpc/)"
     }
   ],

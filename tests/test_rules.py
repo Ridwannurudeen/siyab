@@ -1426,11 +1426,11 @@ class TextTest(RulesCase):
         judgements = [self.judge(request()), self.judge(request("vend0r.testnet")),
                       self.judge(request("gone.testnet")), self.judge(request("nobody.testnet"))]
         issuers = [{"token": "usdt.issuer.near", "method": "get_blacklist_status", "args_key": "account_id",
-                    "banned": "Banned", "note": "n"},
+                    "banned": "Banned", "clear": "Allowable", "note": "n"},
                    {"token": "usdc.issuer.near", "method": "is_blocklisted", "args_key": "account_id",
-                    "banned": True, "note": "n"},
+                    "banned": True, "clear": False, "note": "n"},
                    {"token": "gone.issuer.near", "method": "is_blocklisted", "args_key": "account_id",
-                    "banned": True, "note": "n"}]
+                    "banned": True, "clear": False, "note": "n"}]
         for receiver, answer in ((VENDOR, "Banned"), ("vend0r.testnet", "Allowable")):
             self.fx.function("usdt.issuer.near", "get_blacklist_status", {"account_id": receiver}, answer)
             self.fx.function("usdc.issuer.near", "is_blocklisted", {"account_id": receiver}, False)
@@ -1439,7 +1439,7 @@ class TextTest(RulesCase):
                                          now_ms=NOW_MS, injection_scanner=None, issuers=issuers)
                              for receiver in (VENDOR, "vend0r.testnet", "nobody.testnet")]
         self.assertEqual([self.status(j, "issuer_blacklist") for j in issuer_judgements],
-                         ["signal", "pass", "unknown"])
+                         ["signal", "unknown", "unknown"])
         judgements += issuer_judgements
         self.assertEqual({j.verdict for j in judgements}, {"ALLOW", "DENY", "UNKNOWN"})
         for judgement in judgements:
@@ -1613,8 +1613,10 @@ class IssuerBlacklistTest(RulesCase):
     USDT = "usdt.issuer.near"
     USDC = "usdc.issuer.near"
     ISSUERS = (
-        {"token": USDT, "method": "get_blacklist_status", "args_key": "account_id", "banned": "Banned", "note": "n"},
-        {"token": USDC, "method": "is_blocklisted", "args_key": "account_id", "banned": True, "note": "n"},
+        {"token": USDT, "method": "get_blacklist_status", "args_key": "account_id", "banned": "Banned",
+         "clear": "Allowable", "note": "n"},
+        {"token": USDC, "method": "is_blocklisted", "args_key": "account_id", "banned": True,
+         "clear": False, "note": "n"},
     )
 
     def setUp(self):
@@ -1630,7 +1632,7 @@ class IssuerBlacklistTest(RulesCase):
         return rules.judge(req, policy, self.store, self.rpc, self.nearblocks, now_ms=NOW_MS,
                            injection_scanner=scanner, archival=archival, issuers=issuers)
 
-    def test_the_issuer_table_loads_with_five_keys_per_entry_and_no_hex_in_source(self):
+    def test_the_issuer_table_loads_with_six_keys_per_entry_and_no_hex_in_source(self):
         table = json.loads((ROOT / "intel" / "issuers.json").read_text(encoding="utf-8"))
         self.assertEqual(sorted(table), ["mainnet", "testnet"])
         self.assertEqual(table["testnet"], [])
@@ -1639,10 +1641,12 @@ class IssuerBlacklistTest(RulesCase):
         self.assertEqual([entry["method"] for entry in table["mainnet"]], ["get_blacklist_status", "is_blocklisted"])
         for entry in table["mainnet"]:
             with self.subTest(token=entry["token"]):
-                self.assertEqual(sorted(entry), ["args_key", "banned", "method", "note", "token"])
+                self.assertEqual(sorted(entry), ["args_key", "banned", "clear", "method", "note", "token"])
                 self.assertEqual(entry["args_key"], "account_id")
                 self.assertTrue(entry["note"])
                 self.assertNotIn("UNVERIFIED", entry["note"])
+        self.assertEqual(table["mainnet"][0]["clear"], "Allowable")
+        self.assertIs(table["mainnet"][1]["clear"], False)
         hex_tokens = [entry["token"] for entry in table["mainnet"] if re.fullmatch("[0-9a-f]{64}", entry["token"])]
         self.assertEqual(len(hex_tokens), 1)
         sources = [p for directory in ("gate", "intel", "mcp", "scripts") for p in (ROOT / directory).rglob("*.py")]
@@ -1684,20 +1688,46 @@ class IssuerBlacklistTest(RulesCase):
                          'usdt.issuer.near get_blacklist_status answers "Allowable"; '
                          "usdc.issuer.near is_blocklisted answers false")
         self.assertEqual(judgement.reasons, ["Every check ran and none found a signal."])
-        self.answers(VENDOR, "something else", "true")
-        self.assertEqual(self.status(self.judge(request()), "issuer_blacklist"), "pass")
 
-    def test_missing_method_passes_with_the_detail(self):
+    def test_unexpected_answers_read_unknown_never_allow(self):
+        for usdt, usdc in (("something else", False), (False, False), (0, False), (None, False), ([], False),
+                           ("Allowable", "false"), ("Allowable", "true"), ("Allowable", 0), ("Allowable", 1),
+                           ("Allowable", None), ("Allowable", []), ("Allowable", {})):
+            with self.subTest(usdt=usdt, usdc=usdc):
+                self.answers(VENDOR, usdt, usdc)
+                judgement = self.judge(request())
+                self.assertEqual(self.status(judgement, "issuer_blacklist"), "unknown")
+                self.assertIn("unexpected issuer blacklist answer", self.detail(judgement, "issuer_blacklist"))
+                self.assertEqual(judgement.verdict, "UNKNOWN")
+        for usdt, usdc in (("Banned", "false"), ("unexpected", True)):
+            with self.subTest(usdt=usdt, usdc=usdc):
+                self.answers(VENDOR, usdt, usdc)
+                judgement = self.judge(request())
+                self.assertEqual(self.status(judgement, "issuer_blacklist"), "signal")
+                self.assertEqual(judgement.verdict, "DENY")
+
+    def test_an_entry_without_clear_reads_unknown(self):
+        issuer = {key: value for key, value in self.ISSUERS[1].items() if key != "clear"}
+        for answer in (False, True, "false", 0, None, []):
+            with self.subTest(answer=answer):
+                self.answers(VENDOR, "Allowable", answer)
+                judgement = self.judge(request(), issuers=[self.ISSUERS[0], issuer])
+                self.assertEqual(self.status(judgement, "issuer_blacklist"), "unknown")
+                self.assertIn("no clear answer configured for usdc.issuer.near",
+                              self.detail(judgement, "issuer_blacklist"))
+                self.assertEqual(judgement.verdict, "UNKNOWN")
+
+    def test_missing_method_reads_unknown_with_the_detail(self):
         params = {"account_id": VENDOR}
         self.fx.method_missing(self.USDT, "get_blacklist_status", params)
         self.fx.function_error(self.USDC, "is_blocklisted", params, cause="NO_CONTRACT_CODE")
         judgement = self.judge(request())
-        self.assertEqual(self.status(judgement, "issuer_blacklist"), "pass")
+        self.assertEqual(self.status(judgement, "issuer_blacklist"), "unknown")
         self.assertEqual(self.detail(judgement, "issuer_blacklist"),
                          "no issuer blacklist view on usdt.issuer.near; no issuer blacklist view on usdc.issuer.near")
-        self.assertEqual(judgement.verdict, "ALLOW")
+        self.assertEqual(judgement.verdict, "UNKNOWN")
         self.fx.function_error(self.USDC, "is_blocklisted", params, cause="UNKNOWN_ACCOUNT")
-        self.assertEqual(self.status(self.judge(request()), "issuer_blacklist"), "pass")
+        self.assertEqual(self.status(self.judge(request()), "issuer_blacklist"), "unknown")
 
     def test_rpc_error_reads_unknown_never_a_pass(self):
         params = {"account_id": VENDOR}
