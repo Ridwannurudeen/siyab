@@ -374,21 +374,26 @@ def _why(error):
 
 
 def _issuer_check(rpc, receiver, issuers):
-    """One issuer_blacklist row over every issuer: signal when an issuer's view answers its banned
-    value, else unknown when a read could not run, else pass. A token without the view passes."""
+    """One issuer_blacklist row over every issuer: only exact typed clear answers pass; exact typed
+    banned answers signal. Missing clear configuration, unexpected answers or missing views read unknown."""
     parts, sources = [], {}
     for entry in issuers:
         token, method = entry["token"], entry["method"]
         try:
             answer = rpc.call_function(token, method, {entry["args_key"]: receiver})
-            if answer == entry["banned"]:
+            if "clear" not in entry:
+                status, part = "unknown", f"no clear answer configured for {token}"
+            elif type(answer) is type(entry["banned"]) and answer == entry["banned"]:
                 status = "signal"
                 part = f"{receiver} is banned by the issuer of {token}: {method} answers {_quoted(answer)}"
-            else:
+            elif type(answer) is type(entry["clear"]) and answer == entry["clear"]:
                 status, part = "pass", f"{token} {method} answers {_quoted(answer)}"
+            else:
+                status = "unknown"
+                part = f"unexpected issuer blacklist answer on {token}: {method} answers {_quoted(answer)}"
         except RpcError as error:
             if _missing_code(error):
-                status, part = "pass", f"no issuer blacklist view on {token}"
+                status, part = "unknown", f"no issuer blacklist view on {token}"
             else:
                 status, part = "unknown", f"could not read {method} on {token}: {_why(error)}"
         except UNAVAILABLE as error:

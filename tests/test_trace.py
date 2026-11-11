@@ -19,8 +19,9 @@ COLLECTOR = RHEA["accounts"][0]["subject"]
 FLOW_PATH = trace.FLOWS_DIR / "rhea-collector.json"
 INCIDENT = {"date": "2026-04-16", "accounts": [{"subject": "start.near"}, {"subject": "worker.near"}]}
 ISSUERS = [{"token": "usdt.tether-token.near", "method": "get_blacklist_status", "args_key": "account_id",
-            "banned": "Banned", "decimals": 6},
-           {"token": "usdc.near", "method": "is_blocklisted", "args_key": "account_id", "banned": True, "decimals": 6}]
+            "banned": "Banned", "clear": "Allowable", "decimals": 6},
+           {"token": "usdc.near", "method": "is_blocklisted", "args_key": "account_id", "banned": True,
+            "clear": False, "decimals": 6}]
 
 
 def no_network(*args, **kwargs):
@@ -314,6 +315,23 @@ class WalkTest(unittest.TestCase):
                       'get_blacklist_status answers "Banned" at block 1002; 0 of usdc.near at block 1003, issuer '
                       'status is_blocklisted answers false at block 1004', trace.summary(document))
         self.assertEqual(document["fetched_at"], "2026-11-05T00:00:00Z")
+
+    def test_state_at_block_keeps_unexpected_issuer_answers_unknown(self):
+        entry = ISSUERS[1]
+        for answer in ("false", 0, 1, None, []):
+            with self.subTest(answer=answer):
+                views = FakeViews({**VIEWS, (entry["token"], entry["method"]): answer})
+                reads, _ = trace.state_at_block("start.near", views, [entry])
+                self.assertIsNone(reads[1]["banned"])
+                self.assertEqual(reads[1]["result"], answer)
+
+    def test_state_at_block_needs_a_clear_value_to_report_not_banned(self):
+        entry = {key: value for key, value in ISSUERS[1].items() if key != "clear"}
+        reads, _ = trace.state_at_block("start.near", FakeViews(VIEWS), [entry])
+        self.assertIsNone(reads[1]["banned"])
+        views = FakeViews({**VIEWS, (entry["token"], entry["method"]): True})
+        reads, _ = trace.state_at_block("start.near", views, [entry])
+        self.assertIs(reads[1]["banned"], True)
 
     def test_a_429_waits_and_retries_and_the_third_in_a_row_stops(self):
         client = FakeTransfers({"start.near": [[row("start.near", "intents.near", 1)]]}, errors=[429, 429])

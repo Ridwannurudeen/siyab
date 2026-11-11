@@ -200,6 +200,15 @@ class IssuerRowsTest(unittest.TestCase):
             self.assertIn(answer, row["label"])
             self.assertIn(str(block), row["label"])
 
+    def test_build_rows_requires_the_exact_banned_type(self):
+        entry = issuers.issuer_entries()[1]
+        for answer in (1, "true", 0, None, []):
+            with self.subTest(answer=answer):
+                read = {"issuer": entry["token"], "subject": "unexpected.near", "method": entry["method"],
+                        "args": {entry["args_key"]: "unexpected.near"}, "answer": answer, "block": 10,
+                        "observed_at": "2026-11-03T00:00:00Z"}
+                self.assertEqual(issuers.build_rows([read]), [])
+
     def test_rows_rebuild_from_the_fixtures(self):
         self.assertEqual(issuers.STATUS_PATH.read_text(encoding="utf-8"), issuers.rows_jsonl())
 
@@ -327,6 +336,52 @@ class IssuerBlacklistSeedTest(unittest.TestCase):
         self.assertEqual(saved_old.superseded_by, removal["id"])
         self.assertFalse(any(row.category == "denylist" and row.superseded_by is None
                              for row in store.by_subject(subject, "near")))
+
+    def test_blacklist_rows_requires_the_exact_banned_type(self):
+        entry = issuers.issuer_entries()[1]
+        read = {"issuer": entry["token"], "subject": "unexpected.near", "method": entry["method"],
+                "args": {entry["args_key"]: "unexpected.near"}, "answer": 1, "block": 10,
+                "observed_at": "2026-11-03T00:00:00Z"}
+        with tempfile.TemporaryDirectory() as tmp:
+            self.write_status_fixture(tmp, read)
+            self.assertEqual(issuers.blacklist_rows([read], tmp), [])
+
+    def test_a_cached_status_must_match_the_recorded_answer_type(self):
+        entry = issuers.issuer_entries()[1]
+        read = {"issuer": entry["token"], "subject": "unexpected.near", "method": entry["method"],
+                "args": {entry["args_key"]: "unexpected.near"}, "answer": False, "block": 10,
+                "observed_at": "2026-11-03T00:00:00Z"}
+        with tempfile.TemporaryDirectory() as tmp:
+            self.write_status_fixture(tmp, read)
+            read["answer"] = 0
+            with self.assertRaises(issuers.seed.SeedError):
+                issuers._verified_status_read(read, tmp)
+
+    def test_an_unexpected_status_never_retires_a_blacklist_assertion(self):
+        entry = issuers.issuer_entries()[1]
+        subject = "still-listed.near"
+        for answer, has_clear in (("false", True), (0, True), (None, True), ([], True), (False, False)):
+            with self.subTest(answer=answer, has_clear=has_clear), tempfile.TemporaryDirectory() as tmp:
+                directory = Path(tmp)
+                reads_path = directory / "reads.json"
+                store_path = directory / "labels.jsonl"
+                read = {"issuer": entry["token"], "subject": subject, "method": entry["method"],
+                        "args": {entry["args_key"]: subject}, "answer": True, "block": 10,
+                        "observed_at": "2026-11-03T00:00:00Z"}
+                self.write_status_fixture(directory, read)
+                old_row = issuers.blacklist_rows([read], directory)[0]
+                store_path.write_text(labels.row_line(old_row) + "\n", encoding="utf-8")
+                read.update(answer=answer, block=11, observed_at="2026-11-03T00:01:00Z")
+                self.write_status_fixture(directory, read)
+                reads_path.write_text(json.dumps([read]), encoding="utf-8")
+                selected = dict(entry)
+                if not has_clear:
+                    selected.pop("clear", None)
+                with patch.object(issuers, "issuer_entries", return_value=[selected]), \
+                        patch.object(issuers, "history_rows", return_value=[]):
+                    self.assertEqual(issuers.seed_blacklists(store_path, directory, reads_path), 0)
+                [saved] = labels.load(store_path).assertions
+                self.assertIsNone(saved.superseded_by)
 
     def test_seed_command_appends_fixture_backed_issuer_assertions(self):
         output = io.StringIO()
