@@ -355,7 +355,8 @@ def main(argv=None):
                                 help="print the registry record_batch arguments for verdict files")
     batch.add_argument("verdicts", nargs="+", metavar="verdict.json", help="files python -m gate verdict wrote")
     batch.add_argument("--observed-block", type=int, metavar="N",
-                       help="the block height to record instead of the evidence observed.block_height")
+                       help="the block height to record when evidence observed.block_height is absent; "
+                            "must equal it when present")
     batch.add_argument("--evidence-dir", default=verdict.EVIDENCE_DIR,
                        help="where the evidence documents are (default fixtures/evidence)")
     batch.set_defaults(handler=_registry_args)

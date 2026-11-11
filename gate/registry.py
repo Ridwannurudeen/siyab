@@ -51,7 +51,12 @@ def record_input(verdict_path, evidence_dir, observed_block=None):
                             "records NEAR accounts only")
     if kind not in ("near", "ft"):
         raise RegistryError(f"{verdict_path}: the evidence subject kind {kind!r} is not near or ft")
-    block = observed_block if observed_block is not None else document["observed"].get("block_height")
+    block = document["observed"].get("block_height")
+    if observed_block is not None:
+        if block is not None and block != observed_block:
+            raise RegistryError(f"{verdict_path}: --observed-block {observed_block} differs from the evidence "
+                                f"block height {block}")
+        block = observed_block
     if block is None:
         raise RegistryError(f"{verdict_path}: the evidence has no observed block height; pass --observed-block")
     if isinstance(block, bool) or not isinstance(block, int) or block < 0:

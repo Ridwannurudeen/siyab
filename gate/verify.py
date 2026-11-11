@@ -7,9 +7,9 @@ alone or inside the whole event. The verdict may be written ALLOW, Allow or its 
 1 Allow, 2 Deny), and the evidence hash as 64 hex characters or a list of 32 bytes.
 
 verify recomputes the sha256 of the evidence file's bytes and compares it with the record's
-evidence_hash, checks that the evidence's verdict is the record's, and, given a Verdict file and a
-verifier key, rebuilds the canonical message from the evidence and the Verdict and checks the
-signature with gate.ed25519.verify. Nothing here touches the network.
+evidence_hash, checks the verdict, event subject and available observed block height, and, given
+a Verdict file and a verifier key, rebuilds the canonical message from the evidence and the
+Verdict and checks the signature with gate.ed25519.verify. Nothing here touches the network.
 """
 
 import hashlib
@@ -105,6 +105,20 @@ def verify(record_path, evidence_path, verdict_path=None, key=None):
         return False, lines
     results = [("evidence sha256 equals the record's evidence_hash", computed == record["evidence_hash"]),
                ("evidence verdict equals the record's verdict", document.get("verdict") == record["verdict"])]
+    subject = document.get("subject")
+    judged_account = (subject.get("recipient" if subject.get("kind") == "intents" else "receiver")
+                      if isinstance(subject, dict) else None)
+    unchecked = []
+    if record["subject"] is not None:
+        results.append(("evidence subject equals the record's subject", judged_account == record["subject"]))
+    else:
+        unchecked.append("subject not checked")
+    observed = document.get("observed")
+    block = observed.get("block_height") if isinstance(observed, dict) else None
+    if block is not None:
+        results.append(("evidence block_height equals the record's observed_block", block == record["observed_block"]))
+    else:
+        unchecked.append("observed block not checked")
     if verdict_path is not None:
         verdict_object = json.loads(Path(verdict_path).read_text(encoding="utf-8"))
         public = base58.decode_key(key)
@@ -122,13 +136,14 @@ def verify(record_path, evidence_path, verdict_path=None, key=None):
         results.append((f"signature verifies with {key}", signed))
         if message is not None:
             lines.append(f"canonical message: {message.decode('utf-8')}")
-    subject = record["subject"] or document["subject"]["receiver"]
+    subject = record["subject"] or judged_account
     lines.append("NEP-297 fields to compare with the explorer:")
     lines.append(f"  standard {STANDARD}, version {EVENT_VERSION}, event {EVENT}")
-    lines.append(f"  subject {subject}" + ("" if record["subject"] else " (from the evidence; the view shape has none)"))
+    lines.append(f"  subject {subject if subject is not None else 'unknown'}" +
+                 ("" if record["subject"] else " (from the evidence; the view shape has none)"))
     lines.append(f"  verdict {record['verdict']}, evidence_hash {record['evidence_hash']}")
     lines.append(f"  observed_block {record['observed_block']}, verdict_id {record['verdict_id']}")
     lines += [f"{'ok  ' if held else 'FAIL'} {name}" for name, held in results]
     ok = all(held for _, held in results)
-    lines.append("verified" if ok else "not verified")
+    lines.append(("verified" + (f" ({'; '.join(unchecked)})" if unchecked else "")) if ok else "not verified")
     return ok, lines

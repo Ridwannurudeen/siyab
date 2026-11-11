@@ -54,10 +54,15 @@ NEP-297 fields to compare with the explorer:
   observed_block 275799179, verdict_id 1b29052381ecf3fc1937b36db2539678
 ok   evidence sha256 equals the record's evidence_hash
 ok   evidence verdict equals the record's verdict
-verified
+ok   evidence block_height equals the record's observed_block
+verified (subject not checked)
 ```
 
-The command hashes the evidence file bytes and compares that hash and the evidence verdict with the saved registry view. It prints the event fields so a reader can compare them with a `verdict_recorded` event. It does not query the chain, prove the record is still the current view, or prove the checks in the evidence are factually true.
+The command hashes the evidence file bytes and compares that hash and the evidence verdict with the saved registry record. When the evidence has `observed.block_height`, it compares that height with the record's `observed_block`; otherwise, when every comparison holds, the final line adds `observed block not checked`. For an event record, it also compares the record's `subject` with the evidence's `subject.receiver` (`subject.recipient` for intents evidence). Any mismatch ends with `not verified` and exits 1.
+
+The `latest(subject)` view response omits the queried subject. Neither the saved view nor the verify command arguments supplies that account, and a filename is not a subject binding. A matching view therefore ends with `verified (subject not checked)`, with exit code 0 for the comparisons made. The displayed subject comes from the evidence only. Use event data to check the recorded subject. Intents evidence is an unsigned preflight; the registry recording helper refuses it.
+
+The command prints the event fields so a reader can compare them with a `verdict_recorded` event. It does not query the chain, prove the record is still the current view, or prove the checks in the evidence are factually true.
 
 To read the current registry value, query `latest(subject)` on the testnet registry. This read needs `near-cli-rs` and network access; it is not an offline check:
 
@@ -95,11 +100,12 @@ NEP-297 fields to compare with the explorer:
   observed_block 230000000, verdict_id 2ebb8f1dcba43f2861590189bfa9c2fa
 ok   evidence sha256 equals the record's evidence_hash
 ok   evidence verdict equals the record's verdict
+ok   evidence block_height equals the record's observed_block
 ok   verdict literal is ALLOW
 ok   verdict evidence_hash equals the evidence sha256
 ok   verdict verdict_id equals the record's verdict_id
 ok   signature verifies with ed25519:36ZbCswnc8QBvUxFF1pEwKwj6PZwgRWGe4nqcdy9HCzL
-verified
+verified (subject not checked)
 ```
 
 This verifies the sample's evidence hash, Verdict fields and Ed25519 signature over the sha256 of the rebuilt canonical message described in `docs/spec/evidence-v1.md` and `docs/spec/verdict-v1.md`. `gate.evidence.check_file` checks canonical JSON bytes and the filename hash; it does not validate every evidence field. The signed sample uses the TEST key for vectors. This does not verify a testnet ALLOW signed by the live verifier key or show that the testnet Gate trusts the TEST key. Neither command evaluates the truth of the evidence sources.

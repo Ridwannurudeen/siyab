@@ -84,14 +84,26 @@ class RegistryArgsTest(unittest.TestCase):
         self.assertEqual(errors.splitlines(), [f"vendor-pay.testnet: unsigned DENY, {said}: {deny_hash[:32]}",
                                                f"supplier.testnet: unsigned UNKNOWN, {said}: {unknown_hash[:32]}"])
 
-    def test_observed_block_comes_from_the_override_or_must_exist(self):
+    def test_a_differing_observed_block_override_is_refused(self):
+        with self.assertRaisesRegex(registry.RegistryError, "--observed-block 230000999 differs from the evidence "
+                                                            "block height 230000000"):
+            registry.record_input(self.allow, self.dir, observed_block=230000999)
         code, output, _ = self.run_command(self.allow, "--observed-block", "230000999")
-        self.assertEqual(json.loads(output)["records"][0]["observed_block"], 230000999)
+        self.assertEqual((code, output), (2, ""))
+
+    def test_an_equal_observed_block_override_is_accepted(self):
+        code, output, errors = self.run_command(self.allow, "--observed-block", "230000000")
+        self.assertEqual((code, errors), (0, ""))
+        self.assertEqual(json.loads(output)["records"][0]["observed_block"], 230000000)
+
+    def test_an_observed_block_override_fills_a_missing_evidence_height(self):
         blockless, _ = self.unsigned(document("ft", "DENY", block=None), "blockless.verdict.json")
         code, output, errors = self.run_command(blockless)
         self.assertEqual((code, output), (2, ""))
         self.assertIn("pass --observed-block", errors)
-        self.assertEqual(self.run_command(blockless, "--observed-block", "7")[0], 0)
+        code, output, _ = self.run_command(blockless, "--observed-block", "7")
+        self.assertEqual(code, 0)
+        self.assertEqual(json.loads(output)["records"][0]["observed_block"], 7)
         self.assertEqual(self.run_command(blockless, "--observed-block", "-1")[0], 2)
 
     def test_an_intents_verdict_is_refused_with_one_line(self):
