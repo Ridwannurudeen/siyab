@@ -1,3 +1,4 @@
+import hashlib
 import http.client
 import json
 import socket
@@ -59,6 +60,22 @@ class WorkspaceHTTPTest(unittest.TestCase):
         self.assertEqual((status, body), (200, b""))
         self.assertGreater(int(headers["Content-Length"]), 0)
         self.assertEqual(self.request("POST", "/live/verdict", {})[0], 501)
+
+    def test_team_event_bytes_are_served_exactly_and_never_cached(self):
+        body = b'{"signal":"account_transfer_observed"}\n'
+        identifier = hashlib.sha256(body).hexdigest()
+        self.routes.history_store = mock.Mock(**{"get_event_bytes.return_value": body})
+        status, headers, raw = self.request("POST", "/workspace-api/auth/register", {"username": "alice", "password": "test-password-123"})
+        self.assertEqual(status, 201, raw)
+        cookie = headers["Set-Cookie"].split(";", 1)[0]
+        team = json.loads(self.request("GET", "/workspace-api/session", headers={"Cookie": cookie})[2])["teams"][0]["id"]
+        with mock.patch.object(self.store, "team_event") as entitled:
+            status, headers, served = self.request("GET", f"/workspace-api/teams/{team}/events/{identifier}", headers={"Cookie": cookie})
+        self.assertEqual((status, served), (200, body))
+        entitled.assert_called_once()
+        self.assertEqual(headers.get_all("Cache-Control"), ["no-store"])
+        self.assertEqual(headers.get_all("Content-Type"), [api.JSON_TYPE])
+        self.assertEqual(headers["Vary"], "Cookie")
 
     def test_ambiguous_oversized_or_unsupported_framing_is_rejected_before_body(self):
         for extra, expected in ((b"", 411), (b"Content-Length: 40000\r\n", 413),

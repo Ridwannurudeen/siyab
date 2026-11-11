@@ -85,7 +85,7 @@ class LiveAPI:
                 return self._error(429, "rate_limited", "The client rate limit was reached.",
                                    {"Retry-After": str(retry_after)})
             key = (parsed.path, parsed.query)
-            cacheable = not (parsed.path.startswith(("/live/account-data/", "/live/account-events/", "/live/portfolio-data/")) or parsed.path == "/live/entity-directory" or
+            cacheable = not (parsed.path.startswith(("/live/account-data/", "/live/portfolio-data/")) or parsed.path == "/live/entity-directory" or
                              (parsed.path.startswith("/live/accounts/") and parsed.path.rsplit("/", 1)[-1] in ("history", "backfill", "enrichment", "portfolio", "portfolio-history", "portfolio-at-block")))
             cached = self._cache_get(key) if cacheable else None
             if cached is not None:
@@ -125,17 +125,16 @@ class LiveAPI:
             self._slots.release()
 
     def exact_snapshot(self, path, query):
-        if not path.startswith(("/live/account-data/", "/live/account-events/", "/live/portfolio-data/")):
+        if not path.startswith(("/live/account-data/", "/live/portfolio-data/")):
             return None
-        match = re.fullmatch(r"/live/(account-data|account-events|portfolio-data)/([a-f0-9]{64})\.json", path)
+        match = re.fullmatch(r"/live/(account-data|portfolio-data)/([a-f0-9]{64})\.json", path)
         if match is None or query:
             return self._error(400, "invalid_input", "A snapshot URL contains one lowercase SHA-256 identifier and no query fields.")
         archive = self.portfolio_history if match[1] == "portfolio-data" else self.history_store
         if archive is None:
             return self._error(503, "archive_unavailable", "The account observation archive is unavailable.")
         try:
-            body = (archive.get_graph_bytes(match[2]) if match[1] == "account-data" else
-                    archive.get_event_bytes(match[2]) if match[1] == "account-events" else archive.get_bytes(match[2]))
+            body = archive.get_graph_bytes(match[2]) if match[1] == "account-data" else archive.get_bytes(match[2])
         except TimeoutError:
             raise
         except (history.HistoryInputError, history.HistoryReadError, portfolio.PortfolioInputError, portfolio.PortfolioReadError, OSError, sqlite3.Error):

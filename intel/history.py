@@ -454,13 +454,9 @@ class AccountHistory:
         if row is None:
             return None
         body = row["body"]
-        if hashlib.sha256(body).hexdigest() != identifier:
+        if not isinstance(body, bytes) or hashlib.sha256(body).hexdigest() != identifier:
             raise HistoryReadError("The stored graph bytes do not match their identifier.")
-        try:
-            if _canonical(json.loads(body)) != body:
-                raise HistoryReadError("The stored graph is not canonical JSON.")
-        except (ValueError, UnicodeError):
-            raise HistoryReadError("The stored graph is unreadable.") from None
+        _retained(body)
         return body
 
     def get_graph(self, identifier):
@@ -610,8 +606,9 @@ class AccountHistory:
             row = connection.execute("SELECT body FROM event_outbox WHERE id=?", (identifier,)).fetchone()
         if row is None:
             return None
-        if hashlib.sha256(row["body"]).hexdigest() != identifier:
+        if not isinstance(row["body"], bytes) or hashlib.sha256(row["body"]).hexdigest() != identifier:
             raise HistoryReadError("The stored event bytes do not match their identifier.")
+        _retained(row["body"])
         return row["body"]
 
     def poll_watches(self, workspace_store, reader, limit=1):

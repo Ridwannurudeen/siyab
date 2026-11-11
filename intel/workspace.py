@@ -615,6 +615,12 @@ class SQLiteWorkspaceStore:
             return {"items": rows, "next_after": rows[-1]["id"] if rows else after,
                     "next_before": first, "has_older": bool(older)}
 
+    def team_event(self, user_id, team_id, event_id):
+        with self._connection() as connection:
+            self._member(connection, user_id, team_id)
+            return connection.execute("SELECT 1 FROM inbox JOIN events ON events.seq=inbox.event_seq WHERE inbox.team_id=? AND events.event_id=?",
+                                      (team_id, event_id)).fetchone() is not None
+
     def ack_inbox(self, user_id, team_id, inbox_id):
         if type(inbox_id) is not int or inbox_id < 1:
             raise WorkspaceError(400, "invalid_alert", "Use a valid alert identifier.")

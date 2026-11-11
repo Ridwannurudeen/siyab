@@ -463,7 +463,7 @@
         row.append(node("strong", item.event?.signal || "Observed event"), node("p", window.SiyabNumbers.prose(item.event?.detail || "Open the evidence to inspect this event.")));
         const link = node("a", item.account || "Watched account"); link.href = "/investigate.html?account=" + encodeURIComponent(item.account); row.append(link);
         row.append(node("p", (item.candidate ? "Candidate signal; not a confirmed risk verdict. " : "Observed signal. ") + "Indexed " + date(item.ingested_ms), "source-line"));
-        if (/^[a-f0-9]{64}$/.test(item.event_id)) { const evidence = node("a", "Open evidence"); evidence.href = item.event?.signal === "account_transfer_observed" ? "/live/account-events/" + item.event_id + ".json" : "/evidence/" + item.event_id; row.append(evidence); }
+        if (/^[a-f0-9]{64}$/.test(item.event_id)) { const evidence = node("a", "Open evidence"); evidence.href = item.event?.signal === "account_transfer_observed" ? prefix + base + "/events/" + item.event_id : "/evidence/" + item.event_id; row.append(evidence); }
         button(item.acknowledged_ms ? "Acknowledged" : "Acknowledge", control => action(control, async () => { await request(base + "/inbox/" + item.id + "/ack", {}); await renderPanel(); }), row, !writable() || Boolean(item.acknowledged_ms));
       } else row.append(node("strong", item.action), node("p", item.actor + " · " + date(item.created_ms), "source-line"), node("p", "Resource " + item.resource_id, "saved-path"));
       list.append(row);

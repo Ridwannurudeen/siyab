@@ -29,7 +29,7 @@ class ObservationHTTPTest(unittest.TestCase):
                         self.assertEqual(response.status, 200)
                         self.assertEqual(response.read(), body if method == "GET" else b"")
                         self.assertEqual(int(response.getheader("Content-Length")), len(body))
-                        self.assertEqual(response.getheader("Cache-Control"), "public, max-age=31536000, immutable")
+                        self.assertEqual(response.getheader("Cache-Control"), "public, max-age=31536000, immutable" if kind == "data" else "no-store")
                         self.assertEqual(len(response.headers.get_all("Cache-Control")), 1)
                         self.assertEqual(response.headers.get_all("Content-Type"), [api.JSON_TYPE])
                     finally:
@@ -57,6 +57,7 @@ class ObservationHTTPTest(unittest.TestCase):
                                           workspace_origin="http://127.0.0.1:8801"), 0)
             arguments = make.call_args.kwargs
             self.assertEqual(arguments["live_routes"].history_store.path, Path(directory) / "history.sqlite3")
+            self.assertIs(arguments["workspace_routes"].history_store, arguments["live_routes"].history_store)
             status = arguments["workspace_routes"].monitor_status()
             self.assertTrue(status["configured"])
             self.assertFalse(status["account_polling"]["running"])

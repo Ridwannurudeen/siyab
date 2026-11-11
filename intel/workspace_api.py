@@ -14,7 +14,7 @@ from datetime import UTC, datetime
 from email.utils import format_datetime
 from http.cookies import CookieError, SimpleCookie
 
-from intel import investigation_jobs
+from intel import history, investigation_jobs
 from intel.workspace import WorkspaceError
 
 
@@ -26,7 +26,7 @@ IDENTIFIER = re.compile(r"[A-Za-z0-9_-]{1,64}")
 
 class WorkspaceAPI:
     def __init__(self, store, *, origin="https://siyab.xyz", secure_cookie=True,
-                 clock=time.monotonic, monitor_status=None, investigation_jobs=None, delivery=None):
+                 clock=time.monotonic, monitor_status=None, investigation_jobs=None, delivery=None, history_store=None):
         parsed = urllib.parse.urlsplit(origin)
         if (parsed.scheme not in ("http", "https") or not parsed.netloc or parsed.path
                 or parsed.query or parsed.fragment or parsed.username is not None
@@ -42,6 +42,7 @@ class WorkspaceAPI:
         self.monitor_status = monitor_status
         self.investigation_jobs = investigation_jobs
         self.delivery = delivery
+        self.history_store = history_store
         self._rates = OrderedDict()
         self._lock = threading.Lock()
 
@@ -248,6 +249,17 @@ class WorkspaceAPI:
             if parts == ["watches"]:
                 self._query(query, set())
                 return 200, {"watches": self.store.list_watchlist(actor, team)}, {}
+            if len(parts) == 2 and parts[0] == "events":
+                self._query(query, set())
+                if self.store.team_event(actor, team, parts[1]):
+                    if self.history_store is None:
+                        raise WorkspaceError(503, "events_unavailable", "Team event evidence is unavailable.")
+                    try:
+                        body = self.history_store.get_event_bytes(parts[1])
+                    except history.HistoryReadError:
+                        raise WorkspaceError(503, "read_failed", "The stored team event could not be read.") from None
+                    if body is not None:
+                        return 200, body, {}
             if parts in (["inbox"], ["audit"]):
                 allowed = {"after", "before", "limit"} if parts == ["inbox"] else {"after", "limit"}
                 params = self._numbers(self._query(query, allowed), {"after": (0, 2**63 - 1), "before": (1, 2**63 - 1), "limit": (1, 50)})
