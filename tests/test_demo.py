@@ -13,8 +13,8 @@ from unittest import mock
 from gate import __main__ as gate_main
 from gate import demo, intents, rpc, signer
 
-DENIED = ("DENIED. kestrelridge-sh0p.testnet is a lookalike of kestrelridge-shop.testnet. Created less than 7 d ago. "
-          "Not on the owner's allowlist. Not registered on the token.")
+DENIED = ("DENIED. kestrelridge-sh0p.testnet is a lookalike of kestrelridge-shop.testnet. Not on the owner's allowlist. "
+          "Not registered on the token.")
 EVM_DENIED = ("  DENIED. The recipient 0x1fcdb04d0c5364fbd92c73ca8af9baa72c269107 carries the GoPlus theft labels "
               "stealing_attack")
 RECORDED_URLS = (rpc.TESTNET_RPC_URL, rpc.ARCHIVAL_TESTNET_RPC_URL, rpc.NEARBLOCKS_TESTNET_URL)
@@ -74,13 +74,13 @@ class DemoTest(unittest.TestCase):
         self.assertIn("  ALLOW, action ask: not signed", lines)
         self.assertIn("  ask: the Gate is paused (REFUSED:paused)", lines)
 
-    def test_the_lookalike_is_dated_by_its_oldest_access_key(self):
+    def test_the_lookalike_is_not_dated_by_its_recent_access_key(self):
         results, _ = self.run_demo()
         age = check(results[1], "account_age")
-        self.assertEqual(age["status"], "signal")
+        self.assertEqual(age["status"], "unknown")
         self.assertIn("oldest access key nonce 275346461000000 from test.rpc.fastnear.com: existed by block "
-                      "275346462 (2026-10-29T19:57:35Z) from archival-rpc.testnet.fastnear.com, younger than 7 days",
-                      age["detail"])
+                      "275346462 (2026-10-29T19:57:35Z) from archival-rpc.testnet.fastnear.com, a key block younger "
+                      "than 7 days that does not date the account", age["detail"])
         self.assertEqual(check(results[1], "lookalike")["status"], "signal")
         self.assertEqual(check(results[1], "storage_registered")["status"], "signal")
 

@@ -53,7 +53,7 @@
     {
       "id": "account_age",
       "status": "pass",
-      "detail": "no archival age (view_access_key_list could not run: no recorded response for the request); created 1935 d ago",
+      "detail": "no archival age (view_access_key_list could not run: no recorded response for the request); oldest listed key created 1935 d ago",
       "source": {
         "provider": "api.nearblocks.io",
         "request_sha256": "60ce0eddbaf116b3170bd65725bb356d20ec3e4a1dd058973e5dfb1f197776dc",
@@ -63,7 +63,7 @@
     {
       "id": "dust_funded",
       "status": "pass",
-      "detail": "created by a 5 NEAR deposit",
+      "detail": "could not read the creation transaction: MalformedResponse: transaction 2RHt36NfVswB1PiBVcQZ1Bi1pztKjoXPwMTYsrWGtoPW of the oldest listed key does not show flymoon.sputnik-dao.near being created; not needed: account_age passed and nothing is a lookalike, and a deposit is a signal only with lookalike or account_age",
       "source": {
         "provider": "api.nearblocks.io",
         "request_sha256": "66c58b9683f784d06cb13ae1df313b8efb0ef2186822fc6a29d412341d55895c",

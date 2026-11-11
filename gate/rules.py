@@ -44,6 +44,13 @@ NONCE_PER_HEIGHT = 10**6
 # At most this many blocks a day (one every 0.5 s; the recorded mainnet reads show about 0.58 s), so
 # min_age_days days of them before a block reach a block at least min_age_days old; its time is read back.
 BLOCKS_PER_DAY_MAX = 2 * 24 * 60 * 60
+# The NearBlocks keys request carries no page parameter. The recorded answer for user.intear.near lists
+# exactly 25 keys while RPC refuses its key list as TOO_MANY_ACCESS_KEYS, so a list this long may be one
+# page of a longer one; the page size is observed there, not documented.
+NEARBLOCKS_KEYS_PAGE = 25
+# A key creation time below this (in ns, September 2001) predates every NEAR block, so it is malformed.
+MIN_CREATION_NS = 10**18
+BASE58_HASH = re.compile(r"[1-9A-HJ-NP-Za-km-z]+")
 # Confusable normalisation, applied in this order to both names before any comparison.
 CONFUSABLES = (("rn", "m"), ("vv", "w"), ("0", "o"), ("1", "l"), ("i", "l"))
 NETWORK_SUFFIXES = (".near", ".testnet")
@@ -260,29 +267,100 @@ def lookalike_detail(receiver, reference):
     return f"lookalike of {reference} (distance {gap} after confusable normalisation)"
 
 
-def _oldest_creation(response):
-    """(block timestamp in ns, transaction hash) of the oldest key creation, or None."""
+def _key_creations(response, now_ms):
+    """[(block timestamp in ns, transaction hash)] for every key NearBlocks lists, each None when the
+    key carries no creation time. A creation that is not null or an object, a time that is not an int
+    or a digit string from MIN_CREATION_NS to now_ms, or a hash that is not base58 raises
+    MalformedResponse."""
     if not isinstance(response, dict) or not isinstance(response.get("keys"), list):
         raise MalformedResponse("the NearBlocks keys response has no keys list")
-    created = []
+    creations = []
     for key in response["keys"]:
-        info = key.get("created") if isinstance(key, dict) else None
-        if isinstance(info, dict) and info.get("block_timestamp") is not None:
-            created.append((int(info["block_timestamp"]), info.get("transaction_hash")))
-    return min(created, key=lambda item: item[0]) if created else None
+        if not isinstance(key, dict):
+            raise MalformedResponse("a NearBlocks key is not an object")
+        info = key.get("created")
+        if info is None or isinstance(info, dict) and info.get("block_timestamp") is None:
+            creations.append((None, None))
+            continue
+        if not isinstance(info, dict):
+            raise MalformedResponse(f"a key creation is not an object: {info!r}")
+        value, transaction_hash = info["block_timestamp"], info.get("transaction_hash")
+        if isinstance(value, str) and value.isascii() and value.isdigit():
+            created_ns = int(value)
+        elif isinstance(value, int) and not isinstance(value, bool):
+            created_ns = value
+        else:
+            raise MalformedResponse(f"a key creation time is not an integer: {value!r}")
+        if not MIN_CREATION_NS <= created_ns <= now_ms * 1_000_000:
+            raise MalformedResponse(f"a key creation time is out of range: {value!r}")
+        if transaction_hash is not None and not (isinstance(transaction_hash, str)
+                                                 and BASE58_HASH.fullmatch(transaction_hash)):
+            raise MalformedResponse(f"a key creation transaction hash is not base58: {transaction_hash!r}")
+        creations.append((created_ns, transaction_hash))
+    return creations
+
+
+def _creates(response, receiver, transaction_hash):
+    """Whether the NearBlocks answer for transaction_hash, the transaction that added the receiver's
+    oldest listed key, shows receiver being created. The answer must name transaction_hash and its
+    outcomes status must be JSON true: an attempted creation proves nothing, so a status that is
+    false, null, missing or of another type is no proof. Two shapes then count. A CREATE_ACCOUNT action
+    sent to receiver, which succeeds only for an account that does not exist yet. A create_account call
+    on receiver's own parent (everything after its first dot) naming it as new_account_id: only the
+    parent can create a sub account, and the parent cannot add a key to a sub account that already
+    exists, so a successful call there that added the receiver's key created it. A sub account running
+    its own contract could add a key to itself during such a transaction, so an old cooperating sub
+    account whose older keys were deleted could read young; that misreads only that receiver. A receiver
+    with no dot has no parent. Anything else, a body without those fields included, is no proof."""
+    transactions = response.get("txns") if isinstance(response, dict) else None
+    if not isinstance(transactions, list) or not transactions or not isinstance(transactions[0], dict):
+        return False
+    transaction = transactions[0]
+    outcomes = transaction.get("outcomes")
+    if (transaction.get("transaction_hash") != transaction_hash or not isinstance(outcomes, dict)
+            or outcomes.get("status") is not True):
+        return False
+    target, actions = transaction.get("receiver_account_id"), transaction.get("actions")
+    parent = receiver.partition(".")[2]
+    if not isinstance(actions, list):
+        return False
+    for action in actions:
+        if not isinstance(action, dict):
+            continue
+        if action.get("action") == "CREATE_ACCOUNT" and target == receiver:
+            return True
+        if (action.get("action") == "FUNCTION_CALL" and action.get("method") == "create_account"
+                and parent and target == parent and isinstance(action.get("args"), str)):
+            try:
+                args = json.loads(action["args"])
+            except (ValueError, RecursionError):
+                continue
+            if isinstance(args, dict) and args.get("new_account_id") == receiver:
+                return True
+    return False
 
 
 def _creation_deposit(response):
-    """The yoctoNEAR attached by a NearBlocks transaction, as a Decimal."""
+    """The yoctoNEAR attached by a NearBlocks transaction, as an integral Decimal from 0 to below 2**128
+    (a u128). The recorded answers give it as a JSON number, often in exponent form such as 5e+23; a
+    string is read only when it is ASCII digits, and a value with a fraction raises MalformedResponse."""
     if not isinstance(response, dict) or not isinstance(response.get("txns"), list) or not response["txns"]:
         raise MalformedResponse("the NearBlocks transaction response has no transaction")
+    if not isinstance(response["txns"][0], dict):
+        raise MalformedResponse("the NearBlocks transaction is not an object")
     aggregate = response["txns"][0].get("actions_agg")
     if not isinstance(aggregate, dict) or aggregate.get("deposit") is None:
         raise MalformedResponse("the NearBlocks transaction has no deposit total")
+    value = aggregate["deposit"]
+    if isinstance(value, str) and not (value.isascii() and value.isdigit()):
+        raise MalformedResponse(f"the deposit total is not a number: {value!r}")
     try:
-        return Decimal(str(aggregate["deposit"]))
+        deposit = Decimal(str(value))
     except InvalidOperation as error:
-        raise MalformedResponse(f"the deposit total is not a number: {aggregate['deposit']!r}") from error
+        raise MalformedResponse(f"the deposit total is not a number: {value!r}") from error
+    if not deposit.is_finite() or not 0 <= deposit < 2**128 or deposit != deposit.to_integral_value():
+        raise MalformedResponse(f"the deposit total is not a u128 amount: {value!r}")
+    return Decimal(0) if deposit.is_zero() else deposit
 
 
 def _why(error):
@@ -458,11 +536,14 @@ def _state_age(archival, receiver, account, account_source, now_ms, min_age_days
     """(the account_age check, False) when view_account on an archival node finds the receiver at a
     block at least min_age_days old: min_age_days times BLOCKS_PER_DAY_MAX blocks before the block its
     own view_account (account) was read at, with that block's time read back. Only _nonce_age calls
-    it, for a receiver with no access key or none with a creation height, such as a locked contract.
+    it, for a receiver with no access key or none with a creation height, such as a locked contract, and
+    for one whose oldest access key was added in a block younger than min_age_days, which shows only that
+    the account existed by then.
     One read of each, no step down: archival view_account answered HTTP 500 at many testnet blocks
     (docs/SPIKES.md S8), which reads unknown here. The receiver missing at that block shows only that
-    it was created after the block, not that it is younger than min_age_days, so it reads unknown too.
-    An unknown check gives None."""
+    it was created after the block, not that it is younger than min_age_days, so it reads unknown too
+    and gives True: an older NearBlocks key creation then cannot pass the account. Any other unknown
+    check gives None."""
     reference = account.get("block_height")
     if not isinstance(reference, int) or isinstance(reference, bool):
         return evidence.check("account_age", "unknown", f"{why}; the receiver's view_account names no block "
@@ -485,19 +566,22 @@ def _state_age(archival, receiver, account, account_source, now_ms, min_age_days
         if isinstance(error, RpcError) and error.cause == "UNKNOWN_ACCOUNT":
             detail = (f"{receiver} did not exist at {block}, so it was created after that block, which is at "
                       f"least {min_age_days} d old; whether it is younger than {min_age_days} days is not known")
-        else:
-            detail = f"archival view_account could not run: {_why(error)}"
-        return evidence.check("account_age", "unknown", f"{why}; {detail}", _source(archival)), None
+            return evidence.check("account_age", "unknown", f"{why}; {detail}", _source(archival)), True
+        return evidence.check("account_age", "unknown", f"{why}; archival view_account could not run: "
+                              f"{_why(error)}", _source(archival)), None
     return evidence.check("account_age", "pass", f"{why}; view_account finds {receiver} at {block}, at least "
                           f"{min_age_days} d old", _source(archival)), False
 
 
 def _nonce_age(rpc, archival, receiver, now_ms, min_age_days, account, account_source):
-    """(the account_age check, whether the receiver is younger than min_age_days) from the oldest
-    access key: the account existed by the block its smallest nonce encodes, dated on an archival
-    node. A key with nonce 0, or a permission other than full access or function call, carries no
+    """(the account_age check, False when it passed) from the oldest access key: the account existed
+    by the block its smallest nonce encodes, dated on an archival node. That block at least min_age_days
+    old passes. A younger one is a lower bound on the age, not the creation time, since every key the
+    account was created with may have been deleted, so it never signals: _state_age dates the receiver
+    instead. A key with nonce 0, or a permission other than full access or function call, carries no
     creation height. A receiver with no access key, or none with a creation height, is dated by
-    _state_age instead. A read that could not run gives an unknown check and None."""
+    _state_age too, which gives True when the receiver did not exist at its old block. A read that could
+    not run gives an unknown check and None."""
     try:
         keys = rpc.view_access_key_list(receiver)["keys"]
         nonces = []
@@ -534,8 +618,9 @@ def _nonce_age(rpc, archival, receiver, now_ms, min_age_days, account, account_s
     archival_source = _source(archival)
     block = f"block {height} ({iso}) from {archival_source['provider']}"
     if now_ms - block_ms < min_age_days * DAY_MS:
-        return evidence.check("account_age", "signal", f"{oldest}: existed by {block}, younger than "
-                              f"{min_age_days} days", archival_source), True
+        return _state_age(archival, receiver, account, account_source, now_ms, min_age_days,
+                          f"{oldest}: existed by {block}, a key block younger than {min_age_days} days that "
+                          "does not date the account")
     return evidence.check("account_age", "pass", f"{oldest}: existed by {block}, at least {min_age_days} d old",
                           archival_source), False
 
@@ -544,7 +629,7 @@ def _tier2(request, policy, store, account, account_source, rpc, nearblocks, now
     """Tier 2 checks; returns (checks, facts for the reasons, matched catalog assertion ids)."""
     receiver = request["receiver_id"]
     checks, facts, matched = [], {}, []
-    creation_hash = None
+    creation_hash, creation = None, None
     archival_detail, archival_young = None, None
     if archival is not None and account is not None:
         age_check, archival_young = _nonce_age(rpc, archival, receiver, now_ms, min_age_days,
@@ -554,23 +639,57 @@ def _tier2(request, policy, store, account, account_source, rpc, nearblocks, now
     if archival is None or account is None or archival_detail is not None:
         try:
             keys = nearblocks.get(f"/v1/account/{receiver}/keys")
-            oldest = _oldest_creation(keys)
-            if oldest is None:
+            creations = _key_creations(keys, now_ms)
+            dated = [item for item in creations if item[0] is not None]
+            if not dated:
                 # NearBlocks lists no access key and view_account shows contract code; these are the observed reads.
                 locked = not keys["keys"] and account is not None and account.get("code_hash") != EMPTY_CODE_HASH
                 age_check = evidence.check("account_age", "unknown",
                                            "NearBlocks lists no access key for the account and view_account shows "
                                            "contract code, so no creation time could be read" if locked
                                            else f"no key of {receiver} carries a creation time", _source(nearblocks))
-            else:
-                created_ns, creation_hash = oldest
-                age_ms = now_ms - created_ns // 1_000_000
-                facts["age"] = _age_text(age_ms)
-                young = age_ms < min_age_days * DAY_MS
-                age_check = evidence.check("account_age", "signal" if young else "pass",
-                                           f"created {facts['age']} ago"
-                                           + (f", younger than {min_age_days} days" if young else ""),
+            elif len(dated) < len(creations):
+                age_check = evidence.check("account_age", "unknown", f"a key of {receiver} carries no creation time, "
+                                           "so the oldest key NearBlocks lists may not be its first",
                                            _source(nearblocks))
+            elif len(creations) >= NEARBLOCKS_KEYS_PAGE:
+                age_check = evidence.check("account_age", "unknown", f"NearBlocks lists {len(creations)} keys, a "
+                                           "full page that may leave out older ones", _source(nearblocks))
+            else:
+                created_ns, creation_hash = min(dated, key=lambda item: item[0])
+                age_ms = now_ms - created_ns // 1_000_000
+                age = _age_text(age_ms)
+                # The oldest listed key is young: the account is young only if that key's transaction created it,
+                # since an account can be created without a key and given one later.
+                if age_ms < min_age_days * DAY_MS:
+                    oldest = f"the oldest key NearBlocks lists was created {age} ago"
+                    try:
+                        if creation_hash is None:
+                            raise MalformedResponse("the key creation names no transaction")
+                        creation = nearblocks.get(f"/v1/txns/{creation_hash}")
+                    except UNAVAILABLE as error:
+                        creation_hash = None
+                        age_check = evidence.check("account_age", "unknown", f"{oldest}; could not read its "
+                                                   f"transaction: {_why(error)}", _source(nearblocks))
+                    else:
+                        if _creates(creation, receiver, creation_hash):
+                            facts["age"] = age
+                            age_check = evidence.check("account_age", "signal", f"created {age} ago, younger than "
+                                                       f"{min_age_days} days", _source(nearblocks))
+                        else:
+                            age_check = evidence.check("account_age", "unknown", f"{oldest} by transaction "
+                                                       f"{creation_hash}, which does not show {receiver} being "
+                                                       "created, so the account may be older", _source(nearblocks))
+                            creation_hash, creation = None, None
+                elif archival_young:
+                    creation_hash = None
+                    age_check = evidence.check("account_age", "unknown", f"the oldest key NearBlocks lists was "
+                                               f"created {age} ago, but the archival node found no {receiver} at "
+                                               "the old block, so that key does not date the account",
+                                               _source(nearblocks))
+                else:
+                    age_check = evidence.check("account_age", "pass", f"oldest listed key created {age} ago",
+                                               _source(nearblocks))
         except UNAVAILABLE as error:
             age_check = evidence.check("account_age", "unknown", f"could not read the account keys: "
                                        f"{_why(error)}", _source(nearblocks))
@@ -578,8 +697,6 @@ def _tier2(request, policy, store, account, account_source, rpc, nearblocks, now
             age_check = evidence.check("account_age", age_check["status"],
                                        f"no archival age ({archival_detail}); {age_check['detail']}",
                                        age_check["source"])
-    if archival_young:
-        facts["age"] = f"less than {min_age_days} d"
     checks.append(age_check)
 
     dust = None
@@ -588,7 +705,14 @@ def _tier2(request, policy, store, account, account_source, rpc, nearblocks, now
                                     _local("nearblocks"))
     else:
         try:
-            deposit = _creation_deposit(nearblocks.get(f"/v1/txns/{creation_hash}"))
+            # On the pass branch the oldest listed key's transaction gives the creation deposit only if it
+            # created the account; the signal branch has already shown that for creation.
+            if creation is None:
+                creation = nearblocks.get(f"/v1/txns/{creation_hash}")
+                if not _creates(creation, receiver, creation_hash):
+                    raise MalformedResponse(f"transaction {creation_hash} of the oldest listed key does not show "
+                                            f"{receiver} being created")
+            deposit = _creation_deposit(creation)
             facts["deposit"] = _near_text(deposit)
             dust = deposit < DUST_YOCTO
             dust_source = _source(nearblocks)
@@ -610,11 +734,15 @@ def _tier2(request, policy, store, account, account_source, rpc, nearblocks, now
                                          "or labelled NEAR account within the length scaled distance after "
                                          "confusable normalisation", source)
 
-    # When the access key nonce or block state age passed and nothing is a lookalike, no creation deposit can
-    # change the verdict, so the deposit NearBlocks could not give does not hold it at UNKNOWN.
+    # When account_age passed by any path and nothing is a lookalike, no creation deposit can change the
+    # verdict, so a deposit that was not read, or could not be read, does not hold it at UNKNOWN.
     if archival_young is False and not hit:
         dust_check = evidence.check("dust_funded", "pass", "creation deposit not read: a deposit is a signal "
                                     "only with lookalike or account_age", _local("nearblocks"))
+    elif age_check["status"] == "pass" and not hit and dust is None:
+        dust_check = evidence.check("dust_funded", "pass", f"{dust_check['detail']}; not needed: account_age "
+                                    "passed and nothing is a lookalike, and a deposit is a signal only with "
+                                    "lookalike or account_age", dust_check["source"])
 
     # A dust creation deposit is the ordinary wallet pattern, so it is a signal only together with a
     # lookalike or a young account (DISPOSITION-dust option A).

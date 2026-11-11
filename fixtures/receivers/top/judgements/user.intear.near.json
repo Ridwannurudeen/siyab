@@ -8,7 +8,7 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "ALLOW",
+  "verdict": "UNKNOWN",
   "checks": [
     {
       "id": "receiver_exists",
@@ -52,8 +52,8 @@
     },
     {
       "id": "account_age",
-      "status": "pass",
-      "detail": "no archival age (view_access_key_list could not run: RPC error TOO_MANY_ACCESS_KEYS); created 338 d ago",
+      "status": "unknown",
+      "detail": "no archival age (view_access_key_list could not run: RPC error TOO_MANY_ACCESS_KEYS); NearBlocks lists 25 keys, a full page that may leave out older ones",
       "source": {
         "provider": "api.nearblocks.io",
         "request_sha256": "95ae5a24c8aaa99775b8b58bc54a6a0d6cb764285f13f9cfba493d8f23e9c699",
@@ -62,12 +62,12 @@
     },
     {
       "id": "dust_funded",
-      "status": "pass",
-      "detail": "created by a 0 NEAR deposit; not a signal without lookalike or account_age",
+      "status": "unknown",
+      "detail": "the creation transaction is not known",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "cefbd33994287f393216fe23fc21432953d444391bb5a4ca71fadaf6117211ae",
-        "fetched_at": "2026-11-09T04:11:14Z"
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
       }
     },
     {
@@ -92,8 +92,8 @@
     }
   ],
   "reasons": [
-    "Every check ran and none found a signal.",
-    "Not on the owner's allowlist."
+    "account_age could not run: no archival age (view_access_key_list could not run: RPC error TOO_MANY_ACCESS_KEYS); NearBlocks lists 25 keys, a full page that may leave out older ones.",
+    "dust_funded could not run: the creation transaction is not known."
   ],
   "labels": [],
   "observed": {

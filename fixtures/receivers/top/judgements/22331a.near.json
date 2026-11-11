@@ -8,7 +8,7 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "DENY",
+  "verdict": "UNKNOWN",
   "checks": [
     {
       "id": "receiver_exists",
@@ -52,12 +52,12 @@
     },
     {
       "id": "account_age",
-      "status": "signal",
-      "detail": "oldest access key nonce 223553880000360 from free.rpc.fastnear.com: existed by block 223553881 (2026-11-08T02:37:18Z) from archival-rpc.mainnet.fastnear.com, younger than 7 days",
+      "status": "unknown",
+      "detail": "no archival age (oldest access key nonce 223553880000360 from free.rpc.fastnear.com: existed by block 223553881 (2026-11-08T02:37:18Z) from archival-rpc.mainnet.fastnear.com, a key block younger than 7 days that does not date the account; archival block_at could not run: no recorded response for the request); could not read the account keys: no recorded response for the request",
       "source": {
-        "provider": "archival-rpc.mainnet.fastnear.com",
-        "request_sha256": "6dc0484afc3f0490abb83515839b21ad9948d64299bd3ca558676dc16757226e",
-        "fetched_at": "2026-11-09T04:13:00Z"
+        "provider": "api.nearblocks.io",
+        "request_sha256": "a1e75922a286a07d98b3cb669be72670b112fdbd34f8040d191157d66934e1be",
+        "fetched_at": null
       }
     },
     {
@@ -92,8 +92,8 @@
     }
   ],
   "reasons": [
-    "Created less than 7 d ago.",
-    "Not on the owner's allowlist."
+    "account_age could not run: no archival age (oldest access key nonce 223553880000360 from free.rpc.fastnear.com: existed by block 223553881 (2026-11-08T02:37:18Z) from archival-rpc.mainnet.fastnear.com, a key block younger than 7 days that does not date the account; archival block_at could not run: no recorded response for the request); could not read the account keys: no recorded response for the request.",
+    "dust_funded could not run: the creation transaction is not known."
   ],
   "labels": [],
   "observed": {
