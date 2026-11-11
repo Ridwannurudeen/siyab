@@ -335,6 +335,40 @@ class NoSignatureTest(VerdictCase):
         self.assertEqual(list(self.dir.iterdir()), [])
 
 
+class LiveSigningTest(VerdictCase):
+    def test_live_signing_refuses_each_client_unless_its_mode_is_off(self):
+        for field in ("rpc", "nearblocks", "injection_scanner", "archival"):
+            for mode in ("replay", "record", None):
+                with self.subTest(client=field, mode=mode):
+                    clients = {name: mock.Mock(mode="off") for name in
+                               ("rpc", "nearblocks", "injection_scanner", "archival")}
+                    clients[field] = mock.Mock(mode=mode)
+                    live = mock.Mock(key_id="cur")
+                    live.sign.return_value = bytes(64)
+                    judgement = rules.Judgement(verdict="ALLOW", checks=[], reasons=[], labels=[], observed={})
+                    with mock.patch.object(rules, "judge", return_value=judgement), \
+                            self.assertRaisesRegex(signer.SignerError,
+                                                   "GATE_FIXTURES_MODE=off.*nothing was signed"):
+                        verdict.request("ft", "wrap.near", "intents.near", "1000", None, gate="gate.near",
+                                        agent_pk_hex=AGENT, policy=ALLOW_POLICY, store=self.store, signer=live,
+                                        evidence_dir=self.dir, **clients)
+                    live.sign.assert_not_called()
+                    self.assertEqual(list(self.dir.iterdir()), [])
+
+    def test_live_signing_with_off_clients_proceeds_with_fake_data(self):
+        live = mock.Mock(key_id="cur")
+        live.sign.return_value = bytes(64)
+        judgement = rules.Judgement(verdict="ALLOW", checks=[], reasons=[], labels=[], observed={})
+        with mock.patch.object(rules, "judge", return_value=judgement):
+            result = verdict.request("ft", "wrap.near", "intents.near", "1000", None, gate="gate.near",
+                                     agent_pk_hex=AGENT, policy=ALLOW_POLICY, store=self.store,
+                                     rpc=mock.Mock(mode="off"), nearblocks=mock.Mock(mode="off"),
+                                     signer=live, evidence_dir=self.dir)
+        self.assertEqual((result["outcome"], result["action"]), ("ALLOW", "sign"))
+        self.assertEqual(result["verdict"]["signature"], bytes(64).hex())
+        live.sign.assert_called_once_with(canon.digest(result["message"].encode("utf-8")))
+
+
 class SignerTest(unittest.TestCase):
     def setUp(self):
         tmp = tempfile.TemporaryDirectory()
@@ -463,6 +497,92 @@ class CommandTest(VerdictCase):
         code, _, errors = self.run_command("--live", environment={"VERIFIER_KEY_FILE": missing})
         self.assertEqual(code, 2)
         self.assertIn("no signer:", errors)
+
+    def test_live_policy_is_refused_before_loading_a_signer_or_reading(self):
+        for policy in (json.dumps(ALLOW_POLICY), '{"allowlist": [], "caps": []}', "", "not json"):
+            with self.subTest(policy=policy), mock.patch.object(gate_main.signer, "NaClSigner") as live, \
+                    mock.patch.object(gate_main, "_clients") as clients:
+                code, output, errors = self.run_command("--live", "--policy", policy)
+                self.assertEqual(code, 2)
+                self.assertEqual(output, "")
+                self.assertIn("--live cannot be combined with --policy", errors)
+                self.assertIn("nothing was signed", errors)
+                live.assert_not_called()
+                clients.assert_not_called()
+                self.assertEqual(list(self.dir.iterdir()), [])
+
+    def test_live_policy_comes_from_the_gate_views(self):
+        client = mock.Mock(mode="off")
+        client.call_function.side_effect = [ALLOW_POLICY, {"paused": False, "denylist": []}]
+        live = mock.Mock(key_id="cur")
+        live.sign.return_value = bytes(64)
+        judgement = rules.Judgement(verdict="ALLOW", checks=[], reasons=[], labels=[], observed={})
+        with mock.patch.object(gate_main.signer, "NaClSigner", return_value=live), \
+                mock.patch.object(gate_main, "_clients", return_value=(client, None, None, None)), \
+                mock.patch.object(rules, "judge", return_value=judgement) as judge:
+            code, output, errors = self.run_command("--live", environment={"VERIFIER_KEY_FILE": "unused"})
+        self.assertEqual(code, 0, errors)
+        self.assertEqual(client.call_function.call_args_list, [
+            mock.call("gate.near", "get_agent", {"public_key": base58.encode_key(bytes.fromhex(AGENT))}),
+            mock.call("gate.near", "get_policy", {}),
+        ])
+        self.assertEqual(judge.call_args.args[1], {**ALLOW_POLICY, "gate_paused": False, "gate_denylist": []})
+        self.assertIn("action: sign", output)
+        live.sign.assert_called_once()
+
+    def test_live_policy_read_failure_or_unregistered_agent_signs_nothing(self):
+        for response in ([None], [OSError("policy unavailable")], [ALLOW_POLICY, {"denylist": []}],
+                         [ALLOW_POLICY, None], [[], {"paused": False, "denylist": []}]):
+            client, live = mock.Mock(mode="off"), mock.Mock(key_id="cur")
+            live.sign.return_value = bytes(64)
+            judgement = rules.Judgement(verdict="ALLOW", checks=[], reasons=[], labels=[], observed={})
+            client.call_function.side_effect = response
+            with self.subTest(response=response), \
+                    mock.patch.object(gate_main.signer, "NaClSigner", return_value=live), \
+                    mock.patch.object(gate_main, "_clients", return_value=(client, None, None, None)), \
+                    mock.patch.object(rules, "judge", return_value=judgement):
+                code, output, errors = self.run_command("--live", environment={"VERIFIER_KEY_FILE": "unused"})
+                self.assertEqual(code, 2)
+                self.assertEqual(output, "")
+                if response[0] is not None:
+                    self.assertTrue(errors.startswith("cannot read Gate policy: "), errors)
+                self.assertIn("nothing was signed", errors)
+                live.sign.assert_not_called()
+                self.assertEqual(list(self.dir.iterdir()), [])
+
+    def test_live_invalid_agent_key_is_refused_before_reading_policy(self):
+        for public_key in ("zz" * 32, "AB" * 32, "ab" * 31, "", "ab " * 32):
+            client = mock.Mock(mode="off")
+            client.call_function.side_effect = [ALLOW_POLICY, {"paused": False, "denylist": []}]
+            with self.subTest(public_key=public_key), \
+                    mock.patch.object(gate_main.signer, "NaClSigner") as live, \
+                    mock.patch.object(gate_main, "_clients", return_value=(client, None, None, None)) as clients:
+                code, output, errors = self.run_command("--live", "--agent-pk", public_key,
+                                                        environment={"VERIFIER_KEY_FILE": "unused"})
+                self.assertEqual(code, 2)
+                self.assertEqual(output, "")
+                self.assertTrue(errors.startswith("invalid --agent-pk: "), errors)
+                self.assertIn("nothing was signed", errors)
+                self.assertNotIn("cannot read Gate policy", errors)
+                live.assert_not_called()
+                clients.assert_not_called()
+                self.assertEqual(list(self.dir.iterdir()), [])
+
+    def test_live_fixture_signing_is_reported_as_a_refusal(self):
+        client = mock.Mock(mode="replay")
+        client.call_function.side_effect = [ALLOW_POLICY, {"paused": False, "denylist": []}]
+        live = mock.Mock(key_id="cur")
+        judgement = rules.Judgement(verdict="ALLOW", checks=[], reasons=[], labels=[], observed={})
+        with mock.patch.object(gate_main.signer, "NaClSigner", return_value=live), \
+                mock.patch.object(gate_main, "_clients", return_value=(client, None, None, None)), \
+                mock.patch.object(rules, "judge", return_value=judgement):
+            code, output, errors = self.run_command("--live", environment={"VERIFIER_KEY_FILE": "unused"})
+        self.assertEqual(code, 2)
+        self.assertEqual(output, "")
+        self.assertEqual(errors, "refused: live signing requires GATE_FIXTURES_MODE=off for every client; "
+                                 "nothing was signed\n")
+        live.sign.assert_not_called()
+        self.assertEqual(list(self.dir.iterdir()), [])
 
     def test_malformed_unknown_cap_exits_two_without_a_traceback(self):
         policy = '{"allowlist": [], "unknown_caps": [{"asset": {"Ft": "wrap.near"}}]}'

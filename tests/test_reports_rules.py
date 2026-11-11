@@ -152,7 +152,7 @@ class ReportsRulesTest(unittest.TestCase):
                 self.fixtures.function(reports_account, "subject_summary", {"subject": RECEIVER}, summary)
         if not allowlisted:
             self.fixtures.tier2(RECEIVER)
-        signer_spy = mock.MagicMock(key_id="cur")
+        signer_spy = mock.MagicMock(spec=signer.TestSigner, key_id="cur")
         signer_spy.sign.return_value = bytes(64)
         policy = {"allowlist": [RECEIVER] if allowlisted else [], "caps": []}
         result = verdict.request(

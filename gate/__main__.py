@@ -8,6 +8,7 @@ from pathlib import Path
 
 from gate import (
     agent,
+    base58,
     canon,
     demo,
     ed25519,
@@ -51,11 +52,21 @@ def _clients(gate):
 
 
 def _verdict(args):
+    if args.live and args.policy is not None:
+        print("--live cannot be combined with --policy; live signing reads the Gate policy; nothing was signed",
+              file=sys.stderr)
+        return 2
     try:
-        policy = json.loads(args.policy)
+        policy = json.loads(args.policy if args.policy is not None else '{"allowlist": [], "caps": []}')
     except ValueError as error:
         print(f"--policy is not JSON: {error}", file=sys.stderr)
         return 2
+    if args.live:
+        try:
+            canon._hex_field(args.agent_pk, 64, "agent_pk_hex")
+        except canon.CanonError as error:
+            print(f"invalid --agent-pk: {error}; nothing was signed", file=sys.stderr)
+            return 2
     try:
         if args.live:
             if not os.environ.get("VERIFIER_KEY_FILE"):
@@ -67,6 +78,15 @@ def _verdict(args):
         print(f"no signer: {error}", file=sys.stderr)
         return 2
     client, nearblocks, scanner, archival = _clients(args.gate)
+    if args.live:
+        try:
+            policy = agent.read_policy_views(client, args.gate, base58.encode_key(bytes.fromhex(args.agent_pk)))
+        except (*rules.UNAVAILABLE, KeyError, TypeError) as error:
+            print(f"cannot read Gate policy: {error}; nothing was signed", file=sys.stderr)
+            return 2
+        if policy is None:
+            print(f"the agent key is not registered on {args.gate}; nothing was signed", file=sys.stderr)
+            return 2
     issuers = None if args.gate.endswith(".testnet") else rules.issuers_for("mainnet")
     reports_account = os.environ.get("REPORTS_ACCOUNT_ID")
     try:
@@ -75,6 +95,9 @@ def _verdict(args):
                                  nearblocks=nearblocks, signer=verdict_signer, injection_scanner=scanner,
                                  archival=archival, evidence_dir=args.evidence_dir, issuers=issuers,
                                  reports_account=reports_account)
+    except signer.SignerError as error:
+        print(f"refused: {error}", file=sys.stderr)
+        return 2
     except ValueError as error:
         print(f"invalid request: {error}", file=sys.stderr)
         return 2
@@ -193,7 +216,7 @@ def _agent(args):
             return agent.pay(context, request, args.verdict_file, reports_account=reports_account)
         return agent.attack(args.name, context, request, reports_account=reports_account)
     except rpc.FixtureMiss:
-        print("not sent: pay reads the Gate live: set GATE_FIXTURES_MODE=record or off", file=sys.stderr)
+        print("not sent: pay reads the Gate live: set GATE_FIXTURES_MODE=off", file=sys.stderr)
         return 2
     except (agent.AgentError, signer.SignerError, canon.CanonError) as error:
         print(f"not sent: {error}", file=sys.stderr)
@@ -262,8 +285,7 @@ def main(argv=None):
     judge.add_argument("--gate", required=True, help="the Gate account id; .testnet selects testnet")
     judge.add_argument("--agent-pk", default=ed25519.public_from_seed(ed25519.TEST_AGENT_SEED).hex(),
                        help="the agent public key as 64 lowercase hex (default TEST agent 1)")
-    judge.add_argument("--policy", default='{"allowlist": [], "caps": []}',
-                       help="the agent policy as JSON in the get_agent shape")
+    judge.add_argument("--policy", help="the agent policy as JSON in the get_agent shape; cannot be used with --live")
     judge.add_argument("--live", action="store_true",
                        help="sign with the PyNaCl key in VERIFIER_KEY_FILE instead of the TEST key")
     judge.add_argument("--evidence-dir", default=verdict.EVIDENCE_DIR,

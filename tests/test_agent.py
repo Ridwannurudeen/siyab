@@ -45,6 +45,7 @@ class Transport:
 
 class Client:
     def __init__(self, policy=POLICY, gate_policy=None):
+        self.mode = "off"
         self.policy, self.gate_policy, self.calls = policy, gate_policy or {"paused": False, "denylist": []}, []
 
     def call_function(self, contract, method, args):
@@ -723,6 +724,40 @@ class AttackTest(AgentCase):
         self.assertEqual(old["expires_ms"] - old["issued_ms"], 300000)
         self.assertTrue(self.verify(old, self.request(), ed25519.public_from_seed(ed25519.TEST_VERIFIER_SEED)))
 
+    def test_expired_refuses_each_client_unless_its_mode_is_off(self):
+        for index in range(4):
+            for mode in ("replay", "record", None, "missing"):
+                with self.subTest(client=index, mode=mode):
+                    live = mock.Mock(key_id="cur")
+                    live.sign.return_value = bytes(64)
+                    load = mock.Mock(return_value=live)
+                    context = self.make(verifier=load)
+                    clients = [mock.Mock(mode="off") for _ in range(4)]
+                    clients[index] = object() if mode == "missing" else mock.Mock(mode=mode)
+                    context.clients = tuple(clients)
+                    with self.assertRaisesRegex(signer.SignerError,
+                                                "live signing requires GATE_FIXTURES_MODE=off for every client; "
+                                                "nothing was signed"):
+                        agent.attack("expired", context, self.request(), out=self.lines.append)
+                    load.assert_not_called()
+                    live.sign.assert_not_called()
+                    self.assertEqual(self.transport.sent, [])
+                    self.assertEqual(list(self.dir.iterdir()), [])
+
+    def test_expired_with_off_clients_proceeds(self):
+        for optional in (None, mock.Mock(mode="off")):
+            with self.subTest(optional=optional):
+                live = mock.Mock(key_id="cur")
+                live.sign.return_value = bytes(64)
+                load = mock.Mock(return_value=live)
+                context = self.make(PANIC, verifier=load)
+                context.clients = (mock.Mock(mode="off"), optional, optional, optional)
+                self.assertEqual(agent.attack("expired", context, self.request(), out=self.lines.append), 0)
+                load.assert_called_once_with()
+                live.sign.assert_called_once()
+                self.assertEqual(len(self.transport.sent), 1)
+                self.assertEqual(self.transport.sent[0]["args"]["verdict"]["signature"], bytes(64).hex())
+
     def test_a_protocol_rejection_is_printed_and_kept(self):
         code, _ = self.run_attack("callback", REJECTED)
         self.assertEqual(code, 0)
@@ -946,7 +981,7 @@ class CommandTest(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertEqual(output.getvalue(), "")
         self.assertEqual(errors.getvalue(),
-                         "not sent: pay reads the Gate live: set GATE_FIXTURES_MODE=record or off\n")
+                         "not sent: pay reads the Gate live: set GATE_FIXTURES_MODE=off\n")
         self.assertEqual(transport.sent, [])
 
     def test_pay_in_replay_mode_says_it_reads_the_gate_live(self):
@@ -961,7 +996,7 @@ class CommandTest(unittest.TestCase):
             with mock.patch("gate.agent.live_signer", return_value=signer.TestSigner()):
                 code, errors = self.run_command(argv, {"GATE_ACCOUNT_ID": GATE, "AGENT_KEY_FILE": str(key_file)})
         self.assertEqual(code, 2)
-        self.assertEqual(errors, "not sent: pay reads the Gate live: set GATE_FIXTURES_MODE=record or off\n")
+        self.assertEqual(errors, "not sent: pay reads the Gate live: set GATE_FIXTURES_MODE=off\n")
 
 
 if __name__ == "__main__":
