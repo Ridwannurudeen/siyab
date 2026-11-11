@@ -460,6 +460,33 @@ class FailClosedClientTest(unittest.TestCase):
                 getattr(client, method)(*args)
         self.assertTrue(issubclass(rpc.MalformedResponse, ValueError))
 
+    def test_a_body_nested_too_deeply_to_parse_is_malformed(self):
+        deep = b"[" * 100000
+        unbounded = mock.MagicMock()
+        unbounded.__enter__.return_value.read.return_value = deep
+        bounded = mock.MagicMock()
+        bounded.__enter__.return_value.read1.side_effect = [deep, b""]
+        with (mock.patch("urllib.request.urlopen", return_value=unbounded),
+              self.assertRaises(rpc.MalformedResponse) as caught):
+            rpc._fetch("https://api.example/x", None)
+        self.assertEqual(str(caught.exception), "the body is nested too deeply to parse")
+        with (rpc.request_deadline(60), mock.patch.object(rpc, "_open_with_deadline", return_value=bounded),
+              self.assertRaises(rpc.MalformedResponse) as caught):
+            rpc._fetch("https://api.example/x", None)
+        self.assertEqual(str(caught.exception), "the body is nested too deeply to parse")
+        bounded.__enter__.return_value.read1.assert_called()
+
+    def test_a_body_nested_too_deeply_to_record_is_malformed_and_not_written(self):
+        nested = b'{"result": ' + b"[" * 2000 + b"]" * 2000 + b"}"
+        handle = mock.MagicMock()
+        handle.__enter__.return_value.read.return_value = nested
+        client = rpc.Client("https://api.example", "record", kind="http", fixtures_dir=self.tmp.name)
+        with (mock.patch("urllib.request.urlopen", return_value=handle),
+              self.assertRaises(rpc.MalformedResponse) as caught):
+            client.get("/x")
+        self.assertEqual(str(caught.exception), "the body is nested too deeply to record")
+        self.assertEqual(list(Path(self.tmp.name).iterdir()), [])
+
     def test_a_truncated_reply_is_a_transport_error(self):
         client = rpc.Client("https://rpc.example", "record", fixtures_dir=self.tmp.name)
         for error in (http.client.IncompleteRead(b""), http.client.BadStatusLine("x")):

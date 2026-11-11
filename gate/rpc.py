@@ -411,8 +411,12 @@ class Client:
                                      if self.kind == "rpc" and method == "block" else response)
                 fixture = {"request": {"method": method, "params": params}, "response": recorded_response,
                            "url": url, "fetched_at": fetched_at}
+                try:
+                    text = json.dumps(fixture, indent=2, ensure_ascii=False)
+                except RecursionError as error:
+                    raise MalformedResponse("the body is nested too deeply to record") from error
                 self.fixtures_dir.mkdir(parents=True, exist_ok=True)
-                path.write_bytes((json.dumps(fixture, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
+                path.write_bytes((text + "\n").encode("utf-8"))
         if (isinstance(response, dict) and set(response) == {HTTP_STATUS_MARKER}
                 and type(response[HTTP_STATUS_MARKER]) is int):
             raise HttpError(response[HTTP_STATUS_MARKER], request_url or url)
@@ -461,3 +465,5 @@ def _fetch(url, body, extra_headers=None, record_http_errors=()):
         raise HttpError(error.code, url, error.headers.get("Retry-After")) from error
     except http.client.HTTPException as error:
         raise TransportError(type(error).__name__) from error
+    except RecursionError as error:
+        raise MalformedResponse("the body is nested too deeply to parse") from error

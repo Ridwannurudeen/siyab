@@ -1,0 +1,7 @@
+{
+  "source": "ShieldBot core/verdicts.py CLASSIFICATIONS at commit 3aecab4: the firewall classifications that are not in gate/intents.py FIREWALL_SIGNALS",
+  "non_signals": [
+    "SAFE",
+    "CAUTION"
+  ]
+}

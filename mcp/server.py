@@ -78,6 +78,12 @@ TOOLS = [
                 "recipient": {"type": "string", "description": "the 0x recipient on the destination chain"},
                 "recipient_type": {"type": "string", "description": "default DESTINATION_CHAIN"},
                 "deposit_address": {"type": "string", "description": "optional address from a real quote; checked by a read only status lookup"},
+                "refund_to": {"type": "string", "description": "the real quote's refund account; required with deposit_address"},
+                "refund_type": {"type": "string", "description": "the real quote's refund type, default ORIGIN_CHAIN"},
+                "app_fees": {"type": "array", "description": "the real quote's app fees, each {recipient, fee}; none when left out",
+                             "items": {"type": "object", "properties": {"recipient": {"type": "string"},
+                                                                        "fee": {"type": "integer"}},
+                                       "required": ["recipient", "fee"]}},
             },
             "required": ["origin_asset", "destination_asset", "amount", "recipient"],
         },
@@ -181,19 +187,28 @@ def _check_near_payment(arguments, evidence_dir):
 
 def _check_intents_quote(arguments, evidence_dir):
     mode = os.environ.get("GATE_FIXTURES_MODE") or "replay"
+    deposit_address = arguments.get("deposit_address")
+    if deposit_address is not None and arguments.get("refund_to") is None:
+        raise ToolError("refused: refund_to is required with deposit_address; the address is bound to the refund "
+                        "account the caller names")
+    refund_to = arguments["refund_to"] if "refund_to" in arguments else intents.REFUND_TO
+    refund_type = arguments["refund_type"] if "refund_type" in arguments else intents.REFUND_TYPE
+    deadline = intents.RECORDED_DEADLINE if mode == "replay" else intents.live_deadline()
     try:
-        recipient_type = arguments.get("recipient_type") or "DESTINATION_CHAIN"
+        recipient_type = arguments["recipient_type"] if "recipient_type" in arguments else "DESTINATION_CHAIN"
         result = intents.judge_quote(arguments.get("origin_asset"), arguments.get("destination_asset"),
                                      arguments.get("amount"), arguments.get("recipient"), recipient_type,
                                      firewall_url=os.environ.get("SHIELDBOT_API_URL"),
                                      mode=mode,
-                                     deadline=intents.RECORDED_DEADLINE if mode == "replay" else intents.live_deadline())
+                                     deadline=deadline,
+                                     refund_to=refund_to, refund_type=refund_type,
+                                     app_fees=arguments.get("app_fees"))
     except (ValueError, RecursionError) as error:
         raise ToolError(f"invalid request: {error}") from error
-    quote_request = {"originAsset": arguments.get("origin_asset"),
-                     "destinationAsset": arguments.get("destination_asset"), "amount": arguments.get("amount"),
-                     "recipient": arguments.get("recipient"), "recipientType": recipient_type}
-    deposit_address = arguments.get("deposit_address")
+    quote_request = intents.quote_body(arguments.get("origin_asset"), arguments.get("destination_asset"),
+                                       arguments.get("amount"), arguments.get("recipient"), recipient_type, deadline,
+                                       refund_to=refund_to, refund_type=refund_type,
+                                       app_fees=arguments.get("app_fees"))
     try:
         intents.verify_binding(result, quote_request)
         if deposit_address is not None:
@@ -311,7 +326,8 @@ def serve(stdin, stdout):
                 reply = handle(message, evidence_dir)
             if reply is None:
                 continue
-            data = json.dumps(reply, ensure_ascii=False).encode("utf-8")
+            # ASCII escapes: a lone surrogate in any reply is still valid JSON that parses back to the same text.
+            data = json.dumps(reply).encode("utf-8")
             stdout.write(b"Content-Length: %d\r\n\r\n" % len(data) + data if framed else data + b"\n")
             stdout.flush()
     finally:

@@ -42,7 +42,7 @@ A document is a JSON object with exactly these 11 keys (`gate/evidence.py:50-67`
 
 ### The intents variant
 
-An EVM leg preflight (`gate/intents.py:254-260`) writes a document whose `subject` is `{"kind": "intents", "origin_asset", "destination_asset", "amount", "recipient", "recipient_type", "quote"}`, where `quote` is `{"correlation_id", "timestamp", "amount_out", "min_amount_out"}` from the dry quote answer, or null when no quote was read (`gate/intents.py:187-189`), and which has a twelfth top level key, `"kind": "intents"`. It is never signed: `issued_ms`, `expires_ms`, `verdict_id`, `latency_ms` and `observed.block_height` are null, and `labels` is empty. The registry refuses to record it (`gate/registry.py:49-51`). No committed vector pins this variant.
+An EVM leg preflight (`gate/intents.py:580-587`) writes a document whose `subject` is `{"kind": "intents", "origin_asset", "destination_asset", "amount", "recipient", "recipient_type", "quote_request", "quote"}`, where `quote_request` is the 1Click quote request body the leg sent (`gate/intents.py:215-224`) and `quote` is `{"correlation_id", "timestamp", "amount_out", "min_amount_out"}` from the dry quote answer, or null when no quote was read (`gate/intents.py:337-338,525`), and which has a twelfth top level key, `"kind": "intents"`. It is never signed: `issued_ms`, `expires_ms`, `verdict_id`, `latency_ms` and `observed.block_height` are null, and `labels` is empty. The registry refuses to record it (`gate/registry.py:49-51`). No committed vector pins this variant.
 
 ### A check
 
@@ -50,14 +50,14 @@ An EVM leg preflight (`gate/intents.py:254-260`) writes a document whose `subjec
 
 | Key | JSON type | Content |
 |---|---|---|
-| `id` | string | the check's name, such as `receiver_exists`, `label_denylist`, `token_in_catalog`, `ft_metadata_sane`, `storage_registered`, `memo_injection`, `issuer_blacklist`, `account_age`, `dust_funded`, `lookalike`, `code_without_metadata`, or for the intents variant `quote_dry`, `destination_supported`, `ofac_sanctioned`, `recipient_theft_label`, `recipient_code`. The list is the code's current set, not a closed enumeration: a reader must accept an id it does not know. |
+| `id` | string | the check's name, such as `receiver_exists`, `label_denylist`, `token_in_catalog`, `ft_metadata_sane`, `storage_registered`, `memo_injection`, `issuer_blacklist`, `account_age`, `dust_funded`, `lookalike`, `code_without_metadata`, or for the intents variant `quote_dry`, `quote_age`, `quote_deadline`, `destination_supported`, `ofac_sanctioned`, `recipient_theft_label`, `recipient_code`, `deposit_address_status`. The list is the code's current set, not a closed enumeration: a reader must accept an id it does not know. |
 | `status` | string | `pass`, `signal` or `unknown`; any other value is refused (`gate/evidence.py:27`, `:45-47`) |
 | `detail` | string | what the check found, in Siyab's words; third party strings appear inside double quotes |
 | `source` | object | `{"provider": string, "request_sha256": string or null, "fetched_at": string or null}` |
 
 In `source`, `provider` names where the answer came from (an RPC host, `label store`, `local patterns`, `local rules`, or a committed fixture path); `request_sha256` is the 64 hex key of the recorded request (`gate/rpc.py:101-104`), the sha256 of the label store file, or for `ofac_sanctioned` the sha256 of the named fixture's JSON bytes. It is null for a local rule; `fetched_at` is the UTC time `YYYY-MM-DDTHH:MM:SSZ` the response was fetched, or null when nothing was fetched (`gate/rpc.py:305-306`, `gate/rules.py:117-118,121-122`). The OFAC check detail and match reason carry the source XML hash recorded inside that fixture.
 
-How check statuses become a verdict: any `signal` gives DENY; otherwise any `unknown` gives UNKNOWN; otherwise ALLOW (`gate/rules.py:868`, `gate/intents.py:252`).
+How check statuses become a verdict: any `signal` gives DENY; otherwise any `unknown` gives UNKNOWN; otherwise ALLOW (`gate/rules.py:868`, `gate/intents.py:578`).
 
 ## Canonical serialization
 
@@ -96,4 +96,4 @@ The escaping and key order rules are also pinned byte for byte by `tests/test_ev
 ## Source of truth
 
 - `gate/evidence.py:30` `subject`; `:43` `check`; `:50` `document`; `:81` `canonical_bytes`; `:88` `evidence_hash`; `:93` `write`; `:103` `check_file`.
-- `gate/verdict.py:106-109` when the issue time, expiry and verdict id are set; `gate/intents.py:254-260` the intents variant.
+- `gate/verdict.py:107-112` when the issue time, expiry and verdict id are set; `gate/intents.py:580-587` the intents variant.
