@@ -1,0 +1,7 @@
+{
+  "source": "the appFees entry 1Click added by itself to the recorded dry quote echo fixtures/intents/d765b63a4968583d56b0a31e023adc618d62df0c3afca0fe80e7b17f4ef7e886.json (fetched 2026-10-29T11:48:39Z) of a request that named no app fee",
+  "service_fee": {
+    "recipient": "5880ad2b362620fadf759cbceb1cd5737ce8c6ed7fb8e9942881e6731f9247dd",
+    "fee": 20
+  }
+}

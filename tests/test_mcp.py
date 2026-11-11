@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from gate import base58, canon, ed25519, intents, rpc, signer
+from gate import base58, canon, ed25519, evidence, intents, rpc, signer
 from tests.test_verdict import nacl, no_network, write_key_file
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -118,9 +118,8 @@ class McpServerTest(McpSessionCase):
         self.assertEqual(quote["verdict"], "DENY")
         self.assertEqual(quote["deposit_address_check"], "not checked: a dry quote has no deposit address")
         self.assertIn("recipient_theft_label", [c["id"] for c in quote["checks"] if c["status"] == "signal"])
-        intents.verify_binding(quote, {"originAsset": "nep141:wrap.near", "destinationAsset": USDC_BASE_ASSET,
-                                       "amount": ONE_NEAR, "recipient": DEMO_RECIPIENT,
-                                       "recipientType": "DESTINATION_CHAIN"})
+        intents.verify_binding(quote, intents.quote_body("nep141:wrap.near", USDC_BASE_ASSET, ONE_NEAR, DEMO_RECIPIENT,
+                                                         "DESTINATION_CHAIN", intents.RECORDED_DEADLINE))
 
         scan = json.loads(by_id[5]["result"]["content"][0]["text"])
         self.assertEqual(scan["findings"]["keys_error"], "RPC error TOO_MANY_ACCESS_KEYS")
@@ -134,14 +133,45 @@ class McpServerTest(McpSessionCase):
         self.assertTrue(by_id[9]["result"]["content"][0]["text"].startswith("invalid request: "))
         self.assertEqual(sorted(path.name for path in EVIDENCE_DIR.iterdir()), before)
 
-    def test_the_intents_tool_refuses_a_different_deposit_address(self):
+    def test_the_intents_tool_refuses_a_deposit_address_without_a_named_refund_account(self):
         by_id, _ = self.replies([call(1, "check_intents_quote", {
             "origin_asset": "nep141:wrap.near", "destination_asset": USDC_BASE_ASSET,
             "amount": ONE_NEAR, "recipient": DEMO_RECIPIENT, "deposit_address": "other.near",
         })])
         result = by_id[1]["result"]
         self.assertTrue(result["isError"])
-        self.assertIn("UNKNOWN deposit address status", result["content"][0]["text"])
+        self.assertIn("refund_to", result["content"][0]["text"])
+
+    def test_the_intents_tool_answers_an_unread_deposit_status_with_its_checks(self):
+        by_id, _ = self.replies([call(1, "check_intents_quote", {
+            "origin_asset": "nep141:wrap.near", "destination_asset": USDC_BASE_ASSET,
+            "amount": ONE_NEAR, "recipient": DEMO_RECIPIENT, "deposit_address": "other.near",
+            "refund_to": "payer.near",
+        })])
+        result = by_id[1]["result"]
+        self.assertFalse(result["isError"])
+        answer = json.loads(result["content"][0]["text"])
+        self.assertEqual(answer["verdict"], "DENY")
+        self.assertEqual({c["id"]: c["status"] for c in answer["checks"]}["deposit_address_status"], "unknown")
+        self.assertEqual(answer["document"]["subject"]["quote_request"]["refundTo"], "payer.near")
+        self.assertEqual(answer["deposit_address_check"], "checked by a read only 1Click status lookup")
+        intents.verify_binding(answer, intents.quote_body("nep141:wrap.near", USDC_BASE_ASSET, ONE_NEAR, DEMO_RECIPIENT,
+                                                          "DESTINATION_CHAIN", intents.RECORDED_DEADLINE,
+                                                          refund_to="payer.near"))
+
+    def test_the_intents_tool_answers_unknown_with_its_checks_and_evidence_hash(self):
+        by_id, _ = self.replies([call(1, "check_intents_quote", {
+            "origin_asset": "nep141:wrap.near", "destination_asset": USDC_BASE_ASSET,
+            "amount": ONE_NEAR, "recipient": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        })])
+        result = by_id[1]["result"]
+        self.assertFalse(result["isError"])
+        answer = json.loads(result["content"][0]["text"])
+        self.assertEqual(answer["verdict"], "UNKNOWN")
+        self.assertIn("unknown", {c["status"] for c in answer["checks"]})
+        self.assertNotIn("signal", {c["status"] for c in answer["checks"]})
+        self.assertTrue(answer["reasons"])
+        self.assertEqual(answer["evidence_hash"], evidence.evidence_hash(answer["document"]))
 
     def test_only_json_frames_reach_stdout(self):
         stdout, stderr = self.session([initialize("2025-06-18"), call(2, "scan_near_account", {"account_id": "near"}),
@@ -294,6 +324,50 @@ class McpHandlerTest(unittest.TestCase):
         replies = [json.loads(line) for line in stdout.getvalue().splitlines()]
         self.assertEqual(replies[0]["error"]["code"], -32602)
         self.assertEqual(replies[1]["result"]["content"][0]["text"], "valid call completed")
+
+    def test_a_lone_surrogate_in_any_reply_is_escaped_and_the_server_keeps_answering(self):
+        from mcp import server
+
+        surrogate = "\ud800"
+        messages = [
+            {"jsonrpc": "2.0", "id": surrogate, "method": "ping"},
+            call(2, surrogate, {}),
+            call(3, "scan_near_account", {"account_id": "near"}),
+            call(4, "check_intents_quote", {"origin_asset": "nep141:wrap.near", "destination_asset": USDC_BASE_ASSET,
+                                            "amount": ONE_NEAR, "recipient": DEMO_RECIPIENT,
+                                            "recipient_type": surrogate}),
+            {"jsonrpc": "2.0", "id": 5, "method": "ping"},
+        ]
+
+        def surrogate_tool(arguments, evidence_dir):
+            return {"text": surrogate}
+
+        for framed in (True, False):
+            bodies = [json.dumps(message).encode("utf-8") for message in messages]
+            data = b"".join(b"Content-Length: %d\r\n\r\n" % len(body) + body if framed else body + b"\n"
+                            for body in bodies)
+            stdout = io.BytesIO()
+            with (self.subTest(framed=framed), mock.patch.dict(os.environ, {"GATE_KEEP_EVIDENCE": "0"}),
+                  mock.patch.dict(server.HANDLERS, {"scan_near_account": surrogate_tool}),
+                  contextlib.redirect_stderr(io.StringIO())):
+                self.assertEqual(server.serve(io.BufferedReader(io.BytesIO(data)), stdout), 0)
+                output, replies = stdout.getvalue(), []
+                output.decode("ascii")
+                while output:
+                    if framed:
+                        header, _, output = output.partition(b"\r\n\r\n")
+                        length = int(header.split(b": ")[1])
+                        body, output = output[:length], output[length:]
+                    else:
+                        body, _, output = output.partition(b"\n")
+                    replies.append(json.loads(body))
+                self.assertEqual([reply["id"] for reply in replies], [surrogate, 2, 3, 4, 5])
+                self.assertEqual(replies[0]["result"], {})
+                self.assertEqual(replies[1]["error"]["message"], f"unknown tool: {surrogate}")
+                self.assertEqual(json.loads(replies[2]["result"]["content"][0]["text"]), {"text": surrogate})
+                self.assertTrue(replies[3]["result"]["isError"])
+                self.assertIn(f'recipientType "{surrogate}"', replies[3]["result"]["content"][0]["text"])
+                self.assertEqual(replies[4]["result"], {})
 
 
 class McpLiveSigningTest(McpSessionCase):

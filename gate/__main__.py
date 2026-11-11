@@ -1,6 +1,7 @@
 """Command line: python -m gate <command>."""
 
 import argparse
+import io
 import json
 import os
 import sys
@@ -109,14 +110,25 @@ def _http(args):
 def _intents(args):
     mode = "off" if args.live else os.environ.get("GATE_FIXTURES_MODE") or "replay"
     deadline = intents.RECORDED_DEADLINE if mode == "replay" else intents.live_deadline()
+    if args.deposit_address is not None and args.refund_to is None:
+        print("refused: --refund-to is required with --deposit-address; the address is bound to the refund "
+              "account the caller names", file=sys.stderr)
+        return 1
+    refund_to = intents.REFUND_TO if args.refund_to is None else args.refund_to
     try:
+        app_fees = None if args.app_fees is None else json.loads(args.app_fees)
         result = intents.judge_quote(args.origin, args.destination, args.amount, args.recipient, args.recipient_type,
-                                     mode=mode, firewall_url=os.environ.get("SHIELDBOT_API_URL"), deadline=deadline)
+                                     mode=mode, firewall_url=os.environ.get("SHIELDBOT_API_URL"), deadline=deadline,
+                                     refund_to=refund_to, refund_type=args.refund_type, app_fees=app_fees)
     except ValueError as error:
         print(f"invalid request: {error}", file=sys.stderr)
         return 2
-    quote_request = {"originAsset": args.origin, "destinationAsset": args.destination, "amount": args.amount,
-                     "recipient": args.recipient, "recipientType": args.recipient_type}
+    except RecursionError:
+        print("invalid request: the request is nested too deeply to read", file=sys.stderr)
+        return 2
+    quote_request = intents.quote_body(args.origin, args.destination, args.amount, args.recipient,
+                                       args.recipient_type, deadline, refund_to=refund_to,
+                                       refund_type=args.refund_type, app_fees=app_fees)
     try:
         intents.verify_binding(result, quote_request)
         if args.deposit_address is not None:
@@ -243,6 +255,10 @@ def _codehash(data):
 
 
 def main(argv=None):
+    # A piped or redirected stdout writes the locale encoding (cp1252 on Windows), which has no byte for
+    # many characters a third party string can carry; those print as backslash escapes, never a crash.
+    if isinstance(sys.stdout, io.TextIOWrapper):
+        sys.stdout.reconfigure(errors="backslashreplace")
     parser = argparse.ArgumentParser(prog="python -m gate")
     commands = parser.add_subparsers(dest="command", required=True)
 
@@ -300,6 +316,9 @@ def main(argv=None):
     leg.add_argument("--recipient", required=True, help="the 0x recipient on the destination chain")
     leg.add_argument("--recipient-type", default="DESTINATION_CHAIN")
     leg.add_argument("--deposit-address", help="the deposit address from the real quote to check")
+    leg.add_argument("--refund-to", help="the refund account of the real quote; required with --deposit-address")
+    leg.add_argument("--refund-type", default=intents.REFUND_TYPE)
+    leg.add_argument("--app-fees", help='the real quote\'s app fees as JSON, [{"recipient": ..., "fee": ...}]')
     leg.add_argument("--live", action="store_true",
                      help="fetch a live dry quote and labels instead of replaying fixtures; writes nothing")
     leg.set_defaults(handler=_intents)
