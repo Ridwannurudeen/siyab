@@ -460,7 +460,7 @@
     for (const item of data.items) {
       const row = node("li");
       if (inbox) {
-        row.append(node("strong", item.event?.signal || "Observed event"), node("p", item.event?.detail || "Open the evidence to inspect this event."));
+        row.append(node("strong", item.event?.signal || "Observed event"), node("p", window.SiyabNumbers.prose(item.event?.detail || "Open the evidence to inspect this event.")));
         const link = node("a", item.account || "Watched account"); link.href = "/investigate.html?account=" + encodeURIComponent(item.account); row.append(link);
         row.append(node("p", (item.candidate ? "Candidate signal; not a confirmed risk verdict. " : "Observed signal. ") + "Indexed " + date(item.ingested_ms), "source-line"));
         if (/^[a-f0-9]{64}$/.test(item.event_id)) { const evidence = node("a", "Open evidence"); evidence.href = item.event?.signal === "account_transfer_observed" ? "/live/account-events/" + item.event_id + ".json" : "/evidence/" + item.event_id; row.append(evidence); }

@@ -1,6 +1,12 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-const window={};vm.runInNewContext(fs.readFileSync('intel/ui/number-format.js','utf8'),{window});
+const numbersSource=fs.readFileSync('intel/ui/number-format.js','utf8');
+assert.equal(numbersSource.includes('(?<'),false,'Shared number formatter must avoid lookbehind');
+const window={};vm.runInNewContext(numbersSource,{window});
 const n=window.SiyabNumbers;
+for(const value of ['1.2500 ms','1,2500 ms','1.2500 yoctoNEAR','1,2500 yoctoNEAR','2.1000000000000000000000000 yoctoNEAR','1,000 ms','a1000 ms'])assert.equal(n.prose(value),value);
+for(const [value,expected] of [['1000 ms','1 s'],['(1000 ms)','(1 s)'],['1000 ms 2000 ms','1 s 2 s'],
+  ['full access key ed25519:abc added to agent.near; transfer of 1000000000000000000000000 yoctoNEAR to x.near within 452158 ms',
+   'full access key ed25519:abc added to agent.near; transfer of 1 NEAR to x.near within 7 min 32 s']])assert.equal(n.prose(value),expected);
 assert.equal(n.decimal('1234567.123456789012345',2),'1,234,567.12');
 assert.equal(n.decimal('999999999999999999.995',2),'1,000,000,000,000,000,000');
 assert.equal(n.decimal('0.000000000000000001',2),'<0.01');

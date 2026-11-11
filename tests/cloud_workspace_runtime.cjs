@@ -25,6 +25,7 @@ function environment(options = {}) {
   const document = {createElement: tag => new Element(tag), getElementById: id => nodes[id] || null, querySelectorAll: () => []};
   document.body = new Element('body'); document.activeElement = document.body;
   const window = new Element('window');
+  vm.runInNewContext(fs.readFileSync('intel/ui/number-format.js', 'utf8'), {window});
   nodes['workspace-feedback'] = new Element('p');
   if (options.globalSave) {
     for (const [id, tag] of [['case-form', 'form'], ['case-title', 'input'], ['case-notes', 'textarea'], ['case-source', 'p'], ['case-error', 'p'], ['save-investigation', 'dialog']]) nodes[id] = new Element(tag);
@@ -180,8 +181,13 @@ async function main() {
     assert.match(text(parent), /2 accounts with recorded coverage gaps/);
     env.api.state.panel = 'inbox';
     const history = new Element('section'), hash = 'a'.repeat(64);
-    env.api.renderHistory(history, {items: [{event: {signal: 'account_transfer_observed'}, event_id: hash, id: 1, account: 'alice.near'}], next_after: 1, next_before: 1, has_older: false}, '/teams/team1');
-    assert.equal(history.querySelectorAll('a').find(link => link.textContent === 'Open evidence').href, '/live/account-events/' + hash + '.json');
+    const detail = 'full access key ed25519:abc added to alice.near; transfer of 1000000000000000000000000 yoctoNEAR to x.near within 452158 ms';
+    const event = {signal: 'full_access_key_then_outflow', detail};
+    env.api.renderHistory(history, {items: [{event, event_id: hash, id: 1, account: 'alice.near'}], next_after: 1, next_before: 1, has_older: false}, '/teams/team1');
+    assert.ok(history.querySelectorAll('p').some(node => node.textContent === 'full access key ed25519:abc added to alice.near; transfer of 1 NEAR to x.near within 7 min 32 s'));
+    assert.doesNotMatch(text(history), /yoctoNEAR|452158 ms/);
+    assert.equal(event.detail, detail, 'Displayed prose does not change the evidence record');
+    assert.equal(history.querySelectorAll('a').find(link => link.textContent === 'Open evidence').href, '/evidence/' + hash);
   } else throw new Error('Unknown scenario');
 }
 main().catch(error => {console.error(error); process.exitCode = 1;});

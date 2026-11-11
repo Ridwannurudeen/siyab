@@ -22,5 +22,14 @@
     if (typeof value !== "string" || !/^\d{1,39}$/.test(value) || !Number.isInteger(decimals) || decimals < 0 || decimals > 255) return "Unavailable";
     return decimal(value + "e-" + decimals, places);
   }
-  window.SiyabNumbers = Object.freeze({decimal, baseUnits});
+  const duration = ms => {
+    if (ms < 1000) return ms + " ms";
+    const seconds = Math.floor(ms / 1000);
+    if (seconds < 60) return seconds + " s";
+    if (seconds < 3600) { const rest = seconds % 60; return Math.floor(seconds / 60) + " min" + (rest ? " " + rest + " s" : ""); }
+    const minutes = Math.floor(seconds % 3600 / 60); return Math.floor(seconds / 3600) + " h" + (minutes ? " " + minutes + " min" : "");
+  };
+  const prose = value => value.replace(/(^|[^.,\w])([0-9]{1,39}) yoctoNEAR\b/g, (whole, lead, amount) => { const near = baseUnits(amount, 24); return near === "Unavailable" ? whole : lead + near + " NEAR"; })
+    .replace(/(^|[^.,\w])([0-9]{1,15}) ms\b/g, (whole, lead, ms) => lead + duration(Number(ms)));
+  window.SiyabNumbers = Object.freeze({decimal, baseUnits, duration, prose});
 })();

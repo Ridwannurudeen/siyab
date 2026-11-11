@@ -25,7 +25,7 @@
     const matches = current.events.map((row, index) => ({row, id: current.event_ids ? current.event_ids[index] : null})).filter(({row, id}) =>
       (!signal.value || row.signal === signal.value) && (!source.value || provider(row) === source.value) &&
       (!since.value || Number.isFinite(lowerBound) && typeof row.observed.timestamp_ms === "number" && row.observed.timestamp_ms >= lowerBound) &&
-      (!needle || [row.subject, row.other_account_id, row.signal, row.detail, row.tx_hash, row.receipt_id, id].filter(value => typeof value === "string").join(" ").toLowerCase().includes(needle))).slice(-50).reverse();
+      (!needle || [row.subject, row.other_account_id, row.signal, row.detail, window.SiyabNumbers.prose(row.detail), row.tx_hash, row.receipt_id, id].filter(value => typeof value === "string").join(" ").toLowerCase().includes(needle))).slice(-50).reverse();
     events.replaceChildren(); add(events, "h3", "Recent observed signals");
     add(events, "p", `${matches.length} of ${current.events.length} events in this response. Newest observed block first.`, "feed-count");
     if (!matches.length) {
@@ -43,7 +43,8 @@
       const observed = utc(row);
       if (observed) add(cells[0], "time", observed.replace("T", " ").replace(/\.\d{3}Z$/, " UTC")).setAttribute("datetime", observed);
       else add(cells[0], "span", "Not recorded");
-      add(cells[1], "strong", row.signal.replace(/_/g, " ")); add(cells[1], "p", row.detail);
+      cells[1].setAttribute("data-export-value", (row.signal.replace(/_/g, " ") + row.detail).trim().replace(/\s+/g, " "));
+      add(cells[1], "strong", row.signal.replace(/_/g, " ")); add(cells[1], "p", window.SiyabNumbers.prose(row.detail));
       add(cells[2], "q", text(row.subject), "data");
       if (typeof row.subject === "string" && /^[a-z0-9._-]{2,64}$/.test(row.subject)) add(cells[2], "a", "Investigate").href = "/index.html?q=" + encodeURIComponent(row.subject);
       add(cells[3], "q", text(row.other_account_id), "data");

@@ -23,6 +23,7 @@ function environment(filename, search = '') {
   document.getElementById = id => nodes[id] ||= new Element(); document.querySelectorAll = () => [];
   document.createElement = tag => Object.assign(new Element(), {tag});
   const window = new Element(), timers = new Map(), requests = [];
+  vm.runInNewContext(fs.readFileSync('intel/ui/number-format.js', 'utf8'), {window});
   let serial = 0;
   const fetch = (url, options = {}) => new Promise((resolve, reject) => {
     requests.push({url, options, resolve, reject});

@@ -320,6 +320,38 @@ def _display_amount(value, places, *, decimals=0):
         return "Unavailable"
 
 
+_YOCTO_PROSE = re.compile(r"(?<![0-9.,])\b([0-9]{1,39}) yoctoNEAR\b")
+_MS_PROSE = re.compile(r"(?<![0-9.,])\b([0-9]{1,15}) ms\b")
+
+
+def _display_duration(ms):
+    """A readable duration for display prose; the exact milliseconds stay in the event record."""
+    if ms < 1000:
+        return f"{ms} ms"
+    seconds = ms // 1000
+    if seconds < 60:
+        return f"{seconds} s"
+    if seconds < 3600:
+        minutes, rest = divmod(seconds, 60)
+        return f"{minutes} min" + (f" {rest} s" if rest else "")
+    hours, rest = divmod(seconds, 3600)
+    return f"{hours} h" + (f" {rest // 60} min" if rest // 60 else "")
+
+
+def _display_detail(text):
+    """Event description prose with NEAR and duration units matching the Amount column; never the stored record."""
+    def near(match):
+        amount = _display_amount(match.group(1), 4, decimals=24)
+        return match.group(0) if amount == "Unavailable" else amount + " NEAR"
+    return _MS_PROSE.sub(lambda match: _display_duration(int(match.group(1))), _YOCTO_PROSE.sub(near, text))
+
+
+def _event_detail(event):
+    """The escaped readable description of an event, or unknown when it has none."""
+    detail = event.get("detail") if isinstance(event, dict) else None
+    return esc(_display_detail(detail)) if isinstance(detail, str) else "unknown"
+
+
 def _feed_panel(event_rows=()):
     rows = []
     for event, event_id in reversed(event_rows):
@@ -335,21 +367,25 @@ def _feed_panel(event_rows=()):
                   f'{esc(_display_amount(event["amount_yocto"], 4, decimals=24))} NEAR' if event.get("amount_yocto") is not None else "Not recorded")
         exact_amount = (f'{event["usd_amount"]} USD (provider value)' if event.get("usd_amount") is not None else
                         f'{event["amount_yocto"]} yoctoNEAR' if event.get("amount_yocto") is not None else "Not recorded")
+        exact_signal = "".join("unknown" if event.get(key) is None else str(event[key]) for key in ("signal", "detail"))
+        exact_signal = re.sub(r"\s+", " ", exact_signal.strip())
         source = event.get("source") if isinstance(event.get("source"), dict) else {}
         evidence_link = (f'<a href="/evidence/{event_id}">Open evidence</a>'
                          if re.fullmatch(r"[0-9a-f]{64}", event_id) else "Unlinked record")
         cells = [when,
-                 f'<strong>{_event_field(event, "signal")}</strong><p>{_event_field(event, "detail")}</p>',
+                 f'<strong>{_event_field(event, "signal")}</strong><p>{_event_detail(event)}</p>',
                  f'<q class="data">{_event_field(event, "subject")}</q>',
                  f'<q class="data">{_event_field(event, "other_account_id")}</q>'
                  if event.get("other_account_id") else "Not recorded",
-                 f'<span class="feed-amount">{amount}</span><small>{_event_field(event, "asset_id")}</small>',
+                 f'<span class="feed-amount">{amount}</span>'
+                 + (f'<small>{_event_field(event, "asset_id")}</small>' if event.get("asset_id") else ""),
                  f'{esc(source.get("provider", "Provider not recorded"))}<br>{evidence_link}'
                  f'<details><summary>Record details</summary><p>Block {_event_field(event, "observed", "block_height")}</p>'
                  f'<p>Transaction {_event_field(event, "tx_hash")}</p><p>Receipt {_event_field(event, "receipt_id")}</p>'
                  f'<p>Evidence identifier {esc(event_id)}</p><pre>{esc(json.dumps(event, ensure_ascii=False, indent=2))}</pre></details>']
         labels_for_cells = ("Observed (UTC)", "Signal", "Account", "Counterparty", "Amount", "Source and evidence")
-        rows.append('<tr>' + ''.join(f'<td data-label="{label}"' + (f' data-export-value="{esc(exact_amount)}"' if label == "Amount" else "")
+        rows.append('<tr>' + ''.join(f'<td data-label="{label}"' + (f' data-export-value="{esc(exact_signal)}"' if label == "Signal" else
+                                    f' data-export-value="{esc(exact_amount)}"' if label == "Amount" else "")
                                     + f'>{value}</td>' for label, value in zip(labels_for_cells, cells)) + '</tr>')
     headers = ''.join(f'<th scope="col">{label}</th>' for label in
                       ("Observed (UTC)", "Signal", "Account", "Counterparty", "Amount", "Source and evidence"))
@@ -632,7 +668,7 @@ def feed_page(state_path=feed.STATE_PATH, events_dir=feed.EVENTS_DIR, *, state=N
         event_rows = [(document, stem) for _, stem, document in events]
     cards = "".join(
         f'<div class="card"><p><strong>{_event_field(e, "signal")}</strong> at block '
-        f'{_event_field(e, "observed", "block_height")}</p><p>{_event_field(e, "detail")}</p><p class="mono">receipt '
+        f'{_event_field(e, "observed", "block_height")}</p><p>{_event_detail(e)}</p><p class="mono">receipt '
         f'{_event_field(e, "receipt_id")}<br>transaction {_event_field(e, "tx_hash")}<br>evidence {esc(stem)}</p></div>'
         for e, stem in event_rows)
     shown = "" if total == len(event_rows) else f"; the {len(event_rows)} most recent by block height are shown"
@@ -1044,7 +1080,7 @@ def account_page(subject, store, accounts, incidents, flows, clusters, events_di
             events.append((path.stem, document))
     body += "<h2>Feed events</h2>" + ("".join(
         f'<div class="card"><p><strong>{esc(document["signal"])}</strong> at block '
-        f'{document["observed"]["block_height"]}</p><p>{esc(document["detail"])}</p>'
+        f'{document["observed"]["block_height"]}</p><p>{_event_detail(document)}</p>'
         f'<p class="mono">evidence {esc(stem)}</p></div>' for stem, document in events)
         if events else "<p>No committed feed event names this account.</p>")
     split = body.index('<section class="workspace-panel profile-overview">')

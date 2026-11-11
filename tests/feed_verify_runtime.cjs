@@ -48,15 +48,26 @@ async function main() {
     env.nodes.registry.value = 'registry.example.testnet'; env.nodes.subject.value = 'vendor.testnet'; env.nodes.hash.value = 'a'.repeat(64);
   }
   if (scenario === 'feed-filter') {
-    const a = signal('full_access_key_then_outflow', {destination: 'implicit', amount_yocto: '1000000000000000000000000'});
+    const raw = 'full access key ed25519:abc added to agent.near; transfer of 1000000000000000000000000 yoctoNEAR to x.near within 452158 ms';
+    const a = signal('full_access_key_then_outflow', {destination: 'implicit', amount_yocto: '1000000000000000000000000', detail: raw});
     const b = signal('labelled_account_large_transfer', {other_account_id: 'counterparty.near', usd_amount: '1000.0001', asset_id: 'native:near', source: {provider: 'FastNEAR Transfers'}});
     await env.reply(0, response([a, b], ['a'.repeat(64), 'b'.repeat(64)]));
     assert.match(text(env.nodes['feed-events']), /1970-01-01/);
+    assert.ok(env.nodes['feed-events'].querySelectorAll('td').some(node => node.getAttribute('data-export-value') === 'full access key then outflow' + raw), 'Signal export keeps the exact original text without a separator');
+    assert.ok(env.nodes['feed-events'].querySelectorAll('p').some(node => node.textContent === 'full access key ed25519:abc added to agent.near; transfer of 1 NEAR to x.near within 7 min 32 s'), 'Live detail prose uses readable units');
+    assert.equal(env.nodes['feed-events'].querySelectorAll('p').some(node => /yoctoNEAR| ms$/.test(node.textContent)), false, 'No raw yocto or millisecond prose in the description');
+    assert.match(text(env.nodes['feed-events']), /1000000000000000000000000 yoctoNEAR to x\.near within 452158 ms/, 'Raw event JSON keeps the exact recorded text');
     assert.match(text(env.nodes['feed-events']), /1,000 USD/);
     assert.match(text(env.nodes['feed-events']), /"usd_amount": "1000\.0001"/);
     assert.ok(env.nodes['feed-events'].querySelectorAll('td').some(node=>node.getAttribute('data-export-value')==='1000.0001 USD (provider value)'));
     assert.equal(env.nodes['feed-events'].querySelectorAll('a').some(node => /implicit/.test(node.href)), false);
     assert.equal(env.nodes['feed-events'].querySelectorAll('a').some(node => node.href === '/evidence/' + 'b'.repeat(64)), true);
+    for (const query of ['1 NEAR', '7 min', '452158 ms', '1000000000000000000000000 yoctoNEAR']) {
+      env.nodes['feed-query'].value = query; env.nodes['feed-query'].emit('input');
+      assert.match(text(env.nodes['feed-events']), /1 of 2 events/, 'Search includes readable and raw detail');
+      assert.match(text(env.nodes['feed-events']), /full access key/);
+    }
+    env.nodes['feed-clear'].emit('click');
     env.nodes['feed-source'].value = 'FastNEAR Transfers'; env.nodes['feed-source'].emit('change');
     assert.match(text(env.nodes['feed-events']), /counterparty.near/);
     assert.doesNotMatch(text(env.nodes['feed-events']), /full_access_key_then_outflow/);
@@ -65,6 +76,17 @@ async function main() {
     env.nodes['feed-clear'].emit('click');
     assert.match(text(env.nodes['feed-events']), /1 NEAR/);
     assert.ok(env.nodes['feed-events'].querySelectorAll('td').some(node=>node.getAttribute('data-export-value')==='1000000000000000000000000 yoctoNEAR'));
+    const whitespace = environment(script);
+    await whitespace.reply(0, response([signal('  recorded', {detail: '  <raw & "detail">\n2500 ms  '})], [null]));
+    const signalCell = whitespace.nodes['feed-events'].querySelectorAll('td').find(node => node.getAttribute('data-label') === 'Signal');
+    assert.equal(signalCell.getAttribute('data-export-value'), 'recorded <raw & "detail"> 2500 ms');
+    const workspace = fs.readFileSync('intel/ui/workspace.js', 'utf8');
+    const extracted = workspace.slice(workspace.indexOf('  const csv ='), workspace.indexOf('  function viewUrl()'));
+    let exported;
+    const context = {document: {getElementById: () => ({querySelectorAll: () => [{hidden: false, querySelectorAll: () => [signalCell]}]})},
+      download(name, value) { exported = value; }, message() {}};
+    vm.runInNewContext(extracted + ';globalThis.run=tableExport;', context); context.run('feed-signals');
+    assert.equal(exported, '"recorded <raw & ""detail""> 2500 ms"\r\n');
   } else if (scenario === 'feed-acceptance') {
     await env.reply(0, response([signal('A')], ['a'.repeat(64)]));
     assert.equal(env.notifications.length, 1);

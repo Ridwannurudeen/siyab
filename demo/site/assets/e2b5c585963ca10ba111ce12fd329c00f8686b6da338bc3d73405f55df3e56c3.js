@@ -131,7 +131,7 @@
     block: {block: $("portfolio-block-block"), heading: $("portfolio-block-heading"), content: $("portfolio-block"), status: $("portfolio-block-status"), button: blockButton}
   };
   const requests = new Map();
-  let account = "", generation = 0, current = null, archived = null, history = null;
+  let account = "", generation = 0, current = null, archived = null, history = null, userMeasure = "total", measureChosen = false;
   const node = (tag, text, className) => {
     const item = document.createElement(tag);
     if (text !== undefined && text !== null) item.textContent = String(text);
@@ -342,7 +342,9 @@
   function renderHistory() {
     const content = sections.history.content;
     if (!history) return;
-    const items = [...history.items.values()], groups = scopes(items), measure = measureSelect.value;
+    const items = [...history.items.values()], groups = scopes(items);
+    let measure = [...measureSelect.children].some(option => option.value === userMeasure) ? userMeasure : measureSelect.firstChild.value;
+    measureSelect.value = measure;
     const chosen = scopeSelect.value;
     scopeSelect.replaceChildren(...[...groups].map(([scope, group]) => {
       const option = node("option", "Inventory " + scope.slice(0, 12) + " (" + group.length + (group.length === 1 ? " read, " : " reads, ") + group[0].assets_count + (group[0].assets_count === 1 ? " asset)" : " assets)")); option.value = scope; return option;
@@ -357,6 +359,16 @@
     scopeSelect.value = groups.has(chosen) ? chosen : [...groups.keys()][0];
     const group = groups.get(scopeSelect.value), result = node("div");
     result.append(node("p", groups.size > 1 ? groups.size + " different inventory scopes are retained. Each scope covers a different set of assets, so only one is shown at a time." : "One inventory scope is retained.", "portfolio-note"));
+    const valued = option => group.filter(item => finite(measureValue(item, option)) !== null).length;
+    let switchedFrom = null;
+    if (!measureChosen && !valued(measure)) {
+      const fallback = [...measureSelect.children].map(option => option.value).find(option => valued(option));
+      if (fallback) { switchedFrom = measureLabel(); measureSelect.value = measure = fallback; }
+    }
+    if (switchedFrom) result.append(node("p", "Showing " + measureLabel() + " because no read in this scope has a " + switchedFrom + "." + (measure === "known" ? " The subtotal covers priced assets only and is not a complete total." : ""), "portfolio-note"));
+    const missing = group.length - valued(measure);
+    if (missing) result.append(node("p", measureLabel() + " is not established for " + missing + " of " + group.length + (group.length === 1 ? " read" : " reads") + " in this scope"
+      + (measure === "total" ? ". The table below gives the reason and known subtotal for each read." : ". The table below gives the reason for each read."), "portfolio-note"));
     renderChart(result, group, measure);
     const unit = measure === "balance" ? "" : " USD";
     const rows = [...group].reverse().map(item => {
@@ -482,7 +494,7 @@
     const ready = Boolean(account);
     for (const control of [readButton, historyButton, blockButton, seriesSelect, heightInput, contractsInput]) control.disabled = !ready;
     useCurrent.disabled = true; measureSelect.disabled = !ready;
-    seriesOptions(); seriesSelect.value = ""; measureOptions(); measureSelect.value = "total";
+    seriesOptions(); seriesSelect.value = ""; measureOptions(); measureSelect.value = "total"; userMeasure = "total"; measureChosen = false;
     scopeSelect.replaceChildren(node("option", "Load observations to choose a scope")); scopeSelect.firstChild && (scopeSelect.firstChild.value = ""); scopeSelect.disabled = true;
     heightInput.value = ""; contractsInput.value = ""; fieldError(heightInput, ""); fieldError(contractsInput, "");
     for (const section of Object.values(sections)) { section.content.setAttribute("aria-busy", "false"); section.status.textContent = ""; }
@@ -493,12 +505,12 @@
   readButton.addEventListener("click", readCurrent);
   $("portfolio-history-form").addEventListener("submit", event => { event.preventDefault(); if (account) loadHistory(false); });
   seriesSelect.addEventListener("change", () => {
-    measureOptions(); const active = requests.get("history"); if (active) { requests.delete("history"); active.controller.abort(); }
+    measureOptions(); measureChosen = false; const active = requests.get("history"); if (active) { requests.delete("history"); active.controller.abort(); }
     history = null; scopeSelect.replaceChildren(node("option", "Load observations to choose a scope")); scopeSelect.firstChild.value = ""; scopeSelect.disabled = true;
     sections.history.content.setAttribute("aria-busy", "false"); sections.history.status.textContent = ""; historyButton.disabled = !account;
     sections.history.content.replaceChildren(empty("Load retained observations for this series."));
   });
-  measureSelect.addEventListener("change", renderHistory);
+  measureSelect.addEventListener("change", () => { userMeasure = measureSelect.value; measureChosen = true; renderHistory(); });
   scopeSelect.addEventListener("change", renderHistory);
   $("portfolio-block-form").addEventListener("submit", event => { event.preventDefault(); if (account) readBlock(); });
   heightInput.addEventListener("blur", () => { if (heightInput.value.trim()) fieldError(heightInput, parseBlock(heightInput.value).error); });
