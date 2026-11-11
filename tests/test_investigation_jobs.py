@@ -12,7 +12,7 @@ from intel import history, investigation_jobs, live
 from intel.accounts import AccountReadError
 from intel.workspace import SQLiteWorkspaceStore
 from intel.workspace_api import WorkspaceAPI
-from tests.test_history import Reader, page, transfer
+from tests.test_history import Reader, later, page, transfer
 
 
 class HistoricalReader(Reader):
@@ -213,6 +213,68 @@ class InvestigationJobsTest(unittest.TestCase):
         self.assertEqual(current["last_error"], "history_capacity")
         self.assertEqual(self.reader.calls, [])
         self.assertEqual(current["retry_at_ms"], self.jobs._now() + 60000)
+
+    def test_job_service_records_a_tampered_retained_page_and_keeps_running(self):
+        self.archive.record_page("alice.near", "transfers", page([transfer(1)]))
+        with self.archive._connection(write=True) as connection:
+            connection.execute("UPDATE pages SET body=?", (b"null",))
+        self.reader.pages["alice.near", None] = page([transfer(1)])
+        job = self.jobs.create("team", "actor", "alice.near")
+        waits = []
+
+        class Stop:
+            def wait(inner, interval):
+                waits.append(self.jobs.get("team", job["id"]))
+                return len(waits) == 2
+
+        investigation_jobs.run(self.root / "jobs.sqlite3", self.archive, self.reader, stop_event=Stop())
+        self.assertEqual(len(waits), 2)
+        self.assertEqual(len(self.reader.calls), 1)
+        current = self.jobs.get("team", job["id"])
+        self.assertEqual((current["state"], current["attempts"], current["last_error"]), ("retry_wait", 1, "HistoryReadError"))
+        with self.jobs._connection() as connection:
+            self.assertEqual(tuple(connection.execute("SELECT lease_token,lease_until_ms FROM jobs").fetchone()), (None, 0))
+        with self.archive._connection() as connection:
+            self.assertEqual(tuple(connection.execute("SELECT lease_token,lease_until_ms FROM backfill_control WHERE kind='job'").fetchone()), (None, 0))
+
+    def test_job_pages_use_the_archive_share_reserved_from_anonymous_reads(self):
+        self.reader.pages["alice.near", None] = page([transfer(1)])
+        job = self.jobs.create("team", "actor", "alice.near")
+        with mock.patch.object(history, "MAX_ARCHIVE_PAGES", 4):
+            for number in range(3):
+                account = "public" + str(number) + ".near"
+                self.archive.record_page(account, "transfers", page([], account=account))
+            with self.assertRaises(history.HistoryCapacityError):
+                self.archive.record_page("public3.near", "transfers", page([], account="public3.near"))
+            self.jobs.tick(self.reader)
+        current = self.jobs.get("team", job["id"])
+        self.assertEqual(current["counts"]["pages"], 1)
+        self.assertIsNone(current["last_error"])
+        self.assertEqual(len(self.jobs.result("team", job["id"])["items"]), 1)
+
+    def test_a_job_over_retained_rows_cites_the_retained_page_and_its_provenance(self):
+        retained = page([transfer(2), transfer(1)])
+        saved = self.archive.record_page("alice.near", "transfers", retained)
+        self.archive.record_page("alice.near", "transfers", page([transfer(3), transfer(2)]))
+        fresh = later(page([transfer(2), transfer(1)]), "2026-11-10T00:05:00Z")
+        fresh["source"]["request_sha256"] = fresh["items"][0]["source"]["request_sha256"] = "b" * 64
+        self.reader.pages["alice.near", None] = fresh
+        job = self.jobs.create("team", "actor", "alice.near")
+        self.jobs.tick(self.reader)
+        result = self.jobs.result("team", job["id"])
+        with self.archive._connection() as connection:
+            bodies = {row["id"]: json.loads(row["body"]) for row in connection.execute("SELECT id,body FROM pages")}
+        self.assertEqual(len(bodies), 2)
+        self.assertEqual(result["observations"], [{"page_id": saved["page_id"], "account_id": "alice.near",
+                                                   "source": retained["source"], "observed_at": retained["observed_at"]}])
+        self.assertEqual(result["items"], retained["items"])
+        with self.jobs._connection() as connection:
+            cited = [(json.loads(row["body"]), row["page_id"]) for row in connection.execute("SELECT body,page_id FROM job_items ORDER BY seq")]
+        for item, page_id in cited:
+            self.assertIn(item, bodies[page_id]["items"])
+        for observation in result["observations"]:
+            self.assertEqual((observation["source"], observation["observed_at"]),
+                             (bodies[observation["page_id"]]["source"], bodies[observation["page_id"]]["observed_at"]))
 
     def test_page_limit_date_cutoff_and_result_cursors_are_truthful(self):
         self.reader.pages["alice.near", None] = page([transfer(1, timestamp="999000000000"), transfer(2, timestamp="998000000000")], cursor="more")

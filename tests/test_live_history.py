@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from intel import accounts, history, identity, live
+from intel import accounts, history, identity, live, portfolio
 
 
 class LiveHistoryTest(unittest.TestCase):
@@ -104,6 +104,101 @@ class LiveHistoryTest(unittest.TestCase):
         self.assertFalse(body["coverage"]["history_complete"])
         self.assertTrue(body["coverage"]["new_observations_paused"])
         self.assertEqual(headers["Retry-After"], "60")
+
+    def test_full_archive_still_returns_the_successful_live_read_with_archive_paused(self):
+        payload = {"account_id": "wrap.near", "network": "mainnet", "items": [],
+                   "source": {"provider": "test-provider"}, "observed_at": "2026-11-10T00:00:00Z"}
+        graph = {"kind": "flow", "root": "wrap.near", "source": {"network": "mainnet"},
+                 "nodes": [], "edges": [], "records": []}
+        with mock.patch.object(history, "MAX_ARCHIVE_PAGES", 0), mock.patch.object(history, "MAX_ARCHIVE_GRAPHS", 0), \
+                mock.patch.object(accounts.AccountData, "transfers", return_value=payload), \
+                mock.patch.object(accounts.AccountData, "neighborhood", return_value=graph):
+            self.assertEqual(self.request("/live/accounts/wrap.near/transfers")[:2], (200, {**payload, "archive_paused": True}))
+            self.assertEqual(self.request("/live/accounts/wrap.near/graph")[:2], (200, {**graph, "archive_paused": True}))
+        with self.archive._connection() as connection:
+            self.assertEqual(connection.execute("SELECT COUNT(*) FROM pages").fetchone()[0], 0)
+        current = {"account_id": "wrap.near", "network": "mainnet", "kind": "current"}
+        for message in ("Portfolio retention capacity reached; existing observations remain available.",
+                        "Portfolio capture budget reached; retry after one minute."):
+            with self.subTest(message=message):
+                service = live.LiveAPI(portfolio_data=mock.Mock(**{"inspect.return_value": current}),
+                                       portfolio_history=mock.Mock(**{"save.side_effect": portfolio.PortfolioCapacityError(message)}))
+                self.assertEqual(service.handle("/live/accounts/wrap.near/portfolio", "203.0.113.5", {})[:2],
+                                 (200, {**current, "archive_paused": True}))
+
+    def test_malformed_retained_rows_are_not_reused_and_a_tampered_identical_page_answers_503(self):
+        pages = {"holdings": {"account_id": "wrap.near", "network": "mainnet", "items": [
+                     {"contract_id": "token.near", "balance": "1", "balance_status": "indexed", "last_update_block_height": 1,
+                      "metadata": None, "metadata_source": None}],
+                     "pagination": {"offset": 0, "limit": 20, "total": 1, "next_offset": None},
+                     "source": {"provider": "test-provider"}, "observed_at": "2026-11-10T00:00:00Z"},
+                 "transfers": {"account_id": "wrap.near", "network": "mainnet", "items": [
+                     {"id": "transfer1", "block_timestamp": "1794308552765806506"}],
+                     "source": {"provider": "test-provider"}, "observed_at": "2026-11-10T00:00:00Z"}}
+        for kind, payload in pages.items():
+            for table in ("history_rows", "pages"):
+                with self.subTest(kind=kind, table=table), mock.patch.object(accounts.AccountData, kind, return_value=payload):
+                    self.archive.record_page("wrap.near", kind, payload)
+                    with self.archive._connection(write=True) as connection:
+                        connection.execute("UPDATE " + table + " SET body=? WHERE kind=?", (b"null", kind))
+                    status, body, _ = live.LiveAPI(history_store=self.archive).handle("/live/accounts/wrap.near/" + kind, "203.0.113.5", {})
+                    if table == "history_rows":
+                        self.assertEqual(status, 200)
+                        self.assertEqual(self.archive.list_records("wrap.near", kind)["items"], payload["items"])
+                    else:
+                        self.assertEqual((status, body["error"]), (503, "read_failed"))
+
+    def test_archive_browsing_answers_503_for_a_malformed_retained_row_or_page(self):
+        payload = {"account_id": "alice.near", "network": "mainnet", "items": [
+            {"id": "transfer1", "block_timestamp": "1794308552765806506"}],
+                   "source": {"provider": "test-provider"}, "observed_at": "2026-11-10T00:00:00Z"}
+        self.archive.record_page("alice.near", "transfers", payload)
+        route = "/live/accounts/alice.near/history?kind=transfers"
+        self.assertEqual(self.request(route)[1]["items"], payload["items"])
+        with self.archive._connection() as connection:
+            row = connection.execute("SELECT body FROM history_rows").fetchone()[0]
+            retained = connection.execute("SELECT body FROM pages").fetchone()[0]
+        for table, body in (("history_rows", b"null"), ("history_rows", history._canonical({"id": "transfer2", "block_timestamp": "1794308552765806506"})),
+                            ("pages", b"null"), ("pages", history._canonical(dict(payload, observed_at="2026-11-09T00:00:00Z"))),
+                            ("pages", history._canonical(dict(payload, items=[])))):
+            with self.subTest(table=table, body=body):
+                with self.archive._connection(write=True) as connection:
+                    connection.execute("UPDATE history_rows SET body=?", (row,))
+                    connection.execute("UPDATE pages SET body=?", (retained,))
+                    connection.execute("UPDATE " + table + " SET body=?", (body,))
+                status, answer, _ = self.request(route)
+                self.assertEqual((status, answer["error"]), (503, "read_failed"))
+
+    def test_archive_browsing_answers_503_for_a_damaged_cursor_anchor_or_a_retained_testnet_page(self):
+        items = [{"id": "transfer" + str(index), "block_timestamp": "179430855276580650" + str(index)} for index in (3, 2, 1)]
+        payload = {"account_id": "alice.near", "network": "mainnet", "items": items,
+                   "source": {"provider": "test-provider"}, "observed_at": "2026-11-10T00:00:00Z"}
+        first = self.archive.record_page("alice.near", "transfers", payload)
+        route = "/live/accounts/alice.near/history?kind=transfers"
+        cursor = self.request(route + "&limit=1")[1]["pagination"]["next_before"]
+        self.assertEqual(self.request(route + "&before=" + str(cursor))[1]["items"], items[1:])
+        with self.archive._connection(write=True) as connection:
+            anchor = connection.execute("SELECT body,stamp FROM history_rows WHERE seq=?", (cursor,)).fetchone()
+            connection.execute("UPDATE history_rows SET body=?,stamp=? WHERE seq=?", (b"null", "0".zfill(20), cursor))
+        status, answer, _ = self.request(route + "&before=" + str(cursor))
+        self.assertEqual((status, answer["error"]), (503, "read_failed"))
+        body = history._canonical(dict(payload, network="testnet"))
+        identifier = hashlib.sha256(body).hexdigest()
+        with self.archive._connection(write=True) as connection:
+            connection.execute("UPDATE history_rows SET body=?,stamp=? WHERE seq=?", (anchor["body"], anchor["stamp"], cursor))
+            connection.execute("INSERT INTO pages VALUES (?,?,?,?,?)", (identifier, "alice.near", "transfers", body, 0))
+            connection.execute("UPDATE history_rows SET page_id=?", (identifier,))
+            connection.execute("DELETE FROM pages WHERE id=?", (first["page_id"],))
+        status, answer, _ = self.request(route)
+        self.assertEqual((status, answer["error"]), (503, "read_failed"))
+        fresh = dict(payload, observed_at="2026-11-10T00:01:00Z")
+        with mock.patch.object(accounts.AccountData, "transfers", return_value=fresh):
+            self.assertEqual(self.request("/live/accounts/alice.near/transfers")[0], 200)
+        status, answer, _ = self.request(route)
+        self.assertEqual(status, 200)
+        self.assertEqual((answer["network"], answer["items"]), ("mainnet", items))
+        self.assertEqual(answer["observations"], [{"page_id": hashlib.sha256(history._canonical(fresh)).hexdigest(),
+                                                   "source": payload["source"], "observed_at": "2026-11-10T00:01:00Z"}])
 
 
 if __name__ == "__main__":

@@ -162,6 +162,32 @@ def _body(value):
     return body
 
 
+def _settled(value):
+    if isinstance(value, dict):
+        return {
+            key: _settled(item)
+            for key, item in value.items()
+            if key not in ("observed_at", "fetched_at")
+        }
+    if isinstance(value, list):
+        return [_settled(item) for item in value]
+    return value
+
+
+def _comparable(value):
+    value = _settled(value)
+    if value["kind"] == "current":
+        value.pop("effective_at")
+        for asset in value["assets"]:
+            details = asset.get("details")
+            if isinstance(details, dict):
+                details.pop("block_height", None)
+                if isinstance(details.get("metadata_source"), dict):
+                    details["metadata_source"].pop("block_height", None)
+                    details["metadata_source"].pop("block_hash", None)
+    return _body(value)
+
+
 def _metadata(value):
     if (
         not isinstance(value, dict)
@@ -954,7 +980,27 @@ class PortfolioHistory:
         try:
             document = json.loads(row["body"])
             account, observed, effective = self._validate(document)
-        except (ValueError, TypeError, KeyError):
+            if _body(document) != row["body"]:
+                raise ValueError("non-canonical retained observation")
+            _comparable(document)
+            for asset in document["assets"]:
+                base, decimals = asset["balance_base_units"], asset["decimals"]
+                if base is not None:
+                    _amount(base)
+                if decimals is not None and (
+                    type(decimals) is not int or not 0 <= decimals <= 255
+                ):
+                    raise ValueError("invalid retained decimals")
+                with localcontext() as context:
+                    context.prec = 1024
+                    balance = (
+                        _decimal(Decimal(base).scaleb(-decimals))
+                        if base is not None and decimals is not None
+                        else None
+                    )
+                if asset["balance"] != balance:
+                    raise ValueError("inconsistent retained balance")
+        except (ValueError, TypeError, KeyError, RecursionError):
             raise PortfolioReadError(
                 "The retained portfolio observation is invalid."
             ) from None
@@ -978,6 +1024,29 @@ class PortfolioHistory:
             retained = connection.execute(
                 "SELECT * FROM observations WHERE id=?", (identifier,)
             ).fetchone()
+            if retained is None:
+                latest = (
+                    connection.execute(
+                        "SELECT * FROM observations WHERE account=? AND kind=? ORDER BY seq DESC LIMIT 1",
+                        (account, payload["kind"]),
+                    )
+                    if payload["kind"] == "current"
+                    else connection.execute(
+                        "SELECT * FROM observations WHERE account=? AND kind=? AND effective_ms=? ORDER BY seq DESC LIMIT 1",
+                        (account, payload["kind"], effective),
+                    )
+                ).fetchone()
+                try:
+                    reusable = latest is not None and _comparable(
+                        self._checked_row(latest)
+                    ) == _comparable(payload)
+                except PortfolioReadError:
+                    reusable = False
+                if reusable:
+                    return {
+                        "id": latest["id"],
+                        "url": "/live/portfolio-data/" + latest["id"] + ".json",
+                    }
             if retained is not None:
                 self._checked_row(retained)
                 if retained["body"] != body:

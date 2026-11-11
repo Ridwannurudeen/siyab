@@ -108,7 +108,7 @@ class LiveAPI:
                 return self._error(400, "invalid_input", str(error))
             except TimeoutError:
                 return self._error(504, "timeout", "The live read exceeded its request deadline.")
-            except (history.HistoryCapacityError, portfolio.PortfolioCapacityError) as error:
+            except history.HistoryCapacityError as error:
                 return 503, {"error": "archive_capacity", "message": str(error),
                              "coverage": {"history_complete": False, "new_observations_paused": True}}, {"Retry-After": "60"}
             except (LiveReadError, enrichment.EnrichmentReadError, portfolio.PortfolioReadError):
@@ -246,7 +246,10 @@ class LiveAPI:
                 else:
                     result = self.portfolio_data.historical(account, values.pop("block_height"), **values)
                 if self.portfolio_history is not None:
-                    result = {**result, "snapshot": self.portfolio_history.save(result)}
+                    try:
+                        result = {**result, "snapshot": self.portfolio_history.save(result)}
+                    except portfolio.PortfolioCapacityError:
+                        result = {**result, "archive_paused": True}
             elif kind in ("history", "backfill"):
                 if self.history_store is None:
                     raise LiveReadError("The account observation archive is unavailable.")
@@ -273,10 +276,13 @@ class LiveAPI:
                 elif kind == "graph":
                     result = {**result, "nodes": [{**node, "enrichment": self.entity_directory.lookup(node["id"])} for node in result["nodes"]]}
             if self.history_store is not None:
-                if kind in history.KINDS:
-                    self.history_store.record_page(account, kind, result)
-                elif kind == "graph":
-                    result = {**result, "snapshot": self.history_store.save_graph(result)}
+                try:
+                    if kind in history.KINDS:
+                        self.history_store.record_page(account, kind, result)
+                    elif kind == "graph":
+                        result = {**result, "snapshot": self.history_store.save_graph(result)}
+                except history.HistoryCapacityError:
+                    result = {**result, "archive_paused": True}
         except TimeoutError:
             raise
         except history.HistoryCapacityError:

@@ -330,6 +330,13 @@ class PortfolioHistoryTest(unittest.TestCase):
             Reader(), client_factory=Providers().factory, clock=lambda: NOW
         ).inspect("alice.near")
 
+    def current(self, amount):
+        reader = Reader()
+        reader.native["native"]["amount_yocto"] = amount
+        return portfolio.PortfolioData(
+            reader, client_factory=Providers().factory, clock=lambda: NOW
+        ).inspect("alice.near")
+
     def test_current_observation_cannot_be_relabeled_as_archival_history(self):
         forged = copy.deepcopy(self.payload)
         forged.update(kind="historical", effective_at="2026-11-09T00:00:00Z")
@@ -472,7 +479,7 @@ class PortfolioHistoryTest(unittest.TestCase):
             mock.patch.object(portfolio, "MAX_SNAPSHOTS", 1),
             self.assertRaises(portfolio.PortfolioCapacityError),
         ):
-            self.store.save({**self.payload, "observed_at": "2026-11-10T15:00:00Z"})
+            self.store.save(self.current("2000000000000000000000002"))
         self.assertIsNotNone(self.store.get_bytes(saved["id"]))
 
     def test_duplicate_and_invalid_cursor_or_hash_do_not_cross_accounts(self):
@@ -484,16 +491,15 @@ class PortfolioHistoryTest(unittest.TestCase):
 
     def test_retained_capture_budget_is_durable_and_old_observations_remain(self):
         first = self.store.save(self.payload)
-        second = {**self.payload, "observed_at": "2026-11-10T14:00:00Z"}
+        second = self.current("2000000000000000000000002")
         self.store.save(second)
         restarted = portfolio.PortfolioHistory(self.path, clock=lambda: self.clock[0])
+        third = self.current("2000000000000000000000003")
         with self.assertRaises(portfolio.PortfolioCapacityError):
-            restarted.save({**self.payload, "observed_at": "2026-11-10T14:00:01Z"})
+            restarted.save(third)
         self.assertIsNotNone(restarted.get_bytes(first["id"]))
         self.clock[0] += 61
-        self.assertIsNotNone(
-            restarted.save({**self.payload, "observed_at": "2026-11-10T14:00:01Z"})
-        )
+        self.assertIsNotNone(restarted.save(third))
 
     def test_tampered_snapshot_bytes_are_not_served(self):
         first = self.store.save(self.payload)
@@ -505,6 +511,137 @@ class PortfolioHistoryTest(unittest.TestCase):
             self.store.get_bytes(first["id"])
         with self.assertRaises(portfolio.PortfolioReadError):
             self.store.list_records("alice.near")
+
+    def test_repeated_identical_reads_reuse_one_retained_snapshot(self):
+        provider = Providers()
+        for price in provider.prices.values():
+            price["timestamp"] = NOW - 86400
+        genuine = portfolio.PortfolioData(
+            Reader(), client_factory=provider.factory, clock=lambda: NOW
+        ).historical("alice.near", 50, ["wrap.near"])
+        first = self.store.save(genuine)
+        repeat = copy.deepcopy(genuine)
+        repeat["observed_at"] = "2026-11-10T14:40:00Z"
+        for source in repeat["sources"]:
+            source["fetched_at"] = "2026-11-10T14:40:00Z"
+        for asset in repeat["assets"]:
+            asset["price"]["source"]["fetched_at"] = "2026-11-10T14:40:00Z"
+        for _ in range(3):
+            self.assertEqual(self.store.save(repeat), first)
+        self.assertEqual(json.loads(self.store.get_bytes(first["id"])), genuine)
+        self.assertEqual(len(self.store.list_records("alice.near")["items"]), 1)
+        self.assertNotEqual(self.store.save(self.payload), first)
+        self.assertEqual(len(self.store.list_records("alice.near")["items"]), 2)
+
+    def test_current_reads_a_minute_apart_reuse_the_snapshot_until_a_balance_changes(self):
+        reader, clock = Reader(), [NOW]
+        reader.tokens[0]["metadata_source"]["block_height"] = "99"
+        data = portfolio.PortfolioData(
+            reader, client_factory=Providers().factory, clock=lambda: clock[0]
+        )
+        genuine = data.inspect("alice.near")
+        first = self.store.save(genuine)
+        for step in range(1, 4):
+            clock[0] = self.clock[0] = NOW + 61 * step
+            reader.native["native"]["block_height"] = str(100 + 60 * step)
+            reader.tokens[0]["metadata_source"]["block_height"] = str(99 + 60 * step)
+            self.assertEqual(self.store.save(data.inspect("alice.near")), first)
+        self.assertEqual(json.loads(self.store.get_bytes(first["id"])), genuine)
+        self.assertEqual(len(self.store.list_records("alice.near")["items"]), 1)
+        reader.native["native"]["amount_yocto"] = "2000000000000000000000002"
+        changed = self.store.save(data.inspect("alice.near"))
+        self.assertNotEqual(changed, first)
+        reader.native["native"]["amount_yocto"] = "2000000000000000000000001"
+        clock[0] = self.clock[0] = clock[0] + 61
+        restored = self.store.save(data.inspect("alice.near"))
+        self.assertNotIn(restored, (first, changed))
+        self.assertEqual(len(self.store.list_records("alice.near")["items"]), 3)
+
+    def test_a_corrupt_latest_current_observation_is_not_reused_or_cited(self):
+        clock = [NOW]
+        data = portfolio.PortfolioData(
+            Reader(), client_factory=Providers().factory, clock=lambda: clock[0]
+        )
+        corrupt = self.store.save(data.inspect("alice.near"))
+        with self.store._connection(write=True) as connection:
+            connection.execute(
+                "UPDATE observations SET body=? WHERE id=?", (b"{}\n", corrupt["id"])
+            )
+        clock[0] = NOW + 61
+        fresh = self.store.save(data.inspect("alice.near"))
+        self.assertNotEqual(fresh, corrupt)
+        self.assertIsNotNone(self.store.get_bytes(fresh["id"]))
+        clock[0] = NOW + 122
+        self.assertEqual(self.store.save(data.inspect("alice.near")), fresh)
+        with self.store._connection() as connection:
+            self.assertEqual(
+                connection.execute("SELECT COUNT(*) FROM observations").fetchone()[0], 2
+            )
+        nested = b'{"a":' * 3000 + b"1" + b"}" * 3000
+        identifier = hashlib.sha256(nested).hexdigest()
+        with self.store._connection(write=True) as connection:
+            connection.execute(
+                "UPDATE observations SET body=?,id=? WHERE id=?",
+                (nested, identifier, fresh["id"]),
+            )
+        with self.assertRaises(portfolio.PortfolioReadError):
+            self.store.get_bytes(identifier)
+        clock[0] = self.clock[0] = NOW + 183
+        deeper = self.store.save(data.inspect("alice.near"))
+        self.assertNotIn(deeper, (corrupt, fresh))
+        self.assertIsNotNone(self.store.get_bytes(deeper["id"]))
+        clock[0] = self.clock[0] = NOW + 244
+        self.assertEqual(self.store.save(data.inspect("alice.near")), deeper)
+        with self.store._connection() as connection:
+            self.assertEqual(
+                connection.execute("SELECT COUNT(*) FROM observations").fetchone()[0], 3
+            )
+
+    def test_a_latest_observation_that_cannot_be_compared_or_serialized_is_not_reused(self):
+        nested = 1
+        for _ in range(28):
+            nested = {"level": nested}
+        for name, value in (("nested", nested), ("surrogate", "\ud800")):
+            with self.subTest(name=name):
+                clock = [NOW]
+                self.clock[0] = NOW
+                store = portfolio.PortfolioHistory(
+                    Path(self.directory.name) / (name + ".sqlite3"),
+                    clock=lambda: self.clock[0],
+                )
+                data = portfolio.PortfolioData(
+                    Reader(), client_factory=Providers().factory, clock=lambda: clock[0]
+                )
+                saved = store.save(data.inspect("alice.near"))
+                document = json.loads(store.get_bytes(saved["id"]))
+                document["assets"][0]["details"]["extra"] = value
+                body = (
+                    json.dumps(document, sort_keys=True, separators=(",", ":"))
+                    + "\n"
+                ).encode("utf-8")
+                identifier = hashlib.sha256(body).hexdigest()
+                with store._connection(write=True) as connection:
+                    connection.execute(
+                        "UPDATE observations SET body=?,id=? WHERE id=?",
+                        (body, identifier, saved["id"]),
+                    )
+                with self.assertRaises(portfolio.PortfolioReadError):
+                    store.get_bytes(identifier)
+                with self.assertRaises(portfolio.PortfolioReadError):
+                    store.list_records("alice.near")
+                clock[0] = self.clock[0] = NOW + 61
+                fresh = store.save(data.inspect("alice.near"))
+                self.assertNotIn(fresh["id"], (saved["id"], identifier))
+                self.assertIsNotNone(store.get_bytes(fresh["id"]))
+                clock[0] = self.clock[0] = NOW + 122
+                self.assertEqual(store.save(data.inspect("alice.near")), fresh)
+                with store._connection() as connection:
+                    self.assertEqual(
+                        connection.execute(
+                            "SELECT COUNT(*) FROM observations"
+                        ).fetchone()[0],
+                        2,
+                    )
 
 
 if __name__ == "__main__":

@@ -98,6 +98,41 @@ class AnalyticsLiveAPITest(unittest.TestCase):
         self.assertEqual(chart["items"][0]["effective_at"], document["effective_at"])
         self.assertFalse(chart["coverage"]["history_complete"])
 
+    def test_portfolio_history_answers_503_for_a_retained_asset_with_a_missing_or_mistyped_balance_field(self):
+        from tests.test_portfolio import NOW, Providers, Reader
+
+        providers = Providers()
+        del providers.prices["near:wrap.near"]
+        observation = portfolio.PortfolioData(Reader(), client_factory=providers.factory, clock=lambda: NOW).inspect("alice.near")
+        route = "/live/accounts/alice.near/portfolio-history?asset_id=nep141%3Awrap.near"
+        for name, edit in (("missing balance_base_units", lambda asset: asset.pop("balance_base_units")),
+                           ("missing decimals", lambda asset: asset.pop("decimals")),
+                           ("missing balance", lambda asset: asset.pop("balance")),
+                           ("numeric balance_base_units", lambda asset: asset.update(balance_base_units=1)),
+                           ("fractional balance_base_units", lambda asset: asset.update(balance_base_units="1.5")),
+                           ("boolean decimals", lambda asset: asset.update(decimals=True)),
+                           ("string decimals", lambda asset: asset.update(decimals="24")),
+                           ("out of range decimals", lambda asset: asset.update(decimals=256)),
+                           ("numeric balance", lambda asset: asset.update(balance=1)),
+                           ("inconsistent balance", lambda asset: asset.update(balance="2")),
+                           ("balance without base units", lambda asset: asset.update(balance_base_units=None))):
+            with self.subTest(name=name):
+                archive = portfolio.PortfolioHistory(self.root / (name.replace(" ", "-") + ".sqlite3"), clock=lambda: NOW)
+                self.service = live.LiveAPI(portfolio_history=archive)
+                saved = archive.save(observation)
+                status, chart, _ = self.request(route)
+                self.assertEqual(status, 200)
+                self.assertEqual((chart["items"][0]["balance"], chart["items"][0]["asset_value_usd"]), ("1", None))
+                document = json.loads(archive.get_bytes(saved["id"]))
+                edit(next(asset for asset in document["assets"] if asset["asset_id"] == "nep141:wrap.near"))
+                body = portfolio._body(document)
+                with archive._connection(write=True) as connection:
+                    connection.execute("UPDATE observations SET body=?,id=? WHERE id=?", (body, hashlib.sha256(body).hexdigest(), saved["id"]))
+                status, answer, _ = self.request(route)
+                self.assertEqual((status, answer["error"]), (503, "read_failed"))
+                self.assertIsNotNone(archive.get_bytes(archive.save(observation)["id"]))
+                self.assertEqual(self.request(route)[0], 503)
+
     def test_http_transport_independently_checks_portfolio_snapshot_hash_before_immutable_cache(self):
         raw = b'{"assets":[]}\n'
         identifier = hashlib.sha256(raw).hexdigest()

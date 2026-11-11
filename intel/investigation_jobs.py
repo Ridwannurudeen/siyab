@@ -223,13 +223,14 @@ class InvestigationJobs:
                 active = connection.execute("SELECT state,lease_token,lease_until_ms FROM jobs WHERE id=?", (row["id"],)).fetchone()
             if active["state"] != "running" or active["lease_token"] != token or active["lease_until_ms"] <= self._now():
                 return {"processed": 1}
-            saved = self.history.record_page(subject, "transfers" if request["kind"] == "graph" else request["kind"], payload)
+            saved = self.history.record_page(subject, "transfers" if request["kind"] == "graph" else request["kind"], payload, reserved=True)
             progress["pages"] += 1
             progress["scanned_rows"] += len(payload["items"])
             state.update(cursor=next_cursor, pages=state["pages"] + 1)
             state["done"] = next_cursor is None or (request["kind"] == "graph" and state["pages"] >= request["pages_per_account"])
             selected = []
-            for item in payload["items"]:
+            for retained in saved["rows"]:
+                item = retained["item"]
                 stamp = int(item["block_timestamp"] if request["kind"] != "transactions" else item["tx_block_timestamp"])
                 if stamp >= request["to_timestamp_ms"] * 1000000:
                     continue
@@ -248,25 +249,26 @@ class InvestigationJobs:
                     for endpoint in endpoints:
                         progress["frontier"][endpoint] = {"depth": state["depth"] + 1, "cursor": None, "pages": 0, "done": False}
                     item = dict(item, depth=state["depth"] + 1, block=int(item["block_height"]), provenance="onchain", confidence=None)
-                selected.append(item)
+                selected.append((retained["page_id"], item))
             progress["more_provider_pages"] = any(value["cursor"] is not None for value in progress["frontier"].values())
-            observation = {"page_id": saved["page_id"], "account_id": subject, "source": payload["source"], "observed_at": payload.get("observed_at")}
+            observations = [{"page_id": read["page_id"], "account_id": subject, "source": read["source"], "observed_at": read["observed_at"]} for read in saved["observations"]]
             with self._connection(write=True) as connection:
                 current = connection.execute("SELECT state,lease_token,lease_until_ms,progress FROM jobs WHERE id=?", (row["id"],)).fetchone()
                 if current["state"] != "running" or current["lease_token"] != token or current["lease_until_ms"] <= self._now():
                     return {"processed": 1}
-                extra_bytes = len(_json(observation).encode("utf-8"))
-                for item in selected:
+                extra_bytes = sum(len(_json(observation).encode("utf-8")) for observation in observations)
+                for page_id, item in selected:
                     row_id = item["transaction_hash"] if request["kind"] == "transactions" else item["id"]
                     if progress["matched_rows"] >= request["max_rows"]:
                         break
                     encoded = _json(item)
-                    inserted = connection.execute("INSERT OR IGNORE INTO job_items(job,row_id,body,page_id) VALUES(?,?,?,?)", (row["id"], row_id, encoded, saved["page_id"])).rowcount
+                    inserted = connection.execute("INSERT OR IGNORE INTO job_items(job,row_id,body,page_id) VALUES(?,?,?,?)", (row["id"], row_id, encoded, page_id)).rowcount
                     if inserted:
                         progress["matched_rows"] += 1
                         extra_bytes += len(encoded.encode("utf-8")) + 256
                 self._reserve(connection, extra_bytes + len(_json(progress).encode("utf-8")) - len(current["progress"].encode("utf-8")))
-                connection.execute("INSERT INTO job_reads(job,body) VALUES(?,?)", (row["id"], _json(observation)))
+                for observation in observations:
+                    connection.execute("INSERT INTO job_reads(job,body) VALUES(?,?)", (row["id"], _json(observation)))
                 following = [(value["depth"], account) for account, value in progress["frontier"].items() if not value["done"] and (request["kind"] != "graph" or value["depth"] < request["depth"])]
                 next_due = self._now() + 60000 if following and min(following)[1] == subject else self._now()
                 connection.execute("UPDATE jobs SET progress=?,state='queued',attempts=0,last_error=NULL,not_before_ms=?,updated_ms=?,lease_token=NULL,lease_until_ms=0,provider_retry_ms=0 WHERE id=?", (_json(progress), next_due, self._now(), row["id"]))
