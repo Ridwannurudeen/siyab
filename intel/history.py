@@ -12,7 +12,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from gate import canon, rpc
-from intel.accounts import AccountInputError, AccountReadError
+from intel.accounts import AccountBudgetError, AccountInputError, AccountReadError
 
 KINDS = ("profile", "holdings", "transactions", "transfers")
 MAX_DOCUMENT_BYTES = 2 * 1024 * 1024
@@ -599,7 +599,7 @@ class AccountHistory:
                     if cursor is None:
                         break
         except AccountReadError as error:
-            if error.retry_at_ms is not None:
+            if error.retry_at_ms is not None and not isinstance(error, AccountBudgetError):
                 self.defer_account(account, kind, error.retry_at_ms)
             raise
         finally:
@@ -763,7 +763,7 @@ class AccountHistory:
                 attempts = state["attempts"] + 1
                 delay = min(300000, ACCOUNT_INTERVAL_MS * 2 ** min(attempts, 3))
                 provider_retry = error.retry_at_ms if isinstance(error, AccountReadError) else None
-                if provider_retry is not None:
+                if provider_retry is not None and not isinstance(error, AccountBudgetError):
                     self.defer_account(account, "transfers", provider_retry)
                 with self._connection(write=True) as connection:
                     connection.execute("UPDATE watch_poll SET attempts=?,last_error=?,next_due_ms=?,lease_token=NULL,lease_until_ms=0 WHERE account=? AND lease_token=?", (attempts, code, max(self._now() + delay, provider_retry or 0), account, token))
