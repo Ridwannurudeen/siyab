@@ -31,6 +31,7 @@ function environment(filename, search = '') {
   });
   vm.runInNewContext(source, {document, window, fetch, AbortController, URLSearchParams,
     location: {search}, localStorage: {getItem() { return null; }, setItem() {}},
+    matchMedia: () => ({matches: false}),
     setTimeout(callback, delay) { const id = ++serial; timers.set(id, {callback, delay}); return id; },
     clearTimeout(id) { timers.delete(id); }, console});
   return {nodes, document, window, timers, requests,

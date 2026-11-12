@@ -21,7 +21,7 @@
 .investigate-source,.investigate-scope{font-size:12px;color:rgb(var(--secondary));max-width:90ch;margin:16px 0 10px;overflow-wrap:anywhere}
 .investigate-source-detail{margin:12px 0;min-width:0}
 .investigate-source-detail>summary{min-height:36px;padding-block:7px;cursor:pointer;font-size:12px;color:rgb(var(--secondary))}
-.investigate-source-detail pre{white-space:pre-wrap;overflow-wrap:anywhere;background:rgb(var(--ground-alt));border:1px solid rgb(var(--hairline));padding:16px;border-radius:5px;max-width:100%;font-size:12px}
+.investigate-source-detail pre{white-space:pre-wrap;overflow-wrap:anywhere;background:rgb(var(--ground-alt));border:1px solid rgb(var(--hairline));padding:16px;border-radius:var(--r-md);max-width:100%;font-size:12px}
 .investigate-empty{font-size:14px;line-height:1.75;color:rgb(var(--secondary));padding:16px 0;margin:0;max-width:75ch}
 .investigate-labels{padding:0;margin:0;list-style:none;display:grid;gap:14px}
 .investigate-labels li{padding:12px 0;border-bottom:1px solid rgb(var(--hairline))}

@@ -5,10 +5,10 @@
 .team-delivery button,.team-delivery a{min-height:44px;overflow-wrap:anywhere;white-space:normal}
 .team-delivery a{text-underline-offset:3px}
 .team-delivery :is(button,a,summary):focus-visible{outline:2px solid rgb(var(--focus));outline-offset:3px}
-.team-delivery button:disabled{opacity:.55;cursor:not-allowed}
+.team-delivery button:disabled{opacity:.5;cursor:not-allowed}
 .delivery-scope,#delivery-context,.delivery-meta{color:rgb(var(--secondary))}
 #delivery-status:empty{display:none}
-#delivery-status{padding:10px 12px;background:rgb(var(--ground-alt));border:1px solid rgb(var(--hairline));border-radius:5px}
+#delivery-status{padding:10px 12px;background:rgb(var(--ground-alt));border:1px solid rgb(var(--hairline));border-radius:var(--r-md)}
 .delivery-actions{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
 .delivery-link{display:block;width:fit-content;font-size:14px;padding:10px 0}
 .delivery-counts{display:flex;flex-wrap:wrap;gap:14px 28px;padding:0;margin:18px 0}

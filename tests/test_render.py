@@ -161,6 +161,20 @@ class AppShellTest(unittest.TestCase):
         self.assertEqual(page.count('href="feed.html" aria-current="page"'), 2)
         self.assertNotIn('href="index.html" aria-current', page)
 
+    def test_theme_head_precedes_styles_and_keeps_record_pages_inert(self):
+        script = "<script>try{var t=localStorage.getItem('siyab-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>"
+        for inert in (False, True):
+            page = render.page("Feed", "<h1>Feed</h1>", inert=inert)
+            with self.subTest(inert=inert):
+                self.assertIn('<meta name="color-scheme" content="dark light">', page)
+                self.assertIn('<meta name="theme-color" content="#06101a" media="(prefers-color-scheme: dark)">', page)
+                self.assertIn('<meta name="theme-color" content="#f4f9f7" media="(prefers-color-scheme: light)">', page)
+                if inert:
+                    self.assertNotIn(script, page)
+                else:
+                    self.assertTrue(page.startswith('<!doctype html>\n<html lang="en">\n<head>\n' + script))
+                    self.assertLess(page.index(script), page.index('<link rel="stylesheet"'))
+
     def test_record_shell_is_inert_and_nested_navigation_resolves(self):
         page = render.page("Incident record", "<h1>Incident record</h1>", depth=1, inert=True)
         self.assertNotIn('<script', page)
@@ -637,6 +651,21 @@ class RenderTest(unittest.TestCase):
                         self.assertGreaterEqual(contrast(colors[foreground], colors[surface]), 4.5)
             with self.subTest(theme=theme, foreground="--primary-ink", surface="--accent-fill"):
                 self.assertGreaterEqual(contrast(colors["--primary-ink"], colors["--accent-fill"]), 4.5)
+            for surface in ("--ground", "--panel"):
+                with self.subTest(theme=theme, foreground="--data", surface=surface):
+                    self.assertGreaterEqual(contrast(colors["--data"], colors[surface]), 3)
+            if theme == "light":
+                self.assertEqual(colors["--accent"], (0, 105, 70))
+                self.assertEqual(colors["--allow-text"], (0, 116, 58))
+                for surface in ("--ground", "--panel"):
+                    allow_tint = tuple(.12 * allow + .88 * background
+                                       for allow, background in zip(colors["--allow"], colors[surface]))
+                    with self.subTest(theme=theme, foreground="--allow-text", tint=surface):
+                        self.assertGreaterEqual(contrast(colors["--allow-text"], allow_tint), 4.5)
+                    tinted = tuple(.1 * accent + .9 * background
+                                   for accent, background in zip(colors["--accent"], colors[surface]))
+                    with self.subTest(theme=theme, foreground="--accent", tint=surface):
+                        self.assertGreaterEqual(contrast(colors["--accent"], tinted), 4.5)
 
     def test_index_has_no_unexpected_host_or_remote_script_or_font(self):
         page = self.pages["index.html"]

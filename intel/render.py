@@ -201,7 +201,11 @@ def page(title, body, depth=0, rooted=False, *, inert=False):
                 '<meta name="twitter:card" content="summary_large_image">\n'
                 f'<meta name="twitter:image" content="{SITE_ORIGIN}/brand/social.png">\n'
                 '<link rel="icon" type="image/svg+xml" href="/brand/favicon.svg"><link rel="alternate icon" href="/favicon.ico">\n')
-    return ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"
+    theme_script = "" if inert else "<script>try{var t=localStorage.getItem('siyab-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>\n"
+    return (f"<!doctype html>\n<html lang=\"en\">\n<head>\n{theme_script}<meta charset=\"utf-8\">\n"
+            '<meta name="color-scheme" content="dark light">\n'
+            '<meta name="theme-color" content="#06101a" media="(prefers-color-scheme: dark)">\n'
+            '<meta name="theme-color" content="#f4f9f7" media="(prefers-color-scheme: light)">\n'
             f"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n{ROBOTS}"
             f"<title>{esc(title)}</title>\n{metadata}<link rel=\"stylesheet\" href=\"/style.css\">\n"
             + (_script_tag(number_script) if number_script else "") + "</head>\n<body>\n"

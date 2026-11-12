@@ -1,7 +1,11 @@
 <!doctype html>
 <html lang="en">
 <head>
+<script>try{var t=localStorage.getItem('siyab-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>
 <meta charset="utf-8">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#06101a" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f4f9f7" media="(prefers-color-scheme: light)">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>Top receivers</title>
@@ -31,7 +35,8 @@
   themeLabel.className = "theme-toggle-label";
   toggle.replaceChildren(themeLabel);
   const labelTheme = () => {
-    const light = document.documentElement.dataset.theme === "light";
+    const light = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === "light" : matchMedia("(prefers-color-scheme: light)").matches;
+    document.querySelectorAll('meta[name="theme-color"]').forEach(meta => { meta.content = light ? "#f4f9f7" : "#06101a"; });
     themeLabel.textContent = light ? "Use dark theme" : "Use light theme";
     toggle.setAttribute("aria-label", light ? "Switch to dark theme" : "Switch to light theme");
   };
@@ -41,7 +46,8 @@
   } catch (error) { toggle.title = "Theme choice applies to this page; browser storage is unavailable."; }
   labelTheme();
   toggle.addEventListener("click", () => {
-    document.documentElement.dataset.theme = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+    const light = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === "light" : matchMedia("(prefers-color-scheme: light)").matches;
+    document.documentElement.dataset.theme = light ? "dark" : "light";
     labelTheme();
     try { localStorage.setItem("siyab-theme", document.documentElement.dataset.theme); }
     catch (error) { toggle.title = "Theme choice applies to this page; browser storage is unavailable."; }
