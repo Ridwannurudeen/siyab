@@ -14,7 +14,7 @@ from intel import api, feed, records, render
 class FeedVerificationRuntimeTest(unittest.TestCase):
     @unittest.skipUnless(shutil.which("node"), "Node is unavailable")
     def test_feed_and_verification_state_boundaries(self):
-        for scenario in ("feed-filter", "feed-acceptance", "feed-invalid", "verify-explicit", "verify-stale",
+        for scenario in ("feed-future", "feed-not-run", "feed-fresh-status", "feed-freshness", "feed-filter", "feed-acceptance", "feed-invalid", "verify-explicit", "verify-stale",
                          "verify-timeout", "verify-body-timeout", "verify-invalid"):
             with self.subTest(scenario=scenario):
                 result = subprocess.run([shutil.which("node"), "tests/feed_verify_runtime.cjs", scenario],

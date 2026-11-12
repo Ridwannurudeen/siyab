@@ -295,7 +295,7 @@ def _graph_section(payload, evidence_url=None):
     url, _ = _graph_asset(payload, evidence_url)
     script = (ROOT / "intel/ui/graphs.js").read_text(encoding="utf-8")
     evidence = f'<a href="{esc(evidence_url)}">Open recorded evidence</a>' if evidence_url else 'Recorded evidence follows below.'
-    return (f'<section class="siyab-graph" data-siyab-graph data-graph-src="{url}" aria-label="Recorded investigation graph">'
+    return (f'<section class="siyab-graph" data-siyab-graph data-graph-kind="{esc(payload["kind"])}" data-graph-src="{url}" aria-label="Recorded investigation graph">'
             '<div class="graph-loading" role="status"><h2>Recorded investigation</h2><p>Interactive graph with recorded evidence.</p></div>'
             f'<noscript><p>JavaScript is needed for the interactive graph. {evidence}</p></noscript>'
             f'</section>{_script_tag(script)}')
@@ -716,8 +716,9 @@ def _profile_source(assertion):
             f'<pre><q class="data">{esc(json.dumps(source, ensure_ascii=False, sort_keys=True))}</q></pre></details>')
 
 
-def _profile_number(value):
-    return "Unavailable" if value is None else format(Decimal(str(value)), ",f")
+def _transfer_amount(row):
+    decimals = trace.asset_decimals(row["asset_id"])
+    return _display_amount(row["amount"], 4, decimals=decimals) if decimals is not None else f'{row["amount"]} base units'
 
 
 def _profile_transfer_rows(subject, flows):
@@ -733,10 +734,10 @@ def _profile_transfer_cells(subject, row, accounts):
     direction = "Self" if row["from"] == row["to"] else "Outbound" if row["from"] == subject else "Inbound"
     counterparty = row["to"] if row["from"] == subject else row["from"]
     instant = datetime.fromtimestamp(int(row["block_timestamp"]) // 1000000000, UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
-    amount = (f'{_profile_number(row["human_amount"])}' if row["human_amount"] is not None else f'{esc(row["amount"])} base units')
+    amount = esc(_transfer_amount(row))
     return [f'<time>{instant}</time>', direction, _subject_cell(counterparty, accounts),
             f'<span class="profile-value">{amount}</span><q class="data profile-asset">{esc(row["asset_id"])}</q>',
-            f'<span class="profile-value">{_profile_number(row["usd_amount"])}</span>',
+            f'<span class="profile-value">{esc(_display_amount(row["usd_amount"], 2))}</span>',
             f'<a href="/flows/{esc(row["recording"])}.html">Recorded evidence</a>'
             f'<details class="profile-source-detail"><summary>Transfer details</summary><p class="mono">Block {row["block"]}<br>'
             f'Transaction {esc(row["transaction_hash"])}<br>Receipt {esc(row["receipt_id"])}<br>'
@@ -747,6 +748,11 @@ def _profile_account_summary(subject, assertions, accounts, flows):
     activity = _profile_transfer_rows(subject, flows)
     observed = sorted({row.observed_at for row in assertions})
     categories = sorted({row.category.replace("_", " ") for row in assertions if row.provenance != "inferred"})
+    inferred = [row for row in assertions if row.provenance == "inferred"]
+    inferred_tags = ''.join(f'<a href="#attribution-hypothesis">{esc(category)}, inferred</a>'
+                            for category in sorted({row.category.replace("_", " ") for row in inferred}))
+    assertion_counts = (f'<dd><span class="profile-observed">{len(assertions) - len(inferred)} sourced, {len(inferred)} inferred</span></dd>'
+                        if inferred else '')
     labels_rows = [[data_text(row.label), esc(row.chain), esc(row.provenance.replace("_", " ")), _profile_source(row)]
                    for row in assertions if row.provenance != "inferred"]
     source_rows = ''.join('<tr role="row" data-profile-transfer-row>' + ''.join(
@@ -763,8 +769,8 @@ def _profile_account_summary(subject, assertions, accounts, flows):
     payload = json.dumps({"subject": subject, "sources": sources, "total_rows": len(activity)}, ensure_ascii=True).replace("<", "\\u003c")
     summary = ('<section class="profile-intelligence"><div class="profile-account-context"><div>'
                '<h2>Recorded account evidence</h2><p>Recorded labels describe evidence, not a current payment decision.</p>'
-               f'<p class="profile-tags">{"".join(f"<span>{esc(category)}</span>" for category in categories)}</p>'
-               f'<dl class="profile-facts"><div><dt>Label assertions</dt><dd>{len(assertions)}</dd></div>'
+               f'<p class="profile-tags">{"".join(f"<span>{esc(category)}</span>" for category in categories)}{inferred_tags}</p>'
+               f'<dl class="profile-facts"><div><dt>Label assertions</dt><dd>{len(assertions)}</dd>{assertion_counts}</div>'
                f'<div><dt>Recorded transfer rows</dt><dd>{len(activity)}</dd></div>'
                f'<div><dt>Latest label observation</dt><dd>{esc(observed[-1]) if observed else "Unavailable"}</dd></div></dl>'
                '<p class="profile-scope">Current balance unavailable. Account creation time is not established by these records.</p>'
@@ -863,7 +869,7 @@ def incident_page(document, accounts):
         for hop in selected:
             routes.append('<li class="profile-route"><div>' + _subject_cell(hop["from"], accounts) + '</div>'
                           '<div class="profile-route-bridge"><svg viewBox="0 0 100 20" aria-hidden="true"><path d="M1 10H95M89 4L95 10L89 16"/></svg>'
-                          f'<span>{_profile_number(hop["human_amount"])}<br><q class="data">{esc(hop["asset_id"])}</q></span></div>'
+                          f'<span>{esc(_transfer_amount(hop))}<br><q class="data">{esc(hop["asset_id"])}</q></span></div>'
                           '<div>' + _subject_cell(hop["to"], accounts) + '</div></li>')
     route = ('<section class="profile-section"><h2>Recorded transfer route</h2><p>First three direct outbound rows in each linked recording, in provider order. These rows do not establish loss or causal attribution.</p>'
              + ('<ol class="profile-routes">' + ''.join(routes) + '</ol>' if routes else '<p>No recorded transfer route is available for this case.</p>')
@@ -1047,7 +1053,7 @@ def account_page(subject, store, accounts, incidents, flows, clusters, events_di
                        f'<td role="cell" class="mono"><span class="cell-label" aria-hidden="true">Rule</span><q class="data">{esc(a.rule_id)}</q></td>'
                        f'<td role="cell" class="mono"><span class="cell-label" aria-hidden="true">Inputs</span>{_inputs(a, by_id, accounts)}</td><td role="cell"><span class="cell-label" aria-hidden="true">Confidence</span>{a.confidence}</td>'
                        f'<td role="cell"><span class="cell-label" aria-hidden="true">Note</span>{data_text(a.note)}</td></tr>' for a in inferred)
-        body += ('<h2>Attribution hypothesis</h2><p>Each row below is inferred: it names the rule that inferred '
+        body += ('<h2 id="attribution-hypothesis">Attribution hypothesis</h2><p>Each row below is inferred: it names the rule that inferred '
                  'it, the assertions the rule read as its inputs and its confidence.</p><div class="table"><table class="account-inferred" role="table">'
                  '<thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Chain</th><th scope="col" role="columnheader">Label</th><th scope="col" role="columnheader">Category</th><th scope="col" role="columnheader">Rule</th><th scope="col" role="columnheader">Inputs</th>'
                  '<th scope="col" role="columnheader">Confidence</th><th scope="col" role="columnheader">Note</th></tr></thead>'
@@ -1087,7 +1093,7 @@ def account_page(subject, store, accounts, incidents, flows, clusters, events_di
         if events else "<p>No committed feed event names this account.</p>")
     split = body.index('<section class="workspace-panel profile-overview">')
     body = (body[:split] + _profile_account_summary(subject, assertions, accounts, flows)
-            + '<details class="profile-evidence"><summary>Source records and attribution evidence</summary>'
+            + f'<details class="profile-evidence"{" open" if inferred else ""}><summary>Source records and attribution evidence</summary>'
             + body[split:] + '</details>' + _profile_script())
     return page("Account", body, depth=1)
 
@@ -1095,10 +1101,11 @@ def account_page(subject, store, accounts, incidents, flows, clusters, events_di
 def registry_entity_page(entity, accounts):
     source = entity["source"]
     members = "".join(f'<li>{_subject_cell(member, accounts)}</li>' for member in entity["members"])
+    subject = entity["members"][0] if entity["kind"] in ("validator", "dao") else entity["name"]
     body = ('<div class="profile-heading"><div>'
-            f'<h1>{esc(entity["kind"].replace("_", " ").title())}</h1></div>'
+            f'<span class="profile-kind">{esc(entity["kind"].replace("_", " ").title())}</span>'
+            f'<h1 class="profile-id">{esc(subject)}</h1></div>'
             f'<p>{len(entity["members"])} recorded members</p></div>'
-            f'<p><q class="data">{esc(entity["name"])}</q></p>'
             f'<div class="profile-provenance"><p>Registry read: {esc(source["method"])} at block {source["block"]}, '
             f'arguments {esc(json.dumps(source["args"], sort_keys=True))}</p>'
             f'<p>Observed at {esc(entity["observed_at"])} on {esc(source["rpc"])}</p></div>'
@@ -1106,7 +1113,8 @@ def registry_entity_page(entity, accounts):
             '<h2>Members</h2>'
             + _profile_table("registry-members", ("Account", "Membership evidence"),
                              [[_subject_cell(member, accounts), f'Registry read at block {source["block"]}'] for member in entity["members"]], "Search members")
-            + f'<details class="profile-evidence"><summary>Original member list and registry source</summary><ul>{members}</ul>'
+            + f'<details class="profile-evidence"><summary>Original member list and registry source</summary>'
+            f'<p><q class="data">{esc(entity["name"])}</q></p><ul>{members}</ul>'
             f'<pre><q class="data">{esc(json.dumps(source, ensure_ascii=False, sort_keys=True))}</q></pre></details>')
     return page("Entity", body + _profile_script(), depth=1)
 
@@ -1165,8 +1173,9 @@ def cluster_page(name, document, accounts):
 
 
 def _hop_card(hop, accounts):
-    usd = ', USD unknown' if hop["usd_amount"] is None else f', {hop["usd_amount"]} USD as the Transfers API values it'
-    human = '' if hop['human_amount'] is None else f'<p>{esc(hop["human_amount"])} units as recorded by the provider.</p>'
+    usd = ', USD unknown' if hop["usd_amount"] is None else f', {_display_amount(hop["usd_amount"], 2)} USD as the Transfers API values it'
+    units = " units, from recorded base units" if trace.asset_decimals(hop["asset_id"]) is not None else " (decimals not recorded)"
+    human = f'<p>{esc(_transfer_amount(hop))}{units}.</p>'
     return (f'<div class="card flow-transfer"><p class="mono">{_linked(hop["from"], esc(hop["from"]), accounts)} to '
             f'{_linked(hop["to"], esc(hop["to"]), accounts)}</p><p>{esc(hop["amount"])} base units of '
             f'<span class="mono">{esc(hop["asset_id"])}</span>{esc(usd)}, method {esc(hop["method_name"] or "none")}</p>'

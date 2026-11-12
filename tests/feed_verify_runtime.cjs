@@ -47,7 +47,33 @@ async function main() {
   if (verify) {
     env.nodes.registry.value = 'registry.example.testnet'; env.nodes.subject.value = 'vendor.testnet'; env.nodes.hash.value = 'a'.repeat(64);
   }
-  if (scenario === 'feed-filter') {
+  if (scenario === 'feed-future') {
+    await env.reply(0, {...response([], []), stats: {updated_at: new Date(Date.now() + 3000).toISOString()}});
+    assert.doesNotMatch(text(env.nodes['feed-health']), /STALE|unreadable/);
+    assert.equal(text(env.nodes['feed-update-status']), 'Current as of 0 s ago, from the last successful read.');
+  } else if (scenario === 'feed-not-run') {
+    await env.reply(0, {...response([], []), stats: null});
+    assert.equal(text(env.nodes['feed-health']), 'The feed has not run on this server.');
+  } else if (scenario === 'feed-fresh-status') {
+    await env.reply(0, {...response([], []), stats: {updated_at: new Date(Date.now() - 119000).toISOString()}});
+    assert.equal(text(env.nodes['feed-update-status']), 'Current as of 119 s ago, from the last successful read.');
+  } else if (scenario === 'feed-freshness') {
+    const now = Date.now();
+    const data = (age, follower = 'running') => ({...response([], []), follower, stats: {...response([], []).stats, updated_at: new Date(now - age).toISOString()}});
+    for (const item of [data(14 * 86400000), data(20000, 'stopped'), data(20000, null), {...data(20000), stats: {}}, {...data(20000), stats: {updated_at: 'unreadable'}}, {...data(20000), stats: {last_time: new Date(now - 14 * 86400000).toISOString()}}]) {
+      const stale = environment(script); await stale.reply(0, item);
+      assert.match(text(stale.nodes['feed-health']), /STALE/);
+      assert.match(text(stale.nodes['feed-health']), /Events below are from that window, not from now|Freshness unavailable/);
+      assert.doesNotMatch(text(stale.nodes['feed-update-status']), /current/i);
+    }
+    await env.reply(0, data(20000));
+    assert.doesNotMatch(text(env.nodes['feed-health']), /STALE/);
+    assert.match(text(env.nodes['feed-update-status']), /Current as of 20 s ago/);
+    env.run(30000); await env.reply(1, data(121000));
+    assert.match(text(env.nodes['feed-health']), /STALE/);
+    assert.match(text(env.nodes['feed-update-status']), /Read succeeded. The follower data it returned is 2 min old/);
+    env.nodes['feed-pause'].emit('click'); assert.match(text(env.nodes['feed-update-status']), /paused/);
+  } else if (scenario === 'feed-filter') {
     const raw = 'full access key ed25519:abc added to agent.near; transfer of 1000000000000000000000000 yoctoNEAR to x.near within 452158 ms';
     const a = signal('full_access_key_then_outflow', {destination: 'implicit', amount_yocto: '1000000000000000000000000', detail: raw});
     const b = signal('labelled_account_large_transfer', {other_account_id: 'counterparty.near', usd_amount: '1000.0001', asset_id: 'native:near', source: {provider: 'FastNEAR Transfers'}});

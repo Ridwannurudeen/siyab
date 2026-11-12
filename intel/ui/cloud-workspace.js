@@ -5,7 +5,7 @@
   const shell = document.getElementById("cloud-shell");
   const pending = new Set();
   const privateDialogs = new Set();
-  const state = {session: null, teams: [], team: null, panel: "cases", epoch: 0, offset: 0, after: 0, before: null};
+  const state = {session: null, unavailable: false, teams: [], team: null, panel: "cases", epoch: 0, offset: 0, after: 0, before: null};
   function publishContext(clear = false) {
     window.dispatchEvent(new CustomEvent("siyab:workspace-context", {detail: {
       authenticated: !clear && Boolean(state.session), userId: clear ? null : state.session?.user.id || null,
@@ -63,7 +63,10 @@
       }
       const response = await fetch(prefix + path, {method: values === undefined ? "GET" : "POST", credentials: "same-origin", cache: "no-store",
         headers, body: values === undefined ? undefined : JSON.stringify(values), signal: controller.signal});
-      if (!(response.headers.get("content-type") || "").includes("application/json")) throw new Error("Shared workspace is unavailable on this copy. Retry on siyab.xyz.");
+      if (path === "/session" && response.status === 404) {
+        const error = new Error("Shared workspaces are not available here."); error.status = response.status; throw error;
+      }
+      if (!(response.headers.get("content-type") || "").includes("application/json")) throw new Error("The shared workspace response could not be read. Try again.");
       const value = await response.json();
       if (controller.signal.aborted || epoch !== state.epoch) throw new StaleRequest();
       if (!response.ok) {
@@ -166,18 +169,26 @@
           || data.authenticated && (typeof data.user?.username !== "string" || typeof data.user.id !== "string" || typeof data.csrf_token !== "string")) throw new Error("The workspace session could not be read.");
     }
     catch (error) {
-      if (shell && !(error instanceof StaleRequest)) {
-        shell.replaceChildren(node("p", error.message, "cloud-error"));
+      if (error instanceof StaleRequest) throw error;
+      state.unavailable = error.status === 404 ? "Shared workspaces are not available here. Your work saves in this browser."
+        : "Shared workspaces are temporarily unavailable. Try again. Your work saves in this browser.";
+      updateDestination();
+      if (shell) {
+        const feedback = node("p", state.unavailable, "cloud-status source-line");
+        feedback.id = "cloud-status"; feedback.setAttribute("role", "status"); feedback.setAttribute("aria-live", "polite");
+        shell.replaceChildren(feedback);
         button("Retry shared workspace", () => loadSession().catch(report), shell);
       }
-      throw error;
+      return false;
     }
+    state.unavailable = false;
     state.session = data.authenticated ? data : null;
     scrubDialogs(record => record.userId !== state.session?.user.id);
     state.teams = data.teams;
     state.team = state.teams.find(team => team.id === selectedTeamId) || state.teams[0] || null;
     render(); updateDestination(); addGlobalWatches();
     if (root && (open || data.authenticated)) root.open = true;
+    return true;
   }
   function render() {
     publishContext();
@@ -425,10 +436,10 @@
         const label = node("label", "Role for " + member.username), select = node("select");
         for (const role of ["owner", "editor", "viewer"]) { const option = node("option", role); option.value = role; select.append(option); }
         select.value = member.role; label.append(select); row.append(label);
-        button("Save role", control => action(control, async () => { await request(base + "/members/" + member.id + "/role", {role: select.value}); await loadSession(); status("Team role updated."); }), row);
+        button("Save role", control => action(control, async () => { await request(base + "/members/" + member.id + "/role", {role: select.value}); if (await loadSession()) status("Team role updated."); }), row);
         button("Remove", control => action(control, async () => {
           if (!confirm("Remove " + member.username + " from this team?")) return;
-          await request(base + "/members/" + member.id + "/remove", {}); await loadSession(); status("Team member removed.");
+          await request(base + "/members/" + member.id + "/remove", {}); if (await loadSession()) status("Team member removed.");
         }), row);
       } else row.append(node("span", member.role, "source-line"));
       list.append(row);
@@ -449,9 +460,9 @@
   }
   function renderTeamForms(parent) {
     const details = node("details", undefined, "cloud-portability"); details.append(node("summary", state.team ? "Create or join another team" : "Create or join a team"));
-    const create = form(details, async values => { const team = await request("/teams", {name: values.get("name")}); state.team = team; await loadSession(); status("Team workspace created."); });
+    const create = form(details, async values => { const team = await request("/teams", {name: values.get("name")}); state.team = team; if (await loadSession()) status("Team workspace created."); });
     field(create, "Team name", "name", {required: true, maxLength: 120}); submit(create, "Create team");
-    const join = form(details, async values => { const team = await request("/teams/join", {invite_token: values.get("invite_token").trim()}); state.team = team; await loadSession(); status("Joined team workspace."); });
+    const join = form(details, async values => { const team = await request("/teams/join", {invite_token: values.get("invite_token").trim()}); state.team = team; if (await loadSession()) status("Joined team workspace."); });
     field(join, "Invitation code", "invite_token", {required: true, maxLength: 128, autocomplete: "off"}); submit(join, "Join team"); parent.append(details);
   }
   function renderHistory(parent, data, base) {
@@ -479,18 +490,21 @@
     parent.append(node("h3", "Account security"));
     const change = form(parent, async (values, element) => {
       const result = await request("/auth/password", {current_password: values.get("current_password"), new_password: values.get("new_password")});
-      element.reset(); recovery(result.recovery_code, result.user.username, result.user.id); await loadSession(); status("Password changed. Other sessions and the previous recovery code were revoked.");
+      element.reset(); recovery(result.recovery_code, result.user.username, result.user.id); if (await loadSession()) status("Password changed. Other sessions and the previous recovery code were revoked.");
     });
     field(change, "Current password", "current_password", {type: "password", required: true, autocomplete: "current-password", maxLength: 128});
     field(change, "New password", "new_password", {type: "password", required: true, minLength: 12, maxLength: 128, autocomplete: "new-password"});
     submit(change, "Change password");
     parent.append(node("p", "A new recovery code is shown after a password change. Keep it privately; email recovery is not configured.", "source-line"));
   }
-  let destination = null, savingShared = false, saveRevision = 0;
+  let destination = null, destinationStatus = null, savingShared = false, saveRevision = 0;
   function updateDestination() {
     const saveForm = document.getElementById("case-form"); if (!saveForm) return;
     if (!destination) {
-      const label = node("label", "Save to"); destination = node("select"); destination.id = "case-destination"; label.append(destination); saveForm.prepend(label);
+      const label = node("label", "Save to"); destination = node("select"); destination.id = "case-destination";
+      destinationStatus = node("small", undefined, "source-line"); destinationStatus.id = "case-destination-status"; destinationStatus.setAttribute("role", "status");
+      destination.setAttribute("aria-describedby", destinationStatus.id);
+      label.append(destination); saveForm.prepend(label, destinationStatus);
       saveForm.addEventListener("submit", async event => {
         if (destination.value === "browser") return;
         event.preventDefault(); event.stopImmediatePropagation();
@@ -508,6 +522,7 @@
       document.getElementById("save-investigation").addEventListener("cancel", event => { if (savingShared) event.preventDefault(); });
       document.getElementById("save-investigation").addEventListener("close", () => { destination.value = "browser"; saveRevision++; });
     }
+    destinationStatus.textContent = state.unavailable || "";
     destination.replaceChildren(); const local = node("option", "This browser"); local.value = "browser"; destination.append(local);
     for (const team of state.teams.filter(team => team.role !== "viewer")) { const option = node("option", team.name + " (shared)"); option.value = team.id; destination.append(option); }
     destination.value = "browser";

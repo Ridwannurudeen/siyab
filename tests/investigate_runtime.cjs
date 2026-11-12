@@ -104,9 +104,20 @@ async function appBehavior() {
   previous.listeners.click();assert.match(pending.at(-1).url,/holdings\?offset=0&limit=10$/);
   reply(pending.at(-1),page('other.near'));await tick();
   const transferPage=page('other.near');transferPage.pagination.next_cursor='opaque/+?cursor==';
+  transferPage.items = [
+    {amount: '100000000000000000000000', amount_decimals: 24, human_amount: '0.09999999999999999'},
+    {amount: '1', amount_decimals: 24, human_amount: '1e-24'},
+    {amount: '123', amount_decimals: null, human_amount: '1.23'},
+  ].map(item => ({from: 'other.near', to: 'bob.near', asset_id: 'nep141:token.near', usd_amount: '0.09999999999999999', transaction_hash: 'tx', block_timestamp: '1776237164627685607', ...item}));
   ids['investigate-refresh'].listeners.click();const refreshed=pending.slice(-4);
   reply(refreshed[0],{account_id:'other.near',network:'mainnet',exists:false,labels:[],source:{},coverage:{}});
   reply(refreshed[1],page('other.near'));reply(refreshed[2],transferPage);reply(refreshed[3],page('other.near'));await tick();
+  assert.equal(allNodes(ids['investigate-transfers']).find(item => item.tag === 'small').textContent, '0.1 USD (provider value)');
+  const transferAmounts = allNodes(ids['investigate-transfers']).filter(item => item.tag === 'span' && item.className === 'mono').map(item => item.textContent);
+  assert.ok(transferAmounts.includes('0.1'), 'Transfer values use exact base units instead of provider floats');
+  assert.ok(transferAmounts.includes('<0.0001'), 'Transfer dust keeps the display floor');
+  assert.ok(transferAmounts.includes('123 base units'), 'Unknown decimals stay base units despite a human amount');
+  assert.match(contentText(ids['investigate-transfers']), /100000000000000000000000/, 'Transfer source keeps exact base units');
   next=allNodes(ids['investigate-transfers']).find(item=>item.tag==='button'&&item.textContent==='Next page');next.listeners.click();
   assert.equal(new URL(pending.at(-1).url,win.location).searchParams.get('cursor'),'opaque/+?cursor==','Opaque cursor must pass through unchanged');
   const timed=pending.at(-1);timers.values().next().value();timed.reject(new Error('aborted'));await tick();

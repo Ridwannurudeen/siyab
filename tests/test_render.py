@@ -66,9 +66,10 @@ def make_row(**fields):
 
 
 def own_text(page):
-    """The visible text of a page with every quoted source string removed."""
+    """The visible text of a page without quoted source strings or source identifier headings."""
     text = re.sub(r"<script\b[^>]*>.*?</script>", " ", page, flags=re.DOTALL)
     text = QUOTED.sub(" ", text)
+    text = re.sub(r'<h1 class="profile-id">(?=[^<]{2,64}</h1>)[a-z0-9]+(?:[._-][a-z0-9]+)*</h1>', " ", text)
     text = re.sub(r"<style>.*?</style>", " ", text, flags=re.DOTALL)
     return html.unescape(re.sub(r"<[^>]+>", " ", text))
 
@@ -173,6 +174,25 @@ class AppShellTest(unittest.TestCase):
 
 
 class AnalyticsPresentationTest(unittest.TestCase):
+    def test_own_text_excludes_bare_source_identifier_but_checks_adjacent_claims(self):
+        text = own_text('<h1 class="profile-id">fake.near</h1><p>This is safe.</p>')
+        self.assertNotIn("fake.near", text)
+        self.assertIn("This is safe.", text)
+        self.assertTrue(forbidden(text))
+        self.assertTrue(BARRED.search(own_text('<h1>fake claim</h1>')))
+        self.assertTrue(BARRED.search(own_text('<p class="profile-id">fake claim</p>')))
+
+    def test_own_text_checks_prose_in_source_identifier_headings(self):
+        for heading in ("This is safe.", "fake claim", "fake.near is safe", "FAKE.NEAR", "fake..near",
+                        "fake_.near", "fake.near.", "x" * 65 + ".fake"):
+            with self.subTest(heading=heading):
+                text = own_text(f'<h1 class="profile-id">{heading}</h1>')
+                self.assertIn(heading, text)
+                self.assertTrue(forbidden(text) or BARRED.search(text))
+        for account in ("fake.near", "fake-token.pool_v1.near", "fake", "a" * 64):
+            with self.subTest(account=account):
+                self.assertNotIn(account, own_text(f'<h1 class="profile-id">{account}</h1>'))
+
     def test_distribution_compacts_only_hashes_and_keeps_full_identifiers_and_facts(self):
         document = render._flows()[0][1]
         chart = render._flow_analytics(document, {})
@@ -365,6 +385,35 @@ class RenderTest(unittest.TestCase):
         self.assertIn('scope="col"', page)
         self.assertIn('<span class="cell-label" aria-hidden="true">Source</span>', page)
         self.assertNotIn('<p class="eyebrow">Account profile</p>', page)
+
+    @unittest.skipUnless(importlib.util.find_spec("playwright"), "Browser runtime is unavailable")
+    def test_home_linked_accounts_reflow_at_phone_widths(self):
+        from playwright.sync_api import sync_playwright
+        home = self.pages["index.html"]
+        paths = {link.lstrip("/") for link in LINK.findall(home) if "accounts/" in link}
+        asset = re.search(r'data-graph-src="/([^" ]+)"', home).group(1)
+        graph_data = json.loads((self.out / asset).read_text(encoding="utf-8"))
+        paths.add(f'accounts/{page_name(graph_data["root"])}.html')
+        self.assertEqual(len(paths), 13)
+        paths.add("accounts/usdt.tether-token.near.html")
+        with sync_playwright() as runtime:
+            browser = runtime.chromium.launch(headless=True, channel="chromium")
+            try:
+                context = browser.new_context(java_script_enabled=False)
+                context.route("**/*", lambda route: route.abort())
+                page = context.new_page()
+                for width in (320, 375, 390):
+                    page.set_viewport_size({"width": width, "height": 844})
+                    for path in sorted(paths):
+                        with self.subTest(width=width, page=path):
+                            document = re.sub(r'<script\b[^>]*>.*?</script>', '', self.pages[path], flags=re.DOTALL)
+                            document = re.sub(r'<link\b[^>]*>', '', document)
+                            document = document.replace('</head>', '<style>' + render.STYLE + '</style></head>')
+                            page.set_content(document)
+                            sizes = page.evaluate('({scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth})')
+                            self.assertEqual(sizes["scroll"], sizes["client"])
+            finally:
+                browser.close()
 
     def test_generated_styles_preserve_native_hidden_control_semantics(self):
         stylesheet = (self.out / "style.css").read_text(encoding="utf-8")
@@ -1087,7 +1136,7 @@ class RenderTest(unittest.TestCase):
         for row in inferred:
             with self.subTest(row=row.id):
                 page = self.pages[f"accounts/{page_name(row.subject)}.html"]
-                heading = page.index("<h2>Attribution hypothesis</h2>")
+                heading = page.index('<h2 id="attribution-hypothesis">Attribution hypothesis</h2>')
                 plain, hypothesis = page[:heading], page[heading:]
                 stated = [a for a in store.assertions if a.subject == row.subject and a.superseded_by is None
                           and a.provenance != "inferred"]

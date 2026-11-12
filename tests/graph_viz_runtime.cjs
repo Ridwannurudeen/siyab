@@ -6,7 +6,7 @@ const window = {location: new URL('https://siyab.xyz/flows/example.html')};
 vm.runInNewContext(fs.readFileSync('intel/ui/number-format.js','utf8'),{window});
 const source = fs.readFileSync('intel/ui/graphs.js', 'utf8').replace(
   '  window.SiyabGraph =',
-  '  window.vizTest = {decimalSum, valueSummary, filteredEdges, restoredView, exactUtc, arrangeControls};\n  window.SiyabGraph ='
+  '  window.vizTest = {decimalSum, valueSummary, filteredEdges, restoredView, exactUtc, arrangeControls, edgeLabel};\n  window.SiyabGraph ='
 );
 const document = {readyState: 'loading', addEventListener() {}};
 vm.runInNewContext(source, {window, URL, document});
@@ -23,11 +23,17 @@ const second = {...first, id: 'record-1', block_timestamp: '1776237164627685608'
 const payload = {kind: 'flow', root: 'root.near', nodes: [{id: 'root.near'}, {id: 'a.near'}],
   records: [first, second], edges: [{id: 'edge-0', asset_id: 'native:near', provenance: 'onchain',
     from: 'root.near', to: 'a.near', record_ids: ['record-0', 'record-1']}]};
+const noisy = {kind: 'flow', source: {recorded: true}, records: [{id: 'noisy', amount: '100000000000000000000000', amount_decimals: 24, human_amount: '0.09999999999999999', usd_amount: null, block_timestamp: '1'}]};
+const noisyEdge = {from: 'a.near', to: 'b.near', asset_id: 'native:near', provenance: 'onchain', record_ids: ['noisy']};
+assert.match(window.vizTest.edgeLabel(noisy, noisyEdge), /0\.1 native:near/);
+assert.doesNotMatch(window.vizTest.edgeLabel(noisy, noisyEdge), /0\.09999999999999999/);
+noisy.records[0].amount_decimals = null; noisyEdge.asset_id = 'nep141:unknown.near';
+assert.match(window.vizTest.edgeLabel(noisy, noisyEdge), /100000000000000000000000 base units/);
 const before = JSON.stringify(payload);
 const summary = valueSummary(payload.records);
 assert.equal(summary.usd, '1.000000000000000000000001');
 assert.equal(summary.unknownUsd, 1);
-assert.equal(summary.human, null, 'A missing human amount must not become zero or a false total');
+assert.equal(Object.hasOwn(summary, 'human'), false, 'Unused provider human totals must not be computed');
 assert.equal(summary.base, '18014398509481986246913578');
 assert.equal(summary.first, first.block_timestamp); assert.equal(summary.last, second.block_timestamp);
 assert.equal(valueSummary([second]).usd, null, 'Unknown USD must not become zero');

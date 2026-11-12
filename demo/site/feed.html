@@ -94,17 +94,35 @@
     if (selected && !values.includes(selected)) add(control, "option", selected + " (not in this response)").value = selected;
     control.value = selected;
   };
+  const freshness = data => {
+    const timestamp = data.stats?.updated_at || data.stats?.last_time, updated = Date.parse(timestamp);
+    const raw = Date.now() - updated, readable = Number.isFinite(raw), age = Math.max(0, raw);
+    const seconds = Math.floor(age / 1000);
+    const relative = !readable ? null : seconds < 120 ? `${seconds} s` : seconds < 3600 ? `${Math.floor(seconds / 60)} min` : seconds < 86400 ? `${Math.floor(seconds / 3600)} h` : `${Math.floor(seconds / 86400)} d`;
+    return {stale: !readable || age > 120000 || data.follower !== "running", relative,
+      observed: readable ? new Date(updated).toISOString().replace("T", " ").replace(/\.\d{3}Z$/, " UTC") : null};
+  };
+  const responseStatus = data => {
+    const {stale, relative} = freshness(data);
+    return stale ? relative ? `Read succeeded. The follower data it returned is ${relative} old.` : "Read succeeded. Follower freshness is unavailable." : `Current as of ${relative} ago, from the last successful read.`;
+  };
   const showEvents = data => {
     current = data; updateOptions(signal, data.events.map(row => row.signal), "All signals"); updateOptions(source, data.events.map(provider), "All sources");
     filters.hidden = false; renderEvents(); previous = JSON.stringify([data.events, data.event_ids || null]); pending = null; apply.hidden = true;
-    updateStatus.textContent = paused ? "Updates paused; displayed response retained" : "Displayed response is current as of the last successful read"; notify(data);
+    updateStatus.textContent = paused ? "Updates paused; displayed response retained" : responseStatus(data); notify(data);
   };
   apply.addEventListener("click", () => { if (pending) showEvents(pending); });
   for (const control of [query, since]) control.addEventListener("input", renderEvents);
   for (const control of [signal, source]) control.addEventListener("change", renderEvents);
   clear.addEventListener("click", () => { for (const control of [query, since, signal, source]) control.value = ""; renderEvents(); });
   const health = data => {
-    panel.replaceChildren(); if (!data.stats) { add(panel, "p", "The feed has not run on this server."); return; }
+    panel.replaceChildren();
+    if (!data.stats) { add(panel, "p", "The feed has not run on this server."); return; }
+    const {stale, relative, observed} = freshness(data);
+    if (stale) {
+      const notice = add(panel, "p", undefined, "feed-stale"); add(notice, "span", "STALE", "outcome ask");
+      add(notice, "span", relative ? ` Follower last updated ${relative} ago (${observed}). Events below are from that window, not from now.` : " Freshness unavailable: the follower has not recorded a readable update timestamp. Events below are from a recorded window, not from now.");
+    }
     const stats = data.stats;
     add(panel, "strong", data.follower === "running" ? "Follower running" : data.follower === "stopped" ? "Follower stopped" : "Recorded feed window");
     add(panel, "p", `Blocks ${stats.start_height ?? "unavailable"} to ${stats.last_height ?? "unavailable"}; lag ${stats.lag_blocks ?? "unavailable"} blocks.`);
@@ -136,7 +154,7 @@
       health(data);
       if (previous === null) showEvents(data);
       else if (JSON.stringify([data.events, data.event_ids || null]) !== previous) { pending = data; apply.hidden = false; apply.textContent = "Show updated events"; updateStatus.textContent = "New response available; displayed events are unchanged until you apply it"; }
-      else { pending = null; apply.hidden = true; current = data; updateStatus.textContent = "Displayed response is current as of the last successful read"; notify(data); }
+      else { pending = null; apply.hidden = true; current = data; updateStatus.textContent = responseStatus(data); notify(data); }
     } catch (error) {
       if (!paused && request === generation) { panel.replaceChildren(); add(panel, "p", "Live follower health is unavailable. Previously displayed events are retained and may be stale."); updateStatus.textContent = "Current read unavailable; retry or wait for the next scheduled read"; retry.hidden = false; }
     } finally { clearTimeout(deadline); if (request === generation) panel.setAttribute("aria-busy", "false"); }
@@ -263,5 +281,5 @@
   const query = new URLSearchParams(location.search).get("q");
   if (query) open(query);
 })();
-</script><script src="/assets/c817886a3cb9dd825332292e4e991d52ed336dec44be098b718432d84da077c8.js" integrity="sha256-yBeIajy53YJTMikuTpkdUu0zbexEvgmLcYQy2E2gd8g=" defer></script><script src="/assets/393ef0f0e7c1bd1c0acb22889cd066846a86415a9d30e5dcac1f48e11955828d.js" integrity="sha256-OT7w8OfBvRwKyyKInNBmhGqGQVqdMOXcrB9I4RlVgo0=" defer></script></body>
+</script><script src="/assets/c817886a3cb9dd825332292e4e991d52ed336dec44be098b718432d84da077c8.js" integrity="sha256-yBeIajy53YJTMikuTpkdUu0zbexEvgmLcYQy2E2gd8g=" defer></script><script src="/assets/ce269fa9fe570247c26ef461dac724d802f2eab11a7ec44659d253a66a1d7b3d.js" integrity="sha256-ziafqf5XAkfCbvRh2sck2ALy6rEafsRGWdJTpmodez0=" defer></script></body>
 </html>

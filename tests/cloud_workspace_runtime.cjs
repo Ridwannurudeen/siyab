@@ -36,7 +36,7 @@ function environment(options = {}) {
   if (options.workspace) { nodes['cloud-workspace'] = new Element('details'); nodes['cloud-shell'] = new Element('div'); }
   const source = fs.readFileSync('intel/ui/cloud-workspace.js', 'utf8');
   const marker = source.lastIndexOf('})();');
-  const code = source.slice(0, marker) + 'globalThis.cloudTest={localUrl,importValue,chunks,request,invalidate,allCases,importWorkspace,loadSession,renderCases,renderWatches,renderHistory,editCase,recovery,report,state};\n' + source.slice(marker);
+  const code = source.slice(0, marker) + 'globalThis.cloudTest={localUrl,importValue,chunks,request,invalidate,allCases,importWorkspace,loadSession,renderCases,renderWatches,renderHistory,renderMembers,editCase,recovery,report,state};\n' + source.slice(marker);
   const context = {document, window, CustomEvent: class {constructor(type, options = {}) {this.type = type; this.detail = options.detail;}}, location: {origin: 'https://siyab.xyz'}, URL: class extends URL {static createObjectURL(blob) {downloads.push(blob); return 'blob:download';} static revokeObjectURL() {}}, Blob, TextEncoder, AbortController,
     confirm: () => { confirmations++; return options.confirm !== false; },
     localStorage: {getItem() { return options.local || null; }, setItem(...value) {writes.push(value);}},
@@ -53,7 +53,55 @@ const session = {authenticated: true, user: {id: 'user1', username: 'alice'}, cs
 const example = () => ({version: 1, cases: [{title: 'Case', notes: 'Evidence', url: '/investigate.html?account=alice.near'}], watchlist: ['alice.near']});
 async function main() {
   const scenario = process.argv[2];
-  if (scenario === 'privacy-validation') {
+  if (scenario === 'session-unavailable') {
+    const text = node => node.textContent + ' ' + node.children.map(text).join(' ');
+    for (const options of [{}, {globalSave: true}, {workspace: true}]) {
+      const env = environment(options);
+      env.requests[0].resolve({ok: false, status: 404, headers: {get: () => 'text/html'}}); await flush();
+      assert.equal(env.nodes['workspace-feedback'].textContent, '', 'Passive session failures stay off global feedback');
+      if (options.workspace) assert.match(text(env.nodes['cloud-shell']), /Shared workspaces are not available here. Your work saves in this browser./);
+      if (options.globalSave) {
+        assert.match(text(env.nodes['case-form'].querySelector('small')), /Shared workspaces are not available here/);
+        assert.equal(env.nodes['case-form'].querySelector('select').value, 'browser');
+        const retry = env.api.loadSession(); await reply(env.requests[1], session); await retry;
+        assert.doesNotMatch(text(env.nodes['case-form'].querySelector('small')), /not available here/);
+      }
+    }
+  } else if (scenario === 'session-temporary-failure') {
+    const text = node => node.textContent + ' ' + node.children.map(text).join(' ');
+    for (const failure of ['server', 'html', 'shape', 'json', 'network']) {
+      const env = environment({workspace: true, globalSave: true});
+      if (failure === 'server') await reply(env.requests[0], {message: 'Internal error'}, 503);
+      else if (failure === 'html') { env.requests[0].resolve({ok: false, status: 500, headers: {get: () => 'text/html'}}); await flush(); }
+      else if (failure === 'shape') await reply(env.requests[0], {authenticated: true, teams: 'bad'});
+      else if (failure === 'json') { env.requests[0].resolve({ok: true, status: 200, headers: {get: () => 'application/json'}, json: async () => {throw new Error('Invalid JSON');}}); await flush(); }
+      else { env.requests[0].reject(new Error('Connection failed')); await flush(); }
+      assert.match(text(env.nodes['cloud-shell']), /Shared workspaces are temporarily unavailable. Try again./, failure);
+      assert.match(text(env.nodes['case-form']), /Shared workspaces are temporarily unavailable. Try again./, failure);
+      assert.doesNotMatch(text(env.nodes['cloud-shell']), /not available here/, failure);
+      assert.equal(env.nodes['workspace-feedback'].textContent, '', 'Passive failures do not use global feedback');
+    }
+  } else if (scenario === 'session-reload-failure') {
+    const env = environment({workspace: true}); await reply(env.requests[0], session);
+    const parent = new Element('section');
+    env.api.renderMembers(parent, [{id: 'member1', username: 'bob', role: 'editor'}], '/teams/team1');
+    parent.querySelectorAll('button').find(button => button.textContent === 'Save role').listeners.click();
+    await reply(env.requests.at(-1), {});
+    assert.equal(env.requests.at(-1).url, '/workspace-api/session');
+    await reply(env.requests.at(-1), {message: 'Internal error'}, 503);
+    const feedback = env.nodes['cloud-shell'].querySelector('p');
+    assert.equal(feedback.textContent, 'Shared workspaces are temporarily unavailable. Try again. Your work saves in this browser.');
+    assert.equal(env.nodes['workspace-feedback'].textContent, '', 'A failed reload must not announce success');
+  } else if (scenario === 'destination-description') {
+    const env = environment({globalSave: true});
+    await reply(env.requests[0], {authenticated: false, teams: []});
+    const form = env.nodes['case-form'], label = form.children[0], select = label.querySelector('select');
+    const description = form.querySelector('small');
+    assert.equal(label.textContent, 'Save to');
+    assert.ok(description.id);
+    assert.equal(select.getAttribute('aria-describedby'), description.id);
+    assert.equal(label.children.includes(description), false, 'Destination status is outside the dropdown label');
+  } else if (scenario === 'privacy-validation') {
     const env = environment({local: JSON.stringify(example())});
     assert.equal(env.requests.length, 1); assert.equal(env.requests[0].url, '/workspace-api/session');
     await reply(env.requests[0], session);

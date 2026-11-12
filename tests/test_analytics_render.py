@@ -34,6 +34,47 @@ class AnalyticsRenderTest(unittest.TestCase):
             self.assertIn((ROOT / f"intel/ui/{name}-panel.html").read_text(encoding="utf-8"), page)
             self.assertIn(render._script_tag((ROOT / f"intel/ui/{name}.js").read_text(encoding="utf-8")), page)
 
+    def test_inferred_account_tags_link_to_open_hypothesis_with_reconciled_counts(self):
+        store = labels.load()
+        accounts = render.account_pages(store)
+        inferred = [row for row in store.assertions if row.provenance == "inferred" and row.superseded_by is None]
+        self.assertTrue(inferred)
+        for subject in sorted({row.subject for row in inferred}):
+            with self.subTest(subject=subject):
+                assertions = [row for row in store.assertions if row.subject == subject and row.superseded_by is None]
+                hypotheses = [row for row in assertions if row.provenance == "inferred"]
+                page = render.account_page(subject, store, accounts, [], [], [])
+                tags = page.split('<p class="profile-tags">', 1)[1].split('</p>', 1)[0]
+                for category in {row.category.replace("_", " ") for row in hypotheses}:
+                    self.assertIn(f'<a href="#attribution-hypothesis">{category}, inferred</a>', tags)
+                self.assertIn('<h2 id="attribution-hypothesis">Attribution hypothesis</h2>', page)
+                self.assertIn('<details class="profile-evidence" open>', page)
+                sourced = len(assertions) - len(hypotheses)
+                self.assertIn(f'<dt>Label assertions</dt><dd>{len(assertions)}</dd>', page)
+                self.assertIn(f'<dd><span class="profile-observed">{sourced} sourced, {len(hypotheses)} inferred</span></dd>', page)
+                table = page.split('id="profile-labels"', 1)[1].split('</table>', 1)[0]
+                self.assertEqual(table.count('<td role="cell">'), sourced * 4)
+                self.assertNotIn('>inferred</td>', table)
+        stated = next(row for row in store.assertions if row.provenance != "inferred")
+        page = render.account_page(stated.subject, labels.Store([stated], "0" * 64), {}, [], [], [])
+        self.assertNotIn('<details class="profile-evidence" open>', page)
+        self.assertNotIn('href="#attribution-hypothesis"', page)
+
+    def test_registry_entity_headings_name_the_subject_for_every_kind(self):
+        entities = [json.loads(line) for line in (ROOT / "intel/entities.jsonl").read_text(encoding="utf-8").splitlines()]
+        self.assertEqual(sum(entity["kind"] == "validator" for entity in entities), 374)
+        for entity in entities:
+            with self.subTest(entity=entity["id"]):
+                page = render.registry_entity_page(entity, {})
+                heading = page.split('<div class="profile-heading">', 1)[1].split('</div>', 1)[0]
+                subject = entity["members"][0] if entity["kind"] in ("validator", "dao") else entity["name"]
+                self.assertIn(f'<h1 class="profile-id">{html.escape(subject)}</h1>', heading)
+                self.assertNotIn('<q class="data">', heading)
+                kind = entity["kind"].replace("_", " ").title()
+                self.assertIn(f'<span class="profile-kind">{kind}</span>', heading)
+                evidence = page.split('<summary>Original member list and registry source</summary>', 1)[1]
+                self.assertIn(f'<q class="data">{html.escape(entity["name"])}</q>', evidence)
+
     def test_recorded_feed_readable_amount_keeps_exact_record(self):
         event = {"signal": "large_transfer", "detail": "Recorded transfer", "subject": "alice.near",
                  "amount_yocto": "12345678901234567890123456789", "asset_id": "native:near",

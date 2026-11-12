@@ -63,3 +63,32 @@ async function main() {
   console.log("Profile live checks: on-demand reads, exact units, unknown refusal, request ordering, timeout and page lifecycle passed.");
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });
+
+async function recordedAmounts() {
+  const section = new Element(), body = new Element(), counterBody = new Element(), table = new Element(), counterparties = new Element();
+  const controls = Object.fromEntries(["[data-activity-search]", "[data-activity-direction]", "[data-activity-status]", "[data-activity-pages]", "[data-activity-retry]", ".profile-table-tools", "[data-counterparties-scope]"].map(key => [key, new Element()]));
+  controls["[data-activity-search]"].value = ""; controls["[data-activity-direction]"].value = "";
+  const config = new Element(); config.textContent = JSON.stringify({subject: "alice.near", total_rows: 3, sources: [{name: "recorded", url: "/graph-data/" + "a".repeat(64) + ".json"}]});
+  section.querySelector = selector => selector === "[data-profile-sources]" ? config : selector === "#profile-transfers" ? table : selector === '[data-profile-table="profile-counterparties"]' ? counterparties : controls[selector];
+  table.querySelector = () => body; table.querySelectorAll = () => ["Time", "Direction", "Counterparty", "Amount", "USD", "Evidence"].map(text => Object.assign(new Element(), {textContent: text}));
+  counterparties.querySelector = selector => selector === "tbody" ? counterBody : new Element(); counterparties.dispatchEvent = () => {};
+  const records = [
+    {amount: "100000000000000000000000", amount_decimals: 24, human_amount: "0.09999999999999999"},
+    {amount: "1", amount_decimals: 24, human_amount: "1e-24"},
+    {amount: "123", amount_decimals: null, human_amount: "1.23"},
+  ].map(row => ({from: "alice.near", to: "bob.near", asset_id: "nep141:token.near", block_timestamp: "1776237164627685607", block: 1, transaction_hash: "tx", receipt_id: "receipt", usd_amount: "0.09999999999999999", ...row}));
+  const window = new Element();
+  vm.runInNewContext(fs.readFileSync("intel/ui/number-format.js", "utf8"), {window});
+  vm.runInNewContext(fs.readFileSync("intel/ui/profiles.js", "utf8"), {
+    window, URLSearchParams, AbortController, Event,
+    document: {querySelectorAll: selector => selector === "[data-profile-activity]" ? [section] : [], createElement: () => new Element(), createTextNode: value => Object.assign(new Element(), {textContent: value})},
+    fetch: async () => ({ok: true, json: async () => ({kind: "flow", records, source: {fetched_at: "2026-11-01T00:00:00Z"}})}), setTimeout, clearTimeout,
+  });
+  await controls["[data-activity-search]"].emit("input");
+  assert.equal(body.children[0].children[4].children[1].textContent, "0.1");
+  assert.equal(body.children[0].children[3].children[1].textContent, "0.1");
+  assert.equal(body.children[1].children[3].children[1].textContent, "<0.0001");
+  assert.equal(body.children[2].children[3].children[1].textContent, "123 base units");
+  assert.match(text(body.children[0].children[5]), /100000000000000000000000/, "Transfer details retain exact base units");
+}
+recordedAmounts().catch(error => { console.error(error); process.exitCode = 1; });
