@@ -53,7 +53,30 @@ const session = {authenticated: true, user: {id: 'user1', username: 'alice'}, cs
 const example = () => ({version: 1, cases: [{title: 'Case', notes: 'Evidence', url: '/investigate.html?account=alice.near'}], watchlist: ['alice.near']});
 async function main() {
   const scenario = process.argv[2];
-  if (scenario === 'privacy-validation') {
+  if (scenario === 'registration-access-code') {
+    for (const registration_open of [true, false]) {
+      const env = environment({workspace: true});
+      await reply(env.requests[0], {authenticated: false, teams: [], registration_open});
+      const shell = env.nodes['cloud-shell'];
+      const create = shell.querySelectorAll('button').find(control => control.dataset.authMode === 'register');
+      assert.ok(create); assert.notEqual(create.disabled, true); create.listeners.click();
+      const form = shell.querySelector('form');
+      const code = form.querySelectorAll('input').find(input => input.name === 'access_code');
+      assert.ok(code); assert.equal(code.required, !registration_open);
+      form.querySelectorAll('input').find(input => input.name === 'username').value = 'coded';
+      form.querySelectorAll('input').find(input => input.name === 'password').value = 'test-password-123';
+      code.value = registration_open ? '' : ' ' + 'a'.repeat(43) + ' ';
+      const saving = form.listeners.submit({preventDefault() {}});
+      const sent = JSON.parse(env.requests[1].settings.body);
+      assert.equal(Object.hasOwn(sent, 'access_code'), !registration_open);
+      if (!registration_open) assert.equal(sent.access_code, code.value.trim());
+      await reply(env.requests[1], {error: 'test_error', message: 'Registration unavailable.'}, 403); await saving;
+      code.value = ' \t' + 'b'.repeat(43) + ' \t';
+      const retry = form.listeners.submit({preventDefault() {}});
+      assert.equal(JSON.parse(env.requests[2].settings.body).access_code, code.value.trim());
+      await reply(env.requests[2], {error: 'test_error', message: 'Registration unavailable.'}, 403); await retry;
+    }
+  } else if (scenario === 'privacy-validation') {
     const env = environment({local: JSON.stringify(example())});
     assert.equal(env.requests.length, 1); assert.equal(env.requests[0].url, '/workspace-api/session');
     await reply(env.requests[0], session);

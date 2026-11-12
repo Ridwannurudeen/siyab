@@ -4,6 +4,8 @@ import hashlib
 import hmac
 import ipaddress
 import json
+import math
+import os
 import re
 import sqlite3
 import threading
@@ -34,6 +36,10 @@ class WorkspaceAPI:
             raise ValueError("workspace origin must be one HTTP origin")
         if parsed.scheme != "https" and (secure_cookie or parsed.hostname not in ("127.0.0.1", "localhost", "::1")):
             raise ValueError("HTTP workspace origins are restricted to explicit local development")
+        registration = os.environ.get("SIYAB_REGISTRATION") or "open"
+        if registration not in ("open", "closed"):
+            raise ValueError("SIYAB_REGISTRATION must be open or closed")
+        self.registration_open = registration == "open"
         self.store = store
         self.origin = origin
         self.secure_cookie = secure_cookie
@@ -59,13 +65,19 @@ class WorkspaceAPI:
             if any(not IDENTIFIER.fullmatch(part) for part in parts):
                 raise WorkspaceError(404, "not_found", "No workspace route matches this path.")
             client = peer
-            if peer in ("127.0.0.1", "::1") and headers.get("X-Forwarded-For"):
-                try:
-                    client = str(ipaddress.ip_address(headers.get("X-Forwarded-For")))
-                except ValueError:
-                    raise WorkspaceError(400, "invalid_request", "Client address is malformed.") from None
-            if not self._allowed(("requests", client), 120, 60):
-                return self._limited(60)
+            forwarded = headers.get_all("X-Forwarded-For")
+            if peer in ("127.0.0.1", "::1") and forwarded is not None:
+                client = forwarded[-1].rsplit(",", 1)[-1].strip()
+            try:
+                address = ipaddress.ip_address(client)
+            except ValueError:
+                raise WorkspaceError(400, "invalid_request", "Client address is malformed.") from None
+            if address.version == 6 and address.ipv4_mapped:
+                address = address.ipv4_mapped
+            client = str(ipaddress.ip_network((address, 64), strict=False)) if address.version == 6 else str(address)
+            allowed, start = self._allowed(("requests", client), 120, 60)
+            if not allowed:
+                return self._limited(60, start)
             if method == "POST":
                 origins = headers.get_all("Origin", [])
                 if origins != [self.origin]:
@@ -91,14 +103,14 @@ class WorkspaceAPI:
             if parts == ["session"] and method in ("GET", "HEAD"):
                 self._query(parsed.query, set())
                 if token is None:
-                    return 200, {"authenticated": False, "user": None, "teams": []}, {}
+                    return 200, {"authenticated": False, "user": None, "teams": [], "registration_open": self.registration_open}, {}
                 try:
                     session = self.store.authenticate(token)
                 except WorkspaceError as error:
                     if error.status != 401:
                         raise
-                    return 200, {"authenticated": False, "user": None, "teams": []}, {"Set-Cookie": self._clear_cookie()}
-                return 200, {**session, "authenticated": True, "teams": self.store.list_teams(session["user"]["id"])}, {}
+                    return 200, {"authenticated": False, "user": None, "teams": [], "registration_open": self.registration_open}, {"Set-Cookie": self._clear_cookie()}
+                return 200, {**session, "authenticated": True, "teams": self.store.list_teams(session["user"]["id"]), "registration_open": self.registration_open}, {}
             if token is None:
                 raise WorkspaceError(401, "authentication_required", "Sign in to use a shared workspace.")
             session = self.store.authenticate(token)
@@ -124,7 +136,8 @@ class WorkspaceAPI:
                 return self._team(actor, parts[1], parts[2:], method, parsed.query, values)
             raise WorkspaceError(404, "not_found", "No workspace route matches this path.")
         except WorkspaceError as error:
-            return error.status, {"error": error.code, "message": error.message}, {}
+            headers = {"Retry-After": str(error.retry_after)} if error.retry_after is not None else {}
+            return error.status, {"error": error.code, "message": error.message}, headers
         except investigation_jobs.JobNotFound as error:
             return 404, {"error": "not_found", "message": str(error)}, {}
         except investigation_jobs.JobInputError as error:
@@ -140,25 +153,40 @@ class WorkspaceAPI:
                 return self._protected_auth(parts, values, headers)
             raise WorkspaceError(404, "not_found", "No authentication route matches this path.")
         command = parts[1]
-        if not self._allowed(("auth", client), 10, 60):
-            return self._limited(60)
+        allowed, start = self._allowed(("auth", client), 10, 60)
+        if not allowed:
+            return self._limited(60, start)
         username = values.get("username")
         if not isinstance(username, str) or not username.isascii() or not 3 <= len(username) <= 40:
             raise WorkspaceError(400, "invalid_username", "Use a valid Siyab username of 3 to 40 ASCII characters.")
         identity = hashlib.sha256(username.casefold().encode("ascii")).hexdigest()
-        if not self._allowed(("identity", command, client, identity), 10, 60):
-            return self._limited(60)
+        allowed, start = self._allowed(("identity", command, client, identity), 10, 60)
+        if not allowed:
+            return self._limited(60, start)
         if command == "register":
-            if not self._allowed(("register", client), 5, 3600):
-                return self._limited(3600)
-            self._fields(values, {"username", "password"})
-            result = self.store.register(values["username"], values["password"])
+            access_code = values.get("access_code")
+            if "access_code" in values and not isinstance(access_code, str):
+                raise WorkspaceError(400, "invalid_fields", "Access code must be a string.")
+            self._fields(values, {"username", "password"} | ({"access_code"} if "access_code" in values else set()))
+            if access_code is None:
+                if not self.registration_open:
+                    raise WorkspaceError(403, "registration_closed", "New account registration is closed. Enter an access code if you were given one.")
+                allowed, start = self._allowed(("register", client), 5, 3600)
+                if not allowed:
+                    return self._limited(3600, start)
+                allowed, start = self._allowed(("register_day", client), 10, 86400)
+                if not allowed:
+                    return self._limited(86400, start)
+                result = self.store.register(values["username"], values["password"])
+            else:
+                result = self.store.register(values["username"], values["password"], access_code=access_code)
         elif command == "login":
             self._fields(values, {"username", "password"})
             result = self.store.login(values["username"], values["password"])
         else:
-            if not self._allowed(("recover", client), 5, 3600):
-                return self._limited(3600)
+            allowed, start = self._allowed(("recover", client), 5, 3600)
+            if not allowed:
+                return self._limited(3600, start)
             self._fields(values, {"username", "recovery_code", "new_password"})
             result = self.store.recover(values["username"], values["recovery_code"], values["new_password"])
         previous = self._token(headers)
@@ -179,8 +207,9 @@ class WorkspaceAPI:
             self.store.logout(token)
             return 200, {"signed_out": True}, {"Set-Cookie": self._clear_cookie()}
         self._fields(values, {"current_password", "new_password"})
-        if not self._allowed(("password", session["user"]["id"]), 5, 60):
-            return self._limited(60)
+        allowed, start = self._allowed(("password", session["user"]["id"]), 5, 60)
+        if not allowed:
+            return self._limited(60, start)
         return self._auth_reply(self.store.change_password(token, values["current_password"], values["new_password"]))
 
     def _team(self, actor, team, parts, method, query, values):
@@ -328,6 +357,7 @@ class WorkspaceAPI:
             cookie += "; Secure"
         cookie += "; Expires=" + format_datetime(datetime.fromtimestamp(result["expires_at"] / 1000, UTC), usegmt=True)
         body = {key: value for key, value in result.items() if key != "session_token"}
+        body["registration_open"] = self.registration_open
         return status, body, {"Set-Cookie": cookie}
 
     def _clear_cookie(self):
@@ -343,10 +373,10 @@ class WorkspaceAPI:
                 self._rates.popitem(last=False)
             self._rates[key] = (start, count + 1)
             self._rates.move_to_end(key)
-            return count < limit
+            return count < limit, start
 
-    @staticmethod
-    def _limited(seconds):
+    def _limited(self, seconds, start):
+        seconds = max(1, math.ceil(start + seconds - self.clock()))
         return 429, {"error": "rate_limited", "message": "Too many workspace requests. Try again later."}, {"Retry-After": str(seconds)}
 
     @staticmethod

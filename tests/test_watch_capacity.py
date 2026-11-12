@@ -25,8 +25,8 @@ class Failing:
     def __init__(self, store):
         self.store, self.fail = store, True
 
-    def watched_accounts(self):
-        return self.store.watched_accounts()
+    def watch_schedule(self):
+        return self.store.watch_schedule()
 
     def ingest_event(self, *args, **kwargs):
         if self.fail:
@@ -36,6 +36,12 @@ class Failing:
 
 class WatchCapacityTest(unittest.TestCase):
     def setUp(self):
+        alert = mock.patch.object(workspace, "_WATCH_ALERTED", False)
+        alert.start()
+        self.addCleanup(alert.stop)
+        stderr = mock.patch("sys.stderr", new_callable=io.StringIO)
+        stderr.start()
+        self.addCleanup(stderr.stop)
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name)
@@ -258,7 +264,7 @@ class WatchCapacityTest(unittest.TestCase):
         after = transfer(2, timestamp=self.stamp())
         self.poll("alice.near", [after, before])
         self.poll("carol.near", [])
-        self.assertEqual(self.store.list_inbox(alice, alice_team)["items"], [])
+        self.assertEqual([item["event"]["receipt_id"] for item in self.store.list_inbox(alice, alice_team)["items"]], [after["receipt_id"]])
         with mock.patch.object(history, "MAX_WATCH_SEEN", 2):
             self.poll("carol.near", [transfer(9, subject="carol.near", timestamp=self.stamp())])
             self.assertEqual(self.seen("alice.near"), [before["id"]])
@@ -530,7 +536,7 @@ class WatchCapacityTest(unittest.TestCase):
         user, team, cookie = self.api_team(api, "carol.near")
         bob = self.team("bob", "bob.near")
         self.reader.pages["carol.near", None] = page([], account="carol.near")
-        self.poll("bob.near", [transfer(number, subject="bob.near", timestamp=self.stamp()) for number in (2, 1)])
+        self.poll("bob.near", [transfer(number, subject="bob.near", timestamp=str(int((self.now - 1) * 1000) * 1000000)) for number in (2, 1)])
         self.poll("carol.near", [])
         return api, user, team, cookie, bob
 
@@ -837,7 +843,8 @@ class WatchCapacityTest(unittest.TestCase):
         self.assertUsageMatchesRows()
         self.assertGreater(self.usage("bytes"), history.MAX_ARCHIVE_BYTES + history.EVENT_ARCHIVE_BYTES - history.MAX_ARCHIVE_EVENTS)
         victim = name("victim")
-        user, team = self.team("erin", victim)
+        with mock.patch.object(self.store, "watch_public_accounts", 10**6):
+            user, team = self.team("erin", victim)
         self.poll(victim, [])
         self.poll(victim, [transfer(1, subject=victim, timestamp=self.stamp())])
         self.assertIsNone(self.watch_error(victim))

@@ -591,6 +591,34 @@ def _workspace_backup(args):
     return 0
 
 
+def _workspace_access_code(args):
+    from intel.workspace import SQLiteWorkspaceStore
+
+    state = Path(args.state_dir).expanduser().resolve()
+    source = state / "workspace.sqlite3"
+    if state == ROOT or ROOT in state.parents or not source.is_file():
+        print("stopped: use an existing external workspace database", file=sys.stderr)
+        return 2
+    try:
+        store = SQLiteWorkspaceStore(source)
+        if args.list:
+            result = store.list_access_codes()
+            for row in result:
+                row["expires_utc"] = time.strftime(_TIME, time.gmtime(row["expires_ms"] // 1000))
+        elif args.revoke:
+            result = store.revoke_access_codes()
+        elif args.grant is not None:
+            result = store.grant_reserved(args.grant)
+        else:
+            result = store.create_access_code(args.uses, args.days)
+            result["expires_utc"] = time.strftime(_TIME, time.gmtime(result["expires_ms"] // 1000))
+    except ValueError as error:
+        print(f"stopped: {error}", file=sys.stderr)
+        return 2
+    print(json.dumps(result, sort_keys=True))
+    return 0
+
+
 def _history_follow(args):
     from intel import accounts, history
     from intel.workspace import SQLiteWorkspaceStore
@@ -682,6 +710,15 @@ def main(argv=None):
     backup.add_argument("--state-dir", required=True)
     backup.add_argument("--out", required=True)
     backup.set_defaults(handler=_workspace_backup)
+    access = commands.add_parser("workspace-access-code", help="manage access codes in an existing external workspace database")
+    access.add_argument("--state-dir", required=True)
+    access.add_argument("--uses", type=int, default=20)
+    access.add_argument("--days", type=int, default=30)
+    access_actions = access.add_mutually_exclusive_group()
+    access_actions.add_argument("--list", action="store_true")
+    access_actions.add_argument("--revoke", action="store_true")
+    access_actions.add_argument("--grant", metavar="USERNAME")
+    access.set_defaults(handler=_workspace_access_code)
     receivers = commands.add_parser("receivers", help="judge the recorded mainnet receiver set in replay")
     receivers.add_argument("--record", action="store_true", help="choose the set and record what is missing")
     receivers.add_argument("--exclude-file", help="with --record: a file of account ids kept outside the repository, "

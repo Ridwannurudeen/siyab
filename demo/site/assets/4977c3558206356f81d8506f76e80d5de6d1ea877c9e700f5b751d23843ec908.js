@@ -5,7 +5,7 @@
   const shell = document.getElementById("cloud-shell");
   const pending = new Set();
   const privateDialogs = new Set();
-  const state = {session: null, teams: [], team: null, panel: "cases", epoch: 0, offset: 0, after: 0, before: null};
+  const state = {session: null, registrationOpen: true, teams: [], team: null, panel: "cases", epoch: 0, offset: 0, after: 0, before: null};
   function publishContext(clear = false) {
     window.dispatchEvent(new CustomEvent("siyab:workspace-context", {detail: {
       authenticated: !clear && Boolean(state.session), userId: clear ? null : state.session?.user.id || null,
@@ -173,6 +173,7 @@
       throw error;
     }
     state.session = data.authenticated ? data : null;
+    state.registrationOpen = data.registration_open !== false;
     scrubDialogs(record => record.userId !== state.session?.user.id);
     state.teams = data.teams;
     state.team = state.teams.find(team => team.id === selectedTeamId) || state.teams[0] || null;
@@ -213,12 +214,14 @@
       const auth = form(body, async (values, element) => {
         const data = mode === "recover" ? {username: values.get("username"), recovery_code: values.get("recovery_code"), new_password: values.get("password")}
           : {username: values.get("username"), password: values.get("password")};
+        if (mode === "register" && values.get("access_code")) data.access_code = values.get("access_code").trim();
         const result = await request("/auth/" + mode, data); element.reset();
         recovery(result.recovery_code, result.user.username, result.user.id); await loadSession(true);
       });
       field(auth, "Username", "username", {required: true, minLength: 3, maxLength: 40, pattern: "[a-z0-9][a-z0-9._-]{1,38}[a-z0-9]", autocomplete: "username"});
       if (mode === "recover") field(auth, "Recovery code", "recovery_code", {required: true, autocomplete: "off", maxLength: 128});
       field(auth, mode === "recover" ? "New password" : "Password", "password", {type: "password", required: true, minLength: 12, maxLength: 128, autocomplete: mode === "login" ? "current-password" : "new-password"});
+      if (mode === "register") field(auth, "Access code", "access_code", {required: !state.registrationOpen, autocomplete: "off", maxLength: 128});
       submit(auth, mode === "register" ? "Create account" : mode === "recover" ? "Recover account" : "Sign in");
       if (mode !== "login") body.append(node("p", mode === "register" ? "Use 3 to 40 lowercase characters for your username and at least 12 characters for your password. Keep the recovery code shown after registration." : "Recovery requires your saved one-time code. Email password resets are not configured.", "source-line"));
     };

@@ -2,7 +2,9 @@ import hashlib
 import json
 import sqlite3
 import tempfile
+import threading
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 from pathlib import Path
 from unittest import mock
@@ -146,6 +148,155 @@ class AccountHistoryTest(unittest.TestCase):
         store.add_watch(user, team, "alice.near")
         return store, user, team
 
+    def test_previous_watch_state_migrates_in_place_without_becoming_fresh(self):
+        path = self.root / "previous-history.sqlite3"
+        with closing(sqlite3.connect(path)) as connection, connection:
+            connection.execute("CREATE TABLE watch_poll (account TEXT PRIMARY KEY,initialized INTEGER NOT NULL DEFAULT 0,next_due_ms INTEGER NOT NULL DEFAULT 0,last_success_ms INTEGER,attempts INTEGER NOT NULL DEFAULT 0,last_error TEXT,coverage_gap INTEGER NOT NULL DEFAULT 0,lease_token TEXT,lease_until_ms INTEGER NOT NULL DEFAULT 0)")
+            connection.execute("CREATE TABLE history_state (singleton INTEGER PRIMARY KEY CHECK(singleton=1),mode TEXT,heartbeat_ms INTEGER,last_success_ms INTEGER,last_tick_ms INTEGER,stopped_ms INTEGER,last_error TEXT)")
+            connection.execute("INSERT INTO watch_poll(account,initialized,next_due_ms) VALUES('alice.near',1,5)")
+            connection.execute("INSERT INTO history_state(singleton,last_tick_ms) VALUES(1,10)")
+        archive = history.AccountHistory(path, clock=lambda: self.now)
+        history.AccountHistory(path, clock=lambda: self.now)
+        with archive._connection() as connection:
+            self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 2)
+            row = connection.execute("SELECT initialized,next_due_ms,reserved,added_ms FROM watch_poll").fetchone()
+            self.assertEqual(tuple(row), (1, 5, 0, 0))
+            self.assertEqual(tuple(connection.execute("SELECT last_tick_ms,tick_count FROM history_state").fetchone()), (10, 0))
+
+    def test_concurrent_history_starts_serialize_guarded_column_migrations(self):
+        path = self.root / "concurrent-history.sqlite3"
+        with closing(sqlite3.connect(path)) as connection, connection:
+            connection.execute("CREATE TABLE watch_poll (account TEXT PRIMARY KEY,initialized INTEGER NOT NULL DEFAULT 0,next_due_ms INTEGER NOT NULL DEFAULT 0,last_success_ms INTEGER,attempts INTEGER NOT NULL DEFAULT 0,last_error TEXT,coverage_gap INTEGER NOT NULL DEFAULT 0,lease_token TEXT,lease_until_ms INTEGER NOT NULL DEFAULT 0)")
+            connection.execute("CREATE TABLE history_state (singleton INTEGER PRIMARY KEY CHECK(singleton=1),mode TEXT,heartbeat_ms INTEGER,last_success_ms INTEGER,last_tick_ms INTEGER,stopped_ms INTEGER,last_error TEXT)")
+            connection.execute("INSERT INTO history_state(singleton) VALUES(1)")
+        read_ready, second_done = threading.Event(), threading.Event()
+        local = threading.local()
+        original_connect = sqlite3.connect
+
+        class MigratingConnection(sqlite3.Connection):
+            def execute(inner, sql, *args):
+                result = super().execute(sql, *args)
+                if sql == "PRAGMA table_info(watch_poll)" and getattr(local, "first", False):
+                    result = result.fetchall()
+                    read_ready.set()
+                    if not inner.in_transaction:
+                        self.assertTrue(second_done.wait(5))
+                return result
+
+        def connect(*args, **kwargs):
+            return original_connect(*args, **kwargs, factory=MigratingConnection)
+
+        def first():
+            local.first = True
+            return history.AccountHistory(path, clock=lambda: self.now)
+
+        def second():
+            self.assertTrue(read_ready.wait(5))
+            try:
+                return history.AccountHistory(path, clock=lambda: self.now)
+            finally:
+                second_done.set()
+
+        with mock.patch.object(history.sqlite3, "connect", connect), ThreadPoolExecutor(max_workers=2) as pool:
+            starts = [pool.submit(first), pool.submit(second)]
+            archives = [start.result(timeout=10) for start in starts]
+        for archive in archives:
+            with archive._connection() as connection:
+                self.assertEqual(tuple(connection.execute("SELECT tick_count FROM history_state").fetchone()), (0,))
+                columns = {row["name"] for row in connection.execute("PRAGMA table_info(watch_poll)")}
+                self.assertTrue({"reserved", "added_ms"}.issubset(columns))
+
+    def test_watch_tier_refreshes_without_spending_a_closed_or_idle_tick(self):
+        store = mock.Mock()
+        row = {"account": "alice.near", "created_ms": int(self.now * 1000), "reserved": 0}
+        store.watch_schedule.return_value = [row]
+        reader = Reader()
+        reader.pages["alice.near", None] = page([])
+        self.history.poll_watches(store, reader)
+        row["reserved"] = 1
+        self.now += 1
+        self.history.poll_watches(store, reader)
+        with self.history._connection() as connection:
+            self.assertEqual(tuple(connection.execute("SELECT reserved,added_ms FROM watch_poll").fetchone()), (1, 1000000))
+            self.assertEqual(connection.execute("SELECT tick_count FROM history_state").fetchone()[0], 1)
+        self.now += 30
+        self.history.poll_watches(store, reader)
+        with self.history._connection() as connection:
+            self.assertEqual(connection.execute("SELECT tick_count FROM history_state").fetchone()[0], 1)
+        self.assertEqual(reader.calls, [("alice.near", None, 100)])
+
+    def test_baseline_routes_only_transfers_at_or_after_watch_creation(self):
+        store, user, team = self.workspace()
+        other_user = store.register("carol", "carol-password-123")["user"]["id"]
+        other_team = store.list_teams(other_user)[0]["id"]
+        added_ns = int(self.now * 1000) * 1000000
+        items = [transfer(number, timestamp=str(added_ns + offset)) for number, offset in ((1, -1), (2, 0), (3, 1))]
+        self.now += 30
+        reader = Reader()
+        reader.pages["alice.near", None] = page(items)
+        self.history.poll_watches(store, reader)
+        inbox = store.list_inbox(user, team)["items"]
+        self.assertEqual({item["event"]["receipt_id"] for item in inbox}, {"receipt2", "receipt3"})
+        self.assertEqual(store.list_inbox(other_user, other_team)["items"], [])
+        self.assertEqual(self.history.list_records("alice.near", "transfers")["coverage"]["stored_rows"], 3)
+        self.now += 61
+        self.history.poll_watches(store, reader)
+        self.assertEqual(len(store.list_inbox(user, team)["items"]), 2)
+
+    def test_uninitialized_legacy_watch_seeds_seen_without_events(self):
+        store = mock.Mock()
+        store.ingest_event.return_value = 1
+        store.watch_schedule.return_value = [{"account": "alice.near", "created_ms": int(self.now * 1000), "reserved": 0}]
+        with self.history._connection(write=True) as connection:
+            connection.execute("INSERT INTO watch_poll(account) VALUES('alice.near')")
+        reader = Reader()
+        items = [transfer(number) for number in range(100)]
+        reader.pages["alice.near", None] = page(items)
+        self.history.poll_watches(store, reader)
+        with self.history._connection() as connection:
+            self.assertEqual({row[0] for row in connection.execute("SELECT row_id FROM watch_seen WHERE account='alice.near'")}, {item["id"] for item in items})
+            self.assertEqual(tuple(connection.execute("SELECT initialized,added_ms FROM watch_poll WHERE account='alice.near'").fetchone()), (1, 0))
+            self.assertEqual(connection.execute("SELECT COUNT(*) FROM event_outbox").fetchone()[0], 0)
+        store.ingest_event.assert_not_called()
+
+    def test_watch_lanes_follow_each_slot_and_idle_shares_fall_through(self):
+        orders = (("reserved", "fresh", "rest"), ("fresh", "reserved", "rest"),
+                  ("reserved", "fresh", "rest"), ("rest", "reserved", "fresh"))
+        for slot, order in enumerate(orders):
+            for absent in ((), (order[0],), order[:2]):
+                with self.subTest(slot=slot, absent=absent):
+                    archive = history.AccountHistory(self.root / ("lanes" + str(slot) + str(len(absent)) + ".sqlite3"), clock=lambda: self.now)
+                    schedule = [{"account": "reserved.near", "created_ms": 1, "reserved": 1},
+                                {"account": "fresh.near", "created_ms": int(self.now * 1000), "reserved": 0},
+                                {"account": "rest.near", "created_ms": 1, "reserved": 0}]
+                    schedule = [row for row in schedule if row["account"].split(".")[0] not in absent]
+                    store = mock.Mock()
+                    store.watch_schedule.return_value = schedule
+                    reader = Reader()
+                    for row in schedule:
+                        reader.pages[row["account"], None] = page([], account=row["account"])
+                    with archive._connection(write=True) as connection:
+                        connection.execute("UPDATE history_state SET tick_count=? WHERE singleton=1", (slot,))
+                    archive.poll_watches(store, reader)
+                    self.assertEqual(reader.calls, [(order[len(absent)] + ".near", None, 100)])
+                    with archive._connection() as connection:
+                        self.assertEqual(connection.execute("SELECT tick_count FROM history_state").fetchone()[0], slot + 1)
+
+    def test_churned_public_watches_cannot_take_reserved_slots(self):
+        reader = Reader()
+        store = mock.Mock()
+        store.ingest_event.return_value = 1
+        for slot in range(4):
+            fresh = "churn" + str(slot) + ".near"
+            schedule = [{"account": "reserved.near", "created_ms": 1, "reserved": 1},
+                        {"account": fresh, "created_ms": int(self.now * 1000), "reserved": 0}]
+            store.watch_schedule.return_value = schedule
+            for row in schedule:
+                reader.pages[row["account"], None] = page([], account=row["account"])
+            self.history.poll_watches(store, reader)
+            self.now += 30
+        self.assertEqual([call[0] for call in reader.calls], ["reserved.near", "churn1.near", "reserved.near", "churn3.near"])
+
     def test_first_poll_baselines_then_new_ordinary_transfers_reach_team_inbox(self):
         store, user, team = self.workspace()
         reader = Reader()
@@ -173,7 +324,7 @@ class AccountHistoryTest(unittest.TestCase):
         reader = Reader()
         reader.pages["alice.near", None] = page([])
         self.history.poll_watches(store, reader)
-        self.now += 5
+        self.now += 30
         store.add_watch(user, team, "bob.near")
         self.now += 1
         stamp = str(int(self.now * 1000000000))
@@ -181,13 +332,13 @@ class AccountHistoryTest(unittest.TestCase):
             transfer(2, subject="bob.near", other="alice.near", outgoing=False, timestamp=stamp)
         ], account="bob.near")
         self.history.poll_watches(store, reader)
-        self.assertEqual(store.list_inbox(user, team)["items"], [])
+        self.assertEqual(len(store.list_inbox(user, team)["items"]), 1)
         self.now += 60
         reader.pages["alice.near", None] = page([transfer(2, timestamp=stamp)])
         self.history.poll_watches(store, reader)
         self.assertEqual(len(store.list_inbox(user, team)["items"]), 1)
         self.assertEqual(len(store.events_after()["items"]), 1)
-        self.now += 5
+        self.now += 30
         self.history.poll_watches(store, reader)
         self.assertEqual(len(store.list_inbox(user, team)["items"]), 1)
 
@@ -198,14 +349,14 @@ class AccountHistoryTest(unittest.TestCase):
         reader.pages["alice.near", None] = page([])
         reader.pages["bob.near", None] = page([], account="bob.near")
         self.history.poll_watches(store, reader)
-        self.now += 5
+        self.now += 30
         self.history.poll_watches(store, reader)
         self.now += 61
         stamp = str(int(self.now * 1000000000))
         reader.pages["alice.near", None] = page([transfer(2, timestamp=stamp)])
         reader.pages["bob.near", None] = page([transfer(2, subject="bob.near", other="alice.near", outgoing=False, timestamp=stamp)], account="bob.near")
         self.history.poll_watches(store, reader)
-        self.now += 5
+        self.now += 30
         self.history.poll_watches(store, reader)
         self.assertEqual(len(store.list_inbox(user, team)["items"]), 1)
         self.assertEqual(len(store.events_after()["items"]), 1)
@@ -219,10 +370,48 @@ class AccountHistoryTest(unittest.TestCase):
         result = self.history.poll_watches(store, reader)
         self.assertEqual(result["retry_pending"], 1)
         self.assertNotIn("secret URL", json.dumps(result))
-        self.now += 5
+        self.now += 30
         self.history.poll_watches(store, reader)
         self.assertEqual(reader.calls[-1][0], "bob.near")
         self.assertEqual(self.history.status()["initialized_accounts"], 1)
+
+    def test_global_watch_claims_wait_thirty_seconds_across_restart(self):
+        store, user, team = self.workspace()
+        store.add_watch(user, team, "bob.near")
+        reader = Reader()
+        reader.pages["alice.near", None] = page([])
+        reader.pages["bob.near", None] = page([], account="bob.near")
+        self.history.poll_watches(store, reader)
+        self.now += 29.999
+        restarted = history.AccountHistory(self.path, clock=lambda: self.now)
+        restarted.poll_watches(store, reader)
+        self.assertEqual(reader.calls, [("alice.near", None, 100)])
+        self.now += 0.001
+        restarted.poll_watches(store, reader)
+        self.assertEqual(reader.calls, [("alice.near", None, 100), ("bob.near", None, 100)])
+        self.assertEqual(history.GLOBAL_INTERVAL_MS, 30000)
+
+    def test_every_watch_poll_reads_one_page_and_reports_a_missing_anchor(self):
+        store, user, team = self.workspace()
+        reader = Reader()
+        old = transfer(1, timestamp="999000000000")
+        reader.pages["alice.near", None] = page([old], cursor="older")
+        reader.pages["alice.near", "older"] = page([transfer(0)])
+        self.history.poll_watches(store, reader)
+        self.assertEqual(reader.calls, [("alice.near", None, 100)])
+        self.assertEqual(store.list_inbox(user, team)["items"], [])
+        self.now += 61
+        fresh = transfer(2, timestamp=str(int(self.now * 1000000000)))
+        reader.pages["alice.near", None] = page([fresh], cursor="anchor")
+        reader.pages["alice.near", "anchor"] = page([old], cursor="older")
+        self.history.poll_watches(store, reader)
+        self.assertEqual(reader.calls, [("alice.near", None, 100), ("alice.near", None, 100)])
+        self.assertEqual(len(store.list_inbox(user, team)["items"]), 1)
+        self.assertEqual(self.history.status()["coverage_gap_accounts"], 1)
+        self.now += 61
+        self.history.poll_watches(store, reader)
+        self.assertEqual(reader.calls[-1], ("alice.near", None, 100))
+        self.assertEqual(len(reader.calls), 3)
 
     def test_global_poll_budget_and_cursor_boundaries(self):
         store, _, _ = self.workspace()
@@ -251,8 +440,8 @@ class AccountHistoryTest(unittest.TestCase):
         class Inbox:
             fail = True
 
-            def watched_accounts(self):
-                return store.watched_accounts()
+            def watch_schedule(self):
+                return store.watch_schedule()
 
             def ingest_event(self, *args, **kwargs):
                 if self.fail:
@@ -299,7 +488,7 @@ class AccountHistoryTest(unittest.TestCase):
         self.assertEqual(document["amount"], item["amount"])
         self.assertEqual(hashlib.sha256(encoded).hexdigest(), event_id)
 
-    def test_new_watches_do_not_jump_ahead_of_an_overdue_existing_account(self):
+    def test_fresh_lane_gives_an_uninitialized_watch_its_baseline_first(self):
         store, user, team = self.workspace()
         reader = Reader()
         reader.pages["alice.near", None] = page([])
@@ -308,7 +497,7 @@ class AccountHistoryTest(unittest.TestCase):
         self.now += 70
         store.add_watch(user, team, "bob.near")
         self.history.poll_watches(store, reader)
-        self.assertEqual(reader.calls[-1][0], "alice.near")
+        self.assertEqual(reader.calls[-1][0], "bob.near")
 
     def test_archive_pages_expose_retained_source_and_observation_time_for_every_kind(self):
         cases = {
@@ -328,7 +517,7 @@ class AccountHistoryTest(unittest.TestCase):
                                                             "observed_at": payload["observed_at"]}])
                 self.assertEqual(archived["items"], [payload] if kind == "profile" else payload["items"])
 
-    def test_two_page_watch_cap_sets_a_persistent_coverage_gap_without_claiming_complete_history(self):
+    def test_one_page_watch_cap_sets_a_persistent_coverage_gap_without_claiming_complete_history(self):
         store, _, _ = self.workspace()
         reader = Reader()
         reader.pages["alice.near", None] = page([transfer(1)])
@@ -337,7 +526,7 @@ class AccountHistoryTest(unittest.TestCase):
         reader.pages["alice.near", None] = page([transfer(2)], cursor="next")
         reader.pages["alice.near", "next"] = page([transfer(3)], cursor="older")
         result = self.history.poll_watches(store, reader)
-        self.assertEqual(reader.calls[-2:], [("alice.near", None, 100), ("alice.near", "next", 100)])
+        self.assertEqual(reader.calls, [("alice.near", None, 100), ("alice.near", None, 100)])
         self.assertEqual(result["coverage_gap_accounts"], 1)
         self.now += 61
         reader.pages["alice.near", None] = page([transfer(3)])

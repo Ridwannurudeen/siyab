@@ -2,6 +2,7 @@ import base64
 import concurrent.futures
 from contextlib import closing
 import hashlib
+import io
 import json
 import sqlite3
 import tempfile
@@ -15,6 +16,12 @@ from intel.workspace import SQLiteWorkspaceStore, WorkspaceError
 
 class WorkspaceStoreTest(unittest.TestCase):
     def setUp(self):
+        alert = patch.object(workspace, "_WATCH_ALERTED", False)
+        alert.start()
+        self.addCleanup(alert.stop)
+        stderr = patch("sys.stderr", new_callable=io.StringIO)
+        stderr.start()
+        self.addCleanup(stderr.stop)
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.path = Path(self.directory.name) / "workspace.sqlite3"
@@ -52,6 +59,130 @@ class WorkspaceStoreTest(unittest.TestCase):
             self.assertNotIn(secret, dump)
         self.store.logout(rotated["session_token"])
         self.error(401, self.store.authenticate, rotated["session_token"])
+
+    def test_access_codes_bypass_public_windows_and_keep_uses_transactional(self):
+        self.store.max_hourly_registrations = 2
+        code = self.store.create_access_code(2, 1)
+        self.error(409, self.store.register, "alice", "alice-password-123", code["code"])
+        self.assertEqual(self.store.list_access_codes()[0]["uses_left"], 2)
+        reserved = self.store.register("judge", "judge-password-123", code["code"])
+        self.assertEqual(self.store.list_access_codes()[0]["uses_left"], 1)
+        with self.store._connection() as connection:
+            self.assertIsNotNone(connection.execute("SELECT 1 FROM reserved_users WHERE user_id=?", (reserved["user"]["id"],)).fetchone())
+            self.assertNotIn(code["code"], "\n".join(connection.iterdump()))
+        self.error(429, self.store.register, "public", "public-password-123")
+        self.store.grant_reserved("alice")
+        self.store.register("public", "public-password-123")
+        self.now += 86400
+        self.error(403, self.store.register, "expired", "expired-password-123", code["code"])
+
+    def test_access_code_is_checked_before_taken_username_without_burning_uses(self):
+        code = self.store.create_access_code(2, 1)["code"]
+        for username in ("alice", "unknown"):
+            with self.subTest(username=username), self.assertRaises(WorkspaceError) as caught:
+                self.store.register(username, "test-password-123", "a" * 43)
+            self.assertEqual((caught.exception.status, caught.exception.code), (403, "invalid_access_code"))
+        with self.assertRaises(WorkspaceError) as caught:
+            self.store.register("alice", "test-password-123", code)
+        self.assertEqual((caught.exception.status, caught.exception.code), (409, "username_taken"))
+        self.assertEqual(self.store.list_access_codes()[0]["uses_left"], 2)
+
+    def test_access_code_use_exhaustion_revoke_validation_and_budget(self):
+        for uses, days in ((0, 1), (51, 1), (1, 0), (1, 61), (True, 1), (1, "1")):
+            self.error(400, self.store.create_access_code, uses, days)
+        code = self.store.create_access_code(1, 1)
+        self.store.register("judge", "judge-password-123", code["code"])
+        self.error(403, self.store.register, "second", "second-password-123", code["code"])
+        for invalid in ("bad", "", 3):
+            self.error(403, self.store.register, "invalid", "invalid-password-123", invalid)
+        self.store.create_access_code(50, 1)
+        self.store.create_access_code(50, 1)
+        self.error(409, self.store.create_access_code, 1, 1)
+        self.store.revoke_access_codes()
+        self.assertTrue(all(row["uses_left"] == 0 for row in self.store.list_access_codes()))
+        self.assertTrue(all(set(row) == {"created_ms", "expires_ms", "uses_left"} for row in self.store.list_access_codes()))
+        self.store.create_access_code(1, 1)
+        self.error(404, self.store.grant_reserved, "unknown")
+
+    def test_access_code_use_rolls_back_after_later_registration_failure(self):
+        code = self.store.create_access_code(1, 1)
+        with patch.object(self.store, "_audit", side_effect=sqlite3.OperationalError("storage failure")):
+            with self.assertRaises(sqlite3.OperationalError):
+                self.store.register("judge", "judge-password-123", code["code"])
+        self.assertEqual(self.store.list_access_codes()[0]["uses_left"], 1)
+        self.store.register("judge", "judge-password-123", code["code"])
+
+    def test_workspace_environment_caps_are_validated_at_start(self):
+        defaults = {"SIYAB_REGISTRATIONS_PER_HOUR": "20", "SIYAB_REGISTRATIONS_PER_DAY": "100",
+                    "SIYAB_WATCH_PUBLIC_ACCOUNTS": "90", "SIYAB_WATCH_RESERVED_ACCOUNTS": "30"}
+        for name, values in (("SIYAB_REGISTRATIONS_PER_HOUR", ("0", "201", "bad", "1.5")),
+                             ("SIYAB_REGISTRATIONS_PER_DAY", ("19", "2001")),
+                             ("SIYAB_WATCH_PUBLIC_ACCOUNTS", ("-1", "501")),
+                             ("SIYAB_WATCH_RESERVED_ACCOUNTS", ("-1", "101"))):
+            for value in values:
+                with self.subTest(name=name, value=value), patch.dict(workspace.os.environ, {**defaults, name: value}):
+                    with self.assertRaises(ValueError):
+                        SQLiteWorkspaceStore(self.path)
+        with patch.dict(workspace.os.environ, defaults):
+            reopened = SQLiteWorkspaceStore(self.path)
+        self.assertEqual((reopened.max_hourly_registrations, reopened.max_daily_registrations,
+                          reopened.watch_public_accounts, reopened.watch_reserved_accounts, reopened.watch_alert_accounts),
+                         (20, 100, 90, 30, 72))
+        with patch.dict(workspace.os.environ, {**defaults, "SIYAB_WATCH_PUBLIC_ACCOUNTS": "0", "SIYAB_WATCH_RESERVED_ACCOUNTS": "0"}):
+            reopened = SQLiteWorkspaceStore(self.path)
+        self.assertEqual((reopened.watch_public_accounts, reopened.watch_reserved_accounts), (0, 0))
+
+    def test_empty_workspace_environment_caps_use_defaults(self):
+        names = ("SIYAB_REGISTRATIONS_PER_HOUR", "SIYAB_REGISTRATIONS_PER_DAY",
+                 "SIYAB_WATCH_PUBLIC_ACCOUNTS", "SIYAB_WATCH_RESERVED_ACCOUNTS")
+        with patch.dict(workspace.os.environ, dict.fromkeys(names, "")):
+            reopened = SQLiteWorkspaceStore(self.path)
+        self.assertEqual((reopened.max_hourly_registrations, reopened.max_daily_registrations,
+                          reopened.watch_public_accounts, reopened.watch_reserved_accounts, reopened.watch_alert_accounts),
+                         (20, 100, 90, 30, 72))
+
+    def test_zero_public_watch_pool_does_not_alert_on_reserved_add_or_import(self):
+        with patch.dict(workspace.os.environ, {"SIYAB_WATCH_PUBLIC_ACCOUNTS": "0"}):
+            reopened = SQLiteWorkspaceStore(self.path)
+        reopened.grant_reserved("alice")
+        with patch("sys.stderr", new_callable=io.StringIO) as output:
+            reopened.add_watch(self.a, self.team, "one.near")
+            reopened.import_workspace(self.a, self.team, [], ["two.near"])
+        self.assertEqual(output.getvalue(), "")
+        self.assertFalse(workspace._WATCH_ALERTED)
+        self.assertEqual(len(reopened.watched_accounts()), 2)
+
+    def test_watch_pools_share_accounts_and_return_public_slots_on_removal(self):
+        self.store.watch_public_accounts = 1
+        self.store.watch_reserved_accounts = 1
+        other = self.store.list_teams(self.b)[0]["id"]
+        self.store.add_watch(self.a, self.team, "shared.near")
+        self.error(409, self.store.add_watch, self.b, other, "new.near")
+        self.store.grant_reserved("bobby")
+        self.store.add_watch(self.b, other, "shared.near")
+        self.now += 1
+        self.store.add_watch(self.a, self.team, "new.near")
+        self.error(409, self.store.add_watch, self.b, other, "reserved.near")
+        self.assertEqual(self.store.watch_schedule(), [
+            {"account": "new.near", "created_ms": int(self.now * 1000), "reserved": 0},
+            {"account": "shared.near", "created_ms": int((self.now - 1) * 1000), "reserved": 1}])
+        self.store.remove_watch(self.b, other, "shared.near")
+        self.assertEqual(len(self.store.watched_accounts()), 2)
+        self.error(409, self.store.add_watch, self.a, self.team, "third.near")
+        self.store.add_watch(self.a, self.team, "shared.near")
+
+    def test_reserved_additions_above_legacy_pool_cap_fail_but_case_imports_work(self):
+        self.store.add_watch(self.a, self.team, "one.near")
+        self.store.add_watch(self.a, self.team, "two.near")
+        self.store.grant_reserved("alice")
+        self.store.watch_reserved_accounts = 1
+        other = self.store.create_team(self.a, "Second")["id"]
+        self.error(409, self.store.add_watch, self.a, other, "one.near")
+        self.error(409, self.store.import_workspace, self.a, other, [], ["one.near"])
+        self.assertEqual(self.store.import_workspace(self.a, other, [{"title": "Evidence", "notes": "", "url": "/"}], []),
+                         {"created_cases": 1, "added_watches": 0, "skipped_cases": 0})
+        self.assertEqual(self.store.add_watch(self.a, self.team, "one.near")["account"], "one.near")
+        self.assertEqual(self.store.list_watchlist(self.a, other), [])
 
     def test_random_tokens_keep_existing_encoding_and_entropy(self):
         entropy = bytes(range(32))
@@ -305,6 +436,155 @@ class WorkspaceStoreTest(unittest.TestCase):
         self.assertEqual(sum(row["skipped_cases"] for row in results), 1)
         self.assertEqual(self.store.list_cases(self.a, self.team)["total"], 1)
         self.assertEqual(len(self.store.list_watchlist(self.a, self.team)), 1)
+
+    def test_fourth_team_create_and_join_are_refused_without_removing_memberships(self):
+        self.store.create_team(self.a, "Second")
+        self.store.create_team(self.a, "Third")
+        other = self.store.list_teams(self.b)[0]["id"]
+        invitation = self.store.invite_member(self.b, other, "alice", "editor")
+        for function, args in ((self.store.create_team, (self.a, "Fourth")),
+                               (self.store.join_team, (self.a, invitation["token"]))):
+            with self.assertRaises(WorkspaceError) as caught:
+                function(*args)
+            self.assertEqual((caught.exception.status, caught.exception.code), (409, "team_limit"))
+            self.assertIn("at most 3 teams", caught.exception.message)
+        self.assertEqual(len(self.store.list_teams(self.a)), 3)
+        with self.store._connection() as connection:
+            self.assertIsNone(connection.execute("SELECT used_ms FROM invites").fetchone()[0])
+
+    def test_team_limit_messages_use_the_current_cap_for_create_and_join(self):
+        other = self.store.list_teams(self.b)[0]["id"]
+        invitation = self.store.invite_member(self.b, other, "alice", "editor")
+        with patch.object(workspace, "MAX_TEAMS", 1):
+            for function, args in ((self.store.create_team, (self.a, "Second")),
+                                   (self.store.join_team, (self.a, invitation["token"]))):
+                with self.subTest(function=function.__name__), self.assertRaises(WorkspaceError) as caught:
+                    function(*args)
+                self.assertEqual((caught.exception.status, caught.exception.code), (409, "team_limit"))
+                self.assertEqual(caught.exception.message, "An account can belong to at most 1 teams.")
+
+    def test_reopening_keeps_three_legacy_memberships_above_the_new_cap(self):
+        with self.store._connection(write=True) as connection:
+            for index in range(5):
+                team = f"legacy-{index}"
+                connection.execute("INSERT INTO teams VALUES (?,?,?)", (team, team, 0))
+                connection.execute("INSERT INTO memberships VALUES (?,?,?)", (team, self.a, "owner"))
+        self.store = SQLiteWorkspaceStore(self.path, clock=lambda: self.now)
+        self.assertEqual(len(self.store.list_teams(self.a)), 6)
+        with self.assertRaises(WorkspaceError) as caught:
+            self.store.create_team(self.a, "Seventh")
+        self.assertEqual(caught.exception.code, "team_limit")
+        self.assertEqual(len(self.store.list_teams(self.a)), 6)
+
+    def test_watch_limit_counts_distinct_accounts_by_adding_user_across_teams(self):
+        self.invite()
+        second = self.store.create_team(self.a, "Second")["id"]
+        for index in range(5):
+            self.store.add_watch(self.a, self.team if index < 3 else second, f"watch-{index}.near")
+        self.store.add_watch(self.a, second, "watch-0.near")
+        self.store.add_watch(self.b, self.team, "watch-0.near")
+        self.store.add_watch(self.b, self.team, "bobby.near")
+        before = self.store.list_audit(self.a, second)
+        with self.assertRaises(WorkspaceError) as caught:
+            self.store.add_watch(self.a, second, "eleventh.near")
+        self.assertEqual((caught.exception.status, caught.exception.code), (409, "watch_limit"))
+        self.assertEqual(self.store.list_audit(self.a, second), before)
+        self.store.remove_watch(self.a, self.team, "watch-0.near")
+        self.error(409, self.store.add_watch, self.a, second, "eleventh.near")
+        self.store.remove_watch(self.a, second, "watch-0.near")
+        self.store.add_watch(self.a, second, "eleventh.near")
+
+    def test_departing_a_team_does_not_release_its_added_watches(self):
+        self.invite()
+        self.store.set_role(self.a, self.team, self.b, "owner")
+        for index in range(5):
+            self.store.add_watch(self.a, self.team, f"watch-{index}.near")
+        self.store.remove_member(self.b, self.team, self.a)
+        other = self.store.create_team(self.a, "Other")["id"]
+        with self.assertRaises(WorkspaceError) as caught:
+            self.store.add_watch(self.a, other, "eleventh.near")
+        self.assertEqual(caught.exception.code, "watch_limit")
+        self.assertEqual(len(self.store.list_watchlist(self.b, self.team)), 5)
+
+    def test_global_watch_limit_refuses_only_new_distinct_accounts(self):
+        with self.store._connection(write=True) as connection:
+            connection.executemany("INSERT INTO watchlist VALUES (?,?,?,?)",
+                                   [(self.team, f"watch-{index}.near", 0, 0) for index in range(90)])
+        other = self.store.list_teams(self.b)[0]["id"]
+        before = self.store.list_audit(self.b, other)
+        with self.assertRaises(WorkspaceError) as caught:
+            self.store.add_watch(self.b, other, "new.near")
+        self.assertEqual((caught.exception.status, caught.exception.code), (409, "watch_limit"))
+        self.assertEqual(self.store.list_audit(self.b, other), before)
+        self.store.add_watch(self.b, other, "watch-0.near")
+        self.assertEqual(len(self.store.watched_accounts()), 90)
+        self.store.remove_watch(self.a, self.team, "watch-0.near")
+        self.error(409, self.store.add_watch, self.b, other, "new.near")
+        self.store.remove_watch(self.b, other, "watch-0.near")
+        self.store.add_watch(self.b, other, "new.near")
+        self.assertEqual(len(self.store.watched_accounts()), 90)
+
+    def test_watch_alert_prints_once_at_eighty_percent_across_store_reopens(self):
+        with self.store._connection(write=True) as connection:
+            connection.executemany("INSERT INTO watchlist VALUES (?,?,?,?)",
+                                   [(self.team, f"watch-{index}.near", 0, 0) for index in range(70)])
+        with patch.object(workspace, "_WATCH_ALERTED", False), patch("sys.stderr", new_callable=io.StringIO) as output:
+            self.store.add_watch(self.a, self.team, "ninety-five.near")
+            self.assertEqual(output.getvalue(), "")
+            self.store.import_workspace(self.a, self.team, [], ["ninety-six.near"])
+            self.assertEqual(len(output.getvalue().splitlines()), 1)
+            self.assertIn("72", output.getvalue())
+            self.assertIn("90", output.getvalue())
+            reopened = SQLiteWorkspaceStore(self.path, clock=lambda: self.now)
+            reopened.add_watch(self.a, self.team, "ninety-seven.near")
+            reopened.remove_watch(self.a, self.team, "ninety-six.near")
+            reopened.add_watch(self.a, self.team, "ninety-six.near")
+            self.assertEqual(len(output.getvalue().splitlines()), 1)
+
+    def test_import_watch_caps_are_checked_before_cases_and_audit_change(self):
+        self.store.import_workspace(self.a, self.team, [], [f"watch-{index}.near" for index in range(4)])
+        before = self.store.list_audit(self.a, self.team)
+        with self.assertRaises(WorkspaceError) as caught:
+            self.store.import_workspace(self.a, self.team, [{"title": "New", "notes": "", "url": "/"}],
+                                        ["tenth.near", "eleventh.near"])
+        self.assertEqual(caught.exception.code, "watch_limit")
+        self.assertEqual(len(self.store.list_watchlist(self.a, self.team)), 4)
+        self.assertEqual(self.store.list_cases(self.a, self.team)["cases"], [])
+        self.assertEqual(self.store.list_audit(self.a, self.team), before)
+        with self.store._connection(write=True) as connection:
+            connection.executemany("INSERT INTO watchlist VALUES (?,?,?,?)",
+                                   [(self.team, f"legacy-{index}.near", 0, 0) for index in range(110)])
+        with self.assertRaises(WorkspaceError) as caught:
+            self.store.import_workspace(self.b, self.store.list_teams(self.b)[0]["id"], [],
+                                        ["one-new.near", "two-new.near"])
+        self.assertEqual(caught.exception.code, "watch_limit")
+        self.assertEqual(len(self.store.watched_accounts()), 114)
+
+    def test_legacy_watch_attribution_and_over_cap_watches_survive_reopen(self):
+        with self.store._connection(write=True) as connection:
+            for index in range(11):
+                account = f"legacy-{index}.near"
+                connection.execute("INSERT INTO watchlist VALUES (?,?,?,?)", (self.team, account, 0, 0))
+                self.store._audit(connection, self.team, self.a, "watch.added", account)
+        reopened = SQLiteWorkspaceStore(self.path, clock=lambda: self.now)
+        self.assertEqual(len(reopened.list_watchlist(self.a, self.team)), 11)
+        with self.assertRaises(WorkspaceError) as caught:
+            reopened.add_watch(self.a, self.team, "new.near")
+        self.assertEqual(caught.exception.code, "watch_limit")
+        self.assertEqual(len(reopened.list_watchlist(self.a, self.team)), 11)
+
+    def test_concurrent_watch_additions_cannot_exceed_the_user_limit(self):
+        for index in range(4):
+            self.store.add_watch(self.a, self.team, f"watch-{index}.near")
+        def add(index):
+            try:
+                self.store.add_watch(self.a, self.team, f"concurrent-{index}.near")
+                return 201
+            except WorkspaceError as error:
+                return error.status
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+            self.assertEqual(sorted(pool.map(add, range(2))), [201, 409])
+        self.assertEqual(len(self.store.list_watchlist(self.a, self.team)), 5)
 
     def test_internal_watched_accounts_deduplicates_across_teams(self):
         other_team = self.store.list_teams(self.b)[0]["id"]

@@ -4,6 +4,7 @@ import json
 import sqlite3
 import tempfile
 import unittest
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import patch
 
@@ -25,6 +26,64 @@ class WorkspaceCLITest(unittest.TestCase):
         with contextlib.redirect_stdout(output), contextlib.redirect_stderr(errors):
             result = cli.main(list(args))
         return result, output.getvalue(), errors.getvalue()
+
+    def test_access_code_create_list_revoke_and_grant(self):
+        store = SQLiteWorkspaceStore(self.state / "workspace.sqlite3")
+        result, output, errors = self.invoke("workspace-access-code", "--state-dir", str(self.state), "--uses", "2", "--days", "3")
+        self.assertEqual((result, errors), (0, ""))
+        created = json.loads(output)
+        self.assertEqual(created["uses_left"], 2)
+        self.assertEqual(created["expires_ms"] - created["created_ms"], 3 * 86400000)
+        result, output, errors = self.invoke("workspace-access-code", "--state-dir", str(self.state), "--list")
+        self.assertEqual((result, errors), (0, ""))
+        self.assertNotIn(created["code"], output)
+        self.assertEqual(json.loads(output)[0]["uses_left"], 2)
+        result, _, errors = self.invoke("workspace-access-code", "--state-dir", str(self.state), "--revoke")
+        self.assertEqual((result, errors), (0, ""))
+        self.assertEqual(store.list_access_codes()[0]["uses_left"], 0)
+        user = store.register("alice", "alice-password-123")["user"]["id"]
+        team = store.list_teams(user)[0]["id"]
+        store.add_watch(user, team, "alice.near")
+        result, _, errors = self.invoke("workspace-access-code", "--state-dir", str(self.state), "--grant", "alice")
+        self.assertEqual((result, errors), (0, ""))
+        self.assertEqual(store.watch_schedule()[0]["reserved"], 1)
+
+    def test_access_code_expiry_includes_utc_on_create_and_list(self):
+        SQLiteWorkspaceStore(self.state / "workspace.sqlite3")
+        result, output, errors = self.invoke("workspace-access-code", "--state-dir", str(self.state))
+        self.assertEqual((result, errors), (0, ""))
+        created = json.loads(output)
+        expected = datetime.fromtimestamp(created["expires_ms"] // 1000, UTC).isoformat().replace("+00:00", "Z")
+        self.assertEqual(created["expires_utc"], expected)
+        result, output, errors = self.invoke("workspace-access-code", "--state-dir", str(self.state), "--list")
+        self.assertEqual((result, errors), (0, ""))
+        listed = json.loads(output)[0]
+        self.assertEqual(listed["expires_ms"], created["expires_ms"])
+        self.assertEqual(listed["expires_utc"], expected)
+
+    def test_access_code_defaults_and_invalid_options(self):
+        store = SQLiteWorkspaceStore(self.state / "workspace.sqlite3")
+        result, output, errors = self.invoke("workspace-access-code", "--state-dir", str(self.state))
+        self.assertEqual((result, errors), (0, ""))
+        created = json.loads(output)
+        self.assertEqual(created["uses_left"], 20)
+        self.assertEqual(created["expires_ms"] - created["created_ms"], 30 * 86400000)
+        for options in (("--uses", "0"), ("--days", "61"), ("--grant", "missing")):
+            result, output, errors = self.invoke("workspace-access-code", "--state-dir", str(self.state), *options)
+            self.assertEqual(result, 2)
+            self.assertEqual(output, "")
+            self.assertIn("stopped:", errors)
+        self.assertEqual(len(store.list_access_codes()), 1)
+
+    def test_access_code_refuses_internal_or_missing_state(self):
+        for state in (self.root, self.root / "state", self.state):
+            with patch.object(cli, "ROOT", self.root):
+                result, output, errors = self.invoke("workspace-access-code", "--state-dir", str(state))
+            self.assertEqual(result, 2)
+            self.assertEqual(output, "")
+            self.assertIn("external", errors)
+        self.assertFalse((self.root / "state").exists())
+        self.assertFalse(self.state.exists())
 
     def test_backup_refuses_destination_in_source_repository(self):
         store = SQLiteWorkspaceStore(self.state / "workspace.sqlite3")
