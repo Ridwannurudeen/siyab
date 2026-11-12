@@ -111,12 +111,32 @@ def _watch_account(value):
     return account
 
 
+def _transfer_identity(event):
+    if event.get("signal") != "account_transfer_observed":
+        return None
+    stable = {key: value for key, value in event.items() if key not in ("tx_hash", "block_timestamp", "observed")}
+    return hashlib.sha256(json.dumps(stable, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
 class SQLiteWorkspaceStore:
     def __init__(self, path, clock=time.time):
         self.path, self.clock = Path(path), clock
         if self.path.is_symlink():
             raise WorkspaceError(503, "invalid_store", "The workspace database cannot be a symbolic link.")
         self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        for attempt in range(4):
+            try:
+                self._initialize()
+                break
+            except WorkspaceError as error:
+                if error.code != "workspace_busy":
+                    raise
+                if attempt == 3:
+                    raise WorkspaceError(503, "workspace_busy", "Workspace storage is busy while upgrading stored events") from error
+                time.sleep(0.05)
+        os.chmod(self.path, 0o600)
+
+    def _initialize(self):
         with self._connection(transaction=False) as connection:
             connection.execute("PRAGMA journal_mode=WAL")
             version = connection.execute("PRAGMA user_version").fetchone()[0]
@@ -181,7 +201,28 @@ class SQLiteWorkspaceStore:
                 PRAGMA user_version=1;
                 COMMIT;
                 """)
-        os.chmod(self.path, 0o600)
+        with self._connection(write=True) as connection:
+            if "transfer_id" not in {row["name"] for row in connection.execute("PRAGMA table_info(events)")}:
+                connection.execute("ALTER TABLE events ADD COLUMN transfer_id TEXT")
+            connection.execute("CREATE INDEX IF NOT EXISTS events_transfer ON events(transfer_id)")
+        while True:
+            with self._connection() as connection:
+                rows = connection.execute("SELECT seq,body_json FROM events WHERE transfer_id IS NULL ORDER BY seq LIMIT 2000").fetchall()
+            if not rows:
+                return
+            updates = []
+            for row in rows:
+                try:
+                    event = json.loads(row["body_json"])
+                except ValueError:
+                    event = None
+                if not isinstance(event, dict):
+                    identity = f"invalid-json:{row['seq']}"
+                else:
+                    identity = _transfer_identity(event) or f"non-transfer:{row['seq']}"
+                updates.append((identity, row["seq"]))
+            with self._connection(write=True) as connection:
+                connection.executemany("UPDATE events SET transfer_id=? WHERE seq=? AND transfer_id IS NULL", updates)
 
     @contextmanager
     def _connection(self, *, write=False, transaction=True):
@@ -565,12 +606,17 @@ class SQLiteWorkspaceStore:
         accounts = {value for value in (event.get("subject"), event.get("account_id"), event.get("other_account_id")) if isinstance(value, str)}
         if isinstance(event.get("accounts"), list):
             accounts.update(value for value in event["accounts"] if isinstance(value, str))
+        transfer = _transfer_identity(event)
         with self._connection(write=True) as connection:
             previous = connection.execute("SELECT seq FROM events WHERE event_id=?", (event_id,)).fetchone()
+            if previous is None and transfer is not None:
+                previous = connection.execute("SELECT seq FROM events WHERE transfer_id=? ORDER BY seq LIMIT 1", (transfer,)).fetchone()
             if previous:
                 return previous["seq"]
-            cursor = connection.execute("INSERT INTO events(event_id,body_json,observed_ms,ingested_ms) VALUES (?,?,?,?)", (event_id, encoded, observed, self._now()))
+            cursor = connection.execute("INSERT INTO events(event_id,body_json,observed_ms,ingested_ms,transfer_id) VALUES (?,?,?,?,?)", (event_id, encoded, observed, self._now(), transfer))
             seq = cursor.lastrowid
+            if transfer is None:
+                connection.execute("UPDATE events SET transfer_id=? WHERE seq=?", (f"non-transfer:{seq}", seq))
             if notify and observed is not None:
                 for account in sorted(accounts):
                     for watch in connection.execute("SELECT * FROM watchlist WHERE account=? AND created_ms<=? AND created_seq<?", (account, observed, seq)).fetchall():
@@ -618,8 +664,9 @@ class SQLiteWorkspaceStore:
     def team_event(self, user_id, team_id, event_id):
         with self._connection() as connection:
             self._member(connection, user_id, team_id)
-            return connection.execute("SELECT 1 FROM inbox JOIN events ON events.seq=inbox.event_seq WHERE inbox.team_id=? AND events.event_id=?",
-                                      (team_id, event_id)).fetchone() is not None
+            row = connection.execute("SELECT events.body_json FROM inbox JOIN events ON events.seq=inbox.event_seq WHERE inbox.team_id=? AND events.event_id=?",
+                                     (team_id, event_id)).fetchone()
+            return None if row is None else row["body_json"]
 
     def ack_inbox(self, user_id, team_id, inbox_id):
         if type(inbox_id) is not int or inbox_id < 1:

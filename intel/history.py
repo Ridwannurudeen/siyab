@@ -6,6 +6,7 @@ import os
 import re
 import secrets
 import sqlite3
+import sys
 import time
 from contextlib import contextmanager
 from pathlib import Path
@@ -16,11 +17,13 @@ from intel.accounts import AccountInputError, AccountReadError
 KINDS = ("profile", "holdings", "transactions", "transfers")
 MAX_DOCUMENT_BYTES = 2 * 1024 * 1024
 MAX_ARCHIVE_BYTES = 128 * 1024 * 1024
+EVENT_ARCHIVE_BYTES = 16 * 1024 * 1024
 MAX_ARCHIVE_PAGES = 10000
 MAX_ARCHIVE_ROWS = 100000
 MAX_ARCHIVE_GRAPHS = 2000
 MAX_ARCHIVE_EVENTS = 100000
 MAX_WATCH_SEEN = 200000
+MAX_ACCOUNT_WATCH_SEEN = 1000
 PUBLIC_ARCHIVE_PERCENT = 75
 PUBLIC_BACKFILL_PAGES = 4
 JOB_BACKFILL_PAGES = 8
@@ -36,6 +39,10 @@ _PRIVATE_FIELDS = {"password", "password_hash", "password_salt", "authorization"
 
 class HistoryInputError(ValueError):
     """An archive operation is outside the supported public account-data scope."""
+
+
+class HistoryConflictError(HistoryInputError):
+    """An archived transfer or transaction identifier came back with a different timestamp."""
 
 
 class HistoryReadError(ValueError):
@@ -286,6 +293,7 @@ class AccountHistory:
             BEGIN IMMEDIATE;
             CREATE TABLE IF NOT EXISTS provider_cooldowns(account TEXT NOT NULL,kind TEXT NOT NULL,not_before_ms INTEGER NOT NULL,PRIMARY KEY(account,kind));
             CREATE INDEX IF NOT EXISTS pages_account ON pages(account,kind,created_ms);
+            CREATE INDEX IF NOT EXISTS outbox_delivered ON event_outbox(created_ms,id) WHERE delivered_seq IS NOT NULL;
             CREATE TABLE IF NOT EXISTS job_read_budget(singleton INTEGER PRIMARY KEY CHECK(singleton=1),window INTEGER NOT NULL,pages INTEGER NOT NULL);
             INSERT OR IGNORE INTO job_read_budget VALUES(1,0,0);
             COMMIT;
@@ -298,7 +306,7 @@ class AccountHistory:
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA foreign_keys=ON")
         connection.execute("PRAGMA busy_timeout=5000")
-        connection.execute("PRAGMA max_page_count=65536")
+        connection.execute("PRAGMA max_page_count=131072")
         connection.execute("PRAGMA journal_size_limit=16777216")
         connection.execute("PRAGMA wal_autocheckpoint=256")
         try:
@@ -314,13 +322,17 @@ class AccountHistory:
         return int(self.clock() * 1000)
 
     @staticmethod
-    def _reserve(connection, *, pages=0, records=0, graphs=0, events=0, seen=0, size=0, reserved=False):
+    def _reserve(connection, *, pages=0, records=0, graphs=0, events=0, seen=0, size=0, reserved=False, held=None):
         usage = connection.execute("SELECT * FROM archive_usage WHERE singleton=1").fetchone()
         changes = {"pages": (pages, MAX_ARCHIVE_PAGES), "records": (records, MAX_ARCHIVE_ROWS),
                    "graphs": (graphs, MAX_ARCHIVE_GRAPHS), "events": (events, MAX_ARCHIVE_EVENTS),
                    "seen": (seen, MAX_WATCH_SEEN), "bytes": (size, MAX_ARCHIVE_BYTES)}
         if not reserved:
             changes = {field: (delta, maximum * PUBLIC_ARCHIVE_PERCENT // 100) for field, (delta, maximum) in changes.items()}
+        if events <= 0:
+            changes["bytes"] = (size, min(changes["bytes"][1], MAX_ARCHIVE_BYTES - EVENT_ARCHIVE_BYTES))
+        elif held + size <= EVENT_ARCHIVE_BYTES:
+            del changes["bytes"]
         if any(delta > 0 and usage[field] + delta > maximum for field, (delta, maximum) in changes.items()):
             raise HistoryCapacityError("Archive retention capacity reached; retained evidence remains available and new observations are paused.")
         connection.execute("UPDATE archive_usage SET pages=pages+?,records=records+?,graphs=graphs+?,events=events+?,seen=seen+?,bytes=bytes+? WHERE singleton=1",
@@ -363,7 +375,7 @@ class AccountHistory:
                         except HistoryReadError:
                             changed = False
                         if changed:
-                            raise HistoryInputError("A transfer or transaction identifier changed its timestamp.")
+                            raise HistoryConflictError("A transfer or transaction identifier changed its timestamp.")
                     self._reserve(connection, size=len(encoded) - previous["size"], reserved=reserved)
                     connection.execute("UPDATE history_rows SET stamp=?,body=?,page_id=? WHERE account=? AND kind=? AND row_id=?", (stamp, encoded, page_id, account, kind, row_id))
                 else:
@@ -488,7 +500,7 @@ class AccountHistory:
             if cooldown and cooldown["not_before_ms"] > now:
                 raise HistoryCapacityError("The account's history source requested a cooldown; retained observations remain available.", retry_at_ms=cooldown["not_before_ms"])
             usage = connection.execute("SELECT pages,records,bytes FROM archive_usage WHERE singleton=1").fetchone()
-            if usage["pages"] + 1 > MAX_ARCHIVE_PAGES or usage["records"] + 100 > MAX_ARCHIVE_ROWS or usage["bytes"] + JOB_PAGE_BYTES > MAX_ARCHIVE_BYTES:
+            if usage["pages"] + 1 > MAX_ARCHIVE_PAGES or usage["records"] + 100 > MAX_ARCHIVE_ROWS or usage["bytes"] + JOB_PAGE_BYTES > MAX_ARCHIVE_BYTES - EVENT_ARCHIVE_BYTES:
                 raise HistoryCapacityError("Archive retention capacity reached; retained evidence remains available and new observations are paused.")
             heartbeat = connection.execute("SELECT heartbeat_ms FROM history_state WHERE singleton=1").fetchone()["heartbeat_ms"]
             if (yield_to_watches and heartbeat is not None and 0 <= now - heartbeat <= 30000
@@ -636,36 +648,45 @@ class AccountHistory:
             raise HistoryInputError("Each watch tick reads at most one account.")
         now = self._now()
         watched = [_account(account) for account in workspace_store.watched_accounts()]
-        with self._connection(write=True) as connection:
-            if watched:
-                deleted = connection.execute("DELETE FROM watch_seen WHERE account NOT IN (" + ",".join("?" for _ in watched) + ")", watched).rowcount
-                connection.execute("DELETE FROM watch_poll WHERE account NOT IN (" + ",".join("?" for _ in watched) + ")", watched)
-            else:
-                deleted = connection.execute("DELETE FROM watch_seen").rowcount
-                connection.execute("DELETE FROM watch_poll")
-            self._reserve(connection, seen=-deleted)
-            for account in watched:
-                connection.execute("INSERT OR IGNORE INTO watch_poll(account,next_due_ms) VALUES (?,?)", (account, now))
-                connection.execute("UPDATE watch_poll SET next_due_ms=MAX(next_due_ms,COALESCE((SELECT not_before_ms FROM provider_cooldowns WHERE account=? AND kind='transfers'),0)) WHERE account=?", (account, account))
-            state = connection.execute("SELECT last_tick_ms FROM history_state WHERE singleton=1").fetchone()
+        claim = None
+        try:
+            with self._connection(write=True) as connection:
+                known = {row[0] for row in connection.execute("SELECT account FROM watch_poll")} | {row[0] for row in connection.execute("SELECT DISTINCT account FROM watch_seen")}
+                stale = [(account,) for account in known - set(watched)]
+                deleted = connection.executemany("DELETE FROM watch_seen WHERE account=?", stale).rowcount
+                connection.executemany("DELETE FROM watch_poll WHERE account=?", stale)
+                self._reserve(connection, seen=-deleted)
+                for account in watched:
+                    connection.execute("INSERT OR IGNORE INTO watch_poll(account,next_due_ms) VALUES (?,?)", (account, now))
+                    connection.execute("UPDATE watch_poll SET next_due_ms=MAX(next_due_ms,COALESCE((SELECT not_before_ms FROM provider_cooldowns WHERE account=? AND kind='transfers'),0)) WHERE account=?", (account, account))
+                state = connection.execute("SELECT last_tick_ms FROM history_state WHERE singleton=1").fetchone()
+                if state["last_tick_ms"] is None or now - state["last_tick_ms"] >= GLOBAL_INTERVAL_MS:
+                    due = connection.execute("SELECT * FROM watch_poll WHERE next_due_ms<=? AND lease_until_ms<=? ORDER BY next_due_ms,account LIMIT 1", (now, now)).fetchone()
+                    if due:
+                        token = secrets.token_hex(16)
+                        connection.execute("UPDATE watch_poll SET lease_token=?,lease_until_ms=? WHERE account=?", (token, now + LEASE_MS, due["account"]))
+                        connection.execute("UPDATE history_state SET last_tick_ms=? WHERE singleton=1", (now,))
+                        claim = dict(due), token
+        except sqlite3.Error as error:
             claim = None
-            if state["last_tick_ms"] is None or now - state["last_tick_ms"] >= GLOBAL_INTERVAL_MS:
-                due = connection.execute("SELECT * FROM watch_poll WHERE next_due_ms<=? AND lease_until_ms<=? ORDER BY next_due_ms,account LIMIT 1", (now, now)).fetchone()
-                if due:
-                    token = secrets.token_hex(16)
-                    connection.execute("UPDATE watch_poll SET lease_token=?,lease_until_ms=? WHERE account=?", (token, now + LEASE_MS, due["account"]))
-                    connection.execute("UPDATE history_state SET last_tick_ms=? WHERE singleton=1", (now,))
-                    claim = dict(due), token
+            try:
+                with self._connection(write=True) as connection:
+                    connection.execute("UPDATE history_state SET last_error=? WHERE singleton=1", (type(error).__name__,))
+            except sqlite3.Error as failure:
+                print("history watch tick failed (" + type(error).__name__ + ") and could not record it (" + type(failure).__name__ + ")", file=sys.stderr)
         self._flush_events(workspace_store)
         if claim:
             state, token = claim
             account = state["account"]
             try:
-                cursor, found_anchor, pending, more = None, False, [], False
+                cursor, found_anchor, pending, more, skipped = None, False, [], False, False
                 with rpc.request_deadline(20):
                     for _ in range(2):
                         payload = reader.transfers(account, cursor=cursor, limit=100)
-                        self.record_page(account, "transfers", payload, reserved=True)
+                        try:
+                            self.record_page(account, "transfers", payload, reserved=True)
+                        except (HistoryCapacityError, HistoryConflictError):
+                            skipped = True
                         items = payload["items"]
                         with self._connection() as connection:
                             known = {row[0] for row in connection.execute("SELECT row_id FROM watch_seen WHERE account=?", (account,))}
@@ -682,16 +703,41 @@ class AccountHistory:
                 with self._connection(write=True) as connection:
                     active = connection.execute("SELECT lease_token FROM watch_poll WHERE account=?", (account,)).fetchone()
                     if active is not None and active["lease_token"] == token:
+                        dropped = connection.execute("DELETE FROM watch_seen WHERE rowid IN (SELECT rowid FROM watch_seen WHERE account=? ORDER BY rowid DESC LIMIT -1 OFFSET ?)", (account, MAX_ACCOUNT_WATCH_SEEN)).rowcount
+                        self._reserve(connection, seen=-dropped)
+                        held = None
                         for item in pending:
                             inserted = connection.execute("INSERT OR IGNORE INTO watch_seen VALUES (?,?)", (account, item["id"])).rowcount
                             if inserted:
-                                self._reserve(connection, seen=1, reserved=True)
+                                dropped = connection.execute("DELETE FROM watch_seen WHERE rowid IN (SELECT rowid FROM watch_seen WHERE account=? ORDER BY rowid DESC LIMIT -1 OFFSET ?)", (account, MAX_ACCOUNT_WATCH_SEEN)).rowcount
+                                excess = connection.execute("SELECT seen FROM archive_usage WHERE singleton=1").fetchone()[0] + 1 - dropped - MAX_WATCH_SEEN
+                                if excess > 0:
+                                    dropped += connection.execute("DELETE FROM watch_seen WHERE rowid IN (SELECT rowid FROM watch_seen ORDER BY rowid LIMIT ?)", (excess,)).rowcount
+                                self._reserve(connection, seen=1 - dropped, reserved=True)
                             if inserted and state["initialized"]:
                                 event_id, body = self._event(item)
                                 if connection.execute("SELECT 1 FROM event_outbox WHERE id=?", (event_id,)).fetchone() is None:
-                                    self._reserve(connection, events=1, size=len(body), reserved=True)
+                                    if held is None:
+                                        held = connection.execute("SELECT COALESCE(SUM(LENGTH(body)),0) FROM event_outbox").fetchone()[0]
+                                    usage = connection.execute("SELECT events,bytes FROM archive_usage WHERE singleton=1").fetchone()
+                                    events = usage["events"] + 1 - MAX_ARCHIVE_EVENTS
+                                    size = min(usage["bytes"] + len(body) - MAX_ARCHIVE_BYTES, held + len(body) - EVENT_ARCHIVE_BYTES)
+                                    old = []
+                                    if events > 0 or size > 0:
+                                        for row in connection.execute("SELECT id,LENGTH(body) AS size FROM event_outbox WHERE delivered_seq IS NOT NULL ORDER BY created_ms,id"):
+                                            if events <= 0 and size <= 0:
+                                                break
+                                            old.append(row)
+                                            events, size = events - 1, size - row["size"]
+                                    if events <= 0 and size <= 0:
+                                        freed = sum(row["size"] for row in old)
+                                        connection.executemany("DELETE FROM event_outbox WHERE id=?", [(row["id"],) for row in old])
+                                        self._reserve(connection, events=-len(old), size=-freed)
+                                        held -= freed
+                                    self._reserve(connection, events=1, size=len(body), reserved=True, held=held)
+                                    held += len(body)
                                 connection.execute("INSERT OR IGNORE INTO event_outbox VALUES (?,?,?,?,NULL)", (event_id, body, 1, now))
-                        gap = int(bool(state["initialized"]) and more and not found_anchor)
+                        gap = int(skipped or bool(state["initialized"]) and more and not found_anchor)
                         connection.execute("UPDATE watch_poll SET initialized=1,next_due_ms=?,last_success_ms=?,attempts=0,last_error=NULL,coverage_gap=MAX(coverage_gap,?),lease_token=NULL,lease_until_ms=0 WHERE account=? AND lease_token=?", (self._now() + ACCOUNT_INTERVAL_MS, self._now(), gap, account, token))
                         connection.execute("UPDATE history_state SET last_success_ms=?,last_error=NULL WHERE singleton=1", (self._now(),))
             except (AccountReadError, AccountInputError, HistoryInputError, HistoryReadError, OSError, sqlite3.Error) as error:
@@ -725,7 +771,12 @@ def run(workspace_store, reader, path, *, once=False, interval=5, stop_event=Non
     try:
         while True:
             try:
-                archive.poll_watches(workspace_store, reader)
+                try:
+                    archive.poll_watches(workspace_store, reader)
+                except (OSError, sqlite3.Error) as error:
+                    if once:
+                        raise
+                    print("history watch tick failed (" + type(error).__name__ + "); retrying after the polling interval", file=sys.stderr)
                 if once:
                     break
                 if stop_event is not None:
