@@ -8,6 +8,7 @@ import os
 import re
 import secrets
 import sqlite3
+import sys
 import threading
 import time
 from contextlib import closing, contextmanager
@@ -20,6 +21,10 @@ from intel import feed
 
 SESSION_MS = 7 * 86400 * 1000
 INVITE_MS = 86400 * 1000
+MAX_TEAMS = 3
+MAX_USER_WATCHES = 5
+_WATCH_ALERTED = False
+_WATCH_ALERT_LOCK = threading.Lock()
 _HASH_SLOTS = threading.BoundedSemaphore(2)
 _USERNAME = re.compile(r"[a-z0-9][a-z0-9._-]{1,38}[a-z0-9]")
 _TOKEN = re.compile(r"[A-Za-z0-9_-]{43}")
@@ -28,9 +33,10 @@ _DUMMY_SALT = b"siyab-login-dummy-salt"
 
 
 class WorkspaceError(ValueError):
-    def __init__(self, status, code, message):
+    def __init__(self, status, code, message, retry_after=None):
         super().__init__(message)
         self.status, self.code, self.message = status, code, message
+        self.retry_after = retry_after
 
 
 def _utf8(value):
@@ -121,6 +127,18 @@ def _transfer_identity(event):
 class SQLiteWorkspaceStore:
     def __init__(self, path, clock=time.time):
         self.path, self.clock = Path(path), clock
+        for name, attribute, default, minimum, maximum in (
+                ("SIYAB_REGISTRATIONS_PER_HOUR", "max_hourly_registrations", 20, 1, 200),
+                ("SIYAB_REGISTRATIONS_PER_DAY", "max_daily_registrations", 100, 1, 2000),
+                ("SIYAB_WATCH_PUBLIC_ACCOUNTS", "watch_public_accounts", 90, 0, 500),
+                ("SIYAB_WATCH_RESERVED_ACCOUNTS", "watch_reserved_accounts", 30, 0, 100)):
+            value = os.environ.get(name) or str(default)
+            if re.fullmatch(r"[0-9]+", value) is None or not minimum <= int(value) <= maximum:
+                raise ValueError(f"{name} must be an integer from {minimum} to {maximum}.")
+            setattr(self, attribute, int(value))
+        if self.max_daily_registrations < self.max_hourly_registrations:
+            raise ValueError("SIYAB_REGISTRATIONS_PER_DAY must not be below SIYAB_REGISTRATIONS_PER_HOUR.")
+        self.watch_alert_accounts = self.watch_public_accounts * 4 // 5
         if self.path.is_symlink():
             raise WorkspaceError(503, "invalid_store", "The workspace database cannot be a symbolic link.")
         self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -205,6 +223,19 @@ class SQLiteWorkspaceStore:
             if "transfer_id" not in {row["name"] for row in connection.execute("PRAGMA table_info(events)")}:
                 connection.execute("ALTER TABLE events ADD COLUMN transfer_id TEXT")
             connection.execute("CREATE INDEX IF NOT EXISTS events_transfer ON events(transfer_id)")
+            connection.execute("CREATE TABLE IF NOT EXISTS watch_creators ("
+                               "team_id TEXT NOT NULL, account TEXT NOT NULL, user_id TEXT NOT NULL REFERENCES users(id), "
+                               "PRIMARY KEY(team_id,account), FOREIGN KEY(team_id,account) "
+                               "REFERENCES watchlist(team_id,account) ON DELETE CASCADE)")
+            connection.execute("CREATE INDEX IF NOT EXISTS watch_creators_user ON watch_creators(user_id)")
+            connection.execute("CREATE TABLE IF NOT EXISTS access_codes ("
+                               "code_hash TEXT PRIMARY KEY, uses_left INTEGER NOT NULL, "
+                               "created_ms INTEGER NOT NULL, expires_ms INTEGER NOT NULL)")
+            connection.execute("CREATE TABLE IF NOT EXISTS reserved_users ("
+                               "user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, created_ms INTEGER NOT NULL)")
+            connection.execute("INSERT OR IGNORE INTO watch_creators SELECT watchlist.team_id,watchlist.account,audit.actor_id "
+                               "FROM watchlist JOIN audit ON audit.id=(SELECT MAX(id) FROM audit WHERE "
+                               "team_id=watchlist.team_id AND resource_id=watchlist.account AND action='watch.added')")
         while True:
             with self._connection() as connection:
                 rows = connection.execute("SELECT seq,body_json FROM events WHERE transfer_id IS NULL ORDER BY seq LIMIT 2000").fetchall()
@@ -270,15 +301,69 @@ class SQLiteWorkspaceStore:
         connection.execute("INSERT INTO sessions VALUES (?,?,?,?,?)", (_digest(token), user["id"], csrf, now, now + SESSION_MS))
         return {"user": self._user(user), "session_token": token, "csrf_token": csrf, "expires_at": now + SESSION_MS}
 
-    def register(self, username, password):
+    def create_access_code(self, uses, days):
+        if type(uses) is not int or not 1 <= uses <= 50 or type(days) is not int or not 1 <= days <= 60:
+            raise WorkspaceError(400, "invalid_access_code", "Use 1 to 50 uses and 1 to 60 days.")
+        code, now = _random_token(), self._now()
+        expires = now + days * 86400000
+        with self._connection(write=True) as connection:
+            remaining = connection.execute("SELECT COALESCE(SUM(uses_left),0) FROM access_codes WHERE expires_ms>?", (now,)).fetchone()[0]
+            if remaining + uses > 100:
+                raise WorkspaceError(409, "access_code_limit", "Unexpired access codes can have at most 100 remaining uses.")
+            connection.execute("INSERT INTO access_codes VALUES (?,?,?,?)", (_digest(code), uses, now, expires))
+        return {"code": code, "uses_left": uses, "created_ms": now, "expires_ms": expires}
+
+    def list_access_codes(self):
+        with self._connection() as connection:
+            return [dict(row) for row in connection.execute("SELECT created_ms,expires_ms,uses_left FROM access_codes ORDER BY created_ms,code_hash")]
+
+    def revoke_access_codes(self):
+        with self._connection(write=True) as connection:
+            connection.execute("UPDATE access_codes SET uses_left=0")
+        return {"revoked": True}
+
+    def grant_reserved(self, username):
+        username = _username(username)
+        with self._connection(write=True) as connection:
+            user = connection.execute("SELECT id FROM users WHERE username=?", (username,)).fetchone()
+            if user is None:
+                raise WorkspaceError(404, "user_missing", "The user was not found.")
+            connection.execute("INSERT OR IGNORE INTO reserved_users VALUES (?,?)", (user["id"], self._now()))
+        return {"reserved": True}
+
+    def register(self, username, password, access_code=None):
         username, password = _username(username), _password(password)
+        if access_code is not None and (not isinstance(access_code, str) or _TOKEN.fullmatch(access_code) is None):
+            raise WorkspaceError(403, "invalid_access_code", "The access code is not valid or has no uses left.")
         salt, recovery, user_id = secrets.token_bytes(16), _random_token(), secrets.token_hex(16)
         derived = _derive(password, salt)
         with self._connection(write=True) as connection:
+            now = self._now()
+            if access_code is not None:
+                code = connection.execute("SELECT code_hash FROM access_codes WHERE code_hash=? AND uses_left>0 AND expires_ms>?",
+                                          (_digest(access_code), now)).fetchone()
+                if code is None:
+                    raise WorkspaceError(403, "invalid_access_code", "The access code is not valid or has no uses left.")
             if connection.execute("SELECT 1 FROM users WHERE username=?", (username,)).fetchone():
                 raise WorkspaceError(409, "username_taken", "That username is already registered.")
+            if access_code is not None:
+                connection.execute("UPDATE access_codes SET uses_left=uses_left-1 WHERE code_hash=?", (code["code_hash"],))
+            else:
+                waits = []
+                for window, limit in ((86400000, self.max_daily_registrations), (3600000, self.max_hourly_registrations)):
+                    start = now // window * window
+                    count = connection.execute("SELECT COUNT(*) FROM users WHERE created_ms>=? AND created_ms<? "
+                                               "AND NOT EXISTS (SELECT 1 FROM reserved_users WHERE user_id=users.id)",
+                                               (start, start + window)).fetchone()[0]
+                    if count >= limit:
+                        waits.append((start + window - now + 999) // 1000)
+                if waits:
+                    raise WorkspaceError(429, "registration_limit", "Registration capacity is full. Try again after the window turns. "
+                                         "If you were given an access code, enter it in the Access code field.", retry_after=max(waits))
             connection.execute("INSERT INTO users VALUES (?,?,?,?,?,?,?)",
-                               (user_id, username, salt, derived, 1, _digest(recovery), self._now()))
+                               (user_id, username, salt, derived, 1, _digest(recovery), now))
+            if access_code is not None:
+                connection.execute("INSERT INTO reserved_users VALUES (?,?)", (user_id, now))
             user = {"id": user_id, "username": username}
             team_id = secrets.token_hex(16)
             connection.execute("INSERT INTO teams VALUES (?,?,?)", (team_id, username + "'s workspace", self._now()))
@@ -372,8 +457,8 @@ class SQLiteWorkspaceStore:
         with self._connection(write=True) as connection:
             if not connection.execute("SELECT 1 FROM users WHERE id=?", (user_id,)).fetchone():
                 raise WorkspaceError(401, "unauthenticated", "Sign in to continue.")
-            if connection.execute("SELECT COUNT(*) FROM memberships WHERE user_id=?", (user_id,)).fetchone()[0] >= 20:
-                raise WorkspaceError(409, "team_limit", "An account can belong to at most 20 teams.")
+            if connection.execute("SELECT COUNT(*) FROM memberships WHERE user_id=?", (user_id,)).fetchone()[0] >= MAX_TEAMS:
+                raise WorkspaceError(409, "team_limit", f"An account can belong to at most {MAX_TEAMS} teams.")
             team_id, now = secrets.token_hex(16), self._now()
             connection.execute("INSERT INTO teams VALUES (?,?,?)", (team_id, name, now))
             connection.execute("INSERT INTO memberships VALUES (?,?,?)", (team_id, user_id, "owner"))
@@ -414,8 +499,8 @@ class SQLiteWorkspaceStore:
                 raise WorkspaceError(409, "invite_used", "The invitation has already been used.")
             if invite["expires_at"] <= self._now():
                 raise WorkspaceError(410, "invite_expired", "The invitation has expired.")
-            if connection.execute("SELECT COUNT(*) FROM memberships WHERE user_id=?", (user_id,)).fetchone()[0] >= 20:
-                raise WorkspaceError(409, "team_limit", "An account can belong to at most 20 teams.")
+            if connection.execute("SELECT COUNT(*) FROM memberships WHERE user_id=?", (user_id,)).fetchone()[0] >= MAX_TEAMS:
+                raise WorkspaceError(409, "team_limit", f"An account can belong to at most {MAX_TEAMS} teams.")
             existing = connection.execute("SELECT role FROM memberships WHERE team_id=? AND user_id=?", (invite["team_id"], user_id)).fetchone()
             if existing is not None:
                 raise WorkspaceError(409, "already_member", "This account already belongs to the team.")
@@ -542,6 +627,7 @@ class SQLiteWorkspaceStore:
                 raise WorkspaceError(409, "case_limit", "This import exceeds the team's 500-investigation limit.")
             if len(existing_accounts) + len(new_accounts) > 100:
                 raise WorkspaceError(409, "watch_limit", "This import exceeds the team's 100-account watchlist limit.")
+            watched_count = self._watch_capacity(connection, user_id, new_accounts)
             now = self._now()
             for title, notes, url in new_cases:
                 case_id = secrets.token_hex(16)
@@ -551,12 +637,15 @@ class SQLiteWorkspaceStore:
             seq = connection.execute("SELECT COALESCE(MAX(seq),0) FROM events").fetchone()[0]
             for account in new_accounts:
                 connection.execute("INSERT INTO watchlist VALUES (?,?,?,?)", (team_id, account, now, seq))
+                connection.execute("INSERT INTO watch_creators VALUES (?,?,?)", (team_id, account, user_id))
                 self._audit(connection, team_id, user_id, "watch.added", account, {"imported": True})
             result = {"created_cases": len(new_cases), "added_watches": len(new_accounts),
                       "skipped_cases": len(validated_cases) - len(new_cases)}
             if new_cases or new_accounts:
                 self._audit(connection, team_id, user_id, "workspace.imported", team_id, result)
-            return result
+        if new_accounts:
+            self._watch_alert(watched_count)
+        return result
 
     def list_watchlist(self, user_id, team_id):
         with self._connection() as connection:
@@ -567,6 +656,40 @@ class SQLiteWorkspaceStore:
         with self._connection() as connection:
             return [row["account"] for row in connection.execute("SELECT DISTINCT account FROM watchlist ORDER BY account")]
 
+    def watch_schedule(self):
+        with self._connection() as connection:
+            return [dict(row) for row in connection.execute(
+                "SELECT watchlist.account,MIN(watchlist.created_ms) AS created_ms,"
+                "MAX(CASE WHEN reserved_users.user_id IS NULL THEN 0 ELSE 1 END) AS reserved "
+                "FROM watchlist LEFT JOIN watch_creators ON watch_creators.team_id=watchlist.team_id "
+                "AND watch_creators.account=watchlist.account "
+                "LEFT JOIN reserved_users ON reserved_users.user_id=watch_creators.user_id "
+                "GROUP BY watchlist.account ORDER BY watchlist.account")]
+
+    def _watch_capacity(self, connection, user_id, accounts):
+        added = set(accounts)
+        owned = {row["account"] for row in connection.execute("SELECT DISTINCT account FROM watch_creators WHERE user_id=?", (user_id,))}
+        if added - owned and len(owned | added) > MAX_USER_WATCHES:
+            raise WorkspaceError(409, "watch_limit", f"An account can add at most {MAX_USER_WATCHES} distinct watched accounts across teams.")
+        watched = {row["account"] for row in connection.execute("SELECT DISTINCT account FROM watchlist")}
+        reserved = {row["account"] for row in connection.execute("SELECT DISTINCT account FROM watch_creators JOIN reserved_users ON reserved_users.user_id=watch_creators.user_id")}
+        public = watched - reserved
+        if connection.execute("SELECT 1 FROM reserved_users WHERE user_id=?", (user_id,)).fetchone():
+            if added and len(reserved | added) > self.watch_reserved_accounts:
+                raise WorkspaceError(409, "watch_limit", "The reserved watch pool is full.")
+            return len(public - added)
+        new = added - watched
+        if new and len(public | new) > self.watch_public_accounts:
+            raise WorkspaceError(409, "watch_limit", "The public watch pool is full. Accounts created with an access code use a reserved pool.")
+        return len(public | new)
+
+    def _watch_alert(self, count):
+        global _WATCH_ALERTED
+        with _WATCH_ALERT_LOCK:
+            if self.watch_public_accounts and count >= self.watch_alert_accounts and not _WATCH_ALERTED:
+                _WATCH_ALERTED = True
+                print(f"workspace public watch capacity: {count}/{self.watch_public_accounts} distinct accounts (alert at {self.watch_alert_accounts}).", file=sys.stderr)
+
     def add_watch(self, user_id, team_id, account):
         account = _watch_account(account)
         with self._connection(write=True) as connection:
@@ -576,10 +699,14 @@ class SQLiteWorkspaceStore:
                 return dict(existing)
             if connection.execute("SELECT COUNT(*) FROM watchlist WHERE team_id=?", (team_id,)).fetchone()[0] >= 100:
                 raise WorkspaceError(409, "watch_limit", "This team has 100 watched accounts.")
+            watched_count = self._watch_capacity(connection, user_id, [account])
             seq = connection.execute("SELECT COALESCE(MAX(seq),0) FROM events").fetchone()[0]
             connection.execute("INSERT INTO watchlist VALUES (?,?,?,?)", (team_id, account, self._now(), seq))
+            connection.execute("INSERT INTO watch_creators VALUES (?,?,?)", (team_id, account, user_id))
             self._audit(connection, team_id, user_id, "watch.added", account)
-            return dict(connection.execute("SELECT * FROM watchlist WHERE team_id=? AND account=?", (team_id, account)).fetchone())
+            result = dict(connection.execute("SELECT * FROM watchlist WHERE team_id=? AND account=?", (team_id, account)).fetchone())
+        self._watch_alert(watched_count)
+        return result
 
     def remove_watch(self, user_id, team_id, account):
         account = _watch_account(account)

@@ -46,10 +46,13 @@ class WorkspaceMigrationTest(unittest.TestCase):
         self.path = Path(self.directory.name) / "workspace.sqlite3"
 
     def legacy(self, count=6501):
+        SQLiteWorkspaceStore(self.path)
         events = []
         with closing(sqlite3.connect(self.path)) as connection:
             self.assertEqual(connection.execute("PRAGMA journal_mode=WAL").fetchone()[0], "wal")
             connection.executescript("""
+                DROP TABLE watch_creators;
+                DROP TABLE events;
                 CREATE TABLE events (
                     seq INTEGER PRIMARY KEY AUTOINCREMENT, event_id TEXT NOT NULL UNIQUE,
                     body_json TEXT NOT NULL, observed_ms INTEGER, ingested_ms INTEGER NOT NULL
@@ -68,6 +71,21 @@ class WorkspaceMigrationTest(unittest.TestCase):
                                     for index, event in enumerate(events)])
             connection.commit()
         return events
+
+    def test_access_tables_are_added_to_existing_store_without_version_change(self):
+        store = SQLiteWorkspaceStore(self.path)
+        user = store.register("alice", "alice-password-123")["user"]["id"]
+        with store._connection(write=True) as connection:
+            connection.execute("DROP TABLE access_codes")
+            connection.execute("DROP TABLE reserved_users")
+        reopened = SQLiteWorkspaceStore(self.path)
+        reopened.grant_reserved("alice")
+        code = reopened.create_access_code(1, 1)
+        with reopened._connection() as connection:
+            self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 1)
+            self.assertEqual(connection.execute("SELECT user_id FROM reserved_users").fetchone()[0], user)
+            self.assertEqual(connection.execute("SELECT code_hash FROM access_codes").fetchone()[0], workspace._digest(code["code"]))
+        self.assertEqual(reopened.list_access_codes()[0]["uses_left"], 1)
 
     def test_all_legacy_transfers_are_migrated_before_lookups(self):
         events = self.legacy()

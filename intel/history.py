@@ -28,9 +28,10 @@ PUBLIC_ARCHIVE_PERCENT = 75
 PUBLIC_BACKFILL_PAGES = 4
 JOB_BACKFILL_PAGES = 8
 JOB_PAGE_BYTES = 2 * MAX_DOCUMENT_BYTES
-GLOBAL_INTERVAL_MS = 5000
+GLOBAL_INTERVAL_MS = 30000
 ACCOUNT_INTERVAL_MS = 60000
 LEASE_MS = 45000
+FRESH_MS = 900000
 _HEX = re.compile(r"[a-f0-9]{64}")
 _NS = re.compile(r"[0-9]{1,20}")
 _PRIVATE_FIELDS = {"password", "password_hash", "password_salt", "authorization", "cookie", "session_token",
@@ -298,6 +299,14 @@ class AccountHistory:
             INSERT OR IGNORE INTO job_read_budget VALUES(1,0,0);
             COMMIT;
             """)
+            connection.execute("BEGIN IMMEDIATE")
+            columns = {row["name"] for row in connection.execute("PRAGMA table_info(watch_poll)")}
+            for column in ("reserved", "added_ms"):
+                if column not in columns:
+                    connection.execute("ALTER TABLE watch_poll ADD COLUMN " + column + " INTEGER NOT NULL DEFAULT 0")
+            if "tick_count" not in {row["name"] for row in connection.execute("PRAGMA table_info(history_state)")}:
+                connection.execute("ALTER TABLE history_state ADD COLUMN tick_count INTEGER NOT NULL DEFAULT 0")
+            connection.commit()
         os.chmod(self.path, 0o600)
 
     @contextmanager
@@ -502,8 +511,10 @@ class AccountHistory:
             usage = connection.execute("SELECT pages,records,bytes FROM archive_usage WHERE singleton=1").fetchone()
             if usage["pages"] + 1 > MAX_ARCHIVE_PAGES or usage["records"] + 100 > MAX_ARCHIVE_ROWS or usage["bytes"] + JOB_PAGE_BYTES > MAX_ARCHIVE_BYTES - EVENT_ARCHIVE_BYTES:
                 raise HistoryCapacityError("Archive retention capacity reached; retained evidence remains available and new observations are paused.")
-            heartbeat = connection.execute("SELECT heartbeat_ms FROM history_state WHERE singleton=1").fetchone()["heartbeat_ms"]
+            state = connection.execute("SELECT heartbeat_ms,last_tick_ms FROM history_state WHERE singleton=1").fetchone()
+            heartbeat = state["heartbeat_ms"]
             if (yield_to_watches and heartbeat is not None and 0 <= now - heartbeat <= 30000
+                    and (state["last_tick_ms"] is None or now - state["last_tick_ms"] >= GLOBAL_INTERVAL_MS)
                     and connection.execute("SELECT 1 FROM watch_poll WHERE next_due_ms<=? AND lease_until_ms<=? LIMIT 1", (now, now)).fetchone() is not None):
                 raise WatchPriorityError("A watched account is due; background investigations yield to the watch monitor.")
             active = connection.execute("SELECT MAX(last_start_ms) AS last_start,MAX(lease_until_ms) AS lease_until FROM backfill_control WHERE account=?", (account,)).fetchone()
@@ -647,7 +658,8 @@ class AccountHistory:
         if type(limit) is not int or limit != 1:
             raise HistoryInputError("Each watch tick reads at most one account.")
         now = self._now()
-        watched = [_account(account) for account in workspace_store.watched_accounts()]
+        schedule = workspace_store.watch_schedule()
+        watched = [_account(row["account"]) for row in schedule]
         claim = None
         try:
             with self._connection(write=True) as connection:
@@ -656,16 +668,27 @@ class AccountHistory:
                 deleted = connection.executemany("DELETE FROM watch_seen WHERE account=?", stale).rowcount
                 connection.executemany("DELETE FROM watch_poll WHERE account=?", stale)
                 self._reserve(connection, seen=-deleted)
-                for account in watched:
-                    connection.execute("INSERT OR IGNORE INTO watch_poll(account,next_due_ms) VALUES (?,?)", (account, now))
-                    connection.execute("UPDATE watch_poll SET next_due_ms=MAX(next_due_ms,COALESCE((SELECT not_before_ms FROM provider_cooldowns WHERE account=? AND kind='transfers'),0)) WHERE account=?", (account, account))
-                state = connection.execute("SELECT last_tick_ms FROM history_state WHERE singleton=1").fetchone()
+                for row, account in zip(schedule, watched):
+                    connection.execute("INSERT OR IGNORE INTO watch_poll(account,next_due_ms,added_ms,reserved) VALUES (?,?,?,?)", (account, now, row["created_ms"], row["reserved"]))
+                    connection.execute("UPDATE watch_poll SET reserved=?,next_due_ms=MAX(next_due_ms,COALESCE((SELECT not_before_ms FROM provider_cooldowns WHERE account=? AND kind='transfers'),0)) WHERE account=?", (row["reserved"], account, account))
+                state = connection.execute("SELECT last_tick_ms,tick_count FROM history_state WHERE singleton=1").fetchone()
                 if state["last_tick_ms"] is None or now - state["last_tick_ms"] >= GLOBAL_INTERVAL_MS:
-                    due = connection.execute("SELECT * FROM watch_poll WHERE next_due_ms<=? AND lease_until_ms<=? ORDER BY next_due_ms,account LIMIT 1", (now, now)).fetchone()
+                    lanes = (("reserved", "fresh", "rest"), ("fresh", "reserved", "rest"),
+                             ("reserved", "fresh", "rest"), ("rest", "reserved", "fresh"))
+                    due = None
+                    for lane in lanes[state["tick_count"] % 4]:
+                        if lane == "reserved":
+                            due = connection.execute("SELECT * FROM watch_poll WHERE next_due_ms<=? AND lease_until_ms<=? AND reserved=1 ORDER BY initialized,(added_ms>?) DESC,next_due_ms,account LIMIT 1", (now, now, now - FRESH_MS)).fetchone()
+                        elif lane == "fresh":
+                            due = connection.execute("SELECT * FROM watch_poll WHERE next_due_ms<=? AND lease_until_ms<=? AND reserved=0 AND added_ms>? ORDER BY initialized,next_due_ms,account LIMIT 1", (now, now, now - FRESH_MS)).fetchone()
+                        else:
+                            due = connection.execute("SELECT * FROM watch_poll WHERE next_due_ms<=? AND lease_until_ms<=? AND reserved=0 AND added_ms<=? ORDER BY next_due_ms,account LIMIT 1", (now, now, now - FRESH_MS)).fetchone()
+                        if due:
+                            break
                     if due:
                         token = secrets.token_hex(16)
                         connection.execute("UPDATE watch_poll SET lease_token=?,lease_until_ms=? WHERE account=?", (token, now + LEASE_MS, due["account"]))
-                        connection.execute("UPDATE history_state SET last_tick_ms=? WHERE singleton=1", (now,))
+                        connection.execute("UPDATE history_state SET last_tick_ms=?,tick_count=tick_count+1 WHERE singleton=1", (now,))
                         claim = dict(due), token
         except sqlite3.Error as error:
             claim = None
@@ -679,27 +702,20 @@ class AccountHistory:
             state, token = claim
             account = state["account"]
             try:
-                cursor, found_anchor, pending, more, skipped = None, False, [], False, False
+                found_anchor, pending, more, skipped = False, [], False, False
                 with rpc.request_deadline(20):
-                    for _ in range(2):
-                        payload = reader.transfers(account, cursor=cursor, limit=100)
-                        try:
-                            self.record_page(account, "transfers", payload, reserved=True)
-                        except (HistoryCapacityError, HistoryConflictError):
-                            skipped = True
-                        items = payload["items"]
-                        with self._connection() as connection:
-                            known = {row[0] for row in connection.execute("SELECT row_id FROM watch_seen WHERE account=?", (account,))}
-                        for item in items:
-                            found_anchor = found_anchor or item["id"] in known
-                            pending.append(item)
-                        next_cursor = _cursor(payload.get("pagination", {}).get("next_cursor"))
-                        if cursor is not None and next_cursor == cursor:
-                            raise HistoryReadError("The provider repeated the watch cursor.")
-                        cursor = next_cursor
-                        more = cursor is not None
-                        if found_anchor or cursor is None:
-                            break
+                    payload = reader.transfers(account, cursor=None, limit=100)
+                    try:
+                        self.record_page(account, "transfers", payload, reserved=True)
+                    except (HistoryCapacityError, HistoryConflictError):
+                        skipped = True
+                    items = payload["items"]
+                    with self._connection() as connection:
+                        known = {row[0] for row in connection.execute("SELECT row_id FROM watch_seen WHERE account=?", (account,))}
+                    for item in items:
+                        found_anchor = found_anchor or item["id"] in known
+                        pending.append(item)
+                    more = _cursor(payload.get("pagination", {}).get("next_cursor")) is not None
                 with self._connection(write=True) as connection:
                     active = connection.execute("SELECT lease_token FROM watch_poll WHERE account=?", (account,)).fetchone()
                     if active is not None and active["lease_token"] == token:
@@ -714,7 +730,7 @@ class AccountHistory:
                                 if excess > 0:
                                     dropped += connection.execute("DELETE FROM watch_seen WHERE rowid IN (SELECT rowid FROM watch_seen ORDER BY rowid LIMIT ?)", (excess,)).rowcount
                                 self._reserve(connection, seen=1 - dropped, reserved=True)
-                            if inserted and state["initialized"]:
+                            if inserted and (state["initialized"] or (state["added_ms"] and int(_timestamp(item, "transfers", now)) >= state["added_ms"] * 1000000)):
                                 event_id, body = self._event(item)
                                 if connection.execute("SELECT 1 FROM event_outbox WHERE id=?", (event_id,)).fetchone() is None:
                                     if held is None:

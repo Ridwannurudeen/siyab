@@ -295,3 +295,12 @@ Dry run: near-cli has none for this call. Before it, read and save the balances:
 Read backs: the Gate's balance fell by the amount and the receiver's rose by it; for a token, the token's `ft_transfer` receipt in the transaction succeeded.
 
 Undo: the receiver sends the amount back: for a token, `ft_transfer` to the Gate as in `scripts/README.md:48`; for NEAR, a plain transfer to the Gate account.
+
+## Workspace access for judging day
+
+1. Mint a private code: `python -m intel workspace-access-code --state-dir <state> --uses 25 --days 30`. Put it only in the submission's private judge notes. The command requires an existing external workspace database and prints the code once with its expiry.
+2. In those notes, name an account checked that day as moving funds every minute or two. Create an account with the code and add that watch; with a healthy worker and provider, an alert should arrive within about two minutes. Confirm actual activity that day; an empty inbox does not establish a favorable verdict or complete coverage.
+3. If public sign-up is abused, set `SIYAB_REGISTRATION=closed` and restart the API. Valid code holders still register; login and recovery stay available.
+4. If a judge registered without the code and meets `watch_limit`, run `python -m intel workspace-access-code --state-dir <state> --grant <username>`.
+5. If the code leaks, run `python -m intel workspace-access-code --state-dir <state> --revoke`, mint a replacement and update the private notes. Check remaining uses with `python -m intel workspace-access-code --state-dir <state> --list`; listing never returns codes.
+6. Watch stderr for the public pool alert, once per process at 72 of 90 by default. Public and reserved pools default to 90 and 30, with 5 watches per user. Configure startup caps with `SIYAB_WATCH_PUBLIC_ACCOUNTS` (0 to 500), `SIYAB_WATCH_RESERVED_ACCOUNTS` (0 to 100), `SIYAB_REGISTRATIONS_PER_HOUR` (1 to 200, default 20) and `SIYAB_REGISTRATIONS_PER_DAY` (1 to 2000, default 100, at least the hourly value). Invalid values refuse startup. API restarts reset per-address sign-up counters in process memory, while durable global counts remain.

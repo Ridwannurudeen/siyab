@@ -407,6 +407,16 @@ class InvestigationJobsTest(unittest.TestCase):
         self.assertEqual(self.jobs.get("team", job["id"])["last_error"], "watch_priority")
         self.assertEqual(len(self.reader.calls), 1)
 
+    def test_watch_priority_does_not_yield_between_global_watch_ticks(self):
+        self.reader.pages["alice.near", None] = page([])
+        job = self.jobs.create("team", "actor", "alice.near")
+        self.due_watches(3)
+        with self.archive._connection(write=True) as connection:
+            connection.execute("UPDATE history_state SET last_tick_ms=? WHERE singleton=1", (self.archive._now(),))
+        self.jobs.tick(self.reader)
+        self.assertEqual(self.reader.calls, [("alice.near", None, 100)])
+        self.assertEqual(self.jobs.get("team", job["id"])["state"], "completed")
+
     def test_a_stale_history_heartbeat_does_not_hold_jobs_behind_watch_rows(self):
         self.reader.pages["alice.near", None] = page([])
         job = self.jobs.create("team", "actor", "alice.near")
