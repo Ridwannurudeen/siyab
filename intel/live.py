@@ -16,8 +16,27 @@ from gate import canon, evidence, intents, rpc, rules, scan
 from intel import accounts, enrichment, history, identity, labels, portfolio, reports
 
 RATE_PER_MINUTE = 60
+COST_PER_MINUTE = 240
+GLOBAL_PER_MINUTE = 600
 RATE_WINDOW_S = 60
 MAX_IN_FLIGHT = 8
+MAX_CLIENT_IN_FLIGHT = 4
+MAX_CLIENT_HEAVY = 2
+MAX_CLIENT_ADMITTED = 12
+QUEUE_WAIT_S = 5
+HEAVY_SLOTS = 3
+HEAVY_ROUTES = ("portfolio", "portfolio-at-block", "holdings", "graph", "backfill")
+# Units a request costs against COST_PER_MINUTE, about the provider calls it can make; portfolio,
+# portfolio-at-block and holdings depend on their query (LiveAPI._cost) and every other route costs 1.
+ROUTE_COSTS = {"verdict": 10, "reports/recent": 21, "reports": 22, "graph": 6, "identity": 4, "intents": 4,
+               "scan": 2, "backfill": 2, "profile": 1, "transactions": 1, "transfers": 1}
+# The max_tokens portfolio.PortfolioData.inspect reads when the query names none.
+PORTFOLIO_DEFAULT_TOKENS = 40
+# Routes the process cache never holds: retained archives, the entity directory and backfill writes.
+UNCACHED_ROUTES = ("snapshot", "entity-directory", "history", "backfill", "enrichment", "portfolio-history")
+MAX_SUBJECT_REPORTS = 20
+REPORTS_PAGE = 50
+VERDICT_NEARBLOCKS_ENV = "SIYAB_VERDICT_NEARBLOCKS"
 REQUEST_TIMEOUT_S = 25
 CACHE_TTL_S = 60
 MAX_CACHE_ENTRIES = 128
@@ -37,10 +56,29 @@ class LiveReadError(ValueError):
     """An unreadable response from a live read-only view."""
 
 
+class _NoNearBlocks:
+    """The NearBlocks client of the hosted verdict unless SIYAB_VERDICT_NEARBLOCKS=1: it sends nothing, so an
+    age the archival read cannot date reads unknown."""
+
+    def __init__(self):
+        self.last_source = {"provider": "nearblocks", "request_sha256": None, "fetched_at": None}
+
+    def get(self, url, **kwargs):
+        raise rpc.RateLimited("NearBlocks is not read by the hosted verdict route")
+
+
+class _Flight:
+    """One upstream read that identical concurrent requests wait for."""
+
+    def __init__(self):
+        self.done = threading.Event()
+        self.answer = (500, {"error": "internal_error", "message": "The live check could not be completed."}, {})
+
+
 class LiveAPI:
     def __init__(self, store=None, *, clock=time.monotonic, wall_clock=time.time,
                  perf_clock=time.perf_counter, rate_per_minute=RATE_PER_MINUTE,
-                 request_timeout_s=REQUEST_TIMEOUT_S, cache_ttl_s=CACHE_TTL_S,
+                 request_timeout_s=REQUEST_TIMEOUT_S, queue_wait_s=QUEUE_WAIT_S, cache_ttl_s=CACHE_TTL_S,
                  cache_size=MAX_CACHE_ENTRIES, max_in_flight=MAX_IN_FLIGHT, history_store=None,
                  entity_directory=None, portfolio_data=None, portfolio_history=None):
         if type(rate_per_minute) is not int or rate_per_minute < 1:
@@ -60,69 +98,222 @@ class LiveAPI:
         self.perf_clock = perf_clock
         self.rate_per_minute = rate_per_minute
         self.request_timeout_s = request_timeout_s
+        self.queue_wait_s = queue_wait_s
         self.cache_ttl_s = cache_ttl_s
         self.cache_size = cache_size
         self.max_in_flight = max_in_flight
         self._slots = threading.BoundedSemaphore(max_in_flight)
+        self._heavy_slots = threading.BoundedSemaphore(min(HEAVY_SLOTS, max_in_flight))
         self._lock = threading.Lock()
+        self._condition = threading.Condition(self._lock)
         self._rates = OrderedDict()
+        self._requests = [None, 0]
+        self._in_flight = {}
+        self._flights = {}
         self._cache = OrderedDict()
         self._cache_bytes = 0
 
     def handle(self, target, peer, headers):
+        arrived = time.monotonic()
         try:
             parsed = urllib.parse.urlsplit(target)
         except ValueError:
             return self._error(400, "invalid_input", "The request target is malformed.")
         if parsed.path != "/live" and not parsed.path.startswith("/live/"):
             return None
-        if not self._slots.acquire(blocking=False):
-            return self._error(503, "busy", "The live API is busy.")
+        client = self._client_ip(peer, headers)
+        route = self._route_name(parsed.path)
+        key = self._cache_key(route, parsed.path, parsed.query)
+        with self._lock:
+            cached = self._cache.get(key) if key is not None else None
+            if cached is not None and cached[0] > self.clock():
+                self._cache.move_to_end(key)
+                cached = cached[1]
+            else:
+                cached = None
+            cost = 1 if cached is not None else self._cost(route, parsed.query)
+        refused = self._rate_limit(client, cost)
+        if refused is not None:
+            status, code, message, retry_after = refused
+            return self._error(status, code, message, {"Retry-After": str(retry_after)})
+        if cached is not None:
+            return cached[0], copy.deepcopy(cached[1]), dict(cached[2])
+        heavy = route in HEAVY_ROUTES
+        with self._condition:
+            state = self._in_flight.setdefault(client, [0, 0, 0])
+            if state[0] >= MAX_CLIENT_ADMITTED:
+                return self._error(429, "too_many_in_flight", "This client has too many live requests waiting.",
+                                   {"Retry-After": "1"})
+            state[0] += 1
+        leader, flight = False, None
         try:
-            client = self._client_ip(peer, headers)
-            retry_after = self._rate_limit(client)
-            if retry_after is not None:
-                return self._error(429, "rate_limited", "The client rate limit was reached.",
-                                   {"Retry-After": str(retry_after)})
-            key = (parsed.path, parsed.query)
-            cacheable = not (parsed.path.startswith(("/live/account-data/", "/live/portfolio-data/")) or parsed.path == "/live/entity-directory" or
-                             (parsed.path.startswith("/live/accounts/") and parsed.path.rsplit("/", 1)[-1] in ("history", "backfill", "enrichment", "portfolio", "portfolio-history", "portfolio-at-block")))
-            cached = self._cache_get(key) if cacheable else None
-            if cached is not None:
-                return cached
-            deadline = time.monotonic() + self.request_timeout_s
-            try:
-                with rpc.request_deadline(self.request_timeout_s):
-                    snapshot = self.exact_snapshot(parsed.path, parsed.query)
-                    if snapshot is None:
-                        status, body = self._route(parsed.path, parsed.query)
-                        response_headers = {}
-                    else:
-                        status, body, response_headers = snapshot
-                response_size = len(body) if isinstance(body, bytes) else self._response_size(body, MAX_RESPONSE_BYTES)
-                if response_size is None:
-                    return self._error(503, "response_too_large", "The live response exceeds the size limit.")
-                if time.monotonic() >= deadline:
-                    raise TimeoutError("request deadline exceeded")
-            except (LiveInputError, enrichment.EnrichmentInputError, portfolio.PortfolioInputError) as error:
-                return self._error(400, "invalid_input", str(error))
-            except TimeoutError:
-                return self._error(504, "timeout", "The live read exceeded its request deadline.")
-            except history.HistoryCapacityError as error:
-                return 503, {"error": "archive_capacity", "message": str(error),
-                             "coverage": {"history_complete": False, "new_observations_paused": True}}, {"Retry-After": "60"}
-            except (LiveReadError, enrichment.EnrichmentReadError, portfolio.PortfolioReadError):
-                return self._error(503, "read_failed", "A required live view could not be read.")
-            except rules.UNAVAILABLE:
-                return self._error(503, "read_failed", "A required live view could not be read.")
-            except Exception:
-                return self._error(500, "internal_error", "The live check could not be completed.")
-            answer = (status, body, response_headers)
-            if status == 200 and cacheable:
-                self._cache_put(key, answer, response_size)
+            with self._condition:
+                while True:
+                    cached = self._cache.get(key) if key is not None else None
+                    if cached is not None and cached[0] > self.clock():
+                        self._cache.move_to_end(key)
+                        answer = cached[1]
+                        return answer[0], copy.deepcopy(answer[1]), dict(answer[2])
+                    flight = self._flights.get(key) if key is not None else None
+                    if flight is not None:
+                        break
+                    remaining = arrived + self.queue_wait_s - time.monotonic()
+                    if remaining <= 0:
+                        return self._error(429, "too_many_in_flight", "This client has too many live requests waiting.",
+                                           {"Retry-After": "1"})
+                    if state[1] < MAX_CLIENT_IN_FLIGHT and (not heavy or state[2] < MAX_CLIENT_HEAVY):
+                        leader = True
+                        state[1] += 1
+                        if heavy:
+                            state[2] += 1
+                        if key is not None:
+                            flight = self._flights[key] = _Flight()
+                        break
+                    self._condition.wait(remaining)
+            if not leader:
+                if not flight.done.wait(max(0, arrived + self.request_timeout_s - time.monotonic())):
+                    return self._error(504, "timeout", "The live read exceeded its request deadline.")
+                return flight.answer[0], copy.deepcopy(flight.answer[1]), dict(flight.answer[2])
+            answer = self._read(route, parsed, key, arrived)
+            if flight is not None:
+                flight.answer = answer
             return answer
         finally:
-            self._slots.release()
+            with self._condition:
+                state[0] -= 1
+                if leader:
+                    state[1] -= 1
+                    if heavy:
+                        state[2] -= 1
+                    if flight is not None:
+                        flight.done.set()
+                        del self._flights[key]
+                if state == [0, 0, 0]:
+                    del self._in_flight[client]
+                self._condition.notify_all()
+
+    def _read(self, route, parsed, key, arrived):
+        """Answer a request that found no cached answer, holding one of the slots for the upstream read."""
+        heavy = route in HEAVY_ROUTES
+        if heavy and not self._heavy_slots.acquire(timeout=max(0, arrived + self.queue_wait_s - time.monotonic())):
+            return self._error(503, "busy", "The live API's slots for heavy account reads are busy.",
+                               {"Retry-After": "1"})
+        try:
+            if not self._slots.acquire(timeout=max(0, arrived + self.queue_wait_s - time.monotonic())):
+                return self._error(503, "busy", "The live API is busy.", {"Retry-After": "1"})
+            try:
+                with rpc.caller_class("backfill" if route == "backfill" else "anonymous") as refusals:
+                    answer, response_size = self._attempt(parsed, arrived)
+            finally:
+                self._slots.release()
+        finally:
+            if heavy:
+                self._heavy_slots.release()
+        if refusals:
+            if answer[0] >= 500 and answer[0] != 504:
+                retry_after = max(refusal.retry_after for refusal in refusals)
+                return self._error(503, "provider_budget", "A provider budget is spent; retained data stays readable.",
+                                   {"Retry-After": str(retry_after)})
+            return answer
+        if answer[0] == 200 and key is not None:
+            settled = route == "portfolio-at-block" and self._settled_block(answer[1])
+            self._cache_put(key, answer, response_size, math.inf if settled else self.cache_ttl_s)
+        return answer
+
+    def _attempt(self, parsed, arrived):
+        """The answer to one routed request and its response size (None for an error answer)."""
+        deadline = arrived + self.request_timeout_s
+        try:
+            if time.monotonic() >= deadline:
+                raise TimeoutError("request deadline exceeded")
+            with rpc.request_deadline(max(deadline - time.monotonic(), 0.001)):
+                snapshot = self.exact_snapshot(parsed.path, parsed.query)
+                if snapshot is None:
+                    status, body = self._route(parsed.path, parsed.query)
+                    response_headers = {}
+                else:
+                    status, body, response_headers = snapshot
+            response_size = len(body) if isinstance(body, bytes) else self._response_size(body, MAX_RESPONSE_BYTES)
+            if response_size is None:
+                return self._error(503, "response_too_large", "The live response exceeds the size limit."), None
+            if time.monotonic() >= deadline:
+                raise TimeoutError("request deadline exceeded")
+        except (LiveInputError, enrichment.EnrichmentInputError, portfolio.PortfolioInputError) as error:
+            return self._error(400, "invalid_input", str(error)), None
+        except TimeoutError:
+            return self._error(504, "timeout", "The live read exceeded its request deadline."), None
+        except history.HistoryCapacityError as error:
+            return (503, {"error": "archive_capacity", "message": str(error),
+                          "coverage": {"history_complete": False, "new_observations_paused": True}}, {"Retry-After": "60"}), None
+        except (LiveReadError, enrichment.EnrichmentReadError, portfolio.PortfolioReadError):
+            return self._error(503, "read_failed", "A required live view could not be read."), None
+        except rules.UNAVAILABLE:
+            return self._error(503, "read_failed", "A required live view could not be read."), None
+        except Exception:
+            return self._error(500, "internal_error", "The live check could not be completed."), None
+        return (status, body, response_headers), response_size
+
+    @staticmethod
+    def _route_name(path):
+        if path.startswith("/live/accounts/"):
+            parts = path.split("/")
+            return parts[4] if len(parts) == 5 else "account"
+        if path.startswith("/live/scan/"):
+            return "scan"
+        if path.startswith(("/live/account-data/", "/live/portfolio-data/")):
+            return "snapshot"
+        return path[len("/live/"):]
+
+    @staticmethod
+    def _cost(route, query):
+        """The units a request of route with query costs; an unreadable query costs the route's default."""
+        if route in ROUTE_COSTS:
+            return ROUTE_COSTS[route]
+        if route not in ("portfolio", "portfolio-at-block", "holdings"):
+            return 1
+        try:
+            values = dict(urllib.parse.parse_qsl(query, keep_blank_values=True, max_num_fields=3))
+        except ValueError:
+            values = {}
+        if route == "portfolio-at-block":
+            contracts = values.get("contracts")
+            return 2 + 2 * min(len(contracts.split(",")) if contracts else 0, portfolio.MAX_HISTORICAL_TOKENS)
+        # A holdings page defaults to its largest size.
+        field, base, default, upper = (("max_tokens", 6, PORTFOLIO_DEFAULT_TOKENS, portfolio.MAX_TOKENS)
+                                       if route == "portfolio" else
+                                       ("limit", 1, accounts.MAX_HOLDINGS_PAGE, accounts.MAX_HOLDINGS_PAGE))
+        value = values.get(field, "")
+        return base + (min(int(value), upper) if re.fullmatch(r"[0-9]{1,4}", value) else default)
+
+    def _cache_key(self, route, path, query):
+        """The cache and single flight key from decoded, sorted, normalised values; None for a route the cache
+        bypasses or a request its route refuses as invalid input."""
+        if route in UNCACHED_ROUTES:
+            return None
+        try:
+            pairs = urllib.parse.parse_qsl(query, keep_blank_values=True, strict_parsing=True, max_num_fields=8)
+        except ValueError:
+            return None
+        if path.startswith(("/live/accounts/", "/live/scan/")):
+            parts = path.split("/")
+            try:
+                parts[3] = canon.account_id(urllib.parse.unquote(parts[3]), "account")
+            except canon.CanonError:
+                return None
+            path = "/".join(parts)
+        if route == "intents":
+            pairs = [(name, value.lower() if name == "recipient" else value) for name, value in pairs]
+        elif route == "portfolio-at-block":
+            pairs = [(name, ",".join(sorted(value.split(","))) if name == "contracts" else value) for name, value in pairs]
+        return path, tuple(sorted(pairs))
+
+    @staticmethod
+    def _settled_block(body):
+        """A block-pinned portfolio whose every selected balance, metadata and price read succeeded: the only
+        answer the cache keeps without expiry, since a block-pinned read never changes."""
+        return ("archive_paused" not in body and body.get("summary", {}).get("unpriced_assets") == 0
+                and all(asset.get("balance_status") == "historical" and asset.get("metadata") is not None
+                        for asset in body.get("assets", ())))
 
     def exact_snapshot(self, path, query):
         if not path.startswith(("/live/account-data/", "/live/portfolio-data/")):
@@ -214,7 +405,7 @@ class LiveAPI:
             raise LiveInputError("A historical portfolio requires block_height.")
         for field in ("offset", "limit", "depth", "before", "max_pages", "max_tokens", "block_height"):
             if field in values:
-                upper = canon.U64_MAX if field == "block_height" else 2 ** 63 - 1 if field == "before" else 10000 if field == "offset" else 2 if field in ("depth", "max_pages") else 20 if kind == "holdings" else 100
+                upper = canon.U64_MAX if field == "block_height" else 2 ** 63 - 1 if field == "before" else 10000 if field == "offset" else 2 if field in ("depth", "max_pages") else portfolio.MAX_TOKENS if field == "max_tokens" else 20 if kind == "holdings" else 100
                 lower = 0 if field in ("offset", "before") else 1
                 if not re.fullmatch(r"0|[1-9][0-9]{0,19}", values[field]) or not lower <= int(values[field]) <= upper:
                     raise LiveInputError("Investigation pagination or graph depth is outside its supported range.")
@@ -307,8 +498,8 @@ class LiveAPI:
         request = {"kind": kind, "token_id": token_id, "receiver_id": receiver,
                    "amount": amount, "memo": None}
         near = rpc.Client(os.environ.get("NEAR_MAINNET_RPC_URL") or rpc.MAINNET_RPC_URL, "off")
-        nearblocks = rpc.Client(os.environ.get("NEARBLOCKS_API_URL") or rpc.NEARBLOCKS_URL,
-                                 "off", kind="http")
+        nearblocks = (rpc.Client(os.environ.get("NEARBLOCKS_API_URL") or rpc.NEARBLOCKS_URL, "off", kind="http")
+                      if os.environ.get(VERDICT_NEARBLOCKS_ENV) == "1" else _NoNearBlocks())
         archival = rpc.Client(os.environ.get("NEAR_ARCHIVAL_RPC_URL") or rpc.ARCHIVAL_RPC_URL, "off")
         started = self.perf_clock()
         judgement = rules.judge(request, {"allowlist": [], "caps": []}, self.store, near, nearblocks,
@@ -360,6 +551,7 @@ class LiveAPI:
         recipient = query["recipient"]
         if not isinstance(recipient, str) or not _EVM_ADDRESS.fullmatch(recipient):
             raise LiveInputError("recipient must be an EVM address with 40 hexadecimal characters.")
+        recipient = recipient.lower()
         amount = self._amount(query["amount"])
         started = self.perf_clock()
         result = intents.judge_quote(INTENTS_ORIGIN_ASSET, destination, amount, recipient,
@@ -374,21 +566,37 @@ class LiveAPI:
         summary = client.call_function(REPORTS_ACCOUNT, "subject_summary", {"subject": subject})
         if not reports._readable(summary):
             raise LiveReadError("the subject summary is unreadable")
-        rows, offset = [], 0
-        while True:
-            page = client.call_function(REPORTS_ACCOUNT, "reports_by_subject",
-                                        {"subject": subject, "from": offset, "limit": 50})
-            if not isinstance(page, list):
+
+        def page(start, limit):
+            items = client.call_function(REPORTS_ACCOUNT, "reports_by_subject",
+                                         {"subject": subject, "from": start, "limit": limit})
+            if not isinstance(items, list) or len(items) > limit:
                 raise LiveReadError("the subject report page is unreadable")
-            for item in page:
-                if not isinstance(item, dict) or type(item.get("id")) is not int or item["id"] < 0:
-                    raise LiveReadError("the subject report index is unreadable")
-                report = client.call_function(REPORTS_ACCOUNT, "get_report", {"id": item["id"]})
-                rows.append(self._report(report, subject))
-            if len(page) < 50:
-                break
-            offset += len(page)
-        return {"subject_summary": summary, "reports": rows}
+            return items
+
+        items = page(0, REPORTS_PAGE)
+        count = len(items)
+        if count == REPORTS_PAGE:
+            # The contract has no count view: double past the last offset known to hold a report, then halve
+            # back to the first empty one, so a long index costs a few one-report pages.
+            low, step = REPORTS_PAGE - 1, REPORTS_PAGE
+            while low + step <= 2 ** 64 and page(low + step, 1):
+                low, step = low + step, step * 2
+            if low + step > 2 ** 64:
+                raise LiveReadError("the subject report index is unreadable")
+            high = low + step
+            while high - low > 1:
+                middle = (low + high) // 2
+                low, high = (middle, high) if page(middle, 1) else (low, middle)
+            count = high
+            items = page(max(0, count - MAX_SUBJECT_REPORTS), MAX_SUBJECT_REPORTS)
+        rows = []
+        for item in items[-MAX_SUBJECT_REPORTS:]:
+            if not isinstance(item, dict) or type(item.get("id")) is not int or item["id"] < 0:
+                raise LiveReadError("the subject report index is unreadable")
+            report = client.call_function(REPORTS_ACCOUNT, "get_report", {"id": item["id"]})
+            rows.append(self._report(report, subject))
+        return {"subject_summary": summary, "reports": rows, "truncated": count > MAX_SUBJECT_REPORTS}
 
     def _recent_reports(self):
         client = self._reports_client()
@@ -439,37 +647,35 @@ class LiveAPI:
                 "evidence_hash": evidence_hash, "freshness": dict(freshness), "verdict": None,
                 "signing": "never", "latency_ms": latency_ms}
 
-    def _rate_limit(self, client):
+    def _rate_limit(self, client, cost):
+        """None when the request is admitted and counted, else (status, error, message, Retry-After seconds)."""
         now = self.clock()
         window = math.floor(now / RATE_WINDOW_S)
+        retry_after = max(1, math.ceil((window + 1) * RATE_WINDOW_S - now))
         with self._lock:
-            start, count = self._rates.get(client, (window, 0))
+            start, count, spent = self._rates.get(client, (window, 0, 0))
             if window > start:
-                start, count = window, 0
-            if count >= self.rate_per_minute:
+                start, count, spent = window, 0, 0
+            if count >= self.rate_per_minute or spent + cost > COST_PER_MINUTE:
                 self._rates.move_to_end(client)
-                return max(1, math.ceil((start + 1) * RATE_WINDOW_S - now))
-            if client not in self._rates and len(self._rates) >= MAX_RATE_CLIENTS:
-                self._rates.popitem(last=False)
-            self._rates[client] = (start, count + 1)
+                limit = "rate limit" if count >= self.rate_per_minute else "cost budget"
+                return 429, "rate_limited", f"The client {limit} was reached.", retry_after
+            if self._requests[0] != window:
+                self._requests = [window, 0]
+            if self._requests[1] >= GLOBAL_PER_MINUTE:
+                return 503, "busy", "The live API request ceiling was reached.", retry_after
+            if client not in self._rates:
+                # Entries are kept in order of use, so those from an earlier minute are at the front.
+                while self._rates and next(iter(self._rates.values()))[0] < window:
+                    self._rates.popitem(last=False)
+                if len(self._rates) >= MAX_RATE_CLIENTS:
+                    return 503, "busy", "The live API client table is full.", retry_after
+            self._requests[1] += 1
+            self._rates[client] = (start, count + 1, spent + cost)
             self._rates.move_to_end(client)
         return None
 
-    def _cache_get(self, key):
-        now = self.clock()
-        with self._lock:
-            cached = self._cache.get(key)
-            if cached is None:
-                return None
-            expires, answer, response_size = cached
-            if expires <= now:
-                del self._cache[key]
-                self._cache_bytes -= response_size
-                return None
-            self._cache.move_to_end(key)
-            return (answer[0], copy.deepcopy(answer[1]), dict(answer[2]))
-
-    def _cache_put(self, key, answer, response_size):
+    def _cache_put(self, key, answer, response_size, ttl):
         with self._lock:
             now = self.clock()
             expired = [cache_key for cache_key, (expires, _, _) in self._cache.items() if expires <= now]
@@ -481,7 +687,7 @@ class LiveAPI:
                 self._cache_bytes -= previous[2]
             if response_size > MAX_CACHE_BYTES:
                 return
-            self._cache[key] = (now + self.cache_ttl_s,
+            self._cache[key] = (now + ttl,
                                 (answer[0], copy.deepcopy(answer[1]), dict(answer[2])), response_size)
             self._cache_bytes += response_size
             self._cache.move_to_end(key)
@@ -502,15 +708,24 @@ class LiveAPI:
 
     @staticmethod
     def _client_ip(peer, headers):
-        if peer != "127.0.0.1":
-            return peer
-        forwarded = headers.get("X-Forwarded-For")
-        if not forwarded:
-            return peer
-        try:
-            return str(ipaddress.ip_address(forwarded.split(",", 1)[0].strip()))
-        except ValueError:
-            return peer
+        """The rate key: the rightmost X-Forwarded-For entry when the peer is the local proxy, else the peer; an
+        IPv6 address is keyed by its /64."""
+        candidates = [peer]
+        if peer == "127.0.0.1":
+            values = headers.get_all("X-Forwarded-For") if hasattr(headers, "get_all") else [headers.get("X-Forwarded-For")]
+            if values and values[-1]:
+                candidates.insert(0, values[-1].rsplit(",", 1)[-1].strip())
+        for candidate in candidates:
+            try:
+                address = ipaddress.ip_address(candidate)
+            except ValueError:
+                continue
+            if address.version == 4:
+                return str(address)
+            if address.ipv4_mapped is not None:
+                return str(address.ipv4_mapped)
+            return str(ipaddress.ip_network(f"{address}/64", strict=False))
+        return peer
 
     @staticmethod
     def _query(query, required):

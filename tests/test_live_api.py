@@ -47,6 +47,10 @@ class LiveRouteTest(unittest.TestCase):
         self.thread.start()
         self.network = mock.patch("urllib.request.urlopen", side_effect=AssertionError("unexpected network read"))
         self.network.start()
+        for target in ("gate.rpc._open_with_deadline", "gate.rpc._fetch"):
+            network = mock.patch(target, side_effect=AssertionError("unexpected network read"))
+            network.start()
+            self.addCleanup(network.stop)
 
     def tearDown(self):
         self.network.stop()
@@ -137,7 +141,7 @@ class LiveRouteTest(unittest.TestCase):
 
         with mock.patch("intel.live.rpc.Client.call_function", autospec=True, side_effect=reports_view):
             status, _, body = self.request("/live/reports?subject=vendor.testnet")
-        self.assertEqual((status, body), (200, {"subject_summary": SUMMARY, "reports": [REPORT_ROW]}))
+        self.assertEqual((status, body), (200, {"subject_summary": SUMMARY, "reports": [REPORT_ROW], "truncated": False}))
 
         def recent_view(_client, contract, method, args, *, block_id=None):
             self.assertEqual(contract, live.REPORTS_ACCOUNT)
@@ -228,10 +232,13 @@ class LiveRouteTest(unittest.TestCase):
         self.assertGreaterEqual(int(headers["Retry-After"]), 1)
 
         self.assertEqual(live.LiveAPI._client_ip("127.0.0.1", {"X-Forwarded-For": "203.0.113.8, 10.0.0.2"}),
-                         "203.0.113.8")
+                         "10.0.0.2")
         self.assertEqual(live.LiveAPI._client_ip("203.0.113.9", {"X-Forwarded-For": "203.0.113.8"}),
                          "203.0.113.9")
 
+        self.live.rate_per_minute = 60
+        self.now[0] = 300
+        self.live.queue_wait_s = 0.05
         acquired = []
         try:
             for _ in range(live.MAX_IN_FLIGHT):
@@ -302,22 +309,18 @@ class LiveRouteTest(unittest.TestCase):
         server = api.make_server("127.0.0.1", 0, store=self.store, live_routes=limited)
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
-        first = socket.create_connection(server.server_address, timeout=3)
-        second = None
-        third = None
+        connections = []
         try:
-            time.sleep(0.05)
-            second = socket.create_connection(server.server_address, timeout=3)
-            time.sleep(0.05)
-            third = socket.create_connection(server.server_address, timeout=3)
-            third.settimeout(1)
-            self.assertIn(b" 503 ", third.recv(256))
+            for _ in range(4):
+                connections.append(socket.create_connection(server.server_address, timeout=3))
+                time.sleep(0.05)
+            excess = socket.create_connection(server.server_address, timeout=3)
+            connections.append(excess)
+            excess.settimeout(1)
+            self.assertIn(b" 503 ", excess.recv(256))
         finally:
-            first.close()
-            if second is not None:
-                second.close()
-            if third is not None:
-                third.close()
+            for connection in connections:
+                connection.close()
             server.shutdown()
             server.server_close()
             thread.join()
@@ -352,8 +355,8 @@ class LiveRouteTest(unittest.TestCase):
             workers = []
             try:
                 with mock.patch.object(limited, "_route", side_effect=slow_route):
-                    workers = [threading.Thread(target=lambda: answers.append(request(server, "/live/slow")))
-                               for _ in range(2)]
+                    workers = [threading.Thread(target=lambda path=path: answers.append(request(server, path)))
+                               for path in ("/live/slow-1", "/live/slow-2")]
                     for worker in workers:
                         worker.start()
                     started.wait(timeout=2)

@@ -17,7 +17,16 @@ HttpError and are never written unless a GET caller explicitly selects a status 
 selected statuses are stored as markers and replay as HttpError. A truncated or broken reply raises TransportError. A body
 without the fields the caller reads raises MalformedResponse. NearBlocks fetches (its free tier
 allows 6 calls a minute and 333 a day) are spaced at least 10 s apart, and past 300 in one UTC
-day per process they raise RateLimited without a request.
+day per process they raise RateLimited without a request. Inside request_deadline (a request being
+served) a NearBlocks fetch whose slot is not free yet raises RateLimited instead of sleeping.
+
+In mode off, each fetch is first reserved against the durable provider budget (intel/budget.py:reserve)
+for the provider class of its host and the caller class the entry point set with caller_class
+(operator when none is set). A spent budget raises BudgetExhausted, a RateLimited, without a request.
+The FastNEAR key (an Authorization header to a FastNEAR host) goes out only when reserve allows it:
+when no budget database is configured, or a key cooldown runs, the request goes out without it. A 403
+or 429 answering a keyed request starts that cooldown (intel/budget.py:key_failure). Replay and record
+never touch the budget database.
 """
 
 import base64
@@ -37,6 +46,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from gate import base58
+from intel import budget
 
 FIXTURES_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "rpc"
 MODES = ("replay", "record", "off")
@@ -58,6 +68,8 @@ EMPTY_CODE_HASH = base58.encode(bytes(32))
 _TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 _REQUEST_DEADLINE = contextvars.ContextVar("gate_rpc_request_deadline", default=None)
 _URL_IN_ERROR = re.compile(r"https?://[^\s\"'<>]+")
+_CALLER_CLASS = contextvars.ContextVar("gate_rpc_caller_class", default=None)
+_BUDGET_REFUSALS = contextvars.ContextVar("gate_rpc_budget_refusals", default=None)
 # Per process NearBlocks use: host -> {"last": seconds of the last fetch, "day": UTC date, "count"}.
 _NEARBLOCKS_USE = {}
 
@@ -74,6 +86,21 @@ def request_deadline(seconds):
         yield
     finally:
         _REQUEST_DEADLINE.reset(token)
+
+
+@contextmanager
+def caller_class(name):
+    """Meter the fetches made in this block as caller class name (intel/budget.py:CALLER_CLASSES); yields the
+    list of the BudgetExhausted refusals raised in the block."""
+    if name not in budget.CALLER_CLASSES:
+        raise ValueError(f"caller class must be one of {budget.CALLER_CLASSES}, not {name!r}")
+    refusals = []
+    tokens = (_CALLER_CLASS.set(name), _BUDGET_REFUSALS.set(refusals))
+    try:
+        yield refusals
+    finally:
+        _BUDGET_REFUSALS.reset(tokens[1])
+        _CALLER_CLASS.reset(tokens[0])
 
 
 class _DeadlineReader(io.RawIOBase):
@@ -167,6 +194,15 @@ class TransportError(Exception):
 
 class RateLimited(Exception):
     """The NearBlocks daily budget is used up; no request was sent."""
+
+
+class BudgetExhausted(RateLimited):
+    """A durable provider budget refused the request; none was sent. retry_after is whole seconds until it
+    reopens."""
+
+    def __init__(self, message, retry_after):
+        super().__init__(message)
+        self.retry_after = retry_after
 
 
 class MalformedResponse(ValueError):
@@ -379,12 +415,29 @@ class Client:
                               f"is {NEARBLOCKS_DAILY_BUDGET}")
         wait = 0 if use["last"] is None else use["last"] + NEARBLOCKS_MIN_INTERVAL_S - now
         if wait > 0:
-            deadline = _REQUEST_DEADLINE.get()
-            if deadline is not None and time.monotonic() + wait >= deadline:
-                raise TimeoutError("request deadline exceeded")
+            if _REQUEST_DEADLINE.get() is not None:
+                raise RateLimited(f"the next NearBlocks request slot is {wait:.1f} s away; a request being "
+                                  "served never waits for it")
             self.sleep(wait)
         use["last"] = now + max(wait, 0)
         use["count"] += 1
+
+    def _metered(self, host):
+        """The headers to send once this fetch is reserved, and whether they carry the FastNEAR key."""
+        provider = budget.provider_class(host)
+        keyed = (provider in budget.FASTNEAR_CLASSES
+                 and any(name.lower() == "authorization" for name in self.headers))
+        try:
+            send_key = budget.reserve(provider, _CALLER_CLASS.get() or "operator", keyed=keyed, now=self.clock())
+        except budget.Refused as refused:
+            error = BudgetExhausted(str(refused), refused.retry_after)
+            refusals = _BUDGET_REFUSALS.get()
+            if refusals is not None:
+                refusals.append(error)
+            raise error from None
+        if not keyed or not send_key:
+            return {name: value for name, value in self.headers.items() if name.lower() != "authorization"}, False
+        return self.headers, keyed
 
     def _exchange(self, url, method, params, body, *, request_url=None, record_http_errors=()):
         key = fixture_key(url, method, params)
@@ -406,7 +459,15 @@ class Client:
                 raise FixtureMiss(key, url, method, params)
             if host in NEARBLOCKS_HOSTS:
                 self._respect_nearblocks(host)
-            response = _fetch(request_url or url, body, self.headers, record_http_errors)
+            headers, keyed = self._metered(host) if self.mode == "off" else (self.headers, False)
+            if self.mode == "record" and budget.provider_class(host) not in budget.FASTNEAR_CLASSES:
+                headers = {name: value for name, value in headers.items() if name.lower() != "authorization"}
+            try:
+                response = _fetch(request_url or url, body, headers, record_http_errors)
+            except HttpError as error:
+                if keyed:
+                    budget.key_failure(error.status, self.clock())
+                raise
             fetched_at = _timestamp(self.clock())
             self.last_source["fetched_at"] = fetched_at
             if self.mode == "record":
@@ -433,8 +494,13 @@ def _fetch(url, body, extra_headers=None, record_http_errors=()):
         data = json.dumps(body).encode("utf-8")
         headers["Content-Type"] = "application/json"
     headers.update(extra_headers or {})
-    request = urllib.request.Request(url, data=data, headers=headers,
+    request = urllib.request.Request(url, data=data,
+                                     headers={name: value for name, value in headers.items()
+                                              if name.lower() != "authorization"},
                                      method="GET" if data is None else "POST")
+    for name, value in headers.items():
+        if name.lower() == "authorization":
+            request.add_unredirected_header(name, value)
     deadline = _REQUEST_DEADLINE.get()
     timeout = TIMEOUT_S
     if deadline is not None:

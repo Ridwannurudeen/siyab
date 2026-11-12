@@ -61,6 +61,13 @@ class AccountReadError(ValueError):
             self.retry_at_ms = None
 
 
+class AccountBudgetError(AccountReadError):
+    """A provider budget refused the read until its next window."""
+
+    def __init__(self, message, retry_after, *, now):
+        super().__init__(message, status=503, retry_after=str(retry_after), now=now)
+
+
 def _account(value):
     try:
         account = canon.account_id(value, "account")
@@ -273,6 +280,8 @@ class AccountData:
                 data = client.post("/v0/account", body)
             except TimeoutError:
                 raise
+            except rpc.BudgetExhausted as error:
+                raise AccountBudgetError(str(error), error.retry_after, now=self.clock()) from None
             except rpc.HttpError as error:
                 raise AccountReadError("The indexed transaction history could not be read.", status=error.status, retry_after=error.retry_after, now=self.clock()) from None
             except _UNAVAILABLE:
@@ -315,6 +324,8 @@ class AccountData:
             data = client.post("/v0/transfers", body)
         except TimeoutError:
             raise
+        except rpc.BudgetExhausted as error:
+            raise AccountBudgetError(str(error), error.retry_after, now=self.clock()) from None
         except rpc.HttpError as error:
             raise AccountReadError("The indexed transfer history could not be read.", status=error.status, retry_after=error.retry_after, now=self.clock()) from None
         except _UNAVAILABLE:

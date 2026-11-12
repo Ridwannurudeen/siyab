@@ -14,7 +14,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from gate import rpc, rules
-from intel import feed
+from intel import budget, feed
 
 ROOT = Path(__file__).resolve().parent.parent
 RANKING_PATH = ROOT / "fixtures" / "receivers" / "top.json"
@@ -26,7 +26,7 @@ RANK_LIMIT = 1000
 # 7 Nov 2026: at 170 blocks a minute every request answered 429.
 # A probe on 7 Nov 2026, after a 15 minute cooldown, still met 429 on 47 of 90 keyless requests at 30 blocks a minute
 # and on all 150 at about 50, so a keyless scan runs at 15 blocks a minute. neardata does not throttle keyed requests,
-# so with FASTNEAR_API_KEY_FILE set the scan uses the follower's keyed spacing.
+# so with FASTNEAR_API_KEY_FILE set and a provider budget database configured the scan uses keyed spacing.
 REQUEST_INTERVAL_S = 60 / 15
 KEYED_REQUEST_INTERVAL_S = feed.FOLLOW_INTERVAL_KEYED_S
 # Bound a persistently throttled height while allowing brief 429 bursts to clear.
@@ -267,10 +267,11 @@ def bisect_start_height(end_height, end_timestamp_ns, target_timestamp_ns, fetch
 
 def _neardata_fetcher():
     """The neardata fetcher and request interval for a scan: keyed (an Authorization Bearer header read from the file
-    FASTNEAR_API_KEY_FILE names, the key never printed) when that variable is set, keyless otherwise. A set variable
-    whose file cannot be read or is empty stops the scan rather than falling back to keyless."""
+    FASTNEAR_API_KEY_FILE names, the key never printed) when that variable is set and a provider budget database
+    is configured, keyless otherwise. With a database, a set variable whose file cannot be read or is empty stops
+    the scan rather than falling back to keyless."""
     key_file = os.environ.get("FASTNEAR_API_KEY_FILE")
-    if not key_file:
+    if not key_file or budget.database() is None:
         return feed.Fetcher(max_requests=None, max_consecutive_429s=MAX_CONSECUTIVE_429S), REQUEST_INTERVAL_S
     try:
         api_key = Path(key_file).read_text(encoding="utf-8").strip()

@@ -10,7 +10,7 @@ from unittest import mock
 
 from gate import rpc
 from intel import __main__ as intel_main
-from intel import labels, top_receivers
+from intel import budget, labels, top_receivers
 
 ROOT = Path(__file__).resolve().parent.parent
 SET_PATH = ROOT / "fixtures" / "receivers" / "set.json"
@@ -402,6 +402,22 @@ class GateSpacingTest(unittest.TestCase):
 
 
 class NeardataKeyTest(unittest.TestCase):
+    def setUp(self):
+        for name in ("urllib.request.urlopen", "gate.rpc._open_with_deadline", "gate.rpc._fetch"):
+            patcher = mock.patch(name, side_effect=no_network)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        patcher = mock.patch("intel.budget.database", return_value=None)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_a_configured_key_without_a_budget_database_is_keyless_and_never_read(self):
+        with mock.patch.dict("os.environ", {"FASTNEAR_API_KEY_FILE": "not-opened"}), \
+                mock.patch("intel.top_receivers.Path.read_text", side_effect=AssertionError("unexpected file read")):
+            fetcher, interval = top_receivers._neardata_fetcher()
+        self.assertEqual(interval, top_receivers.REQUEST_INTERVAL_S)
+        self.assertNotIn("Authorization", fetcher.client.headers or {})
+
     def test_no_key_file_is_keyless_at_the_keyless_interval(self):
         with mock.patch.dict("os.environ", {}, clear=False):
             os.environ.pop("FASTNEAR_API_KEY_FILE", None)
@@ -413,8 +429,9 @@ class NeardataKeyTest(unittest.TestCase):
     def test_a_key_file_sends_a_bearer_header_at_the_keyed_interval(self):
         with tempfile.TemporaryDirectory() as tmp:
             key = Path(tmp) / "key"
-            key.write_text("synthetic-key\n", encoding="utf-8")
-            with mock.patch.dict("os.environ", {"FASTNEAR_API_KEY_FILE": str(key)}):
+            with mock.patch.dict("os.environ", {"FASTNEAR_API_KEY_FILE": str(key)}), \
+                    mock.patch("intel.budget.database", return_value=Path(tmp) / budget.DATABASE_NAME), \
+                    mock.patch("intel.top_receivers.Path.read_text", return_value="synthetic-key\n"):
                 fetcher, interval = top_receivers._neardata_fetcher()
         self.assertEqual(interval, top_receivers.KEYED_REQUEST_INTERVAL_S)
         self.assertEqual(fetcher.max_consecutive_429s, top_receivers.MAX_CONSECUTIVE_429S)
@@ -423,9 +440,12 @@ class NeardataKeyTest(unittest.TestCase):
     def test_an_empty_or_missing_key_file_stops_the_scan(self):
         with tempfile.TemporaryDirectory() as tmp:
             empty = Path(tmp) / "empty"
-            empty.write_text("", encoding="utf-8")
             for path in (empty, Path(tmp) / "missing"):
-                with self.subTest(path=path.name), mock.patch.dict("os.environ", {"FASTNEAR_API_KEY_FILE": str(path)}):
+                with self.subTest(path=path.name), \
+                        mock.patch.dict("os.environ", {"FASTNEAR_API_KEY_FILE": str(path)}), \
+                        mock.patch("intel.budget.database", return_value=Path(tmp) / budget.DATABASE_NAME), \
+                        mock.patch("intel.top_receivers.Path.read_text", return_value="", side_effect=(
+                            OSError("missing") if path.name == "missing" else None)):
                     with self.assertRaises(top_receivers.TopReceiversError):
                         top_receivers._neardata_fetcher()
 
@@ -442,9 +462,10 @@ class NeardataKeyTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             key = root / "key"
-            key.write_text("synthetic-key\n", encoding="utf-8")
             data_dir = root / "scan"
             with mock.patch.dict("os.environ", {"FASTNEAR_API_KEY_FILE": str(key)}), \
+                    mock.patch("intel.budget.database", return_value=root / budget.DATABASE_NAME), \
+                    mock.patch("intel.top_receivers.Path.read_text", return_value="synthetic-key\n"), \
                     mock.patch("intel.top_receivers.rpc.Client", return_value=BlockClient()) as client_cls:
                 state = top_receivers.scan_window(10, 3, True, data_dir, sleep=pauses.append, clock=lambda: 0.0)
             batch = json.loads((data_dir / "batches" / "1-3.json").read_text(encoding="utf-8"))
@@ -477,9 +498,10 @@ class NeardataKeyTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             key = root / "key"
-            key.write_text("synthetic-key\n", encoding="utf-8")
             data_dir = root / "scan"
             with mock.patch.dict("os.environ", {"FASTNEAR_API_KEY_FILE": str(key)}), \
+                    mock.patch("intel.budget.database", return_value=root / budget.DATABASE_NAME), \
+                    mock.patch("intel.top_receivers.Path.read_text", return_value="synthetic-key\n"), \
                     mock.patch("intel.top_receivers.rpc.Client", return_value=BlockClient()), \
                     mock.patch("intel.top_receivers.ThreadPoolExecutor", side_effect=recording_pool):
                 top_receivers.scan_window(10, 3, True, data_dir, sleep=lambda _: None, clock=lambda: 0.0)

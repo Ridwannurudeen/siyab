@@ -76,7 +76,7 @@ async function appBehavior() {
   vm.runInNewContext(fs.readFileSync('intel/ui/number-format.js','utf8'),{window:win});
   vm.runInNewContext(fs.readFileSync('intel/ui/investigate.js','utf8'), {window:win,document:doc,URL,URLSearchParams,AbortController,
     CustomEvent: class {constructor(type, options) {this.type=type; this.detail=options.detail;}},
-    setTimeout(callback) {const id=++timerIndex;timers.set(id,callback);return id;},clearTimeout(id){timers.delete(id);},
+    setTimeout(callback, delay) {const id=++timerIndex;callback.delay=delay;timers.set(id,callback);return id;},clearTimeout(id){timers.delete(id);},
     fetch(url,options) {return new Promise((resolve,reject) => {pending.push({url,options,resolve,reject});});}});
   const select = subject => {ids['investigate-account'].value=subject;ids['investigate-form'].listeners.submit({preventDefault(){}});};
   const reply = (request, payload) => request.resolve({ok:true,status:200,headers:{get:()=> 'application/json'},json:async()=>payload});
@@ -143,6 +143,64 @@ async function appBehavior() {
   ids['investigate-history-kind'].value='transfers';ids['investigate-history-kind'].listeners.change();assert.equal(abandoned.options.signal.aborted,true);
   reply(abandoned,{pages:1,inserted:999,next_cursor:null,coverage:{provider_pages_exhausted:true,history_complete:false}});await tick();
   assert.doesNotMatch(contentText(ids['investigate-backfill-status']),/999/,'Changing record type must ignore old backfill completion');
+
+  const refuse = (request, status, after) => request.resolve({ok:false,status,headers:{get:name=>name==='Retry-After'?after:'application/json'},json:async()=>({message:'Read is busy.'})});
+  const waitRetry = () => {
+    const entry=[...timers.entries()].find(([,callback])=>callback.delay!==25000);
+    assert.ok(entry,'A bounded busy response schedules a retry wait');
+    timers.delete(entry[0]);entry[1]();
+  };
+  ids['investigate-refresh'].listeners.click();const busyReads=pending.slice(-4);
+  for (const request of busyReads.slice(1)) reply(request,page('other.near'));
+  refuse(busyReads[0],429,'1');await tick();
+  assert.equal([...timers.values()].filter(callback=>callback.delay===25000).length,1,'The original deadline covers retry waits');
+  let beforeRetry=pending.length;waitRetry();await tick();assert.equal(pending.length,beforeRetry+1);
+  refuse(pending.at(-1),503,'5');await tick();waitRetry();await tick();
+  refuse(pending.at(-1),503,'1');await tick();
+  assert.equal(pending.length,beforeRetry+2,'A read automatically retries at most twice');
+  assert.match(contentText(ids['investigate-profile']),/Read is busy/);
+  assert.ok(allNodes(ids['investigate-profile']).some(item=>item.textContent==='Retry profile'));
+  assert.equal(timers.size,0);
+  for (const [status, after] of [[429,'60'],[503,'0'],[503,'6'],[503,'1.0'],[503,'-1'],[503,null],[500,'1']]) {
+    ids['investigate-read-identity'].listeners.click();const count=pending.length;
+    refuse(pending.at(-1),status,after);await tick();
+    assert.equal(pending.length,count);assert.equal(timers.size,0,'Unbounded or invalid waits must remain explicit retries');
+    assert.ok(allNodes(ids['investigate-identity']).some(item=>item.textContent==='Retry identity'));
+  }
+  for (const [status, error] of [[429,'rate_limited'],[503,'provider_budget']]) {
+    ids['investigate-refresh'].listeners.click();const limited=pending.slice(-4);
+    for(const request of limited.slice(1)) reply(request,page('other.near'));
+    limited[0].resolve({ok:false,status,headers:{get:name=>name==='Retry-After'?'1':'application/json'},json:async()=>({error,message:'Read limit reached.'})});await tick();
+    assert.equal(timers.size,0,'Rate and provider budget refusals must not silently retry initial reads');
+    assert.ok(allNodes(ids['investigate-profile']).some(item=>item.textContent==='Retry profile'));
+    ids['investigate-read-identity'].listeners.click();
+    pending.at(-1).resolve({ok:false,status,headers:{get:name=>name==='Retry-After'?'5':'application/json'},json:async()=>({error,message:'Read limit reached.'})});await tick();
+    assert.equal(timers.size,0,'Rate and provider budget refusals must not silently retry extra reads');
+    assert.ok(allNodes(ids['investigate-identity']).some(item=>item.textContent==='Retry identity'));
+  }
+  ids['investigate-history-load'].listeners.click();refuse(pending.at(-1),503,'2');await tick();
+  waitRetry();await tick();reply(pending.at(-1),archived('transfers'));await tick();
+  assert.match(contentText(ids['investigate-history']),/not complete chain history/);
+  ids['investigate-history-load'].listeners.click();refuse(pending.at(-1),503,'1');await tick();
+  [...timers.values()].find(callback=>callback.delay===25000)();waitRetry();await tick();
+  assert.match(contentText(ids['investigate-history']),/timed out/,'The original deadline also ends a retry wait');
+  assert.ok(allNodes(ids['investigate-history']).some(item=>item.textContent==='Retry archive'));
+  ids['investigate-read-identity'].listeners.click();refuse(pending.at(-1),429,'1');await tick();
+  const staleWait=[...timers.entries()].find(([,callback])=>callback.delay!==25000);
+  select('other.near');const activeCount=pending.length;
+  timers.delete(staleWait[0]);staleWait[1]();await tick();
+  assert.equal(pending.length,activeCount,'A stale extra read must not retry after an account change');
+  for(const request of pending.slice(-4)) reply(request,request.url.includes('/profile')?{account_id:'other.near',network:'mainnet',exists:false,labels:[],source:{},coverage:{}}:page('other.near'));
+  await tick();
+  ids['investigate-refresh'].listeners.click();const staleReads=pending.slice(-4);
+  for(const request of staleReads.slice(1)) reply(request,page('other.near'));
+  refuse(staleReads[0],503,'1');await tick();
+  const staleLoadWait=[...timers.entries()].find(([,callback])=>callback.delay!==25000);
+  select('other.near');const currentCount=pending.length;
+  timers.delete(staleLoadWait[0]);staleLoadWait[1]();await tick();
+  assert.equal(pending.length,currentCount,'A stale initial read must not retry after an account change');
+  for(const request of pending.slice(-4)) reply(request,request.url.includes('/profile')?{account_id:'other.near',network:'mainnet',exists:false,labels:[],source:{},coverage:{}}:page('other.near'));
+  await tick();
 
   ids['investigate-depth'].value='2'; await ids['investigate-load-graph'].listeners.click();
   assert.equal(win.location.searchParams.get('depth'),'2');

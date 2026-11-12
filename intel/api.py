@@ -467,7 +467,7 @@ def make_server(host, port, site=None, store=None, live_routes=None, workspace_r
 
     class Server(ThreadingHTTPServer):
         def __init__(self, *args, **kwargs):
-            self._connection_slots = (threading.BoundedSemaphore(live_routes.max_in_flight * 2)
+            self._connection_slots = (threading.BoundedSemaphore(live_routes.max_in_flight * 4)
                                       if live_routes is not None else threading.BoundedSemaphore(8) if workspace_routes is not None else None)
             self._read_only_slots = (threading.BoundedSemaphore(live_routes.max_in_flight)
                                      if live_routes is not None else threading.BoundedSemaphore(4) if workspace_routes is not None else None)

@@ -11,8 +11,8 @@ from pathlib import Path
 from email.message import Message
 from unittest import mock
 
-from gate import canon
-from intel import history, investigation_jobs, live
+from gate import canon, rpc
+from intel import accounts, history, investigation_jobs, live
 from intel.accounts import AccountReadError
 from intel.workspace import SQLiteWorkspaceStore
 from intel.workspace_api import WorkspaceAPI
@@ -85,6 +85,59 @@ class InvestigationJobsTest(unittest.TestCase):
         self.jobs.retry("team", job["id"])
         self.jobs.tick(self.reader)
         self.assertEqual(self.jobs.get("team", job["id"])["state"], "completed")
+
+    def test_provider_budget_refusals_wait_without_spending_attempts_then_resume(self):
+        with mock.patch.dict("os.environ", {}, clear=True):
+            reader = accounts.AccountData(clock=lambda: self.now)
+        for kind in ("transfers", "transactions"):
+            with self.subTest(kind=kind):
+                job = self.jobs.create("team", "actor", "alice.near", kind=kind)
+                with mock.patch("urllib.request.urlopen", side_effect=AssertionError("network forbidden")), \
+                     mock.patch.object(rpc, "_open_with_deadline", side_effect=AssertionError("network forbidden")), \
+                     mock.patch.object(rpc, "_fetch", side_effect=AssertionError("network forbidden")), \
+                     mock.patch.object(rpc.Client, "post", autospec=True, side_effect=rpc.BudgetExhausted("Provider budget spent.", 120)) as fetch:
+                    for _ in range(3):
+                        retry_at = self.jobs._now() + 120000
+                        self.assertEqual(self.jobs.tick(reader), {"processed": 1})
+                        current = self.jobs.get("team", job["id"])
+                        self.assertEqual((current["state"], current["attempts"], current["last_error"], current["retry_at_ms"]),
+                                         ("retry_wait", 0, "provider_budget", retry_at))
+                        self.now += 119
+                        self.assertEqual(self.jobs.tick(reader), {"processed": 0})
+                        self.now += 1
+                    self.assertEqual(fetch.call_count, 3)
+                    def completed(client, *args, **kwargs):
+                        client.last_source = page([])["source"]
+                        return {"transfers" if kind == "transfers" else "account_txs": [], "resume_token": None}
+
+                    fetch.side_effect = completed
+                    self.assertEqual(self.jobs.tick(reader), {"processed": 1})
+                    current = self.jobs.get("team", job["id"])
+                    self.assertEqual((current["state"], current["attempts"], current["last_error"], current["counts"]["pages"]),
+                                     ("completed", 0, None, 1))
+                    self.assertEqual(fetch.call_count, 4)
+                self.now += 61
+
+    def test_a_job_budget_wait_leaves_provider_cooldowns_unchanged(self):
+        self.archive.defer_account("other.near", "transfers", self.jobs._now() + 300000)
+        with self.archive._connection() as connection:
+            before = [tuple(row) for row in connection.execute("SELECT * FROM provider_cooldowns")]
+        for kind in ("transfers", "transactions", "graph"):
+            with self.subTest(kind=kind), \
+                    mock.patch("urllib.request.urlopen", side_effect=AssertionError("network forbidden")), \
+                    mock.patch("gate.rpc._open_with_deadline", side_effect=AssertionError("network forbidden")), \
+                    mock.patch("gate.rpc._fetch", side_effect=AssertionError("network forbidden")):
+                job = self.jobs.create("team", "actor", "alice.near", kind=kind)
+                self.reader.pages["alice.near", None] = accounts.AccountBudgetError(
+                    "Provider budget spent.", 120, now=self.now)
+                self.assertEqual(self.jobs.tick(self.reader), {"processed": 1})
+                current = self.jobs.get("team", job["id"])
+                self.assertEqual((current["state"], current["attempts"], current["last_error"], current["retry_at_ms"]),
+                                 ("retry_wait", 0, "provider_budget", self.jobs._now() + 120000))
+                with self.archive._connection() as connection:
+                    self.assertEqual([tuple(row) for row in connection.execute("SELECT * FROM provider_cooldowns")], before)
+                self.jobs.cancel("team", job["id"])
+                self.now += 61
 
     def test_graph_expands_beyond_two_hops_without_publishing_private_metadata(self):
         chain = ["alice.near", "bob.near", "carol.near", "dave.near"]

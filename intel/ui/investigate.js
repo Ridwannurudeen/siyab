@@ -192,9 +192,17 @@
     content.replaceChildren(node("p", "Reading " + (key === "identity" ? "identity evidence" : key === "archive" ? "retained observations" : "bounded provider pages") + "…", "investigate-empty"));
     const timer = setTimeout(() => controller.abort(), 25000);
     try {
-      const response = await fetch("/live/accounts/" + encodeURIComponent(account) + "/" + path, {signal: controller.signal, credentials: "same-origin", headers: {Accept: "application/json"}});
-      if (!(response.headers.get("content-type") || "").toLowerCase().includes("application/json")) throw new Error("The server did not return account-data JSON.");
-      const data = await response.json();
+      let response, data;
+      for (let retries = 0; ; retries++) {
+        response = await fetch("/live/accounts/" + encodeURIComponent(account) + "/" + path, {signal: controller.signal, credentials: "same-origin", headers: {Accept: "application/json"}});
+        if (!(response.headers.get("content-type") || "").toLowerCase().includes("application/json")) throw new Error("The server did not return account-data JSON.");
+        data = await response.json();
+        const retryAfter = response.headers.get("Retry-After");
+        if (retries === 2 || ![429, 503].includes(response.status) || ["rate_limited", "provider_budget"].includes(data.error) || !/^[1-5]$/.test(retryAfter || "")) break;
+        await new Promise(resolve => setTimeout(resolve, Number(retryAfter) * 1000));
+        if (version !== generation || requests.get(key) !== controller) return;
+        if (controller.signal.aborted) throw new Error("The account read timed out.");
+      }
       if (!response.ok) throw new Error(typeof data.message === "string" ? data.message : "The account read is unavailable (HTTP " + response.status + ").");
       if (version !== generation || requests.get(key) !== controller) return;
       const rendered = node("div"); renderResult(rendered, data); content.replaceChildren(...rendered.childNodes);
@@ -234,9 +242,17 @@
       if (kind === "holdings") { parameters.set("offset", String(position)); parameters.set("limit", "10"); }
       else if (kind !== "profile") { parameters.set("limit", "25"); if (position !== null) parameters.set("cursor", position); }
       const path = "/live/accounts/" + encodeURIComponent(subject) + "/" + kind + (parameters.size ? "?" + parameters : "");
-      const response = await fetch(path, {signal: controller.signal, credentials: "same-origin", headers: {Accept: "application/json"}});
-      if (!(response.headers.get("content-type") || "").includes("application/json")) throw new Error("The server did not return an account-data response.");
-      const data = await response.json();
+      let response, data;
+      for (let retries = 0; ; retries++) {
+        response = await fetch(path, {signal: controller.signal, credentials: "same-origin", headers: {Accept: "application/json"}});
+        if (!(response.headers.get("content-type") || "").includes("application/json")) throw new Error("The server did not return an account-data response.");
+        data = await response.json();
+        const retryAfter = response.headers.get("Retry-After");
+        if (retries === 2 || ![429, 503].includes(response.status) || ["rate_limited", "provider_budget"].includes(data.error) || !/^[1-5]$/.test(retryAfter || "")) break;
+        await new Promise(resolve => setTimeout(resolve, Number(retryAfter) * 1000));
+        if (version !== generation || requests.get(kind) !== controller) return;
+        if (controller.signal.aborted) throw new Error("The account read timed out.");
+      }
       if (!response.ok) throw new Error(typeof data.message === "string" ? data.message : "The account read is unavailable (HTTP " + response.status + ").");
       if (version !== generation || requests.get(kind) !== controller) return;
       const rendered = node("div");
