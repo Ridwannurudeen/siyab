@@ -264,6 +264,20 @@ A read back that differs is logged as `MISMATCH` and the run continues to the ov
 
 Undo: none needed. An overturned report is final (`docs/REPORTS.md`), it no longer counts in the subject's summary, and nothing else changed; the two deposits stay in the contract as for any report and dispute.
 
+## Credit kill switch
+
+When: provider credit must stop being spent. Unset `FASTNEAR_API_KEY_FILE` in `/etc/shieldbot-near/siyab-provider.conf`, keeping it absent from the base `/etc/shieldbot-near/env`, and restart the API unit:
+
+```sh
+sudo systemctl restart siyab-api.service
+```
+
+Every reader falls back to keyless requests when the variable is unset. Running readers retain their configuration, so also restart `siyab-history.service`, `siyab-investigation.service` and `siyab-delivery.service` if running; these units load the same override. The feed follower loads only the base file and must remain keyless. Keyless throttling or failed reads still mean unavailable or unknown, never a favorable verdict. This changes no contract state. Restore the variable only in the provider override and restart the same readers to undo.
+
+## Public reverse proxy
+
+`deploy/nginx-siyab.conf.example` is a template the operator adapts to the existing HTTPS site. Its zones and path map belong in the `http` context. It preserves all paths while proxying to `127.0.0.1:8792`, matching `deploy/siyab-api.service` and `docs/WORKSPACES.md`, so public reads, static pages and the site's 404 fallback reach the API. It overwrites `X-Forwarded-For` with `$remote_addr`, buffers requests and disables proxy caching. Only the `/live` and `/workspace-api` API locations, including their subpaths, apply the per-address limits: averages of 60 requests a minute generally and 10 a minute across heavy account reads, immediate bursts of 20 and 2 respectively, and at most 12 connections. The connection limit accommodates the application queue of up to 12 requests per client, which runs at most 4 at once. These are starting values the operator tunes. Other paths have no proxy rate or connection limit. A CDN in front must restore the real client address before these limits and headers are applied. After adapting it, validate the installed configuration before reloading the proxy; the template is not evidence of the deployed configuration.
+
 ## The reports off switch
 
 When: the reports contract gives a wrong answer, or its reads fail and turn verdicts Unknown.

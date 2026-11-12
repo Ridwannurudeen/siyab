@@ -43,7 +43,7 @@ class Reader:
     def profile(self, account):
         return copy.deepcopy(self.native)
 
-    def holdings(self, account, offset=0, limit=20):
+    def holdings(self, account, offset=0, limit=20, *, _inventory=None):
         self.calls.append((offset, limit))
         return {
             "account_id": account,
@@ -85,6 +85,10 @@ class Providers:
             "code_hash": "codehash",
         }
         self.views = []
+        self.final_height = 100
+        self.final_error = None
+        self.failed_method = None
+        self.metadata = {"name": "Wrapped NEAR", "symbol": "wNEAR", "decimals": 24}
 
     def factory(self, url, mode, **options):
         parent = self
@@ -95,7 +99,7 @@ class Providers:
                 "request_sha256": "a" * 64,
                 "fetched_at": "2026-11-10T00:00:00Z",
             }
-            last_block_height = 50
+            last_block_height = parent.header["height"]
 
             def get(self, path, **kwargs):
                 parent.calls.append((url, path, kwargs))
@@ -105,14 +109,22 @@ class Providers:
                 parent.views.append(("block", height))
                 return {"header": copy.deepcopy(parent.header)}
 
+            def final_block(self):
+                parent.views.append(("final",))
+                if parent.final_error is not None:
+                    raise parent.final_error
+                return {"header": {**parent.header, "height": parent.final_height}}
+
             def view_account_at(self, account, height):
                 parent.views.append(("native", account, height))
                 return copy.deepcopy(parent.balance)
 
             def call_function(self, contract, method, args, *, block_id=None):
                 parent.views.append((method, contract, args, block_id))
+                if method == parent.failed_method:
+                    raise TimeoutError("deadline")
                 if method == "ft_metadata":
-                    return {"name": "Wrapped NEAR", "symbol": "wNEAR", "decimals": 24}
+                    return copy.deepcopy(parent.metadata)
                 return "5000000000000000000000000"
 
         return Client()
@@ -231,7 +243,10 @@ class PortfolioTest(unittest.TestCase):
             with self.subTest(delta=delta):
                 for price in self.provider.prices.values():
                     price["timestamp"] = target + delta
-                result = self.data.historical("alice.near", 50)
+                data = portfolio.PortfolioData(
+                    self.reader, client_factory=self.provider.factory, clock=lambda: NOW
+                )
+                result = data.historical("alice.near", 50)
                 self.assertEqual(result["assets"][0]["price"]["status"], expected)
                 if expected != "known":
                     self.assertIsNone(result["summary"]["known_value_usd"])
@@ -310,11 +325,256 @@ class PortfolioTest(unittest.TestCase):
         self.assertIsNone(result["assets"][1]["value_usd"])
         self.assertEqual(result["assets"][1]["price"]["status"], "missing")
 
+    def test_current_token_maximum_is_40(self):
+        self.assertEqual(portfolio.MAX_TOKENS, 40)
+        with self.assertRaisesRegex(portfolio.PortfolioInputError, "1 to 40"):
+            self.data.inspect("alice.near", max_tokens=41)
+        self.assertEqual(self.reader.calls, [])
+        self.assertEqual(self.provider.calls, [])
+
+    def test_token_limit_refusal_uses_the_current_bound(self):
+        with mock.patch.object(portfolio, "MAX_TOKENS", 2):
+            with self.assertRaisesRegex(portfolio.PortfolioInputError, "1 to 2"):
+                self.data.inspect("alice.near", max_tokens=3)
+        self.assertEqual(self.reader.calls, [])
+        self.assertEqual(self.provider.calls, [])
+
+    def test_price_cache_hit_preserves_the_recently_used_coin(self):
+        token = copy.deepcopy(self.reader.tokens[0])
+        self.provider.prices["near:other.near"] = dict(
+            self.provider.prices["near:wrap.near"]
+        )
+        with mock.patch.object(portfolio, "MAX_PRICE_CACHE_ENTRIES", 2):
+            self.data.inspect("alice.near")
+            self.reader.tokens = []
+            self.data.inspect("alice.near")
+            self.reader.tokens = [dict(token, contract_id="other.near")]
+            self.data.inspect("alice.near")
+            self.reader.tokens = []
+            self.data.inspect("alice.near")
+        self.assertEqual(len(self.provider.calls), 2)
+        self.assertEqual(self.provider.calls[-1][1], "/prices/current/near:other.near")
+
+    def test_price_cache_reuses_coins_until_60_seconds(self):
+        clock = [NOW]
+        self.data.clock = lambda: clock[0]
+        first = self.data.inspect("alice.near")
+        first["assets"][0]["price"]["usd"] = "999"
+        clock[0] += 59
+        repeat = self.data.inspect("alice.near")
+        self.assertEqual(len(self.provider.calls), 1)
+        self.assertEqual(repeat["assets"][0]["price"]["usd"], "2")
+        clock[0] += 1
+        self.data.inspect("alice.near")
+        self.assertEqual(len(self.provider.calls), 2)
+
+    def test_price_cache_fetches_only_missing_coins_and_does_not_cache_failure(self):
+        self.provider.prices.pop("near:wrap.near")
+        first = self.data.inspect("alice.near")
+        self.assertIsNone(first["assets"][1]["value_usd"])
+        self.provider.prices["near:wrap.near"] = {
+            "price": "3", "timestamp": NOW, "confidence": 0.99, "decimals": 24
+        }
+        self.provider.prices["coingecko:near"]["price"] = "99"
+        repeat = self.data.inspect("alice.near")
+        self.assertEqual(repeat["assets"][0]["price"]["usd"], "2")
+        self.assertEqual(self.provider.calls[-1][1], "/prices/current/near:wrap.near")
+        self.assertEqual(repeat["assets"][1]["price"]["usd"], "3")
+        self.data.inspect("alice.near")
+        self.assertEqual(len(self.provider.calls), 2)
+
+    def test_failed_price_request_is_not_cached(self):
+        with mock.patch.object(self.data, "client_factory") as factory:
+            factory.return_value.get.side_effect = TimeoutError("deadline")
+            first = self.data.inspect("alice.near")
+        self.assertIsNone(first["summary"]["known_value_usd"])
+        self.assertIsNotNone(
+            self.data.inspect("alice.near")["summary"]["total_value_usd"]
+        )
+        self.assertEqual(len(self.provider.calls), 1)
+
+    def test_historical_cache_uses_account_block_and_requested_contract_order(self):
+        for price in self.provider.prices.values():
+            price["timestamp"] = NOW - 86400
+        self.provider.prices["near:other.near"] = dict(
+            self.provider.prices["near:wrap.near"]
+        )
+        first = self.data.historical("alice.near", 50, ["wrap.near", "other.near"])
+        calls, views = len(self.provider.calls), len(self.provider.views)
+        first["assets"][0]["balance"] = "999"
+        self.data.clock = lambda: NOW + 86400
+        repeat = self.data.historical("alice.near", 50, ["wrap.near", "other.near"])
+        self.assertEqual(repeat["assets"][0]["balance"], "1")
+        self.assertEqual(len(self.provider.calls), calls)
+        self.assertEqual(len(self.provider.views), views)
+        reordered = self.data.historical("alice.near", 50, ["other.near", "wrap.near"])
+        self.assertEqual(
+            reordered["coverage"]["selected_contracts"], ["other.near", "wrap.near"]
+        )
+        self.assertGreater(len(self.provider.calls), calls)
+        self.assertGreater(len(self.provider.views), views)
+        views = len(self.provider.views)
+        self.data.historical("alice.near", 50, ["other.near", "wrap.near"])
+        self.assertEqual(len(self.provider.views), views)
+        self.data.historical("bob.near", 50, ["wrap.near", "other.near"])
+        self.assertGreater(len(self.provider.views), views)
+        views = len(self.provider.views)
+        self.data.historical("alice.near", 50, ["wrap.near"])
+        self.assertGreater(len(self.provider.views), views)
+        views = len(self.provider.views)
+        self.provider.header["height"] = self.provider.balance["block_height"] = 51
+        self.data.historical("alice.near", 51, ["wrap.near"])
+        self.assertGreater(len(self.provider.views), views)
+
+    def test_historical_failed_and_unknown_reads_are_not_cached(self):
+        for failure in ("balance", "metadata", "price", "block"):
+            with self.subTest(failure=failure):
+                provider = Providers()
+                for price in provider.prices.values():
+                    price["timestamp"] = NOW - 86400
+                data = portfolio.PortfolioData(
+                    self.reader, client_factory=provider.factory, clock=lambda: NOW
+                )
+                if failure == "balance":
+                    provider.failed_method = "ft_balance_of"
+                elif failure == "metadata":
+                    provider.metadata = None
+                elif failure == "price":
+                    provider.prices.pop("near:wrap.near")
+                else:
+                    provider.header["height"] = 51
+                if failure == "block":
+                    with self.assertRaises(portfolio.PortfolioReadError):
+                        data.historical("alice.near", 50, ["wrap.near"])
+                    provider.header["height"] = 50
+                else:
+                    first = data.historical("alice.near", 50, ["wrap.near"])
+                    self.assertIsNone(first["assets"][1]["value_usd"])
+                provider.failed_method = None
+                provider.metadata = {
+                    "name": "Wrapped NEAR", "symbol": "wNEAR", "decimals": 24
+                }
+                provider.prices["near:wrap.near"] = dict(
+                    provider.prices["coingecko:near"]
+                )
+                views = len(provider.views)
+                repeat = data.historical("alice.near", 50, ["wrap.near"])
+                self.assertGreater(len(provider.views), views)
+                self.assertEqual(repeat["assets"][1]["status"], "priced")
+
+    def test_historical_contract_order_and_snapshot_hash_follow_request_order(self):
+        for price in self.provider.prices.values():
+            price["timestamp"] = NOW - 86400
+        self.provider.prices["near:other.near"] = dict(
+            self.provider.prices["near:wrap.near"]
+        )
+        result = self.data.historical("alice.near", 50, ["wrap.near", "other.near"])
+        self.assertEqual(
+            [asset["asset_id"] for asset in result["assets"]],
+            ["native:near", "nep141:wrap.near", "nep141:other.near"],
+        )
+        self.assertEqual(
+            result["coverage"]["selected_contracts"], ["wrap.near", "other.near"]
+        )
+        fresh = portfolio.PortfolioData(
+            self.reader, client_factory=self.provider.factory, clock=lambda: NOW
+        ).historical("alice.near", 50, ["wrap.near", "other.near"])
+        self.assertEqual(
+            hashlib.sha256(portfolio._body(result)).digest(),
+            hashlib.sha256(portfolio._body(fresh)).digest(),
+        )
+        reordered = portfolio.PortfolioData(
+            self.reader, client_factory=self.provider.factory, clock=lambda: NOW
+        ).historical("alice.near", 50, ["other.near", "wrap.near"])
+        self.assertNotEqual(
+            hashlib.sha256(portfolio._body(result)).digest(),
+            hashlib.sha256(portfolio._body(reordered)).digest(),
+        )
+
+    def test_historical_cache_hit_preserves_the_recently_used_account(self):
+        for price in self.provider.prices.values():
+            price["timestamp"] = NOW - 86400
+        with mock.patch.object(portfolio, "MAX_HISTORICAL_CACHE_ENTRIES", 2):
+            self.data.historical("alice.near", 50)
+            self.data.historical("bob.near", 50)
+            self.data.historical("alice.near", 50)
+            self.data.historical("carol.near", 50)
+            views = len(self.provider.views)
+            self.data.historical("alice.near", 50)
+            self.assertEqual(len(self.provider.views), views)
+            self.data.historical("bob.near", 50)
+            self.assertGreater(len(self.provider.views), views)
+
+    def test_historical_cache_waits_for_the_final_head_to_reach_the_block(self):
+        for price in self.provider.prices.values():
+            price["timestamp"] = NOW - 86400
+        self.provider.final_height = 49
+        self.data.historical("alice.near", 50)
+        self.assertEqual(self.provider.views[:2], [("final",), ("block", 50)])
+        views = len(self.provider.views)
+        self.provider.final_height = 50
+        self.data.historical("alice.near", 50)
+        self.assertGreater(len(self.provider.views), views)
+        views = len(self.provider.views)
+        self.data.historical("alice.near", 50)
+        self.assertEqual(len(self.provider.views), views)
+
+    def test_historical_unknown_final_head_is_not_cached(self):
+        for final_height, error in (
+            (None, None),
+            (True, None),
+            (100, rpc.MalformedResponse("missing final head")),
+            (100, TimeoutError("deadline")),
+        ):
+            with self.subTest(final_height=final_height, error=error):
+                provider = Providers()
+                provider.final_height, provider.final_error = final_height, error
+                for price in provider.prices.values():
+                    price["timestamp"] = NOW - 86400
+                data = portfolio.PortfolioData(
+                    self.reader, client_factory=provider.factory, clock=lambda: NOW
+                )
+                data.historical("alice.near", 50)
+                views = len(provider.views)
+                data.historical("alice.near", 50)
+                self.assertGreater(len(provider.views), views)
+
+    def test_historical_unknown_block_hash_is_not_cached(self):
+        for block_hash in (None, ""):
+            with self.subTest(block_hash=block_hash):
+                provider = Providers()
+                provider.header["hash"] = provider.balance["block_hash"] = block_hash
+                for price in provider.prices.values():
+                    price["timestamp"] = NOW - 86400
+                data = portfolio.PortfolioData(
+                    self.reader, client_factory=provider.factory, clock=lambda: NOW
+                )
+                data.historical("alice.near", 50)
+                views = len(provider.views)
+                provider.header["hash"] = provider.balance["block_hash"] = "blockhash"
+                data.historical("alice.near", 50)
+                self.assertGreater(len(provider.views), views)
+
+    def test_caches_evict_oldest_entries_at_their_bounds(self):
+        with mock.patch.object(portfolio, "MAX_PRICE_CACHE_ENTRIES", 1):
+            self.data.inspect("alice.near")
+            self.data.inspect("alice.near")
+        self.assertEqual(len(self.provider.calls), 2)
+        self.provider.calls.clear()
+        for price in self.provider.prices.values():
+            price["timestamp"] = NOW - 86400
+        with mock.patch.object(portfolio, "MAX_HISTORICAL_CACHE_ENTRIES", 1):
+            self.data.historical("alice.near", 50)
+            self.data.historical("bob.near", 50)
+            views = len(self.provider.views)
+            self.data.historical("alice.near", 50)
+        self.assertGreater(len(self.provider.views), views)
+
     def test_invalid_accounts_and_bounds_are_rejected_before_read(self):
         for account in ("foo.testnet", "testnet", "bad/name"):
             with self.assertRaises(portfolio.PortfolioInputError):
                 self.data.inspect(account)
-        for maximum in (0, 101, True):
+        for maximum in (0, 41, True):
             with self.assertRaises(portfolio.PortfolioInputError):
                 self.data.inspect("alice.near", max_tokens=maximum)
 
@@ -336,6 +596,23 @@ class PortfolioHistoryTest(unittest.TestCase):
         return portfolio.PortfolioData(
             reader, client_factory=Providers().factory, clock=lambda: NOW
         ).inspect("alice.near")
+
+    def test_retained_61_asset_observation_lists_after_token_cap_drops_to_40(self):
+        reader = Reader()
+        reader.tokens = [
+            dict(reader.tokens[0], contract_id=f"token{i:02}.near") for i in range(60)
+        ]
+        with mock.patch.object(portfolio, "MAX_TOKENS", 100):
+            payload = portfolio.PortfolioData(
+                reader, client_factory=Providers().factory, clock=lambda: NOW
+            ).inspect("alice.near", max_tokens=100)
+            saved = self.store.save(payload)
+        self.assertEqual(portfolio.MAX_TOKENS, 40)
+        restarted = portfolio.PortfolioHistory(self.path)
+        records = restarted.list_records("alice.near")
+        self.assertEqual(records["items"][0]["id"], saved["id"])
+        self.assertEqual(records["items"][0]["assets_count"], 61)
+        self.assertEqual(json.loads(restarted.get_bytes(saved["id"])), payload)
 
     def test_current_observation_cannot_be_relabeled_as_archival_history(self):
         forged = copy.deepcopy(self.payload)

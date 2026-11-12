@@ -1,22 +1,29 @@
 """Sourced native/FT valuations and retained, actual portfolio observations."""
 
+import copy
 import hashlib
 import json
 import os
 import re
 import sqlite3
 import time
+from collections import OrderedDict
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation, localcontext
 from pathlib import Path
+from threading import Lock
 from urllib.parse import urlsplit
 
 from gate import canon, rpc
 from intel.accounts import AccountData, AccountReadError
 
 PRICE_URL = "https://coins.llama.fi"
-MAX_TOKENS = 100
+MAX_TOKENS = 40
+MAX_RETAINED_ASSETS = 101
+MAX_HISTORICAL_CACHE_ENTRIES = 128
+MAX_PRICE_CACHE_ENTRIES = 2000
+PRICE_CACHE_TTL_S = 60
 MAX_HISTORICAL_TOKENS = 20
 MAX_PRICE_AGE_S = 3600
 MIN_PRICE_CONFIDENCE = Decimal("0.8")
@@ -210,8 +217,10 @@ def _metadata(value):
 
 class PortfolioData:
     def __init__(self, reader=None, *, client_factory=rpc.Client, clock=time.time):
-        self.reader = reader if reader is not None else AccountData()
+        self.reader = reader if reader is not None else AccountData(clock=clock)
         self.client_factory, self.clock = client_factory, clock
+        self._historical_cache, self._price_cache = OrderedDict(), OrderedDict()
+        self._cache_lock = Lock()
 
     @staticmethod
     def _asset(identifier, balance, metadata, source, *, status, details=None):
@@ -322,42 +331,58 @@ class PortfolioData:
             else "near:" + asset["contract_id"]: asset
             for asset in assets
         }
-        path = (
-            "/prices/"
-            + ("historical/" + str(target) + "/" if historical else "current/")
-            + ",".join(coins)
-        )
-        client = self.client_factory(PRICE_URL, "off", kind="http")
-        source, values = None, {}
-        try:
-            response = client.get(path)
-            if (
-                not isinstance(response, dict)
-                or not isinstance(response.get("coins"), dict)
-                or len(response["coins"]) > 10000
-            ):
-                raise PortfolioReadError("The price response is invalid.")
-            values = response["coins"]
-            source = {
-                "provider": "DefiLlama Coins API",
-                "url": PRICE_URL + path,
-                "fetched_at": _time(self.clock()),
-                "request_sha256": (client.last_source or {}).get("request_sha256"),
-                "response_sha256": hashlib.sha256(
-                    json.dumps(
-                        response, sort_keys=True, separators=(",", ":"), allow_nan=False
-                    ).encode()
-                ).hexdigest(),
-                "mapping": "Native NEAR uses the Near chain gasTokenGeckoId; FT assets use exact near:contract identifiers.",
-            }
-        except (*_UNAVAILABLE, PortfolioReadError, ValueError, TypeError):
-            for asset in assets:
-                asset["price"]["status"] = "provider_unavailable"
-            return None
+        values, cached_sources, missing = {}, {}, []
+        now = self.clock()
+        with self._cache_lock:
+            for coin in coins:
+                key = (target if historical else None, coin)
+                cached = self._price_cache.get(key)
+                if cached is not None and 0 <= now - cached[0] < PRICE_CACHE_TTL_S:
+                    self._price_cache.move_to_end(key)
+                    values[coin], cached_sources[coin] = copy.deepcopy(cached[1:])
+                else:
+                    self._price_cache.pop(key, None)
+                    missing.append(coin)
+        source, unavailable = None, False
+        if missing:
+            path = (
+                "/prices/"
+                + ("historical/" + str(target) + "/" if historical else "current/")
+                + ",".join(missing)
+            )
+            client = self.client_factory(PRICE_URL, "off", kind="http")
+            try:
+                response = client.get(path)
+                if (
+                    not isinstance(response, dict)
+                    or not isinstance(response.get("coins"), dict)
+                    or len(response["coins"]) > 10000
+                ):
+                    raise PortfolioReadError("The price response is invalid.")
+                values.update(
+                    (coin, response["coins"].get(coin)) for coin in missing
+                )
+                source = {
+                    "provider": "DefiLlama Coins API",
+                    "url": PRICE_URL + path,
+                    "fetched_at": _time(self.clock()),
+                    "request_sha256": (client.last_source or {}).get("request_sha256"),
+                    "response_sha256": hashlib.sha256(
+                        json.dumps(
+                            response, sort_keys=True, separators=(",", ":"), allow_nan=False
+                        ).encode()
+                    ).hexdigest(),
+                    "mapping": "Native NEAR uses the Near chain gasTokenGeckoId; FT assets use exact near:contract identifiers.",
+                }
+            except (*_UNAVAILABLE, PortfolioReadError, ValueError, TypeError):
+                unavailable = True
         for coin, asset in coins.items():
             value = values.get(coin)
             price = asset["price"]
-            price["source"] = source
+            price["source"] = copy.deepcopy(cached_sources.get(coin, source))
+            if unavailable and coin in missing:
+                price["status"] = "provider_unavailable"
+                continue
             if value is None:
                 continue
             try:
@@ -391,6 +416,15 @@ class PortfolioData:
                         if asset["decimals"] is not None
                         else "known"
                     )
+                if price["status"] == "known" and coin in missing:
+                    key = (target if historical else None, coin)
+                    with self._cache_lock:
+                        self._price_cache[key] = (
+                            now, copy.deepcopy(value), copy.deepcopy(source)
+                        )
+                        self._price_cache.move_to_end(key)
+                        while len(self._price_cache) > MAX_PRICE_CACHE_ENTRIES:
+                            self._price_cache.popitem(last=False)
                 if price["status"] == "known" and asset["balance"] is not None:
                     with localcontext() as context:
                         context.prec = 1024
@@ -400,7 +434,7 @@ class PortfolioData:
                 price.update(
                     usd=None, timestamp=None, confidence=None, status="invalid"
                 )
-        return source
+        return source or next(iter(cached_sources.values()), None)
 
     def _result(
         self,
@@ -418,6 +452,10 @@ class PortfolioData:
         price_source = self._price(assets, target, kind == "historical")
         if price_source is not None:
             sources.append(price_source)
+        for asset in assets:
+            source = asset["price"]["source"]
+            if source is not None and source not in sources:
+                sources.append(source)
         priced = [asset for asset in assets if asset["value_usd"] is not None]
         with localcontext() as context:
             context.prec = 1024
@@ -466,16 +504,19 @@ class PortfolioData:
     def inspect(self, account, max_tokens=40):
         account = _account(account)
         if type(max_tokens) is not int or not 1 <= max_tokens <= MAX_TOKENS:
-            raise PortfolioInputError("Read from 1 to 100 indexed tokens.")
+            raise PortfolioInputError(f"Read from 1 to {MAX_TOKENS} indexed tokens.")
         with rpc.request_deadline(20):
             with rpc.request_deadline(14):
                 native, native_source = self._native(account)
                 assets, sources = [native], [native_source] if native_source else []
                 offset, total, complete, tokens = 0, None, False, set()
+                inventory = {}
                 while len(tokens) < max_tokens:
                     limit = min(20, max_tokens - len(tokens))
                     try:
-                        page = self.reader.holdings(account, offset=offset, limit=limit)
+                        page = self.reader.holdings(
+                            account, offset=offset, limit=limit, _inventory=inventory
+                        )
                     except _UNAVAILABLE:
                         break
                     if (
@@ -566,6 +607,12 @@ class PortfolioData:
         contracts = [_account(contract) for contract in contracts]
         if len(set(contracts)) != len(contracts):
             raise PortfolioInputError("Historical token contracts must be distinct.")
+        cache_key = account, block_height, tuple(contracts)
+        with self._cache_lock:
+            cached = self._historical_cache.get(cache_key)
+            if cached is not None:
+                self._historical_cache.move_to_end(cache_key)
+                return copy.deepcopy(cached)
         endpoint = os.environ.get("NEAR_ARCHIVAL_RPC_URL") or rpc.ARCHIVAL_RPC_URL
         headers = {}
         parsed = urlsplit(endpoint)
@@ -589,6 +636,16 @@ class PortfolioData:
         client = self.client_factory(endpoint, "off", headers=headers)
         with rpc.request_deadline(20):
             with rpc.request_deadline(14):
+                try:
+                    final_block = client.final_block()
+                except _UNAVAILABLE:
+                    final_block = None
+                final_header = (
+                    final_block.get("header") if isinstance(final_block, dict) else None
+                )
+                final_height = (
+                    final_header.get("height") if isinstance(final_header, dict) else None
+                )
                 try:
                     block = client.block_at(block_height)
                     header = block.get("header") if isinstance(block, dict) else None
@@ -721,7 +778,7 @@ class PortfolioData:
                             details={"metadata_source": metadata_source},
                         )
                     )
-            return self._result(
+            result = self._result(
                 account,
                 assets,
                 sources,
@@ -737,6 +794,19 @@ class PortfolioData:
                     "excluded_historical_tokens": "Contracts not explicitly selected may have held balances at that block.",
                 },
             )
+            if (
+                type(final_height) is int
+                and block_height <= final_height <= canon.U64_MAX
+                and isinstance(block_source["block_hash"], str)
+                and block_source["block_hash"]
+                and all(asset["status"] == "priced" for asset in result["assets"])
+            ):
+                with self._cache_lock:
+                    self._historical_cache[cache_key] = copy.deepcopy(result)
+                    self._historical_cache.move_to_end(cache_key)
+                    while len(self._historical_cache) > MAX_HISTORICAL_CACHE_ENTRIES:
+                        self._historical_cache.popitem(last=False)
+            return result
 
 
 class PortfolioHistory:
@@ -801,7 +871,7 @@ class PortfolioHistory:
             or payload.get("network") != "mainnet"
             or payload.get("kind") not in ("current", "historical")
             or not isinstance(payload.get("assets"), list)
-            or not 1 <= len(payload["assets"]) <= MAX_TOKENS + 1
+            or not 1 <= len(payload["assets"]) <= MAX_RETAINED_ASSETS
             or not isinstance(payload.get("summary"), dict)
             or not isinstance(payload.get("sources"), list)
             or not isinstance(payload.get("coverage"), dict)

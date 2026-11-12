@@ -1,5 +1,6 @@
 """Bounded mainnet account reads with explicit RPC and indexed-data provenance."""
 
+import copy
 import dataclasses
 import hashlib
 import json
@@ -8,10 +9,12 @@ import os
 import re
 import time
 import urllib.parse
+from collections import OrderedDict
 from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 from email.utils import parsedate_to_datetime
 from pathlib import Path
+from threading import Lock
 
 from gate import canon, rpc
 from intel import labels
@@ -23,6 +26,11 @@ READ_TIMEOUT_S = 20
 MAX_GRAPH_ACCOUNTS = 6
 GRAPH_PAGE_LIMIT = 20
 MAX_HOLDINGS_PAGE = 20
+METADATA_TTL_S = 24 * 60 * 60
+# Retain common contracts across readers while bounding process memory.
+MAX_METADATA_ENTRIES = 2000
+_METADATA_CACHE = OrderedDict()
+_METADATA_LOCK = Lock()
 _FASTNEAR_HOSTS = {"api.fastnear.com", "tx.main.fastnear.com", "transfers.main.fastnear.com",
                    "free.rpc.fastnear.com", "rpc.mainnet.fastnear.com"}
 _UNAVAILABLE = (rpc.FixtureMiss, rpc.HttpError, rpc.TransportError, rpc.RateLimited,
@@ -211,7 +219,7 @@ class AccountData:
                              " Delegated staking and token holdings are separate reads.",
                              "labels": "Committed assertions with their own observation dates; not a payment verdict."}}
 
-    def holdings(self, account, offset=0, limit=20):
+    def holdings(self, account, offset=0, limit=20, *, _inventory=None):
         account, limit = _account(account), _limit(limit)
         if limit > MAX_HOLDINGS_PAGE:
             raise AccountInputError("Holdings page size must not exceed 20.")
@@ -220,7 +228,11 @@ class AccountData:
         index = self._client(API_URL, kind="http")
         with rpc.request_deadline(READ_TIMEOUT_S):
             try:
-                data = index.get("/v1/account/" + account + "/ft")
+                if _inventory is not None and account in _inventory:
+                    data, inventory_source = _inventory[account]
+                else:
+                    data = index.get("/v1/account/" + account + "/ft")
+                    inventory_source = self._source(index, "indexed_inventory")
             except TimeoutError:
                 raise
             except _UNAVAILABLE:
@@ -241,12 +253,22 @@ class AccountData:
             if len({row["contract_id"] for row in tokens}) != len(tokens):
                 raise AccountReadError("The indexed token inventory contains duplicate contracts.")
             tokens.sort(key=lambda row: row["contract_id"])
+            if _inventory is not None:
+                _inventory[account] = (data, inventory_source)
             selected = tokens[offset:offset + limit]
             timed_out = False
             for row in selected:
                 row.update(metadata=None, metadata_source=None)
                 if timed_out:
                     continue
+                with _METADATA_LOCK:
+                    cached = _METADATA_CACHE.get(row["contract_id"])
+                    if cached is not None:
+                        if 0 <= self.clock() - cached[0] < METADATA_TTL_S:
+                            _METADATA_CACHE.move_to_end(row["contract_id"])
+                            row.update(copy.deepcopy(cached[1]))
+                            continue
+                        del _METADATA_CACHE[row["contract_id"]]
                 client = self._client(os.environ.get("NEAR_MAINNET_RPC_URL") or rpc.MAINNET_RPC_URL)
                 try:
                     metadata = client.call_function(row["contract_id"], "ft_metadata", {})
@@ -256,6 +278,12 @@ class AccountData:
                                        "symbol": _text(metadata.get("symbol"), "token symbol", 64),
                                        "decimals": metadata["decimals"]}
                     row["metadata_source"] = dict(self._source(client, "final_rpc"), block_height=_height(client.last_block_height))
+                    with _METADATA_LOCK:
+                        _METADATA_CACHE[row["contract_id"]] = (self.clock(), copy.deepcopy({
+                            "metadata": row["metadata"], "metadata_source": row["metadata_source"]}))
+                        _METADATA_CACHE.move_to_end(row["contract_id"])
+                        while len(_METADATA_CACHE) > MAX_METADATA_ENTRIES:
+                            _METADATA_CACHE.popitem(last=False)
                 except TimeoutError:
                     timed_out = True
                 except (*_UNAVAILABLE, AccountReadError):
@@ -263,7 +291,7 @@ class AccountData:
         return {"account_id": account, "network": "mainnet", "items": selected,
                 "pagination": {"offset": offset, "limit": limit, "total": len(tokens),
                                "next_offset": offset + limit if offset + limit < len(tokens) else None},
-                "source": self._source(index, "indexed_inventory"), "observed_at": self._observed(),
+                "source": inventory_source, "observed_at": self._observed(),
                 "coverage": {"scope": "Indexed FT inventory and last-known balances; not a block-pinned portfolio."
                              " Inventory may change between pages. Metadata is a separate finalized RPC read.",
                              "metadata_unavailable": sum(row["metadata"] is None for row in selected),
