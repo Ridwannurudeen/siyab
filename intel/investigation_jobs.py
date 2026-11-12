@@ -5,6 +5,7 @@ import json
 import os
 import secrets
 import sqlite3
+import sys
 import time
 from contextlib import contextmanager
 from pathlib import Path
@@ -12,8 +13,16 @@ from pathlib import Path
 from gate import canon, rpc
 from intel import accounts, history
 
-MAX_JOBS = 1000
+MAX_TEAM_JOBS = 100
+MAX_ACTIVE_JOBS = 10
 MAX_JOB_BYTES = 64 * 1024 * 1024
+MAX_TEAM_JOB_BYTES = 16 * 1024 * 1024
+MAX_WATCH_YIELDS = 3
+MAX_CAPACITY_WAITS = 3
+MIN_JOB_ROOM = 2048
+CAPACITY_STOP_BYTES = len('"job_capacity"') - len("null")
+RETENTION_MS = 30 * 86400 * 1000
+MAX_EXPIRED_PER_WRITE = 1000
 
 
 class JobInputError(ValueError):
@@ -36,6 +45,40 @@ def _identifier(value):
     if not isinstance(value, str) or not 1 <= len(value) <= 128 or any(ord(char) < 33 or ord(char) > 126 for char in value):
         raise JobInputError("A trusted workspace identity is required.")
     return value
+
+
+def _remove(connection, row):
+    items = connection.execute("SELECT COALESCE(SUM(LENGTH(CAST(body AS BLOB))+256),0) FROM job_items WHERE job=?", (row["id"],)).fetchone()[0]
+    reads = connection.execute("SELECT COALESCE(SUM(LENGTH(CAST(body AS BLOB))),0) FROM job_reads WHERE job=?", (row["id"],)).fetchone()[0]
+    connection.execute("DELETE FROM job_items WHERE job=?", (row["id"],))
+    connection.execute("DELETE FROM job_reads WHERE job=?", (row["id"],))
+    connection.execute("DELETE FROM jobs WHERE id=?", (row["id"],))
+    size = len((row["request"] + row["progress"]).encode("utf-8")) + 512 + items + reads
+    connection.execute("UPDATE job_usage SET bytes=MAX(0,bytes-?) WHERE singleton=1", (size,))
+    connection.execute("UPDATE job_team_usage SET bytes=MAX(0,bytes-?) WHERE team=?", (size, row["team"]))
+    connection.execute("DELETE FROM job_team_usage WHERE team=? AND NOT EXISTS(SELECT 1 FROM jobs WHERE team=?)", (row["team"], row["team"]))
+
+
+def _remove_oldest(connection, team):
+    row = connection.execute("SELECT id,team,request,progress FROM jobs WHERE team=? AND state IN ('completed','cancelled','failed') ORDER BY created_ms,id LIMIT 1", (team,)).fetchone()
+    if row is None:
+        return False
+    _remove(connection, row)
+    return True
+
+
+def _remove_finished(connection, finished_by_ms):
+    row = connection.execute("SELECT id,team,request,progress FROM jobs INDEXED BY finished_jobs WHERE state IN ('completed','cancelled','failed') AND updated_ms<=? ORDER BY updated_ms,id LIMIT 1", (finished_by_ms,)).fetchone()
+    if row is None:
+        return False
+    _remove(connection, row)
+    return True
+
+
+def _expire(connection, now):
+    for _ in range(MAX_EXPIRED_PER_WRITE):
+        if not _remove_finished(connection, now - RETENTION_MS):
+            break
 
 
 class InvestigationJobs:
@@ -64,6 +107,18 @@ class InvestigationJobs:
             connection.execute("BEGIN IMMEDIATE")
             if connection.execute("PRAGMA user_version").fetchone()[0] in (0, 1):
                 connection.execute("ALTER TABLE jobs ADD COLUMN provider_retry_ms INTEGER NOT NULL DEFAULT 0")
+            columns = {column["name"] for column in connection.execute("PRAGMA table_info(jobs)")}
+            for column in ("watch_yields", "capacity_waits", "capacity_need"):
+                if column not in columns:
+                    connection.execute("ALTER TABLE jobs ADD COLUMN " + column + " INTEGER NOT NULL DEFAULT 0")
+            connection.execute("CREATE INDEX IF NOT EXISTS job_reads_job ON job_reads(job)")
+            connection.execute("CREATE INDEX IF NOT EXISTS finished_jobs ON jobs(updated_ms,id) WHERE state IN ('completed','cancelled','failed')")
+            connection.execute("CREATE TABLE IF NOT EXISTS job_team_usage(team TEXT PRIMARY KEY,bytes INTEGER NOT NULL)")
+            connection.execute("DELETE FROM job_team_usage")
+            connection.execute("INSERT INTO job_team_usage SELECT team,SUM(LENGTH(CAST(request AS BLOB))+LENGTH(CAST(progress AS BLOB))+512"
+                               "+(SELECT COALESCE(SUM(LENGTH(CAST(body AS BLOB))+256),0) FROM job_items WHERE job=jobs.id)"
+                               "+(SELECT COALESCE(SUM(LENGTH(CAST(body AS BLOB))),0) FROM job_reads WHERE job=jobs.id)) FROM jobs GROUP BY team")
+            connection.execute("UPDATE job_usage SET bytes=(SELECT COALESCE(SUM(bytes),0) FROM job_team_usage) WHERE singleton=1")
             connection.execute("PRAGMA user_version=2")
             connection.commit()
         os.chmod(self.path, 0o600)
@@ -89,11 +144,17 @@ class InvestigationJobs:
         return int(self.clock() * 1000)
 
     @staticmethod
-    def _reserve(connection, size):
-        current = connection.execute("SELECT bytes FROM job_usage WHERE singleton=1").fetchone()[0]
-        if current + size > MAX_JOB_BYTES:
-            raise JobCapacityError("Private job retention capacity reached; existing results remain available.")
+    def _reserve(connection, team, size):
+        spare = CAPACITY_STOP_BYTES * connection.execute("SELECT COUNT(*) FROM jobs WHERE team=? AND state IN ('queued','running','retry_wait')", (team,)).fetchone()[0]
+        while connection.execute("SELECT COALESCE(MAX(bytes),0) FROM job_team_usage WHERE team=?", (team,)).fetchone()[0] + size + spare > MAX_TEAM_JOB_BYTES:
+            if not _remove_oldest(connection, team):
+                raise JobCapacityError("Private job retention capacity reached; existing results remain available.")
+        spare = CAPACITY_STOP_BYTES * connection.execute("SELECT COUNT(*) FROM jobs WHERE state IN ('queued','running','retry_wait')").fetchone()[0]
+        while connection.execute("SELECT bytes FROM job_usage WHERE singleton=1").fetchone()[0] + size + spare > MAX_JOB_BYTES:
+            if not _remove_finished(connection, 2 ** 63 - 1):
+                raise JobCapacityError("Private job retention capacity reached; existing results remain available.")
         connection.execute("UPDATE job_usage SET bytes=bytes+? WHERE singleton=1", (size,))
+        connection.execute("INSERT INTO job_team_usage VALUES(?,?) ON CONFLICT(team) DO UPDATE SET bytes=bytes+excluded.bytes", (team, size))
 
     def create(self, team_id, actor_id, account, *, kind="transfers", from_timestamp_ms=None,
                to_timestamp_ms=None, max_pages=20, max_rows=None, depth=3, max_accounts=20, pages_per_account=2):
@@ -124,10 +185,14 @@ class InvestigationJobs:
         encoded, state = _json(request), _json(progress)
         identifier, now = secrets.token_hex(16), self._now()
         with self._connection(write=True) as connection:
-            if connection.execute("SELECT COUNT(*) FROM jobs").fetchone()[0] >= MAX_JOBS or connection.execute("SELECT COUNT(*) FROM jobs WHERE team=? AND state NOT IN ('completed','cancelled','failed')", (team_id,)).fetchone()[0] >= 10:
-                raise JobCapacityError("The retained or active investigation job limit has been reached.")
-            self._reserve(connection, len((encoded + state).encode("utf-8")) + 512)
+            _expire(connection, now)
+            if connection.execute("SELECT COUNT(*) FROM jobs WHERE team=? AND state NOT IN ('completed','cancelled','failed')", (team_id,)).fetchone()[0] >= MAX_ACTIVE_JOBS:
+                raise JobCapacityError("The active investigation job limit has been reached.")
+            while connection.execute("SELECT COUNT(*) FROM jobs WHERE team=?", (team_id,)).fetchone()[0] >= MAX_TEAM_JOBS:
+                if not _remove_oldest(connection, team_id):
+                    raise JobCapacityError("The retained or active investigation job limit has been reached.")
             connection.execute("INSERT INTO jobs(id,team,actor,request,progress,state,created_ms,updated_ms,not_before_ms) VALUES(?,?,?,?,?,'queued',?,?,?)", (identifier, team_id, actor_id, encoded, state, now, now, now))
+            self._reserve(connection, team_id, len((encoded + state).encode("utf-8")) + 512)
         return self.get(team_id, identifier)
 
     @staticmethod
@@ -164,7 +229,7 @@ class InvestigationJobs:
     def cancel(self, team_id, identifier):
         with self._connection(write=True) as connection:
             row = self._row(connection, team_id, identifier)
-            if row["state"] != "completed":
+            if row["state"] not in ("completed", "cancelled"):
                 connection.execute("UPDATE jobs SET state='cancelled',lease_token=NULL,lease_until_ms=0,updated_ms=? WHERE id=?", (self._now(), identifier))
         return self.get(team_id, identifier)
 
@@ -173,7 +238,11 @@ class InvestigationJobs:
             row = self._row(connection, team_id, identifier)
             if row["state"] not in ("failed", "cancelled", "retry_wait"):
                 raise JobInputError("Only a paused, failed or cancelled investigation can be retried.")
-            connection.execute("UPDATE jobs SET state='queued',attempts=0,last_error=NULL,not_before_ms=MAX(?,provider_retry_ms),updated_ms=?,lease_token=NULL,lease_until_ms=0 WHERE id=?", (self._now(), self._now(), identifier))
+            if row["state"] != "retry_wait" and connection.execute("SELECT COUNT(*) FROM jobs WHERE team=? AND state NOT IN ('completed','cancelled','failed')", (row["team"],)).fetchone()[0] >= MAX_ACTIVE_JOBS:
+                raise JobCapacityError("The active investigation job limit has been reached.")
+            connection.execute("UPDATE jobs SET state='queued',attempts=0,capacity_waits=0,capacity_need=0,last_error=NULL,not_before_ms=MAX(?,provider_retry_ms),updated_ms=?,lease_token=NULL,lease_until_ms=0 WHERE id=?", (self._now(), self._now(), identifier))
+            if row["state"] != "retry_wait":
+                self._reserve(connection, row["team"], 0)
         return self.get(team_id, identifier)
 
     def result(self, team_id, identifier, *, before=0, limit=100):
@@ -194,12 +263,13 @@ class InvestigationJobs:
     def tick(self, reader):
         now, token = self._now(), secrets.token_hex(16)
         with self._connection(write=True) as connection:
+            _expire(connection, now)
             row = connection.execute("SELECT * FROM jobs WHERE ((state IN ('queued','retry_wait') AND not_before_ms<=?) OR (state='running' AND lease_until_ms<=?)) ORDER BY updated_ms,id LIMIT 1", (now, now)).fetchone()
             if row is None:
                 return {"processed": 0}
             connection.execute("UPDATE jobs SET state='running',lease_token=?,lease_until_ms=?,updated_ms=? WHERE id=?", (token, now + history.LEASE_MS, now, row["id"]))
         request, progress = json.loads(row["request"]), json.loads(row["progress"])
-        account_token, subject = None, None
+        account_token, subject, need = None, None, row["capacity_need"]
         try:
             if progress["matched_rows"] >= request["max_rows"] or progress["pages"] >= request["max_pages"]:
                 self._finish(row, token, request, progress, "row_limit" if progress["matched_rows"] >= request["max_rows"] else "page_limit")
@@ -211,7 +281,16 @@ class InvestigationJobs:
                 return {"processed": 1}
             _, subject = min(candidates)
             state = progress["frontier"][subject]
-            account_token = self.history.claim_job_read(subject, "transfers" if request["kind"] == "graph" else request["kind"])
+            room = max(need, MIN_JOB_ROOM)
+            with self._connection(write=True) as connection:
+                if connection.execute("SELECT 1 FROM jobs WHERE id=? AND state='running' AND lease_token=?", (row["id"], token)).fetchone() is None:
+                    return {"processed": 1}
+                self._reserve(connection, row["team"], room)
+                connection.execute("UPDATE job_usage SET bytes=bytes-? WHERE singleton=1", (room,))
+                connection.execute("UPDATE job_team_usage SET bytes=bytes-? WHERE team=?", (room, row["team"]))
+                connection.execute("UPDATE jobs SET capacity_waits=0 WHERE id=?", (row["id"],))
+            account_token = self.history.claim_job_read(subject, "transfers" if request["kind"] == "graph" else request["kind"],
+                                                        yield_to_watches=row["watch_yields"] < MAX_WATCH_YIELDS)
             with rpc.request_deadline(20):
                 payload = reader.history_page(subject, "transfers" if request["kind"] == "graph" else request["kind"],
                     cursor=state["cursor"], limit=min(100, request["max_rows"] - progress["matched_rows"]),
@@ -221,7 +300,7 @@ class InvestigationJobs:
                 raise history.HistoryReadError("The provider repeated a job continuation.")
             with self._connection() as connection:
                 active = connection.execute("SELECT state,lease_token,lease_until_ms FROM jobs WHERE id=?", (row["id"],)).fetchone()
-            if active["state"] != "running" or active["lease_token"] != token or active["lease_until_ms"] <= self._now():
+            if active is None or active["state"] != "running" or active["lease_token"] != token or active["lease_until_ms"] <= self._now():
                 return {"processed": 1}
             saved = self.history.record_page(subject, "transfers" if request["kind"] == "graph" else request["kind"], payload, reserved=True)
             progress["pages"] += 1
@@ -254,7 +333,7 @@ class InvestigationJobs:
             observations = [{"page_id": read["page_id"], "account_id": subject, "source": read["source"], "observed_at": read["observed_at"]} for read in saved["observations"]]
             with self._connection(write=True) as connection:
                 current = connection.execute("SELECT state,lease_token,lease_until_ms,progress FROM jobs WHERE id=?", (row["id"],)).fetchone()
-                if current["state"] != "running" or current["lease_token"] != token or current["lease_until_ms"] <= self._now():
+                if current is None or current["state"] != "running" or current["lease_token"] != token or current["lease_until_ms"] <= self._now():
                     return {"processed": 1}
                 extra_bytes = sum(len(_json(observation).encode("utf-8")) for observation in observations)
                 for page_id, item in selected:
@@ -266,21 +345,44 @@ class InvestigationJobs:
                     if inserted:
                         progress["matched_rows"] += 1
                         extra_bytes += len(encoded.encode("utf-8")) + 256
-                self._reserve(connection, extra_bytes + len(_json(progress).encode("utf-8")) - len(current["progress"].encode("utf-8")))
+                need = extra_bytes + len(_json(progress).encode("utf-8")) - len(current["progress"].encode("utf-8"))
+                self._reserve(connection, row["team"], need)
                 for observation in observations:
                     connection.execute("INSERT INTO job_reads(job,body) VALUES(?,?)", (row["id"], _json(observation)))
                 following = [(value["depth"], account) for account, value in progress["frontier"].items() if not value["done"] and (request["kind"] != "graph" or value["depth"] < request["depth"])]
                 next_due = self._now() + 60000 if following and min(following)[1] == subject else self._now()
-                connection.execute("UPDATE jobs SET progress=?,state='queued',attempts=0,last_error=NULL,not_before_ms=?,updated_ms=?,lease_token=NULL,lease_until_ms=0,provider_retry_ms=0 WHERE id=?", (_json(progress), next_due, self._now(), row["id"]))
+                connection.execute("UPDATE jobs SET progress=?,state='queued',attempts=0,last_error=NULL,not_before_ms=?,updated_ms=?,lease_token=NULL,lease_until_ms=0,provider_retry_ms=0,watch_yields=0,capacity_waits=0,capacity_need=0 WHERE id=?", (_json(progress), next_due, self._now(), row["id"]))
             reason = "row_limit" if progress["matched_rows"] >= request["max_rows"] else "page_limit" if progress["pages"] >= request["max_pages"] else None
             pending = any(not value["done"] and (request["kind"] != "graph" or value["depth"] < request["depth"]) for value in progress["frontier"].values())
             if reason or not pending:
                 self._finish(row, None, request, progress, reason or ("depth_window_exhausted" if request["kind"] == "graph" else "date_window_reached" if state.get("date_window_reached") else "provider_pages_exhausted"))
+        except history.WatchPriorityError:
+            with self._connection(write=True) as connection:
+                connection.execute("UPDATE jobs SET state='queued',watch_yields=watch_yields+1,last_error='watch_priority',not_before_ms=MAX(?,provider_retry_ms),updated_ms=?,lease_token=NULL,lease_until_ms=0 WHERE id=? AND state NOT IN ('cancelled','completed') AND (lease_token=? OR lease_token IS NULL)", (self._now() + 10000, self._now(), row["id"], token))
         except history.HistoryCapacityError as error:
             cooldown = error.retry_at_ms or 0
             with self._connection(write=True) as connection:
                 connection.execute("UPDATE jobs SET state='queued',last_error='history_capacity',not_before_ms=MAX(?,provider_retry_ms),provider_retry_ms=MAX(provider_retry_ms,?),updated_ms=?,lease_token=NULL,lease_until_ms=0 WHERE id=? AND state NOT IN ('cancelled','completed') AND (lease_token=? OR lease_token IS NULL)", (max(self._now() + 60000, cooldown), cooldown, self._now(), row["id"], token))
-        except (accounts.AccountReadError, accounts.AccountInputError, history.HistoryReadError, history.HistoryInputError, JobCapacityError, OSError, sqlite3.Error) as error:
+        except JobCapacityError:
+            with self._connection(write=True) as connection:
+                current = connection.execute("SELECT progress,capacity_waits FROM jobs WHERE id=? AND state IN ('queued','running','retry_wait') AND (lease_token=? OR lease_token IS NULL)", (row["id"], token)).fetchone()
+                if current is not None and current["capacity_waits"] + 1 < MAX_CAPACITY_WAITS:
+                    connection.execute("UPDATE jobs SET state='queued',capacity_waits=capacity_waits+1,capacity_need=?,last_error='history_capacity',not_before_ms=MAX(?,provider_retry_ms),updated_ms=?,lease_token=NULL,lease_until_ms=0 WHERE id=?", (need, self._now() + 60000, self._now(), row["id"]))
+                elif current is not None:
+                    ended = _json(dict(json.loads(current["progress"]), stop_reason="job_capacity"))
+                    grown = len(ended.encode("utf-8")) - len(current["progress"].encode("utf-8"))
+                    connection.execute("SAVEPOINT ending")
+                    try:
+                        self._reserve(connection, row["team"], 0)
+                    except JobCapacityError:
+                        connection.execute("ROLLBACK TO ending")
+                        connection.execute("UPDATE jobs SET state='failed',capacity_waits=0,capacity_need=0,last_error='job_capacity',updated_ms=?,lease_token=NULL,lease_until_ms=0 WHERE id=?", (self._now(), row["id"]))
+                    else:
+                        connection.execute("UPDATE job_usage SET bytes=bytes+? WHERE singleton=1", (grown,))
+                        connection.execute("UPDATE job_team_usage SET bytes=bytes+? WHERE team=?", (grown, row["team"]))
+                        connection.execute("UPDATE jobs SET state='completed',progress=?,capacity_waits=0,capacity_need=0,last_error=NULL,updated_ms=?,lease_token=NULL,lease_until_ms=0 WHERE id=?", (ended, self._now(), row["id"]))
+                    connection.execute("RELEASE ending")
+        except (accounts.AccountReadError, accounts.AccountInputError, history.HistoryReadError, history.HistoryInputError, OSError, sqlite3.Error) as error:
             code = "provider_timeout" if isinstance(error, TimeoutError) else type(error).__name__
             attempts = row["attempts"] + 1
             cooldown = error.retry_at_ms if isinstance(error, accounts.AccountReadError) else None
@@ -328,9 +430,9 @@ class InvestigationJobs:
         progress["stop_reason"] = reason
         with self._connection(write=True) as connection:
             current = connection.execute("SELECT state,lease_token,progress FROM jobs WHERE id=?", (row["id"],)).fetchone()
-            if current["state"] == "cancelled" or current["lease_token"] != token:
+            if current is None or current["state"] == "cancelled" or current["lease_token"] != token:
                 return
-            self._reserve(connection, len(_json(progress).encode("utf-8")) - len(current["progress"].encode("utf-8")))
+            self._reserve(connection, row["team"], len(_json(progress).encode("utf-8")) - len(current["progress"].encode("utf-8")))
             connection.execute("UPDATE jobs SET state='completed',progress=?,updated_ms=?,lease_token=NULL,lease_until_ms=0 WHERE id=?", (_json(progress), self._now(), row["id"]))
 
     def status(self):
@@ -354,9 +456,14 @@ def run(path, history_store, reader, *, once=False, interval=5, stop_event=None)
     try:
         while True:
             try:
-                jobs.tick(reader)
-                with jobs._connection(write=True) as connection:
-                    connection.execute("UPDATE job_worker SET heartbeat_ms=? WHERE singleton=1", (jobs._now(),))
+                try:
+                    jobs.tick(reader)
+                    with jobs._connection(write=True) as connection:
+                        connection.execute("UPDATE job_worker SET heartbeat_ms=? WHERE singleton=1", (jobs._now(),))
+                except (OSError, sqlite3.Error) as error:
+                    if once:
+                        raise
+                    print("investigation job tick failed (" + type(error).__name__ + "); retrying after the polling interval", file=sys.stderr)
                 if once:
                     break
                 if stop_event is not None:

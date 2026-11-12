@@ -23,7 +23,7 @@
       <p class="jobs-source">An empty end date fixes the window at creation time. Transfers use provider date filters; dated transaction jobs scan newest pages within your limits. Graphs retain at most 200 transfer records.</p>
     </details>
   </form>
-  <p class="jobs-source">One page per worker tick, up to 100 rows. Account history reads wait at least one minute between pages and yield to due watch polling. Stopping at a limit or the provider’s last page does not establish complete chain history.</p>
+  <p class="jobs-source">One page per worker tick, up to 100 rows. Account history reads wait at least one minute between pages and yield to due watch polling for at most three short pauses per page. Stopping at a limit or the provider’s last page does not establish complete chain history.</p>
   <div id="jobs-list" class="jobs-list"><p>No team selected.</p></div>
   <section id="jobs-results" class="jobs-results" aria-labelledby="jobs-results-title" hidden><h3 id="jobs-results-title" tabindex="-1">Retained results</h3><div id="jobs-result-body"></div></section>
   <noscript><p>JavaScript and a signed-in team session are required to manage background investigations. Existing evidence pages remain readable without JavaScript.</p></noscript>

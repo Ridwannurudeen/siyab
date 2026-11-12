@@ -382,7 +382,7 @@ class AccountHistoryTest(unittest.TestCase):
 
     def test_global_backfill_budget_is_persistent_and_lease_prevents_concurrent_claim(self):
         reader = Reader()
-        for number in range(6):
+        for number in range(history.PUBLIC_BACKFILL_PAGES // 2):
             account = "account" + str(number) + ".near"
             reader.pages[account, None] = page([], account=account)
             self.history.backfill_account(reader, account, "transfers")
@@ -424,6 +424,24 @@ class AccountHistoryTest(unittest.TestCase):
                 self.history.record_page("alice.near", "transfers", page([]))
         self.assertEqual(self.history.get_graph_bytes(saved["id"]), original)
 
+    def test_a_job_read_waits_unless_the_archive_has_room_for_one_full_page(self):
+        items = [dict(transfer(number), method_name="m" * 20000) for number in range(100)]
+        body = history._canonical(page(items))
+        self.assertGreater(len(body), history.MAX_DOCUMENT_BYTES - 100000)
+        self.history.record_page("alice.near", "transfers", page(items), reserved=True)
+        with self.history._connection() as connection:
+            usage = connection.execute("SELECT pages,records,bytes FROM archive_usage").fetchone()
+        self.assertEqual((usage["pages"], usage["records"]), (1, 100))
+        self.assertLessEqual(usage["bytes"], history.JOB_PAGE_BYTES)
+        for limit, used, room in (("MAX_ARCHIVE_PAGES", usage["pages"], 1), ("MAX_ARCHIVE_ROWS", usage["records"], 100), ("MAX_ARCHIVE_BYTES", usage["bytes"], history.JOB_PAGE_BYTES)):
+            with self.subTest(limit=limit):
+                self.now += 61
+                with mock.patch.object(history, limit, used + room - 1):
+                    with self.assertRaises(history.HistoryCapacityError):
+                        self.history.claim_job_read("bob.near")
+                with mock.patch.object(history, limit, used + room):
+                    self.history.release_job_read("bob.near", self.history.claim_job_read("bob.near"))
+
     def test_migration_reconstructs_retained_usage_without_modifying_evidence(self):
         self.history.record_page("alice.near", "transfers", page([transfer(1)]))
         with closing(sqlite3.connect(self.path)) as connection, connection:
@@ -435,6 +453,196 @@ class AccountHistoryTest(unittest.TestCase):
             self.assertGreater(usage["bytes"], 0)
             self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 2)
         self.assertEqual(len(restarted.list_records("alice.near", "transfers")["items"]), 1)
+
+    def test_a_previous_history_database_gains_the_job_page_share_in_place(self):
+        with closing(sqlite3.connect(self.path)) as connection, connection:
+            connection.execute("DROP TABLE job_read_budget")
+            connection.execute("UPDATE backfill_budget SET window=?,pages=4 WHERE singleton=1", (int(self.now * 1000) // 60000,))
+        restarted = history.AccountHistory(self.path, clock=lambda: self.now)
+        for number in range(8):
+            account = "job" + str(number) + ".near"
+            restarted.release_job_read(account, restarted.claim_job_read(account))
+        with self.assertRaises(history.HistoryCapacityError):
+            restarted.claim_job_read("joblast.near")
+        with restarted._connection() as connection:
+            self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 2)
+            self.assertEqual(tuple(connection.execute("SELECT window,pages FROM backfill_budget").fetchone()), (int(self.now * 1000) // 60000, 4))
+
+    def test_idle_read_checkpoints_never_hold_the_checkpoint_table_shut(self):
+        stamp = int(self.now * 1000)
+        with closing(sqlite3.connect(self.path)) as connection, connection:
+            connection.executemany("INSERT INTO backfill_control VALUES (?,?,?,NULL,0)", [
+                ("idle" + str(number) + ".near", ("job", "transfers", "transactions")[number % 3], stamp - history.ACCOUNT_INTERVAL_MS) for number in range(19998)])
+            connection.execute("INSERT INTO backfill_control VALUES ('fresh.near','job',?,NULL,0)", (stamp - history.ACCOUNT_INTERVAL_MS + 1,))
+            connection.execute("INSERT INTO backfill_control VALUES ('leased.near','transfers',?,'token',?)", (stamp - history.ACCOUNT_INTERVAL_MS, stamp + 1))
+        self.history.release_job_read("new.near", self.history.claim_job_read("new.near"))
+        with self.history._connection() as connection:
+            self.assertEqual(sorted(row[0] for row in connection.execute("SELECT account FROM backfill_control")), ["fresh.near", "leased.near", "new.near"])
+        with closing(sqlite3.connect(self.path)) as connection, connection:
+            connection.executemany("INSERT INTO backfill_control VALUES (?,'job',?,NULL,0)", [("busy" + str(number) + ".near", stamp) for number in range(19997)])
+        with self.assertRaisesRegex(history.HistoryCapacityError, "checkpoint capacity"):
+            self.history.claim_job_read("other.near")
+        with self.history._connection() as connection:
+            self.assertEqual(connection.execute("SELECT COUNT(*) FROM backfill_control").fetchone()[0], 20000)
+
+    def test_a_backfill_whose_checkpoint_was_pruned_mid_read_fails_closed(self):
+        reader = Reader()
+        reader.pages["alice.near", None] = page([], account="alice.near")
+        original = reader.transfers
+
+        def pruned(account, **kwargs):
+            with closing(sqlite3.connect(self.path)) as connection, connection:
+                connection.executemany("INSERT INTO backfill_control VALUES (?,'job',?,NULL,0)", [("idle" + str(number) + ".near", int(self.now * 1000)) for number in range(19999)])
+            self.now += history.ACCOUNT_INTERVAL_MS / 1000
+            self.history.release_job_read("bob.near", self.history.claim_job_read("bob.near"))
+            return original(account, **kwargs)
+
+        reader.transfers = pruned
+        with self.assertRaisesRegex(history.HistoryReadError, "lease expired"):
+            self.history.backfill_account(reader, "alice.near", "transfers")
+        self.assertEqual(reader.calls, [("alice.near", None, 100)])
+        self.assertEqual(self.page_count(), (0, 0))
+        with self.history._connection() as connection:
+            self.assertEqual(tuple(connection.execute("SELECT cursor,exhausted FROM backfills WHERE account='alice.near'").fetchone()), (None, 0))
+            self.assertEqual([row[0] for row in connection.execute("SELECT account FROM backfill_control")], ["bob.near"])
+
+    def test_a_new_backfill_reclaims_one_idle_checkpoint_when_the_backfill_table_is_full(self):
+        stamp = int(self.now * 1000)
+        with closing(sqlite3.connect(self.path)) as connection, connection:
+            connection.executemany("INSERT INTO backfills VALUES (?,'transfers',?,?,?)", [
+                ("leased.near", None, 1, 0), ("recent.near", None, 1, 0), ("done.near", None, 1, 5), ("old.near", "c", 0, 1)] + [
+                ("idle" + str(number) + ".near", None, 0, stamp) for number in range(9996)])
+            connection.executemany("INSERT INTO backfill_control VALUES (?,'transfers',?,?,?)", [
+                ("leased.near", stamp - history.ACCOUNT_INTERVAL_MS, "token", stamp + 1),
+                ("recent.near", stamp - history.ACCOUNT_INTERVAL_MS + 1, None, 0),
+                ("done.near", stamp - history.ACCOUNT_INTERVAL_MS, None, 0)])
+        reader = Reader()
+        for account in ("new.near", "next.near"):
+            reader.pages[account, None] = page([], account=account)
+        self.history.backfill_account(reader, "new.near", "transfers")
+        with self.history._connection() as connection:
+            self.assertEqual(connection.execute("SELECT COUNT(*) FROM backfills").fetchone()[0], 10000)
+            self.assertIsNone(connection.execute("SELECT 1 FROM backfills WHERE account='done.near'").fetchone())
+            self.assertEqual(sorted(row[0] for row in connection.execute("SELECT account FROM backfill_control")), ["leased.near", "new.near", "recent.near"])
+        self.history.backfill_account(reader, "next.near", "transfers")
+        with self.history._connection() as connection:
+            self.assertEqual(connection.execute("SELECT COUNT(*) FROM backfills").fetchone()[0], 10000)
+            self.assertEqual(sorted(row[0] for row in connection.execute("SELECT account FROM backfills WHERE account IN ('leased.near','recent.near','old.near','new.near','next.near')")), ["leased.near", "new.near", "next.near", "recent.near"])
+        with self.assertRaisesRegex(history.HistoryInputError, "committed continuation"):
+            self.history.backfill_account(reader, "old.near", "transfers", cursor="c")
+        self.assertEqual(reader.calls, [("new.near", None, 100), ("next.near", None, 100)])
+
+    def test_a_new_backfill_waits_while_every_backfill_checkpoint_is_in_use(self):
+        stamp = int(self.now * 1000)
+        accounts = ["held" + str(number) + ".near" for number in range(10000)]
+        with closing(sqlite3.connect(self.path)) as connection, connection:
+            connection.executemany("INSERT INTO backfills VALUES (?,'transfers',NULL,1,0)", [(account,) for account in accounts])
+            connection.executemany("INSERT INTO backfill_control VALUES (?,'transfers',?,?,?)", [
+                (account, stamp - history.ACCOUNT_INTERVAL_MS + 1, None, 0) if number % 2 else (account, stamp - history.ACCOUNT_INTERVAL_MS, "token", stamp + 1)
+                for number, account in enumerate(accounts)])
+        reader = Reader()
+        reader.pages["new.near", None] = page([], account="new.near")
+        with self.assertRaisesRegex(history.HistoryCapacityError, "backfill checkpoint capacity"):
+            self.history.backfill_account(reader, "new.near", "transfers")
+        self.assertEqual(reader.calls, [])
+        with self.history._connection() as connection:
+            self.assertEqual(connection.execute("SELECT COUNT(*) FROM backfills").fetchone()[0], 10000)
+            self.assertEqual(connection.execute("SELECT COUNT(*) FROM backfill_control").fetchone()[0], 10000)
+
+    def test_a_backfill_in_flight_or_inside_its_minute_keeps_its_checkpoint_and_commits(self):
+        stamp = int(self.now * 1000)
+        with closing(sqlite3.connect(self.path)) as connection, connection:
+            connection.executemany("INSERT INTO backfills VALUES (?,'transfers',NULL,0,?)", [("idle" + str(number) + ".near", stamp + 1) for number in range(9999)])
+        reader = Reader()
+        reader.pages["alice.near", None] = page([transfer(1)], cursor="next")
+        reader.pages["alice.near", "next"] = page([transfer(2)])
+        for account in ("bob.near", "carol.near"):
+            reader.pages[account, None] = page([], account=account)
+        original = reader.transfers
+
+        def contended(account, **kwargs):
+            reader.transfers = original
+            self.history.backfill_account(reader, "bob.near", "transfers", max_pages=1)
+            return original(account, **kwargs)
+
+        reader.transfers = contended
+        self.assertEqual(self.history.backfill_account(reader, "alice.near", "transfers", max_pages=1)["next_cursor"], "next")
+        self.history.backfill_account(reader, "carol.near", "transfers", max_pages=1)
+        with self.history._connection() as connection:
+            self.assertEqual(connection.execute("SELECT COUNT(*) FROM backfills").fetchone()[0], 10000)
+            self.assertEqual(tuple(connection.execute("SELECT cursor,exhausted FROM backfills WHERE account='alice.near'").fetchone()), ("next", 0))
+        self.now += 61
+        self.assertIsNone(self.history.backfill_account(reader, "alice.near", "transfers", cursor="next", max_pages=1)["next_cursor"])
+        self.assertEqual(reader.calls, [("bob.near", None, 100), ("alice.near", None, 100), ("carol.near", None, 100), ("alice.near", "next", 100)])
+        self.assertEqual(len(self.history.list_records("alice.near", "transfers")["items"]), 2)
+
+    def test_a_backfill_whose_checkpoint_was_reclaimed_mid_read_fails_closed(self):
+        stamp = int(self.now * 1000)
+        with closing(sqlite3.connect(self.path)) as connection, connection:
+            connection.executemany("INSERT INTO backfills VALUES (?,'transfers',NULL,0,?)", [("idle" + str(number) + ".near", stamp + 1) for number in range(9999)])
+        reader = Reader()
+        reader.pages["alice.near", None] = page([transfer(1)], cursor="next")
+        reader.pages["bob.near", None] = page([], account="bob.near")
+        original = reader.transfers
+
+        def stalled(account, **kwargs):
+            reader.transfers = original
+            self.now += 61
+            self.history.backfill_account(reader, "bob.near", "transfers", max_pages=1)
+            return original(account, **kwargs)
+
+        reader.transfers = stalled
+        with self.assertRaisesRegex(history.HistoryReadError, "lease expired"):
+            self.history.backfill_account(reader, "alice.near", "transfers", max_pages=1)
+        self.assertEqual(self.history.list_records("alice.near", "transfers")["items"], [])
+        with self.history._connection() as connection:
+            self.assertEqual(connection.execute("SELECT COUNT(*) FROM backfills").fetchone()[0], 10000)
+            self.assertIsNone(connection.execute("SELECT 1 FROM backfills WHERE account='alice.near'").fetchone())
+            self.assertIsNone(connection.execute("SELECT 1 FROM backfill_control WHERE account='alice.near'").fetchone())
+
+    def test_a_reclaimed_backfill_starts_again_without_a_cursor_and_keeps_its_archived_pages(self):
+        reader = Reader()
+        reader.pages["alice.near", None] = page([transfer(1)], cursor="next")
+        reader.pages["bob.near", None] = page([], account="bob.near")
+        self.history.backfill_account(reader, "alice.near", "transfers", max_pages=1)
+        archived = self.history.list_records("alice.near", "transfers")
+        stamp = int(self.now * 1000)
+        with closing(sqlite3.connect(self.path)) as connection, connection:
+            pages = connection.execute("SELECT id FROM pages WHERE account='alice.near'").fetchall()
+            connection.executemany("INSERT INTO backfills VALUES (?,'transfers',NULL,0,?)", [("idle" + str(number) + ".near", stamp + 1) for number in range(9999)])
+        self.now += 61
+        self.history.backfill_account(reader, "bob.near", "transfers", max_pages=1)
+        with closing(sqlite3.connect(self.path)) as connection:
+            self.assertIsNone(connection.execute("SELECT 1 FROM backfills WHERE account='alice.near'").fetchone())
+            self.assertIsNone(connection.execute("SELECT 1 FROM backfill_control WHERE account='alice.near'").fetchone())
+            self.assertEqual(connection.execute("SELECT id FROM pages WHERE account='alice.near'").fetchall(), pages)
+        self.assertEqual(self.history.list_records("alice.near", "transfers"), archived)
+        with self.assertRaisesRegex(history.HistoryInputError, "committed continuation"):
+            self.history.backfill_account(reader, "alice.near", "transfers", cursor="next")
+        self.assertEqual(self.history.backfill_account(reader, "alice.near", "transfers", max_pages=1)["next_cursor"], "next")
+        self.assertEqual(reader.calls, [("alice.near", None, 100), ("bob.near", None, 100), ("alice.near", None, 100)])
+        self.assertEqual(self.history.list_records("alice.near", "transfers")["items"], archived["items"])
+        with closing(sqlite3.connect(self.path)) as connection:
+            self.assertEqual(connection.execute("SELECT id FROM pages WHERE account='alice.near'").fetchall(), pages)
+            self.assertEqual(connection.execute("SELECT cursor FROM backfills WHERE account='alice.near'").fetchone()[0], "next")
+
+    def test_a_full_backfill_table_from_the_previous_release_still_reclaims(self):
+        stamp = int(self.now * 1000)
+        with closing(sqlite3.connect(self.path)) as connection, connection:
+            connection.execute("DROP TABLE job_read_budget")
+            connection.executemany("INSERT INTO backfills VALUES (?,'transfers','c',0,?)", [("old" + str(number) + ".near", stamp - number) for number in range(10000)])
+            connection.executemany("INSERT INTO backfill_control VALUES (?,'transfers',?,NULL,0)", [("old" + str(number) + ".near", stamp - history.ACCOUNT_INTERVAL_MS) for number in range(10000)])
+        restarted = history.AccountHistory(self.path, clock=lambda: self.now)
+        reader = Reader()
+        reader.pages["new.near", None] = page([], account="new.near")
+        restarted.backfill_account(reader, "new.near", "transfers", max_pages=1)
+        self.assertEqual(reader.calls, [("new.near", None, 100)])
+        with restarted._connection() as connection:
+            self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 2)
+            self.assertEqual(connection.execute("SELECT COUNT(*) FROM backfills").fetchone()[0], 10000)
+            self.assertIsNone(connection.execute("SELECT 1 FROM backfills WHERE account='old9999.near'").fetchone())
+            self.assertIsNone(connection.execute("SELECT 1 FROM backfill_control WHERE account='old9999.near'").fetchone())
+            self.assertEqual(connection.execute("SELECT COUNT(*) FROM backfill_control").fetchone()[0], 10000)
 
     def page_count(self):
         with self.history._connection() as connection:
