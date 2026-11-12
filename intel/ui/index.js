@@ -161,6 +161,19 @@ const renderVerdict = (panel, data, showOfac = false, token) => {
   addText(panel, "p", `Freshness: ${JSON.stringify(data.freshness)}`, "panel-status");
   addText(panel, "p", `Signing: ${data.signing}`, "panel-status");
   addText(panel, "p", `Read time: ${data.latency_ms} ms`, "panel-status");
+  if (typeof data.evidence === "string" && /^[a-f0-9]{64}$/.test(data.evidence_hash)) {
+    const receipt = JSON.stringify(data);
+    const download = addText(panel, "button", "Download evidence");
+    download.type = "button";
+    download.addEventListener("click", () => {
+      const url = URL.createObjectURL(new Blob([receipt], {type: "application/json"}));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `siyab-check-${data.evidence_hash.slice(0, 12)}.json`;
+      document.body.append(link); link.click(); link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+  }
 };
 const renderScan = (panel, data, token) => {
   const listFields = ["full_access_keys", "empty_method_names", "dead_keys", "unlimited_allowance", "findings"];

@@ -512,8 +512,10 @@ class LiveAPI:
             checks=judgement.checks, labels=judgement.labels, verdict=judgement.verdict,
             reasons=judgement.reasons, observed=judgement.observed, issued_ms=None, expires_ms=None,
             verdict_id=None, latency_ms=latency_ms)
-        return self._verdict_shape(judgement.verdict, judgement.checks, judgement.reasons,
-                                   evidence.evidence_hash(document), judgement.observed, latency_ms)
+        answer = self._verdict_shape(judgement.verdict, judgement.checks, judgement.reasons,
+                                     evidence.evidence_hash(document), judgement.observed, latency_ms)
+        answer["evidence"] = evidence.canonical_bytes(document).decode("utf-8")
+        return answer
 
     def _scan(self, account):
         client = rpc.Client(os.environ.get("NEAR_MAINNET_RPC_URL") or rpc.MAINNET_RPC_URL, "off")

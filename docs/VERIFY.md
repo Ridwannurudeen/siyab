@@ -124,3 +124,35 @@ valid fixtures/records/40a5ff25...2eaef25a.json
 ```
 
 `record-check` validates the record fields, canonical file bytes, content-derived record id and filename, and reports duplicate supersession conflicts among the files passed to it. These fixtures are synthetic: this check does not fetch their cited evidence URLs or reports, and it does not read a report from the chain. A `get_report(report_id)` view call is needed to check a real report citation; it requires network access.
+
+
+## 5. Check a payment check receipt from siyab.xyz
+
+Run a payment check on siyab.xyz and choose **Download evidence** on the finished result. The download saves the displayed answer without another request, as `siyab-check-<first 12 hex of evidence_hash>.json`. Check that file offline with `python -m gate verify-receipt <file>`.
+
+This committed sample is generated through the live verdict code path in `tests/test_verify_receipt.py` with stubbed reads. Unavailable reads remain unknown and the outcome is ASK:
+
+```sh offline
+python -m gate verify-receipt fixtures/receipts/payment-check.json
+```
+
+```text expected
+receiver: alice.near
+token: near
+amount: 1
+observed block: 123
+pass    receiver_exists: alice.near exists
+pass    label_denylist: no denylist or incident label on alice.near
+unknown issuer_blacklist: could not read get_blacklist_status on usdt.tether-token.near: TransportError: stubbed read unavailable; could not read is_blocklisted on 17208628...e36133a1: TransportError: stubbed read unavailable
+pass    memo_injection: no memo
+unknown account_age: no archival age (view_access_key_list could not run: TransportError: stubbed read unavailable); could not read the account keys: RateLimited: NearBlocks is not read by the hosted verdict route
+unknown dust_funded: the creation transaction is not known
+pass    lookalike: no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation
+pass    code_without_metadata: no contract code
+outcome: ASK (ask)
+receipt consistent (unsigned: this checks the answer against its own evidence, it does not authenticate the server or prove the checks are true)
+```
+
+The command checks the evidence hash, canonical JSON bytes without floats, required fields, ordered checks and reasons, the observed freshness and latency, and the same outcome and action reduction as the hosted answer. It refuses missing, malformed or mismatched data with `not verified: <reason>` and exit 1. A receipt claiming a signature is refused.
+
+Someone who replaces both the evidence and the hash can make another consistent receipt. Reads are not re-run. Signed verification is the separate Gate path in section 3.
