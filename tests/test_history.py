@@ -433,7 +433,7 @@ class AccountHistoryTest(unittest.TestCase):
             usage = connection.execute("SELECT pages,records,bytes FROM archive_usage").fetchone()
         self.assertEqual((usage["pages"], usage["records"]), (1, 100))
         self.assertLessEqual(usage["bytes"], history.JOB_PAGE_BYTES)
-        for limit, used, room in (("MAX_ARCHIVE_PAGES", usage["pages"], 1), ("MAX_ARCHIVE_ROWS", usage["records"], 100), ("MAX_ARCHIVE_BYTES", usage["bytes"], history.JOB_PAGE_BYTES)):
+        for limit, used, room in (("MAX_ARCHIVE_PAGES", usage["pages"], 1), ("MAX_ARCHIVE_ROWS", usage["records"], 100), ("MAX_ARCHIVE_BYTES", usage["bytes"], history.JOB_PAGE_BYTES + history.EVENT_ARCHIVE_BYTES)):
             with self.subTest(limit=limit):
                 self.now += 61
                 with mock.patch.object(history, limit, used + room - 1):

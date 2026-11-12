@@ -251,13 +251,17 @@ class WorkspaceAPI:
                 return 200, {"watches": self.store.list_watchlist(actor, team)}, {}
             if len(parts) == 2 and parts[0] == "events":
                 self._query(query, set())
-                if self.store.team_event(actor, team, parts[1]):
+                stored = self.store.team_event(actor, team, parts[1])
+                if stored is not None:
                     if self.history_store is None:
                         raise WorkspaceError(503, "events_unavailable", "Team event evidence is unavailable.")
                     try:
                         body = self.history_store.get_event_bytes(parts[1])
                     except history.HistoryReadError:
                         raise WorkspaceError(503, "read_failed", "The stored team event could not be read.") from None
+                    if body is None and isinstance(stored, str):
+                        copy = (stored + "\n").encode("utf-8")
+                        body = copy if hashlib.sha256(copy).hexdigest() == parts[1] else None
                     if body is not None:
                         return 200, body, {}
             if parts in (["inbox"], ["audit"]):
