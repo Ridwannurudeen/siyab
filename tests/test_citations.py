@@ -68,6 +68,30 @@ class CitationCheckerTest(unittest.TestCase):
         self.assertEqual(problems[0][2], ":3")
         self.assertIn("past end of file", problems[0][3])
 
+    def test_threat_model_contract_symbols_have_checked_ranges(self):
+        citations = (
+            ("on_transfer", "contracts/gate/src/lib.rs", "321-358", "293-309"),
+            ("withdraw", "contracts/gate/src/policy.rs", "231-244", "199-214"),
+            ("upheld_disputes_never_cap_further_disputes", "contracts/reports/src/lib.rs", "2339-2362", "2370-2405"),
+        )
+        document = (ROOT / "docs" / "THREAT-MODEL.md").read_text(encoding="utf-8")
+        for name, relative, correct, stale in citations:
+            with self.subTest(name=name):
+                citation = f"`{name}` (`{relative}:{correct}`)"
+                self.assertIn(citation, document)
+                with tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    source = root / relative
+                    source.parent.mkdir(parents=True)
+                    source.write_text((ROOT / relative).read_text(encoding="utf-8"), encoding="utf-8")
+                    markdown = root / "README.md"
+                    markdown.write_text(citation + "\n", encoding="utf-8")
+                    self.assertEqual(check_citations.scan(root), [])
+                    markdown.write_text(citation.replace(":" + correct, ":" + stale) + "\n", encoding="utf-8")
+                    self.assertEqual(check_citations.scan(root), [
+                        ("README.md", 1, "citation", f"{name} not in cited lines")
+                    ])
+
 
 if __name__ == "__main__":
     unittest.main()

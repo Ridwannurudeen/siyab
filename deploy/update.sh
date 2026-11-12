@@ -1,7 +1,7 @@
 #!/bin/sh
 # usage: deploy/update.sh <full 40 character commit sha>
 # Tests the commit in a temporary worktree first. Only when the suite and the hygiene check are green
-# does the live checkout move to it and both services restart, so a red commit is never checked out
+# does the live checkout move to it and the services restart, so a red commit is never checked out
 # where the services run. Run the live checkout's own copy: the script updates the repository it
 # sits in.
 set -eu
@@ -44,11 +44,21 @@ restarted=no
 if [ "$tests_exit" -eq 0 ] && [ "$hygiene_exit" -eq 0 ]; then
     printf 'step 6: green, switch the live checkout to %s\n' "$revision"
     git checkout --detach "$revision"
-    printf 'step 7: restart shieldbot-near-feed.service and shieldbot-near-api.service\n'
-    if sudo systemctl restart shieldbot-near-feed.service shieldbot-near-api.service; then
+    set -- shieldbot-near-feed.service shieldbot-near-api.service \
+        siyab-api.service siyab-delivery.service siyab-history.service \
+        siyab-investigation.service siyab-monitor.service
+    printf 'step 7: restart %s\n' "$*"
+    if sudo systemctl restart "$@"; then
         restarted=yes
     else
         restarted='NO (restart failed)'
+        printf 'restart failed: restore the previous checkout %s\n' "$old" >&2
+        git checkout --detach "$old"
+        if sudo systemctl restart "$@"; then
+            printf 'previous checkout restarted\n' >&2
+        else
+            printf 'previous checkout restart also failed\n' >&2
+        fi
     fi
 else
     printf 'step 6: red, the live checkout stays at %s and no service restarts\n' "$old"

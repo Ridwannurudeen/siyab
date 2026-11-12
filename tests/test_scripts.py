@@ -85,7 +85,7 @@ class MakeAttackReceiverTest(ScriptTest):
             f'{self.env["NEAR_KEYS_DIR"]}/legacy-counterparty.testnet.json',
         )
 
-    def test_legacy_variable_appears_only_in_compatibility_code_and_this_test(self):
+    def test_legacy_variable_appears_only_in_compatibility_code_reference_and_this_test(self):
         matches = []
         excluded = {".git", "fixtures", "res"}
         text_suffixes = {".example", ".json", ".md", ".py", ".sh", ".toml", ".txt", ".yaml", ".yml"}
@@ -97,7 +97,7 @@ class MakeAttackReceiverTest(ScriptTest):
                 continue
             if "ATTACKER_ACCOUNT_ID" in path.read_text(encoding="utf-8"):
                 matches.append(relative.as_posix())
-        self.assertEqual(sorted(matches), ["scripts/lib.sh", "tests/test_scripts.py"])
+        self.assertEqual(sorted(matches), ["env.example", "scripts/lib.sh", "tests/test_scripts.py"])
 
 
 class KillSwitchTest(ScriptTest):

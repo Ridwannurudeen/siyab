@@ -476,6 +476,16 @@ class FailClosedClientTest(unittest.TestCase):
         self.assertEqual(str(caught.exception), "the body is nested too deeply to parse")
         bounded.__enter__.return_value.read1.assert_called()
 
+    def test_a_replayed_fixture_nested_too_deeply_to_parse_is_malformed(self):
+        client = rpc.Client("https://api.example", "replay", kind="http", fixtures_dir=self.tmp.name)
+        path = Path(self.tmp.name) / (rpc.fixture_key("https://api.example/x", "GET", None) + ".json")
+        nested = '{"fetched_at":"2026-10-29T08:00:00Z","response":' + "[" * 100000 + "0" + "]" * 100000 + "}"
+        path.write_text(nested, encoding="utf-8", newline="\n")
+        with (mock.patch("urllib.request.urlopen", side_effect=no_network),
+              self.assertRaises(rpc.MalformedResponse) as caught):
+            client.get("/x")
+        self.assertEqual(str(caught.exception), "the body is nested too deeply to parse")
+
     def test_a_body_nested_too_deeply_to_record_is_malformed_and_not_written(self):
         nested = b'{"result": ' + b"[" * 2000 + b"]" * 2000 + b"}"
         handle = mock.MagicMock()
