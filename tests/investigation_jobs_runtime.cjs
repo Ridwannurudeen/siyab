@@ -85,9 +85,11 @@ async function main() {
     assert.match(text(env.nodes['jobs-result-body']), /latest-receipt/); assert.doesNotMatch(text(env.nodes['jobs-result-body']), /stale-receipt/);
   } else if (scenario === 'unknown-and-bounds') {
     const env = environment(); await signed(env);
-    const utcJob = {...fixture.queued,bounds:{...fixture.queued.bounds,from_timestamp_ms:1794325863000,to_timestamp_ms:1794325923000}};
+    const utcJob = {...fixture.queued,last_error:'watch_priority',bounds:{...fixture.queued.bounds,from_timestamp_ms:1794325863000,to_timestamp_ms:1794325923000}};
     const listing = env.api.loadList(); await reply(env.requests.at(-1), {items:[utcJob]}); await listing;
     assert.match(text(env.nodes['jobs-list']), /2026-11-10 15:51:03 UTC/);
+    assert.match(text(env.nodes['jobs-list']), /Queued\. .*Paused while due watched accounts are polled\. After three short pauses in a row it reads its next page anyway\./s);
+    assert.doesNotMatch(text(env.nodes['jobs-list']), /archive capacity/);
     env.nodes['jobs-status'].textContent = 'Investigation queued. Progress follows the worker and source budgets shown below.';
     const completed = env.api.loadList(); await reply(env.requests.at(-1), {items:[fixture.completed]}); await completed;
     assert.match(text(env.nodes['jobs-list']), /Finished within bounds/); assert.doesNotMatch(text(env.nodes['jobs-status']), /queued/i);

@@ -22,6 +22,9 @@ MAX_ARCHIVE_GRAPHS = 2000
 MAX_ARCHIVE_EVENTS = 100000
 MAX_WATCH_SEEN = 200000
 PUBLIC_ARCHIVE_PERCENT = 75
+PUBLIC_BACKFILL_PAGES = 4
+JOB_BACKFILL_PAGES = 8
+JOB_PAGE_BYTES = 2 * MAX_DOCUMENT_BYTES
 GLOBAL_INTERVAL_MS = 5000
 ACCOUNT_INTERVAL_MS = 60000
 LEASE_MS = 45000
@@ -45,6 +48,10 @@ class HistoryCapacityError(HistoryReadError):
     def __init__(self, message, *, retry_at_ms=None):
         super().__init__(message)
         self.retry_at_ms = retry_at_ms
+
+
+class WatchPriorityError(HistoryCapacityError):
+    """A due watched account takes the provider before a background investigation."""
 
 
 def _account(value):
@@ -279,6 +286,8 @@ class AccountHistory:
             BEGIN IMMEDIATE;
             CREATE TABLE IF NOT EXISTS provider_cooldowns(account TEXT NOT NULL,kind TEXT NOT NULL,not_before_ms INTEGER NOT NULL,PRIMARY KEY(account,kind));
             CREATE INDEX IF NOT EXISTS pages_account ON pages(account,kind,created_ms);
+            CREATE TABLE IF NOT EXISTS job_read_budget(singleton INTEGER PRIMARY KEY CHECK(singleton=1),window INTEGER NOT NULL,pages INTEGER NOT NULL);
+            INSERT OR IGNORE INTO job_read_budget VALUES(1,0,0);
             COMMIT;
             """)
         os.chmod(self.path, 0o600)
@@ -474,7 +483,7 @@ class AccountHistory:
         with self._connection(write=True) as connection:
             connection.execute("INSERT INTO provider_cooldowns VALUES(?,?,?) ON CONFLICT(account,kind) DO UPDATE SET not_before_ms=MAX(not_before_ms,excluded.not_before_ms)", (account, kind, retry_at_ms))
 
-    def claim_job_read(self, account, kind="transfers"):
+    def claim_job_read(self, account, kind="transfers", *, yield_to_watches=True):
         account, now, token = _account(account), self._now(), secrets.token_hex(16)
         if kind not in ("transactions", "transfers"):
             raise HistoryInputError("Choose a supported history kind for the bounded read.")
@@ -482,21 +491,28 @@ class AccountHistory:
             cooldown = connection.execute("SELECT not_before_ms FROM provider_cooldowns WHERE account=? AND kind=?", (account, kind)).fetchone()
             if cooldown and cooldown["not_before_ms"] > now:
                 raise HistoryCapacityError("The account's history source requested a cooldown; retained observations remain available.", retry_at_ms=cooldown["not_before_ms"])
-            if connection.execute("SELECT 1 FROM watch_poll WHERE next_due_ms<=? AND lease_until_ms<=? LIMIT 1", (now, now)).fetchone() is not None:
-                raise HistoryCapacityError("A watched account is due; background investigations yield to the watch monitor.")
+            usage = connection.execute("SELECT pages,records,bytes FROM archive_usage WHERE singleton=1").fetchone()
+            if usage["pages"] + 1 > MAX_ARCHIVE_PAGES or usage["records"] + 100 > MAX_ARCHIVE_ROWS or usage["bytes"] + JOB_PAGE_BYTES > MAX_ARCHIVE_BYTES:
+                raise HistoryCapacityError("Archive retention capacity reached; retained evidence remains available and new observations are paused.")
+            heartbeat = connection.execute("SELECT heartbeat_ms FROM history_state WHERE singleton=1").fetchone()["heartbeat_ms"]
+            if (yield_to_watches and heartbeat is not None and 0 <= now - heartbeat <= 30000
+                    and connection.execute("SELECT 1 FROM watch_poll WHERE next_due_ms<=? AND lease_until_ms<=? LIMIT 1", (now, now)).fetchone() is not None):
+                raise WatchPriorityError("A watched account is due; background investigations yield to the watch monitor.")
             active = connection.execute("SELECT MAX(last_start_ms) AS last_start,MAX(lease_until_ms) AS lease_until FROM backfill_control WHERE account=?", (account,)).fetchone()
             if active["lease_until"] is not None and active["lease_until"] > now:
                 raise HistoryCapacityError("This account already has an active bounded read.")
             if active["last_start"] is not None and now - active["last_start"] < ACCOUNT_INTERVAL_MS:
                 raise HistoryCapacityError("Account history budget reached; retry after one minute.")
-            budget = connection.execute("SELECT window,pages FROM backfill_budget WHERE singleton=1").fetchone()
+            budget = connection.execute("SELECT window,pages FROM job_read_budget WHERE singleton=1").fetchone()
             window = now // 60000
             reserved = budget["pages"] if budget["window"] == window else 0
-            if reserved >= 12:
+            if reserved >= JOB_BACKFILL_PAGES:
                 raise HistoryCapacityError("Global history budget reached; retry after one minute.")
             if connection.execute("SELECT 1 FROM backfill_control WHERE account=? AND kind='job'", (account,)).fetchone() is None and connection.execute("SELECT COUNT(*) FROM backfill_control").fetchone()[0] >= 20000:
-                raise HistoryCapacityError("History read checkpoint capacity reached.")
-            connection.execute("UPDATE backfill_budget SET window=?,pages=? WHERE singleton=1", (window, reserved + 1))
+                connection.execute("DELETE FROM backfill_control WHERE lease_until_ms<=? AND last_start_ms<=?", (now, now - ACCOUNT_INTERVAL_MS))
+                if connection.execute("SELECT COUNT(*) FROM backfill_control").fetchone()[0] >= 20000:
+                    raise HistoryCapacityError("History read checkpoint capacity reached.")
+            connection.execute("UPDATE job_read_budget SET window=?,pages=? WHERE singleton=1", (window, reserved + 1))
             connection.execute("INSERT INTO backfill_control VALUES (?,'job',?,?,?) ON CONFLICT(account,kind) DO UPDATE SET last_start_ms=excluded.last_start_ms,lease_token=excluded.lease_token,lease_until_ms=excluded.lease_until_ms", (account, now, token, now + LEASE_MS))
         return token
 
@@ -529,11 +545,15 @@ class AccountHistory:
             budget = connection.execute("SELECT window,pages FROM backfill_budget WHERE singleton=1").fetchone()
             window = now // 60000
             reserved = budget["pages"] if budget["window"] == window else 0
-            if reserved + max_pages > 12:
-                raise HistoryCapacityError("Global backfill budget reached; retry after one minute. Retained history remains available.")
+            if reserved + max_pages > PUBLIC_BACKFILL_PAGES:
+                raise HistoryCapacityError("The public backfill share of the global budget is used up; retry after one minute. Retained history remains available.")
             if state is None:
                 if connection.execute("SELECT COUNT(*) FROM backfills").fetchone()[0] >= 10000:
-                    raise HistoryCapacityError("Archive backfill checkpoint capacity reached; existing evidence remains available.")
+                    idle = connection.execute("SELECT account,kind FROM backfills AS b WHERE NOT EXISTS (SELECT 1 FROM backfill_control AS c WHERE c.account=b.account AND c.kind=b.kind AND (c.lease_until_ms>? OR c.last_start_ms>?)) ORDER BY exhausted DESC,updated_ms,account,kind LIMIT 1", (now, now - ACCOUNT_INTERVAL_MS)).fetchone()
+                    if idle is None:
+                        raise HistoryCapacityError("Archive backfill checkpoint capacity reached; existing evidence remains available.")
+                    connection.execute("DELETE FROM backfills WHERE account=? AND kind=?", (idle["account"], idle["kind"]))
+                    connection.execute("DELETE FROM backfill_control WHERE account=? AND kind=?", (idle["account"], idle["kind"]))
                 connection.execute("INSERT INTO backfills VALUES (?,?,NULL,0,?)", (account, kind, now))
             connection.execute("UPDATE backfill_budget SET window=?,pages=? WHERE singleton=1", (window, reserved + max_pages))
             connection.execute("INSERT INTO backfill_control VALUES (?,?,?,?,?) ON CONFLICT(account,kind) DO UPDATE SET last_start_ms=excluded.last_start_ms,lease_token=excluded.lease_token,lease_until_ms=excluded.lease_until_ms", (account, kind, now, token, now + LEASE_MS))
@@ -547,7 +567,7 @@ class AccountHistory:
                         raise HistoryReadError("The provider repeated the backfill cursor.")
                     with self._connection() as connection:
                         lease = connection.execute("SELECT lease_token,lease_until_ms FROM backfill_control WHERE account=? AND kind=?", (account, kind)).fetchone()
-                    if lease["lease_token"] != token or lease["lease_until_ms"] <= self._now():
+                    if lease is None or lease["lease_token"] != token or lease["lease_until_ms"] <= self._now():
                         raise HistoryReadError("The backfill lease expired before its continuation could be committed.")
                     saved = self.record_page(account, kind, payload)
                     pages += 1
