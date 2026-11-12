@@ -9,7 +9,8 @@ from contextlib import closing
 from pathlib import Path
 from unittest import mock
 
-from intel import history
+from gate import rpc
+from intel import accounts, budget, history, investigation_jobs
 from intel.accounts import AccountReadError
 from intel.workspace import SQLiteWorkspaceStore
 
@@ -1218,6 +1219,123 @@ class AccountHistoryTest(unittest.TestCase):
         self.assertEqual(status["retry_pending"], 1)
         with closing(sqlite3.connect(archive_path)) as connection:
             self.assertEqual(connection.execute("SELECT attempts,last_error,lease_token,lease_until_ms FROM watch_poll").fetchone(), (1, "HistoryReadError", None, 0))
+
+
+class HistoryCooldownTest(unittest.TestCase):
+    def setUp(self):
+        for name in ("urllib.request.urlopen", "gate.rpc._open_with_deadline", "gate.rpc._fetch"):
+            patcher = mock.patch(name, side_effect=AssertionError("network forbidden"))
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        environment = mock.patch.dict("os.environ", {}, clear=True)
+        environment.start()
+        self.addCleanup(environment.stop)
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        self.now = 2000.0
+        self.history = history.AccountHistory(self.root / "history.sqlite3", clock=lambda: self.now)
+        self.reader = accounts.AccountData(clock=lambda: self.now)
+        self.store = mock.Mock()
+        self.store.watch_schedule.return_value = [{"account": "alice.near", "created_ms": 1, "reserved": 0}]
+
+    def test_backfill_budget_refusal_leaves_provider_cooldowns_unchanged(self):
+        self.history.defer_account("other.near", "transfers", self.history._now() + 300000)
+        with self.history._connection() as connection:
+            before = [tuple(row) for row in connection.execute("SELECT * FROM provider_cooldowns")]
+        for kind in ("transfers", "transactions"):
+            self.now += 61
+            with self.subTest(kind=kind), mock.patch.object(rpc.Client, "post", side_effect=rpc.BudgetExhausted("Provider budget spent.", 3600)):
+                with self.assertRaises(accounts.AccountBudgetError) as caught:
+                    self.history.backfill_account(self.reader, "alice.near", kind)
+                self.assertEqual(caught.exception.retry_at_ms, self.history._now() + 3600000)
+                with self.history._connection() as connection:
+                    self.assertEqual([tuple(row) for row in connection.execute("SELECT * FROM provider_cooldowns")], before)
+
+    def test_watch_budget_refusal_keeps_its_retry_without_a_provider_cooldown(self):
+        self.history.defer_account("other.near", "transfers", self.history._now() + 300000)
+        with self.history._connection() as connection:
+            before = [tuple(row) for row in connection.execute("SELECT * FROM provider_cooldowns")]
+        retry_at = self.history._now() + 3600000
+        with mock.patch.object(rpc.Client, "post", autospec=True, side_effect=rpc.BudgetExhausted("Provider budget spent.", 3600)) as fetch:
+            self.history.poll_watches(self.store, self.reader)
+            with self.history._connection() as connection:
+                self.assertEqual(tuple(connection.execute("SELECT initialized,next_due_ms,last_success_ms FROM watch_poll").fetchone()), (0, retry_at, None))
+                self.assertEqual([tuple(row) for row in connection.execute("SELECT * FROM provider_cooldowns")], before)
+            self.now += 3599
+            self.history.poll_watches(self.store, self.reader)
+            self.assertEqual(fetch.call_count, 1)
+            self.now += 1
+            def completed(client, *args, **kwargs):
+                client.last_source = page([])["source"]
+                return {"transfers": [], "resume_token": None}
+
+            fetch.side_effect = completed
+            self.history.poll_watches(self.store, self.reader)
+            self.assertEqual(fetch.call_count, 2)
+            self.assertEqual(self.history.status()["initialized_accounts"], 1)
+
+    def test_backfill_provider_retry_after_still_writes_a_cooldown(self):
+        for kind in ("transfers", "transactions"):
+            with self.subTest(kind=kind), mock.patch.object(rpc.Client, "post", side_effect=rpc.HttpError(429, "https://source.invalid", retry_after="3600")) as fetch:
+                retry_at = self.history._now() + 3600000
+                with self.assertRaises(AccountReadError) as caught:
+                    self.history.backfill_account(self.reader, "alice.near", kind)
+                self.assertEqual((caught.exception.status, caught.exception.retry_at_ms), (429, retry_at))
+                with self.history._connection() as connection:
+                    self.assertEqual(connection.execute("SELECT not_before_ms FROM provider_cooldowns WHERE account=? AND kind=?", ("alice.near", kind)).fetchone()[0], retry_at)
+                self.now += 61
+                with self.assertRaises(history.HistoryCapacityError) as cooldown:
+                    self.history.backfill_account(self.reader, "alice.near", kind)
+                self.assertEqual(cooldown.exception.retry_at_ms, retry_at)
+                self.assertEqual(fetch.call_count, 1)
+
+    def test_watch_provider_retry_after_still_writes_a_cooldown(self):
+        retry_at = self.history._now() + 3600000
+        with mock.patch.object(rpc.Client, "post", side_effect=rpc.HttpError(429, "https://source.invalid", retry_after="3600")) as fetch:
+            self.history.poll_watches(self.store, self.reader)
+            with self.history._connection() as connection:
+                self.assertEqual(tuple(connection.execute("SELECT account,kind,not_before_ms FROM provider_cooldowns").fetchone()), ("alice.near", "transfers", retry_at))
+                self.assertEqual(tuple(connection.execute("SELECT initialized,next_due_ms,last_success_ms,last_error FROM watch_poll").fetchone()), (0, retry_at, None, "provider_http_429"))
+            self.now += 61
+            self.history.poll_watches(self.store, self.reader)
+            self.assertEqual(fetch.call_count, 1)
+            with self.assertRaises(history.HistoryCapacityError) as cooldown:
+                self.history.claim_job_read("alice.near")
+            self.assertEqual(cooldown.exception.retry_at_ms, retry_at)
+
+    def test_spent_public_backfill_budget_does_not_block_a_team_job_or_watch(self):
+        database = self.root / "budget.sqlite3"
+        jobs = investigation_jobs.InvestigationJobs(self.root / "jobs.sqlite3", self.history, clock=lambda: self.now)
+        client = rpc.Client(accounts.TRANSFERS_URL, "off", kind="http", clock=lambda: self.now,
+                            headers={"Authorization": "Bearer unit-only-token"})
+        self.reader.client_factory = mock.Mock(return_value=client)
+
+        def response(client, *args, **kwargs):
+            client._metered("transfers.main.fastnear.com")
+            client.last_source = page([])["source"]
+            return {"transfers": [], "resume_token": None}
+
+        with budget.use_database(database), mock.patch.object(rpc.Client, "post", autospec=True, side_effect=response) as fetch:
+            budget.reserve("other", "operator", keyed=False, now=self.now)
+            with closing(sqlite3.connect(database)) as connection, connection:
+                connection.execute("INSERT INTO counters VALUES(?,?,?,NULL)", ("keyed:backfill:fastnear_index", int(self.now // budget.DAY_S), 500))
+            with rpc.caller_class("backfill"), self.assertRaises(accounts.AccountBudgetError) as caught:
+                self.history.backfill_account(self.reader, "alice.near", "transfers")
+            retry_at = caught.exception.retry_at_ms
+            self.now += 61
+            self.assertLess(self.history._now(), retry_at)
+            job = jobs.create("team", "actor", "alice.near")
+            with rpc.caller_class("investigation"):
+                self.assertEqual(jobs.tick(self.reader), {"processed": 1})
+            current = jobs.get("team", job["id"])
+            self.assertEqual((current["state"], current["counts"]["pages"]), ("completed", 1))
+            with rpc.caller_class("watch"):
+                self.history.poll_watches(self.store, self.reader)
+            self.assertEqual(self.history.status()["initialized_accounts"], 1)
+            self.assertEqual(fetch.call_count, 3)
+            with self.history._connection() as connection:
+                self.assertEqual(connection.execute("SELECT COUNT(*) FROM provider_cooldowns").fetchone()[0], 0)
 
 
 if __name__ == "__main__":

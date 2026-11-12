@@ -75,6 +75,12 @@ async function main() {
       const retry = form.listeners.submit({preventDefault() {}});
       assert.equal(JSON.parse(env.requests[2].settings.body).access_code, code.value.trim());
       await reply(env.requests[2], {error: 'test_error', message: 'Registration unavailable.'}, 403); await retry;
+      if (registration_open) {
+        code.value = '   ';
+        const blank = form.listeners.submit({preventDefault() {}});
+        assert.equal(Object.hasOwn(JSON.parse(env.requests[3].settings.body), 'access_code'), false);
+        await reply(env.requests[3], {error: 'test_error', message: 'Registration unavailable.'}, 403); await blank;
+      }
     }
   } else if (scenario === 'privacy-validation') {
     const env = environment({local: JSON.stringify(example())});

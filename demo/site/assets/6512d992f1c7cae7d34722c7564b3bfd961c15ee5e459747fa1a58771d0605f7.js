@@ -214,7 +214,8 @@
       const auth = form(body, async (values, element) => {
         const data = mode === "recover" ? {username: values.get("username"), recovery_code: values.get("recovery_code"), new_password: values.get("password")}
           : {username: values.get("username"), password: values.get("password")};
-        if (mode === "register" && values.get("access_code")) data.access_code = values.get("access_code").trim();
+        const code = (values.get("access_code") || "").trim();
+        if (mode === "register" && code) data.access_code = code;
         const result = await request("/auth/" + mode, data); element.reset();
         recovery(result.recovery_code, result.user.username, result.user.id); await loadSession(true);
       });
