@@ -70,15 +70,21 @@ class AnalyticsLiveAPITest(unittest.TestCase):
             self.assertEqual(self.request(path)[0], 400, path)
         self.assertEqual(live.LiveAPI().handle("/live/accounts/wrap.near/portfolio", "203.0.113.8", {})[0], 503)
 
-    def test_current_portfolio_is_not_cached_and_partial_values_remain_unknown(self):
+    def test_current_portfolio_is_cached_for_a_minute_and_partial_values_remain_unknown(self):
+        now = [0.0]
+        self.service.clock = lambda: now[0]
         self.data.inspect.side_effect = [{"summary": {"total_value_usd": None, "priced_subtotal_usd": "2", "unpriced_assets": 1}},
                                          {"summary": {"total_value_usd": None, "priced_subtotal_usd": "3", "unpriced_assets": 2}}]
         self.portfolios.save.return_value = {"id": "a" * 64}
         first = self.request("/live/accounts/wrap.near/portfolio")[1]
+        cached = self.request("/live/accounts/wrap.near/portfolio")[1]
+        now[0] = live.CACHE_TTL_S
         second = self.request("/live/accounts/wrap.near/portfolio")[1]
         self.assertEqual(first["summary"]["priced_subtotal_usd"], "2")
+        self.assertEqual(cached, first)
         self.assertEqual(second["summary"]["priced_subtotal_usd"], "3")
         self.assertIsNone(second["summary"]["total_value_usd"])
+        self.assertEqual(self.data.inspect.call_count, 2)
 
     def test_actual_portfolio_observation_round_trips_through_retained_history_and_exact_bytes(self):
         from tests.test_portfolio import NOW, Providers, Reader

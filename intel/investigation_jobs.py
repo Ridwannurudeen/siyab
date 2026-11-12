@@ -384,13 +384,16 @@ class InvestigationJobs:
                     connection.execute("RELEASE ending")
         except (accounts.AccountReadError, accounts.AccountInputError, history.HistoryReadError, history.HistoryInputError, OSError, sqlite3.Error) as error:
             code = "provider_timeout" if isinstance(error, TimeoutError) else type(error).__name__
-            attempts = row["attempts"] + 1
+            budget_wait = isinstance(error, accounts.AccountBudgetError)
+            attempts = row["attempts"] + (0 if budget_wait else 1)
             cooldown = error.retry_at_ms if isinstance(error, accounts.AccountReadError) else None
-            if isinstance(error, accounts.AccountReadError) and error.status is not None:
+            if budget_wait:
+                code = "provider_budget"
+            elif isinstance(error, accounts.AccountReadError) and error.status is not None:
                 code = "provider_http_" + str(error.status)
-            if cooldown is not None and subject is not None:
+            if cooldown is not None and subject is not None and not budget_wait:
                 self.history.defer_account(subject, "transfers" if request["kind"] == "graph" else request["kind"], cooldown)
-            next_due = max(self._now() + min(300000, 60000 * 2 ** min(attempts - 1, 2)), cooldown or 0)
+            next_due = cooldown if budget_wait else max(self._now() + min(300000, 60000 * 2 ** min(attempts - 1, 2)), cooldown or 0)
             with self._connection(write=True) as connection:
                 connection.execute("UPDATE jobs SET state=?,attempts=?,last_error=?,not_before_ms=MAX(?,provider_retry_ms),provider_retry_ms=MAX(provider_retry_ms,?),updated_ms=?,lease_token=NULL,lease_until_ms=0 WHERE id=? AND state NOT IN ('cancelled','completed') AND (lease_token=? OR lease_token IS NULL)",
                     ("failed" if attempts >= 3 else "retry_wait", attempts, code, next_due, cooldown or 0, self._now(), row["id"], token))

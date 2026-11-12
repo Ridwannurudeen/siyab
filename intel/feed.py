@@ -18,13 +18,14 @@ waits at the final height, each read downloads the final block again. Once a wal
 final height, and whenever a read finds no height past the last one, it sleeps 1 s before it reads
 the final block again, so a follower that keeps up makes about one neardata request a height. It
 stops on SIGINT or after --max-blocks heights, a skipped height included. It has no request budget
-and backs off 10 s on a 429 as above. When
-FASTNEAR_API_KEY_FILE names a usable key, its neardata requests (the final block and the blocks)
-carry that key as an Authorization Bearer header, read once at start and kept in memory; without
-one they are keyless, and record mode never sends it. Between neardata request starts
-it leaves FOLLOW_INTERVAL_KEYED_S (0.1 s, so at most 600 a minute) when keyed and FOLLOW_INTERVAL_S
-(0.4 s, so at most 150 a minute) when keyless, since neardata does not throttle keyed requests from
-the shared host the follower runs on and does throttle keyless ones from it. No reduced block is
+and backs off 10 s on a 429 as above. The
+follower never sends the FastNEAR key, whatever FASTNEAR_API_KEY_FILE names: keyed, it would poll
+every FOLLOW_INTERVAL_KEYED_S (0.1 s), about 150,000 keyed reads a day, enough to empty the shared
+key's credit in days, and its feed caller class has no keyed budget (intel/budget.py:KEYED_LIMITS).
+Its neardata requests (the final block and the blocks) are keyless, as in record mode, and between
+their starts it leaves FOLLOW_INTERVAL_S (0.4 s, so at most 150 a minute), the pace neardata allows
+keyless requests from the shared host the follower runs on. FOLLOW_INTERVAL_KEYED_S stays the pace of
+the operator's keyed top receivers scan (intel/top_receivers.py). No reduced block is
 written per height: a block that raised an event is written as
 <state dir>/event-blocks/<height>.json, the block_fixture its events' source names. A finalized
 height neardata answers with null or a 404 holds no block, as in record mode: the follower adds
@@ -87,9 +88,7 @@ The signals, each written as an evidence document under <state dir>/events/<sha2
 
 The transfer poll runs in follow mode only, from the follower's loop both while it walks heights
 and while it waits at the final height, every POLL_S (600 s), sooner after a 429 as below. It
-uses the optional key read once at start from the file FASTNEAR_API_KEY_FILE names and sends it
-only as the Authorization Bearer header of clients that write no fixture; without a usable key
-it still polls keylessly. Each poll asks POST
+polls keylessly, like the block walk. Each poll asks POST
 https://transfers.main.fastnear.com/v0/transfers for each subject, FOLLOW_INTERVAL_S apart
 (direction sender, min_usd_amount 1000, ignore_system true, limit 100, from_timestamp_ms the last
 complete window's end, to_timestamp_ms frozen at this window's start, which the API treats as exclusive, so no
@@ -601,17 +600,7 @@ def run(start, count, record, store=None, blocks_dir=BLOCKS_DIR, state_path=STAT
 def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=None, event_blocks_dir=None,
            max_blocks=None, sleep=time.sleep, clock=time.time, stopped=lambda: False):
     """Follow finalized heights, retaining only event blocks and the moving state."""
-    key_file = os.environ.get("FASTNEAR_API_KEY_FILE")
-    headers = {}
-    if key_file:
-        try:
-            api_key = Path(key_file).read_text(encoding="utf-8").strip()
-        except (OSError, UnicodeDecodeError):
-            api_key = None
-        if api_key:
-            headers = {"Authorization": f"Bearer {api_key}"}
-    interval_s = FOLLOW_INTERVAL_KEYED_S if headers else FOLLOW_INTERVAL_S
-    fetcher = fetcher or Fetcher(rpc.Client(NEARDATA_URL, "off", kind="http", headers=headers), max_requests=None)
+    fetcher = fetcher or Fetcher(rpc.Client(NEARDATA_URL, "off", kind="http"), max_requests=None)
     state_dir = Path(os.environ.get("FEED_STATE_DIR", FEED_DIR))
     state_path = Path(state_path) if state_path is not None else state_dir / "state.json"
     events_dir = Path(events_dir) if events_dir is not None else state_dir / "events"
@@ -627,14 +616,14 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
         state["events"].setdefault(signal, 0)
     context = Context(store or labels.load())
     state.setdefault("disabled_signals", {})
-    transfers_client = rpc.Client(TRANSFERS_URL, "off", kind="http", headers=headers)
+    transfers_client = rpc.Client(TRANSFERS_URL, "off", kind="http")
     pending_transfers = {}
     walked = 0
     last_request = None
     stamped = False
     while not stopped() and (max_blocks is None or walked < max_blocks):
         if last_request is not None:
-            sleep(max(0, interval_s - (clock() - last_request)))
+            sleep(max(0, FOLLOW_INTERVAL_S - (clock() - last_request)))
         poll_transfers(transfers_client, state, state_path, context, events_dir, clock, pending_transfers, stamp=stamped)
         _request_day(state, clock)
         requests_before = fetcher.requests
@@ -657,7 +646,7 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
             continue
         while next_height <= final_height and not stopped() and (max_blocks is None or walked < max_blocks):
             if last_request is not None and next_height < final_height:
-                sleep(max(0, interval_s - (clock() - last_request)))
+                sleep(max(0, FOLLOW_INTERVAL_S - (clock() - last_request)))
             poll_transfers(transfers_client, state, state_path, context, events_dir, clock, pending_transfers, stamp=stamped)
             _request_day(state, clock)
             if next_height == final_height:

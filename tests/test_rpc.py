@@ -265,6 +265,42 @@ class ModeTest(unittest.TestCase):
         self.assertNotIn("Authorization", fixture)
         self.assertNotIn("test-fastnear-header", path.read_text(encoding="utf-8"))
 
+    def test_authorization_is_only_on_the_original_request(self):
+        header = "Bearer synthetic-key"
+        for name in ("Authorization", "authorization", "AUTHORIZATION"):
+            with self.subTest(header=name):
+                response = mock.MagicMock()
+                response.__enter__.return_value.read1.side_effect = [b'{}', b'']
+                with mock.patch("urllib.request.urlopen", side_effect=no_network), \
+                        mock.patch("gate.rpc._open_with_deadline", return_value=response) as opened, \
+                        mock.patch("gate.rpc._fetch", wraps=rpc._fetch), rpc.request_deadline(25):
+                    self.assertEqual(rpc._fetch("https://transfers.main.fastnear.com/v0/transfers", None,
+                                                {name: header, "Accept": "application/json"}), {})
+                request = opened.call_args.args[0]
+                self.assertFalse(any(key.lower() == "authorization" for key in request.headers))
+                self.assertEqual(request.unredirected_hdrs["Authorization"], header)
+                self.assertEqual(request.get_header("Authorization"), header)
+                for target in ("https://other.example/read", "http://transfers.main.fastnear.com/read"):
+                    redirected = urllib.request.HTTPRedirectHandler().redirect_request(
+                        request, None, 302, "Found", {}, target)
+                    self.assertIsNone(redirected.get_header("Authorization"))
+                    self.assertEqual(redirected.get_header("Accept"), "application/json")
+
+    def test_record_mode_strips_authorization_on_unkeyed_hosts(self):
+        for host in ("rpc.example", "api.nearblocks.io", "test.rpc.fastnear.com"):
+            for header in ("Authorization", "authorization", "AUTHORIZATION"):
+                with self.subTest(host=host, header=header), \
+                        mock.patch("urllib.request.urlopen", side_effect=no_network), \
+                        mock.patch("gate.rpc._open_with_deadline", side_effect=no_network), \
+                        mock.patch("gate.rpc._fetch", return_value={"ok": True}) as fetched:
+                    rpc._NEARBLOCKS_USE.clear()
+                    client = rpc.Client("https://transfers.main.fastnear.com", "record", kind="http",
+                                        fixtures_dir=self.tmp.name, clock=lambda: T0,
+                                        headers={header: "Bearer synthetic-key", "Accept": "application/json"})
+                    client.get(f"https://{host}/{header}")
+                    self.assertEqual(fetched.call_args.args[2], {"Accept": "application/json"})
+        rpc._NEARBLOCKS_USE.clear()
+
     def test_kind_mismatch(self):
         with self.assertRaises(ValueError):
             self.client("replay").get("/x")
@@ -556,6 +592,34 @@ class FailClosedClientTest(unittest.TestCase):
         now[0] += DAY
         with mock.patch("urllib.request.urlopen", return_value=reply({"keys": []})):
             client.get("/v1/account/d.near/keys")
+
+    def test_a_request_being_served_never_sleeps_for_a_nearblocks_slot(self):
+        now = [T0]
+        slept = []
+        client = rpc.Client(rpc.NEARBLOCKS_URL, "off", kind="http", clock=lambda: now[0], sleep=slept.append)
+        with mock.patch("gate.rpc._fetch", return_value={"keys": []}) as opened, rpc.request_deadline(25):
+            client.get("/v1/account/a.near/keys")
+            now[0] += 4
+            with self.assertRaises(rpc.RateLimited) as caught:
+                client.get("/v1/account/b.near/keys")
+            now[0] += 6
+            client.get("/v1/account/c.near/keys")
+        self.assertNotIsInstance(caught.exception, rpc.BudgetExhausted)
+        self.assertEqual((slept, opened.call_count), ([], 2))
+        self.assertEqual(rpc._NEARBLOCKS_USE["api.nearblocks.io"]["count"], 2)
+
+    def test_unkeyed_hosts_never_receive_authorization(self):
+        for host in ("rpc.example", "api.nearblocks.io", "test.rpc.fastnear.com"):
+            for header in ("Authorization", "authorization", "AUTHORIZATION"):
+                with self.subTest(host=host, header=header), \
+                        mock.patch("urllib.request.urlopen", side_effect=no_network), \
+                        mock.patch("gate.rpc._open_with_deadline", side_effect=no_network), \
+                        mock.patch("gate.rpc._fetch", return_value={"result": {"ok": True}}) as fetched:
+                    rpc._NEARBLOCKS_USE.clear()
+                    client = rpc.Client(f"https://{host}", "off", headers={header: "Bearer synthetic-key",
+                                                                            "Accept": "application/json"})
+                    client.call("status", [])
+                    self.assertEqual(fetched.call_args.args[2], {"Accept": "application/json"})
 
     def test_other_hosts_and_replay_are_not_throttled(self):
         slept = []

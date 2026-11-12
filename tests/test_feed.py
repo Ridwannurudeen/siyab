@@ -891,7 +891,7 @@ class FollowModeTest(unittest.TestCase):
                     state, walked = self.follow_transfers(root, FakeFetcher(self.blocks(2), 2), lambda: T0)
                 self.assertEqual((walked, state["last_height"]), (1, 1))
                 self.assertEqual(opened.call_count, 1)
-                self.assertEqual(opened.call_args.args[0].get_header("Authorization"), "Bearer literal-test-key")
+                self.assertIsNone(opened.call_args.args[0].get_header("Authorization"))
                 self.assertEqual(state["last_large_transfer_error"],
                                  {"at": "2026-11-03T12:00:00Z", "status": status, "error": error})
                 self.assertEqual(state["large_transfer_next_poll_ms"], T0_MS + wait_s * 1000)
@@ -1045,9 +1045,9 @@ class FollowModeTest(unittest.TestCase):
                                    max_blocks=1, sleep=lambda _: None, clock=lambda: 1793707200)
         self.assertEqual(state["disabled_signals"], {})
         self.assertEqual(state["transfer_requests"], 1)
-        self.assertEqual(client.call_args.kwargs["headers"], {})
+        self.assertNotIn("headers", client.call_args.kwargs)
 
-    def test_a_usable_key_goes_to_neardata_as_a_bearer_header_and_into_no_file(self):
+    def test_a_key_file_never_reaches_neardata_transfers_or_any_file(self):
         import os
 
         synthetic = json.loads((BLOCKS / "synthetic-code-hash.json").read_text(encoding="utf-8"))
@@ -1079,8 +1079,8 @@ class FollowModeTest(unittest.TestCase):
                 neardata = [r for r in requests if r.full_url.startswith(feed.NEARDATA_URL)]
                 self.assertEqual([r.full_url for r in neardata],
                                  [feed.NEARDATA_URL + "/v0/last_block/final", feed.NEARDATA_URL + "/v0/block/1"])
-                self.assertEqual({r.get_header("Authorization") for r in neardata},
-                                 {"Bearer literal-test-key" if keyed else None})
+                self.assertGreater(len(requests), len(neardata))
+                self.assertEqual({r.get_header("Authorization") for r in requests}, {None})
                 self.assertEqual((walked, state["events"]["code_hash_matches_incident"]), (1, 1))
                 written = [path for path in root.rglob("*") if path.is_file() and path != key_file]
                 self.assertTrue(any(path.parent.name == "event-blocks" for path in written))
@@ -1110,7 +1110,7 @@ class FollowModeTest(unittest.TestCase):
                     self.assertEqual(state["disabled_signals"], {})
                     self.assertEqual(state["transfer_requests"], 1)
                     self.assertNotIn(key_file.name, (state_dir / "state.json").read_text(encoding="utf-8"))
-                    self.assertEqual(client.call_args.kwargs["headers"], {})
+                    self.assertNotIn("headers", client.call_args.kwargs)
 
     def test_follow_paces_and_backs_off(self):
         fake = FakeFetcher(self.blocks(2), 2, throttled=1)
@@ -1180,9 +1180,10 @@ class FollowModeTest(unittest.TestCase):
         self.assertEqual(fake.sleeps, [])
         return log
 
-    def test_a_keyed_follower_paces_neardata_at_a_tenth_of_a_second(self):
-        log = self.paced_log(3, keyed=True)
-        self.assertEqual(log[log.index("get"):], ["get", 0.1, "get", 0.1, "get"])
+    def test_a_follower_with_a_key_file_still_paces_neardata_at_the_keyless_interval(self):
+        log = [entry for entry in self.paced_log(3, keyed=True) if entry != "post"]
+        self.assertEqual(log[log.index("get"):], ["get", 0.4, "get", 0.4, "get"])
+        self.assertNotIn(feed.FOLLOW_INTERVAL_KEYED_S, log)
 
     def test_a_keyless_follower_paces_neardata_at_four_tenths_of_a_second(self):
         log = self.paced_log(3, keyed=False)

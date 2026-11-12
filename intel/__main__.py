@@ -41,6 +41,7 @@ the sha256 of the concatenated reductions, and the exclusions. The data director
 """
 
 import argparse
+import contextlib
 import hashlib
 import json
 import os
@@ -50,7 +51,7 @@ import time
 from pathlib import Path
 
 from gate import rpc, rules
-from intel import alerts, api, cluster, feed, issuers, labels, records, render, reports, sanctions, seed, snapshot, top_receivers, trace
+from intel import alerts, api, budget, cluster, feed, issuers, labels, records, render, reports, sanctions, seed, snapshot, top_receivers, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 RECEIVERS_DIR = ROOT / "fixtures" / "receivers"
@@ -420,8 +421,9 @@ def _feed(args):
 
             previous = signal.signal(signal.SIGINT, stop)
             try:
-                state, walked = feed.follow(args.start, max_blocks=args.max_blocks,
-                                            stopped=lambda: interrupted)
+                with rpc.caller_class("feed"):
+                    state, walked = feed.follow(args.start, max_blocks=args.max_blocks,
+                                                stopped=lambda: interrupted)
             finally:
                 signal.signal(signal.SIGINT, previous)
             print(f"followed {walked} heights to height {state['last_height']}, lag {state['lag_blocks']} blocks")
@@ -598,7 +600,8 @@ def _history_follow(args):
         print("stopped: workspace state must be outside the source repository", file=sys.stderr)
         return 2
     store = SQLiteWorkspaceStore(state / "workspace.sqlite3")
-    result = history.run(store, accounts.AccountData(labels.load()), state / "history.sqlite3", once=args.once)
+    with budget.use_database(state / budget.DATABASE_NAME), rpc.caller_class("watch"):
+        result = history.run(store, accounts.AccountData(labels.load()), state / "history.sqlite3", once=args.once)
     print(json.dumps(result, sort_keys=True))
     return 0
 
@@ -610,9 +613,10 @@ def _investigation_follow(args):
     if state == ROOT or ROOT in state.parents:
         print("stopped: workspace state must be outside the source repository", file=sys.stderr)
         return 2
-    result = investigation_jobs.run(state / "investigation-jobs.sqlite3",
-                                    history.AccountHistory(state / "history.sqlite3"),
-                                    accounts.AccountData(labels.load()), once=args.once)
+    with budget.use_database(state / budget.DATABASE_NAME), rpc.caller_class("investigation"):
+        result = investigation_jobs.run(state / "investigation-jobs.sqlite3",
+                                        history.AccountHistory(state / "history.sqlite3"),
+                                        accounts.AccountData(labels.load()), once=args.once)
     print(json.dumps(result, sort_keys=True))
     return 0
 
@@ -628,6 +632,15 @@ def _delivery_follow(args):
     result = delivery.run(SQLiteWorkspaceStore(state / "workspace.sqlite3"), once=args.once)
     print(json.dumps(result, sort_keys=True))
     return 0
+
+
+def _serve(args):
+    # Each live request sets its own caller class (intel/live.py:LiveAPI.handle); the state directory holds
+    # the provider budget shared with the workers.
+    with (budget.use_database(Path(args.state_dir).expanduser().resolve() / budget.DATABASE_NAME)
+          if args.state_dir is not None else contextlib.nullcontext()):
+        return api.serve(args.host, args.port, args.site, live=args.live, state_dir=args.state_dir,
+                         workspace_origin=args.workspace_origin)
 
 
 def main(argv=None):
@@ -648,8 +661,7 @@ def main(argv=None):
     server.add_argument("--live", action="store_true", help="enable keyless live mainnet checks and testnet reports")
     server.add_argument("--state-dir", help="enable authenticated workspaces with state outside the source repository")
     server.add_argument("--workspace-origin", default="https://siyab.xyz", help="exact workspace HTTPS origin; explicit localhost HTTP is supported for development")
-    server.set_defaults(handler=lambda args: api.serve(args.host, args.port, args.site, live=args.live,
-                                                      state_dir=args.state_dir, workspace_origin=args.workspace_origin))
+    server.set_defaults(handler=_serve)
     monitoring = commands.add_parser("monitor", help="index retained feed evidence into background team inboxes")
     monitoring.add_argument("--state-dir", required=True)
     monitoring.add_argument("--once", action="store_true")

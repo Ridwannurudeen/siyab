@@ -77,7 +77,9 @@ Python variables:
 - `GATE_KEEP_EVIDENCE`: set to `1` to retain evidence directories after process exit.
 - `AGENT_PUB`: agent public key used by the MCP live verdict and testnet registration scripts.
 - `FEED_STATE_DIR`: feed state directory; defaults to `intel/feed`.
-- `FASTNEAR_API_KEY_FILE`: path to an external file holding the FastNEAR key; the feed follower and account reader use it for authenticated provider requests.
+- `FASTNEAR_API_KEY_FILE`: path to an external provider key file for account, portfolio and scanner reads; sent only with a provider budget database. The feed follower never reads or sends it.
+- `SIYAB_PROVIDER_BUDGET_DB`: external provider budget database path; otherwise service entry points use their state directory.
+- `SIYAB_VERDICT_NEARBLOCKS`: set to `1` to enable the hosted verdict account-age fallback; disabled by default.
 - `SIYAB_TELEGRAM_TOKEN_FILE`: path to the dedicated Siyab Telegram bot token file outside the repository; missing credentials leave delivery unconfigured.
 
 Testnet script variables:
