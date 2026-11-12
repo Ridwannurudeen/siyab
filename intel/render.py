@@ -549,7 +549,7 @@ def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVE
         '<code>scripts/counts.py</code>.</p></details></div></section>'
         '<section class="limits" aria-labelledby="limits-title"><h2 id="limits-title">What these reads mean</h2><p class="muted">Scope and limits</p>'
         '<ul><li>The Gate and Reports contracts shown here run on testnet. Live verdict, scan and swap checks read mainnet.</li>'
-        '<li>8 Nov demonstration configuration: One team moderator today.</li>'
+        f'<li>9 Nov recorded demonstration: three team moderators, with two approvals to accept a report. <a href="{GITHUB_REPO}/blob/main/fixtures/runs/reports-threshold-demo-20261109.txt">Recorded threshold run</a></li>'
         f'<li>Label store size: {label_count["assertions"]} assertions over {label_count["subjects"]} subjects.</li>'
         '<li>Live API checks are read only, rate limited and never sign.</li></ul>'
         f'<p class="muted">The following quotation describes the recorded 8 Nov demonstration, not current contract totals. <a href="{GITHUB_REPO}/blob/main/docs/TESTNET.md">Dated reports updates</a> include the later threshold run.</p>'
@@ -601,6 +601,8 @@ def top_receivers_page(judgements_dir=TOP_RECEIVERS_JUDGEMENTS_DIR, ranking_path
     other_deny = (f'<p>Other DENY signal groups: {summary["deny_other"]}.</p>' if summary["deny_other"] else "")
     body = ("<h1>Top receivers</h1><p>Aggregate results for the committed mainnet receiver ranking.</p>"
             f"<p>{window_text}</p><p>Ranking rule: {esc(rule_text)}</p>"
+            "<p>NEP-141 ft_transfer logs with positive amounts and different payer and receiver ids count from any contract whose receipt did not fail. "
+            "Logs from uncatalogued contracts count toward distinct payers.</p>"
             f'<p>Judged {summary["total"]}: {summary["verdicts"]["ALLOW"]} ALLOW, '
             f'{summary["verdicts"]["DENY"]} DENY, {summary["verdicts"]["UNKNOWN"]} UNKNOWN.</p>'
             "<h2>UNKNOWN causes</h2><p>Counts overlap.</p><ul>" + causes + "</ul>"

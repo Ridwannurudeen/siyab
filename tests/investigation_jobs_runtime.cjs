@@ -90,6 +90,12 @@ async function main() {
     assert.match(text(env.nodes['jobs-list']), /2026-11-10 15:51:03 UTC/);
     assert.match(text(env.nodes['jobs-list']), /Queued\. .*Paused while due watched accounts are polled\. After three short pauses in a row it reads its next page anyway\./s);
     assert.doesNotMatch(text(env.nodes['jobs-list']), /archive capacity/);
+    const failed = env.api.loadList(); await reply(env.requests.at(-1), {items:[{...fixture.queued,state:'failed',last_error:'job_capacity',attempts:0}]}); await failed;
+    assert.match(text(env.nodes['jobs-list']), /Collection stopped at the job storage limit/);
+    assert.match(text(env.nodes['jobs-list']), /Job storage capacity was reached\. Retained results remain available/);
+    assert.doesNotMatch(text(env.nodes['jobs-list']), /repeated errors|could not read its source/);
+    const waiting = env.api.loadList(); await reply(env.requests.at(-1), {items:[{...fixture.queued,last_error:'history_capacity',attempts:0}]}); await waiting;
+    assert.match(text(env.nodes['jobs-list']), /Waiting for read or storage capacity/);
     env.nodes['jobs-status'].textContent = 'Investigation queued. Progress follows the worker and source budgets shown below.';
     const completed = env.api.loadList(); await reply(env.requests.at(-1), {items:[fixture.completed]}); await completed;
     assert.match(text(env.nodes['jobs-list']), /Finished within bounds/); assert.doesNotMatch(text(env.nodes['jobs-status']), /queued/i);

@@ -1,4 +1,4 @@
-"""Command line: python -m intel <command>.
+"""Command line: python -m intel <command>. The top receivers ranking counts NEP-141 ft_transfer logs with positive amounts and different payer and receiver ids from any contract whose receipt did not fail. Logs from uncatalogued contracts count toward distinct payers.
 
 receivers [--record] judges the recorded mainnet receiver set with gate.rules.judge in replay (an
 empty allowlist, the committed label store and the archival RPC) and writes one

@@ -501,7 +501,8 @@ class RenderTest(unittest.TestCase):
                 self.assertIn(path, page)
                 self.assertIn(f"{render.GITHUB_REPO}/blob/main/{path}", page)
         self.assertIn('href="top-receivers.html"', page)
-        self.assertIn("One team moderator today", page)
+        self.assertIn("9 Nov recorded demonstration: three team moderators, with two approvals to accept a report.", page)
+        self.assertIn("fixtures/runs/reports-threshold-demo-20261109.txt", page)
 
     def test_generated_index_shows_sources_and_fails_live_checks_closed(self):
         page = self.pages["index.html"]
@@ -624,6 +625,8 @@ class RenderTest(unittest.TestCase):
         self.assertIn("DENY", populated)
         self.assertIn("New account (account_age signal only): 1.", populated)
         self.assertNotIn("A cited reason.", populated)
+        self.assertIn("NEP-141 ft_transfer logs with positive amounts and different payer and receiver ids count from any contract whose receipt did not fail.", populated)
+        self.assertIn("Logs from uncatalogued contracts count toward distinct payers.", populated)
 
     def test_top_receivers_page_publishes_aggregate_results_without_judgement_subjects(self):
         judgement_dir = ROOT / "fixtures" / "receivers" / "top" / "judgements"

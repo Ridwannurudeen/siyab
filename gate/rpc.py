@@ -393,7 +393,10 @@ class Client:
         self.last_source = {"provider": host, "request_sha256": key, "fetched_at": None}
         used_fixture = False
         if self.mode != "off" and path.exists():
-            fixture = json.loads(path.read_text(encoding="utf-8"))
+            try:
+                fixture = json.loads(path.read_text(encoding="utf-8"))
+            except RecursionError as error:
+                raise MalformedResponse("the body is nested too deeply to parse") from error
             if self.mode == "replay" or self.clock() - _seconds(fixture["fetched_at"]) < MAX_AGE_S:
                 self.last_source["fetched_at"] = fixture["fetched_at"]
                 response = fixture["response"]
