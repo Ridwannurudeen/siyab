@@ -1,5 +1,6 @@
 """Offline contract tests for the opt-in live JSON routes."""
 
+import hashlib
 import http.client
 import json
 import socket
@@ -85,6 +86,7 @@ class LiveRouteTest(unittest.TestCase):
                                      expires_ms=None, verdict_id=None, latency_ms=12)
         verdict_answer = {"outcome": "ALLOW", "action": "sign", "reasons": judgement.reasons,
                           "checks": [{"name": "receiver_exists", "status": "pass", "detail": "alice.near exists"}],
+                          "evidence": evidence.canonical_bytes(document).decode("utf-8"),
                           "evidence_hash": evidence.evidence_hash(document), "freshness": judgement.observed,
                           "verdict": None, "signing": "never", "latency_ms": 12}
         with mock.patch("intel.live.rules.judge", return_value=judgement) as judge, \
@@ -157,6 +159,56 @@ class LiveRouteTest(unittest.TestCase):
         self.assertEqual((status, body), (200, {"reports": recent}))
         self.assertEqual(self.request("/live/health")[::2],
                          (200, {"ok": True, "network": "mainnet", "rate_per_minute": 60}))
+
+    def test_verdict_evidence_bytes_match_hash_and_cached_answer(self):
+        judgement = self.allow_judgement()
+        with mock.patch("intel.live.rules.judge", return_value=judgement) as judge, \
+                mock.patch("intel.live.rules.issuers_for", return_value=[]):
+            path = "/live/verdict?receiver=alice.near&amount=1&token=near"
+            status, _, answer = self.request(path)
+            self.assertEqual(status, 200)
+            data = answer["evidence"].encode("utf-8")
+            self.assertEqual(hashlib.sha256(data).hexdigest(), answer["evidence_hash"])
+            self.assertEqual(evidence.canonical_bytes(json.loads(data)), data)
+            cached_status, _, cached = self.request(path)
+        self.assertEqual(cached_status, 200)
+        self.assertEqual(cached["evidence"], answer["evidence"])
+        self.assertEqual(cached, answer)
+        judge.assert_called_once()
+
+    def test_full_verdict_evidence_with_large_quoted_reads_fits_response_limit(self):
+        self.live.store = labels.load()
+        source = {"provider": "stub", "request_sha256": None, "fetched_at": None}
+        symbol = '\x00"\\界' * 4096
+
+        def view(_client, contract, method, args, *, block_id=None):
+            if method == "ft_metadata":
+                return {"name": "sample", "symbol": symbol, "decimals": 24}
+            if method == "storage_balance_of":
+                return {"total": "1"}
+            if method == "is_banned":
+                return symbol
+            raise AssertionError(f"unexpected view {method}")
+
+        issuer = {"token": "issuer.near", "method": "is_banned", "args_key": "account_id",
+                  "banned": True, "clear": False}
+        with mock.patch("intel.live.rules.issuers_for", return_value=[issuer]), \
+                mock.patch("intel.live.rpc.Client.view_account", return_value={"block_height": 123,
+                                                                             "code_hash": rpc.EMPTY_CODE_HASH}), \
+                mock.patch("intel.live.rpc.Client.view_access_key_list", return_value={
+                    "keys": [{"access_key": {"nonce": 1, "permission": "FullAccess"}}]}), \
+                mock.patch("intel.live.rpc.Client.call_function", autospec=True, side_effect=view), \
+                mock.patch("intel.live.rules._source", return_value=source):
+            status, _, answer = self.request("/live/verdict?receiver=alice.near&amount=1&token=wrap.near")
+        self.assertEqual(status, 200)
+        document = json.loads(answer["evidence"])
+        self.assertEqual(len(document["checks"]), 11)
+        self.assertEqual((answer["outcome"], answer["action"]), ("ASK", "ask"))
+        size = self.live._response_size(answer, live.MAX_RESPONSE_BYTES)
+        self.assertIsNotNone(size)
+        self.assertLessEqual(size, live.MAX_RESPONSE_BYTES)
+        self.assertEqual(hashlib.sha256(answer["evidence"].encode("utf-8")).hexdigest(),
+                         answer["evidence_hash"])
 
     def test_validation_refusals_and_testnet_receiver(self):
         bad_paths = (

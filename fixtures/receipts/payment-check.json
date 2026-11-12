@@ -1,0 +1,60 @@
+{
+  "outcome": "ASK",
+  "action": "ask",
+  "reasons": [
+    "issuer_blacklist could not run: could not read get_blacklist_status on usdt.tether-token.near: TransportError: stubbed read unavailable; could not read is_blocklisted on 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1: TransportError: stubbed read unavailable.",
+    "account_age could not run: no archival age (view_access_key_list could not run: TransportError: stubbed read unavailable); could not read the account keys: RateLimited: NearBlocks is not read by the hosted verdict route.",
+    "dust_funded could not run: the creation transaction is not known."
+  ],
+  "checks": [
+    {
+      "name": "receiver_exists",
+      "status": "pass",
+      "detail": "alice.near exists"
+    },
+    {
+      "name": "label_denylist",
+      "status": "pass",
+      "detail": "no denylist or incident label on alice.near"
+    },
+    {
+      "name": "issuer_blacklist",
+      "status": "unknown",
+      "detail": "could not read get_blacklist_status on usdt.tether-token.near: TransportError: stubbed read unavailable; could not read is_blocklisted on 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1: TransportError: stubbed read unavailable"
+    },
+    {
+      "name": "memo_injection",
+      "status": "pass",
+      "detail": "no memo"
+    },
+    {
+      "name": "account_age",
+      "status": "unknown",
+      "detail": "no archival age (view_access_key_list could not run: TransportError: stubbed read unavailable); could not read the account keys: RateLimited: NearBlocks is not read by the hosted verdict route"
+    },
+    {
+      "name": "dust_funded",
+      "status": "unknown",
+      "detail": "the creation transaction is not known"
+    },
+    {
+      "name": "lookalike",
+      "status": "pass",
+      "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation"
+    },
+    {
+      "name": "code_without_metadata",
+      "status": "pass",
+      "detail": "no contract code"
+    }
+  ],
+  "evidence_hash": "e724da915a5801ce1486f2eab73ef048053f30ad805fa6c79633c03f01f028ba",
+  "freshness": {
+    "block_height": 123,
+    "timestamp_ms": 1000000
+  },
+  "verdict": null,
+  "signing": "never",
+  "latency_ms": 0,
+  "evidence": "{\"checks\":[{\"detail\":\"alice.near exists\",\"id\":\"receiver_exists\",\"source\":{\"fetched_at\":null,\"provider\":\"offline sample\",\"request_sha256\":null},\"status\":\"pass\"},{\"detail\":\"no denylist or incident label on alice.near\",\"id\":\"label_denylist\",\"source\":{\"fetched_at\":null,\"provider\":\"label store\",\"request_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"},\"status\":\"pass\"},{\"detail\":\"could not read get_blacklist_status on usdt.tether-token.near: TransportError: stubbed read unavailable; could not read is_blocklisted on 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1: TransportError: stubbed read unavailable\",\"id\":\"issuer_blacklist\",\"source\":{\"fetched_at\":null,\"provider\":\"offline sample\",\"request_sha256\":null},\"status\":\"unknown\"},{\"detail\":\"no memo\",\"id\":\"memo_injection\",\"source\":{\"fetched_at\":null,\"provider\":\"local patterns\",\"request_sha256\":null},\"status\":\"pass\"},{\"detail\":\"no archival age (view_access_key_list could not run: TransportError: stubbed read unavailable); could not read the account keys: RateLimited: NearBlocks is not read by the hosted verdict route\",\"id\":\"account_age\",\"source\":{\"fetched_at\":null,\"provider\":\"nearblocks\",\"request_sha256\":null},\"status\":\"unknown\"},{\"detail\":\"the creation transaction is not known\",\"id\":\"dust_funded\",\"source\":{\"fetched_at\":null,\"provider\":\"nearblocks\",\"request_sha256\":null},\"status\":\"unknown\"},{\"detail\":\"no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation\",\"id\":\"lookalike\",\"source\":{\"fetched_at\":null,\"provider\":\"allowlist and label store\",\"request_sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"},\"status\":\"pass\"},{\"detail\":\"no contract code\",\"id\":\"code_without_metadata\",\"source\":{\"fetched_at\":null,\"provider\":\"offline sample\",\"request_sha256\":null},\"status\":\"pass\"}],\"expires_ms\":null,\"issued_ms\":null,\"labels\":[],\"latency_ms\":0,\"observed\":{\"block_height\":123,\"timestamp_ms\":1000000},\"reasons\":[\"issuer_blacklist could not run: could not read get_blacklist_status on usdt.tether-token.near: TransportError: stubbed read unavailable; could not read is_blocklisted on 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1: TransportError: stubbed read unavailable.\",\"account_age could not run: no archival age (view_access_key_list could not run: TransportError: stubbed read unavailable); could not read the account keys: RateLimited: NearBlocks is not read by the hosted verdict route.\",\"dust_funded could not run: the creation transaction is not known.\"],\"subject\":{\"amount\":\"1\",\"kind\":\"near\",\"memo_sha256\":null,\"network\":\"mainnet\",\"receiver\":\"alice.near\",\"token\":null},\"verdict\":\"UNKNOWN\",\"verdict_id\":null,\"version\":\"1\"}"
+}

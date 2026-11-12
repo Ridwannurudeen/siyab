@@ -14,9 +14,10 @@ Verdict and checks the signature with gate.ed25519.verify. Nothing here touches 
 
 import hashlib
 import json
+import unicodedata
 from pathlib import Path
 
-from gate import base58, canon, ed25519
+from gate import base58, canon, ed25519, evidence
 
 STANDARD = "shieldbot-near"
 EVENT_VERSION = "1.0.0"
@@ -88,6 +89,108 @@ def rebuild_message(evidence_document, verdict_object):
     rebuilt = "|".join(parts).encode("utf-8")
     canon.parse_canonical(rebuilt)
     return rebuilt
+
+
+def _unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise VerifyError(f"duplicate JSON key: {key!r}")
+        result[key] = value
+    return result
+
+
+def _receipt_text(value):
+    return "".join(json.dumps(char)[1:-1] if unicodedata.category(char) in ("Cc", "Cf", "Zl", "Zp")
+                   else char for char in json.dumps(value, ensure_ascii=False)[1:-1])
+
+
+def verify_receipt(path):
+    """Check an unsigned payment check answer against its canonical evidence, offline."""
+    from intel.live import LiveAPI
+
+    answer = json.loads(Path(path).read_text(encoding="utf-8"), object_pairs_hook=_unique_object)
+    required = {"evidence", "evidence_hash", "checks", "reasons", "outcome", "action",
+                "verdict", "signing", "freshness", "latency_ms"}
+    if not isinstance(answer, dict) or set(answer) != required:
+        raise VerifyError("the receipt must have exactly the answer fields")
+    if not isinstance(answer["evidence"], str):
+        raise VerifyError("evidence must be a string")
+    data = answer["evidence"].encode("utf-8")
+    if hashlib.sha256(data).hexdigest() != answer["evidence_hash"]:
+        raise VerifyError("evidence sha256 does not equal evidence_hash")
+    document = json.loads(data, object_pairs_hook=_unique_object)
+    if evidence.canonical_bytes(document) != data:
+        raise VerifyError("evidence is not canonical JSON")
+    required = {"version", "subject", "checks", "labels", "verdict", "reasons", "observed",
+                "issued_ms", "expires_ms", "verdict_id", "latency_ms"}
+    if not isinstance(document, dict) or set(document) != required:
+        raise VerifyError("evidence must have exactly the document fields")
+    if document["version"] != evidence.VERSION:
+        raise VerifyError("evidence version is not supported")
+    if any(document[field] is not None for field in ("issued_ms", "expires_ms", "verdict_id")):
+        raise VerifyError("payment check evidence must have null issued_ms, expires_ms and verdict_id")
+    subject = document["subject"]
+    if (not isinstance(subject, dict)
+            or set(subject) != {"network", "kind", "token", "receiver", "amount", "memo_sha256"}
+            or subject["network"] != "mainnet" or subject["kind"] not in ("near", "ft")):
+        raise VerifyError("evidence subject is not a payment check subject")
+    canon.account_id(subject["receiver"], "receiver")
+    if subject["receiver"].endswith(".testnet"):
+        raise VerifyError("payment check evidence must have a mainnet receiver")
+    if subject["memo_sha256"] is not None:
+        raise VerifyError("payment check evidence must have a null memo_sha256")
+    if not isinstance(subject["amount"], str):
+        raise VerifyError("payment check evidence amount must be a string")
+    canon.amount_field(subject["amount"])
+    if subject["kind"] == "ft":
+        canon.account_id(subject["token"], "token")
+        if subject["token"].endswith(".testnet"):
+            raise VerifyError("payment check evidence must have a mainnet token")
+    elif subject["token"] is not None:
+        raise VerifyError("native payment evidence must have a null token")
+    observed = document["observed"]
+    if (not isinstance(observed, dict) or set(observed) != {"block_height", "timestamp_ms"}
+            or any(value is not None and (type(value) is not int or value < 0)
+                   for value in (observed["block_height"], observed["timestamp_ms"]))):
+        raise VerifyError("evidence observed block and timestamp are malformed")
+    if (not isinstance(document["labels"], list)
+            or not all(isinstance(label, str) for label in document["labels"])
+            or not isinstance(document["reasons"], list)
+            or not all(isinstance(reason, str) for reason in document["reasons"])
+            or not isinstance(document["verdict"], str)):
+        raise VerifyError("evidence labels, reasons or verdict are malformed")
+    if document["latency_ms"] is not None and type(document["latency_ms"]) is not int:
+        raise VerifyError("evidence latency_ms must be an integer or null")
+    checks = document["checks"]
+    if not isinstance(checks, list) or not checks:
+        raise VerifyError("evidence checks must be a non-empty list")
+    for check in checks:
+        if (not isinstance(check, dict) or set(check) != {"id", "status", "detail", "source"}
+                or not isinstance(check["id"], str) or not check["id"]
+                or check["status"] not in evidence.STATUSES or not isinstance(check["detail"], str)
+                or not isinstance(check["source"], dict)
+                or set(check["source"]) != {"provider", "request_sha256", "fetched_at"}
+                or not isinstance(check["source"]["provider"], str)
+                or any(check["source"][field] is not None and not isinstance(check["source"][field], str)
+                       for field in ("request_sha256", "fetched_at"))):
+            raise VerifyError("an evidence check is malformed")
+    reduced = LiveAPI._verdict_shape(document["verdict"], checks, document["reasons"],
+                                     answer["evidence_hash"], observed, document["latency_ms"])
+    for field in ("checks", "reasons", "outcome", "action", "freshness", "latency_ms"):
+        if evidence.canonical_bytes(answer[field]) != evidence.canonical_bytes(reduced[field]):
+            raise VerifyError(f"answer {field} does not match the evidence")
+    if answer["verdict"] is not None or answer["signing"] != "never":
+        raise VerifyError("a payment check receipt must be unsigned with signing never")
+    lines = [f"receiver: {subject['receiver']}", f"token: {subject['token'] or 'near'}",
+             f"amount: {subject['amount']}",
+             f"observed block: {observed['block_height'] if observed['block_height'] is not None else 'unknown'}"]
+    lines += [f"{check['status']:<7} {_receipt_text(check['id'])}: {_receipt_text(check['detail'])}"
+              for check in checks]
+    lines.append(f"outcome: {answer['outcome']} ({answer['action']})")
+    lines.append("receipt consistent (unsigned: this checks the answer against its own evidence, "
+                 "it does not authenticate the server or prove the checks are true)")
+    return lines
 
 
 def verify(record_path, evidence_path, verdict_path=None, key=None):

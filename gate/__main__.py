@@ -186,6 +186,17 @@ def _verify(args):
     return 0 if ok else 1
 
 
+def _verify_receipt(args):
+    try:
+        lines = verify.verify_receipt(args.file)
+    except (OSError, ValueError, TypeError, RecursionError) as error:
+        print(f"not verified: {error}")
+        return 1
+    for line in lines:
+        print(line)
+    return 0
+
+
 def _agent(args):
     """pay and attack: the agent key on GATE_ACCOUNT_ID, testnet only."""
     gate, key_file = os.environ.get("GATE_ACCOUNT_ID"), os.environ.get("AGENT_KEY_FILE")
@@ -351,6 +362,10 @@ def main(argv=None):
     check.add_argument("--verdict", help="the Verdict object file, to check its signature")
     check.add_argument("--key", help="the verifier public key as ed25519:<base58>")
     check.set_defaults(handler=_verify)
+
+    receipt = commands.add_parser("verify-receipt", help="check a payment check receipt against its evidence, offline")
+    receipt.add_argument("file", help="the downloaded payment check answer JSON")
+    receipt.set_defaults(handler=_verify_receipt)
 
     page = commands.add_parser("incident", help="print an incident page from intel/incidents")
     page.add_argument("id", help="the incident id, such as rhea")

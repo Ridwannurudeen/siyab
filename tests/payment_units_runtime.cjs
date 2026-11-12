@@ -9,6 +9,8 @@ class Element {
   addEventListener(event, callback, options) { this.listeners[event] = callback; this.listenerOptions[event] = options; }
   emit(event, target = this) { return this.listeners[event]({currentTarget: this, target, preventDefault() {}}); }
   setAttribute() {}
+  click() { if (this.listeners.click) this.emit("click"); }
+  remove() {}
 }
 const flush = () => new Promise(resolve => setImmediate(resolve));
 const text = element => element.textContent + element.children.map(text).join(" ");
@@ -16,26 +18,32 @@ function setup(deferVerdict = false) {
   const nodes = {};
   const paths = [];
   const replies = [];
+  const answers = [];
+  const downloads = [];
+  const links = [];
   const document = {
     getElementById: id => nodes[id] ||= Object.assign(new Element(), {value: id === "tool-token" ? "near" : ""}),
     querySelectorAll: () => [],
-    createElement: () => new Element(),
+    createElement: tag => { const node = new Element(); if (tag === "a") links.push(node); return node; },
+    body: new Element(),
   };
   vm.runInNewContext(fs.readFileSync("intel/ui/index.js", "utf8"), {
-    document, URLSearchParams,
+    document, URLSearchParams, Blob, setTimeout,
+    URL: class extends URL { static createObjectURL(blob) { downloads.push(blob); return "blob:receipt"; } static revokeObjectURL() {} },
     FormData: class { constructor(form) { this.values = form.values; } get(key) { return this.values[key]; } },
     fetch: async path => {
       paths.push(path);
       const data = path === "/search.json" ? {accounts: []} : path.startsWith("/live/reports") ? {reports: []} : path.startsWith("/live/scan") ? {
         access_keys: 0, full_access_keys: [], empty_method_names: [], dead_keys: [], unlimited_allowance: [], findings: [], read_at_block: 1,
       } : {outcome: "ALLOW", action: "sign", evidence_hash: "a".repeat(64), freshness: {block_height: 1}, verdict: null,
-        signing: "never", latency_ms: 1, reasons: [], checks: [{name: "test", status: "pass", detail: "test"}]};
+        signing: "never", evidence: "{\"note\":\"Recorded reply \u00e9\"}", latency_ms: 1, reasons: [], checks: [{name: "test", status: "pass", detail: "test"}]};
+      if (path.startsWith("/live/verdict?")) answers.push(data);
       const response = {ok: true, status: 200, headers: {get: () => "application/json"}, json: async () => data};
       if (deferVerdict && (path.startsWith("/live/verdict?") || path.startsWith("/live/intents?") || (deferVerdict === "checks" && path.startsWith("/live/scan/")))) return new Promise(resolve => replies.push(() => resolve(response)));
       return response;
     },
   });
-  return {nodes, paths, replies};
+  return {nodes, paths, replies, answers, downloads, links};
 }
 async function submit(kind, amount, token = "near") {
   const env = setup();
@@ -66,6 +74,18 @@ async function main() {
       assert.equal(params.get("amount"), expected, `${kind} ${amount} NEAR must preserve the exact base-unit value`);
       assert.equal(params.get("token"), "near");
       if (kind === "account") assert.match(text(env.nodes["account-verdict"]), /Amount checked:.*NEAR/);
+      const panel = env.nodes[kind === "account" ? "account-verdict" : "tool-verdict-result"];
+      const download = panel.children.find(node => node.textContent === "Download evidence");
+      assert.ok(download, "A finished payment check must offer an evidence download");
+      const expectedReceipt = JSON.stringify(env.answers[0]);
+      const requestCount = env.paths.length;
+      download.click();
+      assert.equal(env.downloads.length, 1);
+      assert.deepEqual(Buffer.from(await env.downloads[0].arrayBuffer()), Buffer.from(expectedReceipt, "utf8"), "The download must preserve the displayed answer byte for byte");
+      assert.equal(env.downloads[0].type, "application/json");
+      assert.equal(env.links[0].download, `siyab-check-${env.answers[0].evidence_hash.slice(0, 12)}.json`);
+      assert.equal(env.paths.length, requestCount, "Downloading a receipt must not request another answer");
+      assert.equal(JSON.stringify(env.answers[0]), expectedReceipt, "Downloading must leave the displayed answer unchanged");
     }
   } else if (scenario === "invalid") {
     for (const kind of ["account", "tool"]) for (const amount of ["", "0", "0.0", "-1", "+1", "1e3", "01", "0.0000000000000000000000001", "1.1234567890123456789012345", "340282366920938.463463374607431768211456", "340282366920939", "1,000", "Infinity", "NaN"]) {
