@@ -13,11 +13,12 @@ data = PortfolioData(reader, client_factory=provider.factory, clock=lambda: NOW)
 current = data.inspect('alice.near')
 for price in provider.prices.values(): price['timestamp'] = NOW-86400
 archival = data.historical('alice.near', 50, ['wrap.near'])
+archival_unsorted = data.historical('alice.near', 50, ['wrap.near', 'other.near'])
 large_reader = Reader()
 large_reader.native['native']['amount_yocto'] = '65004280412848866147030863164068'
 for price in provider.prices.values(): price['timestamp'] = NOW
 large = PortfolioData(large_reader, client_factory=provider.factory, clock=lambda: NOW).inspect('alice.near')
-print(json.dumps({'current': current, 'archival': archival, 'large': large}))
+print(json.dumps({'current': current, 'archival': archival, 'archival_unsorted': archival_unsorted, 'large': large}))
 `], {encoding:'utf8'}));
 class Element {
   constructor(tag, document) { this.tag=tag;this.document=document;this.children=[];this.listeners={};this.attributes={};this.style={};this.value='';this.disabled=false;this.ownText=''; }
@@ -184,6 +185,12 @@ async function behavior() {
   ids['portfolio-block-height'].value='50';ids['portfolio-block-contracts'].value='wrap.near,wrap.near';submit(app,'portfolio-block-form');assert.match(ids['portfolio-block-contracts-error'].textContent,/once/);
   ids['portfolio-block-contracts'].value='wrap.near';submit(app,'portfolio-block-form');assert.match(pending.at(-1).url,/block_height=50&contracts=wrap.near$/);
   reply(pending.at(-1),snapshot(fixtures.archival));await tick();assert.match(ids['portfolio-block'].textContent,/Only native NEAR and the listed contracts/);
+  ids['portfolio-block-contracts'].value='wrap.near,other.near';submit(app,'portfolio-block-form');
+  assert.equal(new URL(pending.at(-1).url,'https://siyab.xyz').searchParams.get('contracts'),'wrap.near,other.near');
+  reply(pending.at(-1),snapshot(fixtures.archival_unsorted));await tick();
+  assert.doesNotMatch(ids['portfolio-block'].textContent,/does not match the requested block and contracts/);
+  assert.match(ids['portfolio-block'].textContent,/Only native NEAR and the listed contracts/);
+  assert.equal(ids['portfolio-block-status'].textContent,'Balances read at block 50.');
   const malicious=snapshot(fixtures.current);malicious.snapshot.url='https://attacker.example/data.json';ids['portfolio-read'].click();reply(pending.at(-1),malicious);await tick();assert.match(ids['portfolio-current'].textContent,/could not be read/);
   assert.ok(!all(ids['portfolio-current']).some(item=>item.href?.includes('attacker')));
   app.windowEvents.pagehide();assert.equal(app.timers.size,0);

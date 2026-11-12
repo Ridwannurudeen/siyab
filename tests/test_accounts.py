@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest import mock
 
 from gate import rpc
-from intel import accounts, labels
+from intel import accounts, labels, portfolio
 
 
 class Provider:
@@ -57,9 +57,13 @@ def transfer(index, *, amount="-1000000000000000000000001", other="bob.near", su
 
 class AccountDataTest(unittest.TestCase):
     def setUp(self):
+        tempfile.gettempdir()
         self.env = mock.patch.dict("os.environ", {}, clear=True)
         self.env.start()
         self.addCleanup(self.env.stop)
+        cache = mock.patch.dict(accounts._METADATA_CACHE, {}, clear=True)
+        cache.start()
+        self.addCleanup(cache.stop)
         self.provider = Provider()
         self.data = accounts.AccountData(labels.Store([], "b" * 64), client_factory=self.provider.client,
                                          clock=lambda: 1794268800)
@@ -113,6 +117,99 @@ class AccountDataTest(unittest.TestCase):
         self.assertEqual(result["items"][0]["metadata"], {"name": "Wrapped NEAR", "symbol": "wNEAR", "decimals": 24})
         self.assertEqual(result["items"][0]["balance"], "0")
         self.assertNotIn("untrusted.example", json.dumps(result))
+
+    def test_metadata_cache_reuses_tokens_across_portfolios_until_24_hours(self):
+        now = [1794268800]
+        self.data.clock = lambda: now[0]
+        self.provider.answers[(accounts.API_URL, "/v1/account/alice.near/ft")] = {
+            "account_id": "alice.near", "tokens": [
+                {"contract_id": "wrap.near", "balance": "1", "last_update_block_height": 123}]}
+        self.provider.answers[(rpc.MAINNET_RPC_URL, "ft_metadata")] = {
+            "name": "Wrapped NEAR", "symbol": "wNEAR", "decimals": 24}
+        price_factory = mock.Mock()
+        price_factory.return_value.get.return_value = {"coins": {}}
+        data = portfolio.PortfolioData(self.data, client_factory=price_factory, clock=lambda: now[0])
+        with mock.patch.object(self.data, "profile", return_value={
+                "account_id": "alice.near", "network": "mainnet", "exists": False}):
+            first = data.inspect("alice.near")
+            first["assets"][1]["metadata"]["symbol"] = "changed"
+            now[0] += 86399
+            second = data.inspect("alice.near")
+            self.assertEqual(second["assets"][1]["metadata"]["symbol"], "wNEAR")
+            self.assertEqual(sum(row[2] == "ft_metadata" for row in self.provider.requests), 1)
+            now[0] += 1
+            data.inspect("alice.near")
+        self.assertEqual(sum(row[2] == "ft_metadata" for row in self.provider.requests), 2)
+
+    def test_metadata_cache_is_shared_by_readers_and_preserves_original_source(self):
+        self.provider.answers[(accounts.API_URL, "/v1/account/alice.near/ft")] = {
+            "account_id": "alice.near", "tokens": [
+                {"contract_id": "wrap.near", "balance": "1", "last_update_block_height": 123}]}
+        self.provider.answers[(rpc.MAINNET_RPC_URL, "ft_metadata")] = {
+            "name": "Wrapped NEAR", "symbol": "wNEAR", "decimals": 24}
+        first = self.data.holdings("alice.near")
+        other = accounts.AccountData(self.data.store, client_factory=self.provider.client, clock=self.data.clock)
+        second = other.holdings("alice.near")
+        self.assertEqual(first["items"][0]["metadata_source"], second["items"][0]["metadata_source"])
+        self.assertEqual(sum(row[2] == "ft_metadata" for row in self.provider.requests), 1)
+
+    def test_metadata_cache_evicts_least_recently_used_contract_at_bound(self):
+        self.provider.answers[(accounts.API_URL, "/v1/account/alice.near/ft")] = {
+            "account_id": "alice.near", "tokens": [
+                {"contract_id": contract, "balance": "1", "last_update_block_height": 123}
+                for contract in ("a.near", "b.near", "c.near")]}
+        self.provider.answers[(rpc.MAINNET_RPC_URL, "ft_metadata")] = {
+            "name": "Token", "symbol": "T", "decimals": 6}
+        with mock.patch.object(accounts, "MAX_METADATA_ENTRIES", 2):
+            self.data.holdings("alice.near", limit=2)
+            self.data.holdings("alice.near", limit=1)
+            self.data.holdings("alice.near", offset=2, limit=1)
+            self.assertEqual(len(accounts._METADATA_CACHE), 2)
+            self.assertEqual(set(accounts._METADATA_CACHE), {"a.near", "c.near"})
+            self.data.holdings("alice.near", offset=1, limit=1)
+        self.assertEqual(sum(row[2] == "ft_metadata" for row in self.provider.requests), 4)
+
+    def test_failed_and_malformed_metadata_is_unknown_and_retried(self):
+        self.provider.answers[(accounts.API_URL, "/v1/account/alice.near/ft")] = {
+            "account_id": "alice.near", "tokens": [
+                {"contract_id": "wrap.near", "balance": "1", "last_update_block_height": 123}]}
+        key = (rpc.MAINNET_RPC_URL, "ft_metadata")
+        for invalid in (rpc.HttpError(503, rpc.MAINNET_RPC_URL),
+                        {"name": "Wrapped NEAR", "symbol": "wNEAR", "decimals": True},
+                        {"name": "", "symbol": "wNEAR", "decimals": 24}):
+            with self.subTest(invalid=invalid):
+                self.provider.answers[key] = invalid
+                before = len(self.provider.requests)
+                for _ in range(2):
+                    result = self.data.holdings("alice.near")
+                    self.assertIsNone(result["items"][0]["metadata"])
+                    self.assertIsNone(result["items"][0]["metadata_source"])
+                    self.assertEqual(result["coverage"]["metadata_unavailable"], 1)
+                self.assertEqual(sum(row[2] == "ft_metadata" for row in self.provider.requests[before:]), 2)
+        self.provider.answers[key] = {"name": "Wrapped NEAR", "symbol": "wNEAR", "decimals": 24}
+        self.assertIsNotNone(self.data.holdings("alice.near")["items"][0]["metadata"])
+
+    def test_portfolio_fetches_inventory_once_across_pages_and_refreshes_next_read(self):
+        inventory = {"account_id": "alice.near", "tokens": [
+            {"contract_id": f"token{i:02}.near", "balance": "1", "last_update_block_height": 123}
+            for i in range(21)]}
+        path = "/v1/account/alice.near/ft"
+        self.provider.answers[(accounts.API_URL, path)] = inventory
+        self.provider.answers[(rpc.MAINNET_RPC_URL, "ft_metadata")] = {
+            "name": "Token", "symbol": "T", "decimals": 6}
+        price_factory = mock.Mock()
+        price_factory.return_value.get.return_value = {"coins": {}}
+        data = portfolio.PortfolioData(self.data, client_factory=price_factory, clock=self.data.clock)
+        with mock.patch.object(self.data, "profile", return_value={
+                "account_id": "alice.near", "network": "mainnet", "exists": False}):
+            first = data.inspect("alice.near")
+            self.assertEqual(first["coverage"]["tokens_read"], 21)
+            self.assertTrue(first["coverage"]["inventory_complete"])
+            self.assertEqual(sum(row[2] == path for row in self.provider.requests), 1)
+            inventory["tokens"][0]["balance"] = "2"
+            second = data.inspect("alice.near")
+        self.assertEqual(second["assets"][1]["balance_base_units"], "2")
+        self.assertEqual(sum(row[2] == path for row in self.provider.requests), 2)
 
     def test_history_cursor_is_opaque_and_nanoseconds_keep_their_precision(self):
         def answer(body):
