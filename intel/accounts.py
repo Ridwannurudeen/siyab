@@ -17,7 +17,7 @@ from pathlib import Path
 from threading import Lock
 
 from gate import canon, rpc
-from intel import labels
+from intel import labels, trace
 
 API_URL = "https://api.fastnear.com"
 TX_URL = "https://tx.main.fastnear.com"
@@ -385,6 +385,7 @@ class AccountData:
                     "transfer_index": row["transfer_index"], "block_height": height, "block_timestamp": stamp,
                     "timestamp_ms": int(stamp) // 1000000,
                     "method_name": _text(row.get("method_name"), "method name", 256, nullable=True), "source": source}
+            item["amount_decimals"] = trace.asset_decimals(item["asset_id"])
             identity = {key: item[key] for key in ("receipt_id", "transfer_index", "asset_id", "from", "to", "amount")}
             item["id"] = hashlib.sha256(json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
             items.append(item)

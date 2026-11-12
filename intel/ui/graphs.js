@@ -65,12 +65,10 @@
 
   function valueSummary(records) {
     const valued = records.filter(record => record.usd_amount !== null && record.usd_amount !== undefined);
-    const human = records.filter(record => record.human_amount !== null && record.human_amount !== undefined);
     const stamps = records.map(record => record.block_timestamp).filter(stamp => stamp !== null && stamp !== undefined);
     stamps.sort((a, b) => BigInt(a) < BigInt(b) ? -1 : BigInt(a) > BigInt(b) ? 1 : 0);
     return {usd: valued.length ? decimalSum(valued.map(record => record.usd_amount)) : null,
       unknownUsd: records.length - valued.length,
-      human: human.length === records.length && human.length ? decimalSum(human.map(record => record.human_amount)) : null,
       base: records.length ? decimalSum(records.map(record => record.amount)) : null,
       first: stamps[0] || null, last: stamps[stamps.length - 1] || null};
   }
@@ -85,11 +83,22 @@
       .filter(edge => edge.record_ids.length);
   }
 
+  function displayedAmount(records, asset) {
+    if (!records.length) return "Unknown";
+    const amount = decimalSum(records.map(record => record.amount));
+    const decimals = records.map(record => record.amount_decimals ?? (asset === "native:near" ? 24 : null));
+    if (decimals.every(value => Number.isInteger(value) && value >= 0 && value <= 255 && value === decimals[0])) {
+      const display = window.SiyabNumbers.baseUnits(amount, decimals[0]);
+      if (display !== "Unavailable") return display;
+    }
+    return amount + " base units";
+  }
+
   function edgeLabel(payload, edge) {
     let detail = "";
     if (payload.kind === "flow") {
       const summary = valueSummary(edgeRecords(payload, edge));
-      detail = " · " + (summary.human === null ? summary.base + " base units" : summary.human) + " " + edge.asset_id +
+      detail = " · " + displayedAmount(edgeRecords(payload, edge), edge.asset_id) + " " + edge.asset_id +
         " · " + (summary.usd === null ? "USD unknown" : window.SiyabNumbers.decimal(summary.usd, 2) + " known USD") +
         (summary.unknownUsd ? " · " + summary.unknownUsd + " transfers have unknown USD" : "") +
         " · " + exactUtc(summary.first) + " to " + exactUtc(summary.last);
@@ -778,14 +787,13 @@
       for (const record of pageRecords) {
         const details = element("details", "graph-record");
         const heading = payload.kind === "flow" ?
-          (record.human_amount === null ? record.amount + " base units" :
-            new Intl.NumberFormat(undefined, { maximumSignificantDigits: 12 }).format(Number(record.human_amount))) + " · " + record.asset_id :
+          displayedAmount([record], record.asset_id) + " · " + record.asset_id :
           record.rule + " · " + (record.provenance === "inferred" ? "Hypothesis" : "Chain read");
         details.append(element("summary", "", heading));
         if (payload.kind === "flow") {
           metadata(details, [["From", record.from, "graph-identifier"], ["To", record.to, "graph-identifier"], ["Asset", record.asset_id, "graph-identifier"],
-            ["Human amount as recorded", record.human_amount, "graph-identifier"], ["Amount (base units)", record.amount, "graph-identifier"],
-            ["USD at provider", record.usd_amount === null ? "Unknown" : record.usd_amount, "graph-identifier"],
+            ["Provider float as recorded", record.human_amount, "graph-identifier"], ["Amount (base units)", record.amount, "graph-identifier"],
+            ["USD at provider", record.usd_amount === null ? "Unknown" : window.SiyabNumbers.decimal(record.usd_amount, 2), "graph-identifier"],
             ["Block", record.block], ["Time (UTC)", record.timestamp_ms === null ? null : new Date(record.timestamp_ms).toISOString()],
             ["Timestamp (ns)", record.block_timestamp, "graph-identifier"], ["Transaction", record.transaction_hash, "graph-identifier"],
             ["Receipt", record.receipt_id, "graph-identifier"], ["Method", record.method_name || "None"], ["Source", payload.source.provider]]);
@@ -855,7 +863,7 @@
         metadata(inspector, [["Known gross USD", value.usd === null ? "Unknown" : window.SiyabNumbers.decimal(value.usd, 2), "graph-number"], ["Transfers without USD", value.unknownUsd],
           [(live ? "First observed transfer (UTC)" : "First recorded transfer (UTC)"), exactUtc(value.first)], [(live ? "Last observed transfer (UTC)" : "Last recorded transfer (UTC)"), exactUtc(value.last)]]);
         if (state.selected.kind === "edge") metadata(inspector, [["Asset", edges[0].asset_id],
-          ["Human amount as recorded", value.human, "graph-number"], ["Total base units", value.base, "graph-number"]]);
+          ["Amount", displayedAmount(relevant, edges[0].asset_id), "graph-number"], ["Total base units", value.base, "graph-number"]]);
         else {
           const counterparties = element("div", "graph-counterparties");
           counterparties.append(element("h4", "", live ? "Counterparties in the filtered observation" : "Counterparties in the filtered recording"));
@@ -965,6 +973,11 @@
     container.replaceChildren(panel);
     if (restoreFocus) heading.focus({ preventScroll: true });
     let restoreAfterMount = false;
+    const restoreTransfers = !restoreFocus && window.location.hash === "#transfers";
+    let readerMoved = false;
+    const readerMovement = () => { readerMoved = true; };
+    const movementEvents = ["wheel", "touchmove", "keydown", "pointerdown"];
+    if (restoreTransfers) movementEvents.forEach(name => window.addEventListener(name, readerMovement, {passive: true}));
     const controller = new AbortController();
     controllers.set(container, controller);
     let timeout;
@@ -985,6 +998,10 @@
       if (controllers.get(container) !== controller) return container;
       restoreAfterMount = restoreFocus && document.activeElement === heading;
       mount(container, payload);
+      if (restoreTransfers && !readerMoved && window.location.hash === "#transfers") {
+        const transfers = document.getElementById("transfers");
+        if (transfers) transfers.scrollIntoView();
+      }
       if (restoreAfterMount) container.querySelector('.graph-mode-controls button[aria-pressed="true"]').focus({ preventScroll: true });
     } catch (error) {
       if (controllers.get(container) !== controller) return container;
@@ -1000,6 +1017,7 @@
       if (focusRetry) retry.focus({ preventScroll: true });
     } finally {
       clearTimeout(timeout);
+      if (restoreTransfers) movementEvents.forEach(name => window.removeEventListener(name, readerMovement));
       if (controllers.get(container) === controller) { controllers.delete(container); loading.delete(container); }
     }
     return container;

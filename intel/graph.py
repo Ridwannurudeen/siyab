@@ -26,6 +26,7 @@ def flow_payload(document, account_paths):
                       depth=depth, provenance="onchain", confidence=None)
         for field in ("usd_amount", "human_amount"):
             record[field] = None if hop[field] is None else str(hop[field])
+        record["amount_decimals"] = trace.asset_decimals(hop["asset_id"])
         records.append(record)
         depths.setdefault(hop["to"], depth)
         key = (hop["from"], hop["to"], hop["asset_id"])

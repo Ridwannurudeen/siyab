@@ -143,7 +143,8 @@
       const body = table.querySelector("tbody"); body.replaceChildren();
       for (const row of matches.slice(page * 20, (page + 1) * 20)) {
         const outbound = row.from === config.subject;
-        const amount = node("span", row.human_amount === null ? `${row.amount} base units` : row.human_amount, "profile-value");
+        const decimals = row.asset_id === "native:near" ? 24 : row.amount_decimals;
+        const amount = node("span", Number.isInteger(decimals) ? window.SiyabNumbers.baseUnits(row.amount, decimals) : `${row.amount} base units`, "profile-value");
         amount.append(node("q", row.asset_id, "data profile-asset"));
         const evidence = node("div");
         const link = node("a", "Recorded evidence"); link.href = `/flows/${row.recording}.html`;
@@ -153,7 +154,7 @@
         const milliseconds = Number(BigInt(row.block_timestamp) / 1000000n);
         const stamp = new Date(milliseconds).toISOString().replace("T", " ").replace(".000Z", " UTC");
         const tr = tableRow([stamp, row.from === row.to ? "Self" : outbound ? "Outbound" : "Inbound", accountLink(outbound ? row.to : row.from), amount,
-          row.usd_amount === null ? "Unavailable" : row.usd_amount, evidence], headings);
+          row.usd_amount === null ? "Unavailable" : window.SiyabNumbers.decimal(row.usd_amount, 2), evidence], headings);
         tr.dataset.profileTransferRow = ""; body.append(tr);
       }
       status.textContent = `Showing ${matches.length ? page * 20 + 1 : 0} to ${Math.min((page + 1) * 20, matches.length)} of ${matches.length} matching recorded rows. Newest first.`;

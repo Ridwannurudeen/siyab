@@ -124,8 +124,9 @@
       headings = ["Time (UTC)", "Direction", "Counterparty", "Amount and asset", "Transaction and evidence"];
       rows = data.items.map(item => {
         if (!item || !/^\d{1,39}$/.test(item.amount || "") || typeof item.asset_id !== "string") throw new Error("The transfer page contains an unreadable amount.");
-        const amount = node("div"); amount.append(node("span", item.human_amount === null || item.human_amount === undefined ? item.amount + " base units" : item.human_amount, "mono"), quoted(item.asset_id));
-        amount.append(node("small", item.usd_amount === null || item.usd_amount === undefined ? "USD unavailable" : item.usd_amount + " USD (provider value)"));
+        const decimals = item.asset_id === "native:near" ? 24 : item.amount_decimals;
+        const amount = node("div"); amount.append(node("span", Number.isInteger(decimals) ? window.SiyabNumbers.baseUnits(item.amount, decimals) : item.amount + " base units", "mono"), quoted(item.asset_id));
+        amount.append(node("small", item.usd_amount === null || item.usd_amount === undefined ? "USD unavailable" : window.SiyabNumbers.decimal(item.usd_amount, 2) + " USD (provider value)"));
         const evidence = node("div"); evidence.append(transactionLink(item.transaction_hash), details("Transfer source", item));
         return [node("span", exactTime(item.block_timestamp), "mono"), direction(item, account), accountLink(item.from === account ? item.to : item.from), amount, evidence];
       });

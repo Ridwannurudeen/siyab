@@ -166,7 +166,8 @@
       const body = table.querySelector("tbody"); body.replaceChildren();
       for (const row of matches.slice(page * 20, (page + 1) * 20)) {
         const outbound = row.from === config.subject;
-        const amount = node("span", row.human_amount === null ? `${row.amount} base units` : row.human_amount, "profile-value");
+        const decimals = row.asset_id === "native:near" ? 24 : row.amount_decimals;
+        const amount = node("span", Number.isInteger(decimals) ? window.SiyabNumbers.baseUnits(row.amount, decimals) : `${row.amount} base units`, "profile-value");
         amount.append(node("q", row.asset_id, "data profile-asset"));
         const evidence = node("div");
         const link = node("a", "Recorded evidence"); link.href = `/flows/${row.recording}.html`;
@@ -176,7 +177,7 @@
         const milliseconds = Number(BigInt(row.block_timestamp) / 1000000n);
         const stamp = new Date(milliseconds).toISOString().replace("T", " ").replace(".000Z", " UTC");
         const tr = tableRow([stamp, row.from === row.to ? "Self" : outbound ? "Outbound" : "Inbound", accountLink(outbound ? row.to : row.from), amount,
-          row.usd_amount === null ? "Unavailable" : row.usd_amount, evidence], headings);
+          row.usd_amount === null ? "Unavailable" : window.SiyabNumbers.decimal(row.usd_amount, 2), evidence], headings);
         tr.dataset.profileTransferRow = ""; body.append(tr);
       }
       status.textContent = `Showing ${matches.length ? page * 20 + 1 : 0} to ${Math.min((page + 1) * 20, matches.length)} of ${matches.length} matching recorded rows. Newest first.`;
@@ -346,5 +347,5 @@
   const query = new URLSearchParams(location.search).get("q");
   if (query) open(query);
 })();
-</script><script src="/assets/c817886a3cb9dd825332292e4e991d52ed336dec44be098b718432d84da077c8.js" integrity="sha256-yBeIajy53YJTMikuTpkdUu0zbexEvgmLcYQy2E2gd8g=" defer></script><script src="/assets/6512d992f1c7cae7d34722c7564b3bfd961c15ee5e459747fa1a58771d0605f7.js" integrity="sha256-ZRLZkvHHyufTRyLHVks7/ZYcFe5eRZdH+hpYdx0GBfc=" defer></script></body>
+</script><script src="/assets/c817886a3cb9dd825332292e4e991d52ed336dec44be098b718432d84da077c8.js" integrity="sha256-yBeIajy53YJTMikuTpkdUu0zbexEvgmLcYQy2E2gd8g=" defer></script><script src="/assets/e9c6fe027a3594c0c87cf8c115efe66cec243a09344a5f755ed03d41b62fc09f.js" integrity="sha256-6cb+Ano1lMDIfPjBFe/mbOwkOgk0Sl91XtA9QbYvwJ8=" defer></script></body>
 </html>

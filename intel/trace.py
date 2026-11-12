@@ -44,6 +44,7 @@ import hashlib
 import json
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from functools import cache
 from pathlib import Path
 
 from gate import rpc, rules
@@ -419,6 +420,19 @@ def flow_path(subject, name=None, flows_dir=FLOWS_DIR):
     if path.resolve().parent != Path(flows_dir).resolve():
         raise ValueError(f"not a trace file name: {name!r}")
     return path
+
+
+@cache
+def asset_decimals(asset_id):
+    if asset_id == "native:near":
+        return 24
+    asset_id = asset_id.removeprefix("nep245:intents.near:")
+    if not asset_id.startswith("nep141:"):
+        return None
+    try:
+        return catalog_decimals(asset_id.removeprefix("nep141:"))
+    except seed.SeedError:
+        return None
 
 
 def catalog_decimals(token):

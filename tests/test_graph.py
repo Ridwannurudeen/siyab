@@ -63,6 +63,14 @@ class FlowPayloadTest(unittest.TestCase):
             self.assertEqual(record["provenance"], "onchain")
         self.assertNotEqual(result["records"][0]["block_timestamp"], result["records"][1]["block_timestamp"])
 
+    def test_transfer_decimals_use_native_and_catalog_assets_only(self):
+        assets = ["native:near", "nep141:wrap.near", "nep245:intents.near:nep141:wrap.near",
+                  "nep141:missing.near", "nep245:other.near:nep141:wrap.near"]
+        rows = [hop("root.near", "a.near", asset=asset) for asset in assets]
+        records = graph.flow_payload(flow(rows), {})["records"]
+        self.assertEqual([row["amount_decimals"] for row in records], [24, 24, 24, None, None])
+        self.assertEqual([row["amount"] for row in records], [row["amount"] for row in rows])
+
     def test_numeric_api_values_become_strings_without_a_new_valuation(self):
         row = hop("root.near", "a.near", usd=99900.0)
         row["human_amount"] = 74000.0

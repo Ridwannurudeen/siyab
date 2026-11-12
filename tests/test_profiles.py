@@ -66,12 +66,64 @@ class ProfilesTest(unittest.TestCase):
         self.assertIn(entity["observed_at"], document)
         self.assertIn(entity["members"][0], document)
 
+    def test_transfer_display_uses_base_units_and_known_asset_decimals(self):
+        row = render._profile_transfer_rows(self.flows[0][1]["subject"], self.flows)[0]
+        for asset, amount, human, expected in (
+                ("native:near", "100000000000000000000000", 0.09999999999999999, "0.1"),
+                ("native:near", "320982299467252467848273181", 320.98229946725246, "320.9823"),
+                ("native:near", "1000000000000000000020000", 1.0, "1"),
+                ("nep141:usdt.tether-token.near", "1564700999000", 1564700.9989999998, "1,564,700.999"),
+                ("nep245:intents.near:nep141:usdt.tether-token.near", "100000", 0.09999999999999999, "0.1"),
+                ("native:near", "1", None, "&lt;0.0001"),
+                ("nep141:unknown.example.near", "42", 0.42, "42 base units")):
+            with self.subTest(asset=asset, amount=amount):
+                item = dict(row, asset_id=asset, amount=amount, human_amount=human)
+                cells = render._profile_transfer_cells(item["from"], item, self.accounts)
+                self.assertIn(f'<span class="profile-value">{expected}</span>', cells[3])
+                self.assertIn(f'Base units {amount}<br>', cells[5])
+
+    def test_recorded_route_and_transfer_cards_use_exact_amount_display(self):
+        incident = next(document for document in self.incidents if document["id"] == "rhea")
+        flow = copy.deepcopy(self.flows[0][1])
+        item = next(hop for hop in flow["hops"] if hop["from"] == flow["subject"])
+        item.update(asset_id="native:near", amount="100000000000000000000000", human_amount=0.09999999999999999)
+        from unittest import mock
+        with mock.patch.object(render, "_flows", return_value=[("recorded", flow)]):
+            page = render.incident_page(incident, self.accounts)
+        self.assertIn('<span>0.1<br><q class="data">native:near</q>', page)
+        card = render._hop_card(item, self.accounts)
+        self.assertIn('<p>0.1 units, from recorded base units.</p>', card)
+        self.assertNotIn('Provider amounts', card)
+        self.assertNotIn(str(item["human_amount"]), card)
+        self.assertIn(item["amount"] + ' base units', card)
+        item["usd_amount"] = 0.09999999999999999
+        card = render._hop_card(item, self.accounts)
+        self.assertIn(', 0.1 USD as the Transfers API values it', card)
+        self.assertNotIn(str(item["usd_amount"]), card)
+        self.assertNotIn('USD as recorded by the provider', card)
+
+    def test_flow_card_rounded_amount_names_recorded_base_units(self):
+        item = dict(self.flows[0][1]["hops"][0], asset_id="native:near", amount="1", human_amount=None)
+        card = render._hop_card(item, self.accounts)
+        self.assertIn('<p>&lt;0.0001 units, from recorded base units.</p>', card)
+        self.assertIn('1 base units of', card)
+
+    def test_flow_card_unknown_decimals_explains_base_units(self):
+        item = dict(self.flows[0][1]["hops"][0], asset_id="nep141:unknown.example.near",
+                    amount="42", human_amount=0.42)
+        card = render._hop_card(item, self.accounts)
+        self.assertIn('<p>42 base units (decimals not recorded).</p>', card)
+        self.assertNotIn('from recorded base units', card)
+        self.assertNotIn('0.42', card)
+        self.assertNotIn('Provider amounts', card)
+
     def test_missing_transfer_values_remain_unknown_and_keep_exact_base_units(self):
         flow = copy.deepcopy(self.flows[0][1])
         subject = flow["subject"]
         latest = max((hop for hop in flow["hops"] if subject in (hop["from"], hop["to"])), key=lambda row: row["block_timestamp"])
         latest["human_amount"] = None
         latest["usd_amount"] = None
+        latest["asset_id"] = "nep141:unknown.example.near"
         document = render.account_page(subject, self.store, self.accounts, self.incidents, [(self.flows[0][0], flow)], [])
         self.assertIn(f'{latest["amount"]} base units', document)
         self.assertIn('<span class="profile-value">Unavailable</span>', document)

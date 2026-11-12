@@ -240,6 +240,16 @@ class AccountDataTest(unittest.TestCase):
         self.assertIsNone(unknown["to"])
         self.assertEqual(outgoing["block_timestamp"], "1794308552765806506")
 
+    def test_transfer_decimals_are_known_without_trusting_display_floats(self):
+        rows = [transfer(0), transfer(1), transfer(2)]
+        rows[0]["human_amount"] = 0.09999999999999999
+        rows[1]["asset_id"] = "nep141:wrap.near"
+        rows[2]["asset_id"] = "nep141:missing.near"
+        self.provider.answers[(accounts.TRANSFERS_URL, "/v0/transfers")] = {"transfers": rows, "resume_token": None}
+        result = self.data.transfers("alice.near")
+        self.assertEqual([row["amount_decimals"] for row in result["items"]], [24, 24, None])
+        self.assertEqual(result["items"][0]["human_amount"], str(rows[0]["human_amount"]))
+
     def test_malformed_provider_amount_never_becomes_a_transfer(self):
         for invalid in ("NaN", "-1e24", "-" + str(2 ** 128), True):
             with self.subTest(invalid=invalid):
