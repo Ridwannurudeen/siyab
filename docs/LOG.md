@@ -59,3 +59,4 @@
 12 Nov: payment checks return their canonical evidence and download the displayed unsigned answer; offline receipt verification checks its hash, canonical form, ordered checks, reasons and shared outcome reduction, with stubbed sample reads and explicit consistency limits.
 12 Nov: account_age proves a young receiver from absence at two archival blocks only when the second block's read-back time is younger than 7 days; failures keep the original unknown answer, with offline regression coverage and recorded judgement updates pending.
 13 Nov: corrected the account age probe documentation to use the reference block clock, cite the inclusive 10-minute clock bound and require query-bound absence metadata.
+13 Nov: applied approved typography, neutral colour palettes, dark initial theme and compact shared components; records retain zero scripts and add document-local theme radios, with existing navigation, evidence, section order and motion preserved.

@@ -1,5 +1,6 @@
 import html
 import json
+import re
 import copy
 import shutil
 import subprocess
@@ -44,7 +45,10 @@ class ProfilesTest(unittest.TestCase):
         for source in incident["sources"]:
             self.assertIn(source["content_sha256"], document)
         for account in incident["accounts"]:
-            self.assertIn(html.escape(account["quote"]["text"]), document)
+            quote = html.escape(account["quote"]["text"])
+            self.assertIn(quote, re.sub(r'<span class="data-id">([0-9a-f]{64})</span>', r'\1', document))
+            for identifier in re.findall(r"[0-9a-f]{64}", quote):
+                self.assertIn(f'<span class="data-id">{identifier}</span>', document)
         for line in incident["not_public"]:
             self.assertIn(html.escape(line), document)
 

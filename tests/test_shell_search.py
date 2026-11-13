@@ -29,6 +29,7 @@ async function main() {
   document.createElement = tag => new Element(tag); document.querySelectorAll = () => [];
   vm.runInNewContext(fs.readFileSync('intel/ui/shell.js', 'utf8'), {
     document, localStorage: {getItem: () => null, setItem() {}}, location: {search: ''}, URLSearchParams,
+    matchMedia: () => ({matches: false}),
     fetch: async () => ({ok: true, json: async () => ({accounts: [{subject: 'alice.near', labels: ['Recorded label'], url: 'accounts/alice.near.html'}], entities: []})})
   });
   await new Promise(resolve => setImmediate(resolve));

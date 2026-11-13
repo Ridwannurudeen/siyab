@@ -1,7 +1,10 @@
 <!doctype html>
 <html lang="en">
 <head>
+<script>try{var t=localStorage.getItem('siyab-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>
 <meta charset="utf-8">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#0A0D16">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>Not found</title>
@@ -21,7 +24,7 @@
 <body>
 <a class="skip-link" href="#main-content">Skip to content</a><aside class="app-sidebar"><a class="site-brand" href="/index.html"><svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M26 6H12L6 14l19 5-6 7H5" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="square" stroke-linejoin="bevel"/></svg><span>Siyab</span></a><nav class="app-primary-navigation" aria-label="Primary"><a href="/index.html">Home</a><a href="/investigate.html">Account lookup</a><a href="/flows/rhea-collector.html">Trace</a><a href="/feed.html">Feed</a><a href="/workspace.html">Workspace</a><a href="/index.html#tools">Payment checks</a><a href="/verify.html">Verify</a></nav><nav class="app-secondary-navigation" aria-label="Secondary"><a href="/index.html#explore-title">Incidents</a><a href="/entities/treasuries.html">Treasuries</a><a href="/entities/catalog.html">Catalog tokens</a><a href="/entities/infrastructure.html">Infrastructure and bridge accounts</a><a href="/entities/organisations.html">Organisations from on chain registries</a><a href="/records/index.html">Incident records</a><a href="/issuers.html">Issuers</a></nav></aside><header class="app-topbar"><a class="app-mobile-brand" href="/index.html"><svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M26 6H12L6 14l19 5-6 7H5" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="square" stroke-linejoin="bevel"/></svg><span>Siyab</span></a><span class="app-context">Not found</span><div class="header-actions"><button class="site-search-button" type="button" aria-label="Search accounts and entities" data-open-search><span class="site-search-label">Search accounts / entities</span><span class="site-search-short" aria-hidden="true">Search</span> <kbd class="search-key">Ctrl K</kbd></button><button class="theme-toggle" type="button" id="theme-toggle" aria-label="Switch to light theme"><span class="theme-toggle-label">Use light theme</span></button></div><details class="mobile-navigation" id="mobile-navigation"><summary>Menu</summary><div class="mobile-navigation-panel"><nav class="app-primary-navigation" aria-label="Primary"><a href="/index.html">Home</a><a href="/investigate.html">Account lookup</a><a href="/flows/rhea-collector.html">Trace</a><a href="/feed.html">Feed</a><a href="/workspace.html">Workspace</a><a href="/index.html#tools">Payment checks</a><a href="/verify.html">Verify</a></nav><nav class="app-secondary-navigation" aria-label="Secondary"><a href="/index.html#explore-title">Incidents</a><a href="/entities/treasuries.html">Treasuries</a><a href="/entities/catalog.html">Catalog tokens</a><a href="/entities/infrastructure.html">Infrastructure and bridge accounts</a><a href="/entities/organisations.html">Organisations from on chain registries</a><a href="/records/index.html">Incident records</a><a href="/issuers.html">Issuers</a></nav></div></details></header><dialog class="search-dialog" id="global-search" aria-label="Search accounts and entities"><form class="search-dialog-head" method="dialog"><input id="global-search-input" aria-label="Account or entity" autocomplete="off" placeholder="Search accounts and entities"><button aria-label="Close search">Close</button></form><div class="search-results" id="global-search-results" aria-live="polite"></div></dialog><dialog class="case-dialog" id="save-investigation" aria-labelledby="case-dialog-title"><h2 id="case-dialog-title">Save investigation</h2><form id="case-form"><label for="case-title">Title<input id="case-title" maxlength="120" required></label><label for="case-notes">Notes<textarea id="case-notes" maxlength="4000" rows="5"></textarea></label><p id="case-source" class="source-line"></p><p id="case-error" role="alert"></p><div class="workspace-actions"><button class="primary" type="submit">Save investigation</button><button id="case-cancel" type="button">Cancel</button></div></form></dialog>
 <main class="app-content" id="main-content">
-<h1>Not found</h1><p>No page of this site and no route of the read only API answers this path.</p><p><a href="/index.html">Back to the index</a></p>
+<div class="page-head"><h1>Not found</h1></div><p>No page of this site and no route of the read only API answers this path.</p><p><a href="/index.html">Back to the index</a></p>
 </main>
 <footer class="app-footer"><p>Data: NearBlocks. Blocks: mainnet.neardata.xyz. Transfers: FastNEAR.</p></footer>
 <p id="workspace-feedback" class="workspace-feedback" role="status" aria-live="polite"></p><script>(() => {
@@ -32,16 +35,19 @@
   toggle.replaceChildren(themeLabel);
   const labelTheme = () => {
     const light = document.documentElement.dataset.theme === "light";
+    document.querySelectorAll('meta[name="theme-color"]').forEach(meta => { meta.content = light ? "#F5F7FA" : "#0A0D16"; });
     themeLabel.textContent = light ? "Use dark theme" : "Use light theme";
     toggle.setAttribute("aria-label", light ? "Switch to dark theme" : "Switch to light theme");
   };
+  document.documentElement.dataset.theme = "dark";
   try {
     const saved = localStorage.getItem("siyab-theme");
     if (saved === "light" || saved === "dark") document.documentElement.dataset.theme = saved;
   } catch (error) { toggle.title = "Theme choice applies to this page; browser storage is unavailable."; }
   labelTheme();
   toggle.addEventListener("click", () => {
-    document.documentElement.dataset.theme = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+    const light = document.documentElement.dataset.theme === "light";
+    document.documentElement.dataset.theme = light ? "dark" : "light";
     labelTheme();
     try { localStorage.setItem("siyab-theme", document.documentElement.dataset.theme); }
     catch (error) { toggle.title = "Theme choice applies to this page; browser storage is unavailable."; }
