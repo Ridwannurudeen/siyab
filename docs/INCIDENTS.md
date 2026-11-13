@@ -28,6 +28,28 @@ The seed commands are in `intel/seed.py`; in the default replay mode they read t
 
 `incident_page` in `intel/render.py` renders each page to `incidents/<id>.html`, and `intel/api.py` serves the JSON at `/incidents/<id>` and the page at `/incidents/<id>.html`. The account pages link back to every incident page that names the account. `python scripts/counts.py` counts the pages for the README (`Incidents: I pages.`).
 
+## Replay at an incident block
+
+After a run has been recorded, replay it offline:
+
+```
+python -m gate incident-replay rhea
+```
+
+The command reads `fixtures/replay/rhea/run.json` and the recorded RPC fixtures, recomputes the checks and guard outcomes, and refuses a mismatch. Every fixture the run reads, including height resolution, must be listed in the manifest and match its digest; the verified bytes are the bytes parsed. Replay proves that the derived results are consistent with a trusted `run.json` and its fixtures. It does not prove chain authenticity: someone who replaces the fixtures, their digests and the results together can produce a self-consistent forgery. Without a recorded run it cannot replay. A real Rhea run must be recorded separately. The incident page adds its replay table only when that run file exists.
+
+Recording is a separate network read for the operator:
+
+```
+python -m gate incident-replay rhea --record --at 2026-04-16T00:00:00Z
+```
+
+`NEAR_ARCHIVAL_RPC_URL` selects the archival endpoint when set. The command selects record or replay mode explicitly; `GATE_FIXTURES_MODE` does not select its mode. Recording writes `fixtures/replay/<incident>/run.json` and its RPC fixtures under `fixtures/replay/<incident>/rpc`, so one incident's recording never replaces another's. The committed Rhea run predates that layout and still reads its RPC fixtures from `fixtures/rpc`. The default as-of time is 00:00 UTC on the incident date. Recording resolves the last final block at or before that time and records its height and timestamp; offline replay repeats that search from verified fixtures and compares the resulting height and timestamp with the recorded bounds.
+
+The replay selects the NEAR accounts whose reported roles are master, collector or worker. Each request asks about 1 NEAR with no memo, an empty allowlist and a deliberately empty label store, including no incident labels. All chain reads are bounded by the selected block; NearBlocks is not used. This is state at one block, not a complete transaction history. A young access key does not prove a young account, and absence at an older block does not prove creation within seven days. When those reads cannot establish account age, the check remains UNKNOWN. An UNKNOWN check never counts as a pass; without a denying signal, an incomplete verdict produces ASK rather than ALLOW.
+
+This replay shows what the current rules would have answered from the recorded on-chain state without labels. It is not a live prediction, evidence that anyone asked then, or proof of who controlled an account. The recorded answers are published as returned, including unknowns.
+
 ## How records will relate
 
 An incident record (`docs/RECORD.md`) is the format for an event that arrives as a community report on the reports contract, or that the publisher records with on chain reports behind it. It differs from an incident page in three ways: it is content addressed and never edited, it cites on chain reports by network, contract, report id and body hash, and it carries the readable text behind each moderation reason hash.

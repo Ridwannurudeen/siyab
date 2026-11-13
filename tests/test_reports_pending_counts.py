@@ -100,8 +100,8 @@ class PendingCountsTest(unittest.TestCase):
         client = rpc.Client(rpc.TESTNET_RPC_URL, "off")
         payload = {"jsonrpc": "2.0", "id": "gate", "result": {
             "result": list(json.dumps({"reports": 0, "disputes": 0}).encode("utf-8")),
-            "block_height": 234, "block_hash": "h234"}}
-        with mock.patch("urllib.request.urlopen", return_value=http_reply(payload)) as opened:
+            "block_height": 234, "block_hash": rpc.base58.encode(bytes([2]) * 32), "logs": []}}
+        with mock.patch("urllib.request.urlopen", return_value=http_reply(payload)) as opened,                 mock.patch.object(client, "_block_hash", return_value=payload["result"]["block_hash"]):
             result = client.call_function(REPORTS_ACCOUNT, "totals", {}, block_id=234)
         request = json.loads(opened.call_args.args[0].data)
         self.assertEqual(result, {"reports": 0, "disputes": 0})
