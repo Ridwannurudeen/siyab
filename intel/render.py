@@ -115,7 +115,8 @@ def data_text(text):
 
 def quote_block(quote, sources):
     source = sources.get(quote["source"], {})
-    return (f'<blockquote class="data" cite="{esc(source.get("url", ""))}">{esc(quote["text"])}'
+    text = re.sub(r"[0-9a-f]{64}", r'<span class="data-id">\g<0></span>', esc(quote["text"]))
+    return (f'<blockquote class="data" cite="{esc(source.get("url", ""))}">{text}'
             f'<br><span class="muted">quoted from [{esc(quote["source"])}]</span></blockquote>')
 
 
@@ -159,6 +160,7 @@ def _inputs(assertion, by_id, accounts):
 def page(title, body, depth=0, rooted=False, *, inert=False):
     """A whole HTML page; depth is how many directories below the site root it sits, and a rooted page
     links root absolute because it is served at any path."""
+    body = re.sub(r"(<h1(?: [^>]*)?>.*?</h1>)", r'<div class="page-head">\1</div>', body, count=1) if body.startswith("<h1") else body
     up = "/" if rooted else "../" * depth
     current = {"Siyab": "index.html", "Investigate account": "investigate.html", "Workspace": "workspace.html", "Feed": "feed.html", "Verify a record": "verify.html",
                "Incident records": "records/index.html", "Issuer actions": "issuers.html",
@@ -425,7 +427,7 @@ def _workspace(flows, clusters, store, summary):
                        f'</div><strong class="num">{count}</strong></div>' for label, count in items)
     cohort = (bars(((key, summary["verdicts"][key]) for key in ("ALLOW", "DENY", "UNKNOWN")), summary["total"])
               if summary else '<p>Judgements are not yet published.</p>')
-    return ('<section class="workspace-overview"><div class="workspace-heading"><div>'
+    return ('<section class="workspace-overview"><div class="workspace-heading page-head"><div>'
             '<h1 id="page-title">Investigate</h1></div>'
             '<a class="button" href="#tools">Check a payment</a></div>'
             '<form class="workspace-search" id="search" action="/index.html" method="get">'
@@ -776,7 +778,7 @@ def _profile_account_summary(subject, assertions, accounts, flows):
                f'<p class="profile-tags">{"".join(f"<span>{esc(category)}</span>" for category in categories)}{inferred_tags}</p>'
                f'<dl class="profile-facts"><div><dt>Label assertions</dt><dd>{len(assertions)}</dd>{assertion_counts}</div>'
                f'<div><dt>Recorded transfer rows</dt><dd>{len(activity)}</dd></div>'
-               f'<div><dt>Latest label observation</dt><dd>{esc(observed[-1]) if observed else "Unavailable"}</dd></div></dl>'
+               f'<div><dt>Latest label observation</dt><dd class="stat-timestamp">{esc(observed[-1]) if observed else "Unavailable"}</dd></div></dl>'
                '<p class="profile-scope">Current balance unavailable. Account creation time is not established by these records.</p>'
                f'<div class="profile-actions"><button type="button" data-watch-account="{esc(subject)}">Watch account</button>'
                '<button type="button" data-save-investigation>Save investigation</button></div></div>'
@@ -1025,7 +1027,7 @@ def entity_page(title, categories, store, *, page_number=1, collection_name=None
                             f'<a class="button" data-registry-group="{group["id"]}" href="?source={group["id"]}#individual-assertions">View matching assertions</a></li>')
         heading = f'<h1>{esc(title)}</h1>'
         body = (heading + '<section class="registry-overview" aria-label="Recorded registry overview">'
-                f'<p class="registry-count">{count:,} assertions from {len(groups)} recorded registry reads.</p>'
+                f'<p class="registry-count">{count:,} <span class="stat-connective">assertions from</span> {len(groups)} <span class="stat-connective">recorded registry reads.</span></p>'
                 '<p class="registry-scope">Factory listings and epoch membership describe recorded associations, not shared ownership or current control.</p>'
                 f'<ul class="registry-groups">{"".join(overview)}</ul></section>'
                 f'<details class="registry-individuals" id="individual-assertions"{" open" if page_number > 1 else ""}>'
@@ -1041,7 +1043,7 @@ def account_page(subject, store, accounts, incidents, flows, clusters, events_di
                    for a in assertions if a.provenance != "inferred")
     provenance = Counter(a.provenance for a in assertions)
     overview = "".join(f'<span>{esc(kind)}<strong>{count}</strong></span>' for kind, count in sorted(provenance.items()))
-    body = (f'<div class="profile-heading"><div><h1>Account</h1>'
+    body = (f'<div class="profile-heading page-head"><div><h1>Account</h1>'
             f'<p class="mono"><q class="data">{esc(subject)}</q></p></div>'
             '<a class="button" href="/index.html#tools">Payment and key checks</a></div>'
             f'<section class="workspace-panel profile-overview"><div class="workspace-panel-head"><h2>Recorded evidence overview</h2></div>'
@@ -1106,7 +1108,7 @@ def registry_entity_page(entity, accounts):
     source = entity["source"]
     members = "".join(f'<li>{_subject_cell(member, accounts)}</li>' for member in entity["members"])
     subject = entity["members"][0] if entity["kind"] in ("validator", "dao") else entity["name"]
-    body = ('<div class="profile-heading"><div>'
+    body = ('<div class="profile-heading page-head"><div>'
             f'<span class="profile-kind">{esc(entity["kind"].replace("_", " ").title())}</span>'
             f'<h1 class="profile-id">{esc(subject)}</h1></div>'
             f'<p>{len(entity["members"])} recorded members</p></div>'
@@ -1344,8 +1346,8 @@ def flow_page(document, accounts, *, evidence_url=None, page_number=1):
     context = f'<h1>Exit trace</h1><p class="mono">{_linked(document["subject"], esc(document["subject"]), accounts)}</p>'
     context += ('<dl class="investigation-summary">'
                 f'<div><dt>Recorded transfers</dt><dd>{len(document["hops"]):,}</dd></div>'
-                f'<div><dt>Depth reached</dt><dd>{document["depth_reached"]} of {document["depth"]}</dd></div>'
-                f'<div><dt>Evidence page</dt><dd>{page_number} of {pages}</dd></div></dl>'
+                f'<div><dt>Depth reached</dt><dd>{document["depth_reached"]} <span class="stat-connective">of</span> {document["depth"]}</dd></div>'
+                f'<div><dt>Evidence page</dt><dd>{page_number} <span class="stat-connective">of</span> {pages}</dd></div></dl>'
                 '<nav class="investigation-actions" aria-label="Recorded trace sections"><a href="#recorded-dataset">Dataset analytics</a>'
                 '<a href="#transfers">Transfer evidence</a></nav>')
     body = (f'<div class="card summary"><p>{data_text(trace.summary(document))}</p><p class="muted">Read '
@@ -1502,7 +1504,7 @@ def record_page(record):
     record_id = esc(record["record_id"])
     body = ("<h1>Incident record</h1>" + "".join(sections)
             + '<p class="muted">Re-check from the repository root with '
-            + f"<code>python -m intel record-check fixtures/records/{record_id}.json</code>.</p>")
+            + f'<code><span class="nowrap">python -m intel record-check</span> fixtures/records/{record_id}.json</code>.</p>')
     return page("Incident record", body, depth=1, inert=True)
 
 
@@ -1666,7 +1668,7 @@ def not_found_page():
 
 
 def investigate_page():
-    body = ('<div id="account-investigation"><div class="investigate-heading"><div><h1 id="investigate-title">Investigate account</h1>'
+    body = ('<div id="account-investigation"><div class="investigate-heading page-head"><div><h1 id="investigate-title">Investigate account</h1>'
             '<p>Finalized account state, indexed activity and the evidence behind each observation.</p></div>'
             '<div class="workspace-actions"><button id="investigate-refresh" type="button" disabled>Refresh reads</button>'
             '<button id="investigate-watch" type="button" disabled>Watch account</button>'
@@ -1710,7 +1712,7 @@ def _cloud_workspace_panel():
 
 
 def workspace_page():
-    body = ('<div class="workspace-page-head"><div><h1>Workspace</h1></div>'
+    body = ('<div class="workspace-page-head page-head"><div><h1>Workspace</h1></div>'
             '<a class="button primary" href="/index.html">Start investigation</a></div>'
             + _cloud_workspace_panel() +
             (ROOT / "intel/ui/investigation-jobs-panel.html").read_text(encoding="utf-8") +

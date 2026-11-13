@@ -32,7 +32,7 @@ class RegistryOverviewTest(unittest.TestCase):
     def test_static_overview_preserves_every_existing_row_and_control(self):
         store = labels.load()
         page = render.entity_page("Organisations from on chain registries", ("organisation",), store)
-        self.assertIn("2,434 assertions from 2 recorded registry reads", page)
+        self.assertIn("2,434 assertions from 2 recorded registry reads", " ".join(own_text(page).split()))
         self.assertIn('id="individual-assertions"', page)
         self.assertIn('>Individual recorded assertions</summary>', page)
         self.assertEqual(page.count('data-assertion-id='), 50)

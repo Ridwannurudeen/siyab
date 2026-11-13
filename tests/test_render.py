@@ -952,7 +952,10 @@ class RenderTest(unittest.TestCase):
             self.assertIn(source["content_sha256"], page)
         for account in document["accounts"]:
             self.assertIn(account["subject"], page)
-            self.assertIn(html.escape(account["quote"]["text"]), page)
+            quote = html.escape(account["quote"]["text"])
+            self.assertIn(quote, re.sub(r'<span class="data-id">([0-9a-f]{64})</span>', r'\1', page))
+            for identifier in re.findall(r"[0-9a-f]{64}", quote):
+                self.assertIn(f'<span class="data-id">{identifier}</span>', page)
         for item in document["not_public"]:
             self.assertIn(html.escape(item), page)
         for entry in document["rules_today"]:

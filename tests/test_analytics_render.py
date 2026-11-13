@@ -66,7 +66,7 @@ class AnalyticsRenderTest(unittest.TestCase):
         for entity in entities:
             with self.subTest(entity=entity["id"]):
                 page = render.registry_entity_page(entity, {})
-                heading = page.split('<div class="profile-heading">', 1)[1].split('</div>', 1)[0]
+                heading = page.split('<div class="profile-heading page-head">', 1)[1].split('</div>', 1)[0]
                 subject = entity["members"][0] if entity["kind"] in ("validator", "dao") else entity["name"]
                 self.assertIn(f'<h1 class="profile-id">{html.escape(subject)}</h1>', heading)
                 self.assertNotIn('<q class="data">', heading)
