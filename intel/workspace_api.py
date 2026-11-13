@@ -10,6 +10,7 @@ import re
 import sqlite3
 import threading
 import time
+import unicodedata
 import urllib.parse
 from collections import OrderedDict
 from datetime import UTC, datetime
@@ -41,6 +42,7 @@ class WorkspaceAPI:
             raise ValueError("SIYAB_REGISTRATION must be open or closed")
         self.registration_open = registration == "open"
         self.store = store
+        self.ask = None
         self.origin = origin
         self.secure_cookie = secure_cookie
         self.cookie_name = "__Host-siyab-session" if secure_cookie else "siyab-local-session"
@@ -120,6 +122,8 @@ class WorkspaceAPI:
                         or not hmac.compare_digest(supplied[0], session["csrf_token"])):
                     raise WorkspaceError(403, "csrf_denied", "Refresh the session and try this command again.")
             actor = session["user"]["id"]
+            if len(parts) == 3 and parts[0] == "teams" and parts[2] == "ask" and method == "POST":
+                return self._ask(actor, parts[1], values, peer, headers)
             if parts == ["teams"]:
                 if method in ("GET", "HEAD"):
                     self._query(parsed.query, set())
@@ -146,6 +150,46 @@ class WorkspaceAPI:
             return 503, {"error": "job_capacity", "message": str(error)}, {"Retry-After": "60"}
         except (sqlite3.Error, OSError):
             return 503, {"error": "storage_unavailable", "message": "Workspace storage is temporarily unavailable. Try again."}, {}
+
+    def _ask(self, actor, team, values, peer, headers):
+        from intel.ask import QUESTIONS, USER_ASKS_PER_MINUTE
+        from intel.live import LiveAPI, LiveInputError
+
+        with self.store._connection() as connection:
+            self.store._member(connection, actor, team)
+        if self.ask is None:
+            raise WorkspaceError(404, "not_found", "No workspace route matches this path.")
+        allowed, start = self._allowed(("ask", actor), USER_ASKS_PER_MINUTE, 60)
+        if not allowed:
+            return self._limited(60, start)
+        fields = set(values)
+        if fields not in ({"receiver", "amount", "token", "question_id"}, {"receiver", "amount", "token", "question"}):
+            raise WorkspaceError(400, "invalid_fields", "Send receiver, amount, token and exactly one question field.")
+        try:
+            receiver = LiveAPI._account(values["receiver"], "receiver")
+            token = values["token"] if values["token"] == "near" else LiveAPI._account(values["token"], "token")
+            amount = LiveAPI._amount(values["amount"])
+            if any(value == "testnet" or value.endswith(".testnet") for value in (receiver, token)):
+                raise LiveInputError("Ask Siyab accepts mainnet accounts only.")
+            if "question_id" in values:
+                if not isinstance(values["question_id"], str) or values["question_id"] not in QUESTIONS:
+                    raise LiveInputError("Choose one of the four fixed questions.")
+                question = {"question_id": values["question_id"]}
+            else:
+                text = values["question"]
+                if (not isinstance(text, str) or not 1 <= len(text.strip()) <= 300
+                        or any(unicodedata.category(character) in ("Cc", "Cf") for character in text)):
+                    raise LiveInputError("Use a question of 1 to 300 characters without control characters.")
+                try:
+                    text.encode("utf-8")
+                except UnicodeEncodeError:
+                    raise LiveInputError("Use a question with valid Unicode characters.") from None
+                question = {"question": text.strip()}
+        except LiveInputError as error:
+            raise WorkspaceError(400, "invalid_question", str(error)) from None
+        return self.ask.answer({"receiver": receiver, "amount": amount, "token": token, **question},
+                               user_id=actor, team_id=team, reserved=self.store.is_reserved(actor),
+                               peer=peer, headers=headers)
 
     def _auth(self, parts, values, client, headers):
         if len(parts) != 2 or parts[1] not in ("register", "login", "recover"):

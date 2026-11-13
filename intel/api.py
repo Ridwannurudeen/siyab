@@ -537,6 +537,12 @@ def serve(host, port, site=None, live=False, state_dir=None, workspace_origin="h
 
         live_routes = LiveAPI(store, history_store=history_store, entity_directory=enrichment.EntityDirectory(state if state_dir is not None else None),
                               portfolio_data=portfolio.PortfolioData(accounts.AccountData(store)), portfolio_history=portfolio_store)
+    if state_dir is not None and live:
+        from intel.ask import AskService
+
+        ask = AskService(state, store, lambda query, peer, headers: live_routes.handle(
+            "/live/verdict?" + urllib.parse.urlencode(sorted(query.items())), peer, headers))
+        live_routes.ask = workspace_routes.ask = ask
     server = make_server(host, port, site, store=store, live_routes=live_routes, workspace_routes=workspace_routes)
     mode = " with live routes" if live else ""
     access = "public read-only API and authenticated workspace" if workspace_routes is not None else "read only API"

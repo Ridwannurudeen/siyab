@@ -138,6 +138,13 @@ def version_errors(readme_text, res, contracts):
     return errors
 
 
+class AskLimitsTest(unittest.TestCase):
+    def test_ask_discloses_public_evidence_and_signed_in_answers(self):
+        limits = README.read_text(encoding="utf-8").split("\n## Limits\n", 1)[1].split("\n## ", 1)[0]
+        self.assertIn("- Ask Siyab sends the public evidence for an asked account to the model provider. "
+                      "Only signed-in users see explanations, using at most one selection call per uncached ask.", limits.splitlines())
+
+
 class WaitingIsNotClaimedTest(unittest.TestCase):
     def test_the_what_waits_line_has_items(self):
         items = waiting_items(README.read_text(encoding="utf-8"))

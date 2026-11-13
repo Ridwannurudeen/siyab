@@ -489,6 +489,7 @@ Copied from `docs/ATTACKS.md`. Each NEAR command is `python -m gate attack <name
 
 ## Limits
 
+- Ask Siyab sends the public evidence for an asked account to the model provider. Only signed-in users see explanations, using at most one selection call per uncached ask.
 - The Gate binds the evidence hash into the signed verdict but does not compare it with the registry. The registry is an audit record, and the Gate trusts its configured verifier key (`contracts/gate/src/verdict.rs:22-47`; `contracts/gate/src/lib.rs:194-210`; `contracts/registry/src/lib.rs:141-191`).
 - For FT payments, the Gate requires the token in the owner-configured caps for the selected payee category. It has no separate Gate-wide token allowlist or token behavior check, so those caps and the verifier define token trust (`contracts/gate/src/lib.rs:187-192,228-237`).
 - Native NEAR uses a plain Transfer with no memo field. Gate 0.2.2, deployed on testnet on 9 Nov, rejects any present native memo, including an empty string (`contracts/gate/src/lib.rs:187-193,305-311`; `res/BUILD-gate.md`).

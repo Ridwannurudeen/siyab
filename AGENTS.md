@@ -82,6 +82,16 @@ Python variables:
 - `SIYAB_VERDICT_NEARBLOCKS`: set to `1` to enable the hosted verdict account-age fallback; disabled by default.
 - `SIYAB_TELEGRAM_TOKEN_FILE`: path to the dedicated Siyab Telegram bot token file outside the repository; missing credentials leave delivery unconfigured.
 
+- `SIYAB_ASK`: Set to 1 to enable Ask Siyab; off by default.
+- `ANTHROPIC_API_KEY_FILE`: Path outside the repository, never a key value; read at call time.
+- `SIYAB_ASK_MODEL`: Ask model id from the priced model table.
+- `SIYAB_ASK_EFFORT`: Ask effort: low by default, medium or high.
+- `SIYAB_ASK_DAILY_CAP_MICRO`: Global Ask micro-dollar cap per UTC day: 0 to 3000000, default 3000000.
+- `SIYAB_ASK_USER_TOKENS`: Ask billed tokens per user per UTC day: 0 to 1000000, default 100000.
+- `SIYAB_ASK_TEAM_TOKENS`: Ask billed tokens per team per UTC day: 0 to 3000000, default 300000.
+- `SIYAB_ASK_CACHE_ROWS`: Ask answer cache rows: 100 to 100000, default 10000.
+- `SIYAB_ASK_CACHE_BYTES`: Ask answer cache bytes: 1048576 to 268435456, default 33554432.
+
 Testnet script variables:
 
 - `NETWORK`: network selector, defaults to `testnet`; scripts refuse other values.

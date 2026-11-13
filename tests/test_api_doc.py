@@ -230,6 +230,105 @@ def example_problems(text, root):
     return problems
 
 
+class AskDocumentationTest(unittest.TestCase):
+    def test_usage_ceiling_and_versions_match_code(self):
+        from intel import ask
+
+        text = "\n".join(section(API_DOC.read_text(encoding="utf-8"), "## Ask Siyab"))
+        for phrase in ("at most `2**53`", "output tokens must not exceed the request's `max_tokens`",
+                       "canonical complete request's UTF-8 byte length plus 4,096", "highest input rate",
+                       "never the reported amount", "after acquiring the database lock"):
+            self.assertIn(phrase, text)
+        for name in ("ASK_VERSION", "PROMPT_VERSION", "SCHEMA_VERSION"):
+            self.assertIn('`' + name + ' = "' + getattr(ask, name) + '"`', text)
+        self.assertIn('"ask_version": "' + ask.ASK_VERSION + '"', text)
+        self.assertEqual(ask.ASK_VERSION, "13")
+
+    def test_token_quota_refusals_document_attempted_call_reservations(self):
+        text = "\n".join(section(API_DOC.read_text(encoding="utf-8"), "## Ask Siyab"))
+        for reason in ("user_quota", "team_quota", "spend_cap"):
+            row = next(line for line in text.splitlines() if line.startswith("| `" + reason + "` |"))
+            self.assertEqual(row.split("|")[3].strip(), "no")
+            self.assertEqual(row.split("|")[4].strip(), "none")
+            self.assertIn("before the call", row)
+
+    def test_public_ask_requires_sign_in_and_storage_failures_keep_spend(self):
+        text = "\n".join(section(API_DOC.read_text(encoding="utf-8"), "## Ask Siyab"))
+        self.assertIn("Anonymous reads return `sign_in_required`", text)
+        self.assertIn("never read the answer cache", text)
+        self.assertNotIn("| `check_failed` |", text)
+        self.assertIn("spend after a call remains in the ledger", text)
+
+    def test_question_content_refusals_are_unavailable_answers(self):
+        text = "\n".join(section(API_DOC.read_text(encoding="utf-8"), "## Ask Siyab"))
+        self.assertIn("Angle brackets or instruction-pattern matches return HTTP 200 `question_refused`", text)
+        self.assertNotIn("with no control characters, angle brackets or instruction-pattern match", text)
+
+    def test_selection_schema_and_invalid_output_are_documented(self):
+        text = "\n".join(section(API_DOC.read_text(encoding="utf-8"), "## Ask Siyab"))
+        for phrase in ("`answerable`, `points` and `gaps`", "`item_id` and `aspect`",
+                       "`read`, `unknown` or `would_change`", "at most 6 points", "at most 3 gap codes",
+                       "`answerable: false` requires zero points", "`additionalProperties: false`",
+                       "unknown id", "duplicate id", "invalid aspect", "`unavailable/invalid_output`",
+                       "never cached"):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, text)
+        for code in ("transaction_simulation", "off_chain_identity", "future_state", "intent", "not_covered_by_checks"):
+            self.assertIn("`" + code + "`", text)
+
+    def test_invalid_output_documents_cache_and_call_accounting(self):
+        text = "\n".join(section(API_DOC.read_text(encoding="utf-8"), "## Ask Siyab"))
+        row = next(row for row in table_rows(text.splitlines()) if row[0] == "invalid_output")
+        self.assertEqual(row[1], "Invalid cached citations or aspects; response not an object; missing, malformed "
+                         "or out-of-bounds usage; missing or non-string `stop_reason` or `text`; "
+                         "`stop_reason` other than `end_turn`, `refusal` or `max_tokens`; any selection validation failure")
+        self.assertEqual(row[2], "no for invalid cached selections; yes for response failures")
+        self.assertEqual(row[3], "none for invalid cached selections; full reservation kept for a non-object "
+                         "response or missing, malformed or out-of-bounds usage; otherwise settled from valid usage "
+                         "before envelope or selection validation")
+
+    def test_templates_and_evidence_chips_are_documented(self):
+        text = "\n".join(section(API_DOC.read_text(encoding="utf-8"), "## Ask Siyab"))
+        for phrase in ("Siyab writes every sentence", "selects and orders evidence items", "fixed codes",
+                       "never produced or changed by the model", "`TEMPLATES`", "byte-identical to the projection",
+                       "`evidence_chip`", "`item_id`", "`fields`", "except `id`", "including uncited checks",
+                       "pass records no signal", "signal records a signal",
+                       "unknown leaves the check unresolved", "`gate/rules.py`"):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, text)
+
+    def test_response_example_matches_rendered_chip_shape(self):
+        from intel import ask
+
+        text = "\n".join(section(API_DOC.read_text(encoding="utf-8"), "## Ask Siyab"))
+        response = "\n".join(section(text, "### Response"))
+        example = json.loads(re.search(r"```json\n(.*?)\n```", response, re.S).group(1))
+        projection = {"items": [{"id": "check.receiver_exists", "status": "signal",
+                                 "detail": "receiver does not exist"}]}
+        selection = {"answerable": True, "points": [{"item_id": "check.receiver_exists", "aspect": "read"}],
+                     "gaps": []}
+        rendered = ask.render_answer(selection, projection)
+        for name, value in rendered.items():
+            self.assertEqual(example[name], value)
+
+    def test_single_call_reservation_and_cache_timestamp_are_documented(self):
+        text = "\n".join(section(API_DOC.read_text(encoding="utf-8"), "## Ask Siyab"))
+        self.assertIn("one selection call", text)
+        self.assertIn("single call's request bound", text)
+        self.assertIn("at most one model call and one reservation", text)
+        self.assertIn("Any failure returns unavailable with its reason", text)
+        self.assertNotIn("after retry", text)
+        self.assertNotIn("call or retry", text)
+        self.assertIn("cached `generated_at`", text)
+        self.assertNotIn("second checking call", text)
+        self.assertNotIn("CHECK_VERSION", text)
+
+    def test_projection_cleaning_names_only_the_removed_link_forms(self):
+        text = "\n".join(section(API_DOC.read_text(encoding="utf-8"), "## Ask Siyab"))
+        self.assertIn("explicit `http://`, `https://`, `ftp://`, `ws://`, `wss://` and `www.` forms", text)
+        self.assertIn("Other link forms are not removed by projection cleaning", text)
+
+
 class CheckTableTest(unittest.TestCase):
     def setUp(self):
         self.text = API_DOC.read_text(encoding="utf-8")

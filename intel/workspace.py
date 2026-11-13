@@ -331,6 +331,10 @@ class SQLiteWorkspaceStore:
             connection.execute("INSERT OR IGNORE INTO reserved_users VALUES (?,?)", (user["id"], self._now()))
         return {"reserved": True}
 
+    def is_reserved(self, user_id):
+        with self._connection() as connection:
+            return connection.execute("SELECT 1 FROM reserved_users WHERE user_id=?", (user_id,)).fetchone() is not None
+
     def register(self, username, password, access_code=None):
         username, password = _username(username), _password(password)
         if access_code is not None and (not isinstance(access_code, str) or _TOKEN.fullmatch(access_code) is None):

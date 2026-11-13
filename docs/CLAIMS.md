@@ -1,6 +1,16 @@
-# Claims to code
+# Claims
 
 Every statement intended for the README has a code path, a test and a local evidence source. The `idea` column marks claims the later idea generator may use.
+
+## Ask Siyab
+
+| Ask claim | File:function | Test | Evidence | idea |
+|---|---|---|---|---|
+| Anonymous Ask reads return the rules outcome and unknown checks without reading the answer cache or calling the model. Only signed-in asks return explanations after strict evidence selection validation. | `intel/live.py:LiveAPI._ask` | `tests/test_ask_api.py::AskAPITests::test_anonymous_get_cached_answer_requires_sign_in` | offline | no |
+| The model only selects and orders evidence items and picks fixed codes. Siyab writes every sentence from templates, keeps third-party text byte-identical to its projection inside attributed evidence chips, and never produces or changes the rules engine outcome through the model. | `intel/ask.py:render_answer` | `tests/test_ask_validation.py::TemplateTests::test_each_item_keeps_third_party_values_only_in_its_exact_chip` | `tests/test_ask_validation.py::TemplateTests::test_committed_fixture_checks_render_their_exact_status_meaning`, `tests/test_ask_validation.py::TemplateTests::test_selected_order_and_gap_codes_choose_only_fixed_sentences` | no |
+| Unknown ids, duplicate ids, invalid aspects and schema violations withhold the explanation and never enter the answer cache. | `intel/ask.py:parse_selection` | `tests/test_ask_validation.py::SelectionValidationTests::test_invalid_selections_are_unavailable_and_never_cached` | offline | no |
+
+## Claims to code
 
 | Claim | File:function | Test | Evidence | idea |
 |---|---|---|---|---|
