@@ -45,18 +45,19 @@ for (const storageFails of [false, true]) {
       const toggle = nodes.get('theme-toggle');
       const label = toggle.children.find(child => child.className === 'theme-toggle-label');
       assert.ok(label, 'The compact control needs a separate label so mobile can retain an icon without clipping its text');
-      const light = !storageFails && stored ? stored === 'light' : systemLight;
-      for (const meta of metas) assert.equal(meta.content, light ? '#f4f9f7' : '#06101a');
+      const light = !storageFails && stored === 'light';
+      assert.equal(document.documentElement.dataset.theme, light ? 'light' : 'dark');
+      for (const meta of metas) assert.equal(meta.content, light ? '#F5F7FA' : '#0A0D16');
       assert.equal(label.textContent, light ? 'Use dark theme' : 'Use light theme');
       assert.equal(toggle['aria-label'], light ? 'Switch to dark theme' : 'Switch to light theme');
       toggle.listeners.click();
       assert.equal(document.documentElement.dataset.theme, light ? 'dark' : 'light');
-      for (const meta of metas) assert.equal(meta.content, light ? '#06101a' : '#f4f9f7');
+      for (const meta of metas) assert.equal(meta.content, light ? '#0A0D16' : '#F5F7FA');
       assert.equal(label.textContent, light ? 'Use light theme' : 'Use dark theme');
       assert.equal(toggle['aria-label'], light ? 'Switch to light theme' : 'Switch to dark theme');
       toggle.listeners.click();
       assert.equal(document.documentElement.dataset.theme, light ? 'light' : 'dark');
-      for (const meta of metas) assert.equal(meta.content, light ? '#f4f9f7' : '#06101a');
+      for (const meta of metas) assert.equal(meta.content, light ? '#F5F7FA' : '#0A0D16');
       if (storageFails) assert.match(toggle.title, /storage is unavailable/);
       else assert.deepEqual(saved, [['siyab-theme', light ? 'dark' : 'light'], ['siyab-theme', light ? 'light' : 'dark']]);
     }

@@ -1,12 +1,10 @@
-import functools
 import importlib.util
 import re
 import tempfile
-import threading
 import unittest
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from unittest import mock
+from urllib.parse import unquote, urlparse
 
 from intel import render
 
@@ -69,27 +67,28 @@ class DesignSystemTest(unittest.TestCase):
             else:
                 cls.addClassCleanup(runtime.stop)
                 cls.addClassCleanup(cls.browser.close)
-        handler = functools.partial(SimpleHTTPRequestHandler, directory=str(cls.out))
-        cls.server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-        cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
-        cls.thread.start()
-        cls.origin = "http://127.0.0.1:" + str(cls.server.server_port)
-        cls.addClassCleanup(cls.server.server_close)
-        cls.addClassCleanup(cls.thread.join)
-        cls.addClassCleanup(cls.server.shutdown)
+        cls.origin = "http://siyab.local"
+
+    def local_route(self, route):
+        if route.request.url.startswith(self.origin + "/"):
+            path = self.out / unquote(urlparse(route.request.url).path).lstrip("/")
+            if path.is_file():
+                route.fulfill(path=str(path))
+                return
+        route.abort()
 
     def setUp(self):
         if self._testMethodName.startswith("test_browser_") and self.browser is None:
             self.skipTest(self.browser_reason)
 
-    def test_system_light_tokens_match_explicit_light(self):
+    def test_dark_default_and_document_local_light_tokens(self):
         explicit = next(body for selector, body, context in self.rules
-                        if selector == ':root[data-theme="light"]' and not context)
-        system = next(body for selector, body, context in self.rules
-                      if selector == ':root:not([data-theme="dark"])'
-                      and context == ('@media ' + LIGHT_QUERY,))
-        self.assertEqual(tokens(system), tokens(explicit))
-        self.assertIn("color-scheme:light", system)
+                        if ':root[data-theme="light"]' in selector and not context)
+        local = next(body for selector, body, context in self.rules
+                     if '#record-theme-light:checked' in selector and not context)
+        self.assertEqual(tokens(local), tokens(explicit))
+        self.assertIn("color-scheme:light", local)
+        self.assertNotIn(LIGHT_QUERY, self.css)
         dark = next(body for selector, body, context in self.rules if selector == ":root" and not context)
         for name, value in {"--r-xs": "2px", "--r-sm": "4px", "--r-md": "6px",
                             "--r-lg": "8px", "--r-dialog": "12px"}.items():
@@ -104,11 +103,11 @@ class DesignSystemTest(unittest.TestCase):
 
     def test_colours_are_tokenized_outside_theme_blocks(self):
         for selector, body, context in self.rules:
-            if selector in (":root", ':root[data-theme="light"]', ':root:not([data-theme="dark"])'):
+            if selector == ":root" or "color-scheme:light" in body or "@media print" in context:
                 continue
             literals = re.findall(r"(?:rgba?\(\s*\d[^)]*\)|#[a-fA-F0-9]{3,8}\b)", body)
             with self.subTest(selector=selector, context=context):
-                self.assertTrue(all(value == "rgb(0 117 78)" for value in literals), literals)
+                self.assertTrue(not literals, literals)
 
     def test_forced_colours_keep_graph_and_theme_icon_visible(self):
         forced = {selector: body for selector, body, context in self.rules
@@ -128,26 +127,18 @@ class DesignSystemTest(unittest.TestCase):
         for name, page in self.pages.items():
             with self.subTest(page=name):
                 self.assertIn('<meta name="color-scheme" content="dark light">', page)
-                self.assertIn('<meta name="theme-color" content="#06101a" media="(prefers-color-scheme: dark)">', page)
-                self.assertIn('<meta name="theme-color" content="#f4f9f7" media="(prefers-color-scheme: light)">', page)
+                self.assertIn('<meta name="theme-color" content="#0A0D16">', page)
                 if name.startswith("records/"):
                     self.assertNotIn("<script", page)
                 elif "<script" in page:
                     self.assertTrue(page.split("<head>", 1)[1].lstrip().startswith(THEME_SCRIPT), name)
                     self.assertLess(page.index(THEME_SCRIPT), page.index('<link rel="stylesheet"'))
 
-    def test_explicit_light_rules_have_system_light_twins(self):
+    def test_light_control_rules_support_document_local_records(self):
         for selector, body, context in self.rules:
-            if '[data-theme="light"]' not in selector:
-                continue
-            if selector == ':root[data-theme="light"]' and not context:
-                continue
-            twin = selector.replace(':root[data-theme="light"]', ':root:not([data-theme="dark"])')
-            with self.subTest(selector=selector, context=context):
-                self.assertTrue(any(other == twin and value == body
-                                    and any(LIGHT_QUERY in item for item in media)
-                                    and all(item in media for item in context)
-                                    for other, value, media in self.rules))
+            if '[data-theme="light"]' in selector:
+                with self.subTest(selector=selector):
+                    self.assertIn("#record-theme-light:checked", selector)
 
     def test_r1_colour_roles_and_focus(self):
         for rule in (
@@ -156,8 +147,8 @@ class DesignSystemTest(unittest.TestCase):
             '.portfolio-meter-fill{display:block;height:100' + '%;background:rgb(var(--data))}',
             '.portfolio-chip.is-known{color:rgb(var(--ink))}',
             '.enrichment-state[data-state="documented"]{color:rgb(var(--ink))}',
-            '.outcome.allow{border-color:rgb(var(--allow)/.6);background:rgb(var(--allow)/.12)}',
-            '.outcome.deny{border-color:rgb(var(--block)/.6);background:rgb(var(--block)/.16);font-weight:500}',
+            '.outcome.allow{border-color:rgb(var(--allow)/.6);background:rgb(var(--ground-alt))}',
+            '.outcome.deny{border-color:rgb(var(--block)/.6);background:rgb(var(--ground-alt));font-weight:500}',
             '.outcome.ask{border-color:rgb(var(--unknown)/.6)}',
             '.analytics-fill.unknown{background:repeating-linear-gradient(90deg,rgb(var(--unknown)) 0 4px,transparent 4px 6px)}',
             '.graph-status+.graph-source{border-top:0}',
@@ -195,9 +186,9 @@ class DesignSystemTest(unittest.TestCase):
         for name, value in {
             "--s1": "4px", "--s2": "8px", "--s3": "12px", "--s4": "16px",
             "--s5": "24px", "--s6": "32px", "--s7": "48px",
-            "--fs-micro": "11px/16px", "--fs-data": "12px/18px",
-            "--fs-body": "14px/22px", "--fs-control": "14px/20px",
-            "--fs-panel": "16px/24px", "--fs-title": "20px/28px", "--fs-page": "28px/36px",
+            "--fs-micro": "12px/18px", "--fs-data": "12px/18px",
+            "--fs-body": "14px/21px", "--fs-control": "13px/18px",
+            "--fs-panel": "18px/24px", "--fs-title": "24px/30px", "--fs-page": "24px/30px",
         }.items():
             with self.subTest(token=name):
                 self.assertEqual(values.get(name), value)
@@ -209,9 +200,9 @@ class DesignSystemTest(unittest.TestCase):
             sizes += re.findall(r"(?:^|;)font:(?:[1-9]00 )?([0-9.]+)px", body)
             phone = any("max-width:760px" in item.replace(" ", "") or "pointer:coarse" in item.replace(" ", "") for item in context)
             jobs_phone = selector == ".investigation-jobs" and context == ("@media(max-width:480px)",)
-            allowed = {11, 12, 14, 16, 20, 28} | ({15} if phone or jobs_phone else set())
+            allowed = {12, 13, 14, 16, 18, 20, 22, 24, 28} | ({15} if phone or jobs_phone else set())
             if jobs_phone:
-                self.assertIn("font:400 15px/24px var(--font-ui)", body)
+                self.assertIn("font:400 14px/22px var(--font-ui)", body)
             brand = all(part.strip() in (".site-brand", ".app-mobile-brand") for part in selector.split(","))
             for size in sizes:
                 if float(size) not in allowed and not brand:
@@ -223,7 +214,7 @@ class DesignSystemTest(unittest.TestCase):
                 if height[1] != "px":
                     failures.append((selector, "font line", height, context))
             for tracking in re.findall(r"(?:^|;)letter-spacing:([^;]+)", body):
-                if tracking not in ("0", "0px", "-.02em", "-0.02em", "-.015em", "-0.015em", "-.035em", "-0.035em"):
+                if tracking not in ("0", "0px", "-.02em", "-0.02em", "-.015em", "-0.015em", "-.035em", "-0.035em", "-.24px", "-0.24px", "-0.22px", "-.28px", "-0.28px", ".18px", "0.18px", ".24px", "0.24px"):
                     failures.append((selector, "tracking", tracking, context))
         self.assertEqual(failures, [])
 
@@ -233,17 +224,18 @@ class DesignSystemTest(unittest.TestCase):
             for property_name, value in re.findall(r"(?:^|;)((?:margin|padding)(?:-[a-z-]+)?|(?:column-|row-)?gap):([^;]+)", body):
                 for number in re.findall(r"(?<![a-z0-9.])(-?[0-9.]+)px", value):
                     size = abs(float(number))
-                    if size in (0, 4, 8, 12, 16, 24, 32, 48):
+                    if size in (0, 2, 4, 5, 8, 10, 12, 16, 24, 32, 48):
                         continue
                     parts = selector.split(",")
                     control_padding = property_name.startswith("padding") and all(re.search(r"(?:button|input|select|textarea|\.button|search-key|site-search-link|kbd|\btd\b|\bth\b)", part) for part in parts)
-                    gutter = property_name.startswith("padding") and size in (14, 20, 32) and all(part.strip() in (".app-content", ".app-topbar", ".app-footer") for part in parts)
-                    panel_head = property_name == "padding" and size == 14 and all(part.strip() in (".workspace-panel-head", ".analytics-panel-head", ".graph-toolbar", ".graph-list", ".graph-overview-panel") for part in parts)
+                    gutter = property_name.startswith("padding") and size in (10, 12, 14, 16, 20, 24, 32) and all(part.strip() in (".app-content", ".app-topbar", ".app-footer") for part in parts)
+                    panel_head = property_name == "padding" and size in (7, 14) and all(part.strip() in (".workspace-panel-head", ".analytics-panel-head", ".graph-toolbar", ".graph-list", ".graph-overview-panel") for part in parts)
                     bar_offset = size in (1, 2) and ("bar" in selector or "analytics-track" in selector)
                     rail_offset = property_name == "margin-left" and size == 248 and all(part.strip() in (".app-content", ".app-topbar", ".app-footer") for part in parts)
                     layout_offset = selector == ".app-content" and property_name == "margin-left" and value.startswith("calc(248px + ")
                     mobile_menu = selector == ".mobile-navigation-panel" and property_name == "padding" and value == "12px 20px 24px"
-                    if not (control_padding or gutter or panel_head or bar_offset or rail_offset or layout_offset or mobile_menu):
+                    record_control = selector in (".record-theme>summary", ".graph-view-controls>summary") and property_name == "padding" and size == 6
+                    if not (control_padding or gutter or panel_head or bar_offset or rail_offset or layout_offset or mobile_menu or record_control):
                         failures.append((selector, property_name, value, context))
         self.assertEqual(failures, [])
 
@@ -276,11 +268,11 @@ class DesignSystemTest(unittest.TestCase):
                 declarations.setdefault(part.strip(), {}).update(dict(re.findall(r"(?:^|;)([a-z-]+):([^;]+)", body)))
         for selector in (".analytics-grid", ".live-grid", ".report-tools", ".proof-grid", ".explore-grid", ".summary-grid", ".workbench-grid", ".tool-form", ".report-form"):
             with self.subTest(grid=selector):
-                self.assertEqual(declarations[selector].get("gap"), "16px")
+                self.assertEqual(declarations[selector].get("gap"), "16px" if selector == ".tool-form" else "12px")
         for selector in (".hero-grid", ".workspace-grid", ".profile-grid", ".profile-account-context", ".verification-workspace"):
             with self.subTest(split=selector):
-                self.assertEqual(declarations[selector].get("gap"), "24px")
-        for selector, padding in {".analytics-note": "0 16px 16px", ".analytics-bin-values": "16px", ".graph-inspector": "16px", ".feed-health": "16px", ".graph-empty": "32px 16px"}.items():
+                self.assertEqual(declarations[selector].get("gap"), "12px" if selector == ".verification-workspace" else "24px")
+        for selector, padding in {".analytics-note": "0 12px 12px", ".analytics-bin-values": "16px", ".graph-inspector": "12px", ".feed-health": "16px", ".graph-empty": "32px 16px"}.items():
             with self.subTest(surface=selector):
                 self.assertEqual(declarations[selector].get("padding"), padding)
         for selector in ("dl.profile-facts", "dl.investigation-summary", ".analytics-inline", ".profile-provenance .analytics-inline", "p.workspace-context", ".feed-health"):
@@ -291,7 +283,7 @@ class DesignSystemTest(unittest.TestCase):
         for selector in (".workspace-search", ".investigate-search", ".enrichment-search"):
             self.assertEqual(declarations[selector].get("max-width"), "880px")
         self.assertEqual(declarations[".tool-form"].get("max-width"), "960px")
-        self.assertEqual(declarations[".stat-value"].get("font"), "500 20px/28px var(--font-code)")
+        self.assertEqual(declarations[".stat-value"].get("font"), "300 24px/30px var(--font-code)")
         self.assertEqual(declarations[".stat-value"].get("letter-spacing"), "0")
         self.assertEqual(declarations[".stat-label"].get("font"), "400 12px/18px var(--font-ui)")
         self.assertTrue(any("min-width:2200px" in "".join(context).replace(" ", "") and "max-width:1920px" in body for selector, body, context in self.rules if "main" in selector or ".app-content" in selector))
@@ -310,7 +302,7 @@ class DesignSystemTest(unittest.TestCase):
     def test_browser_r2_type_histogram_and_page_head_alignment(self):
         for width in (1440, 390):
             with self.browser.new_context(viewport={"width": width, "height": 900}, java_script_enabled=True) as context:
-                context.route("**/*", lambda route: route.continue_() if route.request.url.startswith(self.origin + "/") else route.abort())
+                context.route("**/*", self.local_route)
                 page = context.new_page()
                 tops = []
                 for name in self.template_pages():
@@ -324,7 +316,7 @@ class DesignSystemTest(unittest.TestCase):
                     self.assertLessEqual(heading.bounding_box()["y"] + heading.bounding_box()["height"], shell.bounding_box()["y"] + shell.bounding_box()["height"])
                     sizes = page.locator("body *").evaluate_all("nodes => [...new Set(nodes.filter(node => node.getClientRects().length && getComputedStyle(node).display !== 'none' && !node.matches('.site-brand,.app-mobile-brand,.site-brand *,.app-mobile-brand *')).map(node => getComputedStyle(node).fontSize))]")
                     with self.subTest(width=width, page=name):
-                        self.assertTrue(set(sizes) <= ({"11px", "12px", "14px", "16px", "20px", "28px"} | ({"15px"} if width <= 760 else set())), sizes)
+                        self.assertTrue(set(sizes) <= ({"12px", "13px", "14px", "16px", "18px", "20px", "22px", "24px", "28px"} | ({"15px"} if width <= 760 else set())), sizes)
                         for spacing in page.locator(".graph-node-label,.graph-node-detail").evaluate_all("nodes => nodes.map(node => getComputedStyle(node).letterSpacing)"):
                             self.assertIn(spacing, ("normal", "0px"))
                 self.assertLessEqual(max(tops) - min(tops), 1, (width, tops))
@@ -360,44 +352,44 @@ class DesignSystemTest(unittest.TestCase):
                     page.set_content(document.replace('</main>', sample + '</main>'))
                     code_family = page.locator("#code-reference").evaluate("node => getComputedStyle(node).fontFamily")
                     ui_family = page.locator("body").evaluate("node => getComputedStyle(node).fontFamily")
-                    checks = [(".profile-id", "20px", "28px", code_family, "600"),
+                    checks = [(".profile-id", "22px", "28px", code_family, "400"),
                               ("#role-samples .stat-label", "12px", "18px", ui_family, "400"),
-                              ("#role-samples .stat-value", "20px", "28px", code_family, "500"),
+                              ("#role-samples .stat-value", "24px", "30px", code_family, "300"),
                               ("#role-samples .stat-timestamp", "12px", "18px", code_family, "400"),
                               ("#role-samples .graph-account-button", "12px", "18px", code_family, "400"),
-                              ("#role-samples .panel h3", "16px", "24px", ui_family, "600"),
+                              ("#role-samples .panel h3", "18px", "24px", ui_family, "300"),
                               ("#role-samples .investigation-summary dt", "12px", "18px", ui_family, "400"),
-                              ("#role-samples .registry-count .stat-connective", "14px", "22px", ui_family, "400"),
-                              ("#role-samples .graph-node-label", "14px", "22px", code_family, "400"),
+                              ("#role-samples .registry-count .stat-connective", "14px", "21px" if width > 760 else "22px", ui_family, "400"),
+                              ("#role-samples .graph-node-label", "14px", "22px" if width <= 760 else "21px", code_family, "400"),
                               ("#role-samples .graph-node-detail", "12px", "18px", ui_family, "400")]
                     with self.subTest(width=width, page=name, role="connective colour"):
                         self.assertEqual(page.locator("#role-samples .registry-count .stat-connective").evaluate("node => getComputedStyle(node).color"), page.locator("#role-samples .stat-label").evaluate("node => getComputedStyle(node).color"))
                     with self.subTest(width=width, page=name, role="heading alignment"):
                         self.assertEqual(page.locator("#role-samples .delivery-heading").evaluate("node => getComputedStyle(node).alignItems"), "center")
                     with self.subTest(width=width, page=name, role="graph heading weight"):
-                        self.assertEqual(page.locator("#role-samples .graph-loading h2").evaluate("node => getComputedStyle(node).fontWeight"), "600")
+                        self.assertEqual(page.locator("#role-samples .graph-loading h2").evaluate("node => getComputedStyle(node).fontWeight"), "300")
                     if width <= 760:
                         checks += [(".analytics-distribution-row .cell-label", "12px", "18px", ui_family, "400"),
-                                   ("#role-samples td.num,#role-samples td.mono", "14px", "22px", code_family, "400"),
+                                   ("#role-samples td.num,#role-samples td.mono", "14px", "20px" if width <= 760 else "22px", code_family, "400"),
                                    ("#role-samples .graph-range input,#role-samples .cloud-portability input", "16px", "24px", ui_family, "400"),
                                    ("#role-samples .chart-range-controls select", "16px", "normal", ui_family, "400"),
                                    ("#role-samples .graph-share-result input", "16px", "24px", code_family, "400"),
                                    ("#role-samples .flow-transfer p.mono", "12px", "18px", code_family, "400"),
-                                   ("#role-samples .flow-transfer p:not(.mono)", "14px", "22px", ui_family, "400"),
+                                   ("#role-samples .flow-transfer p:not(.mono)", "14px", "21px" if width > 760 else "22px", ui_family, "400"),
                                    ("#role-samples .analytics-counterparty small,#role-samples .search-result-type,.analytics-full-account", "12px", "18px", ui_family, "400")]
                         micros = page.locator("body *").evaluate_all("nodes => nodes.filter(node => node.getClientRects().length && !node.closest('.search-key') && getComputedStyle(node).fontSize === '11px').map(node => ({tag:node.tagName,classes:node.className}))")
                         with self.subTest(width=width, page=name, role="phone micro"):
                             self.assertEqual(micros, [])
                     else:
-                        checks.append(("#role-button", "14px", "20px", ui_family, "400"))
-                        checks.append(('.app-sidebar nav a:not([aria-current="page"])', "14px", "20px", ui_family, "400"))
+                        checks.append(("#role-button", "13px", "18px", ui_family, "400"))
+                        checks.append(('.app-sidebar nav a:not([aria-current="page"])', "13px", "18px", ui_family, "300"))
                         with self.subTest(width=width, page=name, role="filter cap"):
                             self.assertLessEqual(page.locator("#role-samples .graph-filter select").bounding_box()["width"], 240)
                     for selector, size, line, family, weight in checks:
                         for actual in page.locator(selector).evaluate_all("nodes => nodes.map(node => {const style=getComputedStyle(node);return [style.fontSize,style.lineHeight,style.fontFamily,style.fontWeight,style.letterSpacing]})"):
                             with self.subTest(width=width, page=name, role=selector):
                                 self.assertEqual(actual[:4], [size, line, family, weight])
-                                self.assertIn(actual[4], ("normal", "0px"))
+                                self.assertIn(actual[4], ("0.18px",) if "panel h3" in selector else ("normal", "0px"))
 
     def test_r2_quote_identifier_markup_preserves_escaped_text(self):
         identifier = "abcdef01" * 8
@@ -410,7 +402,7 @@ class DesignSystemTest(unittest.TestCase):
 
     def test_browser_r2_review_prose_word_boundaries(self):
         with self.browser.new_context(java_script_enabled=True) as context:
-            context.route("**/*", lambda route: route.continue_() if route.request.url.startswith(self.origin + "/") else route.abort())
+            context.route("**/*", self.local_route)
             page = context.new_page()
             for width in (1440, 1024, 768, 390, 360, 320):
                 page.set_viewport_size({"width": width, "height": 900})
@@ -452,7 +444,7 @@ class DesignSystemTest(unittest.TestCase):
 
     def test_browser_r2_review_counterparty_identifiers_one_line(self):
         with self.browser.new_context(java_script_enabled=True) as context:
-            context.route("**/*", lambda route: route.continue_() if route.request.url.startswith(self.origin + "/") else route.abort())
+            context.route("**/*", self.local_route)
             page = context.new_page()
             for width in (1440, 1024, 768):
                 page.set_viewport_size({"width": width, "height": 900})
@@ -476,7 +468,7 @@ class DesignSystemTest(unittest.TestCase):
                  (record, '[data-record-path$="_at"],[data-record-path$=".at"],[data-record-path="version"]'),
                  ("incidents/rhea.html", ".profile-route-bridge>span"))
         with self.browser.new_context(java_script_enabled=True) as context:
-            context.route("**/*", lambda route: route.continue_() if route.request.url.startswith(self.origin + "/") else route.abort())
+            context.route("**/*", self.local_route)
             page = context.new_page()
             for name, selectors in cases:
                 page.goto(self.origin + "/" + name)
@@ -494,37 +486,38 @@ class DesignSystemTest(unittest.TestCase):
                         return [actual,[first,second]];
                     })"""):
                         with self.subTest(page=name, selector=selector):
-                            self.assertEqual(actual, "tabular-nums")
+                            self.assertTrue({"lining-nums", "tabular-nums", "slashed-zero"} <= set(actual.split()))
                             self.assertGreater(widths[0], 0)
                             self.assertAlmostEqual(widths[0], widths[1], delta=0.01)
 
     def test_browser_r2_review_tabular_figures(self):
         for width in (1440, 390):
             with self.browser.new_context(viewport={"width": width, "height": 900}) as context:
-                context.route("**/*", lambda route: route.continue_() if route.request.url.startswith(self.origin + "/") else route.abort())
+                context.route("**/*", self.local_route)
                 page = context.new_page()
                 page.goto(self.origin + "/entities/catalog.html")
                 page.evaluate("document.fonts.ready")
                 page.locator(".entity-table tbody tr").first.evaluate("node => node.insertAdjacentHTML('beforeend', '<td class=num><span>1111</span><span>8888</span></td>')")
                 for selector in ("td.num", ".entity-table-status", ".entity-table-pagination"):
                     with self.subTest(width=width, selector=selector):
-                        self.assertEqual(page.locator(selector).first.evaluate("node => getComputedStyle(node).fontVariantNumeric"), "tabular-nums")
+                        self.assertIn("tabular-nums", page.locator(selector).first.evaluate("node => getComputedStyle(node).fontVariantNumeric"))
                 figures = page.locator("td.num span").evaluate_all("nodes => nodes.map(node => node.getBoundingClientRect().width)")
                 self.assertEqual(len(figures), 2)
                 self.assertAlmostEqual(figures[0], figures[1], delta=0.01)
                 page.locator("main").evaluate("node => node.insertAdjacentHTML('beforeend', '<span class=profile-value>12<q class=\"data profile-asset\">token-issuer.near</q></span><time>2026-11-13</time><div class=stat-value>12<span class=stat-connective>of</span></div>')")
                 for selector in (".profile-value", "time", ".stat-value"):
                     with self.subTest(width=width, selector=selector):
-                        self.assertEqual(page.locator(selector).first.evaluate("node => getComputedStyle(node).fontVariantNumeric"), "tabular-nums")
+                        self.assertIn("tabular-nums", page.locator(selector).first.evaluate("node => getComputedStyle(node).fontVariantNumeric"))
                 for selector in ("body", ".entity-table td.mono", ".entity-table td a", ".profile-value q.data", ".stat-connective"):
                     with self.subTest(width=width, selector=selector):
-                        self.assertEqual(page.locator(selector).first.evaluate("node => getComputedStyle(node).fontVariantNumeric"), "normal")
+                        actual = page.locator(selector).first.evaluate("node => getComputedStyle(node).fontVariantNumeric")
+                        self.assertEqual(actual, "lining-nums tabular-nums slashed-zero" if selector in (".entity-table td.mono", ".entity-table td a") else "normal")
                 for name, value, identifier in (("issuers.html", "#issuer-status tbody td:nth-child(4)", "#issuer-status tbody td:first-child q.data"),
                                                  ("accounts/wrap.near.html", "#profile-transfers tbody td:nth-child(5)", "#profile-transfers tbody td:nth-child(3) q.data"),
                                                  ("accounts/usdt.tether-token.near.html", "#profile-transfers tbody td:nth-child(5)", "#profile-transfers tbody td:nth-child(3) q.data")):
                     page.goto(self.origin + "/" + name)
                     page.wait_for_load_state("networkidle")
-                    for selector, expected in ((value, "tabular-nums"), (identifier, "normal")):
+                    for selector, expected in ((value, "lining-nums tabular-nums slashed-zero"), (identifier, "normal")):
                         nodes = page.locator(selector)
                         self.assertGreater(nodes.count(), 0)
                         for actual in nodes.evaluate_all("nodes => nodes.map(node=>getComputedStyle(node).fontVariantNumeric)"):
@@ -534,7 +527,7 @@ class DesignSystemTest(unittest.TestCase):
     def test_browser_r2_review_identifier_hyphens(self):
         record = next(name for name in self.pages if name.startswith("records/") and name != "records/index.html")
         with self.browser.new_context(viewport={"width": 1440, "height": 900}, java_script_enabled=True) as context:
-            context.route("**/*", lambda route: route.continue_() if route.request.url.startswith(self.origin + "/") else route.abort())
+            context.route("**/*", self.local_route)
             page = context.new_page()
             cases = [(record, '[data-record-path="publisher"]', "-owner.testnet"), ("issuers.html", "td q.data", "usdt.tether-token.near")]
             cases += [(name + ".html", ".graph-meta dd.graph-identifier", "usdt.tether-token.near") for name in ("index", "flows/rhea-collector")]
@@ -560,10 +553,13 @@ class DesignSystemTest(unittest.TestCase):
                 target = page.locator(selector).filter(has_text=identifier).first
                 self.assertEqual(target.count(), 1, name)
                 target.evaluate("node => {for(let parent=node.parentElement;parent;parent=parent.parentElement) if(parent.tagName==='DETAILS') parent.open=true}")
-                self.assertEqual(target.evaluate("node => getComputedStyle(node).fontVariantNumeric"), "normal")
-                if "graph-identifier" in selector or name == "workspace.html":
-                    target.evaluate("node => node.style.fontFamily=getComputedStyle(document.body).fontFamily")
-                self.assertEqual(target.evaluate("node => getComputedStyle(node).fontFamily"), page.locator("body").evaluate("node => getComputedStyle(node).fontFamily"))
+                variant = target.evaluate("node => getComputedStyle(node).fontVariantNumeric")
+                code_variant = "graph-identifier" in selector or name == "workspace.html"
+                self.assertEqual(variant, "lining-nums tabular-nums slashed-zero" if code_variant else "normal")
+                code_family = code_variant or name in (record, "issuers.html", "records/index.html", "entities/catalog.html") or selector.startswith(".account-assertions")
+                expected_family = page.locator("body").evaluate("(node, code) => code ? getComputedStyle(node).getPropertyValue('--font-code').trim() : getComputedStyle(node).fontFamily", code_family)
+                actual_family = target.evaluate("node => getComputedStyle(node).fontFamily")
+                self.assertEqual(re.sub(r"\s*,\s*", ",", actual_family), re.sub(r"\s*,\s*", ",", expected_family), (name, selector))
                 widths = target.evaluate("""node => {
                     const text=node.firstChild, index=text.textContent.indexOf('-');
                     const range=document.createRange();range.setStart(text,index);range.setEnd(text,index+1);
@@ -581,7 +577,8 @@ class DesignSystemTest(unittest.TestCase):
         cases += [("issuers.html", width, ":is(#issuer-status,#issuer-history) td q.data", False) for width in (1440, 1024, 768, 390, 320)]
         for theme in ("light", "dark"):
             with self.browser.new_context(color_scheme=theme, java_script_enabled=True) as context:
-                context.route("**/*", lambda route: route.continue_() if route.request.url.startswith(self.origin + "/") else route.abort())
+                context.route("**/*", self.local_route)
+                context.add_init_script("localStorage.setItem('siyab-theme', '" + theme + "')")
                 page = context.new_page()
                 for name, width, selector, expanded in cases:
                     page.set_viewport_size({"width": width, "height": 900})
@@ -618,7 +615,7 @@ class DesignSystemTest(unittest.TestCase):
     def test_browser_r2_review_profile_export_alignment(self):
         for theme in ("light", "dark"):
             with self.browser.new_context(viewport={"width": 1440, "height": 900}, color_scheme=theme, java_script_enabled=True) as context:
-                context.route("**/*", lambda route: route.continue_() if route.request.url.startswith(self.origin + "/") else route.abort())
+                context.route("**/*", self.local_route)
                 page = context.new_page()
                 for name in ("accounts/wrap.near.html", "accounts/usdt.tether-token.near.html"):
                     page.goto(self.origin + "/" + name)
@@ -634,7 +631,7 @@ class DesignSystemTest(unittest.TestCase):
 
     def test_browser_r2_review_record_command_wrap(self):
         with self.browser.new_context(viewport={"width": 1440, "height": 900}, java_script_enabled=True) as context:
-            context.route("**/*", lambda route: route.continue_() if route.request.url.startswith(self.origin + "/") else route.abort())
+            context.route("**/*", self.local_route)
             page = context.new_page()
             for name in self.pages:
                 if not name.startswith("records/") or name == "records/index.html":
@@ -662,7 +659,7 @@ class DesignSystemTest(unittest.TestCase):
 
     def test_browser_r2_review_record_command_word_boundaries(self):
         with self.browser.new_context(java_script_enabled=True) as context:
-            context.route("**/*", lambda route: route.continue_() if route.request.url.startswith(self.origin + "/") else route.abort())
+            context.route("**/*", self.local_route)
             page = context.new_page()
             for width in (1440, 1024, 768, 390):
                 page.set_viewport_size({"width": width, "height": 900})
@@ -695,10 +692,10 @@ class DesignSystemTest(unittest.TestCase):
 
     def test_browser_r2_review_component_widths(self):
         with self.browser.new_context(viewport={"width": 1440, "height": 900}) as context:
-            context.route("**/*", lambda route: route.continue_() if route.request.url.startswith(self.origin + "/") else route.abort())
+            context.route("**/*", self.local_route)
             page = context.new_page()
-            for name, selector, width in (("entities/organisations.html", ".registry-group", 1152),
-                                          ("incidents/rhea.html", ".profile-route", 1152),
+            for name, selector, width in (("entities/organisations.html", ".registry-group", 1144),
+                                          ("incidents/rhea.html", ".profile-route", 1144),
                                           ("incidents/rhea.html", ".profile-timeline>li", 900)):
                 page.goto(self.origin + "/" + name)
                 with self.subTest(selector=selector):
@@ -735,7 +732,7 @@ class DesignSystemTest(unittest.TestCase):
                    '<div class="profile-route"><div>account.near</div></div></section>')
         for width in (390, 768, 1024, 1440):
             with self.browser.new_context(viewport={"width": width, "height": 900}) as context:
-                context.route("**/*", lambda route: route.continue_() if route.request.url.startswith(self.origin + "/") else route.abort())
+                context.route("**/*", self.local_route)
                 page = context.new_page()
                 page.goto(self.origin + "/index.html")
                 page.locator("main").evaluate("(node, sample) => node.insertAdjacentHTML('beforeend', sample)", sample)
@@ -747,30 +744,30 @@ class DesignSystemTest(unittest.TestCase):
                     for target in (selector, selector + " q.data"):
                         with self.subTest(width=width, selector=target):
                             self.assertEqual(page.locator(target).first.evaluate("node => [getComputedStyle(node).fontFamily,getComputedStyle(node).fontWeight]"), [code, "400"])
-                for selector, family, weight in ((".app-context", ui, "600"),
-                                                  ("#review-roles .account-assertions th,#review-header th", ui, "600"),
+                for selector, family, weight in ((".app-context", ui, "400" if width <= 1099 else "500"),
+                                                  ("#review-roles .account-assertions th,#review-header th", code, "400"),
                                                   ("#review-roles .verify-form input", code, "400"),
-                                                  ("#review-roles .profile-outcome", ui, "600"),
-                                                  ("#review-roles .saved-investigation time", ui, "400"),
+                                                  ("#review-roles .profile-outcome", ui, "500"),
+                                                  ("#review-roles .saved-investigation time", code, "400"),
                                                   ("#review-roles .feed-table time,#review-roles .feed-table q,#review-roles .feed-amount,#review-roles .record-index-table td:last-child", code, "400"),
-                                                  ("#review-roles .verify-example-table th", ui, "600"),
+                                                  ("#review-roles .verify-example-table th", code, "400"),
                                                   ("#review-roles .verify-example-table td,#review-roles .jobs-table td[data-label=Amount]", code, "400"),
-                                                  ("#review-roles .jobs-table th", ui, "400"),
+                                                  ("#review-roles .jobs-table th", code, "400"),
                                                   ("#review-roles .profile-value,#review-roles .profile-timeline time,#review-roles .profile-route>div", code, "400")):
                     self.assertGreater(page.locator(selector).count(), 0, selector)
                     for actual in page.locator(selector).evaluate_all("nodes => nodes.map(node => [getComputedStyle(node).fontFamily,getComputedStyle(node).fontWeight])"):
                         with self.subTest(width=width, selector=selector):
                             self.assertEqual(actual, [family, weight])
-                self.assertEqual(page.locator("#review-roles .cloud-case h4 a").evaluate("node => getComputedStyle(node).fontSize"), "16px")
+                self.assertEqual(page.locator("#review-roles .cloud-case h4 a").evaluate("node => getComputedStyle(node).fontSize"), "18px")
                 for selector in ("#review-roles .jobs-heading h2", "#review-roles .delivery-heading h2"):
                     self.assertEqual(page.locator(selector).evaluate("node => getComputedStyle(node).margin"), "0px")
                 if width == 390:
-                    self.assertEqual(page.locator("#review-roles .investigation-jobs").evaluate("node => [getComputedStyle(node).fontSize,getComputedStyle(node).lineHeight]"), ["15px", "24px"])
+                    self.assertEqual(page.locator("#review-roles .investigation-jobs").evaluate("node => [getComputedStyle(node).fontSize,getComputedStyle(node).lineHeight]"), ["14px", "22px"])
 
     def test_browser_r2_review_record_identifiers(self):
         record = next(name for name in self.pages if name.startswith("records/") and name != "records/index.html")
         with self.browser.new_context(viewport={"width": 1440, "height": 900}) as context:
-            context.route("**/*", lambda route: route.continue_() if route.request.url.startswith(self.origin + "/") else route.abort())
+            context.route("**/*", self.local_route)
             page = context.new_page()
             page.goto(self.origin + "/" + record)
             page.evaluate("document.fonts.ready")
@@ -801,7 +798,7 @@ class DesignSystemTest(unittest.TestCase):
     def test_browser_r2_review_profile_heading_order(self):
         name = next(name for name, text in self.pages.items() if name.startswith("entities/") and re.search(r'class="profile-kind">validator', text, re.IGNORECASE))
         with self.browser.new_context(viewport={"width": 1440, "height": 900}) as context:
-            context.route("**/*", lambda route: route.continue_() if route.request.url.startswith(self.origin + "/") else route.abort())
+            context.route("**/*", self.local_route)
             page = context.new_page()
             page.goto(self.origin + "/" + name)
             self.assertTrue(page.locator(".profile-kind").evaluate("node => Boolean(node.compareDocumentPosition(node.parentElement.querySelector('h1')) & Node.DOCUMENT_POSITION_FOLLOWING)"))
@@ -815,7 +812,7 @@ class DesignSystemTest(unittest.TestCase):
                     if route.request.url.startswith(self.origin + "/graph-data/"):
                         held.append(route)
                     elif route.request.url.startswith(self.origin + "/"):
-                        route.continue_()
+                        self.local_route(route)
                     else:
                         route.abort()
                 context.route("**/*", route_request)
@@ -835,51 +832,147 @@ class DesignSystemTest(unittest.TestCase):
                     self.assertLessEqual(abs(page.locator("#transfers").bounding_box()["y"] - before), 1)
 
     def test_browser_r2_no_page_overflow_at_seven_widths(self):
-        with self.browser.new_context(java_script_enabled=True) as context:
-            context.route("**/*", lambda route: route.continue_() if route.request.url.startswith(self.origin + "/") else route.abort())
-            page = context.new_page()
-            for width in (320, 390, 480, 768, 1024, 1440, 1920):
-                page.set_viewport_size({"width": width, "height": 900})
-                for name in self.template_pages():
-                    page.goto(self.origin + "/" + name)
-                    page.wait_for_load_state("networkidle")
-                    page.evaluate("document.fonts.ready")
-                    with self.subTest(width=width, page=name):
-                        self.assertLessEqual(page.evaluate("document.documentElement.scrollWidth"), width)
+        for theme in ("dark", "light"):
+            with self.browser.new_context(java_script_enabled=True) as context:
+                context.route("**/*", self.local_route)
+                context.add_init_script("localStorage.setItem('siyab-theme', '" + theme + "')")
+                page = context.new_page()
+                for width in (320, 390, 480, 768, 1024, 1440, 1920):
+                    page.set_viewport_size({"width": width, "height": 900})
+                    for name in self.template_pages():
+                        page.goto(self.origin + "/" + name)
+                        page.wait_for_load_state("networkidle")
+                        page.evaluate("document.fonts.ready")
+                        if name.startswith("records/") and theme == "light":
+                            page.locator(".record-theme summary").click()
+                            page.locator("#record-theme-light").check()
+                        with self.subTest(theme=theme, width=width, page=name):
+                            self.assertLessEqual(page.evaluate("document.documentElement.scrollWidth"), width)
+                        page.locator("main details").evaluate_all("nodes => nodes.forEach(node => node.open=true)")
+                        with self.subTest(theme=theme, width=width, page=name, disclosures="expanded"):
+                            self.assertLessEqual(page.evaluate("document.documentElement.scrollWidth"), width)
 
-    def test_browser_system_light_default(self):
-        with self.browser.new_context(color_scheme="light") as context:
-            context.route("**/*", lambda route: route.continue_() if route.request.url.startswith(self.origin + "/") else route.abort())
+    def test_browser_da2_saved_light_preference(self):
+        with self.browser.new_context(color_scheme="dark") as context:
+            context.route("**/*", self.local_route)
+            context.add_init_script("localStorage.setItem('siyab-theme', 'light')")
             page = context.new_page()
             page.goto(self.origin + "/index.html")
-            self.assertEqual(page.locator("body").evaluate("node => getComputedStyle(node).backgroundColor"), "rgb(244, 249, 247)")
+            self.assertEqual(page.locator("body").evaluate("node => getComputedStyle(node).backgroundColor"), "rgb(245, 247, 250)")
             self.assertEqual(page.locator(".theme-toggle-label").inner_text(), "Use dark theme")
 
-    def test_browser_first_light_toggle_saves_dark(self):
+    def test_browser_da2_native_record_theme_without_scripts(self):
+        record = next(name for name in self.pages if name.startswith("records/") and name != "records/index.html")
+        for name in ("records/index.html", record):
+            with self.browser.new_context(java_script_enabled=False, color_scheme="light") as context:
+                context.route("**/*", self.local_route)
+                page = context.new_page()
+                page.goto(self.origin + "/" + name)
+                self.assertEqual(page.locator("script").count(), 0)
+                self.assertTrue(page.locator("#record-theme-dark").is_checked())
+                self.assertEqual(page.locator("body").evaluate("node => getComputedStyle(node).backgroundColor"), "rgb(10, 13, 22)")
+                page.locator(".record-theme summary").click()
+                page.locator("#record-theme-light").check()
+                self.assertEqual(page.locator("body").evaluate("node => getComputedStyle(node).backgroundColor"), "rgb(245, 247, 250)")
+                page.locator("#record-theme-dark").check()
+                self.assertEqual(page.locator("body").evaluate("node => getComputedStyle(node).backgroundColor"), "rgb(10, 13, 22)")
+
+    def test_browser_da2_real_page_type_roles(self):
+        cases = (("index.html", "main h1", "Public Sans", "24px", "30px", "400"),
+                 ("accounts/wrap.near.html", ".profile-facts dd", "IBM Plex Mono", "24px", "30px", "300"),
+                 ("index.html", ".app-sidebar nav a:not([aria-current])", "Public Sans", "13px", "18px", "300"),
+                 ("accounts/wrap.near.html", ".profile-heading p.mono", "IBM Plex Mono", "22px", "28px", "400"),
+                 ("accounts/wrap.near.html", "main h2", "Public Sans", "18px", "24px", "300"),
+                 ("incidents/rhea.html", "main h1", "Public Sans", "28px", "34px", "400"),
+                 ("issuers.html", "th", "IBM Plex Mono", "12px", "18px", "400"))
+        with self.browser.new_context(viewport={"width": 1440, "height": 900}) as context:
+            context.route("**/*", self.local_route)
+            page = context.new_page()
+            for name, selector, family, size, line, weight in cases:
+                page.goto(self.origin + "/" + name)
+                page.evaluate("document.fonts.ready")
+                target = page.locator(selector).first
+                self.assertGreater(target.count(), 0, (name, selector))
+                actual = target.evaluate("node => {const s=getComputedStyle(node);return [s.fontFamily,s.fontSize,s.lineHeight,s.fontWeight]}")
+                with self.subTest(page=name, role=selector):
+                    self.assertIn(family, actual[0])
+                    self.assertEqual(actual[1:], [size, line, weight])
+
+    def test_browser_da2_ordinary_rows_are_forty_pixels(self):
+        with self.browser.new_context(viewport={"width": 1440, "height": 900}) as context:
+            context.route("**/*", self.local_route)
+            page = context.new_page()
+            found = 0
+            for name in ("index.html", "issuers.html", "entities/catalog.html", "accounts/wrap.near.html"):
+                page.goto(self.origin + "/" + name)
+                page.evaluate("document.fonts.ready")
+                rows = page.locator("main tbody tr").evaluate_all("""nodes => nodes.filter(node => {
+                    if(getComputedStyle(node).display !== 'table-row' || !node.checkVisibility()) return false;
+                    return [...node.cells].every(cell => {
+                        const range=document.createRange();range.selectNodeContents(cell);
+                        return new Set([...range.getClientRects()].filter(rect=>rect.width&&rect.height).map(rect=>Math.round(rect.top))).size <= 1;
+                    });
+                }).map(node => node.getBoundingClientRect().height)""")
+                found += len(rows)
+                for height in rows:
+                    with self.subTest(page=name, height=height):
+                        self.assertAlmostEqual(height, 40, delta=2)
+            self.assertGreater(found, 0, "No ordinary one-line rows were measured")
+
+    def test_browser_da2_both_theme_width_matrix_and_phone_targets(self):
+        names = ("index.html", "accounts/wrap.near.html", "issuers.html", "incidents/rhea.html", "records/index.html")
+        for theme in ("dark", "light"):
+            with self.browser.new_context() as context:
+                context.route("**/*", self.local_route)
+                context.add_init_script("localStorage.setItem('siyab-theme', '" + theme + "')")
+                page = context.new_page()
+                for width in (1440, 1024, 768, 390, 320):
+                    page.set_viewport_size({"width": width, "height": 900})
+                    for name in names:
+                        page.goto(self.origin + "/" + name)
+                        page.evaluate("document.fonts.ready")
+                        if name.startswith("records/") and theme == "light":
+                            page.locator(".record-theme summary").click()
+                            page.locator("#record-theme-light").check()
+                        with self.subTest(theme=theme, width=width, page=name):
+                            self.assertLessEqual(page.evaluate("document.documentElement.scrollWidth"), width + 1)
+                            if width <= 390:
+                                for item in page.locator("button,.button,input:not([type=radio]),select").evaluate_all("nodes => nodes.filter(node => node.checkVisibility() && !node.closest('[hidden]')).map(node => ({tag:node.tagName,id:node.id,classes:node.className,height:node.getBoundingClientRect().height}))"):
+                                    self.assertGreaterEqual(item["height"], 44, item)
+
+    def test_browser_new_visit_is_dark_under_light_system(self):
         with self.browser.new_context(color_scheme="light") as context:
-            context.route("**/*", lambda route: route.continue_() if route.request.url.startswith(self.origin + "/") else route.abort())
+            context.route("**/*", self.local_route)
+            page = context.new_page()
+            page.goto(self.origin + "/index.html")
+            self.assertEqual(page.locator("body").evaluate("node => getComputedStyle(node).backgroundColor"), "rgb(10, 13, 22)")
+            self.assertEqual(page.locator(".theme-toggle-label").inner_text(), "Use light theme")
+
+    def test_browser_first_dark_toggle_saves_light(self):
+        with self.browser.new_context(color_scheme="light") as context:
+            context.route("**/*", self.local_route)
             page = context.new_page()
             page.goto(self.origin + "/index.html")
             page.locator(".theme-toggle").click()
-            self.assertEqual(page.locator("body").evaluate("node => getComputedStyle(node).backgroundColor"), "rgb(6, 16, 26)")
-            self.assertEqual(page.evaluate("localStorage.getItem('siyab-theme')"), "dark")
-            self.assertEqual(page.locator('meta[name="theme-color"]').evaluate_all("nodes => nodes.map(node => node.content)"), ["#06101a", "#06101a"])
+            self.assertEqual(page.locator("body").evaluate("node => getComputedStyle(node).backgroundColor"), "rgb(245, 247, 250)")
+            self.assertEqual(page.evaluate("localStorage.getItem('siyab-theme')"), "light")
+            self.assertEqual(page.locator('meta[name="theme-color"]').evaluate_all("nodes => nodes.map(node => node.content)"), ["#F5F7FA"])
 
     def test_browser_saved_dark_overrides_light_system(self):
         with self.browser.new_context(color_scheme="light") as context:
-            context.route("**/*", lambda route: route.continue_() if route.request.url.startswith(self.origin + "/") else route.abort())
+            context.route("**/*", self.local_route)
             context.add_init_script("localStorage.setItem('siyab-theme', 'dark')")
             page = context.new_page()
             page.goto(self.origin + "/index.html")
-            self.assertEqual(page.locator("body").evaluate("node => getComputedStyle(node).backgroundColor"), "rgb(6, 16, 26)")
+            self.assertEqual(page.locator("body").evaluate("node => getComputedStyle(node).backgroundColor"), "rgb(10, 13, 22)")
 
-    def test_browser_records_follow_light_system_without_scripts(self):
+    def test_browser_records_default_dark_without_scripts(self):
         record = next(name for name in self.pages if name.startswith("records/") and name != "records/index.html")
         with self.browser.new_context(color_scheme="light") as context:
-            context.route("**/*", lambda route: route.continue_() if route.request.url.startswith(self.origin + "/") else route.abort())
+            context.route("**/*", self.local_route)
             page = context.new_page()
             page.goto(self.origin + "/" + record)
-            self.assertEqual(page.locator("body").evaluate("node => getComputedStyle(node).backgroundColor"), "rgb(244, 249, 247)")
+            self.assertEqual(page.locator("body").evaluate("node => getComputedStyle(node).backgroundColor"), "rgb(10, 13, 22)")
             self.assertEqual(page.locator("script").count(), 0)
 
 

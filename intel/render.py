@@ -107,8 +107,9 @@ def data_text(text):
     parts, last = [], 0
     for match in _QUOTED.finditer(str(text)):
         parts.append(esc(text[last:match.start()]))
-        quoted = esc(_UNESCAPE.sub(r"\1", match.group(1)))
-        parts.append(f'<q class="data">{quoted}</q>')
+        quoted = _UNESCAPE.sub(r"\1", match.group(1))
+        css = "data data-identifier" if re.fullmatch(r"(?:nep141:)?[a-z0-9]+(?:[._-][a-z0-9]+)*\.(?:near|testnet)", quoted) else "data"
+        parts.append(f'<q class="{css}">{esc(quoted)}</q>')
         last = match.end()
     return "".join(parts) + esc(str(text)[last:])
 
@@ -181,7 +182,10 @@ def page(title, body, depth=0, rooted=False, *, inert=False):
     cloud_script = "" if inert else (ROOT / "intel/ui/cloud-workspace.js").read_text(encoding="utf-8")
     number_script = "" if inert else (ROOT / "intel/ui/number-format.js").read_text(encoding="utf-8")
     search_label = '<span class="site-search-label">Search accounts / entities</span><span class="site-search-short" aria-hidden="true">Search</span>'
-    search = (f'<a class="site-search-link" aria-label="Search accounts and entities" href="{up}index.html#search">{search_label}</a>' if inert else
+    search = ('<details class="record-theme"><summary>Theme</summary><fieldset><legend>Theme</legend>'
+              '<input type="radio" id="record-theme-dark" name="record-theme" value="dark" checked><label for="record-theme-dark">Dark</label>'
+              '<input type="radio" id="record-theme-light" name="record-theme" value="light"><label for="record-theme-light">Light</label></fieldset></details>'
+              f'<a class="site-search-link" aria-label="Search accounts and entities" href="{up}index.html#search">{search_label}</a>' if inert else
               f'<button class="site-search-button" type="button" aria-label="Search accounts and entities" data-open-search>{search_label} <kbd class="search-key">Ctrl K</kbd></button>'
               '<button class="theme-toggle" type="button" id="theme-toggle" aria-label="Switch to light theme"><span class="theme-toggle-label">Use light theme</span></button>')
     dialog = "" if inert else (
@@ -206,8 +210,7 @@ def page(title, body, depth=0, rooted=False, *, inert=False):
     theme_script = "" if inert else "<script>try{var t=localStorage.getItem('siyab-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>\n"
     return (f"<!doctype html>\n<html lang=\"en\">\n<head>\n{theme_script}<meta charset=\"utf-8\">\n"
             '<meta name="color-scheme" content="dark light">\n'
-            '<meta name="theme-color" content="#06101a" media="(prefers-color-scheme: dark)">\n'
-            '<meta name="theme-color" content="#f4f9f7" media="(prefers-color-scheme: light)">\n'
+            '<meta name="theme-color" content="#0A0D16">\n'
             f"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n{ROBOTS}"
             f"<title>{esc(title)}</title>\n{metadata}<link rel=\"stylesheet\" href=\"/style.css\">\n"
             + (_script_tag(number_script) if number_script else "") + "</head>\n<body>\n"

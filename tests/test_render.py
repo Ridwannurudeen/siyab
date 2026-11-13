@@ -25,7 +25,7 @@ ROBOTS = '<meta name="robots" content="noindex">\n'
 EXTRA_WORDS = re.compile(r"go to|guarantee|secure|safe|\bshield\b", re.IGNORECASE)
 BARRED = re.compile(r"scam|clone|fake|drainer", re.IGNORECASE)
 DASHES = re.compile("[" + chr(0x2013) + chr(0x2014) + "]")
-QUOTED = re.compile(r'<blockquote class="data"[^>]*>.*?</blockquote>|<q class="data">.*?</q>', re.DOTALL)
+QUOTED = re.compile(r'<blockquote class="data"[^>]*>.*?</blockquote>|<q class="data(?: data-identifier)?">.*?</q>', re.DOTALL)
 LINK = re.compile(r'(?:href|src)="([^"]*)"')
 
 
@@ -167,8 +167,8 @@ class AppShellTest(unittest.TestCase):
             page = render.page("Feed", "<h1>Feed</h1>", inert=inert)
             with self.subTest(inert=inert):
                 self.assertIn('<meta name="color-scheme" content="dark light">', page)
-                self.assertIn('<meta name="theme-color" content="#06101a" media="(prefers-color-scheme: dark)">', page)
-                self.assertIn('<meta name="theme-color" content="#f4f9f7" media="(prefers-color-scheme: light)">', page)
+                self.assertIn('<meta name="theme-color" content="#0A0D16">', page)
+                self.assertNotIn('media="(prefers-color-scheme:', page)
                 if inert:
                     self.assertNotIn(script, page)
                 else:
@@ -179,6 +179,12 @@ class AppShellTest(unittest.TestCase):
         page = render.page("Incident record", "<h1>Incident record</h1>", depth=1, inert=True)
         self.assertNotIn('<script', page)
         self.assertNotIn('<button', page)
+        self.assertIn('<details class="record-theme"><summary>Theme</summary>', page)
+        self.assertIn('<fieldset><legend>Theme</legend>', page)
+        self.assertIn('<input type="radio" id="record-theme-dark" name="record-theme" value="dark" checked>', page)
+        self.assertIn('<label for="record-theme-dark">Dark</label>', page)
+        self.assertIn('<input type="radio" id="record-theme-light" name="record-theme" value="light">', page)
+        self.assertIn('<label for="record-theme-light">Light</label>', page)
         self.assertIn('<main class="app-content record-content" id="main-content">', page)
         self.assertIn('<details class="mobile-navigation" id="mobile-navigation">', page)
         for path in ('index.html', 'flows/rhea-collector.html', 'feed.html', 'index.html#tools',
@@ -615,21 +621,17 @@ class RenderTest(unittest.TestCase):
 
     def test_rendered_text_and_fill_pairs_meet_contrast_in_both_themes(self):
         stylesheet = (self.out / "style.css").read_text(encoding="utf-8")
-        self.assertIn("a:hover{color:rgb(var(--accent))}", stylesheet)
+        self.assertRegex(stylesheet, r"(?:^|})\s*a:hover\{color:rgb\(var\(--link\)\)\}")
         self.assertIn(".lookup-card button:hover,.primary:hover{color:rgb(var(--primary-ink))}", stylesheet)
         self.assertNotRegex(stylesheet, r"(?<!border-)color:rgb\(var\(--accent-fill\)\)")
         theme_blocks = (
             ("dark", re.search(r":root\{(.*?)\}", stylesheet, re.DOTALL).group(1)),
-            ("light", re.search(r':root\[data-theme="light"\]\{(.*?)\}', stylesheet, re.DOTALL).group(1)),
+            ("light", re.search(r':root\[data-theme="light"\],:root:has\(#record-theme-light:checked\)\{(.*?)\}', stylesheet, re.DOTALL).group(1)),
         )
-        text_surfaces = {
-            "--ink": ("--ground", "--panel", "--ground-alt"),
-            "--secondary": ("--ground", "--panel", "--ground-alt"),
-            "--accent": ("--ground", "--panel", "--ground-alt"),
-            "--allow-text": ("--ground", "--panel"),
-            "--unknown": ("--ground", "--panel"),
-            "--block-text": ("--ground", "--panel"),
-        }
+        surfaces = ("--ground", "--panel", "--ground-alt", "--hover")
+        text_surfaces = {role: surfaces for role in
+                         ("--ink", "--secondary", "--muted", "--link", "--accent",
+                          "--allow-text", "--unknown", "--block-text")}
 
         def luminance(rgb):
             channels = []
@@ -654,9 +656,12 @@ class RenderTest(unittest.TestCase):
             for surface in ("--ground", "--panel"):
                 with self.subTest(theme=theme, foreground="--data", surface=surface):
                     self.assertGreaterEqual(contrast(colors["--data"], colors[surface]), 3)
+            for surface in surfaces:
+                with self.subTest(theme=theme, foreground="--edge", surface=surface):
+                    self.assertGreaterEqual(contrast(colors["--edge"], colors[surface]), 3)
             if theme == "light":
-                self.assertEqual(colors["--accent"], (0, 105, 70))
-                self.assertEqual(colors["--allow-text"], (0, 116, 58))
+                self.assertEqual(colors["--accent"], (0, 110, 89))
+                self.assertEqual(colors["--allow-text"], (36, 107, 70))
                 for surface in ("--ground", "--panel"):
                     allow_tint = tuple(.12 * allow + .88 * background
                                        for allow, background in zip(colors["--allow"], colors[surface]))
@@ -677,7 +682,7 @@ class RenderTest(unittest.TestCase):
         self.assertNotRegex(page, r"<link[^>]+(?:Geist|Plex|fonts\.googleapis)")
         self.assertNotIn("@import", stylesheet)
         self.assertNotRegex(stylesheet, r"url\(\s*['\"]?https?://")
-        self.assertIn("--ground:6 16 26", stylesheet)
+        self.assertIn("--ground:10 13 22", stylesheet)
         self.assertIn('id="theme-toggle"', page)
 
     def test_top_receivers_page_has_an_honest_empty_state_and_renders_aggregates(self):
@@ -1069,7 +1074,7 @@ class RenderTest(unittest.TestCase):
         actions = coverage["actions"]
         self.assertEqual(coverage["transactions"], coverage["txs_count"])
         self.assertIn(f"All {coverage['transactions']} function call transactions the Transactions API lists for "
-                      f'<q class="data">{html.escape(issuers._owner(issuers.FIXTURE_DIR))}</q>', history_part)
+                      f'<q class="data data-identifier">{html.escape(issuers._owner(issuers.FIXTURE_DIR))}</q>', history_part)
         self.assertIn(f"as receiver, transaction blocks {coverage['tx_block_min']} to {coverage['tx_block_max']}, were "
                       f"read; their receipts carried {sum(actions.values())} successful issuer actions on "
                       f"usdt.tether-token.near: {actions['add_to_blacklist']} add_to_blacklist and "

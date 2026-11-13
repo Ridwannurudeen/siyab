@@ -5,18 +5,19 @@
   themeLabel.className = "theme-toggle-label";
   toggle.replaceChildren(themeLabel);
   const labelTheme = () => {
-    const light = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === "light" : matchMedia("(prefers-color-scheme: light)").matches;
-    document.querySelectorAll('meta[name="theme-color"]').forEach(meta => { meta.content = light ? "#f4f9f7" : "#06101a"; });
+    const light = document.documentElement.dataset.theme === "light";
+    document.querySelectorAll('meta[name="theme-color"]').forEach(meta => { meta.content = light ? "#F5F7FA" : "#0A0D16"; });
     themeLabel.textContent = light ? "Use dark theme" : "Use light theme";
     toggle.setAttribute("aria-label", light ? "Switch to dark theme" : "Switch to light theme");
   };
+  document.documentElement.dataset.theme = "dark";
   try {
     const saved = localStorage.getItem("siyab-theme");
     if (saved === "light" || saved === "dark") document.documentElement.dataset.theme = saved;
   } catch (error) { toggle.title = "Theme choice applies to this page; browser storage is unavailable."; }
   labelTheme();
   toggle.addEventListener("click", () => {
-    const light = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === "light" : matchMedia("(prefers-color-scheme: light)").matches;
+    const light = document.documentElement.dataset.theme === "light";
     document.documentElement.dataset.theme = light ? "dark" : "light";
     labelTheme();
     try { localStorage.setItem("siyab-theme", document.documentElement.dataset.theme); }

@@ -1,294 +1,236 @@
 ---
 name: "Siyab"
-description: "A compact teal analytics workspace with evidence beside every investigation."
+description: "A dark evidence workspace with light typography, compact tables and explicit uncertainty."
 colors:
-  ground: "rgb(6 16 26)"
-  ground-alt: "rgb(12 23 34)"
-  panel: "rgb(18 28 38)"
-  ink: "rgb(242 244 245)"
-  secondary: "rgb(148 159 168)"
-  hairline: "rgb(43 53 64)"
-  hairline-strong: "rgb(99 119 137)"
-  edge: "rgb(121 142 159)"
-  accent: "rgb(0 255 167)"
-  accent-fill: "rgb(0 255 167)"
-  primary-ink: "rgb(6 16 26)"
-  focus: "rgb(0 255 167)"
-  allow: "rgb(52 207 130)"
-  allow-text: "rgb(100 220 157)"
-  block: "rgb(255 127 123)"
-  block-text: "rgb(255 127 123)"
-  unknown: "rgb(236 201 128)"
-  light-ground: "rgb(244 249 247)"
-  light-ground-alt: "rgb(234 243 239)"
-  light-panel: "rgb(255 255 255)"
-  light-ink: "rgb(6 16 26)"
-  light-secondary: "rgb(69 91 82)"
-  light-hairline: "rgb(210 224 218)"
-  light-hairline-strong: "rgb(105 129 117)"
-  light-edge: "rgb(91 116 103)"
-  light-accent: "rgb(0 117 78)"
-  light-accent-fill: "rgb(0 255 167)"
-  light-primary-ink: "rgb(6 16 26)"
-  light-focus: "rgb(0 117 78)"
-  light-allow: "rgb(33 131 92)"
-  light-allow-text: "rgb(20 108 73)"
-  light-block: "rgb(180 50 73)"
-  light-block-text: "rgb(155 35 59)"
-  light-unknown: "rgb(123 82 13)"
+  ground: "#0A0D16"
+  panel: "#10131C"
+  ground-alt: "#171C27"
+  hover: "#202735"
+  ink: "#EDEDED"
+  secondary: "#ABB2CA"
+  muted: "#969EB3"
+  link: "#79AEF2"
+  accent: "#60D8BA"
+  allow-text: "#6BC498"
+  block-text: "#F9809A"
+  unknown: "#E6C383"
+  hairline: "#293140"
+  hairline-strong: "#727D94"
+  light-ground: "#F5F7FA"
+  light-panel: "#FFFFFF"
+  light-ground-alt: "#EDF1F6"
+  light-hover: "#E4EAF2"
+  light-ink: "#18212F"
+  light-secondary: "#48566B"
+  light-muted: "#56647A"
+  light-link: "#245BA5"
+  light-accent: "#006E59"
+  light-allow-text: "#246B46"
+  light-block-text: "#A82D49"
+  light-unknown: "#765309"
+  light-hairline: "#D3DBE6"
+  light-hairline-strong: "#78849A"
 typography:
-  headline:
-    fontFamily: "Inter, Arial, Helvetica, sans-serif"
-    fontSize: "28px"
-    fontWeight: 600
-    lineHeight: 1.25
-    letterSpacing: "-0.035em"
-  title:
-    fontFamily: "Inter, Arial, Helvetica, sans-serif"
-    fontSize: "20px"
-    fontWeight: 600
-    lineHeight: 1.35
-    letterSpacing: "-0.025em"
-  panel-title:
-    fontFamily: "Inter, Arial, Helvetica, sans-serif"
-    fontSize: "16px"
-    fontWeight: 600
-    lineHeight: 1.4
-    letterSpacing: "-0.01em"
-  body:
-    fontFamily: "Inter, Arial, Helvetica, sans-serif"
-    fontSize: "14px"
-    fontWeight: 400
-    lineHeight: 1.6
-    letterSpacing: "0"
-  label:
-    fontFamily: "Inter, Arial, Helvetica, sans-serif"
-    fontSize: "12px"
-    fontWeight: 400
-    lineHeight: 1.6
-  navigation:
-    fontFamily: "Inter, Arial, Helvetica, sans-serif"
-    fontSize: "14px"
-    fontWeight: 400
-    lineHeight: "22px"
-  brand:
-    fontFamily: "Manrope, Inter, Arial, Helvetica, sans-serif"
+  page-title:
+    fontFamily: "Public Sans"
     fontSize: "24px"
-    fontWeight: 600
-    letterSpacing: "-0.035em"
-  numeric:
-    fontFamily: "IBM Plex Mono, Consolas, monospace"
-    fontSize: "12px"
     fontWeight: 400
+    lineHeight: "30px"
+    letterSpacing: "-0.24px"
+  incident-title:
+    fontFamily: "Public Sans"
+    fontSize: "28px"
+    fontWeight: 400
+    lineHeight: "34px"
+    letterSpacing: "-0.28px"
+  panel-title:
+    fontFamily: "Public Sans"
+    fontSize: "18px"
+    fontWeight: 300
+    lineHeight: "24px"
+    letterSpacing: "0.18px"
+  navigation:
+    fontFamily: "Public Sans"
+    fontSize: "13px"
+    fontWeight: 300
     lineHeight: "18px"
     letterSpacing: "0"
-  identifier:
-    fontFamily: "IBM Plex Mono, Consolas, monospace"
-    fontSize: "12px"
-    fontWeight: 400
-    letterSpacing: "0"
-  body-mobile:
-    fontFamily: "Inter, Arial, Helvetica, sans-serif"
-    fontSize: "15px"
-    fontWeight: 400
-    lineHeight: 1.6
-  input-mobile:
-    fontFamily: "Inter, Arial, Helvetica, sans-serif"
-    fontSize: "16px"
-    fontWeight: 400
-  workspace-heading-mobile:
-    fontFamily: "Inter, Arial, Helvetica, sans-serif"
-    fontSize: "20px"
-    fontWeight: 600
-    lineHeight: "28px"
-    letterSpacing: "-0.01em"
-  brand-mobile:
-    fontFamily: "Manrope, Inter, Arial, Helvetica, sans-serif"
-    fontSize: "20px"
-    fontWeight: 600
-    letterSpacing: "-0.035em"
-  brand-phone:
-    fontFamily: "Manrope, Inter, Arial, Helvetica, sans-serif"
-    fontSize: "18px"
-    fontWeight: 600
-    letterSpacing: "-0.035em"
-  source-note:
-    fontFamily: "Inter, Arial, Helvetica, sans-serif"
-    fontSize: "11px"
-    fontWeight: 400
-    lineHeight: 1.6
-  graph-label:
-    fontFamily: "IBM Plex Mono, Consolas, monospace"
+  body:
+    fontFamily: "Public Sans"
     fontSize: "14px"
     fontWeight: 400
-    letterSpacing: "0.15px"
-  graph-detail:
-    fontFamily: "Inter, Arial, Helvetica, sans-serif"
+    lineHeight: "21px"
+    letterSpacing: "0"
+  control:
+    fontFamily: "Public Sans"
     fontSize: "13px"
     fontWeight: 400
-    letterSpacing: "0.15px"
-  inspector-data:
-    fontFamily: "IBM Plex Mono, Consolas, monospace"
+    lineHeight: "18px"
+    letterSpacing: "0"
+  source-note:
+    fontFamily: "Public Sans"
     fontSize: "12px"
     fontWeight: 400
     lineHeight: "18px"
     letterSpacing: "0"
-  inline-value:
-    fontFamily: "Inter, Arial, Helvetica, sans-serif"
-    fontSize: "19px"
+  table-heading:
+    fontFamily: "IBM Plex Mono"
+    fontSize: "12px"
+    fontWeight: 400
+    lineHeight: "18px"
+    letterSpacing: "0.24px"
+  table-name:
+    fontFamily: "Public Sans"
+    fontSize: "13px"
+    fontWeight: 400
+    lineHeight: "18px"
+    letterSpacing: "0"
+  numeric:
+    fontFamily: "IBM Plex Mono"
+    fontSize: "12px"
+    fontWeight: 400
+    lineHeight: "18px"
+    letterSpacing: "0"
+  prominent-figure:
+    fontFamily: "IBM Plex Mono"
+    fontSize: "24px"
+    fontWeight: 300
+    lineHeight: "30px"
+    letterSpacing: "0"
+  primary-identifier:
+    fontFamily: "IBM Plex Mono"
+    fontSize: "22px"
+    fontWeight: 400
+    lineHeight: "28px"
+    letterSpacing: "0"
+  control-mobile:
+    fontFamily: "Public Sans"
+    fontSize: "15px"
+    fontWeight: 400
+    lineHeight: "22px"
+    letterSpacing: "0"
+  input-mobile:
+    fontFamily: "Public Sans"
+    fontSize: "16px"
+    fontWeight: 400
+    lineHeight: "24px"
+    letterSpacing: "0"
+  brand:
+    fontFamily: "Manrope"
+    fontSize: "20px"
     fontWeight: 600
+    letterSpacing: "-0.035em"
 rounded:
   bar: "2px"
-  chip: "3px"
-  summary: "4px"
-  control: "5px"
-  surface: "6px"
-  popover: "7px"
-  panel: "8px"
-  dialog: "10px"
+  chip: "4px"
+  command: "4px"
+  panel: "6px"
+  input: "6px"
+  dialog: "12px"
 spacing:
-  control-block: "7px"
-  control-inline: "12px"
-  panel-inset: "16px"
-  panel-gap: "16px"
-  page-inline: "20px"
-  page-wide-inline: "32px"
-  mobile-inline: "16px"
-  phone-inline: "14px"
+  panel-inset: "12px"
+  panel-gap: "12px"
+  section-separation: "16px"
+  page-inline: "24px"
+  tablet-inline: "16px"
+  phone-inline: "12px"
+  narrow-phone-inline: "10px"
 components:
-  button-primary:
-    backgroundColor: "{colors.accent-fill}"
-    textColor: "{colors.primary-ink}"
-    rounded: "{rounded.control}"
-    padding: "7px 12px"
-  button-secondary:
-    backgroundColor: "{colors.panel}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.control}"
-    padding: "7px 12px"
-  search-field:
-    backgroundColor: "{colors.ground}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.control}"
-    padding: "9px 11px"
   sidebar:
-    backgroundColor: "{colors.ground}"
     width: "248px"
   topbar:
-    backgroundColor: "{colors.ground}"
     height: "64px"
   data-panel:
-    backgroundColor: "{colors.panel}"
-    textColor: "{colors.ink}"
     rounded: "{rounded.panel}"
-    padding: "16px"
+    padding: "12px"
+  button-secondary:
+    minHeight: "32px"
+    rounded: "{rounded.command}"
+  search-field:
+    minHeight: "40px"
+    rounded: "{rounded.input}"
 ---
 # Design System: Siyab
 
-## Overview
+## Scope
 
-**Creative North Star: "The evidence workspace"**
+Phases 1 and 2 apply typography, colour, theme policy and shared component dimensions. The 248px desktop sidebar, 64px context topbar, page structure, section order, factual text, links, images and controls retain their existing arrangement. Page recomposition and navigation replacement require separate approval.
 
-Dark navy ground and charcoal panels carry bright teal actions and selection. Manrope gives only the Siyab wordmark its geometric character. Inter provides compact interface hierarchy; IBM Plex Mono separates identifiers and numeric data. A persistent desktop rail and a compact context header frame the work without displacing the evidence.
+The interface is an evidence workspace. Public Sans carries explanation and controls; IBM Plex Mono carries identifiers, timestamps, comparable values and table headings. Manrope SemiBold remains confined to the Siyab wordmark. Teal identifies actions and selection, blue identifies navigable references, and written semantic states retain their own colours. Unknown values, recording limits, source dates and acquisition failures remain explicit.
 
-The light theme keeps the same structure with pale green-neutral surfaces and darker teal links. Written states, source detail and recording limits carry meaning alongside color. This document records the built visual system in intel/ui/site.css; it does not certify that every page or interaction has passed final review.
+## Colour and themes
 
-**Key Characteristics:**
-- Persistent desktop navigation with a compact context header.
-- Aligned chart and table panels with readable source detail.
-- Teal actions, written semantic states and preserved bounded motion.
+| Role | Dark default | Light alternative |
+|---|---|---|
+| Canvas | #0A0D16 | #F5F7FA |
+| Panel | #10131C | #FFFFFF |
+| Alternate row / raised surface | #171C27 | #EDF1F6 |
+| Hover / selected surface | #202735 | #E4EAF2 |
+| Primary text | #EDEDED | #18212F |
+| Secondary text | #ABB2CA | #48566B |
+| Muted text | #969EB3 | #56647A |
+| Link | #79AEF2 | #245BA5 |
+| Teal action / selection | #60D8BA | #006E59 |
+| ALLOW text | #6BC498 | #246B46 |
+| DENY text | #F9809A | #A82D49 |
+| Unknown / caution | #E6C383 | #765309 |
+| Decorative separator | #293140 | #D3DBE6 |
+| Necessary control boundary | #727D94 | #78849A |
 
-## Colors
+Primary buttons use canvas-coloured ink on dark-theme teal and white ink on light-theme teal. Necessary control boundaries use the stronger boundary token; decorative panel separators do not establish an actionable boundary. Semantic chips retain their written state. A selected account does not acquire ALLOW styling.
 
-A bright teal action color sits against dark navy ground and charcoal panels. Frontmatter values are extracted from the current stylesheet; light-prefixed entries correspond to its light-theme overrides. There are no synthesized tonal ramps.
+A new visit opens dark regardless of system preference. An explicit browser-local light preference remains honoured, and the existing toggle persists explicit choices when storage is available. The theme head applies an explicit saved choice before styles load. Without a saved choice, dark CSS and dark browser metadata apply.
 
-### Primary
+Records have zero script elements. Their native Theme disclosure contains Dark and Light radio controls, with Dark checked initially. CSS applies the selected theme to that document only; these controls do not read or write browser storage. Native focus and forced-colour support remain available. Print uses readable light surfaces.
 
-Teal marks links, navigation selection, graph focus and count bars. Primary controls retain the bright accent fill in both themes and use the dark primary ink for their text, including hover. Dark-theme secondary text remains distinct from primary content; light-theme links and focus use the darker teal accent.
+Every small text role must meet 4.5:1 contrast on its actual background in either theme. Necessary control boundaries and meaningful graphical marks must meet 3:1. Check hover, selected, tinted and disabled states as rendered, rather than inferring contrast from the palette alone.
 
-### Neutral
+## Typography and font delivery
 
-Ground frames the application, panel holds working content, and alternate ground separates inspectors and secondary areas. Hairline is the quiet structural divider; the stronger hairline and edge tokens identify actionable boundaries. Green, coral and amber reinforce written ALLOW, DENY and ASK/unknown states. They are not substitutes for outcome text.
+All fonts are local static weights with one font-face declaration per file, font-display:swap and font-synthesis:none. Public Sans supplies 200, 300, 400 and 500; IBM Plex Mono supplies 300, 400 and 500; Manrope supplies 600. Requested light weights use actual light files. Licences and measured font provenance are in intel/ui/fonts/PROVENANCE.json, including bytes, hashes, version, weight, glyph count and empty variable-axis metadata for these static files.
 
-## Typography
+| Role | Family | Desktop size / leading | Weight | Tracking / case |
+|---|---|---|---|---|
+| Page title | Public Sans | 24 / 30px | 400 | -0.24px; sentence case |
+| Long incident title | Public Sans | 28 / 34px | 400 | -0.28px; sentence case |
+| Panel / section title | Public Sans | 18 / 24px | 300 | +0.18px |
+| Navigation | Public Sans | 13 / 18px | 300; active 500 | 0 |
+| Buttons / filters | Public Sans | 13 / 18px | 400 | 0; sentence case |
+| Explanation | Public Sans | 14 / 21px | 400 | 0 |
+| Scope / source note | Public Sans | 12 / 18px | 400 | 0 |
+| Table headings / tabs | IBM Plex Mono | 12 / 18px | 400 | +0.24px; uppercase presentation |
+| Table names / descriptions | Public Sans | 13 / 18px | 400 | 0 |
+| Numeric cells / timestamps | IBM Plex Mono | 12 / 18px | 400 | 0 |
+| Existing prominent figures | IBM Plex Mono | 24 / 30px | 300 | 0 |
+| Primary account identifier | IBM Plex Mono | 22 / 28px | 400 | 0; original case |
 
-**Wordmark Font:** Manrope, with the interface stack as fallback.
-**Interface Font:** Inter, Arial, Helvetica, sans-serif.
-**Numeric and Identifier Font:** IBM Plex Mono, Consolas, monospace.
+Numeric text uses font-variant-numeric:lining-nums tabular-nums slashed-zero and font-feature-settings:"lnum" 1,"tnum" 1,"zero" 1. Identifiers keep original case, zero tracking and no discretionary ligatures. Comparable numeric columns remain right aligned with their existing precision. Plex supplies equal-width digits intrinsically. Ordinary explanation keeps its existing 35rem measure; full identifiers and evidence remain allowed to wrap.
 
-The three families have separate jobs: Manrope appears only in the brand, Inter carries interface text, and IBM Plex Mono carries data and identifiers. This keeps the geometric display treatment out of dense tables and controls. Manrope is an independently licensed open font, not a reproduction of the reference's proprietary face. The authored teal route mark accompanies the wordmark; SVG, favicon ICO and 1200×630 social artwork are local assets.
+At 390 and 320px, explanation is 14/22px, controls 15/22px, inputs 16/24px, primary record values 14/20px, secondary data 12/18px and page titles 22/28px. Small navigation uses 400. No meaningful text is smaller than 12px. The wordmark retains its existing 18px narrow-phone treatment.
 
-All three families are self-hosted. Manrope has a semibold file; Inter has regular and semibold files; IBM Plex Mono has regular and medium files. Font licenses and provenance live with the assets in intel/ui/fonts. Font display is swap; synthetic font styling is disabled.
+## Shared components
 
-General page headings are 28px semibold with 1.25 leading and -0.035em tracking; compact investigation and profile headings retain their 20px/28px role. Ordinary section headings are 20px with 1.35 leading and -0.025em tracking; panel headings are 16px. Body text is 14px with 1.6 leading and zero added tracking; prose is capped at 85ch. Navigation remains 14px with a 22px line height. Tabular numeric columns use 12px regular monospace, an 18px line height and right alignment. Identifiers and figures use zero added tracking and tabular numerals. Inline provenance totals retain their 19px semibold interface role. Phone general headings are 24px, with compact investigation headings retaining 20px.
+Panels are flat with 6px corners, a 1px decorative boundary and a 12px inset. Panel headers have a 40px minimum height, 12px horizontal inset and wrapping content. Related panel gaps are 12px and section separation is 16px. Existing grids, column allocation and stacking breakpoints remain in place.
 
-The Siyab wordmark uses 24px Manrope semibold with -0.035em tracking. At 760px and below it becomes 20px, then 18px at 480px and below. Those brand sizes do not change the interface font. Body text becomes 15px and form inputs 16px at 760px and below; the workspace heading stays 20px/28px. Stacked account cells use 14px values and 12px labels. Small source notes retain their observed 11px role; do not substitute that size for ordinary body text.
+Ordinary desktop table rows are at least 40px tall, with 18px leading and 5px vertical / 10px horizontal cell padding. Multiline evidence grows naturally without clipping. Header rows are at least 32px with muted mono labels. Alternate rows use the alternate-row surface, and hover uses the hover surface. Existing sorting, filtering, static pagination, exports, disclosures and exact-data alternatives remain available. Existing phone card conversions retain their complete labels and values.
 
-Graph account labels use 14px regular IBM Plex Mono; graph detail lines use 13px regular Inter. Inspector account IDs and numeric counts use 12px/18px regular IBM Plex Mono with +0.15px tracking. These roles distinguish readable identifiers and figures from surrounding interface descriptions without introducing another display face.
+Passive chips have a 24px minimum height, 2px / 8px padding, 4px corners, 12/18px type and a subdued solid fill. Interactive filters and secondary commands have 32px desktop targets and 44px phone targets, 4px corners and 8px gaps. Tabs have 40px desktop and 44px phone targets, 12px side padding, a 2px active underline and selected weight. Inputs have 6px corners and a 40px desktop / 44px phone minimum height. Global search retains the keyboard shortcut, native dialog, results, focus restoration and a 280 to 320px desktop width.
 
-## Layout
+Focus uses a 2px high-contrast outline with a 3px offset. Panel content must not clip that outline. Existing icon controls retain their names and 16px icon box. Overlays retain their existing shadows; ordinary panels remain flat.
 
-At desktop widths the fixed left rail is 248px and the sticky topbar is 64px. Content and footer share the rail offset and 20px inline padding, with no previous 1600px page cap. At 1700px and above the inline padding becomes 32px. The rail has 12px side padding, 36px minimum navigation rows and 4px gaps; the topbar carries route context, search and theme.
+The sidebar offset and topbar height remain unchanged. Content gutters are 24px desktop, 16px at tablet sizes, 12px on phones and 10px at 320px. The graph inspector uses 280px at full desktop width and retains its existing stacking breakpoint. The graph algorithm, recorded evidence, filters and command arrangement remain unchanged.
 
-At 1099px and below the rail disappears, its offset becomes zero and native mobile navigation becomes available. At 760px and below the context label is hidden, header search uses its short label, and inline padding becomes 16px; at 480px and below it becomes 14px. The mobile navigation panel opens beneath the 64px topbar and scrolls within the remaining viewport.
+## Evidence and persistence
 
-Analytics use two equal columns with 16px gaps and stack below 761px. The recorded flow distribution/activity pair stacks earlier, at 1399px and below, to retain readable evidence columns. Working panel headings use 14px by 16px padding; body and chart insets are 16px. Retained proof, report and tool sections keep their existing content and responsive layouts.
+Source assertions and attribution hypotheses remain distinct. Registry membership does not establish ownership. Recorded gross outbound transfers do not establish loss, and missing valuations do not become zero. Source dates, exact records, acquisition limits and accessible textual alternatives stay beside the views they qualify.
 
-The graph uses a flexible canvas and a 300px inspector at 1280px and above, with a 460px stage. Between 761px and 1279px the inspector stacks underneath with a 340px scrollable height. At 760px and below the canvas is 330px and the inspector has natural height. Phone graph layout retains readable account labels rather than shrinking the entire desktop graph. Account assertion and hypothesis tables use explicit desktop column allocation; at 900px and below their rows become labelled records, with long note/source cells spanning the row.
+Collection pagination preserves script-free access to every assertion. Content-addressed scripts and graph data remain local. Record paths, scalar values, arrays, hashes, quotations, citations and re-check commands remain complete. Native record theme selection changes only presentation.
 
-Distribution rows use four columns: a flexible counterparty, 128px USD, 56px row count and 64px share, with 8px column gaps and a 4px bar spanning the row. At 760px and below the counterparty spans the width above three equal metric cells; each metric has its own written label. The transfer timeline reserves 32px for its count axis, an 8px gap and a 180px chart height. Count and UTC labels are HTML outside the SVG, whose viewBox height is 100; the plotted geometry scales independently of the text.
+Browser investigations, notes, watchlists and view settings remain browser-local by default. Authentication does not upload them. Shared imports and saves retain their explicit choices, and private workspace data stays out of public account archives. Existing worker-health, coverage, delivery and retained-history qualifications remain visible.
 
-In script-free record content, record-path values wrap anywhere, definition descriptions have a 16px inline-start margin and ordered lists have 20px left padding. Nested definition lists retain 8px top and 12px bottom margins. These rules are scoped to record content rather than changing every definition list.
+## Preserved motion
 
-Reflow without page-wide horizontal scrolling is a required acceptance condition, not a claim that this document resolves open page defects. Preserve script-free evidence navigation and full data when changing layout.
-
-## Elevation & Depth
-
-Panels are flat at rest; tonal surfaces and thin boundaries establish hierarchy. Shadows are reserved for overlays: search and case dialogs use 0 24px 80px rgb(0 0 0/.35), graph view controls use 0 12px 30px rgb(0 0 0/.25), mobile navigation uses 0 16px 32px rgb(0 0 0/.25), and workspace feedback uses 0 6px 24px rgb(0 0 0/.2). The search backdrop is rgb(2 5 12/.72); the case-dialog backdrop is rgb(0 0 0/.65). Focus uses a two-pixel accent outline with a three-pixel offset.
-
-## Shapes
-
-Controls and ordinary data cards have 5px corners; navigation rows, lookup surfaces and graph nodes use 6px; graph view-control popovers use 7px; working panels and header search use 8px; search dialogs use 10px. Outcome chips use 3px corners and numeric bar tracks 2px. The rail/topbar are structural planes, not floating cards.
-
-## Components
-
-### Buttons and inputs
-
-Primary buttons combine bright teal fill and dark primary ink. Secondary buttons use the panel, primary text and a stronger boundary; hover switches their surface to alternate ground and boundary to edge. Controls have 36px minimum height and 7px by 12px padding, with 140ms background/border transitions. Disabled buttons use .5 opacity and a not-allowed cursor. Phone buttons and header controls reach 44px. Inputs use the ground surface, edge border, 5px corners and 40px minimum height; the workspace search has 46px controls.
-
-### Navigation and search
-
-Desktop navigation is an aligned vertical list. Its active row uses ten-percent accent fill, accent text and semibold weight; hover uses the panel surface. The compact topbar remains the search/theme context. Mobile navigation is native details/summary; records remain script-free with normal search links. Global search uses a native dialog with keyboard navigation and focus restoration. Theme persistence remains conditional on available browser storage.
-
-### Data panels, tables and graphs
-
-Collection pages render at most 50 assertions at a time, with static Previous and Next links retaining access without JavaScript. Search, chain filtering and sorting load a separate recorded collection on demand. Source assertions and attribution hypotheses retain separate tables and disclosures. Headers use 12px semibold interface text; short values wrap at word boundaries, while account identifiers can wrap when needed. Six-column entity rows become labelled records at 900px and below; eight-column hypothesis rows do so at 1399px and below. Phone records use a single column at 480px and below.
-
-Graph datasets load from content-addressed JSON after the document is available. A neutral panel reserves space while loading; failed requests retain recorded evidence and offer Retry. Retry and pagination preserve keyboard focus. Static graph JSON and local JavaScript bytes matching their filename hash receive immutable caching; mutable API and collection responses remain uncached. Graph and workspace scripts use local SHA-256 asset names, SRI and deferred execution; records remain script-free.
-
-At 480px and below the workspace search and graph filters stack. At 760px and below the theme control uses a 44px icon target with its full accessible action name; its text label remains visible at wider sizes. Existing motion definitions and timings are unchanged.
-
-Panels have charcoal surfaces, 8px corners, 16px body padding and thin structural borders. Table headers recede while values and source quotations remain readable. Graph nodes use written identifiers and depth, with selected paths and nodes in teal; dashed relationships retain attribution-hypothesis meaning. Full evidence, filtered display counts and acquisition limits remain distinct. Numeric values do not become fictional portfolio or loss measures.
-
-Standalone graph pages place the page heading and subject context before the canvas. Retained section labels follow their headings as ordinary muted prose; they do not form a separate eyebrow style.
-
-Direct outbound distribution keeps the full recorded dataset separate from graph filters. A compact identifier may represent a 64-character account in the row, while native Full identifier disclosure retains the complete linked or quoted value without JavaScript. Its phone summary has a 44px minimum height. USD, row count and share remain written values; the bar supplements them. Compact header and phone metric labels reuse the 11px interface role, identifiers use 12px monospace, and values use the existing numeric role.
-
-Recorded transfer activity exposes count ticks and three UTC time labels alongside the histogram. Native disclosure below it retains exact time bounds and transfer counts. Unknown USD and deeper-hop exclusions remain explicit; chart geometry does not replace the underlying records.
-
-### Saved workspace and exports
-
-The workspace uses a two-column investigation list and watch/monitoring rail, stacking below 801px. Native save dialogs restore focus and keep validation feedback inside the dialog. Cases, notes and account watchlists are browser-local; backup import merges validated data without enabling monitoring or overwriting existing notes. An explicit reset requires confirmation. No cloud persistence or closed-browser alert coverage is implied.
-
-Graph exports capture the active recorded filters and source. Table exports include shown rows and protect spreadsheet formula prefixes. Browser monitoring is opt-in, baselines the first feed response and retains at most 20 matching alerts; desktop delivery requires separate browser permission.
-
-### Chips and status
-
-Outcome chips use written states, compact monospace text, thin semantic borders and 3px corners. Feed freshness, pending events and unknown results remain explicit. Reader-controlled updates preserve the existing Pause control; unavailable data does not become a favorable result.
-
-### Preserved motion
-
-The four existing keyframes are recorded verbatim below. Their selector timings are search-enter 160ms ease-out both, inspector-enter 180ms ease-out 1, event-arrival 1100ms ease-out 1 and path-select 900ms ease-out 1. These are stylesheet definitions: inspector entry requires data-changed="true", and event arrival requires the feed-event-new class. Documentation does not assert that those hooks are currently attached by JavaScript.
+Existing keyframes, animation declarations, transition declarations, reduced-motion alternatives, triggers, loops and Pause/Resume controls retain their behaviour. Search entry stays 160ms; inspector entry, including portfolio use, stays 180ms; selected paths stay 900ms; feed arrivals stay 1100ms; button transitions stay 140ms.
 
 ```css
 @keyframes search-enter{from{opacity:0;transform:translateY(6px) scale(.99)}to{opacity:1;transform:none}}
@@ -297,20 +239,4 @@ The four existing keyframes are recorded verbatim below. Their selector timings 
 @keyframes path-select{from{stroke-dasharray:4 4;stroke-dashoffset:32}to{stroke-dasharray:4 4;stroke-dashoffset:0}}
 ```
 
-Reduced motion preserves the existing .01ms animation/transition override, one iteration and automatic scrolling. Do not shorten, remove or redesign any existing motion as part of a style update.
-
-## Do's and Don'ts
-
-### Do:
-
-- Do keep source detail and recording coverage beside conclusions.
-- Do distinguish selection from payment outcomes with written states.
-- Do preserve every existing motion definition, duration, Pause control and reduced-motion alternative.
-- Do retain full evidence and accessible textual alternatives when layouts reflow.
-
-### Don't:
-
-- Don't turn missing USD values into zero or imply a truncated recording is complete.
-- Don't use white text on the bright teal primary fill.
-- Don't add unsupported portfolios, trading controls or conversational AI claims.
-- Don't treat a documented motion selector as proof that its runtime trigger is attached.
+The existing reduced-motion rule keeps .01ms animation and transition durations, one iteration and automatic scrolling. Feed pause retains displayed results and the distinction between pausing display updates and monitoring. Unavailable data never becomes a favourable verdict.
