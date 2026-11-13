@@ -392,3 +392,94 @@ These examples are built from offline test stubs. They show response fields, not
 ```json
 {"ok": true, "network": "mainnet", "rate_per_minute": 60}
 ```
+
+## Ask Siyab
+
+Ask Siyab is off unless `SIYAB_ASK=1`. It explains public transfer evidence below the rules engine outcome, never decides a verdict, signs or sends a payment, or changes `/live/verdict`. It requires live routes and an external state directory. The model selects and orders evidence items and picks fixed codes. Siyab writes every sentence from fixed templates; the outcome is never produced or changed by the model. Whenever any check is unknown, including uncited checks, the response carries the fixed notice that at least one check is unresolved and no favourable conclusion follows from that check, with the names of those checks in `unknown_checks`.
+
+### Routes and questions
+
+`GET /live/ask?receiver=<id>&amount=<base units>&token=<near|token id>&question=<question id>` accepts exactly these four query fields. `receiver` and a token account must be mainnet account ids; `amount` is a canonical positive decimal string in the u128 range. `token` may instead be `near`. `question` must be one of the four fixed ids below. Anonymous reads return `sign_in_required` with the rules outcome, projection hash, unknown notice and unknown checks, and never read the answer cache or call the model. The route charges one live rate and cost unit before its verdict read.
+
+`POST /workspace-api/teams/<team>/ask` requires a session, exact workspace Origin, JSON body within 32 KiB, CSRF token and membership in that team; viewers may ask. Its body has exactly `receiver`, `amount`, `token` and either `question_id` or `question`, never both. Transfer fields follow the GET rules. `question_id` uses a fixed id; free text `question` is stripped, 1 to 300 characters. Unicode control (`Cc`, including C1) and format (`Cf`) characters return 400 `invalid_question`. Angle brackets or instruction-pattern matches return HTTP 200 `question_refused` with no explanation, rather than an input error. The response identifies free text as `free_text`. Only this signed-in route reads or writes the answer cache and returns templated explanations. Free-text answers are never cached, stored or logged. The body contains no user or team id.
+
+| Question id | Question |
+|---|---|
+| `why_verdict` | Why did the checks reach this outcome? |
+| `what_unknown` | What is unknown, and why? |
+| `what_changes` | What in the evidence would have to change for the outcome to change? |
+| `explain_labels` | What do the labels in the evidence say about these accounts? |
+
+Both routes read through the normal live verdict route and pass through any non-200 verdict response unchanged, including headers. The verdict process cache, rate, cost, concurrency and provider bounds continue to apply. A signed-in ask's verdict read counts against that client address's anonymous live rate and the `anonymous` provider caller class. Ask responses use `Cache-Control: no-store`.
+
+A signed-in user may ask 10 times a minute. Defaults per UTC day are 100,000 billed tokens per user, 300,000 per team and 3,000,000 micro-dollars globally; the global cap cannot exceed $3. Users without an access code stop at two thirds of the global cap, preserving the remaining share for reserved users. An uncached ask uses at most one selection call. One atomic reservation covers that single call's request bound; valid usage settles it when all four counters are non-negative integers at most `2**53`, excluding booleans, even for a malformed response envelope. Reported output tokens must not exceed the request's `max_tokens`; input tokens plus both cache token counters must not exceed the canonical complete request's UTF-8 byte length plus 4,096. The reservation prices that whole input bound at the highest input rate, including cache creation, and the maximum requested output, so valid usage cannot settle above the reservation. Missing, partial or malformed usage withholds the answer and keeps the full attempted call reservation, never the reported amount. Every call reservation reads the clock and chooses its UTC day after acquiring the database lock, then enforces that day's global, public, user and team caps before sending the call. Each uncached ask makes at most one model call and one reservation, within a 10-second call deadline and the 30-second overall deadline. Any failure returns unavailable with its reason; there is no retry. At most two signed-in asks run concurrently, including their verdict reads. Cache hits charge no model tokens or spend. Quota refusals report seconds to next UTC midnight in `retry_after_s`; busy reports 1.
+
+The offline harness in `scripts/ask_eval.py` uses the service's selection schema, request-bound usage validation and reservation calculation. Excess usage withholds the answer, keeps the attempted call reservation and counts as a failed record. Replay requires a complete response with `stop_reason` exactly `end_turn`; `tool_use`, null and numeric stop reasons fail the record.
+
+The external `ask.sqlite3` holds daily spend and token counters and a bounded least recently used answer cache, not who asked what. The cache defaults to 10,000 rows and 32 MiB. Only valid fixed-question selections enter it. Its key includes question, model, effort, versions and a canonical public evidence projection; hashes, latency, freshness, block heights and time-of-day volatility do not defeat reuse. The response retains the current verdict's evidence hash and a cache hit preserves the cached `generated_at`. Cached selections are revalidated before rendering; malformed cache shapes are deleted and treated as misses, while invalid ids or aspects withhold the explanation. Current versions are `ASK_VERSION = "13"`, `PROMPT_VERSION = "2"` and `SCHEMA_VERSION = "2"`, preventing reuse of earlier answers. Settings are listed in `env.example`; invalid settings disable Ask while other routes keep serving.
+
+### Evidence and validation
+
+The model receives only the public transfer subject, check statuses and details, reasons and at most ten current receiver or token label assertions. Evidence is limited to 24,576 bytes. Source hashes and freshness are excluded. Instruction-shaped evidence fields are replaced with a marker that names the matched patterns while retaining their item ids and statuses; explicit `http://`, `https://`, `ftp://`, `ws://`, `wss://` and `www.` forms are replaced with `[link removed]`, and volatile numbers are masked. Other link forms are not removed by projection cleaning. Evidence tag characters are escaped. Team notes, cases, watchlists, inbox events, delivery destinations, sessions, client addresses and user or team ids never enter the request. Evidence is data, never instructions.
+
+The strict selection object has only `answerable`, `points` and `gaps`, with `additionalProperties: false` on every object. `answerable` is a boolean. `points` is a list of at most 6 points, each containing only string `item_id` and `aspect`. The id must name a projected `check.<name>`, `reason.<n>`, `label.<n>` or `subject` item, without duplicates. The aspect is `read`, `unknown` or `would_change`. `read` is valid for every item; `unknown` is valid only for a check whose status is unknown. `would_change` is valid only for a check with a sound fixed sentence derived from `gate/rules.py`, and only for the `what_changes` question. `answerable: false` requires zero points. There are at most 3 gap codes: `transaction_simulation`, `off_chain_identity`, `future_state`, `intent` and `not_covered_by_checks`. Each gap code maps to one fixed sentence.
+
+An unknown id, duplicate id, invalid aspect, extra field, wrong type, excessive point or gap count or unknown gap code returns `unavailable/invalid_output` and is never cached. A boolean cannot replace either list. The model cannot submit reader-visible prose in any field.
+
+All sentences are in the single `TEMPLATES` table in `intel/ask.py`. For check sentences, pass records no signal; signal records a signal; unknown leaves the check unresolved, including failed reads, unexpected responses and required human review. A pass does not establish that every read ran. A display name is derived from the check's name. No template judges the account or transfer or states an outcome. `would_change` sentences describe only the conditions that `gate/rules.py` actually tests. The fixed unknown notice is added once whenever any projected check is unresolved, even if the selected points omit it.
+
+Every point also carries an `evidence_chip` with `item_id` attribution and `fields` containing all projected item fields except `id`. Detail, text and label fields remain byte-identical to the projection, after its existing cleaning and withholding. Third-party text reaches the reader only inside that evidence chip, never inside a sentence template. Clients must render these fields as evidence data, without interpreting them as markup or instructions.
+
+### Response
+
+The signed-in POST route returns this shape for a validated explanation. Values below illustrate the shape only.
+
+```json
+{
+  "ask_version": "13",
+  "question_id": "why_verdict",
+  "question": "Why did the checks reach this outcome?",
+  "status": "explained",
+  "reason": null,
+  "message": null,
+  "outcome": "DENY",
+  "evidence_hash": "<current verdict evidence hash>",
+  "projection_sha256": "<public evidence projection hash>",
+  "answerable": true,
+  "statements": [{"text": "The evidence records a signal for the receiver exists check.", "evidence_ids": ["check.receiver_exists"], "evidence_chip": {"item_id": "check.receiver_exists", "fields": {"status": "signal", "detail": "receiver does not exist"}}}],
+  "not_in_evidence": [],
+  "unknown_notice": null,
+  "unknown_checks": [],
+  "cached": false,
+  "model": "<configured model id>",
+  "generated_at": "2026-11-13T10:00:00Z",
+  "retry_after_s": null
+}
+```
+
+`statements` contains only rendered templates and their evidence chips; `not_in_evidence` contains only fixed sentences for the selected gap codes. Unavailable answers use HTTP 200 with `status: "unavailable"`, a reason below, and `message: "No explanation is available. The outcome and its evidence are shown unchanged."`. `answerable`, `model` and `generated_at` are null; `statements` and `not_in_evidence` are empty; `cached` is false. There is never a `verdict` field or model prose. When a verdict was read its outcome, evidence hash, projection hash when available, unknown notice and unknown checks remain; otherwise those scalar fields are null and `unknown_checks` is empty. When no check is unknown, `unknown_notice` is null and `unknown_checks` is empty. A cache hit sets `cached: true` and returns its original generation time. Free text echoes the asker's question only to that asker.
+
+| Reason | Trigger | Model called | Spend or tokens |
+|---|---|---|---|
+| `disabled` | Feature off | no | none |
+| `misconfigured` | Invalid setting or unpriced model | no | none |
+| `sign_in_required` | Public GET requires sign-in for explanations | no | none |
+| `evidence_empty` | No checks | no | none |
+| `evidence_too_large` | Projection or prompt exceeds its bound | no | none |
+| `question_refused` | Instruction-shaped free text or angle brackets | no | none |
+| `key_unavailable` | Key file absent, invalid or unreadable | no | none |
+| `sdk_unavailable` | Optional client library unavailable | no | none |
+| `busy` | Two asks already in flight | no | none |
+| `spend_cap` | Global or public spend share reached before the call | no | none |
+| `user_quota` | Daily user token limit reached before the call | no | none |
+| `team_quota` | Daily team token limit reached before the call | no | none |
+| `timeout` | Deadline exhausted or call timeout | yes or no | reservation kept if called; unused reservation released |
+| `rate_limited` | Provider rate limit | yes | reservation kept |
+| `provider_error` | Provider status failure or bad request | yes | reservation kept |
+| `connection_error` | Connection failure | yes | reservation kept |
+| `refusal` | Provider refuses | yes | settled from usage |
+| `max_tokens` | Output token bound reached | yes | settled from usage |
+| `invalid_output` | Invalid cached citations or aspects; response not an object; missing, malformed or out-of-bounds usage; missing or non-string `stop_reason` or `text`; `stop_reason` other than `end_turn`, `refusal` or `max_tokens`; any selection validation failure | no for invalid cached selections; yes for response failures | none for invalid cached selections; full reservation kept for a non-object response or missing, malformed or out-of-bounds usage; otherwise settled from valid usage before envelope or selection validation |
+| `storage_unavailable` | Ask database error before or after a call | yes or no | spend after a call remains in the ledger |
+
+GET invalid input returns 400 `invalid_input`; its live rate refusal returns 429. POST retains workspace errors: 401 without a session; 403 for Origin, CSRF or membership refusal; 415 for non-JSON; 413 above the body cap; 400 `invalid_fields` for the wrong field set or `invalid_question` for invalid values such as a wrong question type, length or control character; angle brackets and instruction-pattern matches instead return 200 `question_refused`; 429 for request limits. If Ask is not attached to the workspace API it returns 404 `not_found`. Verdict read failures pass through instead of becoming an explanation.

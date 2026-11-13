@@ -89,6 +89,7 @@ class LiveAPI:
         if type(cache_size) is not int or cache_size < 1:
             raise ValueError("cache_size must be a positive integer")
         self.store = store or labels.load()
+        self.ask = None
         self.history_store = history_store
         self.entity_directory = entity_directory
         self.portfolio_data = portfolio_data
@@ -123,6 +124,8 @@ class LiveAPI:
             return None
         client = self._client_ip(peer, headers)
         route = self._route_name(parsed.path)
+        if route == "ask":
+            return self._ask(parsed.query, peer, headers)
         key = self._cache_key(route, parsed.path, parsed.query)
         with self._lock:
             cached = self._cache.get(key) if key is not None else None
@@ -191,6 +194,34 @@ class LiveAPI:
                 if state == [0, 0, 0]:
                     del self._in_flight[client]
                 self._condition.notify_all()
+
+    def _ask(self, query, peer, headers):
+        from intel.ask import QUESTIONS, project, unavailable
+
+        try:
+            values = self._query(query, {"receiver", "amount", "token", "question"})
+            question_id = values.pop("question")
+            if question_id not in QUESTIONS:
+                raise LiveInputError("Choose one of the four fixed questions.")
+            receiver = self._account(values["receiver"], "receiver")
+            token = values["token"] if values["token"] == "near" else self._account(values["token"], "token")
+            amount = self._amount(values["amount"])
+            if any(value == "testnet" or value.endswith(".testnet") for value in (receiver, token)):
+                raise LiveInputError("Ask Siyab accepts mainnet accounts only.")
+        except LiveInputError as error:
+            return self._error(400, "invalid_input", str(error))
+        refused = self._rate_limit(self._client_ip(peer, headers), 1)
+        if refused is not None:
+            status, code, message, retry_after = refused
+            return self._error(status, code, message, {"Retry-After": str(retry_after)})
+        values = {"receiver": receiver, "amount": amount, "token": token}
+        answer = self.handle("/live/verdict?" + urllib.parse.urlencode(sorted(values.items())), peer, headers)
+        if answer[0] != 200:
+            return answer
+        subject = {"network": "mainnet", **values}
+        projection = project(subject, answer[1], self.store)
+        return 200, unavailable(question_id, reason="sign_in_required", verdict=answer[1],
+                                projection=projection), {"Cache-Control": "no-store"}
 
     def _read(self, route, parsed, key, arrived):
         """Answer a request that found no cached answer, holding one of the slots for the upstream read."""
