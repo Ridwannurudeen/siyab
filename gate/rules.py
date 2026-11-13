@@ -44,6 +44,8 @@ NONCE_PER_HEIGHT = 10**6
 # At most this many blocks a day (one every 0.5 s; the recorded mainnet reads show about 0.58 s), so
 # min_age_days days of them before a block reach a block at least min_age_days old; its time is read back.
 BLOCKS_PER_DAY_MAX = 2 * 24 * 60 * 60
+# A candidate for a younger block (one every 2 s); only its read-back time proves its age.
+BLOCKS_PER_DAY_MIN = 43_200
 # The NearBlocks keys request carries no page parameter. The recorded answer for user.intear.near lists
 # exactly 25 keys while RPC refuses its key list as TOO_MANY_ACCESS_KEYS, so a list this long may be one
 # page of a longer one; the page size is observed there, not documented.
@@ -544,11 +546,11 @@ def _state_age(archival, receiver, account, account_source, now_ms, min_age_days
     it, for a receiver with no access key or none with a creation height, such as a locked contract, and
     for one whose oldest access key was added in a block younger than min_age_days, which shows only that
     the account existed by then.
-    One read of each, no step down: archival view_account answered HTTP 500 at many testnet blocks
-    (docs/SPIKES.md S8), which reads unknown here. The receiver missing at that block shows only that
-    it was created after the block, not that it is younger than min_age_days, so it reads unknown too
-    and gives True: an older NearBlocks key creation then cannot pass the account. Any other unknown
-    check gives None."""
+    No step down: archival view_account answered HTTP 500 at many testnet blocks (docs/SPIKES.md S8),
+    which reads unknown here. If the receiver is missing at the old block, a second candidate's time
+    must prove it younger than min_age_days before reading the receiver there. Missing there too signals.
+    Otherwise the original unknown answer remains. Both give True: an older NearBlocks key creation
+    then cannot pass the account. Any other unknown check gives None."""
     reference = account.get("block_height")
     if not isinstance(reference, int) or isinstance(reference, bool):
         return evidence.check("account_age", "unknown", f"{why}; the receiver's view_account names no block "
@@ -571,7 +573,39 @@ def _state_age(archival, receiver, account, account_source, now_ms, min_age_days
         if isinstance(error, RpcError) and error.cause == "UNKNOWN_ACCOUNT":
             detail = (f"{receiver} did not exist at {block}, so it was created after that block, which is at "
                       f"least {min_age_days} d old; whether it is younger than {min_age_days} days is not known")
-            return evidence.check("account_age", "unknown", f"{why}; {detail}", _source(archival)), True
+            unknown = evidence.check("account_age", "unknown", f"{why}; {detail}", _source(archival))
+            info = error.error["cause"].get("info")
+            if not (isinstance(info, dict) and type(info.get("block_height")) is int
+                    and info["block_height"] == height and info.get("requested_account_id") == receiver):
+                return unknown, True
+            young_height = reference - min_age_days * BLOCKS_PER_DAY_MIN
+            try:
+                young_ms, young_iso = _block_time(archival, young_height)
+                reference_ms, _ = _block_time(archival, reference)
+            except UNAVAILABLE:
+                return unknown, True
+            # Ten minutes allows clock skew and finality lag; more means a stale read or a bad clock.
+            # Date both proof blocks against the receiver's reference block, never the local clock.
+            if (abs(now_ms - reference_ms) > 10 * 60 * 1000
+                    or reference_ms - block_ms < min_age_days * DAY_MS
+                    or not 0 <= reference_ms - young_ms < min_age_days * DAY_MS):
+                return unknown, True
+            young_block = f"block {young_height} ({young_iso}) from {_source(archival)['provider']}"
+            try:
+                state = archival.view_account_at(receiver, young_height)
+                if state.get("block_height") != young_height:
+                    raise MalformedResponse(f"view_account at block {young_height} came back at block "
+                                            f"{state.get('block_height')}")
+            except UNAVAILABLE as young_error:
+                info = (young_error.error["cause"].get("info") if isinstance(young_error, RpcError)
+                        and young_error.cause == "UNKNOWN_ACCOUNT" else None)
+                if (isinstance(info, dict) and type(info.get("block_height")) is int
+                        and info["block_height"] == young_height and info.get("requested_account_id") == receiver):
+                    detail = (f"{receiver} did not exist at {block} or {young_block}, which is younger than "
+                              f"{min_age_days} days, so it was created less than {min_age_days} days ago")
+                    return evidence.check("account_age", "signal", f"{why}; {detail}", _source(archival)), True
+                return unknown, True
+            return unknown, True
         return evidence.check("account_age", "unknown", f"{why}; archival view_account could not run: "
                               f"{_why(error)}", _source(archival)), None
     return evidence.check("account_age", "pass", f"{why}; view_account finds {receiver} at {block}, at least "
@@ -639,6 +673,8 @@ def _tier2(request, policy, store, account, account_source, rpc, nearblocks, now
     if archival is not None and account is not None:
         age_check, archival_young = _nonce_age(rpc, archival, receiver, now_ms, min_age_days,
                                                account, account_source)
+        if age_check["status"] == "signal":
+            facts["age"] = f"less than {min_age_days} days"
         if age_check["status"] == "unknown":
             archival_detail = age_check["detail"]
     if archival is None or account is None or archival_detail is not None:
