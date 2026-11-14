@@ -493,6 +493,21 @@ Copied from `docs/ATTACKS.md`. Each NEAR command is `python -m gate attack <name
 
 11 attempts, 11 refusals, 0 bypasses. The replay record contains two submissions: its first, authorized use succeeds, and only the second submission is the replay attempt counted above. The expired submission is a separate refused case. The three protocol refusals have stored RPC error JSON and no receipt, so they have no explorer links.
 
+## What's next
+
+Planned work, in order. Only the first item has a date.
+
+1. **NearBlocks v3 migration, before 22 November 2026.** NearBlocks says v1 and v2 will be switched off that day; see Limits for what reads Unknown until the code moves.
+2. **Checks on in production.** The account, token and transaction checks exist behind `SIYAB_CHECKS` and are off by default. They go on once reviews are clean. The offline receipt checker already accepts their answers (`docs/VERIFY.md`, section 5); a transaction receipt still needs the Python call, not the command line.
+
+After that, undated:
+
+- DAO proposal checks, and staking pool and validator facts.
+- Feed signals for the wider ecosystem: a new token impersonating a catalog symbol, DAO policy changes, pool fee changes.
+- Site: denser tables, an account panel grid, the full mark (glyph plus wordmark), and tabs for the three checks.
+
+Needs partners, so no order or date: the NEAR Intents SHIELD feed, a NEAR Connect wallet integration, a sourced NEAR phishing list, and a public callback scanner.
+
 ## Limits
 
 - MCP account and token checks answer from recorded data by default and say so; these are not live results (`mcp/server.py:355-363`, `gate/rpc.py:875-877`).
@@ -549,7 +564,7 @@ License: Apache-2.0 (`LICENSE`). Reproducible build: `res/gate.wasm`, `res/regis
 
 Business model: a metered verdict and label API for agent platforms; the approver seat in agent wallets; alert subscriptions later. No token.
 
-Static pages: `demo/site/`, written by `python -m intel render` from the committed files. The index checks pasted NEAR accounts against `search.json`, shows label sources and links to account pages, then calls the same-origin read only live verdict, key scan and swap destination routes. Missing or unreadable live responses stay unavailable and never appear as ALLOW. Recent reports, report lookup, testnet run logs and the top receivers page are linked from the index. See the [repository source](https://github.com/Ridwannurudeen/shieldbot-near).
+Static pages: `demo/site/`, written by `python -m intel render` from the committed files. The Explore page (`explore.html`) checks pasted NEAR accounts against `search.json`, shows label sources and links to account pages, then calls the same-origin read only live verdict, key scan and swap destination routes. Missing or unreadable live responses stay unavailable and never appear as ALLOW. Recent reports, report lookup, testnet run logs and the top receivers page are linked from the Explore page. See the [repository source](https://github.com/Ridwannurudeen/shieldbot-near).
 
 ## Environment and working agreements
 

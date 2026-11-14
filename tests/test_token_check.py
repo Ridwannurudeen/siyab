@@ -174,6 +174,15 @@ class TokenCheckTest(unittest.TestCase):
                                              checks["contract_control"]["detail"]])
         self.assertFalse(any("no recorded response" in check["detail"] for check in checks.values()))
 
+    def test_recorded_global_contract_token_has_code(self):
+        self.recorded()
+        answer = self.run_check("batman-4.nearlytrade.near")
+        checks = self.checks(answer)
+        self.assertIn("contract_control", checks)
+        self.assertNotIn("no contract code", answer["evidence"])
+        self.assertIn("1uGuBE", checks["incident_code"]["detail"])
+        self.assertNotEqual(answer["outcome"], "ALLOW")
+
     def test_synthetic_catalog_token_reads_at_most_two_references(self):
         second = "second.synthetic.near"
         self.function(second, {"name": "Second Dollar", "symbol": "SUSD", "decimals": 6})
@@ -569,6 +578,26 @@ class TokenCheckTest(unittest.TestCase):
         self.assertIn(code, check["detail"])
         self.assertIn(incident, check["detail"])
         self.assertEqual(answer["outcome"], "DENY")
+
+    def test_synthetic_global_contract_hash_matches_incident(self):
+        code, incident = next(iter(feed.Context(self.store).code_hashes.items()))
+        self.account(TOKEN, rpc.EMPTY_CODE_HASH, global_contract_hash=code)
+        answer = self.run_check()
+        checks = self.checks(answer)
+        self.assertEqual(checks["incident_code"]["status"], "signal")
+        self.assertIn(incident, checks["incident_code"]["detail"])
+        self.assertIn("contract_control", checks)
+        self.assertEqual(answer["outcome"], "DENY")
+
+    def test_synthetic_global_contract_by_account_id_unknown(self):
+        self.account(TOKEN, rpc.EMPTY_CODE_HASH, global_contract_account_id="publisher.near")
+        answer = self.run_check()
+        checks = self.checks(answer)
+        self.assertEqual(checks["contract_control"]["status"], "unknown")
+        self.assertEqual(checks["incident_code"]["status"], "unknown")
+        self.assertEqual(checks["incident_code"]["detail"],
+                         "runs the global contract published by publisher.near; its hash was not compared")
+        self.assertEqual(answer["outcome"], "ASK")
 
     def test_synthetic_empty_or_unreadable_incident_corpus_unknown(self):
         with tempfile.TemporaryDirectory() as empty, tempfile.TemporaryDirectory() as broken:

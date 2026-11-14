@@ -185,6 +185,7 @@ class AppShellTest(unittest.TestCase):
         mobile = page.split('<details class="mobile-navigation"', 1)[1].split('</details>', 1)[0]
         self.assertEqual(sorted(LINK.findall(header)[1:]), sorted(LINK.findall(mobile)))
         self.assertEqual(page.count('href="feed.html" aria-current="page"'), 2)
+        self.assertNotIn('href="index.html" aria-current', page)
 
     def test_header_and_menu_keep_every_former_sidebar_destination(self):
         former = (("index.html", "Home"), ("explore.html", "Explore"), ("investigate.html", "Account lookup"),
@@ -210,7 +211,6 @@ class AppShellTest(unittest.TestCase):
                 self.assertEqual(anchor.findall(menus[0][2]), expected[8:])
                 self.assertEqual(anchor.findall(menus[1][2]), expected[6:8])
                 self.assertEqual(page.count(f'href="{up}issuers.html" aria-current="page"'), 2)
-        self.assertNotIn('href="index.html" aria-current', page)
 
     def test_theme_head_precedes_styles_and_keeps_record_pages_inert(self):
         script = "<script>try{var t=localStorage.getItem('siyab-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>"

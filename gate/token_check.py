@@ -260,7 +260,13 @@ def check_token(token_id, *, store, rpc, now_ms):
         checks += [evidence.check(check_id, "unknown", detail, rules._source(rpc))
                    for check_id in ("contract_control", "incident_code")]
     else:
-        if code_hash != EMPTY_CODE_HASH:
+        global_hash = account.get("global_contract_hash")
+        global_account = account.get("global_contract_account_id")
+        if global_account is not None:
+            checks.append(evidence.check("contract_control", "unknown",
+                                         f"runs the global contract published by {global_account}; its control "
+                                         "was not checked", account_source))
+        elif code_hash != EMPTY_CODE_HASH or global_hash is not None:
             try:
                 listing = rpc.call("query", {"request_type": "view_access_key_list", "block_id": block_height,
                                              "account_id": token_id})
@@ -279,6 +285,12 @@ def check_token(token_id, *, store, rpc, now_ms):
             except rules.UNAVAILABLE as error:
                 status, detail = "unknown", f"could not read contract access keys: {rules._why(error)}"
             checks.append(evidence.check("contract_control", status, detail, rules._source(rpc)))
+        if global_account is not None:
+            checks.append(evidence.check("incident_code", "unknown",
+                                         f"runs the global contract published by {global_account}; its hash was "
+                                         "not compared", account_source))
+        elif code_hash != EMPTY_CODE_HASH or global_hash is not None:
+            code_hash = global_hash if global_hash is not None else code_hash
             try:
                 code_hashes = feed.Context(store, feed.INCIDENTS_DIR).code_hashes
                 if not code_hashes:

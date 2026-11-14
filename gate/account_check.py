@@ -137,13 +137,25 @@ def check_account(account_id, *, store, rpc, nearblocks, archival, issuers, now_
     else:
         account_source = rules._source(client)
         code_hash = account["code_hash"]
+        global_hash = account.get("global_contract_hash")
+        global_account = account.get("global_contract_account_id")
+        if global_hash is not None or global_account is not None:
+            checks = [check for check in checks if check["id"] != "code_without_metadata"]
         if not _decodes_to(code_hash, CODE_HASH_BYTES):
             extra.append(evidence.check("incident_code", "unknown",
                                         f"view_account answers the code hash {rules._quoted(code_hash)}, which is "
                                         f"not {CODE_HASH_BYTES} bytes of base58", account_source))
-        elif code_hash == rules.EMPTY_CODE_HASH:
+        elif code_hash == rules.EMPTY_CODE_HASH and global_hash is None and global_account is None:
             extra.append(evidence.check("incident_code", "pass", "no contract code", account_source))
+        elif global_account is not None:
+            extra.append(evidence.check("contract_control", "unknown",
+                                        f"runs the global contract published by {global_account}; its control "
+                                        "was not checked", account_source))
+            extra.append(evidence.check("incident_code", "unknown",
+                                        f"runs the global contract published by {global_account}; its hash was "
+                                        "not compared", account_source))
         else:
+            code_hash = global_hash if global_hash is not None else code_hash
             try:
                 full_access = _full_access_count(client.view_access_key_list(account_id)["keys"])
             except rules.UNAVAILABLE as error:
