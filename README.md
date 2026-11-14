@@ -2,11 +2,11 @@
 
 **Every label has a source. Every verdict has evidence. Unknown never passes.**
 
-For NEAR agent payments, Siyab provides payment destination intelligence and enforces signed verdicts. It does not simulate transactions or calldata.
+Siyab is security intelligence for NEAR: sourced labels, incident records and checks for accounts, tokens and proposed transactions. Every label has a source, every verdict has evidence, and Unknown never passes. For agent payments, a Gate contract on testnet pays only on a signed ALLOW.
 
-What it is: a verdict service that judges an agent payment on NEAR before the agent signs, and a Gate contract that holds the agent's funds and pays only on a signed ALLOW bound to that exact transfer.
+What it is: an intelligence layer for the NEAR ecosystem. Agent payments are its enforced case: a verdict service judges the receiver, token, amount and memo before signing, and a Gate contract on testnet holds the agent's funds and pays only on a signed ALLOW bound to that exact transfer. Unsigned checks are advice only; Siyab does not simulate transactions or calldata.
 
-Who it is for: teams that let an AI agent pay from a NEAR account; the agent's only credential is a function call key to the Gate, so the protocol refuses it a direct transfer, a deposit or a call to the token.
+Who it is for: people, apps and AI agents across NEAR, including wallet builders, DeFi teams, DAOs and treasuries, validators, token issuers and security responders. [Coverage](docs/COVERAGE.md) lists what each group can check today and what remains outside scope. In the enforced agent payment path, the agent's only credential is a function call key to the Gate, so the protocol refuses it a direct transfer, a deposit or a call to the token.
 
 Live on testnet: the Gate runs 0.2.2, the registry runs 0.1.0 and its latest read back shows 7 records over 5 subjects (`fixtures/runs/registry-readback-20261107.txt`), and the reports contract runs 0.1.3, which the verdict service consults only when `REPORTS_ACCOUNT_ID` is set (`docs/TESTNET.md`, `res/BUILD-reports.md`).
 
@@ -26,7 +26,7 @@ python -m gate incident rhea
 
 ## What it is
 
-Siyab is a security intelligence layer for NEAR: a label store in which every assertion names its provenance class and its source, scoped to payment destination intelligence and enforcement for NEAR agent payments. The store covers the NEAR Intents token catalog and the treasury accounts its documentation lists, the Sputnik DAO factory, the current validators, the Ref Finance whitelist and the Rainbow Bridge token factory.
+Siyab is a security intelligence layer for NEAR: a label store in which every assertion names its provenance class and its source, with incident records, account investigations and unsigned account, token and proposed transaction checks. Agent payments through the Gate are its enforced case. The store covers the NEAR Intents token catalog and the treasury accounts its documentation lists, the Sputnik DAO factory, the current validators, the Ref Finance whitelist and the Rainbow Bridge token factory.
 
 The issuer source records current token blacklist views as `onchain` `denylist` assertions with `python -m intel issuers seed`.
 
@@ -107,7 +107,7 @@ Three layers on one data model:
 
 - **Intelligence** (`intel/`, `gate/rules.py`, `gate/intents.py`): a label store with a provenance class and a source on every assertion (`docs/LABEL-RECORD.md`), incident pages, NEAR rules over read only view calls, and the EVM leg: a `dry: true` 1Click quote exposes the destination chain and recipient before anything is signed, and the recipient is checked against GoPlus `address_security` labels.
 - **Protocol** (`docs/VERDICT-RECORD.md`, `docs/REGISTRY.md`, `contracts/registry/`): an open verdict and label record format with an on chain NEAR registry, and the offline verifier `python -m gate verify`.
-- **Security** (`contracts/gate/`, `mcp/`, `gate/scan.py`): the guard contract, a stdio MCP server with three tools, and the key hygiene scanner `python -m gate scan`.
+- **Security** (`contracts/gate/`, `mcp/`, `gate/scan.py`): the guard contract, a stdio MCP server with six tools, and the key hygiene scanner `python -m gate scan`.
 
 The web workspace adds arbitrary mainnet account profiles, holdings, transactions and transfers, contract-reported metadata, sourced entity associations, bounded live graphs and resumable account-history observations. Native and observed FT wallet valuations retain source prices and unavailable values; historical views use actual retained observations or explicitly block-pinned balances, excluding staking, NFTs and DeFi positions. With external state configured, authenticated teams can share versioned investigations and persistent watchlists with retained inbox alerts, and run bounded historical investigation jobs with resumable progress, cancellation and retries. Optional Telegram alerts are implemented; dedicated-bot credentials and live recipient activation are pending. Delivery requires a private-chat observation and explicit owner confirmation, retains bounded retry records and can duplicate an alert after an uncertain acknowledgement. Browser-only work remains the default and is uploaded only by explicit choice. Entity associations do not establish ownership; graphs, portfolios, jobs, backfills and polling have source and capacity bounds and do not establish complete history. Setup, roles, recovery and backups: [Workspaces](docs/WORKSPACES.md).
 
@@ -378,16 +378,18 @@ gate/intents.py       the EVM leg: 1Click dry quote, GoPlus address labels, Shie
 gate/agent.py         pay and attack over py-near; gate/scan.py key hygiene; gate/verify.py offline record check
 gate/injected.py      offline replay of the injected agent attack: python -m gate injected
 intel/                label store (labels.py, labels.jsonl), seeds, incidents, feed, flow trace, static pages
-mcp/server.py         stdio MCP server: check_near_payment, check_intents_quote, scan_near_account
+mcp/server.py         stdio MCP server: check_near_payment, check_intents_quote, scan_near_account, check_near_account, check_near_token, check_near_transaction
 scripts/kill_switch.sh the owner's kill switch: set_paused, revoke_agent, withdraw to COLD_ACCOUNT_ID
 fixtures/, tests/     recorded responses replayed offline; the Python tests
 ```
 
 ## Integrate
 
+Account, token and proposed transaction checks are off by default. Set `SIYAB_CHECKS=1` to enable the unsigned MCP tools `check_near_account`, `check_near_token` and `check_near_transaction`, and the live account and token routes (`mcp/server.py:280-282`, `intel/live.py:128-129`). The proposed transaction check is MCP only.
+
 1. In Python: `gate.verdict.request(kind, token, receiver, amount, memo, gate=..., agent_pk_hex=..., policy=..., store=..., rpc=..., nearblocks=..., signer=...)` returns a dict with `outcome`, `action` (`sign` for ALLOW, `refuse` for DENY, `ask` for UNKNOWN or an ALLOW the Gate would refuse as it stands), `verdict` (the signed Verdict object on an ALLOW whose action is in `sign_actions`, else None), `request`, `ask`, `checks` and `evidence_hash`.
 2. On the command line: `python -m gate verdict --kind ft --token <token> --receiver <account> --amount <base units> --memo <memo> --gate <gate account>`.
-3. As MCP tools (`check_near_payment`, `check_intents_quote`, `scan_near_account`) from an MCP client launched at the repository root. By default `check_near_payment` signs an ALLOW with the TEST key, which the testnet Gate does not trust (its verifier key is the live one), so it is for trying the rules. Its default policy has no allowlist and no unknown payee caps, so every ALLOW carries `action` `ask` with `REFUSED:not_allowlisted`, because the Gate would refuse every payee under that policy. To try signing with the TEST key, set `GATE_POLICY` to allowlist the payee or provide unknown payee caps that cover the amount. It signs with the live key only when the operator sets all five conditions: `GATE_LIVE_SIGNING=1`, `VERIFIER_KEY_FILE`, `GATE_FIXTURES_MODE=off`, a `.testnet` `GATE_ACCOUNT_ID` and `GATE_POLICY` unset, with `AGENT_PUB` naming the agent key; the verdict is then bound to that agent key and judged against the Gate's `get_agent` read at every call. With the flag set and any other condition missing the tool answers an error and signs nothing; it never falls back to the TEST key. The result's `signer` names the key that signed.
+3. As MCP tools (`check_near_payment`, `check_intents_quote`, `scan_near_account`, `check_near_account`, `check_near_token`, `check_near_transaction`) from an MCP client launched at the repository root. By default `check_near_payment` signs an ALLOW with the TEST key, which the testnet Gate does not trust (its verifier key is the live one), so it is for trying the rules. Its default policy has no allowlist and no unknown payee caps, so every ALLOW carries `action` `ask` with `REFUSED:not_allowlisted`, because the Gate would refuse every payee under that policy. To try signing with the TEST key, set `GATE_POLICY` to allowlist the payee or provide unknown payee caps that cover the amount. It signs with the live key only when the operator sets all five conditions: `GATE_LIVE_SIGNING=1`, `VERIFIER_KEY_FILE`, `GATE_FIXTURES_MODE=off`, a `.testnet` `GATE_ACCOUNT_ID` and `GATE_POLICY` unset, with `AGENT_PUB` naming the agent key; the verdict is then bound to that agent key and judged against the Gate's `get_agent` read at every call. With the flag set and any other condition missing the tool answers an error and signs nothing; it never falls back to the TEST key. The result's `signer` names the key that signed.
 4. Other clients and the environment for live reads: `mcp/README.md`.
 5. A verdict a Gate pays on comes from the operator's verdict service holding the live key: `python -m gate verdict --live` with `VERIFIER_KEY_FILE` set, or `python -m gate pay`. The agent passes its `request` and `verdict` objects through unchanged to `request_transfer(request, verdict)`. `python -m gate verdict --live` needs `GATE_FIXTURES_MODE=off` for every client and reads the policy from the Gate.
 
@@ -413,6 +415,10 @@ Copied from `docs/CLAIMS.md`; `tests/test_readme_claims.py` asserts the two tabl
 | Claim | File:function | Test | Evidence | idea |
 |---|---|---|---|---|
 | Registry reads on chain add one label store row per Sputnik DAO, current validator, Ref Finance whitelist token and Rainbow Bridge factory token. | `intel/registries.py:rows` | `tests/test_registries.py::RegistriesTests.test_the_count_per_registry_matches_the_recorded_answer` | `fixtures/registries/`, `intel/registries/rows.jsonl` | yes |
+| Standalone mainnet account checks return account-bound evidence with no signed verdict and signing set to never; their action field is advice only. | `gate/account_check.py:check_account` | `tests/test_account_check.py::AccountCheckTest.test_exact_answer_evidence_subject_and_unsigned_fields` | `docs/COVERAGE.md`, `docs/VERIFY.md` | no |
+| Standalone token checks compare an unlisted token with issuer tokens' symbols read at check time and signal a match; this comparison is not a contract audit. | `gate/token_check.py:check_token` | `tests/test_token_check.py::TokenCheckTest.test_synthetic_usdt_symbol_impersonation` | `docs/COVERAGE.md` | no |
+| Proposed transaction checks signal a full access key addition and name the public key, without signing or executing the transaction. | `gate/txcheck.py:check_transaction` | `tests/test_txcheck.py::TransactionCheckTest.test_synthetic_full_access_addkey_names_public_key` | `docs/COVERAGE.md` | no |
+| Without a deciding signal, an unmodelled transaction action produces ASK and cannot claim that no modelled risk was found. | `gate/txcheck.py:check_transaction` | `tests/test_txcheck.py::TransactionCheckTest.test_synthetic_partial_checks_do_not_claim_no_modelled_risk` | `docs/COVERAGE.md` | no |
 | On mainnet a receiver that a token issuer's blacklist view answers as banned reads DENY, with that answer quoted. | `gate/rules.py:_issuer_check` | `tests/test_rules.py::IssuerBlacklistTest.test_the_collector_is_refused_on_the_issuer_word_in_replay` | `intel/issuers.json`, `fixtures/receivers/judgements/` | yes |
 | A flow trace is complete only when every account within its depth bound was read in full; otherwise it names the account, the depth and the reason where the walk stopped. | `intel/trace.py:trace` | `tests/test_trace.py::WalkTest.test_completeness_names_the_account_and_depth_where_the_walk_stopped` | `intel/flows/rhea-collector.json` | no |
 | Each cluster edge names its heuristic and its provenance class; a full access key edge rests on an RPC read of each account at a block. | `intel/cluster.py:build_cluster` | `tests/test_cluster.py::ClusterTest.test_full_access_key_edges_are_confirmed_by_rpc_and_carry_both_blocks` | `intel/clusters/rhea.json`, `docs/CLUSTER.md` | yes |
@@ -489,6 +495,7 @@ Copied from `docs/ATTACKS.md`. Each NEAR command is `python -m gate attack <name
 
 ## Limits
 
+- MCP account and token checks answer from recorded data by default and say so; these are not live results (`mcp/server.py:355-363`, `gate/rpc.py:875-877`).
 - Ask Siyab sends the public evidence for an asked account to the model provider. Only signed-in users see explanations, using at most one selection call per uncached ask.
 - The Gate binds the evidence hash into the signed verdict but does not compare it with the registry. The registry is an audit record, and the Gate trusts its configured verifier key (`contracts/gate/src/verdict.rs:22-47`; `contracts/gate/src/lib.rs:194-210`; `contracts/registry/src/lib.rs:141-191`).
 - For FT payments, the Gate requires the token in the owner-configured caps for the selected payee category. It has no separate Gate-wide token allowlist or token behavior check, so those caps and the verifier define token trust (`contracts/gate/src/lib.rs:187-192,228-237`).

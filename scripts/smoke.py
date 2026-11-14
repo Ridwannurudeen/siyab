@@ -25,7 +25,7 @@ and the judgements of step 9 included, goes into one temporary directory removed
   5 python -m gate verify on fixtures/registry/testnet-vendor.json and the one evidence file
     fixtures/evidence/7e77187d*.json names (the glob is resolved here) ends "verified (subject not checked)"
   6 python -m mcp.server, fed initialize, notifications/initialized and tools/list through a pipe,
-    answers both requests and lists its three tools
+    answers both requests and lists its six tools
   7 python -m intel counts and python -m gate incident rhea print the label counts and the Rhea page
   8 python -m unittest tests.test_canon, the Python half of step 8; the Rust half needs crates.io and
     is not run here
@@ -63,7 +63,8 @@ BOOT = chr(10).join((
     "runpy.run_module(sys.argv[0], run_name='__main__', alter_sys=True)",
 ))
 OUTCOMES = (("  ALLOW, ", "ALLOW"), ("  DENIED. ", "DENY"), ("  UNKNOWN, ", "UNKNOWN"))
-TOOLS = ["check_near_payment", "check_intents_quote", "scan_near_account"]
+TOOLS = ["check_near_payment", "check_intents_quote", "scan_near_account",
+         "check_near_account", "check_near_token", "check_near_transaction"]
 MCP_SESSION = (
     {"jsonrpc": "2.0", "id": 1, "method": "initialize",
      "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "smoke", "version": "0"}}},
