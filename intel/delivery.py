@@ -133,10 +133,10 @@ class TelegramClient:
 
 
 class TelegramDelivery:
-    def __init__(self, store, client=None, *, bot_username="siyabonnearbot", clock=time.time):
+    def __init__(self, store, client=None, *, bot_username="siyabonnearbot", clock=time.time, checks=None):
         if not isinstance(bot_username, str) or _USERNAME.fullmatch(bot_username) is None:
             raise ValueError("Telegram bot username is invalid")
-        self.store, self.client, self.bot_username, self.clock = store, client or TelegramClient(), bot_username, clock
+        self.store, self.client, self.bot_username, self.clock, self.checks = store, client or TelegramClient(), bot_username, clock, checks
         with store._connection(write=True) as connection:
             connection.execute("CREATE TABLE IF NOT EXISTS delivery_state ("
                                "singleton INTEGER PRIMARY KEY CHECK(singleton=1),version INTEGER NOT NULL,"
@@ -381,6 +381,7 @@ class TelegramDelivery:
                 connection.execute("UPDATE delivery_state SET update_offset=?,last_update_ms=? WHERE singleton=1",
                                    (max(item["update_id"] for item in updates) + 1, now))
             connection.execute("UPDATE delivery_state SET last_poll_ms=?,last_error=NULL WHERE singleton=1", (now,))
+            return updates
 
     @staticmethod
     def _message(row):
@@ -507,7 +508,7 @@ class TelegramDelivery:
             self._renew(token)
             self._identity()
             self._renew(token)
-            self._poll()
+            updates = self._poll()
             result["queued"] = self._enqueue()
             for _ in range(batch_size):
                 self._renew(token)
@@ -517,12 +518,17 @@ class TelegramDelivery:
                 sent = self._send(row)
                 result["sent"] += sent
                 result["failed"] += not sent
+            if self.checks is not None:
+                with self.store._connection() as connection:
+                    cooldown = connection.execute("SELECT next_poll_ms FROM delivery_state WHERE singleton=1").fetchone()[0]
+                if cooldown <= self._now():
+                    self.checks.answer(self.client, updates, lambda: self._renew(token))
             result["last_error"] = "delivery_failed" if result["failed"] else None
         except TelegramError as error:
             result["last_error"] = error.code
             with self.store._connection(write=True) as connection:
                 delay = error.retry_after or 5
-                connection.execute("UPDATE delivery_state SET last_error=?,next_poll_ms=? WHERE singleton=1",
+                connection.execute("UPDATE delivery_state SET last_error=?,next_poll_ms=MAX(next_poll_ms,?) WHERE singleton=1",
                                    (error.code, self._now() + delay * 1000))
         finally:
             with self.store._connection(write=True) as connection:
@@ -542,10 +548,11 @@ def configured_client():
     return TelegramClient(load)
 
 
-def run(store, client=None, *, once=False, interval=5, bot_username="siyabonnearbot", stop=None):
+def run(store, client=None, *, once=False, interval=5, bot_username="siyabonnearbot", stop=None, checks=None):
     if isinstance(interval, bool) or not isinstance(interval, (int, float)) or not 1 <= interval <= 60:
         raise ValueError("delivery interval must be between 1 and 60 seconds")
-    worker = TelegramDelivery(store, client if client is not None else configured_client(), bot_username=bot_username)
+    worker = TelegramDelivery(store, client if client is not None else configured_client(), bot_username=bot_username,
+                              checks=checks)
     while True:
         result = worker.run_once()
         if once:
