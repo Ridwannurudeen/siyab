@@ -1,0 +1,14 @@
+{
+  "signer_id": "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03",
+  "receiver_id": "c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163",
+  "actions": [
+    {
+      "FunctionCall": {
+        "args": "eyJyZWNlaXZlcl9pZCI6InYyLnJlZi1maW5hbmNlLm5lYXIiLCJhbW91bnQiOiIzMDAwMDAwNzg4NDE1ODUyMDcyMDA2MTUzMzgxNDU5MDIiLCJtc2ciOiIifQ==",
+        "deposit": "1",
+        "gas": 300000000000000,
+        "method_name": "ft_transfer_call"
+      }
+    }
+  ]
+}
