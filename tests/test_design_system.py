@@ -468,6 +468,37 @@ class DesignSystemTest(unittest.TestCase):
                         self.assertEqual([line for result in measured for line in result["lines"] if len(line) == 1], [])
                         self.assertLessEqual(page.evaluate("document.documentElement.scrollWidth"), width)
 
+    def test_browser_delivery_action_buttons_keep_whole_words(self):
+        labels = ["Create a new link", "Connect a Telegram group", "Confirm observed destination", "Cancel connection"]
+        with self.browser.new_context(java_script_enabled=False) as context:
+            context.route("**/*", self.local_route)
+            page = context.new_page()
+            for width in (1280, 768, 375, 320):
+                page.set_viewport_size({"width": width, "height": 900})
+                page.goto(self.origin + "/workspace.html")
+                page.wait_for_load_state("networkidle")
+                page.evaluate("""labels => {
+                    const actions=document.createElement('div');actions.className='delivery-actions';
+                    for(const label of labels){const button=document.createElement('button');button.type='button';button.textContent=label;actions.append(button);}
+                    document.getElementById('delivery-controls').replaceChildren(actions);
+                    document.getElementById('delivery-history').open=true;
+                }""", labels)
+                measured = page.locator("#team-delivery .delivery-actions button").evaluate_all("""nodes => nodes.map(node => {
+                    const text=node.firstChild, tops=[];
+                    for(let i=0;i<text.length;i++){const range=document.createRange();range.setStart(text,i);range.setEnd(text,i+1);tops.push(Math.round(range.getBoundingClientRect().top));}
+                    const splits=[];
+                    for(let i=1;i<text.length;i++) if(/\S/.test(text.data[i])&&/\S/.test(text.data[i-1])&&tops[i]!==tops[i-1]) splits.push(text.data.slice(0,i)+'|'+text.data.slice(i));
+                    return {label:text.data,splits,lines:new Set(tops.filter((top,i)=>/\S/.test(text.data[i]))).size,top:Math.round(node.getBoundingClientRect().top),wrap:getComputedStyle(node).overflowWrap};
+                })""")
+                with self.subTest(width=width):
+                    self.assertEqual([row["label"] for row in measured], labels + ["Newer deliveries", "Older deliveries"])
+                    self.assertEqual([split for row in measured for split in row["splits"]], [])
+                    self.assertNotIn("anywhere", {row["wrap"] for row in measured})
+                    self.assertLessEqual(page.evaluate("document.documentElement.scrollWidth"), width)
+                    if width >= 768:
+                        self.assertEqual({row["top"] for row in measured[:4]}, {measured[0]["top"]})
+                        self.assertEqual({row["lines"] for row in measured}, {1})
+
     def test_browser_r2_review_counterparty_identifiers_one_line(self):
         with self.browser.new_context(java_script_enabled=True) as context:
             context.route("**/*", self.local_route)

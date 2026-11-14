@@ -541,8 +541,9 @@ class SQLiteWorkspaceStore:
                 or not binding["active"] and binding["nonce_hash"] is None and binding["observed_chat_id"] is None):
             return
         now = self._now()
+        conflict = "observed_nonce_hash=NULL,conflict_keys=''," if "conflict_keys" in columns else ""
         connection.execute("UPDATE delivery_bindings SET active=0,nonce_hash=NULL,nonce_expires_ms=NULL,observed_chat_id=NULL,"
-                           "observed_label=NULL,observed_ms=NULL,generation=generation+1,updated_ms=? WHERE id=?", (now, binding["id"]))
+                           "observed_label=NULL,observed_ms=NULL," + conflict + "generation=generation+1,updated_ms=? WHERE id=?", (now, binding["id"]))
         connection.execute("UPDATE delivery_queue SET state='cancelled',lease_token=NULL,lease_until_ms=0,updated_ms=? "
                            "WHERE team_id=? AND state IN ('pending','sending')", (now, team_id))
         self._audit(connection, team_id, actor_id, "telegram.disconnected", team_id, {"member": member_id})

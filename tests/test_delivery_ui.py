@@ -14,6 +14,7 @@ class DeliveryUITest(unittest.TestCase):
         for name in ("team-delivery", "delivery-context", "delivery-status", "delivery-controls", "delivery-log"):
             self.assertIn('id="' + name + '"', panel)
         self.assertIn('aria-live="polite"', panel)
+        self.assertLess(panel.index('id="delivery-warning" role="alert"'), panel.index('id="delivery-controls"'))
         self.assertIn("confirmation", panel)
         self.assertIn("duplicates", panel)
         self.assertIn("Private notes", panel)
@@ -24,6 +25,24 @@ class DeliveryUITest(unittest.TestCase):
     @unittest.skipUnless(shutil.which("node"), "Node is unavailable")
     def test_delivery_runtime_permissions_private_lifecycle_and_generation(self):
         result = subprocess.run([shutil.which("node"), "tests/delivery_runtime.cjs"], cwd=ROOT,
+                                capture_output=True, text=True, timeout=15)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    @unittest.skipUnless(shutil.which("node"), "Node is unavailable")
+    def test_group_connection_shows_warning_and_waits_for_verification(self):
+        result = subprocess.run([shutil.which("node"), "tests/delivery_runtime.cjs", "groups"], cwd=ROOT,
+                                capture_output=True, text=True, timeout=15)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    @unittest.skipUnless(shutil.which("node"), "Node is unavailable")
+    def test_group_link_conflict_warning_keeps_confirm(self):
+        result = subprocess.run([shutil.which("node"), "tests/delivery_runtime.cjs", "group-conflict"], cwd=ROOT,
+                                capture_output=True, text=True, timeout=15)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    @unittest.skipUnless(shutil.which("node"), "Node is unavailable")
+    def test_group_warning_clears_after_disconnect(self):
+        result = subprocess.run([shutil.which("node"), "tests/delivery_runtime.cjs", "group-warning"], cwd=ROOT,
                                 capture_output=True, text=True, timeout=15)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
