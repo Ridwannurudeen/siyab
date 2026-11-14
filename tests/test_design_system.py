@@ -707,6 +707,11 @@ class DesignSystemTest(unittest.TestCase):
             page.goto(self.origin + "/workspace.html")
             side = page.locator("#browser-workspace .workbench-grid--stacked>.workspace-side")
             self.assertEqual(side.count(), 1)
+            investigations = page.locator("#browser-workspace .workbench-grid--stacked>.workspace-section")
+            self.assertEqual(len(side.evaluate("node => getComputedStyle(node).gridTemplateColumns").split()), 1)
+            self.assertAlmostEqual(side.bounding_box()["y"], investigations.bounding_box()["y"], delta=1)
+            self.assertGreater(side.bounding_box()["x"], investigations.bounding_box()["x"] + investigations.bounding_box()["width"])
+            page.set_viewport_size({"width": 1024, "height": 900})
             self.assertEqual(len(side.evaluate("node => getComputedStyle(node).gridTemplateColumns").split()), 2)
             children = side.locator(":scope>section")
             self.assertGreaterEqual(children.count(), 2)
@@ -811,7 +816,7 @@ class DesignSystemTest(unittest.TestCase):
             self.assertLessEqual(page.locator(".profile-kind").bounding_box()["y"] + page.locator(".profile-kind").bounding_box()["height"], page.locator(".profile-id").bounding_box()["y"])
 
     def test_browser_r2_flow_reserve_with_full_styles(self):
-        for width, reserve in ((1440, "948px"), (1000, "1288px")):
+        for width, reserve in ((1440, "765px"), (1000, "1288px")):
             with self.browser.new_context(viewport={"width": width, "height": 900}) as context:
                 held = []
                 def route_request(route):
@@ -1031,6 +1036,73 @@ class DesignSystemTest(unittest.TestCase):
             page.goto(self.origin + "/issuers.html")
             page.evaluate("document.fonts.ready")
             self.assertLessEqual(page.locator("#issuer-status tbody tr").first.bounding_box()["y"], 520)
+
+    def test_browser_da4_page_family_compositions(self):
+        record = next(name for name in self.pages if name.startswith("records/") and name != "records/index.html")
+        pages = (record, "records/index.html", "entities/treasuries.html", "entities/organisations.html",
+                 "entities/rainbow-bridge-token-factory.html", "flows/rhea-collector.html", "clusters/rhea.html",
+                 "investigate.html", "workspace.html", "feed.html", "verify.html", "top-receivers.html", "404.html")
+        for theme in ("dark", "light"):
+            with self.browser.new_context(reduced_motion="reduce") as context:
+                context.route("**/*", self.local_route)
+                context.add_init_script("localStorage.setItem('siyab-theme', '" + theme + "')")
+                page = context.new_page()
+                for width in (1440, 1024, 768, 390, 320):
+                    page.set_viewport_size({"width": width, "height": 900})
+                    for name in pages:
+                        page.goto(self.origin + "/" + name)
+                        if name.startswith("records/") and theme == "light":
+                            page.locator(".record-theme summary").click()
+                            page.locator("#record-theme-light").check()
+                            page.wait_for_function("getComputedStyle(document.body).backgroundColor === 'rgb(245, 247, 250)'", timeout=5000)
+                        page.evaluate("document.querySelectorAll('details').forEach(node => { node.open = true; })")
+                        with self.subTest(theme=theme, width=width, page=name):
+                            self.assertEqual(page.locator("body").evaluate("node => getComputedStyle(node).backgroundColor"),
+                                             "rgb(245, 247, 250)" if theme == "light" else "rgb(10, 13, 22)")
+                            self.assertLessEqual(page.evaluate("document.documentElement.scrollWidth"), width + 1)
+        with self.browser.new_context(reduced_motion="reduce") as context:
+            context.route("**/*", self.local_route)
+            page = context.new_page()
+            page.set_viewport_size({"width": 1440, "height": 900})
+            page.goto(self.origin + "/" + record)
+            self.assertEqual(page.locator("script").count(), 0)
+            anchors = page.locator(".record-heading .profile-anchors a")
+            self.assertEqual(anchors.count(), len(render._RECORD_SECTIONS))
+            for href in anchors.evaluate_all("nodes => nodes.map(node => node.getAttribute('href'))"):
+                self.assertEqual(page.locator("section" + href).count(), 1, href)
+            fields = page.locator(".record-content>section>dl").first
+            self.assertEqual(len(fields.evaluate("node => getComputedStyle(node).gridTemplateColumns").split()), 2)
+            self.assertEqual(page.locator("[data-record-path]").count(), self.pages[record].count("data-record-path="))
+            page.goto(self.origin + "/entities/treasuries.html")
+            self.assertEqual(page.locator(".collection-heading h1").count(), 1)
+            self.assertLessEqual(page.locator(".entity-table tbody tr").first.bounding_box()["y"], 400)
+            page.goto(self.origin + "/entities/rainbow-bridge-token-factory.html")
+            self.assertAlmostEqual(page.locator("#registry-members").bounding_box()["width"], 1392, delta=1)
+            self.assertEqual(page.locator(".registry-strip .profile-provenance p").count(), 2)
+            page.goto(self.origin + "/flows/rhea-collector.html")
+            page.wait_for_selector(".graph-stage")
+            self.assertAlmostEqual(page.locator(".graph-status").bounding_box()["y"], page.locator(".graph-coverage").bounding_box()["y"], delta=1)
+            self.assertLessEqual(page.locator(".graph-stage").bounding_box()["y"], 460)
+            page.goto(self.origin + "/clusters/rhea.html")
+            for region in ("#chain-relationships", "#attribution-relationships"):
+                self.assertEqual(page.locator(region + ">h2").count(), 1)
+            self.assertEqual(page.locator("#attribution-relationships").evaluate("node => getComputedStyle(node).borderTopStyle"), "dashed")
+            page.goto(self.origin + "/investigate.html")
+            self.assertAlmostEqual(page.locator("#investigate-profile").bounding_box()["y"], page.locator("#investigate-holdings").bounding_box()["y"], delta=1)
+            self.assertAlmostEqual(page.locator("#portfolio-current-block").bounding_box()["y"], page.locator("#portfolio-history-block").bounding_box()["y"], delta=1)
+            self.assertGreater(page.locator("#portfolio-block-block").bounding_box()["y"], page.locator("#portfolio-history-block").bounding_box()["y"])
+            page.goto(self.origin + "/top-receivers.html")
+            panels = page.locator(".receiver-breakdown>.receiver-panel")
+            self.assertEqual(panels.count(), 2)
+            self.assertAlmostEqual(panels.nth(0).bounding_box()["y"], panels.nth(1).bounding_box()["y"], delta=1)
+            page.set_viewport_size({"width": 1024, "height": 900})
+            page.goto(self.origin + "/investigate.html")
+            self.assertGreater(page.locator("#investigate-holdings").bounding_box()["y"], page.locator("#investigate-profile").bounding_box()["y"])
+            page.set_viewport_size({"width": 390, "height": 844})
+            page.goto(self.origin + "/" + record)
+            self.assertEqual(len(page.locator(".record-content>section>dl").first.evaluate("node => getComputedStyle(node).gridTemplateColumns").split()), 1)
+            page.goto(self.origin + "/top-receivers.html")
+            self.assertGreater(panels.nth(1).bounding_box()["y"], panels.nth(0).bounding_box()["y"])
 
     def test_browser_new_visit_is_dark_under_light_system(self):
         with self.browser.new_context(color_scheme="light") as context:

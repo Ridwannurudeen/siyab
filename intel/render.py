@@ -787,12 +787,12 @@ def top_receivers_page(judgements_dir=TOP_RECEIVERS_JUDGEMENTS_DIR, ranking_path
             "Logs from uncatalogued contracts count toward distinct payers.</p>"
             f'<p>Judged {summary["total"]}: {summary["verdicts"]["ALLOW"]} ALLOW, '
             f'{summary["verdicts"]["DENY"]} DENY, {summary["verdicts"]["UNKNOWN"]} UNKNOWN.</p>'
-            "<h2>UNKNOWN causes</h2><p>Counts overlap.</p><ul>" + causes + "</ul>"
-            "<h2>DENY split</h2>"
+            '<div class="receiver-breakdown"><section class="receiver-panel"><h2>UNKNOWN causes</h2><p>Counts overlap.</p><ul>' + causes + "</ul></section>"
+            '<section class="receiver-panel"><h2>DENY split</h2>'
             f'<p>New account (account_age signal only): {summary["deny_new_account"]}.</p>'
             f'<p>Lookalike with code without metadata: {summary["deny_lookalike_without_metadata"]}.</p>'
             + other_deny + "<p>Each verdict is what an agent's 1 NEAR payment to that receiver would get, not a finding "
-            "that the account is malicious.</p>"
+            "that the account is malicious.</p></section></div>"
             f'<p>See the <a href="{GITHUB_REPO}/tree/main/fixtures/receivers/top/judgements/">committed judgement files</a> '
             "for per-account results.</p>")
     return page("Top receivers", body)
@@ -863,7 +863,7 @@ def feed_page(state_path=feed.STATE_PATH, events_dir=feed.EVENTS_DIR, *, state=N
     body = (f'<details class="feed-recorded-details"><summary>{details_title}</summary>{window}<ul>{stats}</ul>\n<h2>Events</h2>\n{count}'
             + (cards or ("" if unreadable else "<p>No signal fired over the recorded blocks.</p>"))
             + "\n<p class=\"muted\">The signals: " + ", ".join(feed.SIGNALS) + ".</p></details>")
-    return page("Feed", '<h1>Feed over finalized mainnet blocks</h1><p>Inspect observed signals and their evidence. The current read contains at most 50 recent events; filters apply to that response.</p>'
+    return page("Feed", '<div class="page-head feed-heading"><div><h1>Feed over finalized mainnet blocks</h1><p>Inspect observed signals and their evidence. The current read contains at most 50 recent events; filters apply to that response.</p></div></div>'
                 + _feed_panel(event_rows) + body + '<script>' + (ROOT / "intel/ui/feed.js").read_text(encoding="utf-8") + '</script>')
 
 
@@ -1223,8 +1223,9 @@ def entity_page(title, categories, store, *, page_number=1, collection_name=None
     group_filter = ('<label>Recorded registry<select data-table-group><option value="">All recorded reads</option>'
                     + ''.join(f'<option value="{group["id"]}">{esc(group["title"])}</option>' for group in groups)
                     + '</select></label>') if groups else ''
-    body = (f'<h1>{esc(title)}</h1><p>{count} current assertions from the label store.</p>'
-            f'<div class="entity-table-panel" data-entity-table data-source="{collection_name}.table.json" data-page="{page_number}">'
+    heading = f'<h1>{esc(title)}</h1>'
+    intro = f'<p>{count} current assertions from the label store.</p>'
+    body = (f'<div class="entity-table-panel" data-entity-table data-source="{collection_name}.table.json" data-page="{page_number}">'
             '<div class="entity-table-toolbar" hidden><label>Search this collection<input type="search" data-table-search autocomplete="off" placeholder="Account, label or evidence text"></label>'
             f'<label>Chain<select data-table-chain><option value="">All chains</option>{chains}</select></label>'
             + group_filter +
@@ -1234,6 +1235,8 @@ def entity_page(title, categories, store, *, page_number=1, collection_name=None
             f'<button type="button" data-table-retry hidden>Retry collection</button>{tables}<p class="empty-state" data-table-empty hidden>No matching recorded assertions. Clear the search or choose another chain.</p>'
             f'<nav class="entity-table-pagination" aria-label="Collection pages">{previous}<span>Page {page_number} of {pages}</span>{following}</nav>'
             f'</div><script>{script}</script>')
+    table_panel = body
+    body = f'<div class="page-head collection-heading">{heading}{intro}</div>' + table_panel
     if groups:
         overview = []
         for group in groups:
@@ -1243,13 +1246,12 @@ def entity_page(title, categories, store, *, page_number=1, collection_name=None
                             f'<p class="registry-recorded">{esc(group["provenance"])} on {esc(group["chain"])}. Recorded <time>{esc(group["observed_at"])}</time>.</p>'
                             f'<details><summary>Registry read evidence</summary><blockquote class="data"><pre>{source}</pre></blockquote></details></div>'
                             f'<a class="button" data-registry-group="{group["id"]}" href="?source={group["id"]}#individual-assertions">View matching assertions</a></li>')
-        heading = f'<h1>{esc(title)}</h1>'
         body = (heading + '<section class="registry-overview" aria-label="Recorded registry overview">'
                 f'<p class="registry-count">{count:,} <span class="stat-connective">assertions from</span> {len(groups)} <span class="stat-connective">recorded registry reads.</span></p>'
                 '<p class="registry-scope">Factory listings and epoch membership describe recorded associations, not shared ownership or current control.</p>'
                 f'<ul class="registry-groups">{"".join(overview)}</ul></section>'
                 f'<details class="registry-individuals" id="individual-assertions"{" open" if page_number > 1 else ""}>'
-                '<summary>Individual recorded assertions</summary>' + body[len(heading):] + '</details>')
+                '<summary>Individual recorded assertions</summary>' + intro + table_panel + '</details>')
     return page(title, body, depth=1)
 
 
@@ -1330,11 +1332,11 @@ def registry_entity_page(entity, accounts):
             f'<span class="profile-kind">{esc(entity["kind"].replace("_", " ").title())}</span>'
             f'<h1 class="profile-id">{esc(subject)}</h1></div>'
             f'<p>{len(entity["members"])} recorded members</p></div>'
-            f'<div class="profile-provenance"><p>Registry read: {esc(source["method"])} at block {source["block"]}, '
+            f'<div class="registry-strip"><div class="profile-provenance"><p>Registry read: {esc(source["method"])} at block {source["block"]}, '
             f'arguments {esc(json.dumps(source["args"], sort_keys=True))}</p>'
             f'<p>Observed at {esc(entity["observed_at"])} on {esc(source["rpc"])}</p></div>'
-            '<div class="profile-actions"><button type="button" data-save-investigation>Save investigation</button></div>'
-            '<h2>Members</h2>'
+            '<div class="profile-actions"><button type="button" data-save-investigation>Save investigation</button></div></div>'
+            '<h2 class="registry-members-title">Members</h2>'
             + _profile_table("registry-members", ("Account", "Membership evidence"),
                              [[_subject_cell(member, accounts), f'Registry read at block {source["block"]}'] for member in entity["members"]], "Search members")
             + f'<details class="profile-evidence"><summary>Original member list and registry source</summary>'
@@ -1720,9 +1722,11 @@ def record_page(record):
             else:
                 rendered = _record_value(value, field)
             content.append(f"<dt>{esc(field)}</dt><dd>{rendered}</dd>")
-        sections.append(f"<section><h2>{esc(title)}</h2><dl>{''.join(content)}</dl></section>")
+        sections.append(f'<section id="record-{esc(title.lower().replace(" ", "-"))}"><h2>{esc(title)}</h2><dl>{"".join(content)}</dl></section>')
     record_id = esc(record["record_id"])
-    body = ("<h1>Incident record</h1>" + "".join(sections)
+    anchors = "".join(f'<a href="#record-{esc(title.lower().replace(" ", "-"))}">{esc(title)}</a>' for title, _ in _RECORD_SECTIONS)
+    body = ('<div class="page-head record-heading"><h1>Incident record</h1>'
+            f'<nav class="profile-anchors" aria-label="Record sections">{anchors}</nav></div>' + "".join(sections)
             + '<p class="muted">Re-check from the repository root with '
             + f'<code><span class="nowrap">python -m intel record-check</span> fixtures/records/{record_id}.json</code>.</p>')
     return page("Incident record", body, depth=1, inert=True)
