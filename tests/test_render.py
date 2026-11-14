@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from decimal import Decimal
 from html.parser import HTMLParser
 from pathlib import Path
 from unittest import mock
@@ -160,7 +161,7 @@ class AppShellTest(unittest.TestCase):
             home = '<a href="index.html"' + (' aria-current="page"' if current == "index.html" else '') + '>Home</a>'
             explore = '<a href="explore.html"' + (' aria-current="page"' if current == "explore.html" else '') + '>Explore</a>'
             self.assertIn(home + explore, header)
-            for route in ("investigate.html", "explore.html#tools", "explore.html#explore-title"):
+            for route in ("investigate.html", "explore.html#tools", "explore.html#incidents"):
                 self.assertIn('href="' + route + '"', header)
             for route in ("index.html#tools", "index.html#explore-title"):
                 self.assertNotIn('href="' + route + '"', document)
@@ -191,7 +192,7 @@ class AppShellTest(unittest.TestCase):
         former = (("index.html", "Home"), ("explore.html", "Explore"), ("investigate.html", "Account lookup"),
                   ("flows/rhea-collector.html", "Trace"), ("feed.html", "Feed"), ("workspace.html", "Workspace"),
                   ("explore.html#tools", "Payment checks"), ("verify.html", "Verify"),
-                  ("explore.html#explore-title", "Incidents"), ("entities/treasuries.html", "Treasuries"),
+                  ("explore.html#incidents", "Incidents"), ("entities/treasuries.html", "Treasuries"),
                   ("entities/catalog.html", "Catalog tokens"), ("entities/infrastructure.html", "Infrastructure and bridge accounts"),
                   ("entities/organisations.html", "Organisations from on chain registries"),
                   ("records/index.html", "Incident records"), ("issuers.html", "Issuers"))
@@ -426,9 +427,12 @@ class RenderTest(unittest.TestCase):
         document = render._flows()[0][1]
         chart = render._flow_analytics(document, {})
         self.assertEqual(chart.count('data-share-bucket='), 13)
-        for bucket in document["shares"]["buckets"]:
-            self.assertIn(f'data-usd="{bucket["usd"]}"', chart)
-            self.assertIn(f'{bucket["percent"]}%', chart)
+        for index, bucket in enumerate(document["shares"]["buckets"]):
+            row = re.search(r'data-share-bucket="' + str(index) + r'".*?</strong>', chart).group(0)
+            self.assertIn(f'data-usd="{bucket["usd"]}"', row)
+            self.assertIn(f'data-percent="{bucket["percent"]}"', row)
+            display = "&lt;0.01" if Decimal(bucket["usd"]) > 0 and Decimal(bucket["percent"]) < Decimal("0.01") else bucket["percent"]
+            self.assertIn(f'<span class="cell-label" aria-hidden="true">Share</span>{display}%</strong>', row)
         self.assertIn(document["shares"]["direct_outbound_usd"], chart)
         self.assertIn("422 rows below", chart)
         self.assertIn("not the current graph filter", chart)
@@ -437,7 +441,7 @@ class RenderTest(unittest.TestCase):
         changed["shares"] = trace.shares(changed["subject"], changed["hops"], set(), set())
         changed["shares"]["buckets"][0]["to"] = '<img src=x onerror="bad">'
         chart = render._flow_analytics(changed, {})
-        self.assertIn("1 rows without a USD amount; their value is unknown", chart)
+        self.assertIn("1 row without a USD amount; their value is unknown", chart)
         self.assertNotIn('<img src=x', chart)
         self.assertIn('&lt;img', chart)
         self.assertEqual(sum(row["count"] for row in render._flow_timeline(changed)), 947)
@@ -622,7 +626,7 @@ class RenderTest(unittest.TestCase):
                      "fixtures/runs/registry-readback-20261107.txt"):
             with self.subTest(path=path):
                 self.assertIn(path, page)
-                self.assertIn(f"{render.GITHUB_REPO}/blob/main/{path}", page)
+                self.assertNotIn('href="https://github.com/', page)
         self.assertIn('href="top-receivers.html"', page)
         self.assertIn("9 Nov recorded demonstration: three team moderators, with two approvals to accept a report.", page)
         self.assertIn("fixtures/runs/reports-threshold-demo-20261109.txt", page)
@@ -730,8 +734,7 @@ class RenderTest(unittest.TestCase):
         page = self.pages["explore.html"]
         stylesheet = (self.out / "style.css").read_text(encoding="utf-8")
         urls = [link for link in re.findall(r'<a\b[^>]*\bhref="([^"]*)"', page) if link.startswith(("http://", "https://"))]
-        self.assertTrue(urls)
-        self.assertTrue(all(url.startswith(f"{render.GITHUB_REPO}/blob/main/") for url in urls))
+        self.assertEqual(urls, [])
         self.assert_local_script_assets(page)
         self.assertNotRegex(page, r"<link[^>]+(?:Geist|Plex|fonts\.googleapis)")
         self.assertNotIn("@import", stylesheet)
@@ -781,7 +784,7 @@ class RenderTest(unittest.TestCase):
             "New account (account_age signal only): 0.",
             "Lookalike with code without metadata: 1.",
             "Each verdict is what an agent's 1 NEAR payment to that receiver would get, not a finding that the account is malicious.",
-            f'{render.GITHUB_REPO}/tree/main/fixtures/receivers/top/judgements/',
+            "Only aggregate counts are public on this page. Per-account judgement files are not public.",
             "Receivers are ordered by distinct payer count descending, transfer count descending, then account id ascending.",
         ):
             with self.subTest(text=text):
@@ -793,6 +796,73 @@ class RenderTest(unittest.TestCase):
         index = self.pages["explore.html"]
         self.assertIn("990 judged: 270 ALLOW, 1 DENY, 719 UNKNOWN.", index)
         self.assertIn('href="top-receivers.html">Open aggregate results</a>', index)
+
+    def test_the_404_page_has_no_canonical_link_and_other_pages_keep_theirs(self):
+        self.assertNotIn('rel="canonical"', self.pages["404.html"])
+        self.assertNotIn('property="og:url"', self.pages["404.html"])
+        self.assertIn(f'<link rel="canonical" href="{render.SITE_ORIGIN}/">', self.pages["index.html"])
+        self.assertIn(f'<link rel="canonical" href="{render.SITE_ORIGIN}/explore.html">', self.pages["explore.html"])
+
+    def test_incidents_links_land_on_the_incidents_card(self):
+        self.assertIn('<article class="explore-card" id="incidents"><h3>Incidents</h3>', self.pages["explore.html"])
+        for name in ("index.html", "explore.html", "feed.html"):
+            with self.subTest(page=name):
+                self.assertIn('href="explore.html#incidents">Incidents</a>', self.pages[name])
+                self.assertNotIn('href="explore.html#explore-title">Incidents</a>', self.pages[name])
+
+    def test_a_nonzero_distribution_share_never_reads_as_zero(self):
+        row = re.compile(r'data-usd="([^"]+)".*?<span class="cell-label" aria-hidden="true">Share</span>([^<]*)%</strong>')
+        shares = [(Decimal(usd), share) for page in self.pages.values() for usd, share in row.findall(page)]
+        self.assertTrue(shares)
+        for usd, share in shares:
+            with self.subTest(usd=usd, share=share):
+                if usd > 0:
+                    self.assertTrue(share == "&lt;0.01" or float(share) > 0, share)
+        self.assertIn("&lt;0.01", [share for _, share in shares])
+
+    def test_landing_theme_toggle_follows_the_shared_header_order(self):
+        rule = re.search(r"\.landing-page \.theme-toggle\{([^}]*)\}", render.STYLE).group(1)
+        self.assertNotIn("order:", rule)
+
+    def test_account_amount_and_short_asset_id_are_separated(self):
+        page = self.pages["accounts/intents.near.html"]
+        self.assertIn('<span class="profile-value">7,095.0855</span> <q class="data profile-asset">nep141:zec.omft.near</q>', page)
+        for name, text in self.pages.items():
+            if name.startswith("accounts/"):
+                with self.subTest(page=name):
+                    self.assertNotIn('</span><q class="data profile-asset">', text)
+        cell = render._profile_transfer_cells("alice.near", {"from": "alice.near", "to": "bob.near", "block_timestamp": "1776297599000000000",
+                                                             "asset_id": "native:near", "amount": "1000000000000000000000000", "usd_amount": None,
+                                                             "recording": "r", "block": 1, "transaction_hash": "t", "receipt_id": "x", "fetched_at": "f"}, {})[3]
+        self.assertEqual(re.sub(r"<[^>]+>", "", cell), "1 native:near")
+
+    def test_quote_and_timeline_links_accept_only_web_urls(self):
+        document = json.loads((ROOT / "intel/incidents/rhea.json").read_text(encoding="utf-8"))
+        for url in ("javascript:alert(1)", "JavaScript:alert(1)", " javascript:alert(1)", "data:text/html,x", "https://"):
+            with self.subTest(url=url):
+                changed = json.loads(json.dumps(document))
+                changed["sources"][0]["url"] = url
+                page = render.incident_page(changed, {})
+                self.assertNotRegex(page.lower(), r'(?:href|cite)="\s*(?:javascript|data):')
+                self.assertNotIn('href="' + html.escape(url), page)
+                self.assertNotIn('cite="' + html.escape(url), page)
+                self.assertIn('quoted from rekt.news</span>', page)
+                self.assertRegex(page, r"Source snapshot collected</strong><p>rekt\.news</p>")
+        page = render.incident_page(document, {})
+        self.assertIn('quoted from <a href="https://rekt.news/rhea-finance-rekt" rel="noopener">rekt.news</a>', page)
+        self.assertIn('Source snapshot collected</strong><p><a href="https://rekt.news/rhea-finance-rekt" rel="noopener">rekt.news</a></p>', page)
+
+    def test_quote_attribution_names_the_publisher_and_links_the_source(self):
+        quote = {"source": "rekt-rhea", "text": "Quoted text."}
+        block = render.quote_block(quote, {"rekt-rhea": {"url": "https://rekt.news/rhea-finance-rekt", "publisher": "rekt.news"}})
+        self.assertIn('quoted from <a href="https://rekt.news/rhea-finance-rekt" rel="noopener">rekt.news</a>', block)
+        self.assertNotIn("[rekt-rhea]", block)
+        self.assertIn("quoted from [unlisted]", render.quote_block({"source": "unlisted", "text": "Quoted text."}, {}))
+        attribution = re.findall(r'<span class="muted">quoted from (.*?)</span>', self.pages["incidents/rhea.html"])
+        self.assertTrue(attribution)
+        for value in attribution:
+            self.assertNotIn("[rekt-rhea]", value)
+        self.assertIn("[rekt-rhea]", self.pages["incidents/rhea.html"])
 
     def test_every_search_link_is_a_page_inside_the_site(self):
         search = json.loads((self.out / "search.json").read_text(encoding="utf-8"))
@@ -876,6 +946,9 @@ class RenderTest(unittest.TestCase):
                 with self.subTest(page=name, link=link):
                     parsed = urlsplit(html.unescape(link))
                     link, fragment = parsed.path, parsed.fragment
+                    if link == "/feed":
+                        self.assertEqual(fragment, "")
+                        continue
                     # A root absolute href resolves against the site root, any other against the page's directory.
                     rooted = link.startswith("/") and not link.startswith("//")
                     base = self.out if rooted else (self.out / name).parent

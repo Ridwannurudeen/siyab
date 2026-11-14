@@ -1114,7 +1114,7 @@ class DesignSystemTest(unittest.TestCase):
 
     def test_browser_da3_header_menus_keyboard_escape_and_reach(self):
         former = ("/index.html", "/explore.html", "/investigate.html", "/flows/rhea-collector.html", "/feed.html", "/workspace.html",
-                  "/explore.html#tools", "/verify.html", "/explore.html#explore-title", "/entities/treasuries.html",
+                  "/explore.html#tools", "/verify.html", "/explore.html#incidents", "/entities/treasuries.html",
                   "/entities/catalog.html", "/entities/infrastructure.html", "/entities/organisations.html",
                   "/records/index.html", "/issuers.html")
         for theme in ("dark", "light"):
@@ -1175,6 +1175,38 @@ class DesignSystemTest(unittest.TestCase):
                         self.assertFalse(page.locator("#mobile-navigation").evaluate("node => node.open"))
                         self.assertTrue(page.locator("#mobile-navigation>summary").evaluate("node => node === document.activeElement"))
 
+    def test_issuer_scope_counts_the_recorded_answers(self):
+        sentence = ('Banned answers only. Other recorded answers: "Allowable": 365; false: 376. '
+                    'Counts by issuer view are in Coverage below.')
+        self.assertIn('<p class="issuers-scope">' + render.data_text(sentence) + '</p>', self.pages["issuers.html"])
+
+    def test_issuer_scope_describes_mixed_answers_without_inventing_a_status(self):
+        original = render.issuers.reads()[0]
+        answers = ["Allowable", False, None, "Pending <review>", "Pending <review>", {"error": "unavailable"}, "Banned"]
+        reads = [dict(original, answer=answer) for answer in answers]
+        sentence = ('Banned answers only. Other recorded answers: "Allowable": 1; false: 1; null: 1; '
+                    '"Pending <review>": 2; {"error": "unavailable"}: 1. '
+                    'Counts by issuer view are in Coverage below.')
+        with mock.patch.object(render.issuers, "reads", return_value=reads):
+            page = render.issuers_page()
+        self.assertIn('<p class="issuers-scope">' + render.data_text(sentence) + '</p>', page)
+        self.assertNotIn('<review>', page)
+        self.assertNotIn('came back Allowable or not blocklisted', page)
+
+    def test_browser_issuer_scope_spans_the_tablet_grid_without_overflow(self):
+        for theme in ("dark", "light"):
+            with self.browser.new_context(reduced_motion="reduce", viewport={"width": 768, "height": 900}) as context:
+                context.route("**/*", self.local_route)
+                context.add_init_script("localStorage.setItem('siyab-theme', '" + theme + "')")
+                page = context.new_page()
+                page.goto(self.origin + "/issuers.html")
+                page.evaluate("document.fonts.ready")
+                scope = page.locator("#issuer-status-section>.issuers-scope")
+                with self.subTest(theme=theme):
+                    self.assertLessEqual(page.evaluate("document.documentElement.scrollWidth"), 768)
+                    self.assertEqual(scope.evaluate("node => getComputedStyle(node).gridColumn"), "1 / -1")
+                    self.assertAlmostEqual(scope.bounding_box()["width"], page.locator("#issuer-status-section").bounding_box()["width"], delta=1)
+
     def test_browser_da3_reference_page_targets(self):
         with self.browser.new_context(reduced_motion="reduce") as context:
             context.route("**/*", self.local_route)
@@ -1188,6 +1220,9 @@ class DesignSystemTest(unittest.TestCase):
                 self.assertTrue(page.locator(selector).is_visible(), selector)
             page.goto(self.origin + "/issuers.html")
             page.evaluate("document.fonts.ready")
+            scope = page.locator("#issuer-status-section>.issuers-scope")
+            self.assertEqual(scope.inner_text(), "Banned answers only. Other recorded answers: Allowable: 365; false: 376. Counts by issuer view are in Coverage below.")
+            self.assertTrue(scope.is_visible())
             self.assertLessEqual(page.locator("#issuer-status tbody tr").first.bounding_box()["y"], 340)
             for anchor in ("#issuer-status-section", "#issuer-ledger"):
                 self.assertEqual(page.locator(anchor).count(), 1)
@@ -1195,6 +1230,7 @@ class DesignSystemTest(unittest.TestCase):
             page.set_viewport_size({"width": 390, "height": 844})
             page.goto(self.origin + "/issuers.html")
             page.evaluate("document.fonts.ready")
+            self.assertTrue(scope.is_visible())
             self.assertLessEqual(page.locator("#issuer-status tbody tr").first.bounding_box()["y"], 532)
 
     def test_browser_da4_page_family_compositions(self):

@@ -150,9 +150,9 @@
     state.history[index] = position; state.history.length = index + 1;
     pageControls(parent, kind, next, index, archived);
     if (archived) {
-      parent.append(node("p", data.coverage.stored_rows + " retained rows for this account and record type. This is not complete chain history.", "investigate-scope"));
+      parent.append(node("p", data.coverage.stored_rows + (data.coverage.stored_rows === 1 ? " retained row" : " retained rows") + " for this account and record type. This is not complete chain history.", "investigate-scope"));
       const dates = data.observations.map(item => item.observed_at).filter(value => typeof value === "string").sort();
-      parent.append(node("p", data.observations.length + " original provider observations" + (dates.length ? "; read " + dates[0] + (dates.at(-1) === dates[0] ? "" : " through " + dates.at(-1)) : "; read dates unavailable") + ".", "investigate-source"));
+      parent.append(node("p", data.observations.length + (data.observations.length === 1 ? " original provider observation" : " original provider observations") + (dates.length ? "; read " + dates[0] + (dates.at(-1) === dates[0] ? "" : " through " + dates.at(-1)) : "; read dates unavailable") + ".", "investigate-source"));
       parent.append(details("Original observations and archive coverage", {observations: data.observations, coverage: data.coverage}));
     } else sourceInfo(parent, data);
   }
@@ -323,7 +323,7 @@
       backfills.set(kind, {cursor: data.next_cursor, exhausted: data.coverage.provider_pages_exhausted});
       backfillButton.disabled = data.coverage.provider_pages_exhausted;
       backfillButton.textContent = data.coverage.provider_pages_exhausted ? "Provider pages exhausted" : "Continue backfill";
-      parent.append(node("p", "Read " + data.pages + " provider pages; retained " + data.inserted + " new rows. " + (data.coverage.provider_pages_exhausted ? "The provider returned no further page. " : "More provider pages remain. ") + "History may still contain gaps.", "investigate-scope"), details("Backfill coverage and resume position", data));
+      parent.append(node("p", "Read " + data.pages + (data.pages === 1 ? " provider page; retained " : " provider pages; retained ") + data.inserted + (data.inserted === 1 ? " new row. " : " new rows. ") + (data.coverage.provider_pages_exhausted ? "The provider returned no further page. " : "More provider pages remain. ") + "History may still contain gaps.", "investigate-scope"), details("Backfill coverage and resume position", data));
       loadArchive(kind);
     });
   });

@@ -49,6 +49,7 @@ from collections import Counter
 from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP, localcontext
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from gate import rules
 from intel import cluster, feed, graph, issuers, labels, records, trace
@@ -64,7 +65,6 @@ VERIFY_RECORD = ROOT / "fixtures" / "registry" / "testnet-latest-kestrelridge-sh
 EVIDENCE_DIR = ROOT / "fixtures" / "evidence"
 TOP_RECEIVERS_JUDGEMENTS_DIR = ROOT / "fixtures" / "receivers" / "top" / "judgements"
 TOP_RECEIVERS_RANKING_PATH = ROOT / "fixtures" / "receivers" / "top.json"
-GITHUB_REPO = "https://github.com/Ridwannurudeen/shieldbot-near"
 # The token whose issuer actions intel/issuers.py reads from the owner's transactions.
 HISTORY_TOKEN = "usdt.tether-token.near"
 HEADLINE = ("Siyab checks an account before you pay, with a source on every answer, and a Gate contract "
@@ -118,11 +118,24 @@ def data_text(text):
     return "".join(parts) + esc(str(text)[last:])
 
 
+def _web_url(url):
+    """True for an http or https URL with a host, the only kind of source URL rendered as a link."""
+    try:
+        parts = urlsplit(url)
+        return parts.scheme in ("http", "https") and bool(parts.hostname)
+    except ValueError:
+        return False
+
+
 def quote_block(quote, sources):
     source = sources.get(quote["source"], {})
     text = re.sub(r"[0-9a-f]{64}", r'<span class="data-id">\g<0></span>', esc(quote["text"]))
-    return (f'<blockquote class="data" cite="{esc(source.get("url", ""))}">{text}'
-            f'<br><span class="muted">quoted from [{esc(quote["source"])}]</span></blockquote>')
+    url = source.get("url") if _web_url(source.get("url", "")) else ""
+    return (f'<blockquote class="data" cite="{esc(url)}">{text}'
+            f'<br><span class="muted">quoted from '
+            + (f'<a href="{esc(url)}" rel="noopener">{esc(source.get("publisher", quote["source"]))}</a>' if url
+               else esc(source["publisher"]) if source.get("url") and source.get("publisher")
+               else f'[{esc(quote["source"])}]') + '</span></blockquote>')
 
 
 def page_names(keys):
@@ -172,7 +185,7 @@ def page(title, body, depth=0, rooted=False, *, inert=False, landing=False):
                **{label: f"entities/{name}.html" for name, label, _ in ENTITY_SETS}}.get(title)
     primary = (("index.html", "Home"), ("explore.html", "Explore"), ("investigate.html", "Account lookup"), ("flows/rhea-collector.html", "Trace"), ("feed.html", "Feed"), ("workspace.html", "Workspace"),
                ("explore.html#tools", "Payment checks"), ("verify.html", "Verify"))
-    secondary = (("explore.html#explore-title", "Incidents"),
+    secondary = (("explore.html#incidents", "Incidents"),
                  *((f"entities/{name}.html", label) for name, label, _ in ENTITY_SETS),
                  ("records/index.html", "Incident records"), ("issuers.html", "Issuers"))
     tools = (("explore.html#tools", "Payment checks"), ("verify.html", "Verify"))
@@ -180,7 +193,7 @@ def page(title, body, depth=0, rooted=False, *, inert=False, landing=False):
     def items(links):
         return "".join(f'<a href="{up}{href}"' + (' aria-current="page"' if href == current else "")
                        + f'>{esc(label)}</a>' for href, label in links)
-    nav = "".join(f'<nav class="app-{name}-navigation" aria-label="{name.title()}">{items(links)}</nav>'
+    nav = "".join(f'<nav class="app-{name}-navigation" aria-label="Mobile {name}">{items(links)}</nav>'
                   for name, links in (("primary", primary), ("secondary", secondary)))
     header_nav = (f'<nav class="app-header-navigation" aria-label="Primary">{items(link for link in primary if link not in tools)}</nav>'
                   + "".join(f'<details class="app-menu"><summary>{label}</summary>'
@@ -189,7 +202,7 @@ def page(title, body, depth=0, rooted=False, *, inert=False, landing=False):
     landing_nav = ('<nav class="landing-navigation" aria-label="Primary">'
                    + ''.join(f'<a href="{up}{href}">{label}</a>' for href, label in
                              (("explore.html", "Explore"), ("investigate.html", "Account lookup"),
-                              ("explore.html#explore-title", "Incidents"), ("verify.html", "Verify"))) + '</nav>') if landing else ''
+                              ("explore.html#incidents", "Incidents"), ("verify.html", "Verify"))) + '</nav>') if landing else ''
     shell = "" if inert else (ROOT / "intel/ui/shell.js").read_text(encoding="utf-8")
     workspace_script = "" if inert else (ROOT / "intel/ui/workspace.js").read_text(encoding="utf-8")
     cloud_script = "" if inert else (ROOT / "intel/ui/cloud-workspace.js").read_text(encoding="utf-8")
@@ -221,10 +234,11 @@ def page(title, body, depth=0, rooted=False, *, inert=False, landing=False):
                 f'<meta name="twitter:image" content="{SITE_ORIGIN}/brand/social.png">\n'
                 '<link rel="icon" type="image/svg+xml" href="/brand/favicon.svg"><link rel="alternate icon" href="/favicon.ico">\n')
     theme_script = "" if inert else "<script>try{var t=localStorage.getItem('siyab-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>\n"
+    mobile_landing_nav = landing_nav.replace('aria-label="Primary"', 'aria-label="Mobile primary"', 1)
     frame = (f'<header class="app-topbar"><a class="site-brand" href="{up}index.html">{BRAND_MARK}<span>Siyab</span></a>'
              f'{landing_nav}<div class="header-actions">{search}</div>'
              f'<details class="mobile-navigation" id="mobile-navigation"><summary>Menu</summary>'
-             f'<div class="mobile-navigation-panel">{landing_nav}</div></details></header>' if landing else
+             f'<div class="mobile-navigation-panel">{mobile_landing_nav}</div></details></header>' if landing else
              f'<header class="app-topbar app-header"><a class="site-brand" href="{up}index.html">{BRAND_MARK}<span>Siyab</span></a>'
              f'{header_nav}<div class="header-actions">{search}</div>'
              f'<details class="mobile-navigation" id="mobile-navigation"><summary>Menu</summary><div class="mobile-navigation-panel">{nav}</div></details>'
@@ -380,7 +394,7 @@ def _event_detail(event):
     return esc(_display_detail(detail)) if isinstance(detail, str) else "unknown"
 
 
-def _feed_panel(event_rows=()):
+def _feed_panel(event_rows=(), *, feed_link='<a href="/feed">Open raw feed JSON</a>'):
     rows = []
     for event, event_id in reversed(event_rows):
         observed = event.get("observed") if isinstance(event.get("observed"), dict) else {}
@@ -398,16 +412,26 @@ def _feed_panel(event_rows=()):
         exact_signal = "".join("unknown" if event.get(key) is None else str(event[key]) for key in ("signal", "detail"))
         exact_signal = re.sub(r"\s+", " ", exact_signal.strip())
         source = event.get("source") if isinstance(event.get("source"), dict) else {}
+        provider = source.get("provider")
+        if not isinstance(provider, str) or not provider.strip():
+            provider = "Provider not recorded"
+            if isinstance(source.get("url"), str):
+                try:
+                    url = urlsplit(source["url"])
+                    if url.scheme in ("http", "https") and url.hostname:
+                        provider = url.hostname
+                except ValueError:
+                    provider = "Provider not recorded"
+        counterparty = feed.event_counterparty(event)
         evidence_link = (f'<a href="/evidence/{event_id}">Open evidence</a>'
                          if re.fullmatch(r"[0-9a-f]{64}", event_id) else "Unlinked record")
         cells = [when,
                  f'<strong>{_event_field(event, "signal")}</strong><p>{_event_detail(event)}</p>',
                  f'<q class="data">{_event_field(event, "subject")}</q>',
-                 f'<q class="data">{_event_field(event, "other_account_id")}</q>'
-                 if event.get("other_account_id") else "Not recorded",
+                 f'<q class="data">{esc(counterparty)}</q>' if counterparty else "Not recorded",
                  f'<span class="feed-amount">{amount}</span>'
                  + (f'<small>{_event_field(event, "asset_id")}</small>' if event.get("asset_id") else ""),
-                 f'{esc(source.get("provider", "Provider not recorded"))}<br>{evidence_link}'
+                 f'{esc(provider)}<br>{evidence_link}'
                  f'<details><summary>Record details</summary><p>Block {_event_field(event, "observed", "block_height")}</p>'
                  f'<p>Transaction {_event_field(event, "tx_hash")}</p><p>Receipt {_event_field(event, "receipt_id")}</p>'
                  f'<p>Evidence identifier {esc(event_id)}</p><pre>{esc(json.dumps(event, ensure_ascii=False, indent=2))}</pre></details>']
@@ -422,7 +446,7 @@ def _feed_panel(event_rows=()):
                f'<thead><tr>{headers}</tr></thead><tbody>{"".join(rows)}</tbody></table>' if rows else
                '<p class="feed-empty">No events loaded. Read follower health for the observed window; an empty feed does not establish a favorable payment result.</p>')
     return ('<article class="analytics-panel feed-panel"><div class="analytics-panel-head"><h2>Follower health</h2>'
-            '<a href="/feed.html">Open feed</a></div><div class="workspace-panel-body" id="feed-health" aria-live="polite">'
+            + feed_link + '</div><div class="workspace-panel-body" id="feed-health" aria-live="polite">'
             '<p>Reading follower state. Live data may be unavailable on a static copy.</p></div>'
             '<div class="feed-actions"><button id="feed-pause" type="button">Pause updates</button> '
             '<button id="feed-apply" type="button" hidden>Show new events</button>'
@@ -464,7 +488,7 @@ def _workspace(flows, clusters, store, summary):
             '<a href="#explore-title">Explore sources</a></div>'
             f'<div class="analytics-chart">{bars(sorted(provenance.items()), total)}</div>'
             '<p class="analytics-note">All assertions in the committed label store, including superseded records. Inferred labels remain hypotheses.</p></article></div>'
-            + _feed_panel() + '</section><script>'
+            + _feed_panel(feed_link='<a href="/feed.html">Open feed</a>') + '</section><script>'
             + (ROOT / "intel/ui/feed.js").read_text(encoding="utf-8") + '</script>')
 
 
@@ -485,8 +509,7 @@ def explore_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEI
     )
     proof_cards = "".join(
         f'<article class="proof-card"><h3>{esc(title)}</h3><p class="muted">Testnet record</p>'
-        f'<p>{esc(description)}</p><a href="{GITHUB_REPO}/blob/main/{path}" rel="noopener">'
-        f'<span class="mono">{esc(path)}</span></a></article>'
+        f'<p>{esc(description)}</p><span class="mono">{esc(path)}</span></article>'
         for title, description, path in proofs)
     incident_links = " ".join(
         f'<a class="button" href="incidents/{esc(document["id"])}.html">{esc(document["title"])}</a>'
@@ -500,7 +523,7 @@ def explore_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEI
     entity_links = " ".join(
         f'<a class="button" href="entities/{name}.html">{esc(title)}</a>'
         for name, title, _ in ENTITY_SETS)
-    top_state = "Judgements are published." if top_summary else "Scan in progress, not yet published."
+    top_state = "Aggregate counts are published." if top_summary else "Scan in progress, not yet published."
     top_counts = (f'<p class="muted">{top_summary["total"]} judged: {top_summary["verdicts"]["ALLOW"]} ALLOW, '
                   f'{top_summary["verdicts"]["DENY"]} DENY, {top_summary["verdicts"]["UNKNOWN"]} UNKNOWN.</p>'
                   if top_summary else "")
@@ -564,7 +587,7 @@ def explore_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEI
         '<div class="explore-grid">'
         '<article class="explore-card"><h3>Feed</h3><p>Recorded blocks and events.</p><a href="feed.html">Open feed</a></article>'
         '<article class="explore-card"><h3>Verify</h3><p>Compare a registry record with its evidence hash.</p><a href="verify.html">Verify a record</a></article>'
-        '<article class="explore-card"><h3>Incidents</h3><p>Source pages and account evidence.</p>'
+        '<article class="explore-card" id="incidents"><h3>Incidents</h3><p>Source pages and account evidence.</p>'
         f'{incident_links}</article><article class="explore-card"><h3>Incident records</h3>'
         '<p>Published records and report citations.</p><a href="records/index.html">Open records</a></article>'
         f'<article class="explore-card"><h3>Fund flows</h3><p>Recorded exit traces.</p>{flow_links}</article>'
@@ -577,10 +600,10 @@ def explore_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEI
         '<code>scripts/counts.py</code>.</p></details></div></section>'
         '<section class="limits" aria-labelledby="limits-title"><h2 id="limits-title">What these reads mean</h2><p class="muted">Scope and limits</p>'
         '<ul><li>The Gate and Reports contracts shown here run on testnet. Live verdict, scan and swap checks read mainnet.</li>'
-        f'<li>9 Nov recorded demonstration: three team moderators, with two approvals to accept a report. <a href="{GITHUB_REPO}/blob/main/fixtures/runs/reports-threshold-demo-20261109.txt">Recorded threshold run</a></li>'
-        f'<li>Label store size: {label_count["assertions"]} assertions over {label_count["subjects"]} subjects.</li>'
+        '<li>9 Nov recorded demonstration: three team moderators, with two approvals to accept a report. Recorded threshold run: <span class="mono">fixtures/runs/reports-threshold-demo-20261109.txt</span>.</li>'
+        f'<li>Label store size: {label_count["assertions"]:,} assertion{"" if label_count["assertions"] == 1 else "s"} over {label_count["subjects"]:,} subject{"" if label_count["subjects"] == 1 else "s"}.</li>'
         '<li>Live API checks are read only, rate limited and never sign.</li></ul>'
-        f'<p class="muted">The following quotation describes the recorded 8 Nov demonstration, not current contract totals. <a href="{GITHUB_REPO}/blob/main/docs/TESTNET.md">Dated reports updates</a> include the later threshold run.</p>'
+        '<p class="muted">The following quotation describes the recorded 8 Nov demonstration, not current contract totals. The later threshold run is recorded in the 9 Nov demonstration above.</p>'
         '<blockquote class="data">The only report on the testnet Reports contract is the synthetic one filed on 8 Nov by our own accounts against our demo account and overturned by the same owner in that run; a totals read of 1 is not a community signal.</blockquote>'
         '<blockquote class="data">The receiver lines of the counts block are the replay of a recorded mainnet receiver set, not a rate over all NEAR payees.</blockquote>'
         '<p class="muted">An unreadable check returns no ALLOW. Unknown never passes.</p></section>'
@@ -635,7 +658,7 @@ def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVE
     document = dict(flows)["rhea-collector"]
     accounts = account_pages(store)
     excerpt = [hop for hop in document["hops"] if hop["from"] == document["subject"]][:2]
-    status = (f'Recorded mainnet investigation. {len(document["hops"]):,} recorded transfers. '
+    status = (f'Recorded mainnet investigation. {len(document["hops"]):,} recorded transfer{"" if len(document["hops"]) == 1 else "s"}. '
               f'Depth reached: {document["depth_reached"]} of {document["depth"]}. '
               + trace.stop_state(document["completeness"]).capitalize() + '.')
     nodes = []
@@ -668,7 +691,8 @@ def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVE
     comparison = ''.join(f'<tr><th scope="row">{label}</th><td>{esc(value)}</td></tr>' for label, value in
                          (("Subject", subject), ("Registry verdict", record["verdict"]), ("Recorded time", recorded_at),
                           ("Saved file comparison", "Equal" if computed_hash == record["evidence_hash"] else "Different")))
-    counts = next(line.split(" (")[0] + "." for line in _counts_lines() if line.startswith("Label store:"))
+    counts = re.sub(r"\d{4,}", lambda match: f"{int(match.group()):,}",
+                    next(line.split(" (")[0] + "." for line in _counts_lines() if line.startswith("Label store:")))
     attack = json.loads((ROOT / "fixtures/rpc/attacks/10-injected.json").read_text(encoding="utf-8"))
     refusal = attack["submissions"][0]["outcome"]["status"]["Failure"]["ActionError"]["kind"]["FunctionCallError"]["ExecutionError"].split(": ", 1)[1]
     exchange = 'Nothing was signed.' if attack["submissions"][0]["sent"]["args"]["verdict"] is None else 'Unavailable'
@@ -737,7 +761,7 @@ def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVE
         '<form class="investigate-search" action="/investigate.html" method="get">'
         '<label for="landing-account">NEAR mainnet account<input id="landing-account" name="account" maxlength="64" autocomplete="off" placeholder="account.near" required></label>'
         '<button type="submit" class="primary">Investigate</button></form>'
-        '<div class="landing-observations">' + ''.join(f'<div><h3>{title}</h3><p>Select an account to read this data.</p></div>' for title in
+        '<div class="landing-observations">' + ''.join(f'<div><h3>{title}</h3><p>Shown on the lookup page after you investigate an account.</p></div>' for title in
                                                       ("Finalized account state", "Indexed token holdings", "Transfers", "Transactions")) + '</div>'
         '<nav class="landing-actions" aria-label="Start here"><a href="/investigate.html">Investigate</a>'
         '<a href="/flows/rhea-collector.html">Trace</a><a href="/feed.html">Feed</a><a href="/workspace.html">Workspace</a>'
@@ -773,7 +797,7 @@ def top_receivers_page(judgements_dir=TOP_RECEIVERS_JUDGEMENTS_DIR, ranking_path
     ranking = summary["ranking"]
     window = ranking.get("window")
     if isinstance(window, dict):
-        window_text = (f'Window: {window["hours"]} hours, {esc(window["start_timestamp"])} '
+        window_text = (f'Window: {window["hours"]} hour{"" if window["hours"] == 1 else "s"}, {esc(window["start_timestamp"])} '
                        f'(height {window["start_height"]}) through {esc(window["end_timestamp"])} '
                        f'(height {window["end_height"]}).')
     else:
@@ -784,6 +808,8 @@ def top_receivers_page(judgements_dir=TOP_RECEIVERS_JUDGEMENTS_DIR, ranking_path
     causes = "".join(f"<li>{esc(cause)}: {count}</li>"
                       for cause, count in sorted(summary["unknown_causes"].items())) or "<li>None recorded.</li>"
     other_deny = (f'<p>Other DENY signal groups: {summary["deny_other"]}.</p>' if summary["deny_other"] else "")
+    combined_deny = ("<p>The single DENY came from the lookalike and code-without-metadata signals together; it is the verdict an agent's 1 NEAR payment would get, not a finding about the account.</p>"
+                     if summary["deny_lookalike_without_metadata"] == summary["verdicts"]["DENY"] == 1 else "")
     body = ("<h1>Top receivers</h1><p>Aggregate results for the committed mainnet receiver ranking.</p>"
             f"<p>{window_text}</p><p>Ranking rule: {esc(rule_text)}</p>"
             "<p>NEP-141 ft_transfer logs with positive amounts and different payer and receiver ids count from any contract whose receipt did not fail. "
@@ -794,10 +820,9 @@ def top_receivers_page(judgements_dir=TOP_RECEIVERS_JUDGEMENTS_DIR, ranking_path
             '<section class="receiver-panel"><h2>DENY split</h2>'
             f'<p>New account (account_age signal only): {summary["deny_new_account"]}.</p>'
             f'<p>Lookalike with code without metadata: {summary["deny_lookalike_without_metadata"]}.</p>'
-            + other_deny + "<p>Each verdict is what an agent's 1 NEAR payment to that receiver would get, not a finding "
+            + combined_deny + other_deny + "<p>Each verdict is what an agent's 1 NEAR payment to that receiver would get, not a finding "
             "that the account is malicious.</p></section></div>"
-            f'<p>See the <a href="{GITHUB_REPO}/tree/main/fixtures/receivers/top/judgements/">committed judgement files</a> '
-            "for per-account results.</p>")
+            "<p>Only aggregate counts are public on this page. Per-account judgement files are not public.</p>")
     return page("Top receivers", body)
 
 
@@ -845,7 +870,7 @@ def feed_page(state_path=feed.STATE_PATH, events_dir=feed.EVENTS_DIR, *, state=N
         if Path(feed.SNAPSHOT_PATH).is_file():
             snapshot = json.loads(Path(feed.SNAPSHOT_PATH).read_text(encoding="utf-8"))
             snapshot_note = (f" The follower snapshot <code>intel/feed/follow-snapshot.json</code> covers "
-                             f"{snapshot['blocks']} blocks from height {snapshot['start_height']} to height "
+                             f"{snapshot['blocks']} block{'' if snapshot['blocks'] == 1 else 's'} from height {snapshot['start_height']} to height "
                              f"{snapshot['last_height']}.")
         window = (f"<p>Recorded window: blocks {state['start_height']} to {state['last_height']}, read on "
                   f"{esc(state['start_time'][:10])} UTC.{snapshot_note}</p>\n")
@@ -921,7 +946,7 @@ def _profile_transfer_cells(subject, row, accounts):
     instant = datetime.fromtimestamp(int(row["block_timestamp"]) // 1000000000, UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
     amount = esc(_transfer_amount(row))
     return [f'<time>{instant}</time>', direction, _subject_cell(counterparty, accounts),
-            f'<span class="profile-value">{amount}</span><q class="data profile-asset">{esc(row["asset_id"])}</q>',
+            f'<span class="profile-value">{amount}</span> <q class="data profile-asset">{esc(row["asset_id"])}</q>',
             f'<span class="profile-value">{esc(_display_amount(row["usd_amount"], 2))}</span>',
             f'<a href="/flows/{esc(row["recording"])}.html">Recorded evidence</a>'
             f'<details class="profile-source-detail"><summary>Transfer details</summary><p class="mono">Block {row["block"]}<br>'
@@ -979,7 +1004,7 @@ def _profile_account_summary(subject, assertions, accounts, flows):
                      '<label>Direction<select data-activity-direction><option value="">All directions</option><option value="outbound">Outbound</option>'
                      '<option value="inbound">Inbound</option></select></label><button type="button" data-export-table="profile-transfers">Export shown rows</button></div>'
                      '<p data-activity-status role="status">'
-                     f'Showing {min(20, len(activity))} of {len(activity)} recorded rows, newest first.</p>'
+                     f'Showing {min(20, len(activity))} of {len(activity)} recorded row{"" if len(activity) == 1 else "s"}, newest first.</p>'
                      '<button type="button" data-activity-retry hidden>Retry recording</button>'
                      '<div class="table"><table class="profile-data-table profile-transfer-table" id="profile-transfers" role="table"><thead role="rowgroup"><tr role="row">'
                      + ''.join(f'<th scope="col" role="columnheader">{label}</th>' for label in ("Time UTC", "Direction", "Counterparty", "Amount and asset", "USD value", "Evidence"))
@@ -988,7 +1013,7 @@ def _profile_account_summary(subject, assertions, accounts, flows):
                      + '<nav class="profile-pagination" data-activity-pages aria-label="Activity pages" hidden></nav>'
                      + '<h2>Recorded counterparties</h2><p>Ranked by row count within the same recordings; counts do not measure value or loss.</p>'
                      + _profile_table("profile-counterparties", ("Counterparty", "Recorded rows"), counter_rows, "Search counterparties")
-                     + f'<p data-counterparties-scope>{min(12, len(counterparties))} of {len(counterparties)} recorded counterparties initially shown. Search loads the full recording.</p></section>')
+                     + f'<p data-counterparties-scope>{min(12, len(counterparties))} of {len(counterparties)} recorded {"counterparty" if len(counterparties) == 1 else "counterparties"} initially shown. Search loads the full recording.</p></section>')
     return summary + activity_html
 
 
@@ -999,7 +1024,8 @@ def incident_page(document, accounts):
              "<h2>Sources</h2>"]
     for source in document["sources"]:
         parts.append(f'<div class="card"><p>[{esc(source["id"])}] {esc(source["publisher"])}: '
-                     f'<a href="{esc(source["url"])}">{esc(source["url"])}</a></p><p class="mono">sha256 '
+                     + (f'<a href="{esc(source["url"])}">{esc(source["url"])}</a>' if _web_url(source["url"]) else esc(source["url"]))
+                     + '</p><p class="mono">sha256 '
                      f'{esc(source["content_sha256"])}<br>fetched {esc(source["fetched_at"])}</p></div>')
     parts.append("<h2>Accounts named in the sources</h2>")
     if not document["accounts"]:
@@ -1022,7 +1048,10 @@ def incident_page(document, accounts):
         parts.append(f'<div class="card"><p class="mono">{_linked(fact["subject"], esc(fact["subject"]), accounts)}</p><p>{esc(fact["method"])} at block '
                      f'{fact["block"]}: {data_text(fact["summary"])}</p><p class="mono muted">result sha256 '
                      f'{esc(fact["result_sha256"])}</p></div>')
-    parts.append("<h2>Rules today</h2>")
+    if not document.get("onchain_state") and not document["onchain_facts"]:
+        parts.append("<p>No on chain fact is recorded.</p>")
+    at = document.get("rules_today_at_ms")
+    parts.append("<h2>Rules as evaluated" + (f" on {datetime.fromtimestamp(at / 1000, UTC):%Y-%m-%d}" if at else "") + "</h2>")
     if not document["rules_today"]:
         parts.append("<p>No account to judge.</p>")
     for entry in document["rules_today"]:
@@ -1034,17 +1063,18 @@ def incident_page(document, accounts):
     parts.append("<h2>Not public</h2><ul>" + "".join(f"<li>{esc(i)}</li>" for i in document["not_public"]) + "</ul>")
     parts.append(f"<h2>Standard</h2><p>{esc(document['standard'])}</p>")
     timeline = [(document["date"], "Incident date reported by the sources", "")]
-    timeline.extend((source["fetched_at"], "Source snapshot collected", source["publisher"]) for source in document["sources"])
+    timeline.extend((source["fetched_at"], "Source snapshot collected",
+                     f'<a href="{esc(source["url"])}" rel="noopener">{esc(source["publisher"])}</a>' if _web_url(source["url"])
+                     else esc(source["publisher"])) for source in document["sources"])
     if document.get("rules_today_at_ms"):
         when = datetime.fromtimestamp(document["rules_today_at_ms"] / 1000, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-        timeline.append((when, "Recorded rule evaluation", "This is a dated evaluation, not a current verdict."))
+        timeline.append((when, "Recorded rule evaluation", esc("This is a dated evaluation, not a current verdict.")))
     timeline_html = ''.join(f'<li><time datetime="{esc(when)}">{esc(when)}</time><div><strong>{esc(event)}</strong>'
-                            f'<p>{esc(detail)}</p></div></li>' for when, event, detail in sorted(timeline))
+                            f'<p>{detail}</p></div></li>' for when, event, detail in sorted(timeline))
     lead = next((account["quote"] for account in document["accounts"]), None)
-    if lead is None:
-        lead = next((value["quote"] for key, value in document.items() if key.endswith("_as_reported") and "quote" in value), None)
-    brief = (f'<section class="profile-case-brief"><h2>Case brief</h2><p>{len(document["accounts"])} named accounts across '
-             f'{len(document["chains"])} chains; {len(document["sources"])} recorded source snapshots.</p>'
+    account_count, chain_count, source_count = len(document["accounts"]), len(document["chains"]), len(document["sources"])
+    brief = (f'<section class="profile-case-brief"><h2>Case brief</h2><p>{account_count} named account{"" if account_count == 1 else "s"} across '
+             f'{chain_count} chain{"" if chain_count == 1 else "s"}; {source_count} recorded source snapshot{"" if source_count == 1 else "s"}.</p>'
              + (quote_block(lead, sources) if lead else '<p>The source snapshots do not name a public account.</p>')
              + '<button type="button" data-save-investigation>Save investigation</button></section>')
     related = [(name, flow) for name, flow in _flows() if flow["subject"] in {account["subject"] for account in document["accounts"]}]
@@ -1200,7 +1230,7 @@ def _entity_table(rows, kind):
         'it, the assertions the rule read as its inputs and its confidence.</p>')
     headers = "".join(f'<th scope="col" role="columnheader">{label}</th>' for label in columns)
     css = "entity-table entity-table-inferred" if kind == "inferred" else "entity-table"
-    return (f'<section data-entity-kind="{kind}">{heading}<p class="entity-table-status" data-table-section-count>{len(rows)} {"hypotheses" if kind == "inferred" else "source assertions"} on this page.</p>'
+    return (f'<section data-entity-kind="{kind}">{heading}<p class="entity-table-status" data-table-section-count>{len(rows)} {("hypothesis" if len(rows) == 1 else "hypotheses") if kind == "inferred" else ("source assertion" if len(rows) == 1 else "source assertions")} on this page.</p>'
             f'<button type="button" data-export-table="entity-collection-{kind}">Export shown rows CSV</button>'
             f'<div class="table"><table class="{css}" role="table" id="entity-collection-{kind}">'
             f'<thead role="rowgroup"><tr role="row">{headers}</tr></thead><tbody role="rowgroup">{"".join(body)}</tbody></table></div></section>')
@@ -1227,14 +1257,14 @@ def entity_page(title, categories, store, *, page_number=1, collection_name=None
                     + ''.join(f'<option value="{group["id"]}">{esc(group["title"])}</option>' for group in groups)
                     + '</select></label>') if groups else ''
     heading = f'<h1>{esc(title)}</h1>'
-    intro = f'<p>{count} current assertions from the label store.</p>'
+    intro = f'<p>{count} current assertion{"" if count == 1 else "s"} from the label store.</p>'
     body = (f'<div class="entity-table-panel" data-entity-table data-source="{collection_name}.table.json" data-page="{page_number}">'
             '<div class="entity-table-toolbar" hidden><label>Search this collection<input type="search" data-table-search autocomplete="off" placeholder="Account, label or evidence text"></label>'
             f'<label>Chain<select data-table-chain><option value="">All chains</option>{chains}</select></label>'
             + group_filter +
             '<label>Sort<select data-table-sort><option value="recorded">Recorded order</option><option value="subject">Account A to Z</option>'
             '<option value="subject-desc">Account Z to A</option><option value="chain">Chain A to Z</option><option value="label">Label A to Z</option></select></label></div>'
-            f'<p class="entity-table-status" role="status" aria-live="polite">Showing {start + 1 if count else 0} to {min(start + 50, count)} of {count} assertions.</p>'
+            f'<p class="entity-table-status" role="status" aria-live="polite">Showing {start + 1 if count else 0} to {min(start + 50, count)} of {count} assertion{"" if count == 1 else "s"}.</p>'
             f'<button type="button" data-table-retry hidden>Retry collection</button>{tables}<p class="empty-state" data-table-empty hidden>No matching recorded assertions. Clear the search or choose another chain.</p>'
             f'<nav class="entity-table-pagination" aria-label="Collection pages">{previous}<span>Page {page_number} of {pages}</span>{following}</nav>'
             f'</div><script>{script}</script>')
@@ -1245,12 +1275,12 @@ def entity_page(title, categories, store, *, page_number=1, collection_name=None
         for group in groups:
             source = esc(json.dumps(group["source"], ensure_ascii=False, indent=2))
             overview.append(f'<li class="registry-group"><div><h2>{esc(group["title"])}</h2>'
-                            f'<p>{group["subjects"]:,} accounts in this recorded read</p>'
+                            f'<p>{group["subjects"]:,} account{"" if group["subjects"] == 1 else "s"} in this recorded read</p>'
                             f'<p class="registry-recorded">{esc(group["provenance"])} on {esc(group["chain"])}. Recorded <time>{esc(group["observed_at"])}</time>.</p>'
                             f'<details><summary>Registry read evidence</summary><blockquote class="data"><pre>{source}</pre></blockquote></details></div>'
                             f'<a class="button" data-registry-group="{group["id"]}" href="?source={group["id"]}#individual-assertions">View matching assertions</a></li>')
         body = (heading + '<section class="registry-overview" aria-label="Recorded registry overview">'
-                f'<p class="registry-count">{count:,} <span class="stat-connective">assertions from</span> {len(groups)} <span class="stat-connective">recorded registry reads.</span></p>'
+                f'<p class="registry-count">{count:,} <span class="stat-connective">assertion{"" if count == 1 else "s"} from</span> {len(groups)} <span class="stat-connective">recorded registry read{"" if len(groups) == 1 else "s"}.</span></p>'
                 '<p class="registry-scope">Factory listings and epoch membership describe recorded associations, not shared ownership or current control.</p>'
                 f'<ul class="registry-groups">{"".join(overview)}</ul></section>'
                 f'<details class="registry-individuals" id="individual-assertions"{" open" if page_number > 1 else ""}>'
@@ -1301,7 +1331,7 @@ def account_page(subject, store, accounts, incidents, flows, clusters, events_di
         f'<q class="data">{esc(source)}</q> to <q class="data">{esc(target)}</q>'
         f'{f", {count} edges" if count > 1 else ""}</a></li>'
         for (name, source, target), count in flow_edges.items()) + "".join(
-        f'<li><a href="/flows/{esc(name)}.html">Committed trace root with {len(document.get("hops", []))} edges</a></li>'
+        f'<li><a href="/flows/{esc(name)}.html">Committed trace root with {len(document.get("hops", []))} edge{"" if len(document.get("hops", [])) == 1 else "s"}</a></li>'
         for name, document in flow_roots if not any(edge_name == name for edge_name, _, _ in flow_edges))
         + "</ul>" if flow_edges or flow_roots else "<p>No committed trace edge touches this account.</p>")
     cluster_edges = [(name, edge) for name, document in clusters for edge in document.get("edges", [])
@@ -1334,7 +1364,7 @@ def registry_entity_page(entity, accounts):
     body = ('<div class="profile-heading page-head"><div>'
             f'<span class="profile-kind">{esc(entity["kind"].replace("_", " ").title())}</span>'
             f'<h1 class="profile-id">{esc(subject)}</h1></div>'
-            f'<p>{len(entity["members"])} recorded members</p></div>'
+            f'<p>{len(entity["members"])} recorded member{"" if len(entity["members"]) == 1 else "s"}</p></div>'
             f'<div class="registry-strip"><div class="profile-provenance"><p>Registry read: {esc(source["method"])} at block {source["block"]}, '
             f'arguments {esc(json.dumps(source["args"], sort_keys=True))}</p>'
             f'<p>Observed at {esc(entity["observed_at"])} on {esc(source["rpc"])}</p></div>'
@@ -1376,9 +1406,9 @@ def cluster_page(name, document, accounts):
     precision = "".join(f"<li>{esc(line)}</li>" for line in document["precision"].values())
     depositors = document["depositors"]
     counted = ("<p>No deposit count in this run.</p>" if depositors is None else
-               f'<p>{depositors["count"]} distinct depositors of <span class="mono">'
+               f'<p>{depositors["count"]} distinct depositor{"" if depositors["count"] == 1 else "s"} of <span class="mono">'
                f'{_linked(depositors["collector"], esc(depositors["collector"]), accounts)}</span> '
-               f'since {esc(depositors["since"])}, {depositors["implicit_count"]} of them implicit accounts; the '
+               f'since {esc(depositors["since"])}, {depositors["implicit_count"]} of them implicit account{"" if depositors["implicit_count"] == 1 else "s"}; the '
                "cluster file counts them and lists none.</p>")
     payload = graph.cluster_payload(document, accounts)
     context = (f"<h1>Account relationship edges: {esc(name)}</h1><p>{esc(document['standard'])}</p>"
@@ -1388,7 +1418,7 @@ def cluster_page(name, document, accounts):
                f'<div><dt>Attribution hypotheses</dt><dd>{len(inferred)}</dd></div></dl>'
                '<nav class="investigation-actions" aria-label="Relationship evidence"><a href="#chain-relationships">Chain evidence</a>'
                '<a href="#attribution-relationships">Attribution inputs</a></nav>')
-    body = (f"<h2>Seeds</h2><p>{len(document['seeds'])} seeds, each with a current incident label in the label "
+    body = (f"<h2>Seeds</h2><p>{len(document['seeds'])} seed{'' if len(document['seeds']) == 1 else 's'}, each with a current incident label in the label "
             f"store.</p><ul>{seeds}</ul>"
             '<section id="chain-relationships"><h2>Edges from chain reads</h2>' + ("".join(_edge_card(edge, facts, accounts) for edge in chain)
                                                  or "<p>No edge from chain reads.</p>") + '</section>' +
@@ -1438,11 +1468,11 @@ def _flow_analytics(document, accounts):
             short = bucket["to"][:12] + "…" + bucket["to"][-10:]
             label = _linked(bucket["to"], f'<q class="data">{esc(short)}</q>', accounts).replace('href="../', 'href="/')
         distribution_rows.append(
-            f'<div class="analytics-row analytics-distribution-row" data-share-bucket="{index}" data-usd="{esc(bucket["usd"])}">'
+            f'<div class="analytics-row analytics-distribution-row" data-share-bucket="{index}" data-usd="{esc(bucket["usd"])}" data-percent="{esc(bucket["percent"])}">'
             f'<div class="analytics-counterparty">{label}<small>{esc(bucket["kind"])}</small>{full_account}</div>'
             f'<span class="analytics-usd num"><span class="cell-label" aria-hidden="true">USD</span>{Decimal(bucket["usd"]):,.2f} USD</span>'
-            f'<span class="analytics-count num"><span class="cell-label" aria-hidden="true">Rows</span>{bucket["count"]} rows</span>'
-            f'<strong class="analytics-share num"><span class="cell-label" aria-hidden="true">Share</span>{esc(bucket["percent"])}%</strong>'
+            f'<span class="analytics-count num"><span class="cell-label" aria-hidden="true">Rows</span>{bucket["count"]} row{"" if bucket["count"] == 1 else "s"}</span>'
+            f'<strong class="analytics-share num"><span class="cell-label" aria-hidden="true">Share</span>{"&lt;0.01" if Decimal(bucket["usd"]) > 0 and float(bucket["percent"]) < 0.01 else esc(bucket["percent"])}%</strong>'
             f'<div class="analytics-track"><div class="analytics-fill" style="width:{max(0, min(100, float(bucket["percent"]))):.2f}%"></div></div>'
             '</div>')
     distribution = "".join(distribution_rows)
@@ -1457,7 +1487,7 @@ def _flow_analytics(document, accounts):
         bars, rows = [], []
         for index, row in enumerate(timeline):
             height = 100 * row["count"] / maximum
-            description = f'{row["count"]} root outbound transfers, {utc(row["from_ns"], True)} until {utc(row["to_ns"], True)}, end excluded'
+            description = f'{row["count"]} root outbound transfer{"" if row["count"] == 1 else "s"}, {utc(row["from_ns"], True)} until {utc(row["to_ns"], True)}, end excluded'
             bars.append(f'<g tabindex="0" role="button" aria-label="{esc(description)}" data-bin-index="{index}" '
                         f'data-chart-start="{row["from_ns"]}" data-chart-end="{row["to_ns"]}" data-chart-count="{row["count"]}">'
                         f'<title>{esc(description)}</title><rect class="chart-bin-bar" x="{index * 40 + 3}" y="{100 - height:.3f}" '
@@ -1472,18 +1502,18 @@ def _flow_analytics(document, accounts):
             ticks.append(f'<time datetime="{instant.strftime("%Y-%m-%dT%H:%M:%SZ")}">{instant.strftime("%Y-%m-%d")}<br>{instant.strftime("%H:%M")} UTC</time>')
         gridlines = ''.join(f'<line class="analytics-gridline" x1="0" x2="{len(timeline) * 40}" y1="{level}" y2="{level}"/>'
                             for level in (0, 50, 100))
-        options = ''.join(f'<option value="{index}">{utc(row["from_ns"])} ({row["count"]} transfers)</option>'
+        options = ''.join(f'<option value="{index}">{utc(row["from_ns"])} ({row["count"]} transfer{"" if row["count"] == 1 else "s"})</option>'
                           for index, row in enumerate(timeline))
         end_options = options.replace(f'value="{len(timeline) - 1}"', f'value="{len(timeline) - 1}" selected')
-        chart = (f'<p class="analytics-note">{total} root outbound transfers from {utc(timeline[0]["from_ns"])} '
+        chart = (f'<p class="analytics-note">{total} root outbound transfer{"" if total == 1 else "s"} from {utc(timeline[0]["from_ns"])} '
                  f'to {utc(timeline[-1]["to_ns"] - 1)}. Counts include rows with unknown USD; deeper hops are excluded.</p>'
                  '<div class="analytics-timeline-chart">'
                  f'<div class="analytics-count-axis" aria-label="Transfer count scale"><span>{maximum}</span><span>{maximum / 2:g}</span><span>0</span></div>'
                  f'<svg class="analytics-histogram" viewBox="0 0 {len(timeline) * 40} 100" preserveAspectRatio="none" role="img" aria-label="Recorded root outbound transfer counts">'
-                 f'<title>{total} recorded transfers in {len(timeline)} time bins</title>{gridlines}{"".join(bars)}'
+                 f'<title>{total} recorded transfer{"" if total == 1 else "s"} in {len(timeline)} time bin{"" if len(timeline) == 1 else "s"}</title>{gridlines}{"".join(bars)}'
                  '<line class="chart-crosshair" x1="0" x2="0" y1="0" y2="100" hidden/></svg>'
                  f'<div class="analytics-time-axis">{"".join(ticks)}</div></div>'
-                 f'<p class="chart-readout" role="status">Peak interval: {maximum} root outbound transfers. Select a bar to inspect its exact interval.</p>'
+                 f'<p class="chart-readout" role="status">Peak interval: {maximum} root outbound transfer{"" if maximum == 1 else "s"}. Select a bar to inspect its exact interval.</p>'
                  '<div class="chart-range-controls" hidden><label>From interval<select data-chart-from>' + options +
                  '</select></label><label>Through interval<select data-chart-through>' + end_options +
                  '</select></label><button type="button" data-chart-inspect>Inspect interval in graph</button></div>'
@@ -1497,12 +1527,12 @@ def _flow_analytics(document, accounts):
     return ('<section class="analytics-grid flow-analytics" id="recorded-dataset" aria-label="Full recorded flow analytics">'
             f'<article class="analytics-panel" data-direct-usd="{esc(shares["direct_outbound_usd"])}"><div class="analytics-panel-head"><h2>Direct outbound distribution</h2></div>'
             f'<p class="analytics-note">Full recorded dataset, not the current graph filter. Denominator: {Decimal(shares["direct_outbound_usd"]):,.2f} USD '
-            f'across {shares["rows"]} root outbound rows valued at or above {esc(shares["min_usd"])} USD by the Transfers API. '
+            f'across {shares["rows"]} root outbound row{"" if shares["rows"] == 1 else "s"} valued at or above {esc(shares["min_usd"])} USD by the Transfers API. '
             'Deeper hops are excluded; this is gross transfer value, not loss.</p>'
             '<div class="analytics-chart"><div class="analytics-distribution-head" aria-hidden="true"><span>Counterparty</span><span>USD</span><span>Rows</span><span>Share</span></div>'
             f'{distribution or "<p>No direct outbound rows meet the USD threshold.</p>"}</div>'
-            f'<p class="analytics-note">{below["count"]} rows below {esc(shares["min_usd"])} USD: {Decimal(below["usd"]):,.2f} USD, counted separately. '
-            f'{unknown["count"]} rows without a USD amount; their value is unknown, not zero. Base units: {esc(units)}.</p></article>'
+            f'<p class="analytics-note">{below["count"]} row{"" if below["count"] == 1 else "s"} below {esc(shares["min_usd"])} USD: {Decimal(below["usd"]):,.2f} USD, counted separately. '
+            f'{unknown["count"]} row{"" if unknown["count"] == 1 else "s"} without a USD amount; their value is unknown, not zero. Base units: {esc(units)}.</p></article>'
             f'<article class="analytics-panel" data-recorded-timeline="{esc(document["subject"])}"><div class="analytics-panel-head"><h2>Recorded transfer activity</h2></div>'
             '<p class="analytics-note">Full recorded dataset, not the current graph filter. Transfer counts, not a USD or price history.</p>'
             f'{chart}</article></section>')
@@ -1556,7 +1586,7 @@ def flow_page(document, accounts, *, evidence_url=None, page_number=1):
         hops = [hop for hop, d in selected if d == depth]
         total = depths.count(depth)
         if hops:
-            groups.append(f"<h2>Depth {depth}: {total} hops</h2><p>{len(hops)} of these hops appear on this evidence page.</p>" +
+            groups.append(f"<h2>Depth {depth}: {total} hop{'' if total == 1 else 's'}</h2><p>{len(hops)} of these hops appear{'s' if len(hops) == 1 else ''} on this evidence page.</p>" +
                           "".join(_hop_card(hop, accounts) for hop in hops))
     stem = Path(evidence_url).stem if evidence_url else page_names([document["subject"]])[document["subject"]]
     def evidence_path(number):
@@ -1584,28 +1614,33 @@ def flow_page(document, accounts, *, evidence_url=None, page_number=1):
             "<p class=\"muted\">Only an account that carries an incident label is traced. Each card is one transfer "
             "read from the FastNEAR Transfers API.</p>"
             f'<section class="flow-evidence" id="transfers" aria-label="Recorded transfer evidence"><h2>Recorded transfers</h2>'
-            f'<p>Showing {start + 1 if selected else 0} to {start + len(selected)} of {len(ordered)} transfers, grouped by recorded depth. '
+            f'<p>Showing {start + 1 if selected else 0} to {start + len(selected)} of {len(ordered)} transfer{"" if len(ordered) == 1 else "s"}, grouped by recorded depth. '
             'Every transfer remains available across the linked evidence pages; the graph uses the full recorded dataset.</p>'
             + pagination + "".join(groups) + pagination + '</section>')
     return page("Exit trace", context + _graph_section(graph.flow_payload(document, accounts), evidence_url) + _flow_analytics(document, accounts) + body, depth=1)
 
 
-def _status_reads(reads):
-    """The status reads counted by issuer view and answer, as one sentence."""
+def _status_answers(reads):
     answers = {}
     for read in reads:
         view = answers.setdefault((read["issuer"], read["method"]), {})
         answer = json.dumps(read["answer"], ensure_ascii=False)
         view[answer] = view.get(answer, 0) + 1
+    return answers
+
+
+def _status_reads(reads):
+    """The status reads counted by issuer view and answer, as one sentence."""
+    answers = _status_answers(reads)
     views = "; ".join(f"{issuer} {method} answered "
-                      + " and ".join(f"{answer} {count} times" for answer, count in counts.items())
+                      + " and ".join(f"{answer} {count} time{'' if count == 1 else 's'}" for answer, count in counts.items())
                       for (issuer, method), counts in answers.items())
     blocks = [read["block"] for read in reads]
     times = [read["observed_at"] for read in reads]
     categories = ", ".join(issuers.STATUS_CATEGORIES[:-1]) + " and " + issuers.STATUS_CATEGORIES[-1]
-    return (f"{len(reads)} status reads over {len({read['subject'] for read in reads})} account ids: the NEAR "
+    return (f"{len(reads)} status read{'' if len(reads) == 1 else 's'} over {len({read['subject'] for read in reads})} account id{'' if len({read['subject'] for read in reads}) == 1 else 's'}: the NEAR "
             f"subjects of the label store in the {categories} categories and the recorded "
-            f"receiver set, each read on {len(answers)} issuer views at blocks {min(blocks)} to {max(blocks)}, from "
+            f"receiver set, each read on {len(answers)} issuer view{'' if len(answers) == 1 else 's'} at blocks {min(blocks)} to {max(blocks)}, from "
             f"{min(times)} to {max(times)}: {views}.")
 
 
@@ -1623,11 +1658,11 @@ def _history_coverage(history):
     found = [f"{count} {method}" for method, count in coverage["actions"].items() if count]
     absent = "".join(f", no {method}" for method, count in coverage["actions"].items() if not count)
     at = f" at block{'s' if len(blocks) > 1 else ''} {', '.join(str(block) for block in blocks)}" if blocks else ""
-    return (f"{read} function call transactions the Transactions API lists for {json.dumps(owner)} (the account "
+    return (f"{read} function call transaction{'' if coverage['transactions'] == 1 else 's'} the Transactions API lists for {json.dumps(owner)} (the account "
             f"the owner view of {HISTORY_TOKEN} answers) as receiver, transaction blocks {coverage['tx_block_min']} "
-            f"to {coverage['tx_block_max']}, were read; their receipts carried {sum(coverage['actions'].values())} "
-            f"successful issuer actions on {HISTORY_TOKEN}: {' and '.join(found)}{absent}. {len(missing)} of the "
-            f"{len(named)} account id strings do not exist on chain{at}.")
+            f"to {coverage['tx_block_max']}, {'was' if coverage['transactions'] == 1 else 'were'} read; their receipts carried {sum(coverage['actions'].values())} "
+            f"successful issuer action{'' if sum(coverage['actions'].values()) == 1 else 's'} on {HISTORY_TOKEN}: {' and '.join(found)}{absent}. {len(missing)} of the "
+            f"{len(named)} account id string{'' if len(named) == 1 else 's'} {'does' if len(missing) == 1 else 'do'} not exist on chain{at}.")
 
 
 def issuers_page():
@@ -1644,9 +1679,9 @@ def issuers_page():
         f'<br>observed {esc(row.observed_at)}<br>row {esc(row.id)}</p></div>' for row in history)
     body = ("<h1>Issuer actions</h1><h2>Status reads</h2>"
             f"<p>{data_text(_status_reads(issuers.reads()))}</p>"
-            f"<h2>Banned by the issuer</h2><p>{len(status)} account ids read as banned by their issuer, one row each in "
+            f"<h2>Banned by the issuer</h2><p>{len(status)} account id{'' if len(status) == 1 else 's'} read as banned by their issuer, one row each in "
             f"<code>intel/issuers/status.jsonl</code>; a status read is a view call, so no transaction.</p>{status_cards}"
-            f"<h2>Issuer action history</h2><p>{data_text(_history_coverage(history))}</p><p>{len(history)} rows in "
+            f'<h2>Issuer action history</h2><p>{data_text(_history_coverage(history))}</p><p>{len(history)} row{"" if len(history) == 1 else "s"} in '
             f"<code>intel/issuers/history.jsonl</code>, one per action, newest block first.</p>{history_cards}")
     reads = issuers.reads()
     accounts = account_pages(labels.load())
@@ -1659,6 +1694,14 @@ def issuers_page():
         action = next((method for method, phrase in issuers.HISTORY_METHODS.items() if row.label.startswith(phrase)), row.source["method"])
         history_rows.append([_subject_cell(row.subject, accounts).replace('href="../', 'href="/'), esc(action), str(row.source["block"]),
                              f'<time datetime="{esc(row.observed_at)}">{esc(row.observed_at)}</time>', _profile_source(row)])
+    entries = {entry["token"]: entry for entry in issuers.issuer_entries()}
+    other_answers = Counter()
+    for (issuer, method), counts in _status_answers(reads).items():
+        banned = json.dumps(entries[issuer]["banned"], ensure_ascii=False)
+        other_answers.update({answer: count for answer, count in counts.items() if answer != banned})
+    other_status = ("Other recorded answers: " + "; ".join(f"{answer}: {count}" for answer, count in other_answers.items()) + "."
+                    if other_answers else "No other recorded answers.")
+    status_scope = "Banned answers only. " + other_status + " Counts by issuer view are in Coverage below."
     summary = ('<div class="page-head issuers-heading"><h1>Issuer actions</h1><nav class="profile-anchors" aria-label="Issuer sections">'
                '<a href="#issuer-status-section">Recorded issuer status</a><a href="#issuer-ledger">Recorded action ledger</a></nav></div>'
                '<p class="issuers-scope">Recorded token-issuer status reads and successful issuer actions. An issuer status is not a current payment verdict.</p>'
@@ -1668,6 +1711,7 @@ def issuers_page():
                f'<div><dt>Recorded issuer actions</dt><dd>{len(history)}</dd></div></dl>'
                '<section class="profile-section" id="issuer-status-section"><h2>Recorded issuer status</h2>'
                + _profile_table("issuer-status", ("Account", "Issuer", "Answer", "Block", "Observed UTC", "Evidence"), status_rows, "Search issuer status")
+               + f'<p class="issuers-scope">{data_text(status_scope)}</p>'
                + '</section><section class="profile-section" id="issuer-ledger"><h2>Recorded action ledger</h2>'
                + _profile_table("issuer-history", ("Named account string", "Action", "Block", "Observed UTC", "Evidence"), history_rows, "Search issuer actions")
                + '</section><details class="profile-evidence"><summary>Coverage, original status reads and action evidence</summary>'
@@ -1741,7 +1785,9 @@ def record_index_page(documents):
     for record in documents:
         subjects = '<br>'.join(f'<q class="data">{esc(subject["account"])}</q> ({esc(subject["chain"])})'
                                 for subject in record["subjects"]) or "No subject named"
-        evidence = '<ul>' + ''.join(f'<li><a href="{esc(source["url"])}">{esc(source["url"])}</a>'
+        evidence = '<ul>' + ''.join('<li>' + (esc(source["url"]) if urlsplit(source["url"]).hostname == "github.com"
+                                             and urlsplit(source["url"]).path.lower().startswith(("/ridwannurudeen/siyab/", "/ridwannurudeen/shieldbot-near/")) else
+                                             f'<a href="{esc(source["url"])}">{esc(source["url"])}</a>') +
                                    f'<br>Fetched {esc(source["fetched_at"])}<br><code>{esc(source["content_sha256"])}</code></li>'
                                    for source in record["evidence"]) + '</ul>'
         successor = successors.get(record["record_id"])
@@ -1749,14 +1795,14 @@ def record_index_page(documents):
                  "No local successor")
         cells = [subjects, f'<time datetime="{esc(record["timeline"][-1]["at"])}">{esc(record["timeline"][-1]["at"])}</time>',
                  f'kind {esc(record["kind"])}<br>outcome {esc(record["outcome"])}',
-                 f'{state}<br>{len(record["reports"])} report citations',
+                 f'{state}<br>{len(record["reports"])} report citation{"" if len(record["reports"]) == 1 else "s"}',
                  f'<details><summary>{len(record["evidence"])} evidence source{"s" if len(record["evidence"]) != 1 else ""}</summary>{evidence}</details>',
                  f'<a href="{esc(record["record_id"])}.html">{esc(record["record_id"])}</a>']
         names = ("Subject", "Recorded (UTC)", "Kind and outcome", "Record status", "Evidence", "Full record")
         rows.append('<tr>' + ''.join(f'<td data-label="{name}">{cell}</td>' for name, cell in zip(names, cells)) + '</tr>')
     headers = ''.join(f'<th scope="col">{name}</th>' for name in
                       ("Subject", "Recorded (UTC)", "Kind and outcome", "Record status", "Evidence", "Full record"))
-    table = (f'<table class="record-index-table"><caption>{len(documents)} valid immutable records</caption><thead><tr>{headers}</tr></thead>'
+    table = (f'<table class="record-index-table"><caption>{len(documents)} valid immutable record{"" if len(documents) == 1 else "s"}</caption><thead><tr>{headers}</tr></thead>'
              f'<tbody>{"".join(rows)}</tbody></table>' if rows else '<p>No valid records.</p>')
     body = ('<h1>Incident records</h1><p>Read the subjects, cited evidence and recorded decisions behind an incident record.</p>'
             '<p class="record-index-note">Synthetic examples: the two committed examples describe a synthetic report. They are not findings about a real incident.</p>'
@@ -1956,7 +2002,7 @@ def workspace_page():
             '<p>Monitoring runs while a Siyab page stays open. It checks the current feed window; it cannot cover time when the browser is closed.</p>'
             '<p id="alert-state" role="status" aria-live="polite">Browser monitoring is off.</p>'
             '<button id="desktop-alerts" type="button">Allow desktop notifications</button>'
-            '<p class="source-line">Browser permission is optional. Matches are also kept below. Display pause controls and alert monitoring are separate.</p>'
+            '<p class="source-line">Browser permission is optional. Matches are also kept below. Pausing the live displays does not stop alert monitoring.</p>'
             '<ul id="watch-notifications" class="watch-notifications"></ul><button id="clear-notifications" type="button">Clear alert history</button></section></div></div>'
             '<section class="workspace-portability"><h2>Your workspace data</h2><p>Investigations, notes, watchlists and alert history stay on this device. Import merges investigations and accounts without replacing existing notes or enabling monitoring.</p>'
             '<div class="workspace-actions"><button id="export-workspace" type="button">Export workspace JSON</button>'
@@ -2030,7 +2076,8 @@ def render(out_dir, store=None, incidents_dir=INCIDENTS_DIR, flows_dir=trace.FLO
         path = out / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         canonical = SITE_ORIGIN + "/" + ("" if relative == "index.html" else relative)
-        text = text.replace('</head>', f'<link rel="canonical" href="{esc(canonical)}">\n<meta property="og:url" content="{esc(canonical)}">\n</head>')
+        if relative != "404.html":
+            text = text.replace('</head>', f'<link rel="canonical" href="{esc(canonical)}">\n<meta property="og:url" content="{esc(canonical)}">\n</head>')
         path.write_bytes((text.replace(ROBOTS, "") if indexable else text).encode("utf-8"))
     (out / "style.css").write_text(STYLE, encoding="utf-8", newline="\n")
     (out / "search.json").write_text(json.dumps(search, ensure_ascii=False, separators=(",", ":")) + "\n",

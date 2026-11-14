@@ -294,6 +294,22 @@ class WorkspaceStoreTest(unittest.TestCase):
         self.assertTrue(item["candidate"])
         self.assertFalse(item["external_delivery_eligible"])
 
+    def test_old_outflow_event_alerts_the_watched_destination_from_its_stored_detail(self):
+        self.store.add_watch(self.a, self.team, "beneficiary.near")
+        self.now += 1
+        old = {**self.event("full_access_key_then_outflow"), "subject": "victim.near", "drain_kind": "transfer",
+               "detail": "full access key ed25519:abc added to victim.near; transfer of 12 yoctoNEAR to beneficiary.near within 34 ms"}
+        stored = json.loads(json.dumps(old))
+        for changed in ({"detail": old["detail"] + " extra"}, {"subject": "other.near"}, {"drain_kind": "delete_account"},
+                        {"signal": "watch_account_key_added"}):
+            self.ingest({**old, **changed})
+        self.assertEqual(self.store.list_inbox(self.a, self.team)["items"], [])
+        digest, _ = self.ingest(old)
+        items = self.store.list_inbox(self.a, self.team)["items"]
+        self.assertEqual([(item["event_id"], item["account"]) for item in items], [(digest, "beneficiary.near")])
+        self.assertEqual(items[0]["event"], stored)
+        self.assertNotIn("other_account_id", items[0]["event"])
+
     def test_restart_backup_and_audit_are_transactional(self):
         case = self.store.create_case(self.a, self.team, "Persistent", "notes", "/")
         self.store.add_watch(self.a, self.team, "wrap.near")

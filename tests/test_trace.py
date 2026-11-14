@@ -218,7 +218,14 @@ class WalkTest(unittest.TestCase):
         self.assertEqual(shares["rows"], 1)
         self.assertEqual(shares["buckets"], [{"to": "intents.near", "kind": "terminal", "usd": "10.0", "count": 1,
                                               "percent": 100.0}])
-        self.assertIn("across 1 rows (3 rows without a USD amount, 1 below 1.0 USD)", trace.summary(document))
+        self.assertIn("across 1 row (3 rows without a USD amount, 1 below 1.0 USD)", trace.summary(document))
+
+    def test_summary_pluralizes_single_hop_and_unknown_usd_row(self):
+        document, _, _ = walk({"start.near": [[row("start.near", "start.near", 1, usd=None)]]})
+        line = trace.summary(document)
+        self.assertTrue(line.startswith("1 hop over 1 account;"))
+        self.assertIn("across 0 rows (1 row without a USD amount", line)
+        self.assertIn("in 1 row of the 0 accounts read", line)
 
     def test_shares_sum_to_the_direct_outbound_total_and_name_every_terminal(self):
         pages = {"start.near": [[dict(row("start.near", "intents.near", 1, usd=60.25), method_name="ft_transfer_call"),
@@ -250,7 +257,7 @@ class WalkTest(unittest.TestCase):
         gross = ("Gross means the same value can appear in more than one row: 60.25 USD of these rows are "
                  "ft_transfer_call or near_deposit into a terminal contract (intents.near), 5.50 USD are moves of "
                  "balances held inside intents.near (asset ids under nep245:intents.near:), and 5,000.00 USD came back "
-                 "to the subject in 1 rows of the 1 accounts read; inbound rows of the subject were not read, so no net "
+                 "to the subject in 1 row of the 1 account read; inbound rows of the subject were not read, so no net "
                  "figure is stated, and the incident page states no loss figure.")
         self.assertEqual(trace.gross_sentence(document), gross)
         self.assertIn(f"; {gross[:-1]}; subject: ", trace.summary(document))

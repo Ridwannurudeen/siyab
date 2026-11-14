@@ -374,7 +374,7 @@
   async function importWorkspace(value, base) {
     const epoch = state.epoch;
     if (!writable()) throw new Error("Editor or owner access is required to import.");
-    if (!confirm(`Import ${value.cases.length} investigations and ${value.watchlist.length} watched accounts into ${state.team.name}? Existing notes and this device's browser data will be kept.`)) return;
+    if (!confirm(`Import ${value.cases.length} ${value.cases.length === 1 ? "investigation" : "investigations"} and ${value.watchlist.length} watched ${value.watchlist.length === 1 ? "account" : "accounts"} into ${state.team.name}? Existing notes and this device's browser data will be kept.`)) return;
     const batches = chunks(value), totals = {created_cases: 0, added_watches: 0, skipped_cases: 0};
     let completed = 0;
     try {
@@ -386,9 +386,9 @@
         }
         completed++; status(`Imported batch ${completed} of ${batches.length}.`);
       }
-      await renderPanel(); status(`${totals.created_cases} investigations and ${totals.added_watches} watches imported; ${totals.skipped_cases} duplicate investigations skipped.`);
+      await renderPanel(); status(`${totals.created_cases} ${totals.created_cases === 1 ? "investigation" : "investigations"} and ${totals.added_watches} ${totals.added_watches === 1 ? "watch" : "watches"} imported; ${totals.skipped_cases} duplicate ${totals.skipped_cases === 1 ? "investigation" : "investigations"} skipped.`);
     } catch (error) {
-      if (!(error instanceof StaleRequest)) error.message += ` ${completed} of ${batches.length} batches completed. Refresh and retry the same backup; exact duplicates are skipped.`;
+      if (!(error instanceof StaleRequest)) error.message += ` ${completed} of ${batches.length} ${batches.length === 1 ? "batch" : "batches"} completed. Refresh and retry the same backup; exact duplicates are skipped.`;
       throw error;
     }
   }
@@ -408,8 +408,8 @@
     const running = monitoring.running === true;
     health.append(node("p", monitoring.configured === false || !monitoring.initialized && monitoring.configured !== true ? "Retained-feed monitoring is not configured on this copy." : running ? "Retained-feed monitoring is running. Matching feed alerts are saved while your browser is closed." : "Retained-feed monitoring is not currently reporting a running worker. Previously saved alerts remain available."));
     if (monitoring.heartbeat_ms) health.append(node("p", "Last worker update: " + date(monitoring.heartbeat_ms), "source-line"));
-    if (Number.isInteger(monitoring.indexed) && Number.isInteger(monitoring.pending)) health.append(node("p", `${monitoring.indexed} evidence files indexed · ${monitoring.pending} pending`, "source-line"));
-    if (Number.isInteger(monitoring.retry_pending) && monitoring.retry_pending > 0) health.append(node("p", `${monitoring.retry_pending} evidence files are waiting for a retry. Coverage is incomplete.`, "source-line"));
+    if (Number.isInteger(monitoring.indexed) && Number.isInteger(monitoring.pending)) health.append(node("p", `${monitoring.indexed} evidence ${monitoring.indexed === 1 ? "file" : "files"} indexed · ${monitoring.pending} pending`, "source-line"));
+    if (Number.isInteger(monitoring.retry_pending) && monitoring.retry_pending > 0) health.append(node("p", `${monitoring.retry_pending} evidence ${monitoring.retry_pending === 1 ? "file is" : "files are"} waiting for a retry. Coverage is incomplete.`, "source-line"));
     if (monitoring.last_error) health.append(node("p", "Worker status: " + monitoring.last_error, "cloud-error"));
     if (typeof monitoring.coverage === "string") health.append(node("p", monitoring.coverage, "source-line"));
     else health.append(node("p", "Coverage follows the indexed source windows. An empty inbox does not establish absence of activity or risk.", "source-line"));
@@ -421,9 +421,10 @@
       health.append(node("p", polling.running === true ? "Ordinary-transfer polling is running. Observed transfers for watched accounts are retained in the team inbox." : "Ordinary-transfer polling is not currently reporting a running worker."));
       if (polling.heartbeat_ms) health.append(node("p", "Last polling worker update: " + date(polling.heartbeat_ms), "source-line"));
       if (polling.last_success_ms) health.append(node("p", "Last successful account poll: " + date(polling.last_success_ms), "source-line"));
-      if (Number.isInteger(polling.monitored_accounts) && Number.isInteger(polling.initialized_accounts)) health.append(node("p", `${polling.initialized_accounts} of ${polling.monitored_accounts} watched accounts initialized`, "source-line"));
-      for (const [key, label] of [["coverage_gap_accounts", "accounts with recorded coverage gaps"], ["retry_pending", "accounts waiting for retry"], ["backfill_pending", "account history backfills pending"], ["pending_events", "observed events awaiting inbox delivery"]]) {
-        if (Number.isInteger(polling[key])) health.append(node("p", polling[key] + " " + label, "source-line"));
+      if (Number.isInteger(polling.monitored_accounts) && Number.isInteger(polling.initialized_accounts)) health.append(node("p", `${polling.initialized_accounts} of ${polling.monitored_accounts} watched ${polling.monitored_accounts === 1 ? "account" : "accounts"} initialized`, "source-line"));
+      for (const [key, label] of [["coverage_gap_accounts", "account"], ["retry_pending", "account"], ["backfill_pending", "account history backfill"], ["pending_events", "observed event"]]) {
+        const detail = {coverage_gap_accounts: " with recorded coverage gaps", retry_pending: " waiting for retry", backfill_pending: " pending", pending_events: " awaiting inbox delivery"}[key];
+        if (Number.isInteger(polling[key])) health.append(node("p", polling[key] + " " + label + (polling[key] === 1 ? "" : "s") + detail, "source-line"));
       }
       if (polling.oldest_due_ms) health.append(node("p", "Oldest queued account poll: " + date(polling.oldest_due_ms), "source-line"));
       if (polling.last_error) health.append(node("p", "Polling worker status: " + polling.last_error, "cloud-error"));

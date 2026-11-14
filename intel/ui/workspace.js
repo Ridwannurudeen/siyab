@@ -89,7 +89,10 @@
       const exact = cell.getAttribute("data-export-value");
       if (exact !== null) return exact;
       const copy = cell.cloneNode(true);
-      copy.querySelectorAll('[aria-hidden="true"]').forEach(node => node.remove());
+      copy.querySelectorAll('[aria-hidden="true"], details.analytics-full-account > summary').forEach(node => node.remove());
+      const full = copy.querySelector("details.analytics-full-account");
+      if (full) copy.replaceChildren(...full.childNodes);
+      copy.querySelectorAll("br").forEach(node => node.replaceWith("; "));
       return copy.textContent.trim().replace(/\s+/g, " ");
     }));
     download("siyab-" + id + "." + format, format === "json" ? JSON.stringify({source: location.href, scope: "Shown table rows", rows}, null, 2) : csv(rows),
@@ -190,7 +193,7 @@
       const ids = new Set(view.recordIds);
       const records = payload.records.filter(record => ids.has(record.id));
       download("siyab-investigation.json", JSON.stringify({source: location.origin + sourceUrl, scope: "Records matching graph filters", view, recording: payload.source, records}, null, 2), "application/json");
-      message(records.length + " matching records exported with source and view settings.");
+      message(records.length + (records.length === 1 ? " matching record" : " matching records") + " exported with source and view settings.");
     } catch (error) { if (graphExports.get(control) === abort) message(abort.signal.aborted ? "Export timed out. Try again." : error.message); }
     finally { clearTimeout(deadline); if (graphExports.get(control) === abort) { graphExports.delete(control); control.disabled = false; } }
   });
@@ -218,7 +221,7 @@
       row.append(actions); cases.append(row);
     }
     if (!matching.length) cases.append(element("p", state.cases.length ? "No saved investigation matches this search." : "Open an account or trace and choose Save investigation. Your notes and view settings stay in this browser.", "empty-state"));
-    document.getElementById("case-count").textContent = state.cases.length + " saved investigations";
+    document.getElementById("case-count").textContent = state.cases.length + (state.cases.length === 1 ? " saved investigation" : " saved investigations");
     const watched = document.getElementById("watched-accounts"); watched.replaceChildren();
     for (const account of state.watchlist) {
       const row = element("li"); row.append(element("span", account, "mono"));
@@ -289,6 +292,14 @@
   const monitorMessage = value => {
     const node = document.getElementById("alert-state"); if (node && node.textContent !== value) node.textContent = value;
   };
+  const counterparty = row => {
+    if (row.other_account_id) return row.other_account_id;
+    if (row.signal !== "full_access_key_then_outflow" || typeof row.subject !== "string" || typeof row.detail !== "string") return null;
+    const match = /^full access key \S+ added to ([a-z0-9]+(?:[-_.][a-z0-9]+)*); (transfer of [0-9]+ yoctoNEAR|DeleteAccount) to ([a-z0-9]+(?:[-_.][a-z0-9]+)*) within [0-9]+ ms$/.exec(row.detail);
+    if (!match || match[0] !== row.detail || match[1] !== row.subject) return null;
+    if (row.drain_kind === "transfer" && match[2].startsWith("transfer of ") || row.drain_kind === "delete_account" && match[2] === "DeleteAccount") return match[3];
+    return null;
+  };
   function consume(data) {
     if (!data || !Array.isArray(data.events) || !Array.isArray(data.event_ids) || data.events.length !== data.event_ids.length
       || !data.event_ids.every(id => id === null || typeof id === "string" && /^[a-f0-9]{64}$/.test(id))) throw new Error("Feed response could not be read.");
@@ -300,7 +311,7 @@
       if (!id || baseline.has(id) || !event || typeof event.signal !== "string") continue;
       const signal = event.signal.trim().slice(0, 200);
       if (!signal) continue;
-      const accounts = [event.subject, event.account_id, event.other_account_id, ...(Array.isArray(event.accounts) ? event.accounts : [])];
+      const accounts = [event.subject, event.account_id, counterparty(event), ...(Array.isArray(event.accounts) ? event.accounts : [])];
       const account = state.watchlist.find(value => accounts.includes(value));
       if (!account || state.notifications.some(item => item.id === id)) continue;
       const at = Number.isInteger(event.observed?.timestamp_ms) && event.observed.timestamp_ms >= 0 && event.observed.timestamp_ms <= 8640000000000000

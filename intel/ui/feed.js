@@ -14,7 +14,22 @@
     parent.append(node); return node;
   };
   const text = value => typeof value === "string" || typeof value === "number" ? String(value) : "Not recorded";
-  const provider = row => row.source && typeof row.source.provider === "string" ? row.source.provider : "Provider not recorded";
+  const provider = row => {
+    if (row.source && typeof row.source.provider === "string" && row.source.provider.trim()) return row.source.provider;
+    if (row.source && typeof row.source.url === "string") {
+      try { const url = new URL(row.source.url); if (["http:", "https:"].includes(url.protocol) && url.hostname) return url.hostname; }
+      catch (error) { return "Provider not recorded"; }
+    }
+    return "Provider not recorded";
+  };
+  const counterparty = row => {
+    if (row.other_account_id) return row.other_account_id;
+    if (row.signal !== "full_access_key_then_outflow" || typeof row.subject !== "string" || typeof row.detail !== "string") return null;
+    const match = /^full access key \S+ added to ([a-z0-9]+(?:[-_.][a-z0-9]+)*); (transfer of [0-9]+ yoctoNEAR|DeleteAccount) to ([a-z0-9]+(?:[-_.][a-z0-9]+)*) within [0-9]+ ms$/.exec(row.detail);
+    if (!match || match[0] !== row.detail || match[1] !== row.subject) return null;
+    if (row.drain_kind === "transfer" && match[2].startsWith("transfer of ") || row.drain_kind === "delete_account" && match[2] === "DeleteAccount") return match[3];
+    return null;
+  };
   const utc = row => typeof row.observed.timestamp_ms === "number" && Number.isFinite(row.observed.timestamp_ms) && Math.abs(row.observed.timestamp_ms) <= 8640000000000000 ? new Date(row.observed.timestamp_ms).toISOString() : null;
   const notify = data => {
     if (typeof document.dispatchEvent === "function" && typeof CustomEvent === "function") document.dispatchEvent(new CustomEvent("siyab-feed", {detail: {events: data.events, event_ids: data.event_ids || data.events.map(() => null), stats: data.stats, follower: data.follower}}));
@@ -25,9 +40,9 @@
     const matches = current.events.map((row, index) => ({row, id: current.event_ids ? current.event_ids[index] : null})).filter(({row, id}) =>
       (!signal.value || row.signal === signal.value) && (!source.value || provider(row) === source.value) &&
       (!since.value || Number.isFinite(lowerBound) && typeof row.observed.timestamp_ms === "number" && row.observed.timestamp_ms >= lowerBound) &&
-      (!needle || [row.subject, row.other_account_id, row.signal, row.detail, window.SiyabNumbers.prose(row.detail), row.tx_hash, row.receipt_id, id].filter(value => typeof value === "string").join(" ").toLowerCase().includes(needle))).slice(-50).reverse();
+      (!needle || [row.subject, counterparty(row), row.signal, row.detail, window.SiyabNumbers.prose(row.detail), row.tx_hash, row.receipt_id, id].filter(value => typeof value === "string").join(" ").toLowerCase().includes(needle))).slice(-50).reverse();
     events.replaceChildren(); add(events, "h3", "Recent observed signals");
-    add(events, "p", `${matches.length} of ${current.events.length} events in this response. Newest observed block first.`, "feed-count");
+    add(events, "p", `${matches.length} of ${current.events.length} ${current.events.length === 1 ? "event" : "events"} in this response. Newest observed block first.`, "feed-count");
     if (!matches.length) {
       add(events, "p", current.events.length ? "No events match these filters. Clear filters to inspect the full response." : "No events were returned in this read. Coverage is described by follower health. This is not a clean bill of health for any account.", "feed-empty"); return;
     }
@@ -47,7 +62,7 @@
       add(cells[1], "strong", row.signal.replace(/_/g, " ")); add(cells[1], "p", window.SiyabNumbers.prose(row.detail));
       add(cells[2], "q", text(row.subject), "data");
       if (typeof row.subject === "string" && /^[a-z0-9._-]{2,64}$/.test(row.subject)) add(cells[2], "a", "Investigate").href = "/explore.html?q=" + encodeURIComponent(row.subject);
-      add(cells[3], "q", text(row.other_account_id), "data");
+      add(cells[3], "q", text(counterparty(row)), "data");
       const exactAmount = typeof row.usd_amount === "string" || typeof row.usd_amount === "number" ? `${row.usd_amount} USD (provider value)` : typeof row.amount_yocto === "string" ? `${row.amount_yocto} yoctoNEAR` : "Not recorded";
       const amount = typeof row.usd_amount === "string" || typeof row.usd_amount === "number" ? `${window.SiyabNumbers.decimal(row.usd_amount, 2)} USD (provider value)` : typeof row.amount_yocto === "string" ? `${window.SiyabNumbers.baseUnits(row.amount_yocto, 24)} NEAR` : "Not recorded";
       cells[4].setAttribute("data-export-value", exactAmount);
@@ -98,11 +113,12 @@
     }
     const stats = data.stats;
     add(panel, "strong", data.follower === "running" ? "Follower running" : data.follower === "stopped" ? "Follower stopped" : "Recorded feed window");
-    add(panel, "p", `Blocks ${stats.start_height ?? "unavailable"} to ${stats.last_height ?? "unavailable"}; lag ${stats.lag_blocks ?? "unavailable"} blocks.`);
+    add(panel, "p", `Blocks ${stats.start_height ?? "unavailable"} to ${stats.last_height ?? "unavailable"}; lag ${stats.lag_blocks ?? "unavailable"} ${stats.lag_blocks === 1 ? "block" : "blocks"}.`);
     add(panel, "p", `Last update: ${stats.updated_at || stats.last_time || "unavailable"}.`);
     add(panel, "p", "Events below are the latest response, not a complete transaction history. Filtered results do not change recording coverage.");
     if (stats.last_error) add(panel, "p", `Last recorded error: ${JSON.stringify(stats.last_error)}`);
     if (stats.disabled_signals && Object.keys(stats.disabled_signals).length) add(panel, "p", `Disabled signals: ${JSON.stringify(stats.disabled_signals)}`);
+    if (stats.last_large_transfer_error) { const error = stats.last_large_transfer_error; add(panel, "p", `labelled_account_large_transfer last failed poll at ${text(error.at)}: ${text(error.error)}, ${error.status == null ? "no HTTP status" : `HTTP ${text(error.status)}`}.`); }
     if (stats.coverage_reset) {
       const previousHeight = stats.coverage_reset.previous_last_height, startHeight = stats.start_height;
       add(panel, "p", `Coverage reset: ${stats.coverage_reset.reason}; previous last height ${previousHeight}.`);

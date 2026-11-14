@@ -85,7 +85,7 @@ const renderSource = (parent, entry) => {
   } else if (source.method && source.rpc) {
     line.textContent = `${entry.provenance} source: ${source.method} at block ${source.block} via ${source.rpc}`;
   } else if (source.rule_id) {
-    line.textContent = `${entry.provenance} source: rule ${source.rule_id}, ${source.inputs.length} input assertions`;
+    line.textContent = `${entry.provenance} source: rule ${source.rule_id}, ${source.inputs.length} input ${source.inputs.length === 1 ? "assertion" : "assertions"}`;
   } else {
     line.textContent = `${entry.provenance} source recorded at ${entry.observed_at}`;
   }
@@ -185,7 +185,7 @@ const renderScan = (panel, data, token) => {
     return;
   }
   panel.replaceChildren();
-  addText(panel, "p", `${data.access_keys} access keys read at block ${data.read_at_block}.`);
+  addText(panel, "p", `${data.access_keys} access ${data.access_keys === 1 ? "key" : "keys"} read at block ${data.read_at_block}.`);
   for (const [key, label] of [["full_access_keys", "Full access keys"], ["empty_method_names", "Keys with an empty method list"],
     ["dead_keys", "Keys with a zero allowance"], ["unlimited_allowance", "Keys without an allowance limit"]]) {
     const section = document.createElement("section");

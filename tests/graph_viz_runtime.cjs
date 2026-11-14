@@ -6,11 +6,23 @@ const window = {location: new URL('https://siyab.xyz/flows/example.html')};
 vm.runInNewContext(fs.readFileSync('intel/ui/number-format.js','utf8'),{window});
 const source = fs.readFileSync('intel/ui/graphs.js', 'utf8').replace(
   '  window.SiyabGraph =',
-  '  window.vizTest = {decimalSum, valueSummary, filteredEdges, restoredView, exactUtc, arrangeControls, edgeLabel};\n  window.SiyabGraph ='
+  '  window.vizTest = {decimalSum, valueSummary, filteredEdges, restoredView, exactUtc, arrangeControls, edgeLabel, fittedView, usd};\n  window.SiyabGraph ='
 );
 const document = {readyState: 'loading', addEventListener() {}};
 vm.runInNewContext(source, {window, URL, document});
 const {decimalSum, valueSummary, filteredEdges, restoredView, exactUtc} = window.vizTest;
+const {fittedView, usd} = window.vizTest;
+assert.equal(JSON.stringify(fittedView({width: 820, height: 400}, {width: 940, height: 460})), JSON.stringify({x: 0, y: 0, width: 820, height: 400}));
+assert.equal(JSON.stringify(fittedView({width: 820, height: 1288}, {width: 0, height: 0})), JSON.stringify({x: 0, y: 0, width: 820, height: 1288}));
+const tall = fittedView({width: 820, height: 1288}, {width: 940, height: 460});
+assert.equal(tall.y, 0, 'A tall fit starts at the top of the column');
+assert.equal(Math.min(940 / tall.width, 460 / tall.height).toFixed(6), '0.600000', 'A fit never shrinks labels below the minimum scale');
+assert.equal(tall.x + tall.width / 2, 410, 'A tall fit stays horizontally centered');
+assert.equal(usd('4747932.6'), '4,747,932.60');
+assert.equal(usd('12'), '12.00');
+assert.equal(usd('51615534.86'), '51,615,534.86');
+assert.equal(usd('0.001'), '<0.01');
+assert.equal(usd(null), 'Unavailable');
 assert.equal(decimalSum(['9007199254740993.000000000001', '0.000000000009']), '9007199254740993.00000000001');
 assert.equal(decimalSum(['1e-8', '0.00000001']), '0.00000002');
 assert.equal(decimalSum(['-1.20', '1.2']), '0');
@@ -26,6 +38,8 @@ const payload = {kind: 'flow', root: 'root.near', nodes: [{id: 'root.near'}, {id
 const noisy = {kind: 'flow', source: {recorded: true}, records: [{id: 'noisy', amount: '100000000000000000000000', amount_decimals: 24, human_amount: '0.09999999999999999', usd_amount: null, block_timestamp: '1'}]};
 const noisyEdge = {from: 'a.near', to: 'b.near', asset_id: 'native:near', provenance: 'onchain', record_ids: ['noisy']};
 assert.match(window.vizTest.edgeLabel(noisy, noisyEdge), /0\.1 native:near/);
+assert.match(window.vizTest.edgeLabel(noisy, noisyEdge), /1 recorded transfer\b/);
+assert.match(window.vizTest.edgeLabel(noisy, noisyEdge), /1 transfer has unknown USD/);
 assert.doesNotMatch(window.vizTest.edgeLabel(noisy, noisyEdge), /0\.09999999999999999/);
 noisy.records[0].amount_decimals = null; noisyEdge.asset_id = 'nep141:unknown.near';
 assert.match(window.vizTest.edgeLabel(noisy, noisyEdge), /100000000000000000000000 base units/);
@@ -90,3 +104,18 @@ assert.equal(controls.timeControls.parent, controls.container);
 assert.deepEqual(controls.panControls.children, originalPan);
 assert.equal(document.activeElement, controls.save);
 for (const control of originalControls) assert.equal(controls.container.contains(control), true, control.name + ' must survive a roundtrip resize');
+
+const wheelSource = fs.readFileSync('intel/ui/graphs.js', 'utf8');
+const wheelRegistration = wheelSource.match(/    svg[.]addEventListener\("wheel",[\s\S]*?\{passive: false\}\);/);
+assert.ok(wheelRegistration, 'Graph wheel handling must register a non-passive listener');
+const wheelListeners = {}, wheelState = {view: {x: 0, y: 0, width: 820, height: 480}, geometry: {width: 820}};
+let appliedViews = 0;
+vm.runInNewContext('const state=wheelState;const applyView=()=>{appliedViews++;};' +
+  wheelSource.slice(wheelSource.indexOf('    function zoom('), wheelSource.indexOf('    function pan(')) + wheelRegistration[0],
+  {wheelState, get appliedViews(){return appliedViews;}, set appliedViews(value){appliedViews=value;},
+    svg: {addEventListener(name, handler, options){assert.equal(options.passive,false);wheelListeners[name]=handler;}}});
+let prevented = 0;
+const wheel = extra => wheelListeners.wheel({deltaY: -100,ctrlKey:false,metaKey:false,preventDefault(){prevented++;},...extra});
+wheel({});assert.equal(prevented,0);assert.equal(wheelState.view.width,820);assert.equal(appliedViews,0);
+wheel({ctrlKey:true});assert.equal(prevented,1);assert.equal(wheelState.view.width,656);assert.equal(appliedViews,1);
+wheel({metaKey:true,deltaY:100});assert.equal(prevented,2);assert.equal(wheelState.view.width,820);assert.equal(appliedViews,2);

@@ -735,7 +735,7 @@ class SQLiteWorkspaceStore:
         observed = event["observed"].get("timestamp_ms")
         if type(observed) is not int or not 0 <= observed <= 8640000000000000:
             observed = None
-        accounts = {value for value in (event.get("subject"), event.get("account_id"), event.get("other_account_id")) if isinstance(value, str)}
+        accounts = {value for value in (event.get("subject"), event.get("account_id"), feed.event_counterparty(event)) if isinstance(value, str)}
         if isinstance(event.get("accounts"), list):
             accounts.update(value for value in event["accounts"] if isinstance(value, str))
         transfer = _transfer_identity(event)

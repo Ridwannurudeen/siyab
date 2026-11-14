@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from intel import feed, labels
+from intel import feed, labels, render
 
 
 ACCOUNT = "existing.near"
@@ -60,6 +60,7 @@ class FullAccessKeyOutflowTest(unittest.TestCase):
         self.assertEqual(event["labels"], [])
         self.assertEqual(event["source"]["mode"], "replay")
         self.assertEqual(event["destination"], "fresh_dust_funded")
+        self.assertEqual(event["other_account_id"], "fresh-destination.near")
         self.assertEqual(event["drain_kind"], "transfer")
         self.assertEqual(event["amount_yocto"], str(feed.MIN_OUTFLOW_YOCTO))
         self.assertFalse(event["lockout"])
@@ -118,6 +119,7 @@ class FullAccessKeyOutflowTest(unittest.TestCase):
         self.assertEqual(event["drain_kind"], "delete_account")
         self.assertIsNone(event["amount_yocto"])
         self.assertIn("beneficiary.near", event["detail"])
+        self.assertEqual(event["other_account_id"], "beneficiary.near")
 
     def test_delete_key_of_another_key_marks_lockout(self):
         state = feed.new_state()
@@ -215,6 +217,52 @@ class FullAccessKeyOutflowTest(unittest.TestCase):
             [event] = [json.loads(path.read_text(encoding="utf-8")) for path in event_paths]
         self.assertEqual(state["mode"], "follow")
         self.assertEqual(event["source"]["mode"], "follow")
+
+
+class StoredEventCounterpartyTest(unittest.TestCase):
+    def test_old_outflow_detail_supplies_counterparty_without_changing_evidence(self):
+        for drain_kind, drain in (("transfer", "transfer of 1000000000000000000000000 yoctoNEAR"),
+                                  ("delete_account", "DeleteAccount")):
+            with self.subTest(drain_kind=drain_kind):
+                event = {"signal": "full_access_key_then_outflow", "subject": ACCOUNT,
+                         "detail": f"full access key {NEW_KEY} added to {ACCOUNT}; {drain} to "
+                                   "beneficiary.near within 1000 ms", "drain_kind": drain_kind,
+                         "receipt_id": "stored-receipt", "tx_hash": "stored-transaction",
+                         "observed": {"block_height": 11, "timestamp_ms": 1800000001000},
+                         "source": SOURCE}
+                before = feed.evidence.canonical_bytes(event)
+                event_id = feed.evidence.evidence_hash(event)
+                with tempfile.TemporaryDirectory() as tmp:
+                    path = feed.evidence.write(event, Path(tmp))
+                    original = path.read_bytes()
+                    document = json.loads(original)
+                    panel = render._feed_panel([(document, event_id)])
+                    self.assertEqual(path.read_bytes(), original)
+                    self.assertEqual(path.stem, event_id)
+                self.assertIn('<q class="data">beneficiary.near</q>', panel)
+                self.assertIn('evidence/' + event_id, panel)
+                self.assertEqual(feed.evidence.canonical_bytes(document), before)
+                self.assertEqual(feed.evidence.evidence_hash(document), event_id)
+                self.assertNotIn("other_account_id", document)
+
+    def test_missing_or_ambiguous_details_do_not_guess_a_counterparty(self):
+        prefix = f"full access key {NEW_KEY} added to {ACCOUNT}; "
+        for detail in (None, "beneficiary.near", prefix + "DeleteAccount to a.near or b.near within 1 ms",
+                       prefix + "DeleteAccount to a.near within 1 ms; DeleteAccount to b.near within 2 ms",
+                       prefix.replace(ACCOUNT, "another.near") + "DeleteAccount to a.near within 1 ms"):
+            with self.subTest(detail=detail):
+                event = {"signal": "full_access_key_then_outflow", "subject": ACCOUNT,
+                         "detail": detail, "drain_kind": "delete_account"}
+                self.assertIsNone(feed.event_counterparty(event))
+        event = {"signal": "another_signal", "subject": ACCOUNT, "drain_kind": "delete_account",
+                 "detail": prefix + "DeleteAccount to a.near within 1 ms"}
+        self.assertIsNone(feed.event_counterparty(event))
+
+    def test_recorded_counterparty_remains_authoritative(self):
+        event = {"other_account_id": "recorded.near", "signal": "full_access_key_then_outflow",
+                 "subject": ACCOUNT, "drain_kind": "delete_account",
+                 "detail": f"full access key {NEW_KEY} added to {ACCOUNT}; DeleteAccount to old.near within 1 ms"}
+        self.assertEqual(feed.event_counterparty(event), "recorded.near")
 
 
 class FeedFPRateTest(unittest.TestCase):

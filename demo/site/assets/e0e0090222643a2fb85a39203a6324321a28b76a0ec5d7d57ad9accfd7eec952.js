@@ -96,7 +96,7 @@
       const row = element("article", undefined, "jobs-entry"), main = element("div"), actions = element("div", undefined, "jobs-actions");
       const heading = element("h3"), link = element("a", job.account_id); link.href = "/investigate.html?account=" + encodeURIComponent(job.account_id); heading.append(link);
       main.append(heading, element("p", (job.kind === "graph" ? "Transfer graph" : job.kind === "transactions" ? "Transactions" : "Transfers") + ". " + (job.state === "failed" && job.last_error === "job_capacity" ? "Collection stopped at the job storage limit" : labels[job.state]) + ".", "jobs-state"));
-      main.append(element("p", `${job.counts.pages} / ${job.bounds.max_pages} page limit; ${job.counts.matched_rows} / ${job.bounds.max_rows} retained row limit. ${job.counts.scanned_rows} rows scanned.`, "jobs-counts"));
+      main.append(element("p", `${job.counts.pages} / ${job.bounds.max_pages} page limit; ${job.counts.matched_rows} / ${job.bounds.max_rows} retained row limit. ${job.counts.scanned_rows} ${job.counts.scanned_rows === 1 ? "row" : "rows"} scanned.`, "jobs-counts"));
       main.append(element("p", "Window: " + (job.bounds.from_timestamp_ms === null || job.bounds.from_timestamp_ms === undefined ? "No lower date bound" : date(job.bounds.from_timestamp_ms)) + " to before " + date(job.bounds.to_timestamp_ms) + ".", "jobs-source"));
       if (active(job) && Number.isFinite(job.retry_at_ms) && job.retry_at_ms > Date.now()) main.append(element("p", "Next eligible attempt: " + date(job.retry_at_ms) + ".", "jobs-source"));
       if (job.last_error) main.append(element("p", job.last_error === "job_capacity" ? "Job storage capacity was reached. Retained results remain available." : job.last_error === "history_capacity" ? "Waiting for read or storage capacity. Retained results remain available." : job.last_error === "watch_priority" ? "Paused while due watched accounts are polled. After three short pauses in a row it reads its next page anyway. Retained results remain available." : "Last attempt could not read its source (" + String(job.last_error) + "). Retained results remain available.", "jobs-source"));
@@ -153,7 +153,7 @@
       }
       table.append(caption, head, body); resultBody.append(table);
     }
-    const sources = element("details"); sources.append(element("summary", "Collection sources (" + data.observations.length + " pages)"));
+    const sources = element("details"); sources.append(element("summary", "Collection sources (" + data.observations.length + (data.observations.length === 1 ? " page)" : " pages)")));
     for (const observation of data.observations) {
       const entry = element("div"); entry.append(element("p", (typeof observation.source?.provider === "string" ? observation.source.provider : "Provider unavailable") + ". Observed " + (typeof observation.observed_at === "string" ? observation.observed_at : "time unavailable") + ".", "jobs-source"));
       if (typeof observation.page_id === "string" && /^[a-f0-9]{64}$/.test(observation.page_id)) entry.append(element("p", "Retained page SHA-256: " + observation.page_id, "jobs-evidence")); sources.append(entry);

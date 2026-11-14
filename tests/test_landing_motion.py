@@ -288,7 +288,7 @@ class LandingMotionBrowserTest(unittest.TestCase):
                     menu = page.locator("#mobile-navigation > summary")
                     if menu.is_visible():
                         menu.click()
-                    for label, path in (("Explore", "/explore.html"), ("Account lookup", "/investigate.html"), ("Incidents", "/explore.html#explore-title"), ("Verify", "/verify.html")):
+                    for label, path in (("Explore", "/explore.html"), ("Account lookup", "/investigate.html"), ("Incidents", "/explore.html#incidents"), ("Verify", "/verify.html")):
                         links = page.locator("header a").filter(has_text=re.compile("^" + label + "$"))
                         visible = [link for link in links.all() if link.is_visible()]
                         self.assertTrue(visible, label)

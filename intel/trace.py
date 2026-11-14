@@ -203,7 +203,8 @@ def gross_sentence(document):
     return (f"Gross means the same value can appear in more than one row: {total(into)} of these rows are "
             f"ft_transfer_call or near_deposit into a terminal contract ({contracts}), {total(inside)} are moves of "
             "balances held inside intents.near (asset ids under nep245:intents.near:), and "
-            f"{total(back)} came back to the subject in {len(back)} rows of the {len(read)} accounts read; inbound "
+            f"{total(back)} came back to the subject in {len(back)} row{'' if len(back) == 1 else 's'} of the "
+            f"{len(read)} account{'' if len(read) == 1 else 's'} read; inbound "
             "rows of the subject were not read, so no net figure is stated, and the incident page states no loss "
             "figure.")
 
@@ -215,11 +216,13 @@ def summary(document):
     accounts = {document["subject"]} | {h["from"] for h in document["hops"]} | {h["to"] for h in document["hops"]}
     shares = document["shares"]
     ends = ", ".join(share_items(shares)) or "none"
-    return (f"{len(document['hops'])} hops over {len(accounts)} accounts; depth {document['depth_reached']} of "
+    return (f"{len(document['hops'])} hop{'' if len(document['hops']) == 1 else 's'} over "
+            f"{len(accounts)} account{'' if len(accounts) == 1 else 's'}; depth {document['depth_reached']} of "
             f"{document['depth']}, {_stop_text(document['completeness'])}; gross outbound transfer value after "
             f"{document['window']['from'][:10]} 00:00 UTC{read_extent(document)}: "
-            f"{usd_text(shares['direct_outbound_usd'])} across {shares['rows']} rows ({shares['without_usd']['count']} "
-            f"rows without a USD amount, {shares['below_min_usd']['count']} below {MIN_USD} USD), each row counted "
+            f"{usd_text(shares['direct_outbound_usd'])} across {shares['rows']} row{'' if shares['rows'] == 1 else 's'} "
+            f"({shares['without_usd']['count']} row{'' if shares['without_usd']['count'] == 1 else 's'} without a USD "
+            f"amount, {shares['below_min_usd']['count']} below {MIN_USD} USD), each row counted "
             f"once as the Transfers API values it; shares of the gross outbound transfer value: {ends}; "
             f"{gross_sentence(document)[:-1]}; subject: "
             f"{_state_text(document['state_at_block']) or 'no issuer read'}")

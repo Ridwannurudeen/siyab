@@ -142,7 +142,7 @@ async function main(){
  events['siyab:workspace-context'](context('team-b','viewer'));reply(pending.at(-1),session('team-b','viewer'));await tick();await load(status({state:'active'}));
  assert.equal(control('Disconnect Telegram'),undefined);assert.match(text(ids['delivery-controls']),/Only a team owner/);
  ids['delivery-refresh'].listeners.click();const stale=pending.at(-1);events['siyab:workspace-context']({detail:{authenticated:false}});assert.ok(stale.options.signal.aborted);
- reply(stale,status({state:'observed',observed_chat_label:'PRIVATE OLD TEAM',generation:5}));await tick();assert.doesNotMatch(text(ids['delivery-controls']),/PRIVATE OLD TEAM/);assert.equal(ids['delivery-log'].children.length,0);
+ reply(stale,status({state:'observed',observed_chat_label:'PRIVATE OLD TEAM',generation:5}));await tick();assert.doesNotMatch(text(ids['delivery-controls']),/PRIVATE OLD TEAM/);assert.equal(ids['delivery-log'].children.length,1);assert.equal(ids['delivery-log'].children[0].tag,'p');assert.equal(ids['delivery-log'].children[0].textContent,'Sign in and select a team to see deliveries.');assert.doesNotMatch(text(ids['delivery-log']),/PRIVATE OLD TEAM/);
  events['siyab:workspace-context'](context());reply(pending.at(-1),session());await tick();reply(pending.at(-1),{},403);await tick();assert.match(ids['delivery-context'].textContent,/session changed/);assert.equal(ids['delivery-controls'].children.length,0);
  events.pagehide();assert.equal(timers.size,0);
  console.log('Delivery UI: configuration, session verification, CSRF, fixed bot link, explicit generation confirmation, retry, revoke, permissions, stale responses and private clearing passed.');

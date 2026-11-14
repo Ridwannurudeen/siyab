@@ -37,6 +37,7 @@ import io
 import json
 import os
 import re
+import sys
 import time
 import urllib.error
 import urllib.parse
@@ -1062,6 +1063,8 @@ class Client:
                 response = _fetch(request_url or url, body, headers, record_http_errors)
             except HttpError as error:
                 if keyed:
+                    if error.status in (401, 402, 403):
+                        print(f"provider rejected the key: HTTP {error.status} from {host}", file=sys.stderr)
                     budget.key_failure(error.status, self.clock())
                 raise
             fetched_at = _timestamp(self.clock())
