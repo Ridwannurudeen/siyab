@@ -344,7 +344,6 @@ class TransactionCheckTest(unittest.TestCase):
         for module in ("gate.signer", "gate.verdict", "gate.agent", "gate.outlayer", "nacl", "py_near"):
             self.assertNotIn(repr(module), loaded)
 
-    @unittest.skip("missing fixture: fixtures/txcheck/recorded-delete-account.json (raw DeleteAccount action)")
     def test_recorded_delete_account_action(self):
         transaction = json.loads((ROOT / "fixtures/txcheck/recorded-delete-account.json").read_text(encoding="utf-8"))
         answer, document = self.document(transaction)
