@@ -20,6 +20,11 @@ COPY = "copy.synthetic.near"
 LEGACY = "legacy.synthetic.near"
 FT_METADATA = {"method_name": "ft_metadata", "args_base64": "e30="}
 PUBLIC_KEY = "ed25519:" + base58.encode(bytes(range(32)))
+# The synthetic block 100 every fake read answers at; the strict schema needs a base58 hash of 32 bytes.
+BLOCK_HASH = base58.encode(bytes([100]) * 32)
+BLOCK = {"block_height": 100, "block_hash": BLOCK_HASH}
+# The view_account fields the strict schema requires besides code_hash and the block context.
+ACCOUNT = {"amount": "0", "locked": "0", "storage_usage": 0, "block_hash": BLOCK_HASH}
 
 
 def native_usdc():
@@ -41,6 +46,8 @@ class TokenCheckTest(unittest.TestCase):
         self.addCleanup(directory.cleanup)
         self.directory = Path(directory.name)
         self.rpc = rpc.Client(rpc.MAINNET_RPC_URL, "replay", fixtures_dir=self.directory)
+        self.write({"block_id": 100}, {"header": {"height": 100, "timestamp": NOW_MS * 1000000, "hash": BLOCK_HASH}},
+                   method="block")
         self.issuer_patch = mock.patch("gate.rules.issuers_for", return_value=self.data["issuers"])
         self.issuer_patch.start()
         self.addCleanup(self.issuer_patch.stop)
@@ -50,32 +57,33 @@ class TokenCheckTest(unittest.TestCase):
             self.account(token, values["code_hash"])
             self.keys(token, values["keys"])
 
-    def write(self, params, result):
-        key = rpc.fixture_key(rpc.MAINNET_RPC_URL, "query", params)
+    def write(self, params, result, method="query"):
+        key = rpc.fixture_key(rpc.MAINNET_RPC_URL, method, params)
         value = {"synthetic": True, "url": rpc.MAINNET_RPC_URL,
-                 "request": {"method": "query", "params": params},
+                 "request": {"method": method, "params": params},
                  "response": {"jsonrpc": "2.0", "id": "gate", "result": result},
                  "fetched_at": "2026-11-13T00:00:00Z"}
         (self.directory / f"{key}.json").write_text(json.dumps(value), encoding="utf-8", newline="\n")
 
     def function(self, token, value):
         params = {"request_type": "call_function", "finality": "final", "account_id": token, **FT_METADATA}
-        self.write(params, {"result": list(json.dumps(value).encode("utf-8")), "logs": [],
-                            "block_height": 100, "block_hash": "SyntheticBlock"})
+        self.write(params, {"result": list(json.dumps(value).encode("utf-8")), "logs": [], **BLOCK})
 
     def account(self, token, code_hash, **extra):
-        self.write({"request_type": "view_account", "finality": "final", "account_id": token},
-                   {"code_hash": code_hash, "block_height": 100, **extra})
+        self.account_result(token, {"code_hash": code_hash, "block_height": 100, **extra})
 
     def account_result(self, token, result):
-        self.write({"request_type": "view_account", "finality": "final", "account_id": token}, result)
+        """view_account answering result over the other fields the strict schema requires."""
+        self.write({"request_type": "view_account", "finality": "final", "account_id": token},
+                   {**ACCOUNT, **result})
 
     def keys(self, token, rows, height=100):
         """The key list at the final block and at block 100, where the account read is; the second
         answers at height, which is absent when height is None."""
         self.write({"request_type": "view_access_key_list", "finality": "final", "account_id": token},
-                   {"keys": rows, "block_height": 100})
-        result = {"keys": rows} if height is None else {"keys": rows, "block_height": height}
+                   {"keys": rows, **BLOCK})
+        result = ({"keys": rows, "block_hash": BLOCK_HASH} if height is None
+                  else {"keys": rows, "block_height": height, "block_hash": BLOCK_HASH})
         self.write({"request_type": "view_access_key_list", "block_id": 100, "account_id": token}, result)
 
     def remove_keys(self, token):
@@ -412,7 +420,8 @@ class TokenCheckTest(unittest.TestCase):
 
     def test_synthetic_full_access_unknown_with_count(self):
         row = {"public_key": PUBLIC_KEY, "access_key": {"permission": "FullAccess", "nonce": 0}}
-        self.keys(TOKEN, [row, row])
+        other = dict(row, public_key="ed25519:" + base58.encode(bytes(range(1, 33))))
+        self.keys(TOKEN, [row, other])
         answer = self.run_check()
         check = self.checks(answer)["contract_control"]
         self.assertEqual(check["status"], "unknown")
@@ -562,13 +571,25 @@ class TokenCheckTest(unittest.TestCase):
         self.assertEqual(checks["incident_code"]["status"], "pass")
 
     def test_synthetic_invalid_metadata_uses_existing_helper(self):
-        self.function(TOKEN, {"name": "Token", "symbol": "TOK", "decimals": True})
+        self.function(TOKEN, {"name": "Token", "symbol": "TOK", "decimals": 25})
         with mock.patch("gate.rules._ft_metadata_check", wraps=rules._ft_metadata_check) as helper:
             answer = self.run_check()
         helper.assert_called_once()
         self.assertEqual(helper.call_args.args[1], TOKEN)
         self.assertEqual(self.checks(answer)["ft_metadata_sane"]["status"], "signal")
         self.assertEqual(answer["outcome"], "DENY")
+
+    def test_synthetic_boolean_decimals_rejected_by_client_unknown(self):
+        self.function(TOKEN, {"name": "Token", "symbol": "TOK", "decimals": True})
+        answer = self.run_check()
+        checks = self.checks(answer)
+        self.assertEqual(checks["ft_metadata_sane"]["status"], "unknown")
+        self.assertEqual(checks["symbol_impersonation"]["status"], "unknown")
+        others = {key: check["status"] for key, check in checks.items()
+                  if key not in ("ft_metadata_sane", "symbol_impersonation")}
+        self.assertEqual(set(others), {"token_in_catalog", "contract_control", "incident_code"})
+        self.assertTrue(all(status == "pass" for status in others.values()), others)
+        self.assertEqual(answer["outcome"], "ASK")
 
     def test_synthetic_testnet_and_invalid_ids_refused_before_reads(self):
         with mock.patch.object(self.rpc, "call", side_effect=AssertionError("unexpected read")):
