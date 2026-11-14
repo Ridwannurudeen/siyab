@@ -145,6 +145,26 @@ class BrowserRuntimeTest(unittest.TestCase):
 
 
 class AppShellTest(unittest.TestCase):
+    def test_recorded_search_links_open_explore(self):
+        feed_script = (ROOT / "intel/ui/feed.js").read_text(encoding="utf-8")
+        shell_script = (ROOT / "intel/ui/shell.js").read_text(encoding="utf-8")
+        self.assertIn('"/explore.html?q=" + encodeURIComponent(row.subject)', feed_script)
+        self.assertIn('location.href = "/explore.html#search"', shell_script)
+        self.assertNotIn('/index.html?q=', feed_script)
+        self.assertNotIn('/index.html#search', shell_script)
+
+    def test_home_and_explore_have_distinct_sidebar_routes(self):
+        for title, current in (("Siyab", "index.html"), ("Explore", "explore.html")):
+            document = render.page(title, "<h1>" + title + "</h1>")
+            sidebar = document.split('<aside class="app-sidebar">', 1)[1].split('</aside>', 1)[0]
+            home = '<a href="index.html"' + (' aria-current="page"' if current == "index.html" else '') + '>Home</a>'
+            explore = '<a href="explore.html"' + (' aria-current="page"' if current == "explore.html" else '') + '>Explore</a>'
+            self.assertIn(home + explore, sidebar)
+            for route in ("investigate.html", "explore.html#tools", "explore.html#explore-title"):
+                self.assertIn('href="' + route + '"', sidebar)
+            for route in ("index.html#tools", "index.html#explore-title"):
+                self.assertNotIn('href="' + route + '"', document)
+
     def test_shell_has_shared_landmarks_and_native_mobile_navigation(self):
         page = render.page("Feed", "<h1>Feed</h1>")
         for markup in ('<aside class="app-sidebar">', '<header class="app-topbar">',
@@ -187,7 +207,7 @@ class AppShellTest(unittest.TestCase):
         self.assertIn('<label for="record-theme-light">Light</label>', page)
         self.assertIn('<main class="app-content record-content" id="main-content">', page)
         self.assertIn('<details class="mobile-navigation" id="mobile-navigation">', page)
-        for path in ('index.html', 'flows/rhea-collector.html', 'feed.html', 'index.html#tools',
+        for path in ('index.html', 'explore.html', 'flows/rhea-collector.html', 'feed.html', 'explore.html#tools',
                      'verify.html', 'entities/infrastructure.html', 'records/index.html', 'issuers.html'):
             self.assertIn(f'href="../{path}"', page)
         self.assertNotIn('aria-current=', page)
@@ -250,7 +270,7 @@ class AnalyticsPresentationTest(unittest.TestCase):
         self.assertLess(cluster.index(html.escape(document["standard"])), cluster.index('data-siyab-graph'))
 
     def test_preserved_section_labels_follow_their_headings(self):
-        page = render.index_page([], [], [], labels.load())
+        page = render.explore_page([], [], [], labels.load())
         self.assertNotIn('class="eyebrow"', page)
         for heading, label in (("Payment and key checks", "Live read"), ("Run a check", "Live tools"),
                                ("Proven on testnet", "Committed run logs"), ("Reports with evidence", "Community reports"),
@@ -281,7 +301,7 @@ class RenderTest(unittest.TestCase):
 
     def assert_local_script_assets(self, page):
         expected = {}
-        for name in ("number-format", "graphs", "workspace", "investigate", "cloud-workspace", "enrichment", "portfolio", "investigation-jobs", "delivery"):
+        for name in ("number-format", "graphs", "workspace", "investigate", "cloud-workspace", "enrichment", "portfolio", "investigation-jobs", "delivery", "landing"):
             source = (ROOT / f"intel/ui/{name}.js").read_text(encoding="utf-8").encode("utf-8")
             digest = hashlib.sha256(source)
             expected[f"/assets/{digest.hexdigest()}.js"] = (name, source, "sha256-" + base64.b64encode(digest.digest()).decode("ascii"))
@@ -302,6 +322,7 @@ class RenderTest(unittest.TestCase):
         self.assertEqual(found.count("cloud-workspace"), 0 if 'class="app-content record-content"' in page else 1)
         self.assertEqual(found.count("investigate"), 1 if 'id="account-investigation"' in page else 0)
         self.assertEqual(found.count("number-format"), 0 if 'class="app-content record-content"' in page else 1)
+        self.assertEqual(found.count("landing"), 1 if 'class="landing-page"' in page else 0)
         for name, mount in (("enrichment", "entity-enrichment"), ("portfolio", "account-portfolio"),
                             ("investigation-jobs", "investigation-jobs"), ("delivery", "team-delivery")):
             self.assertEqual(found.count(name), 1 if f'id="{mount}"' in page else 0)
@@ -309,11 +330,13 @@ class RenderTest(unittest.TestCase):
     def test_the_homepage_uses_the_siyab_project_name(self):
         page = self.pages["index.html"]
         self.assertIn("<title>Siyab</title>", page)
-        self.assertIn(render.HEADLINE, html.unescape(page))
+        heading = re.search(r'<h1[^>]*>(.*?)</h1>', page, re.DOTALL).group(1)
+        heading = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", heading))).strip()
+        self.assertEqual(heading, "Security intelligence for NEAR, with a source on every row.")
         self.assertNotIn("ShieldBot for NEAR", page)
 
     def test_workspace_keeps_evidence_and_adds_shared_investigation_shell(self):
-        home = self.pages["index.html"]
+        home = self.pages["explore.html"]
         self.assertIn('data-siyab-graph', home)
         self.assertLess(home.index('data-siyab-graph'), home.index('class="hero-grid"'))
         self.assertIn(render.HEADLINE, html.unescape(home))
@@ -346,7 +369,7 @@ class RenderTest(unittest.TestCase):
             self.assertEqual(source.read_bytes(), (self.out / "fonts" / source.name).read_bytes())
 
     def test_polling_and_search_keep_lifecycle_and_keyboard_controls(self):
-        home = self.pages["index.html"]
+        home = self.pages["explore.html"]
         for required in ('new AbortController()', 'request !== generation', 'visibilitychange',
                          'document.hidden', 'pagehide', 'pending = data;', '.slice(-50).reverse()',
                          'previous = JSON.stringify([data.events, data.event_ids || null])',
@@ -407,9 +430,9 @@ class RenderTest(unittest.TestCase):
         self.assertNotIn('<p class="eyebrow">Account profile</p>', page)
 
     @unittest.skipUnless(importlib.util.find_spec("playwright"), "Browser runtime is unavailable")
-    def test_home_linked_accounts_reflow_at_phone_widths(self):
+    def test_explore_linked_accounts_reflow_at_phone_widths(self):
         from playwright.sync_api import sync_playwright
-        home = self.pages["index.html"]
+        home = self.pages["explore.html"]
         paths = {link.lstrip("/") for link in LINK.findall(home) if "accounts/" in link}
         asset = re.search(r'data-graph-src="/([^" ]+)"', home).group(1)
         graph_data = json.loads((self.out / asset).read_text(encoding="utf-8"))
@@ -438,7 +461,7 @@ class RenderTest(unittest.TestCase):
     def test_generated_styles_preserve_native_hidden_control_semantics(self):
         stylesheet = (self.out / "style.css").read_text(encoding="utf-8")
         self.assertRegex(stylesheet, r"(?:^|})\s*\[hidden\]\s*\{[^}]*display\s*:\s*none\s*!important")
-        for name in ("index.html", "feed.html"):
+        for name in ("explore.html", "feed.html"):
             self.assertIn('<button id="feed-apply" type="button" hidden>', self.pages[name])
         self.assertIn('button,.button{display:inline-flex', stylesheet)
 
@@ -450,7 +473,7 @@ class RenderTest(unittest.TestCase):
                             if path.name != "body-vector.json"]
         entities = [json.loads(line)["id"] for line in (ROOT / "intel" / "entities.jsonl").read_text(
             encoding="utf-8").splitlines()]
-        expected = (["index.html", "feed.html", "verify.html", "404.html", "issuers.html", "workspace.html", "investigate.html"]
+        expected = (["index.html", "explore.html", "feed.html", "verify.html", "404.html", "issuers.html", "workspace.html", "investigate.html"]
                     + ["top-receivers.html"]
                     + [f"incidents/{i}.html" for i in incidents]
                     + [f"entities/{name}.html" for name, _, _ in render.ENTITY_SETS] + [f"flows/{f}.html" for f in flows]
@@ -469,7 +492,7 @@ class RenderTest(unittest.TestCase):
         for path in (ROOT / "intel/flows").glob("*.json"):
             count = len(json.loads(path.read_text(encoding="utf-8"))["hops"])
             expected.extend(f"flows/{path.stem}.page-{number}.html" for number in range(2, (count + 49) // 50 + 1))
-        for name in ("number-format", "graphs", "workspace", "investigate", "cloud-workspace", "enrichment", "portfolio", "investigation-jobs", "delivery"):
+        for name in ("number-format", "graphs", "workspace", "investigate", "cloud-workspace", "enrichment", "portfolio", "investigation-jobs", "delivery", "landing"):
             source = (ROOT / f"intel/ui/{name}.js").read_text(encoding="utf-8").encode("utf-8")
             expected.append(f"assets/{hashlib.sha256(source).hexdigest()}.js")
         expected.extend(f"brand/{source.name}" for source in (ROOT / "intel/ui/brand").iterdir() if source.is_file())
@@ -492,7 +515,7 @@ class RenderTest(unittest.TestCase):
                 self.assertIn("python -m intel record-check", page)
                 self.assertIn(f"fixtures/records/{record['record_id']}.json", page)
                 self.assertIn(f'href="{record["record_id"]}.html">{record["record_id"]}</a>', index)
-        self.assertIn('href="records/index.html"', self.pages["index.html"])
+        self.assertIn('href="records/index.html"', self.pages["explore.html"])
 
     def test_committed_record_pages_render_identically_twice(self):
         with tempfile.TemporaryDirectory() as tmp, mock.patch("urllib.request.urlopen", side_effect=no_network):
@@ -548,16 +571,16 @@ class RenderTest(unittest.TestCase):
         self.assertEqual({entry["subject"] for entry in search["accounts"]}, current_subjects)
         entities = [json.loads(line) for line in (ROOT / "intel" / "entities.jsonl").read_text(encoding="utf-8").splitlines()]
         self.assertEqual({entry["id"] for entry in search["entities"]}, {entity["id"] for entity in entities})
-        self.assertIn("account-form", self.pages["index.html"])
-        self.assertIn("<script>", self.pages["index.html"])
-        self.assert_local_script_assets(self.pages["index.html"])
+        self.assertIn("account-form", self.pages["explore.html"])
+        self.assertIn("<script>", self.pages["explore.html"])
+        self.assert_local_script_assets(self.pages["explore.html"])
         for entry in search["accounts"]:
             with self.subTest(subject=entry["subject"]):
                 self.assertTrue(entry["label_sources"])
                 self.assertTrue(all(row["source"] for row in entry["label_sources"]))
 
-    def test_index_has_the_account_search_tools_and_proven_run_logs(self):
-        page = self.pages["index.html"]
+    def test_explore_has_the_account_search_tools_and_proven_run_logs(self):
+        page = self.pages["explore.html"]
         for text in ("Paste any NEAR account", "Can I pay this?", "Is this account safe to use?",
                      "Where is this swap really going?", "Proven on testnet", "Not in the label store."):
             with self.subTest(text=text):
@@ -573,8 +596,8 @@ class RenderTest(unittest.TestCase):
         self.assertIn("9 Nov recorded demonstration: three team moderators, with two approvals to accept a report.", page)
         self.assertIn("fixtures/runs/reports-threshold-demo-20261109.txt", page)
 
-    def test_generated_index_shows_sources_and_fails_live_checks_closed(self):
-        page = self.pages["index.html"]
+    def test_generated_explore_shows_sources_and_fails_live_checks_closed(self):
+        page = self.pages["explore.html"]
         search = json.loads((self.out / "search.json").read_text(encoding="utf-8"))
         entry = search["accounts"][0]
         self.assertTrue(entry["label_sources"])
@@ -592,7 +615,7 @@ class RenderTest(unittest.TestCase):
         self.assertIn('data.outcome !== "ALLOW" || data.checks.every(check => check.status.trim().toLowerCase() === "pass")', page)
 
     def test_allow_ask_requires_a_person_and_uses_neutral_style(self):
-        page = self.pages["index.html"]
+        page = self.pages["explore.html"]
         is_green = page[page.index("const isGreen ="):page.index("const displayOutcome =")]
         self.assertIn('data.outcome === "ALLOW" && data.action === "sign"', is_green)
         self.assertIn("data.evidence_hash.trim().length > 0", is_green)
@@ -604,7 +627,7 @@ class RenderTest(unittest.TestCase):
         self.assertIn("A person must decide before this payment can proceed.", page)
 
     def test_live_panel_requests_ignore_stale_responses(self):
-        page = self.pages["index.html"]
+        page = self.pages["explore.html"]
         self.assertIn("const requestTokens = new WeakMap();", page)
         self.assertIn("const beginRequest = panel => {", page)
         self.assertIn("const isCurrentRequest = (panel, token) => requestTokens.get(panel) === token;", page)
@@ -672,8 +695,8 @@ class RenderTest(unittest.TestCase):
                     with self.subTest(theme=theme, foreground="--accent", tint=surface):
                         self.assertGreaterEqual(contrast(colors["--accent"], tinted), 4.5)
 
-    def test_index_has_no_unexpected_host_or_remote_script_or_font(self):
-        page = self.pages["index.html"]
+    def test_explore_has_no_unexpected_host_or_remote_script_or_font(self):
+        page = self.pages["explore.html"]
         stylesheet = (self.out / "style.css").read_text(encoding="utf-8")
         urls = [link for link in re.findall(r'<a\b[^>]*\bhref="([^"]*)"', page) if link.startswith(("http://", "https://"))]
         self.assertTrue(urls)
@@ -736,7 +759,7 @@ class RenderTest(unittest.TestCase):
         window = ranking["window"]
         self.assertIn(f'{window["hours"]} hours, {window["start_timestamp"]}', page)
         self.assertIn(f'{window["end_timestamp"]}', page)
-        index = self.pages["index.html"]
+        index = self.pages["explore.html"]
         self.assertIn("990 judged: 270 ALLOW, 1 DENY, 719 UNKNOWN.", index)
         self.assertIn('href="top-receivers.html">Open aggregate results</a>', index)
 
@@ -785,7 +808,7 @@ class RenderTest(unittest.TestCase):
         for name, page in self.pages.items():
             with self.subTest(page=name):
                 text = own_text(page)
-                if name == "index.html":
+                if name == "explore.html":
                     text = text.replace(render.HEADLINE, "")
                     text = text.replace("Is this account safe to use?", "")
                 self.assertIsNone(forbidden(text), forbidden(text))
@@ -833,12 +856,12 @@ class RenderTest(unittest.TestCase):
                         self.assertIn(f'id="{fragment}"', self.pages[target.relative_to(root).as_posix()])
                         checked_fragments.add((target, fragment))
 
-    def test_the_index_carries_the_counts_lines(self):
+    def test_the_explore_carries_the_counts_lines(self):
         for line in render._counts_lines():
-            self.assertIn(f"<p>{html.escape(line)}</p>", self.pages["index.html"])
+            self.assertIn(f"<p>{html.escape(line)}</p>", self.pages["explore.html"])
 
-    def test_the_index_says_what_the_counts_are_of_between_the_h1_and_the_counts_card(self):
-        page = self.pages["index.html"]
+    def test_the_explore_says_what_the_counts_are_of_between_the_h1_and_the_counts_card(self):
+        page = self.pages["explore.html"]
         sentence = f"<p>{html.escape(render.COUNTS_OF)}</p>"
         self.assertLess(page.index("</h1>"), page.index(sentence))
         self.assertLess(page.index(sentence), page.index('<div class="card">'))
@@ -931,9 +954,9 @@ class RenderTest(unittest.TestCase):
         self.assertNotIn("torn", page)
         self.assertNotIn("No signal fired", page)
 
-    def test_the_index_headline_is_the_requested_account_sentence(self):
-        self.assertIn(f'<p id="payment-introduction">{html.escape(render.HEADLINE)}</p>', self.pages["index.html"])
-        self.assertIn("checks whether an account is safe to pay", self.pages["index.html"])
+    def test_the_explore_headline_is_the_requested_account_sentence(self):
+        self.assertIn(f'<p id="payment-introduction">{html.escape(render.HEADLINE)}</p>', self.pages["explore.html"])
+        self.assertIn("checks whether an account is safe to pay", self.pages["explore.html"])
 
     def test_the_verify_page_inputs_carry_placeholders_from_committed_records(self):
         record = json.loads((ROOT / "fixtures" / "registry" / "testnet-latest-kestrelridge-shop.json")
@@ -1007,7 +1030,7 @@ class RenderTest(unittest.TestCase):
             self.assertIn(hop["transaction_hash"], all_evidence)
             self.assertIn(f"block {hop['block']}", all_evidence)
         self.assertIn(f"depth {document['depth_reached']} of {document['depth']}, "
-                      f"{trace.stop_state(document['completeness'])}", self.pages["index.html"])
+                      f"{trace.stop_state(document['completeness'])}", self.pages["explore.html"])
 
     def test_the_cluster_page_shows_every_edge_with_its_provenance_and_the_hypothesis_heading_for_inferred_edges(self):
         paths = sorted((ROOT / "intel" / "clusters").glob("*.json"))
@@ -1047,7 +1070,7 @@ class RenderTest(unittest.TestCase):
                 depositors = document["depositors"]
                 self.assertIn(f"{depositors['count']} distinct depositors of", page)
                 self.assertIn(f"{depositors['implicit_count']} of them implicit accounts", page)
-                self.assertIn(f'href="clusters/{path.stem}.html"', self.pages["index.html"])
+                self.assertIn(f'href="clusters/{path.stem}.html"', self.pages["explore.html"])
 
     def test_the_issuer_page_lists_every_action_with_its_block(self):
         page = self.pages["issuers.html"]
@@ -1091,7 +1114,7 @@ class RenderTest(unittest.TestCase):
         for words in ("every action", "ever took", "frozen", "blocked"):
             self.assertNotIn(words, own.lower())
         self.assertIsNone(re.search(r"\bUSD\b|\$", own))
-        self.assertIn('href="issuers.html"', self.pages["index.html"])
+        self.assertIn('href="/issuers.html"', self.pages["index.html"])
 
     def test_the_issuers_command_hands_every_argument_to_the_module_main(self):
         with mock.patch.object(issuers, "main", return_value=1) as module_main:

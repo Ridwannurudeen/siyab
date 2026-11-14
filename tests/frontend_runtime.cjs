@@ -52,7 +52,7 @@ async function main() {
     menu.append(summary); menu.open = true;
     menu.emit('click', {target: {closest: () => null}});
     assert.equal(menu.open, true, 'Native summary click must retain its own toggle behavior');
-    menu.emit('click', {target: {closest: () => ({href: '/index.html#tools'})}});
+    menu.emit('click', {target: {closest: () => ({href: '/explore.html#tools'})}});
     assert.equal(menu.open, false, 'Same-page navigation must close the mobile sheet');
     menu.open = true; env.document.emit('keydown', {key: 'Escape'});
     assert.equal(menu.open, false); assert.equal(env.document.activeElement, summary);

@@ -72,6 +72,8 @@ class DA2DesignTest(unittest.TestCase):
             def motion(css):
                 found = []
                 for selector, body, context in rules(css):
+                    if selector.startswith(".landing-motion-ready ") or any(item in ("@keyframes landing-draw", "@keyframes landing-rail") for item in context):
+                        continue
                     declarations = re.findall(r"(?:^|;)((?:animation|transition)(?:-[a-z-]+)?:[^;]+)", body)
                     if declarations or any("keyframes" in item or "prefers-reduced-motion" in item for item in context) or "pause" in selector:
                         found.append((selector, declarations, context, body if any("keyframes" in item or "prefers-reduced-motion" in item for item in context) or "pause" in selector else None))

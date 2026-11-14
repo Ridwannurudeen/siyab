@@ -25,7 +25,7 @@ function environment(url = path, protocol = 'https:') {
   document.readyState = 'loading';
   document.createElement = tag => Object.assign(new Element(tag), {ownerDocument: document});
   document.querySelectorAll = () => [container];
-  const location = new URL(protocol === 'file:' ? 'file:///site/index.html' : 'https://siyab.xyz/index.html');
+  const location = new URL(protocol === 'file:' ? 'file:///site/explore.html' : 'https://siyab.xyz/explore.html');
   const window = {location};
   vm.runInNewContext(fs.readFileSync('intel/ui/number-format.js','utf8'),{window});
   const requests = [], timers = new Map();
