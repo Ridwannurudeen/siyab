@@ -657,7 +657,15 @@ def _delivery_follow(args):
     if state == ROOT or ROOT in state.parents:
         print("stopped: workspace state must be outside the source repository", file=sys.stderr)
         return 2
-    result = delivery.run(SQLiteWorkspaceStore(state / "workspace.sqlite3"), once=args.once)
+    with budget.use_database(state / budget.DATABASE_NAME):
+        store = SQLiteWorkspaceStore(state / "workspace.sqlite3")
+        checks = None
+        if os.environ.get("SIYAB_CHECKS") == "1" and os.environ.get("SIYAB_TELEGRAM_CHECKS") == "1":
+            from intel.delivery_checks import TelegramChecks
+            from intel.live import LiveAPI
+
+            checks = TelegramChecks(store, LiveAPI(request_timeout_s=10))
+        result = delivery.run(store, once=args.once, checks=checks)
     print(json.dumps(result, sort_keys=True))
     return 0
 

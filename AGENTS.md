@@ -82,6 +82,7 @@ Python variables:
 - `SIYAB_PROVIDER_BUDGET_DB`: external provider budget database path; otherwise service entry points use their state directory.
 - `SIYAB_VERDICT_NEARBLOCKS`: set to `1` to enable the hosted verdict and live account check account-age fallback; disabled by default. The live account check honors `NEAR_ARCHIVAL_RPC_URL` and uses `NEARBLOCKS_API_URL` only when this fallback is enabled; otherwise it does not read NearBlocks.
 - `SIYAB_TELEGRAM_TOKEN_FILE`: path to the dedicated Siyab Telegram bot token file outside the repository; missing credentials leave delivery unconfigured.
+- `SIYAB_TELEGRAM_CHECKS`: set to `1`, with `SIYAB_CHECKS=1`, to have the delivery worker answer account, token and transaction checks in private Telegram chats; off by default.
 
 - `SIYAB_ASK`: Set to 1 to enable Ask Siyab; off by default.
 - `ANTHROPIC_API_KEY_FILE`: Path outside the repository, never a key value; read at call time.
