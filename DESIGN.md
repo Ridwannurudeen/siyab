@@ -283,23 +283,23 @@ Browser investigations, notes, watchlists and view settings remain browser-local
 
 The landing keeps its own slim top bar and navigation. Its content is at most 1200px wide, with 64px section padding on desktop and 36px on phones, derived from the landing section spacing token. The display role is Manrope 600 at clamp(38px, 4.7vw, 68px), 1.04 leading, -0.035em tracking and balanced wrapping, which keeps the headline to three lines and the recorded evidence strip above the fold at 1440 by 900. Its second line uses secondary text. Section titles are Manrope 600 at 32/38px and step and capability titles Manrope 600 at 18/24px. Eyebrows keep their numbers and words in the label role. Principle quotations keep Public Sans 300 at 32/38px. The problem statement scales from 32 to 40px. The recorded transfer counter uses Plex Mono 300 from 40 to 56px with tabular figures.
 
-The hero graph is a deterministic seeded excerpt of the same recorded Rhea graph used by Explore, capped at the root plus 40 nodes and 60 edges. Accent paths identify the two cited transfers, never a payment verdict. The counter is the recording's transfer total and never counts through invented values. The coverage statement remains adjacent. Evidence disclosures retain full identifiers, transactions and receipts.
+The hero graph is a deterministic seeded excerpt of the same recorded Rhea graph used by Explore, capped at the root plus 40 nodes and 60 edges. Accent paths identify the two cited transfers, never a payment verdict. The counter's true recording total stays in the HTML; its display counts from zero over 2200ms on the same curve as the graph draw, with reserved width and tabular figures. The coverage statement remains adjacent. Evidence disclosures retain full identifiers, transactions and receipts.
 
-One focal sequence draws the recorded paths. Two supporting pieces connect the payment-detail pipeline and the incident timeline. All start once on page load, with delayed supporting strokes; text and numbers remain visible. No sequence depends on scrolling or replays. The motion tokens in site.css are:
+One focal sequence draws the recorded paths. Two supporting pieces connect the payment-detail pipeline and the incident timeline. Each starts once when 35 percent of its element enters the viewport. Only an explicit Replay trace button click can rerun the hero draw and counter. Nothing loops. The motion tokens in site.css are:
 
 | Token | Value | Job |
 |---|---|---|
-| --landing-ease-out | cubic-bezier(.22,1,.36,1) | Settle recorded paths |
-| --landing-ease-trace | cubic-bezier(.65,0,.35,1) | Connect evidence |
+| --landing-ease-trace | cubic-bezier(.65,0,.35,1) | Connect evidence and count toward the recorded total |
 | --landing-draw-duration | 2200ms | Recorded graph paths |
+| --landing-depth-delay | 500ms | Depth 2 follows depth 1 |
 | --landing-highlight-duration | 1200ms | Cited transfer paths |
 | --landing-highlight-delay | 900ms | Cited paths follow the context |
 | --landing-pipeline-duration | 700ms | Connect the four payment risks |
-| --landing-pipeline-delay | 1800ms | Supporting relationship |
+| --landing-pipeline-delay | 0ms | Start the relationship on view |
 | --landing-timeline-duration | 1000ms | Connect the recorded timestamps |
-| --landing-timeline-delay | 2900ms | Supporting chronology |
+| --landing-timeline-delay | 0ms | Start the chronology on view |
 
-Only stroke-dashoffset and transform animate. Starting states require the landing script's motion-ready class. Disabled scripts, reduced motion, missing observation support and a hidden tab produce the final state immediately. Every sequence completes within 3900ms of its start, removes its running class, and releases will-change. Existing motion elsewhere retains its timings and Pause controls.
+Only stroke-dashoffset and transform animate; opacity remains permitted. Starting states require the landing script's motion-ready class, and a sequence holds its starting state until it comes into view. Disabled scripts, reduced motion, missing observation support and a hidden tab produce the final state immediately, with the true counter value and Replay hidden. Preference changes finish pending sequences without restarting them. Each run completes within 2700ms of its start, removes its running class, and releases will-change. The counter's single frame loop ends at 2200ms. Replay has visible keyboard focus and a 44px target. Existing motion elsewhere retains its timings and Pause controls.
 
 ## Preserved motion
 

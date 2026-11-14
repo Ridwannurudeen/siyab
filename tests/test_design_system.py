@@ -101,6 +101,23 @@ class DesignSystemTest(unittest.TestCase):
             with self.subTest(radius=value):
                 self.assertRegex(value, r"^(?:var\(--r-(?:xs|sm|md|lg|dialog)\)|0|50%|999px)$")
 
+    def test_landing_motion_uses_the_approved_trace_timings(self):
+        dark = next(body for selector, body, context in self.rules if selector == ":root" and not context)
+        expected = {"--landing-ease-trace": "cubic-bezier(.65,0,.35,1)",
+                    "--landing-draw-duration": "2200ms", "--landing-depth-delay": "500ms",
+                    "--landing-highlight-duration": "1200ms", "--landing-highlight-delay": "900ms",
+                    "--landing-pipeline-duration": "700ms", "--landing-pipeline-delay": "0ms",
+                    "--landing-timeline-duration": "1000ms", "--landing-timeline-delay": "0ms"}
+        for name, value in expected.items():
+            self.assertEqual(tokens(dark).get(name), value, name)
+        edges = next(body for selector, body, context in self.rules
+                     if selector == ".landing-motion-ready .is-running .landing-edge")
+        self.assertIn("var(--landing-ease-trace)", edges)
+        self.assertIn('data-depth="2"', self.css)
+        self.assertTrue(any(selector == ".landing-motion-ready .landing-replay" and "display:none" in body
+                            and any("prefers-reduced-motion:reduce" in item.replace(" ", "") for item in context)
+                            for selector, body, context in self.rules))
+
     def test_colours_are_tokenized_outside_theme_blocks(self):
         for selector, body, context in self.rules:
             if selector == ":root" or "color-scheme:light" in body or "@media print" in context:
