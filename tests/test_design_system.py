@@ -232,12 +232,10 @@ class DesignSystemTest(unittest.TestCase):
                     gutter = property_name.startswith("padding") and size in (10, 12, 14, 16, 20, 24, 32) and all(part.strip() in (".app-content", ".app-topbar", ".app-footer") for part in parts)
                     panel_head = property_name == "padding" and size in (7, 14) and all(part.strip() in (".workspace-panel-head", ".analytics-panel-head", ".graph-toolbar", ".graph-list", ".graph-overview-panel") for part in parts)
                     bar_offset = size in (1, 2) and ("bar" in selector or "analytics-track" in selector)
-                    rail_offset = property_name == "margin-left" and size == 248 and all(part.strip() in (".app-content", ".app-topbar", ".app-footer") for part in parts)
-                    layout_offset = selector == ".app-content" and property_name == "margin-left" and value.startswith("calc(248px + ")
                     mobile_menu = selector == ".mobile-navigation-panel" and property_name == "padding" and value == "12px 20px 24px"
                     record_control = selector in (".record-theme>summary", ".graph-view-controls>summary") and property_name == "padding" and size == 6
                     landing_gutter = selector in (".landing-page .app-topbar", ".landing-page .app-footer") and property_name == "padding" and size == 1200 and "calc((100vw - 1200px)/2)" in value
-                    if not (control_padding or gutter or panel_head or bar_offset or rail_offset or layout_offset or mobile_menu or record_control or landing_gutter):
+                    if not (control_padding or gutter or panel_head or bar_offset or mobile_menu or record_control or landing_gutter):
                         failures.append((selector, property_name, value, context))
         self.assertEqual(failures, [])
 
@@ -387,7 +385,8 @@ class DesignSystemTest(unittest.TestCase):
                             self.assertEqual(micros, [])
                     else:
                         checks.append(("#role-button", "13px", "18px", ui_family, "400"))
-                        checks.append(('.app-sidebar nav a:not([aria-current="page"])', "13px", "18px", ui_family, "300"))
+                        checks.append(('.app-header-navigation a:not([aria-current="page"]),.app-menu:not(:has([aria-current="page"]))>summary', "13px", "18px", ui_family, "300"))
+                        checks.append(('.app-header-navigation a[aria-current="page"],.app-menu:has([aria-current="page"])>summary', "13px", "18px", ui_family, "500"))
                         with self.subTest(width=width, page=name, role="filter cap"):
                             self.assertLessEqual(page.locator("#role-samples .graph-filter select").bounding_box()["width"], 240)
                     for selector, size, line, family, weight in checks:
@@ -699,9 +698,9 @@ class DesignSystemTest(unittest.TestCase):
         with self.browser.new_context(viewport={"width": 1440, "height": 900}) as context:
             context.route("**/*", self.local_route)
             page = context.new_page()
-            for name, selector, width in (("entities/organisations.html", ".registry-group", 1144),
-                                          ("incidents/rhea.html", ".profile-route", 1144),
-                                          ("incidents/rhea.html", ".profile-timeline>li", 900)):
+            for name, selector, width in (("entities/organisations.html", ".registry-group", 1392),
+                                          ("incidents/rhea.html", ".profile-route", 1392),
+                                          ("incidents/rhea.html", ".profile-timeline>li", 798)):
                 page.goto(self.origin + "/" + name)
                 with self.subTest(selector=selector):
                     self.assertAlmostEqual(page.locator(selector).first.bounding_box()["width"], width, delta=1)
@@ -749,7 +748,9 @@ class DesignSystemTest(unittest.TestCase):
                     for target in (selector, selector + " q.data"):
                         with self.subTest(width=width, selector=target):
                             self.assertEqual(page.locator(target).first.evaluate("node => [getComputedStyle(node).fontFamily,getComputedStyle(node).fontWeight]"), [code, "400"])
-                for selector, family, weight in ((".app-context", ui, "400" if width <= 1099 else "500"),
+                for selector, family, weight in ((".app-header-navigation a:not([aria-current])", ui, "300"),
+                                                  (".app-menu:not(:has([aria-current]))>summary", ui, "400" if width <= 760 else "300"),
+                                                  (".mobile-navigation-panel nav a:not([aria-current])", ui, "400" if width <= 760 else "300"),
                                                   ("#review-roles .account-assertions th,#review-header th", code, "400"),
                                                   ("#review-roles .verify-form input", code, "400"),
                                                   ("#review-roles .profile-outcome", ui, "500"),
@@ -885,7 +886,8 @@ class DesignSystemTest(unittest.TestCase):
     def test_browser_da2_real_page_type_roles(self):
         cases = (("explore.html", "main h1", "Public Sans", "24px", "30px", "400"),
                  ("accounts/wrap.near.html", ".profile-facts dd", "IBM Plex Mono", "24px", "30px", "300"),
-                 ("explore.html", ".app-sidebar nav a:not([aria-current])", "Public Sans", "13px", "18px", "300"),
+                 ("explore.html", ".app-header-navigation a:not([aria-current])", "Public Sans", "13px", "18px", "300"),
+                 ("explore.html", ".app-menu>summary", "Public Sans", "13px", "18px", "300"),
                  ("accounts/wrap.near.html", ".profile-heading p.mono", "IBM Plex Mono", "22px", "28px", "400"),
                  ("accounts/wrap.near.html", "main h2", "Public Sans", "18px", "24px", "300"),
                  ("incidents/rhea.html", "main h1", "Public Sans", "28px", "34px", "400"),
@@ -944,6 +946,91 @@ class DesignSystemTest(unittest.TestCase):
                             if width <= 390:
                                 for item in page.locator("button,.button,input:not([type=radio]),select").evaluate_all("nodes => nodes.filter(node => node.checkVisibility() && !node.closest('[hidden]')).map(node => ({tag:node.tagName,id:node.id,classes:node.className,height:node.getBoundingClientRect().height}))"):
                                     self.assertGreaterEqual(item["height"], 44, item)
+
+    def test_browser_da3_header_menus_keyboard_escape_and_reach(self):
+        former = ("/index.html", "/explore.html", "/investigate.html", "/flows/rhea-collector.html", "/feed.html", "/workspace.html",
+                  "/explore.html#tools", "/verify.html", "/explore.html#explore-title", "/entities/treasuries.html",
+                  "/entities/catalog.html", "/entities/infrastructure.html", "/entities/organisations.html",
+                  "/records/index.html", "/issuers.html")
+        for theme in ("dark", "light"):
+            with self.browser.new_context() as context:
+                context.route("**/*", self.local_route)
+                context.add_init_script("localStorage.setItem('siyab-theme', '" + theme + "')")
+                page = context.new_page()
+                for width in (1440, 1024, 768, 390, 320):
+                    page.set_viewport_size({"width": width, "height": 900})
+                    page.goto(self.origin + "/accounts/wrap.near.html")
+                    page.evaluate("document.fonts.ready")
+                    with self.subTest(theme=theme, width=width):
+                        self.assertLessEqual(page.locator(".app-header").bounding_box()["height"], 57)
+                        summaries = page.locator(".app-menu>summary" if width >= 1240 else "#mobile-navigation>summary")
+                        reached = set()
+                        for index in range(summaries.count()):
+                            summary = summaries.nth(index)
+                            summary.focus()
+                            self.assertNotEqual(summary.evaluate("node => getComputedStyle(node).outlineStyle"), "none")
+                            page.keyboard.press("Enter")
+                            menu = summary.locator("xpath=..")
+                            self.assertTrue(menu.evaluate("node => node.open"))
+                            reached |= {link.evaluate("node => new URL(node.href).pathname + new URL(node.href).hash")
+                                        for link in menu.locator("a").all() if link.is_visible()}
+                            page.keyboard.press("Escape")
+                            self.assertFalse(menu.evaluate("node => node.open"))
+                            self.assertTrue(summary.evaluate("node => node === document.activeElement"))
+                        if width >= 1240:
+                            reached |= {link.evaluate("node => new URL(node.href).pathname + new URL(node.href).hash")
+                                        for link in page.locator(".app-header-navigation a").all() if link.is_visible()}
+                            self.assertFalse(page.locator("#mobile-navigation").is_visible())
+                        else:
+                            self.assertEqual(page.locator(".app-header-navigation a,.app-menu").evaluate_all("nodes => nodes.filter(node => node.checkVisibility()).length"), 0)
+                        self.assertEqual(reached, set(former))
+                        for path in former:
+                            target = path.partition("#")[0].lstrip("/")
+                            self.assertTrue((self.out / target).is_file(), path)
+                        self.assertLessEqual(page.evaluate("document.documentElement.scrollWidth"), width + 1)
+                page.set_viewport_size({"width": 1440, "height": 900})
+                page.goto(self.origin + "/accounts/wrap.near.html")
+                page.locator(".app-menu>summary").first.click()
+                page.locator("main h2").first.click()
+                self.assertEqual(page.locator(".app-menu[open]").count(), 0)
+                for width in (1024, 768, 390, 320):
+                    page.set_viewport_size({"width": width, "height": 900})
+                    page.goto(self.origin + "/accounts/wrap.near.html")
+                    with self.subTest(theme=theme, width=width, menu="outside click"):
+                        page.locator("#mobile-navigation>summary").click()
+                        self.assertTrue(page.locator("#mobile-navigation").evaluate("node => node.open"))
+                        page.locator(".mobile-navigation-panel a").first.wait_for(state="visible")
+                        brand = page.locator(".app-header .site-brand").bounding_box()
+                        page.locator(".app-header").click(position={"x": brand["x"] + brand["width"] + 8, "y": 28})
+                        self.assertFalse(page.locator("#mobile-navigation").evaluate("node => node.open"))
+                        page.locator("#mobile-navigation>summary").click()
+                        page.locator(".mobile-navigation-panel").click(position={"x": 4, "y": 4})
+                        self.assertTrue(page.locator("#mobile-navigation").evaluate("node => node.open"))
+                        page.keyboard.press("Escape")
+                        self.assertFalse(page.locator("#mobile-navigation").evaluate("node => node.open"))
+                        self.assertTrue(page.locator("#mobile-navigation>summary").evaluate("node => node === document.activeElement"))
+
+    def test_browser_da3_reference_page_targets(self):
+        with self.browser.new_context(reduced_motion="reduce") as context:
+            context.route("**/*", self.local_route)
+            page = context.new_page()
+            page.set_viewport_size({"width": 1440, "height": 900})
+            page.goto(self.origin + "/explore.html")
+            page.wait_for_selector(".graph-stage")
+            page.evaluate("document.fonts.ready")
+            self.assertLessEqual(page.locator(".graph-stage").bounding_box()["y"], 360)
+            for selector in (".graph-status", ".graph-coverage", ".graph-legend"):
+                self.assertTrue(page.locator(selector).is_visible(), selector)
+            page.goto(self.origin + "/issuers.html")
+            page.evaluate("document.fonts.ready")
+            self.assertLessEqual(page.locator("#issuer-status tbody tr").first.bounding_box()["y"], 340)
+            for anchor in ("#issuer-status-section", "#issuer-ledger"):
+                self.assertEqual(page.locator(anchor).count(), 1)
+                self.assertEqual(page.locator('.profile-anchors a[href="' + anchor + '"]').count(), 1)
+            page.set_viewport_size({"width": 390, "height": 844})
+            page.goto(self.origin + "/issuers.html")
+            page.evaluate("document.fonts.ready")
+            self.assertLessEqual(page.locator("#issuer-status tbody tr").first.bounding_box()["y"], 520)
 
     def test_browser_new_visit_is_dark_under_light_system(self):
         with self.browser.new_context(color_scheme="light") as context:

@@ -28,6 +28,18 @@
   menu.addEventListener("click", event => {
     if (event.target.closest("a")) menu.open = false;
   });
+  const menus = Array.from(document.querySelectorAll(".app-menu"));
+  menus.forEach(item => {
+    item.addEventListener("toggle", () => {
+      if (item.open) menus.forEach(other => { if (other !== item) other.open = false; });
+    });
+    item.addEventListener("click", event => {
+      if (event.target.closest("a")) item.open = false;
+    });
+  });
+  document.addEventListener("click", event => {
+    [...menus, menu].forEach(item => { if (item.open && !item.contains(event.target)) item.open = false; });
+  });
   const input = document.getElementById("global-search-input");
   const results = document.getElementById("global-search-results");
   let entries = null;
@@ -64,6 +76,10 @@
   document.addEventListener("keydown", event => {
     if (event.key === "Escape" && menu.open && !dialog.open) {
       event.preventDefault(); menu.open = false; menu.querySelector("summary").focus();
+    }
+    const openMenu = menus.find(item => item.open);
+    if (event.key === "Escape" && openMenu && !dialog.open) {
+      event.preventDefault(); openMenu.open = false; openMenu.querySelector("summary").focus();
     }
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") { event.preventDefault(); open(); }
     if (event.key === "ArrowDown" && dialog.open && document.activeElement === input) {

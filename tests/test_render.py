@@ -153,32 +153,63 @@ class AppShellTest(unittest.TestCase):
         self.assertNotIn('/index.html?q=', feed_script)
         self.assertNotIn('/index.html#search', shell_script)
 
-    def test_home_and_explore_have_distinct_sidebar_routes(self):
+    def test_home_and_explore_have_distinct_header_routes(self):
         for title, current in (("Siyab", "index.html"), ("Explore", "explore.html")):
             document = render.page(title, "<h1>" + title + "</h1>")
-            sidebar = document.split('<aside class="app-sidebar">', 1)[1].split('</aside>', 1)[0]
+            header = document.split('<header class="app-topbar app-header">', 1)[1].split('<details class="mobile-navigation"', 1)[0]
             home = '<a href="index.html"' + (' aria-current="page"' if current == "index.html" else '') + '>Home</a>'
             explore = '<a href="explore.html"' + (' aria-current="page"' if current == "explore.html" else '') + '>Explore</a>'
-            self.assertIn(home + explore, sidebar)
+            self.assertIn(home + explore, header)
             for route in ("investigate.html", "explore.html#tools", "explore.html#explore-title"):
-                self.assertIn('href="' + route + '"', sidebar)
+                self.assertIn('href="' + route + '"', header)
             for route in ("index.html#tools", "index.html#explore-title"):
                 self.assertNotIn('href="' + route + '"', document)
 
     def test_shell_has_shared_landmarks_and_native_mobile_navigation(self):
         page = render.page("Feed", "<h1>Feed</h1>")
-        for markup in ('<aside class="app-sidebar">', '<header class="app-topbar">',
+        for markup in ('<header class="app-topbar app-header"><a class="site-brand" href="index.html">',
+                       '<nav class="app-header-navigation" aria-label="Primary">',
+                       '<details class="app-menu"><summary>Explore</summary><nav class="app-menu-panel" aria-label="Explore">',
+                       '<details class="app-menu"><summary>Tools</summary><nav class="app-menu-panel" aria-label="Tools">',
                        '<main class="app-content" id="main-content">', '<footer class="app-footer">',
                        '<details class="mobile-navigation" id="mobile-navigation">', '<summary>Menu</summary>',
-                       '<div class="mobile-navigation-panel">', '<a class="app-mobile-brand"',
+                       '<div class="mobile-navigation-panel">',
                        '<span class="site-search-label">Search accounts / entities</span>',
                        '<span class="site-search-short" aria-hidden="true">Search</span>',
                        'href="#main-content"'):
             self.assertIn(markup, page)
-        sidebar = page.split('<aside class="app-sidebar">', 1)[1].split('</aside>', 1)[0]
+        self.assertNotIn('<aside', page)
+        self.assertNotIn('app-sidebar', page)
+        self.assertNotIn('app-context', page)
+        header = page.split('<header class="app-topbar app-header">', 1)[1].split('<details class="mobile-navigation"', 1)[0]
         mobile = page.split('<details class="mobile-navigation"', 1)[1].split('</details>', 1)[0]
-        self.assertEqual(LINK.findall(sidebar)[1:], LINK.findall(mobile))
+        self.assertEqual(sorted(LINK.findall(header)[1:]), sorted(LINK.findall(mobile)))
         self.assertEqual(page.count('href="feed.html" aria-current="page"'), 2)
+
+    def test_header_and_menu_keep_every_former_sidebar_destination(self):
+        former = (("index.html", "Home"), ("explore.html", "Explore"), ("investigate.html", "Account lookup"),
+                  ("flows/rhea-collector.html", "Trace"), ("feed.html", "Feed"), ("workspace.html", "Workspace"),
+                  ("explore.html#tools", "Payment checks"), ("verify.html", "Verify"),
+                  ("explore.html#explore-title", "Incidents"), ("entities/treasuries.html", "Treasuries"),
+                  ("entities/catalog.html", "Catalog tokens"), ("entities/infrastructure.html", "Infrastructure and bridge accounts"),
+                  ("entities/organisations.html", "Organisations from on chain registries"),
+                  ("records/index.html", "Incident records"), ("issuers.html", "Issuers"))
+        anchor = re.compile(r'<a href="([^"]*)"(?: aria-current="page")?>([^<]*)</a>')
+        for depth, inert in ((0, False), (1, False), (1, True)):
+            page = render.page("Issuer actions", "<h1>Issuer actions</h1>", depth=depth, inert=inert)
+            up = "../" * depth
+            expected = [(up + href, label) for href, label in former]
+            header = page.split('<header class="app-topbar app-header">', 1)[1].split('<details class="mobile-navigation"', 1)[0]
+            header_links = anchor.findall(header.split('</a>', 1)[1])
+            mobile = page.split('<div class="mobile-navigation-panel">', 1)[1].split('</div></details>', 1)[0]
+            with self.subTest(depth=depth, inert=inert):
+                self.assertEqual(sorted(header_links), sorted(expected))
+                self.assertEqual(anchor.findall(mobile), expected)
+                menus = re.findall(r'<details class="app-menu"><summary>([^<]+)</summary><nav class="app-menu-panel" aria-label="([^"]+)">(.*?)</nav></details>', header)
+                self.assertEqual([(summary, label) for summary, label, _ in menus], [("Explore", "Explore"), ("Tools", "Tools")])
+                self.assertEqual(anchor.findall(menus[0][2]), expected[8:])
+                self.assertEqual(anchor.findall(menus[1][2]), expected[6:8])
+                self.assertEqual(page.count(f'href="{up}issuers.html" aria-current="page"'), 2)
         self.assertNotIn('href="index.html" aria-current', page)
 
     def test_theme_head_precedes_styles_and_keeps_record_pages_inert(self):
