@@ -350,9 +350,21 @@ class TransactionCheckTest(unittest.TestCase):
         self.assertEqual(self.finding(document, "deletes_account")["status"], "signal")
         self.assertEqual(answer["outcome"], "DENY")
 
-    @unittest.skip("missing fixture: fixtures/txcheck/recorded-ft-transfer-call.json (raw args and labelled receiver)")
-    def test_recorded_ft_transfer_call_denied_receiver(self):
-        transaction = json.loads((ROOT / "fixtures/txcheck/recorded-ft-transfer-call.json").read_text(encoding="utf-8"))
+    def test_recorded_ft_transfer_call_to_denylisted_token_contract(self):
+        transaction = json.loads((ROOT / "fixtures/txcheck/recorded-ft-transfer-call-denylisted-token.json").read_text(
+            encoding="utf-8"))
+        token = transaction["receiver_id"]
+        [action] = transaction["actions"]
+        self.assertEqual(action["FunctionCall"]["method_name"], "ft_transfer_call")
+        self.assertEqual(json.loads(base64.b64decode(action["FunctionCall"]["args"]))["receiver_id"],
+                         "v2.ref-finance.near")
         answer, document = self.document(transaction)
-        self.assertEqual(self.finding(document, "receiver_labels")["status"], "signal")
+        check = self.finding(document, "receiver_labels")
+        self.assertEqual(check["status"], "signal")
+        self.assertTrue(all(hit.startswith(f"{token} carries the ") for hit in check["detail"].split("; ")),
+                        check["detail"])
+        self.assertIn(f"{token} carries the denylist label", check["detail"])
+        self.assertNotIn("v2.ref-finance.near", check["detail"])
+        self.assertEqual([a for a in self.store.assertions if a.subject == "v2.ref-finance.near"
+                          and a.category in ("denylist", "incident")], [])
         self.assertEqual(answer["outcome"], "DENY")

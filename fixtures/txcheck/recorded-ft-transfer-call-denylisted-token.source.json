@@ -1,0 +1,23 @@
+{
+  "description": "The signer_id, receiver_id and actions of one FINAL mainnet transaction, exactly as the archival RPC tx response returned them. Every other field (public key, nonce, hash, signature, priority fee and the outcomes) is omitted; the raw response stays outside the repository because it carries the transaction signature.",
+  "tx_hash": "65QR4TJciMcdhdRKwaG1Y97RuwwhphmL4Vrjg1Q3LfG4",
+  "signer_id": "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03",
+  "block_height": 194229517,
+  "block_hash": "HQZgW2nzXQtamB9BnkPQxML8bqtufd1jpYyqFi8kDwS8",
+  "status": {
+    "SuccessValue": "IjMwMDAwMDA3ODg0MTU4NTIwNzIwMDYxNTMzODE0NTkwMiI="
+  },
+  "endpoint": "https://archival-rpc.mainnet.fastnear.com",
+  "request": {
+    "method": "tx",
+    "params": {
+      "tx_hash": "65QR4TJciMcdhdRKwaG1Y97RuwwhphmL4Vrjg1Q3LfG4",
+      "sender_account_id": "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03",
+      "wait_until": "NONE"
+    }
+  },
+  "fetched_at": "2026-11-14T04:18:59Z",
+  "response_sha256": "ed5097cf50ae544fb26d793e35fd9567f50145559dd1dae1d2cef7ffbbad945e",
+  "located_via": "NearBlocks public API GET https://api.nearblocks.io/v1/account/c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163/txns?method=ft_on_transfer (read 2026-11-14T03:58:48Z), then GET https://api.nearblocks.io/v1/txns/65QR4TJciMcdhdRKwaG1Y97RuwwhphmL4Vrjg1Q3LfG4 (read 2026-11-14T04:02:17Z), which gives block 194229517 and included_in_block_hash HQZgW2nzXQtamB9BnkPQxML8bqtufd1jpYyqFi8kDwS8",
+  "note": "The transaction receiver is a token contract labelled denylist in the label store (one of the four Rhea Lend token contracts), and the signer is a labelled Rhea Lend worker account. The args receiver_id is v2.ref-finance.near, which carries no denylist or incident label, so receiver_labels signals through the transaction receiver, not through the args. A search of NearBlocks found no mainnet ft_transfer_call whose args receiver_id is a labelled subject; every ft_on_transfer receipt to a labelled account came from an intents.near execute_intents transaction."
+}
