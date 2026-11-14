@@ -887,6 +887,16 @@ class DeliveryGroupsTest(unittest.TestCase):
                 status = self.delivery.status(self.owner, self.team)
                 self.assertEqual((status["state"], status["verified"], status["observed_chat_label"]), ("expired", False, None))
 
+    def test_malformed_confirmation_names_the_link_kind(self):
+        for kind, wording in (("group", "Confirm the currently observed Telegram group."),
+                              ("private", "Confirm the currently observed Telegram account.")):
+            with self.subTest(kind=kind):
+                self.delivery.begin_link(self.owner, self.team, kind)
+                with self.assertRaises(WorkspaceError) as caught:
+                    self.delivery.confirm_link(self.owner, self.team, 0)
+                self.assertEqual((caught.exception.status, caught.exception.code, caught.exception.message),
+                                 (400, "invalid_confirmation", wording))
+
     def test_confirm_refused_until_verified(self):
         link = self.delivery.begin_link(self.owner, self.team, "group")
         self.observe(link)

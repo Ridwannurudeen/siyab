@@ -6,6 +6,8 @@ Codex orchestration ran tests, reproducible builds and, with the owner's authori
 
 This disclosure describes the recorded continuation; it does not assert a complete model history for earlier development.
 
+From the first commit on 29 October 2026 to 8 November 2026, AI coding assistants also helped with implementation, tests, documentation and review under the authors' direction; that period is not itemised model by model.
+
 For the 10 November website repair, GPT-6.1 Sol assisted with sourced profiles, tables, graphs, charts, responsive layout, local saved investigations and monitoring, exports, branding assets, data loading, exact payment-unit conversion and regression tests. GPT-6 Astra High reviewed the changes internally. Codex ran local browser checks and tests. The separate outside-verification transcript reports human execution assisted by Claude Code; its self-reported status and offline scope are recorded in `fixtures/runs/outside-verification-20261110.txt` and `docs/REGISTRY.md`.
 
 For the additional 10 November platform implementation, GPT-6.1 Sol assisted with mainnet account reads, bounded account history and graphs, authenticated team workspaces, persistent watch workers, import/export, operational commands, service configuration, documentation and regression tests. Codex coordinated parallel implementation and internal review. This describes implementation assistance; it does not establish deployment status, complete provider coverage or an independent human security audit.

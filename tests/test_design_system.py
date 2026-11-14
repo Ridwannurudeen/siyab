@@ -487,8 +487,8 @@ class DesignSystemTest(unittest.TestCase):
                     const text=node.firstChild, tops=[];
                     for(let i=0;i<text.length;i++){const range=document.createRange();range.setStart(text,i);range.setEnd(text,i+1);tops.push(Math.round(range.getBoundingClientRect().top));}
                     const splits=[];
-                    for(let i=1;i<text.length;i++) if(/\S/.test(text.data[i])&&/\S/.test(text.data[i-1])&&tops[i]!==tops[i-1]) splits.push(text.data.slice(0,i)+'|'+text.data.slice(i));
-                    return {label:text.data,splits,lines:new Set(tops.filter((top,i)=>/\S/.test(text.data[i]))).size,top:Math.round(node.getBoundingClientRect().top),wrap:getComputedStyle(node).overflowWrap};
+                    for(let i=1;i<text.length;i++) if(/\\S/.test(text.data[i])&&/\\S/.test(text.data[i-1])&&tops[i]!==tops[i-1]) splits.push(text.data.slice(0,i)+'|'+text.data.slice(i));
+                    return {label:text.data,splits,lines:new Set(tops.filter((top,i)=>/\\S/.test(text.data[i]))).size,top:Math.round(node.getBoundingClientRect().top),wrap:getComputedStyle(node).overflowWrap};
                 })""")
                 with self.subTest(width=width):
                     self.assertEqual([row["label"] for row in measured], labels + ["Newer deliveries", "Older deliveries"])

@@ -77,6 +77,9 @@ async function main(){
   assert.equal(all(ids['delivery-controls']).find(node=>node.tag==='a').href,groupLink);
   assert.ok(text(ids['delivery-controls']).includes("Everyone in this group will see this team's alerts."));
   assert.match(text(ids['delivery-controls']),/group admin/);
+  assert.match(text(ids['delivery-controls']),/Waiting for the link to be opened in a Telegram group\./);assert.doesNotMatch(text(ids['delivery-controls']),/Telegram account/);
+  ids['delivery-refresh'].listeners.click();await load(status({groups_enabled:true,kind:'private',state:'pending',generation:4,expires_at:expires,verified:false}));
+  assert.match(text(ids['delivery-controls']),/Waiting for the Telegram account to open the link and press Start\./);assert.doesNotMatch(text(ids['delivery-controls']),/opened in a Telegram group/);
   const observed=status({groups_enabled:true,kind:'group',state:'observed',generation:4,expires_at:expires,observed_chat_label:'Group "Treasury" (ID ending 1234), sent by @owner',verified:false});
   ids['delivery-refresh'].listeners.click();await load(observed);assert.equal(control('Confirm observed destination').disabled,true);
   for(const verified of [undefined,'true',1]){

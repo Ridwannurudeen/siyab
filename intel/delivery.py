@@ -280,12 +280,13 @@ class TelegramDelivery:
                 "expires_at": now + LINK_MS, "generation": generation}
 
     def confirm_link(self, user_id, team_id, generation):
-        if type(generation) is not int or generation < 1:
-            raise WorkspaceError(400, "invalid_confirmation", "Confirm the currently observed Telegram account.")
         now = self._now()
         with self.store._connection(write=True) as connection:
             self.store._member(connection, user_id, team_id, owner=True)
             binding = connection.execute("SELECT * FROM delivery_bindings WHERE team_id=?", (team_id,)).fetchone()
+            if type(generation) is not int or generation < 1:
+                raise WorkspaceError(400, "invalid_confirmation", "Confirm the currently observed Telegram "
+                                     + ("group." if binding is not None and binding["kind"] == "group" else "account."))
             meta = connection.execute("SELECT bot_id FROM delivery_state WHERE singleton=1").fetchone()
             if (binding is None or binding["generation"] != generation or binding["observed_chat_id"] is None
                     or binding["nonce_expires_ms"] is None or binding["nonce_expires_ms"] <= now or meta["bot_id"] is None

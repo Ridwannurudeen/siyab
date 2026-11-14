@@ -196,7 +196,7 @@ class AttackEvidenceTest(unittest.TestCase):
 
     def test_telegram_alerts_are_distinct_from_unbuilt_interactive_scanning(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("Optional Telegram alerts are implemented; dedicated-bot credentials and live recipient activation are pending.", readme)
+        self.assertIn("Optional Telegram alerts are implemented with the dedicated bot, whose credentials the hosted deployment holds.", readme)
         claims = [row[0] for row in table_rows(CLAIMS.read_text(encoding="utf-8"), "| Claim | File:function |")]
         self.assertIn("An interactive Telegram check exists behind two flags, off by default, not live.", claims)
         self.assertIn("TelegramChecks.answer", declared_functions(ROOT / "intel" / "delivery_checks.py"))
