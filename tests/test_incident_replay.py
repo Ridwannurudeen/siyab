@@ -1137,5 +1137,16 @@ class ReplayCase(unittest.TestCase):
                 incident_replay.run("example")
 
 
+class CommittedRheaReplayCase(unittest.TestCase):
+    def test_committed_rhea_recording_replays_offline_without_mismatch(self):
+        path = incident_replay.REPLAY_DIR / "rhea" / "run.json"
+        recorded = json.loads(path.read_text(encoding="utf-8"))
+        with (mock.patch("urllib.request.urlopen", side_effect=AssertionError("network")),
+              mock.patch("gate.rpc._open_with_deadline", side_effect=AssertionError("network")),
+              mock.patch("gate.rpc._fetch", side_effect=AssertionError("network")),
+              mock.patch.dict("os.environ", {"NEAR_ARCHIVAL_RPC_URL": ""})):
+            self.assertEqual(incident_replay.run("rhea"), recorded)
+
+
 if __name__ == "__main__":
     unittest.main()
