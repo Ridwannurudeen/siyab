@@ -96,7 +96,8 @@ class McpServerTest(McpSessionCase):
                                               "serverInfo": {"name": "siyab", "version": "0.1.0"}})
         tools = by_id[2]["result"]["tools"]
         self.assertEqual([tool["name"] for tool in tools],
-                         ["check_near_payment", "check_intents_quote", "scan_near_account"])
+                         ["check_near_payment", "check_intents_quote", "scan_near_account",
+                          "check_near_account", "check_near_token", "check_near_transaction"])
         for tool in tools:
             self.assertEqual(tool["inputSchema"]["type"], "object")
             self.assertTrue(set(tool["inputSchema"]["required"]) <= set(tool["inputSchema"]["properties"]))
@@ -346,6 +347,201 @@ class McpServerTest(McpSessionCase):
         self.assertIn("removed at exit unless GATE_KEEP_EVIDENCE=1", stderr)
         [kept] = os.listdir(self.tmp)
         self.assertEqual(len([name for name in os.listdir(Path(self.tmp) / kept) if name.endswith(".json")]), 1)
+
+
+class McpChecksTest(unittest.TestCase):
+    def setUp(self):
+        environment = mock.patch.dict(os.environ, {"SIYAB_CHECKS": "1", "GATE_FIXTURES_MODE": "replay"})
+        environment.start()
+        self.addCleanup(environment.stop)
+        for target in ("urllib.request.urlopen", "gate.rpc._open_with_deadline", "gate.rpc._fetch",
+                       "mcp.server._live_signing", "gate.signer.TestSigner.sign", "gate.signer.NaClSigner.sign",
+                       "gate.ed25519.sign", "gate.ed25519.signature"):
+            patcher = mock.patch(target, side_effect=AssertionError("checks must not sign or open the network"))
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        self.transaction = {"signer_id": "sender.near", "receiver_id": "recipient.near",
+                            "actions": [{"Transfer": {"deposit": "1"}}]}
+        self.arguments = {"check_near_account": {"account_id": "intents.near"},
+                          "check_near_token": {"token_id": "wrap.near"},
+                          "check_near_transaction": {"transaction": self.transaction}}
+
+    def test_checks_have_required_tool_schemas(self):
+        from mcp import server
+
+        reply = server.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/list"}, "unused")
+        tools = {tool["name"]: tool for tool in reply["result"]["tools"]}
+        for name, arguments in self.arguments.items():
+            with self.subTest(name=name):
+                self.assertIn(name, tools)
+                schema = tools[name]["inputSchema"]
+                self.assertEqual(schema["type"], "object")
+                self.assertEqual(schema["required"], list(arguments))
+                self.assertEqual(set(schema["properties"]), set(arguments))
+
+    def test_checks_refuse_without_exact_enable_flag_before_reads(self):
+        from mcp import server
+
+        for flag in (None, "", "0", "true"):
+            if flag is None:
+                os.environ.pop("SIYAB_CHECKS", None)
+            else:
+                os.environ["SIYAB_CHECKS"] = flag
+            for name, arguments in self.arguments.items():
+                with self.subTest(flag=flag, name=name), mock.patch.object(
+                        server.rpc, "Client", side_effect=AssertionError("disabled check read")):
+                    reply = server.handle(call(1, name, arguments), "unused")
+                    self.assertIn("result", reply)
+                    self.assertTrue(reply["result"]["isError"])
+                    self.assertIn("SIYAB_CHECKS=1", reply["result"]["content"][0]["text"])
+
+    def test_all_checks_are_unsigned_with_the_ten_answer_keys(self):
+        from mcp import server
+
+        for name, arguments in self.arguments.items():
+            with self.subTest(name=name):
+                reply = server.handle(call(1, name, arguments), "unused")
+                self.assertIn("result", reply)
+                self.assertFalse(reply["result"]["isError"])
+                content = reply["result"]["content"]
+                answer = json.loads(content[-1]["text"])
+                self.assertEqual(set(answer), {"evidence", "evidence_hash", "checks", "reasons", "outcome",
+                                              "action", "verdict", "signing", "freshness", "latency_ms"})
+                self.assertEqual(answer["signing"], "never")
+                self.assertIsNone(answer["verdict"])
+                wording = {"ALLOW": "No flag found", "DENY": "Flagged", "ASK": "Not enough data"}
+                text = wording[answer["outcome"]]
+                if name != "check_near_transaction":
+                    text += (f". Recorded fixtures (replay), block {answer['freshness']['block_height']}; "
+                             "this is not a live result.")
+                self.assertEqual(content[0]["text"], text)
+                document = json.loads(answer["evidence"])
+                self.assertEqual(document["subject"]["network"], "mainnet")
+                self.assertEqual(answer["evidence_hash"], evidence.evidence_hash(document))
+
+    def test_account_and_token_text_labels_default_and_explicit_replay_with_recorded_block(self):
+        from mcp import server
+
+        for mode in (None, "replay"):
+            if mode is None:
+                os.environ.pop("GATE_FIXTURES_MODE", None)
+            else:
+                os.environ["GATE_FIXTURES_MODE"] = mode
+            for name in ("check_near_account", "check_near_token"):
+                with self.subTest(mode=mode, name=name):
+                    reply = server.handle(call(1, name, self.arguments[name]), "unused")["result"]
+                    self.assertFalse(reply["isError"])
+                    answer = json.loads(reply["content"][-1]["text"])
+                    block = answer["freshness"]["block_height"]
+                    self.assertIsInstance(block, int)
+                    wording = {"ALLOW": "No flag found", "DENY": "Flagged", "ASK": "Not enough data"}
+                    self.assertEqual(reply["content"][0]["text"],
+                                     f"{wording[answer['outcome']]}. Recorded fixtures (replay), block {block}; "
+                                     "this is not a live result.")
+
+    def test_replay_without_a_recorded_block_says_unknown(self):
+        from mcp import server
+
+        for name, field in (("check_near_account", "account_id"), ("check_near_token", "token_id")):
+            with self.subTest(name=name):
+                reply = server.handle(call(1, name, {field: "unreadable.near"}), "unused")["result"]
+                self.assertFalse(reply["isError"])
+                answer = json.loads(reply["content"][-1]["text"])
+                self.assertEqual(answer["outcome"], "ASK")
+                self.assertIsNone(answer["freshness"]["block_height"])
+                self.assertEqual(reply["content"][0]["text"],
+                                 "Not enough data. Recorded fixtures (replay), block unknown; "
+                                 "this is not a live result.")
+
+    def test_live_account_and_token_text_has_no_replay_label(self):
+        from mcp import server
+
+        os.environ["GATE_FIXTURES_MODE"] = "off"
+
+        def exchange(client, url, method, params, body, **kwargs):
+            self.assertEqual(client.mode, "off")
+            client.last_source = {"provider": url, "request_sha256": None, "fetched_at": None}
+            if method == "GET":
+                raise rpc.TransportError("unreadable")
+            context = {"block_height": 7, "block_hash": base58.encode(bytes([3]) * 32)}
+            if params.get("request_type") == "view_account":
+                result = {**context, "amount": "1", "locked": "0", "storage_usage": 0,
+                          "code_hash": rpc.EMPTY_CODE_HASH}
+            elif params.get("method_name") == "ft_metadata":
+                result = {**context, "logs": [], "result": list(json.dumps(
+                    {"name": "Wrapped NEAR", "symbol": "wNEAR", "decimals": 24}).encode("utf-8"))}
+            else:
+                raise rpc.TransportError("unreadable")
+            return {"jsonrpc": "2.0", "id": "gate", "result": result}
+
+        with mock.patch.object(server.rpc.Client, "_exchange", autospec=True, side_effect=exchange), \
+                mock.patch.object(server.rules, "issuers_for", return_value=[]):
+            for name in ("check_near_account", "check_near_token"):
+                with self.subTest(name=name):
+                    reply = server.handle(call(1, name, self.arguments[name]), "unused")["result"]
+                    self.assertFalse(reply["isError"])
+                    answer = json.loads(reply["content"][-1]["text"])
+                    self.assertEqual(reply["content"][0]["text"],
+                                     {"ALLOW": "No flag found", "DENY": "Flagged",
+                                      "ASK": "Not enough data"}[answer["outcome"]])
+                    self.assertNotIn("replay", reply["content"][0]["text"])
+                    self.assertNotIn("Recorded fixtures", reply["content"][0]["text"])
+
+    def test_transaction_outcomes_keep_the_stored_value_and_render_public_words(self):
+        from intel import labels
+        from mcp import server
+
+        cases = (({"Transfer": {"deposit": "1"}}, "ALLOW", "No flag found"),
+                 ({"DeleteAccount": {"beneficiary_id": "beneficiary.near"}}, "DENY", "Flagged"),
+                 ({"Stake": {}}, "ASK", "Not enough data"))
+        with mock.patch.object(server.labels, "load", return_value=labels.Store([], "5" * 64)), \
+                mock.patch.object(server.rpc, "Client", side_effect=AssertionError("transaction check read")):
+            for action, outcome, text in cases:
+                transaction = {**self.transaction, "actions": [action]}
+                with self.subTest(outcome=outcome):
+                    reply = server.handle(call(1, "check_near_transaction", {"transaction": transaction}), "unused")
+                    self.assertIn("result", reply)
+                    self.assertFalse(reply["result"]["isError"])
+                    self.assertEqual(reply["result"]["content"][0]["text"], text)
+                    answer = json.loads(reply["result"]["content"][-1]["text"])
+                    self.assertEqual(answer["outcome"], outcome)
+                    self.assertEqual(answer["signing"], "never")
+
+    def test_mainnet_checks_ignore_payment_gate_and_endpoint_override(self):
+        from mcp import server
+
+        clients = []
+        client_class = rpc.Client
+
+        def client(url, *args, **kwargs):
+            result = client_class(url, *args, **kwargs)
+            clients.append(result)
+            return result
+
+        os.environ.update({"GATE_ACCOUNT_ID": "gate.testnet", "NEAR_MAINNET_RPC_URL": UNREACHABLE,
+                           "GATE_LIVE_SIGNING": "1"})
+        with mock.patch.object(server.rpc, "Client", side_effect=client):
+            for name in ("check_near_account", "check_near_token"):
+                with self.subTest(name=name):
+                    start = len(clients)
+                    reply = server.handle(call(1, name, self.arguments[name]), "unused")
+                    self.assertIn("result", reply)
+                    self.assertFalse(reply["result"]["isError"])
+                    self.assertGreater(len(clients), start)
+                    self.assertEqual(clients[start].url, rpc.MAINNET_RPC_URL)
+                    self.assertEqual(clients[start].kind, "rpc")
+
+    def test_invalid_check_requests_return_clear_tool_errors(self):
+        from mcp import server
+
+        for name, arguments in (("check_near_account", {"account_id": "bad/account"}),
+                                ("check_near_token", {"token_id": "example.testnet"}),
+                                ("check_near_transaction", {"transaction": {}})):
+            with self.subTest(name=name):
+                reply = server.handle(call(1, name, arguments), "unused")
+                self.assertIn("result", reply)
+                self.assertTrue(reply["result"]["isError"])
+                self.assertTrue(reply["result"]["content"][0]["text"].startswith("invalid request: "))
 
 
 class McpHandlerTest(unittest.TestCase):

@@ -3,6 +3,7 @@
 import hashlib
 import http.client
 import json
+import os
 import socket
 import tempfile
 import threading
@@ -158,7 +159,7 @@ class LiveRouteTest(unittest.TestCase):
         recent = [{**REPORT_ROW, "id": index, "subject": f"vendor-{index}.testnet"} for index in (1, 0)]
         self.assertEqual((status, body), (200, {"reports": recent}))
         self.assertEqual(self.request("/live/health")[::2],
-                         (200, {"ok": True, "network": "mainnet", "rate_per_minute": 60}))
+                         (200, {"ok": True, "network": "mainnet", "rate_per_minute": 60, "checks": False}))
 
     def test_verdict_evidence_bytes_match_hash_and_cached_answer(self):
         judgement = self.allow_judgement()
@@ -446,6 +447,143 @@ class LiveRouteTest(unittest.TestCase):
         with mock.patch("intel.__main__.api.serve", return_value=0) as serve:
             self.assertEqual(intel_main.main(["serve", "--live", "--port", "0"]), 0)
         self.assertTrue(serve.call_args.kwargs["live"])
+
+
+class LiveChecksTest(unittest.TestCase):
+    def setUp(self):
+        self.service = live.LiveAPI(labels.load(), wall_clock=lambda: 1000.0)
+        environment = mock.patch.dict(os.environ)
+        environment.start()
+        self.addCleanup(environment.stop)
+        for name in ("SIYAB_CHECKS", "NEAR_MAINNET_RPC_URL", "SIYAB_VERDICT_NEARBLOCKS"):
+            os.environ.pop(name, None)
+        for target in ("urllib.request.urlopen", "gate.rpc._open_with_deadline", "gate.rpc._fetch"):
+            network = mock.patch(target, side_effect=AssertionError("unexpected network read"))
+            network.start()
+            self.addCleanup(network.stop)
+
+    def request(self, path):
+        return self.service.handle(path, "203.0.113.1", {})
+
+    def test_checks_are_404_unless_the_flag_is_exactly_one(self):
+        with mock.patch("gate.account_check.check_account") as account, \
+                mock.patch("gate.token_check.check_token") as token:
+            for flag in (None, "0", "true"):
+                if flag is not None:
+                    os.environ["SIYAB_CHECKS"] = flag
+                for kind in ("account", "token"):
+                    with self.subTest(flag=flag, kind=kind):
+                        status, body, _ = self.request(f"/live/{kind}-check/wrap.near")
+                        self.assertEqual((status, body["error"]), (404, "not_found"))
+                        self.assertEqual(body["message"], "No live route matches this path.")
+        account.assert_not_called()
+        token.assert_not_called()
+
+    def test_health_reports_the_flag_and_does_not_reuse_the_other_state(self):
+        for flag, enabled in (("0", False), ("1", True), ("true", False)):
+            os.environ["SIYAB_CHECKS"] = flag
+            self.assertIs(self.request("/live/health")[1]["checks"], enabled)
+
+    def test_account_check_uses_the_hosted_verdict_clients_and_issuers(self):
+        os.environ["SIYAB_CHECKS"] = "1"
+        os.environ["NEAR_MAINNET_RPC_URL"] = "https://mainnet.example"
+        os.environ["NEAR_ARCHIVAL_RPC_URL"] = "https://archive.example"
+        with mock.patch("gate.account_check.check_account", return_value={"signing": "never"}) as checked, \
+                mock.patch("intel.live.rules.issuers_for", return_value=[]) as issuers, \
+                mock.patch("gate.ed25519.sign", side_effect=AssertionError("signing path used")) as signed:
+            self.assertEqual(self.request("/live/account-check/alice.near")[:2], (200, {"signing": "never"}))
+        args, values = checked.call_args
+        self.assertEqual(args, ("alice.near",))
+        self.assertIs(values["store"], self.service.store)
+        self.assertEqual((values["rpc"].url, values["rpc"].mode), ("https://mainnet.example", "off"))
+        self.assertEqual(values["archival"].url, "https://archive.example")
+        self.assertIsInstance(values["nearblocks"], live._NoNearBlocks)
+        self.assertEqual((values["issuers"], values["now_ms"]), ([], 1000000))
+        issuers.assert_called_once_with("mainnet")
+        signed.assert_not_called()
+
+    def test_real_checks_return_unsigned_evidence_and_unreadable_data_stays_ask(self):
+        from gate import base58
+
+        os.environ["SIYAB_CHECKS"] = "1"
+        os.environ["NEAR_MAINNET_RPC_URL"] = "https://unverified.example"
+        block_hash = base58.encode(bytes([3]) * 32)
+        seen = []
+
+        def exchange(client, url, method, params, body):
+            self.assertEqual(client.mode, "off")
+            client.last_source = {"provider": url, "request_sha256": None, "fetched_at": None}
+            seen.append((url, params))
+            context = {"block_height": 7, "block_hash": block_hash}
+            if params.get("request_type") == "view_account":
+                result = {**context, "amount": "1", "locked": "0", "storage_usage": 0,
+                          "code_hash": rpc.EMPTY_CODE_HASH}
+            elif params.get("method_name") == "ft_metadata":
+                result = {**context, "logs": [], "result": list(json.dumps(
+                    {"name": "Wrapped NEAR", "symbol": "wNEAR", "decimals": 24}).encode("utf-8"))}
+            else:
+                raise rpc.TransportError("unreadable")
+            return {"jsonrpc": "2.0", "id": "gate", "result": result}
+
+        with mock.patch("gate.rpc.Client._exchange", autospec=True, side_effect=exchange), \
+                mock.patch("gate.rules.issuers_for", return_value=[]), \
+                mock.patch("gate.ed25519.sign", side_effect=AssertionError("signing path used")) as signed:
+            for kind in ("account", "token"):
+                with self.subTest(kind=kind):
+                    status, answer, _ = self.request(f"/live/{kind}-check/wrap.near")
+                    self.assertEqual(status, 200)
+                    self.assertEqual(set(answer), {"evidence", "evidence_hash", "checks", "reasons", "outcome",
+                                                   "action", "verdict", "signing", "freshness", "latency_ms"})
+                    self.assertEqual(answer["signing"], "never")
+                    self.assertIsNone(answer["verdict"])
+                    document = json.loads(answer["evidence"])
+                    self.assertEqual(document["subject"], {"network": "mainnet", "kind": kind, kind: "wrap.near"})
+                    self.assertEqual(evidence.evidence_hash(document), answer["evidence_hash"])
+                    self.assertEqual(answer["outcome"], "ASK" if kind == "account" else "ALLOW")
+        token_urls = [url for url, params in seen if params.get("method_name") == "ft_metadata"]
+        self.assertEqual(token_urls, [rpc.MAINNET_RPC_URL])
+        signed.assert_not_called()
+
+        def unreadable(client, *args):
+            client.last_source = {"provider": client.url, "request_sha256": None, "fetched_at": None}
+            raise rpc.TransportError("unreadable")
+
+        with mock.patch("gate.rpc.Client._exchange", autospec=True, side_effect=unreadable):
+            for kind in ("account", "token"):
+                status, answer, _ = self.request(f"/live/{kind}-check/unreadable.near")
+                self.assertEqual((status, answer["outcome"], answer["signing"]), (200, "ASK", "never"))
+
+    def test_checks_validate_paths_and_mainnet_before_reads(self):
+        os.environ["SIYAB_CHECKS"] = "1"
+        with mock.patch("gate.account_check.check_account") as account, \
+                mock.patch("gate.token_check.check_token") as token:
+            for kind in ("account", "token"):
+                for tail in ("", "Bad!", "testnet", "alice.testnet", "alice.near/extra", "alice.near?extra=x"):
+                    with self.subTest(kind=kind, tail=tail):
+                        self.assertEqual(self.request(f"/live/{kind}-check/{tail}")[0], 400)
+        account.assert_not_called()
+        token.assert_not_called()
+
+    def test_invalid_token_paths_name_the_token(self):
+        os.environ["SIYAB_CHECKS"] = "1"
+        with mock.patch("gate.token_check.check_token") as checked:
+            for tail, message in (("Bad!", "token must be a valid NEAR account id."),
+                                  ("", "The check path must contain one mainnet token id."),
+                                  ("wrap.near/extra", "The check path must contain one mainnet token id."),
+                                  ("alice.testnet", "NEAR checks accept mainnet tokens only.")):
+                with self.subTest(tail=tail):
+                    status, body, _ = self.request(f"/live/token-check/{tail}")
+                    self.assertEqual((status, body), (400, {"error": "invalid_input", "message": message}))
+        checked.assert_not_called()
+
+    def test_disabled_checks_do_not_serve_a_cached_answer(self):
+        os.environ["SIYAB_CHECKS"] = "1"
+        with mock.patch("gate.token_check.check_token", return_value={"signing": "never"}) as checked:
+            path = "/live/token-check/wrap.near"
+            self.assertEqual(self.request(path)[0], 200)
+            os.environ.pop("SIYAB_CHECKS")
+            self.assertEqual(self.request(path)[0], 404)
+        checked.assert_called_once()
 
 
 if __name__ == "__main__":

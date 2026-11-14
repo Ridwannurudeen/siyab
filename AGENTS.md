@@ -63,7 +63,7 @@ res/                    built wasm files, their sha256 and the build record
 Python variables:
 
 - `NEAR_RPC_URL`: testnet JSON-RPC endpoint override.
-- `NEAR_MAINNET_RPC_URL`: mainnet JSON-RPC endpoint override.
+- `NEAR_MAINNET_RPC_URL`: mainnet JSON-RPC endpoint override for the live account check and other configurable mainnet reads. The MCP account check uses fixed `rpc.MAINNET_RPC_URL`, `rpc.NEARBLOCKS_URL` and `rpc.ARCHIVAL_RPC_URL` endpoints, ignoring the corresponding endpoint overrides. The token check in both MCP and the live API always uses fixed `rpc.MAINNET_RPC_URL` and ignores `NEAR_MAINNET_RPC_URL`.
 - `NEAR_ARCHIVAL_RPC_URL`: archival JSON-RPC endpoint override.
 - `NEARBLOCKS_API_URL`: NearBlocks endpoint override.
 - `SHIELDBOT_API_URL`: optional ShieldBot API base URL for firewall and memo checks.
@@ -71,7 +71,8 @@ Python variables:
 - `GATE_POLICY`: payment policy JSON used by the MCP server.
 - `VERIFIER_KEY_FILE`: path to the live verifier key file, kept outside the repository.
 - `AGENT_KEY_FILE`: path to the agent function call key file, kept outside the repository.
-- `GATE_FIXTURES_MODE`: fixture behavior, `replay` by default, `record` or `off`.
+- `GATE_FIXTURES_MODE`: fixture behavior, `replay` by default, `record` or `off`. MCP account and token checks inherit it; both live check routes always use `off`.
+- `SIYAB_CHECKS`: set to `1` to enable the three unsigned MCP checks and the live account and token check routes; disabled by default. MCP tools remain listed but refuse calls when disabled; the live routes return 404. `/live/health` reports the setting as `checks`.
 - `GATE_ALLOW_PURE_PYTHON_SIGNER`: set to `1` to enable the pure Python live signer.
 - `GATE_LIVE_SIGNING`: set to `1` to enable MCP live signing when all required conditions hold.
 - `GATE_KEEP_EVIDENCE`: set to `1` to retain evidence directories after process exit.
@@ -79,7 +80,7 @@ Python variables:
 - `FEED_STATE_DIR`: feed state directory; defaults to `intel/feed`.
 - `FASTNEAR_API_KEY_FILE`: path to an external provider key file for account, portfolio and scanner reads; sent only with a provider budget database. The feed follower never reads or sends it.
 - `SIYAB_PROVIDER_BUDGET_DB`: external provider budget database path; otherwise service entry points use their state directory.
-- `SIYAB_VERDICT_NEARBLOCKS`: set to `1` to enable the hosted verdict account-age fallback; disabled by default.
+- `SIYAB_VERDICT_NEARBLOCKS`: set to `1` to enable the hosted verdict and live account check account-age fallback; disabled by default. The live account check honors `NEAR_ARCHIVAL_RPC_URL` and uses `NEARBLOCKS_API_URL` only when this fallback is enabled; otherwise it does not read NearBlocks.
 - `SIYAB_TELEGRAM_TOKEN_FILE`: path to the dedicated Siyab Telegram bot token file outside the repository; missing credentials leave delivery unconfigured.
 
 - `SIYAB_ASK`: Set to 1 to enable Ask Siyab; off by default.
