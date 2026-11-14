@@ -5,7 +5,8 @@ Usage:
   python scripts/counts.py --readme README.md rewrite the block between the counts markers
 
 The lines, in this order (every number is counted from the files named); the two off-allowlist lines are
-printed only while their files exist, so there are seven to nine:
+printed only while their files exist, so there are seven to nine (each count names its noun in the
+singular when it is 1):
 
   On N recorded mainnet receivers the rules returned A ALLOW, D DENY, U Unknown.
       fixtures/receivers/judgements/*.json, one judgement per subject
@@ -71,9 +72,13 @@ TIER2_FALLBACK_LATENCY_RUNS = ROOT / "fixtures" / "latency" / "verdict-runs-tier
 START, END = "<!-- counts:start -->", "<!-- counts:end -->"
 
 
+def _count(number, noun):
+    return f"{number} {noun}" + ("" if number == 1 else "s")
+
+
 def receivers_line(directory=JUDGEMENTS_DIR):
     verdicts = [json.loads(path.read_text(encoding="utf-8"))["verdict"] for path in sorted(Path(directory).glob("*.json"))]
-    return (f"On {len(verdicts)} recorded mainnet receivers the rules returned {verdicts.count('ALLOW')} ALLOW, "
+    return (f"On {_count(len(verdicts), 'recorded mainnet receiver')} the rules returned {verdicts.count('ALLOW')} ALLOW, "
             f"{verdicts.count('DENY')} DENY, {verdicts.count('UNKNOWN')} Unknown.")
 
 
@@ -86,13 +91,13 @@ def cohorts_line(set_path=RECEIVER_SET, directory=JUDGEMENTS_DIR):
 def labels_line(store_path=labels.STORE_PATH):
     counts = labels.load(store_path).counts()
     p = counts["provenance"]
-    return (f"Label store: {counts['assertions']} assertions over {counts['subjects']} subjects (onchain "
+    return (f"Label store: {_count(counts['assertions'], 'assertion')} over {_count(counts['subjects'], 'subject')} (onchain "
             f"{p['onchain']}, official_source {p['official_source']}, third_party {p['third_party']}, "
             f"inferred {p['inferred']}).")
 
 
 def incidents_line(directory=INCIDENTS_DIR):
-    return f"Incidents: {len(list(Path(directory).glob('*.json')))} pages."
+    return f"Incidents: {_count(len(list(Path(directory).glob('*.json'))), 'page')}."
 
 
 def feed_line(state_path=FEED_STATE):
@@ -102,10 +107,10 @@ def feed_line(state_path=FEED_STATE):
     state = json.loads(path.read_text(encoding="utf-8"))
     signals = ", ".join(f"{count} {name}" for name, count in state["events"].items())
     if state.get("mode") == "follow":
-        return (f"Feed: following since {state['started_at'][:10]}, {state['blocks']} blocks, "
-                f"{sum(state['events'].values())} events ({signals}).")
-    return (f"Feed: since {state['start_time'][:10]}, {state['blocks']} blocks, {sum(state['events'].values())} "
-            f"events ({signals}).")
+        return (f"Feed: following since {state['started_at'][:10]}, {_count(state['blocks'], 'block')}, "
+                f"{_count(sum(state['events'].values()), 'event')} ({signals}).")
+    return (f"Feed: since {state['start_time'][:10]}, {_count(state['blocks'], 'block')}, "
+            f"{_count(sum(state['events'].values()), 'event')} ({signals}).")
 
 
 def flows_line(directory=FLOWS_DIR):
@@ -115,7 +120,7 @@ def flows_line(directory=FLOWS_DIR):
     least = min(traces, key=lambda t: (t["depth_reached"], t["completeness"] == "complete"))
     stopped = [t for t in traces if t["completeness"] != "complete"]
     state = "complete" if not stopped else trace.stop_state((least if least in stopped else stopped[0])["completeness"])
-    return (f"Flows: {len(traces)} exit traces, {sum(len(t['hops']) for t in traces)} hops, depth "
+    return (f"Flows: {_count(len(traces), 'exit trace')}, {_count(sum(len(t['hops']) for t in traces), 'hop')}, depth "
             f"{least['depth_reached']} of {least['depth']}, {state}.")
 
 
@@ -137,8 +142,8 @@ def _latency(label, path):
     runs = sorted(_latencies(path)) if Path(path).is_file() else []
     if not runs:
         return f"{label}: not measured."
-    return (f"{label}: p50 {_nearest_rank(runs, 50)} ms, p95 {_nearest_rank(runs, 95)} ms over {len(runs)} "
-            "verdict runs.")
+    return (f"{label}: p50 {_nearest_rank(runs, 50)} ms, p95 {_nearest_rank(runs, 95)} ms over "
+            f"{_count(len(runs), 'verdict run')}.")
 
 
 def latency_line(path=LATENCY_RUNS):

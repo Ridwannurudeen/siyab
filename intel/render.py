@@ -25,7 +25,7 @@ summary line, the shares of the subject's gross outbound
 transfer value, the subject's balance and issuer status at a block, then one card per hop grouped
 by depth), verify.html (a form that reads a registry record from https://test.rpc.fastnear.com in the
 browser, never the ShieldBot API, and shows it next to the evidence hash the reader pastes; its inputs
-show the vendor's committed record as examples) and 404.html (the page the API serves for a path that
+show the demo payee's committed record as examples) and 404.html (the page the API serves for a path that
 is neither a route nor a file at any depth, so its links are root absolute). Every
 page carries a robots noindex meta, which render --indexable leaves out, and the footer "Data: NearBlocks".
 A page name is the subject or entity id with every character outside letters, digits, dot, underscore
@@ -71,7 +71,7 @@ HEADLINE = ("Siyab checks an account before you pay, with a source on every answ
             "on testnet pays only on a signed ALLOW.")
 COUNTS_OF = ("The counts below are of the recorded mainnet receivers the rules judged, in all and by cohort, the label "
              "store's assertions and subjects by provenance class, the incident pages, the blocks and events of the "
-             "feed, the exit traces and their hops, and the verdict latency runs for the allowlisted payee and for a "
+             "committed feed snapshot, the exit traces and their hops, and the verdict latency runs for the allowlisted payee and for a "
              "payee off the allowlist.")
 ENTITY_SETS = (("treasuries", "Treasuries", ("treasury",)),
                ("catalog", "Catalog tokens", ("catalog_token",)),
@@ -175,9 +175,10 @@ def _inputs(assertion, by_id, accounts):
                        for i in assertion.source["inputs"])
 
 
-def page(title, body, depth=0, rooted=False, *, inert=False, landing=False):
-    """A whole HTML page; depth is how many directories below the site root it sits, and a rooted page
-    links root absolute because it is served at any path."""
+def page(title, body, depth=0, rooted=False, *, record=False, landing=False):
+    """A whole HTML page; depth is how many directories below the site root it sits, a rooted page
+    links root absolute because it is served at any path, and a record page lays out its main content as
+    an incident record."""
     body = re.sub(r"(<h1(?: [^>]*)?>.*?</h1>)", r'<div class="page-head">\1</div>', body, count=1) if body.startswith("<h1") else body
     up = "/" if rooted else "../" * depth
     current = {"Siyab": "index.html", "Explore": "explore.html", "Investigate account": "investigate.html", "Workspace": "workspace.html", "Feed": "feed.html", "Verify a record": "verify.html",
@@ -203,18 +204,14 @@ def page(title, body, depth=0, rooted=False, *, inert=False, landing=False):
                    + ''.join(f'<a href="{up}{href}">{label}</a>' for href, label in
                              (("explore.html", "Explore"), ("investigate.html", "Account lookup"),
                               ("explore.html#incidents", "Incidents"), ("verify.html", "Verify"))) + '</nav>') if landing else ''
-    shell = "" if inert else (ROOT / "intel/ui/shell.js").read_text(encoding="utf-8")
-    workspace_script = "" if inert else (ROOT / "intel/ui/workspace.js").read_text(encoding="utf-8")
-    cloud_script = "" if inert else (ROOT / "intel/ui/cloud-workspace.js").read_text(encoding="utf-8")
-    number_script = "" if inert else (ROOT / "intel/ui/number-format.js").read_text(encoding="utf-8")
+    shell = (ROOT / "intel/ui/shell.js").read_text(encoding="utf-8")
+    workspace_script = (ROOT / "intel/ui/workspace.js").read_text(encoding="utf-8")
+    cloud_script = (ROOT / "intel/ui/cloud-workspace.js").read_text(encoding="utf-8")
+    number_script = (ROOT / "intel/ui/number-format.js").read_text(encoding="utf-8")
     search_label = '<span class="site-search-label">Search accounts / entities</span><span class="site-search-short" aria-hidden="true">Search</span>'
-    search = ('<details class="record-theme"><summary>Theme</summary><fieldset><legend>Theme</legend>'
-              '<input type="radio" id="record-theme-dark" name="record-theme" value="dark" checked><label for="record-theme-dark">Dark</label>'
-              '<input type="radio" id="record-theme-light" name="record-theme" value="light"><label for="record-theme-light">Light</label></fieldset></details>'
-              f'<a class="site-search-link" aria-label="Search accounts and entities" href="{up}explore.html#search">{search_label}</a>' if inert else
-              f'<button class="site-search-button" type="button" aria-label="Search accounts and entities" data-open-search>{search_label} <kbd class="search-key">Ctrl K</kbd></button>'
+    search = (f'<button class="site-search-button" type="button" aria-label="Search accounts and entities" data-open-search>{search_label} <kbd class="search-key">Ctrl K</kbd></button>'
               '<button class="theme-toggle" type="button" id="theme-toggle" aria-label="Switch to light theme"><span class="theme-toggle-label">Use light theme</span></button>')
-    dialog = "" if inert else (
+    dialog = (
         '<dialog class="search-dialog" id="global-search" aria-label="Search accounts and entities">'
         '<form class="search-dialog-head" method="dialog"><input id="global-search-input" aria-label="Account or entity" autocomplete="off" placeholder="Search accounts and entities">'
         '<button aria-label="Close search">Close</button></form><div class="search-results" id="global-search-results" aria-live="polite"></div></dialog>'
@@ -223,7 +220,7 @@ def page(title, body, depth=0, rooted=False, *, inert=False, landing=False):
         '<label for="case-notes">Notes<textarea id="case-notes" maxlength="4000" rows="5"></textarea></label>'
         '<p id="case-source" class="source-line"></p><p id="case-error" role="alert"></p><div class="workspace-actions">'
         '<button class="primary" type="submit">Save investigation</button><button id="case-cancel" type="button">Cancel</button></div></form></dialog>')
-    content_class = "app-content record-content" if inert else "app-content"
+    content_class = "app-content record-content" if record else "app-content"
     description = "Investigate NEAR accounts with sourced labels, recorded activity and read-only payment checks. Inspect the evidence and its coverage."
     metadata = (f'<meta name="description" content="{esc(description)}">\n<meta property="og:type" content="website">\n'
                 f'<meta property="og:title" content="{esc(title if title == "Siyab" else title + " | Siyab")}">\n'
@@ -233,7 +230,7 @@ def page(title, body, depth=0, rooted=False, *, inert=False, landing=False):
                 '<meta name="twitter:card" content="summary_large_image">\n'
                 f'<meta name="twitter:image" content="{SITE_ORIGIN}/brand/social.png">\n'
                 '<link rel="icon" type="image/svg+xml" href="/brand/favicon.svg"><link rel="alternate icon" href="/favicon.ico">\n')
-    theme_script = "" if inert else "<script>try{var t=localStorage.getItem('siyab-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>\n"
+    theme_script = "<script>try{var t=localStorage.getItem('siyab-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>\n"
     mobile_landing_nav = landing_nav.replace('aria-label="Primary"', 'aria-label="Mobile primary"', 1)
     frame = (f'<header class="app-topbar"><a class="site-brand" href="{up}index.html">{BRAND_MARK}<span>Siyab</span></a>'
              f'{landing_nav}<div class="header-actions">{search}</div>'
@@ -248,15 +245,15 @@ def page(title, body, depth=0, rooted=False, *, inert=False, landing=False):
             '<meta name="theme-color" content="#0A0D16">\n'
             f"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n{ROBOTS}"
             f"<title>{esc(title)}</title>\n{metadata}<link rel=\"stylesheet\" href=\"/style.css\">\n"
-            + (_script_tag(number_script) if number_script else "") + '</head>\n'
+            + _script_tag(number_script) + '</head>\n'
             + ('<body class="landing-page">\n' if landing else '<body>\n')
             + '<a class="skip-link" href="#main-content">Skip to content</a>'
             + f'{frame}{dialog}\n<main class="{content_class}" id="main-content">\n{body}\n</main>\n'
             '<footer class="app-footer"><p>Data: NearBlocks. Blocks: mainnet.neardata.xyz. Transfers: FastNEAR.</p></footer>\n'
-            + ('' if inert else '<p id="workspace-feedback" class="workspace-feedback" role="status" aria-live="polite"></p>')
-            + f'{"<script>" + shell + "</script>" if shell else ""}'
-            + f'{_script_tag(workspace_script) if workspace_script else ""}'
-            + f'{_script_tag(cloud_script) if cloud_script else ""}'
+            + '<p id="workspace-feedback" class="workspace-feedback" role="status" aria-live="polite"></p>'
+            + f'<script>{shell}</script>'
+            + _script_tag(workspace_script)
+            + _script_tag(cloud_script)
             + (_script_tag((ROOT / "intel/ui/landing.js").read_text(encoding="utf-8")) if landing else '')
             + '</body>\n</html>\n')
 
@@ -492,8 +489,24 @@ def _workspace(flows, clusters, store, summary):
             + (ROOT / "intel/ui/feed.js").read_text(encoding="utf-8") + '</script>')
 
 
+def _counts_display(line, snapshot_path=None):
+    """A counts line as the explore page shows it: counts of four or more digits get thousands separators
+    (dates are left alone), and the feed line, when it reads the committed follower snapshot, is followed
+    by a note that it ends at the snapshot's last block time and that the live feed page reads further."""
+    snapshot_path = feed.SNAPSHOT_PATH if snapshot_path is None else snapshot_path
+    shown = re.sub(r"(?<![\d.:-])\d{4,}(?![\d:-])", lambda match: f"{int(match.group()):,}", line)
+    paragraph = f"<p>{esc(shown)}</p>"
+    if line.startswith("Feed: following since") and Path(snapshot_path).is_file():
+        snapshot = json.loads(Path(snapshot_path).read_text(encoding="utf-8"))
+        paragraph += (f'<p class="muted">The feed line counts the committed follower snapshot '
+                      f'<code>intel/feed/follow-snapshot.json</code>, which ends at {esc(snapshot["last_time"])}. '
+                      'Events the running follower raised after it are on the <a href="feed.html">feed page</a>, '
+                      'not in this count.</p>')
+    return paragraph
+
+
 def explore_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVERS_JUDGEMENTS_DIR):
-    counts = "".join(f"<p>{esc(line)}</p>" for line in _counts_lines())
+    counts = "".join(_counts_display(line) for line in _counts_lines())
     label_count = store.counts()
     scan_tool_label = "Is this account " + "sa" + "fe" + " to use?"
     top_summary = _top_receivers_summary(top_judgements_dir)
@@ -671,7 +684,8 @@ def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVE
     inspector = []
     transfers = []
     for hop in excerpt:
-        amount = f'{_transfer_amount(hop)} units of <q class="data">{esc(hop["asset_id"])}</q>.'
+        transfer = _transfer_amount(hop)
+        amount = f'{transfer} unit{"" if transfer == "1" else "s"} of <q class="data">{esc(hop["asset_id"])}</q>.'
         when = trace.utc_minute(hop["block_timestamp"])
         transaction = (f'<a href="https://nearblocks.io/txns/{esc(hop["transaction_hash"])}" rel="noreferrer">'
                        f'{esc(hop["transaction_hash"])}</a>')
@@ -928,7 +942,8 @@ def _profile_source(assertion):
 
 def _transfer_amount(row):
     decimals = trace.asset_decimals(row["asset_id"])
-    return _display_amount(row["amount"], 4, decimals=decimals) if decimals is not None else f'{row["amount"]} base units'
+    return (_display_amount(row["amount"], 4, decimals=decimals) if decimals is not None
+            else f'{row["amount"]} base unit{"" if row["amount"] == "1" else "s"}')
 
 
 def _profile_transfer_rows(subject, flows):
@@ -1433,10 +1448,12 @@ def cluster_page(name, document, accounts):
 
 def _hop_card(hop, accounts):
     usd = ', USD unknown' if hop["usd_amount"] is None else f', {_display_amount(hop["usd_amount"], 2)} USD as the Transfers API values it'
-    units = " units, from recorded base units" if trace.asset_decimals(hop["asset_id"]) is not None else " (decimals not recorded)"
-    human = f'<p>{esc(_transfer_amount(hop))}{units}.</p>'
+    amount = _transfer_amount(hop)
+    units = (f' unit{"" if amount == "1" else "s"}, from recorded base units'
+             if trace.asset_decimals(hop["asset_id"]) is not None else " (decimals not recorded)")
+    human = f'<p>{esc(amount)}{units}.</p>'
     return (f'<div class="card flow-transfer"><p class="mono">{_linked(hop["from"], esc(hop["from"]), accounts)} to '
-            f'{_linked(hop["to"], esc(hop["to"]), accounts)}</p><p>{esc(hop["amount"])} base units of '
+            f'{_linked(hop["to"], esc(hop["to"]), accounts)}</p><p>{esc(hop["amount"])} base unit{"" if hop["amount"] == "1" else "s"} of '
             f'<span class="mono">{esc(hop["asset_id"])}</span>{esc(usd)}, method {esc(hop["method_name"] or "none")}</p>'
             f'{human}<p class="mono muted">block {hop["block"]} at {esc(trace.utc_minute(hop["block_timestamp"]))}<br>transaction '
             f'{esc(hop["transaction_hash"])}<br>receipt {esc(hop["receipt_id"])}</p>'
@@ -1527,11 +1544,11 @@ def _flow_analytics(document, accounts):
     return ('<section class="analytics-grid flow-analytics" id="recorded-dataset" aria-label="Full recorded flow analytics">'
             f'<article class="analytics-panel" data-direct-usd="{esc(shares["direct_outbound_usd"])}"><div class="analytics-panel-head"><h2>Direct outbound distribution</h2></div>'
             f'<p class="analytics-note">Full recorded dataset, not the current graph filter. Denominator: {Decimal(shares["direct_outbound_usd"]):,.2f} USD '
-            f'across {shares["rows"]} root outbound row{"" if shares["rows"] == 1 else "s"} valued at or above {esc(shares["min_usd"])} USD by the Transfers API. '
+            f'across {shares["rows"]} root outbound row{"" if shares["rows"] == 1 else "s"} valued at or above {esc(trace.usd_text(shares["min_usd"]))} by the Transfers API. '
             'Deeper hops are excluded; this is gross transfer value, not loss.</p>'
             '<div class="analytics-chart"><div class="analytics-distribution-head" aria-hidden="true"><span>Counterparty</span><span>USD</span><span>Rows</span><span>Share</span></div>'
             f'{distribution or "<p>No direct outbound rows meet the USD threshold.</p>"}</div>'
-            f'<p class="analytics-note">{below["count"]} row{"" if below["count"] == 1 else "s"} below {esc(shares["min_usd"])} USD: {Decimal(below["usd"]):,.2f} USD, counted separately. '
+            f'<p class="analytics-note">{below["count"]} row{"" if below["count"] == 1 else "s"} below {esc(trace.usd_text(shares["min_usd"]))}: {Decimal(below["usd"]):,.2f} USD, counted separately. '
             f'{unknown["count"]} row{"" if unknown["count"] == 1 else "s"} without a USD amount; their value is unknown, not zero. Base units: {esc(units)}.</p></article>'
             f'<article class="analytics-panel" data-recorded-timeline="{esc(document["subject"])}"><div class="analytics-panel-head"><h2>Recorded transfer activity</h2></div>'
             '<p class="analytics-note">Full recorded dataset, not the current graph filter. Transfer counts, not a USD or price history.</p>'
@@ -1543,7 +1560,7 @@ def _shares_table(shares, accounts):
                esc(trace.usd_text(bucket["usd"])), str(bucket["count"]), str(bucket["percent"])] for bucket in shares["buckets"]]
     below, without = shares["below_min_usd"], shares["without_usd"]
     units = ", ".join(f"{amount} of {asset}" for asset, amount in without["base_units"].items()) or "none"
-    values.extend([[f'rows below {esc(shares["min_usd"])} USD, counted apart', '', esc(trace.usd_text(below["usd"])), str(below["count"]), ''],
+    values.extend([[f'rows below {esc(trace.usd_text(shares["min_usd"]))}, counted apart', '', esc(trace.usd_text(below["usd"])), str(below["count"]), ''],
                    ['rows without a USD amount, counted apart', '', f'{esc(units)} (base units)', str(without['count']), '']])
     columns = ('To', 'Kind', 'USD', 'Rows', 'Percent')
     rows = []
@@ -1695,12 +1712,18 @@ def issuers_page():
         history_rows.append([_subject_cell(row.subject, accounts).replace('href="../', 'href="/'), esc(action), str(row.source["block"]),
                              f'<time datetime="{esc(row.observed_at)}">{esc(row.observed_at)}</time>', _profile_source(row)])
     entries = {entry["token"]: entry for entry in issuers.issuer_entries()}
-    other_answers = Counter()
+    other_answers = {}
     for (issuer, method), counts in _status_answers(reads).items():
         banned = json.dumps(entries[issuer]["banned"], ensure_ascii=False)
-        other_answers.update({answer: count for answer, count in counts.items() if answer != banned})
-    other_status = ("Other recorded answers: " + "; ".join(f"{answer}: {count}" for answer, count in other_answers.items()) + "."
-                    if other_answers else "No other recorded answers.")
+        view = other_answers.setdefault(method, Counter())
+        view.update({answer: count for answer, count in counts.items() if answer != banned})
+    other_views = [(method, answers) for method, answers in other_answers.items() if answers]
+
+    def answered(answers):
+        said = [f"{answer} {count} time{'' if count == 1 else 's'}" for answer, count in answers.items()]
+        return ", ".join(said[:-1]) + " and " + said[-1] if len(said) > 1 else said[0]
+    other_status = ("Other recorded answers: " + "; ".join(f"{method} answered {answered(answers)}" for method, answers in other_views) + "."
+                    if other_views else "No other recorded answers.")
     status_scope = "Banned answers only. " + other_status + " Counts by issuer view are in Coverage below."
     summary = ('<div class="page-head issuers-heading"><h1>Issuer actions</h1><nav class="profile-anchors" aria-label="Issuer sections">'
                '<a href="#issuer-status-section">Recorded issuer status</a><a href="#issuer-ledger">Recorded action ledger</a></nav></div>'
@@ -1776,7 +1799,7 @@ def record_page(record):
             f'<nav class="profile-anchors" aria-label="Record sections">{anchors}</nav></div>' + "".join(sections)
             + '<p class="muted">Re-check from the repository root with '
             + f'<code><span class="nowrap">python -m intel record-check</span> fixtures/records/{record_id}.json</code>.</p>')
-    return page("Incident record", body, depth=1, inert=True)
+    return page("Incident record", body, depth=1, record=True)
 
 
 def record_index_page(documents):
@@ -1808,7 +1831,7 @@ def record_index_page(documents):
             '<p class="record-index-note">Synthetic examples: the two committed examples describe a synthetic report. They are not findings about a real incident.</p>'
             '<p>Record status describes supersession within this index. A report\'s current on-chain state must be read from its contract; it is not established by this saved record. Recorded time is when the publisher wrote the record, not when an incident occurred.</p>'
             + table)
-    return page("Incident records", body, depth=1, inert=True)
+    return page("Incident records", body, depth=1, record=True)
 
 
 def _incident_record_pages(records_dir=None):
@@ -1910,7 +1933,8 @@ def verify_page():
     body = ("<h1>Read a registry record</h1><p>The page calls <code>latest</code> on the registry contract over the "
             f"public testnet RPC <code>{TESTNET_RPC}</code> from your browser and shows the record next to the "
             "evidence hash you paste. Compute the hash yourself with <code>sha256sum</code> of the evidence file.</p>"
-            "<p>The examples in the empty fields are the vendor's latest record, "
+            f"<p>The examples in the empty fields are the latest record for <code>{subject}</code>, the allowlisted "
+            "demo payee on testnet, saved as "
             "<code>fixtures/registry/testnet-latest-kestrelridge-shop.json</code>, and the sha256 of its evidence "
             "document.</p>"
             '<div class="verification-workspace"><section class="verify-live"><h2>Live testnet read</h2>'

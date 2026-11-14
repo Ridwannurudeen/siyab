@@ -129,7 +129,7 @@ Incidents: 3 pages.
 
 Feed: following since 2026-11-03, 64697 blocks, 0 events (0 code_hash_matches_incident, 0 fresh_dust_funded_pays_labelled, 0 watch_account_key_added, 0 labelled_account_large_transfer, 0 deploy_on_labelled_contract).
 
-Flows: 1 exit traces, 1708 hops, depth 2 of 3, stopped while reading an account 1 hop from the subject.
+Flows: 1 exit trace, 1708 hops, depth 2 of 3, stopped while reading an account 1 hop from the subject.
 
 Latency: p50 1843 ms, p95 2300 ms over 20 verdict runs.
 

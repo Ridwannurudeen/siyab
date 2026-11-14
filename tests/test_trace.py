@@ -218,7 +218,7 @@ class WalkTest(unittest.TestCase):
         self.assertEqual(shares["rows"], 1)
         self.assertEqual(shares["buckets"], [{"to": "intents.near", "kind": "terminal", "usd": "10.0", "count": 1,
                                               "percent": 100.0}])
-        self.assertIn("across 1 row (3 rows without a USD amount, 1 below 1.0 USD)", trace.summary(document))
+        self.assertIn("across 1 row (3 rows without a USD amount, 1 below 1.00 USD)", trace.summary(document))
 
     def test_summary_pluralizes_single_hop_and_unknown_usd_row(self):
         document, _, _ = walk({"start.near": [[row("start.near", "start.near", 1, usd=None)]]})

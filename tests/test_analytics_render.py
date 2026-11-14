@@ -158,9 +158,8 @@ class AnalyticsRenderTest(unittest.TestCase):
         cloud = render._script_tag((ROOT / "intel/ui/cloud-workspace.js").read_text(encoding="utf-8"))
         page = render.page("Account", "")
         self.assertLess(page.index(numbers), page.index(cloud))
-        inert = render.page("Incident record", "", inert=True)
-        self.assertNotIn(cloud, inert)
-        self.assertNotIn(numbers, inert)
+        record = render.page("Incident record", "", depth=1, record=True)
+        self.assertLess(record.index(numbers), record.index(cloud))
 
     def test_formatter_is_hashed_once_before_deferred_consumers(self):
         source = (ROOT / "intel/ui/number-format.js").read_text(encoding="utf-8")

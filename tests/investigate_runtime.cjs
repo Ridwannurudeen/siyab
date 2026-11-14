@@ -27,10 +27,24 @@ for (const address of ['https://other.example/live/accounts/wrap.near/graph?dept
 
 const uiSource = fs.readFileSync('intel/ui/investigate.js', 'utf8').replace(
   '  const root =',
-  '  window.investigateTest = {accountId, baseUnits, exactTime, validPage, direction};\n  const root ='
+  '  window.investigateTest = {accountId, baseUnits, exactTime, validPage, direction, storageSize, tokenNameWarning};\n  const root ='
 );
 vm.runInNewContext(uiSource, {window, URL, document: {getElementById() {return null;}}});
-const {accountId, baseUnits, exactTime, validPage, direction} = window.investigateTest;
+const {accountId, baseUnits, exactTime, validPage, direction, storageSize, tokenNameWarning} = window.investigateTest;
+assert.deepEqual(Array.from(storageSize(1438484819)), ['1.44', 'GB', '1,438,484,819 bytes']);
+assert.deepEqual(Array.from(storageSize('2263199')), ['2.26', 'MB', '2,263,199 bytes']);
+assert.deepEqual(Array.from(storageSize(12)), ['12', 'bytes', '12 bytes']);
+assert.deepEqual(Array.from(storageSize(1)), ['1', 'byte', '1 byte']);
+assert.deepEqual(Array.from(storageSize(null)), ['Unavailable', '', undefined]);
+assert.deepEqual(Array.from(storageSize(999994)), ['999.99', 'kB', '999,994 bytes']);
+assert.deepEqual(Array.from(storageSize(999995)), ['1', 'MB', '999,995 bytes']);
+assert.deepEqual(Array.from(storageSize(999999999)), ['1', 'GB', '999,999,999 bytes']);
+for (const name of ['\u{1F389}You won 500 NEAR!\u{1F389}To claim your gain:\u{1F449}www.nearraffle.com', 'AD#6: Checkout Roketo at https://roke.to'])
+  assert.match(tokenNameWarning(name), /contains a web address/);
+for (const name of ['Claim your airdrop now', 'You have won 500 NEAR', 'Check out our pool'])
+  assert.match(tokenNameWarning(name), /reads like an advertisement/);
+for (const name of ['Visit near-gift.vip', 'Free tokens at nearbonus.ru', 'bit.ly/abc', 'Visit example.de']) assert.match(tokenNameWarning(name), /contains a web address/);
+for (const name of ['USD Coin', 'Wrapped NEAR fungible token', 'Ref Finance Token', '<img src=x onerror=bad()>', 'Sweat Reward', 'Bonus Token', 'Airdrop', 'CLAIM', 'Visit']) assert.equal(tokenNameWarning(name), '');
 assert.equal(accountId('wrap.near'), true);
 for (const account of ['x.testnet', 'testnet', 'a..near', 'bad!near', 'a'.repeat(65)]) assert.equal(accountId(account), false);
 assert.equal(baseUnits('1000000000000000000000001', 24), '1.000000000000000000000001');
@@ -58,6 +72,8 @@ class Element {
   focus() { this.document.activeElement = this; }
 }
 const contentText = item => item.textContent + item.children.map(contentText).join(' ');
+const allNodesOf = root => [root, ...root.children.flatMap(allNodesOf)];
+
 const tick = () => new Promise(resolve => setImmediate(resolve));
 async function appBehavior() {
   const ids = {};
@@ -89,14 +105,26 @@ async function appBehavior() {
   await tick(); assert.equal(ids['investigate-title'].textContent,'other.near'); assert.equal(ids['investigate-title'].classList.contains('investigate-subject'),true,'A loaded subject marks the title');
   assert.doesNotMatch(contentText(ids['investigate-profile']),/does not currently exist/,'A late old response must not overwrite the active account');
   reply(pending[4],{account_id:'other.near',network:'mainnet',exists:true,native:{amount_yocto:'1000000000000000000000001',locked_yocto:'0',block_height:'9007199254740993',storage_usage:12},labels:[],source:{provider:'RPC'},coverage:{scope:'Includes storage backing'}});
-  const holdings=page('other.near');holdings.items=[{contract_id:'wrap.near',balance:'9007199254740993123456789',metadata:{name:'<img src=x onerror=bad()>',symbol:'TEST',decimals:6},balance_status:'indexed',last_update_block_height:'1'}];holdings.pagination.next_offset=10;
+  const holdings=page('other.near');holdings.items=[{contract_id:'wrap.near',balance:'9007199254740993123456789',metadata:{name:'<img src=x onerror=bad()>',symbol:'TEST',decimals:6},balance_status:'indexed',last_update_block_height:'1'},{contract_id:'001.laboratory.jumpfinance.near',balance:'1',metadata:{name:'You won 500 NEAR! To claim your gain: www.nearraffle.com',symbol:'WIN',decimals:0},balance_status:'indexed',last_update_block_height:'2'}];holdings.pagination.next_offset=10;
   reply(pending[5],holdings);reply(pending[6],page('other.near'));reply(pending[7],page('other.near'));await tick();
   assert.match(contentText(ids['investigate-profile']),/Account balance 1/);
   assert.match(contentText(ids['investigate-profile']),/1000000000000000000000001/,'Exact finalized JSON retains every base unit');
   assert.match(contentText(ids['investigate-holdings']),/9007199254740993123\.456789/);
   assert.match(contentText(ids['investigate-holdings']),/<img src=x onerror=bad\(\)>/,'Provider text is rendered as literal text');
+  const metadataCells = allNodesOf(ids['investigate-holdings']).filter(item => item.tag === 'tr').slice(1).map(row => row.children[2]);
+  assert.equal(metadataCells.length, 2);
+  assert.match(contentText(metadataCells[0]), /Name set by the token contract, not verified/);
+  assert.doesNotMatch(contentText(metadataCells[0]), /web address|advertisement/, 'An ordinary name carries no warning');
+  assert.match(contentText(metadataCells[1]), /You won 500 NEAR! To claim your gain: www\.nearraffle\.com/, 'The scam name stays visible as evidence');
+  assert.match(contentText(metadataCells[1]), /This name contains a web address\. Any contract can set any name; Siyab does not check it, and the address is not a link\./);
+  assert.ok(allNodesOf(metadataCells[1]).every(item => item.tag !== 'a' && item.href === undefined), 'No link is made from a token name');
+  assert.equal(metadataCells[1].getAttribute('data-export-value'), 'You won 500 NEAR! To claim your gain: www.nearraffle.com', 'The CSV export keeps the name alone, without the label or the warning');
+
+  const storage = allNodesOf(ids['investigate-profile']).find(item => item.tag === 'dd' && item.title === 'Exact: 12 bytes');
+  assert.ok(storage, 'Storage used keeps the exact byte count in its title');
+  assert.deepEqual([storage.textContent, storage.children.map(item => item.textContent)], ['12', ['bytes']]);
   assert.equal(ids['investigate-holdings'].attributes['aria-busy'],'false');
-  const allNodes = root => [root,...root.children.flatMap(allNodes)];
+  const allNodes = allNodesOf;
   let next=allNodes(ids['investigate-holdings']).find(item=>item.tag==='button'&&item.textContent==='Next page');
   next.listeners.click();assert.match(pending.at(-1).url,/holdings\?offset=10&limit=10$/);
   reply(pending.at(-1),page('other.near'));await tick();

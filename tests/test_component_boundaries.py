@@ -12,8 +12,8 @@ class ComponentBoundariesTest(unittest.TestCase):
         labelled = ("button,.button", ".graph-view-controls>summary", ".mobile-navigation>summary",
                     ".entity-table-pagination a", ".graph-mode-controls",
                     ".graph-mode-controls button+button", ".flow-evidence-pagination a",
-                    ".graph-compact-filters>summary,.graph-compact-actions>summary", ".record-theme>summary")
-        inputs = ("input,select,textarea", ".site-search-link,.site-search-button",
+                    ".graph-compact-filters>summary,.graph-compact-actions>summary")
+        inputs = ("input,select,textarea", ".site-search-button",
                   ".cloud-workspace input,.cloud-workspace select,.cloud-workspace textarea,.case-dialog select",
                   ".investigation-jobs input,.investigation-jobs select")
         for selectors, token in ((labelled, "var(--hairline))"), (inputs, "var(--hairline-strong))")):
@@ -100,8 +100,7 @@ class ComponentBoundariesTest(unittest.TestCase):
             if path.name != "site.css")
         record = next(path for path in Path("demo/site/records").glob("*.html") if path.name != "index.html")
         document = record.read_text(encoding="utf-8")
-        self.assertNotRegex(document, r"<script\b")
-        document = re.sub(r'<link\b[^>]*>', '', document)
+        document = re.sub(r'<script\b.*?</script>', '', re.sub(r'<link\b[^>]*>', '', document), flags=re.DOTALL)
         with sync_playwright() as runtime:
             try:
                 browser = runtime.chromium.launch(headless=True)
@@ -113,7 +112,6 @@ class ComponentBoundariesTest(unittest.TestCase):
                 for width in (1440, 390):
                     page.set_viewport_size({"width": width, "height": 900})
                     page.set_content(document.replace('</head>', '<style>' + css + '</style></head>'))
-                    self.assertEqual(page.locator("script").count(), 0)
                     for path in ("record_id", "publisher", "evidence[0].fetched_at", "timeline[0].at"):
                         actual = page.locator('[data-record-path="' + path + '"]').evaluate("node => {const s=getComputedStyle(node);return [s.fontFamily,s.fontSize,s.lineHeight,s.fontWeight,s.fontFeatureSettings]}")
                         with self.subTest(width=width, path=path):
@@ -159,7 +157,7 @@ class ComponentBoundariesTest(unittest.TestCase):
         css = Path("intel/ui/site.css").read_text(encoding="utf-8")
         parsed = list(rules(css))
         light = next(tokens(body) for name, body, context in parsed
-                     if not context and name.startswith(':root[data-theme="light"],'))
+                     if not context and name == ':root[data-theme="light"]')
         printed = next(tokens(body) for name, body, context in parsed if context == ("@media print",))
         for key, value in light.items():
             if re.fullmatch(r"\d+ \d+ \d+", value):

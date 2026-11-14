@@ -152,7 +152,7 @@ class LandingTest(unittest.TestCase):
         self.assertIn('name="account"', self.main)
         self.assertIn('href="/verify.html"', self.main)
         for title in ("Siyab", "Explore", "Investigate account", "Incident record"):
-            page = render.page(title, "<h1>Example</h1>", inert=title == "Incident record")
+            page = render.page(title, "<h1>Example</h1>", record=title == "Incident record")
             self.assertRegex(page, r'href="index.html"[^>]*>Home</a><a href="explore.html"[^>]*>Explore</a>')
             self.assertNotIn('index.html#tools', page)
             self.assertNotIn('index.html#search', page)
@@ -162,7 +162,7 @@ class LandingTest(unittest.TestCase):
         main = re.search(r'<main[^>]*>\n(.*?)\n</main>', page, re.S).group(1)
         main = re.sub(r'<article class="analytics-panel"><div class="analytics-panel-head"><h2>Label store provenance</h2>.*?</article>', '', main, flags=re.S)
         main = main.replace('/index.html', '/explore.html')
-        expected = "b5a6a7c1fc357698b2f012d311a265c6" + "b9207501d795dc0d1928906b445ab6f4"
+        expected = "bc493094afab92f7e596ca026193d98b" + "d4e5c66aaf4fb9ab7370c3a2bba12075"
         self.assertEqual(hashlib.sha256(main.encode("utf-8")).hexdigest(), expected)
 
 

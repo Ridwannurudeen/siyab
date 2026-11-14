@@ -92,7 +92,7 @@ class VerificationWorkspaceTest(unittest.TestCase):
         self.assertIn(record["evidence_hash"], page)
         self.assertIn('testnet.nearblocks.io/address/', page)
 
-    def test_record_index_has_semantic_rows_without_scripts_or_fabricated_state(self):
+    def test_record_index_content_has_semantic_rows_without_scripts_or_fabricated_state(self):
         documents = [records.read(path) for path in sorted(render.RECORDS_DIR.glob("*.json"))
                      if path.name != "body-vector.json"]
         page = render.record_index_page(documents)
@@ -100,8 +100,9 @@ class VerificationWorkspaceTest(unittest.TestCase):
         self.assertIn('scope="col">Recorded (UTC)', page)
         self.assertIn('Synthetic examples', page)
         self.assertIn('Superseded', page)
-        self.assertNotIn('<script', page)
-        self.assertNotIn('<button', page)
+        main = page.split('<main class="app-content record-content" id="main-content">', 1)[1].split("</main>", 1)[0]
+        self.assertNotIn('<script', main)
+        self.assertNotIn('<button', main)
         for record in documents:
             self.assertIn(f'href="{record["record_id"]}.html">{record["record_id"]}</a>', page)
             self.assertIn(record["timeline"][-1]["at"], page)

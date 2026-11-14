@@ -239,6 +239,15 @@ class SignalTest(unittest.TestCase):
                      last_time="2026-11-03T00:00:01Z", lag_blocks=0)
         self.assertEqual(feed.stats_lines(state)[3:], [f"{name} 0" for name in feed.SIGNALS])
 
+    def test_the_lag_line_names_one_block_in_the_singular(self):
+        state = feed.new_state()
+        state.update(mode="follow", started_at="2026-11-03T00:00:00Z", last_height=1,
+                     last_time="2026-11-03T00:00:01Z")
+        for lag, line in ((0, "lag 0 blocks"), (1, "lag 1 block"), (2, "lag 2 blocks")):
+            state["lag_blocks"] = lag
+            with self.subTest(lag=lag):
+                self.assertEqual(feed.stats_lines(state)[2], line)
+
 
 class ReducerTest(unittest.TestCase):
     def test_the_reducer_keeps_the_hash_and_drops_code_args_signatures_and_logs(self):

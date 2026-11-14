@@ -110,7 +110,8 @@ class ProfilesTest(unittest.TestCase):
         item = dict(self.flows[0][1]["hops"][0], asset_id="native:near", amount="1", human_amount=None)
         card = render._hop_card(item, self.accounts)
         self.assertIn('<p>&lt;0.0001 units, from recorded base units.</p>', card)
-        self.assertIn('1 base units of', card)
+        self.assertIn('1 base unit of', card)
+        self.assertNotIn('1 base units', card)
 
     def test_flow_card_unknown_decimals_explains_base_units(self):
         item = dict(self.flows[0][1]["hops"][0], asset_id="nep141:unknown.example.near",

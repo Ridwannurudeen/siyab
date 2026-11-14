@@ -211,7 +211,7 @@ Primary buttons use canvas-coloured ink on dark-theme teal and white ink on ligh
 
 A new visit opens dark regardless of system preference. An explicit browser-local light preference remains honoured, and the existing toggle persists explicit choices when storage is available. The theme head applies an explicit saved choice before styles load. Without a saved choice, dark CSS and dark browser metadata apply.
 
-Records have zero script elements. Their native Theme disclosure contains Dark and Light radio controls, with Dark checked initially. CSS applies the selected theme to that document only; these controls do not read or write browser storage. Native focus and forced-colour support remain available. Print uses readable light surfaces.
+Record pages use the same theme head, theme toggle and stored choice as every other page, so a saved light choice applies to them too. Native focus and forced-colour support remain available. Print uses readable light surfaces.
 
 Every small text role must meet 4.5:1 contrast on its actual background in either theme. Necessary control boundaries and meaningful graphical marks must meet 3:1. Check hover, selected, tinted and disabled states as rendered, rather than inferring contrast from the palette alone.
 
@@ -259,7 +259,7 @@ Focus uses a 2px high-contrast outline with a 3px offset. Panel content must not
 
 ## Application header
 
-Every workspace page shares one 56px header: the Siyab wordmark, the primary destinations (Home, Explore, Account lookup, Trace, Feed, Workspace), an Explore menu holding the collection destinations (Incidents, the four entity collections, Incident records, Issuers), a Tools menu holding Payment checks and Verify, global search and the theme toggle. Menus are native disclosures; on interactive pages Escape, a link choice, an outside click or opening the other menu closes them, and Escape returns focus to the menu button. Below 1240px the header shows the native Menu, which lists every destination in its original order. Records keep the same header without scripts, so their menus close natively. Content uses the full width with 24px gutters.
+Every workspace page shares one 56px header: the Siyab wordmark, the primary destinations (Home, Explore, Account lookup, Trace, Feed, Workspace), an Explore menu holding the collection destinations (Incidents, the four entity collections, Incident records, Issuers), a Tools menu holding Payment checks and Verify, global search and the theme toggle. Menus are native disclosures; on interactive pages Escape, a link choice, an outside click or opening the other menu closes them, and Escape returns focus to the menu button. Below 1240px the header shows the native Menu, which lists every destination in its original order. Record pages use this same header, with the same global search, theme toggle and menu scripts. Content uses the full width with 24px gutters.
 
 Content gutters are 24px desktop, 16px at tablet sizes, 12px on phones and 10px at 320px. The graph inspector uses 280px at full desktop width and retains its existing stacking breakpoint. The graph algorithm, recorded evidence, filters and command arrangement remain unchanged. On Explore at 1280px and wider, the display count, recording scope and time range share one compact strip and the legend sits directly above the canvas, bringing the canvas to about y=352 at 1440x900; the loading reserve there is 813px.
 
@@ -275,7 +275,7 @@ The remaining families reuse the reference grammar: a compact page head, flat pa
 
 Source assertions and attribution hypotheses remain distinct. Registry membership does not establish ownership. Recorded gross outbound transfers do not establish loss, and missing valuations do not become zero. Source dates, exact records, acquisition limits and accessible textual alternatives stay beside the views they qualify.
 
-Collection pagination preserves script-free access to every assertion. Content-addressed scripts and graph data remain local. Record paths, scalar values, arrays, hashes, quotations, citations and re-check commands remain complete. Native record theme selection changes only presentation.
+Collection pagination preserves script-free access to every assertion. Content-addressed scripts and graph data remain local. Record paths, scalar values, arrays, hashes, quotations, citations and re-check commands remain complete.
 
 Browser investigations, notes, watchlists and view settings remain browser-local by default. Authentication does not upload them. Shared imports and saves retain their explicit choices, and private workspace data stays out of public account archives. Existing worker-health, coverage, delivery and retained-history qualifications remain visible.
 

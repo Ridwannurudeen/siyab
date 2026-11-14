@@ -53,7 +53,7 @@ def receiver_rows(root):
     helper_line = counts.receivers_line(judgement_dir)
     match = parse_count_line(
         helper_line,
-        r"On (?P<total>\d+) recorded mainnet receivers the rules returned "
+        r"On (?P<total>\d+) recorded mainnet receivers? the rules returned "
         r"(?P<allow>\d+) ALLOW, (?P<deny>\d+) DENY, (?P<unknown>\d+) Unknown\.",
         "scripts/counts.py",
     )
@@ -94,7 +94,7 @@ def receiver_rows(root):
 def label_rows(root):
     label_path = root / LABELS
     helper_line = counts.labels_line(label_path)
-    match = re.match(r"Label store: (?P<total>\d+) assertions\b", helper_line)
+    match = re.match(r"Label store: (?P<total>\d+) assertions?\b", helper_line)
     if match is None:
         raise ValueError("scripts/counts.py: unexpected label counts helper output")
     total = int(match["total"])
@@ -258,7 +258,7 @@ def feed_rows(root):
     match = parse_count_line(
         helper_line,
         r"Feed: (?:following )?since (?P<start>\d{4}-\d{2}-\d{2}), "
-        r"(?P<blocks>\d+) blocks, (?P<events>\d+) events \(.*\)\.",
+        r"(?P<blocks>\d+) blocks?, (?P<events>\d+) events? \(.*\)\.",
         "scripts/counts.py",
     )
     blocks = int(match["blocks"])

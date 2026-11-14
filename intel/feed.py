@@ -717,7 +717,7 @@ def stats_lines(state, stopped_since=None):
     if state.get("mode") == "follow":
         lines = [f"following since {state['started_at']}",
                  f"last block {state['last_height']} at {state['last_time']}",
-                 f"lag {state['lag_blocks']} blocks" if stopped_since is None
+                 f"lag {state['lag_blocks']} block{'' if state['lag_blocks'] == 1 else 's'}" if stopped_since is None
                  else f"follower stopped: its last update was at {stopped_since}, lag unknown"]
         events = [f"{name} {state['events'].get(name, 0)}" for name in SIGNALS]
     else:
