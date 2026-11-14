@@ -1252,5 +1252,140 @@ class DesignSystemTest(unittest.TestCase):
             self.assertEqual(page.locator("script").count(), 0)
 
 
+    def test_browser_da6_watermark_surfaces_themes_print_and_layout(self):
+        surfaces = ".graph-stage,.analytics-chart:not(:has(.analytics-distribution-head)),.analytics-timeline-chart"
+        unmarked = ("table,.table,.app-topbar,.empty-state,.feed-empty,.investigate-empty,.portfolio-empty,"
+                    ".analytics-chart:has(.analytics-distribution-head),.entity-table-panel,.analytics-panel")
+        left_plain = ".empty-state,.feed-empty,.investigate-empty,.portfolio-empty,.analytics-chart:has(.analytics-distribution-head)"
+        visible_classes = "nodes => nodes.filter(node => node.checkVisibility()).map(node => node.className.split(' ')[0])"
+        glyph = "M26 6H12L6 14l19 5-6 7H5"
+        marked = "nodes => nodes.filter(node => getComputedStyle(node).backgroundImage.includes('" + glyph + "')).map(node => node.tagName + ' ' + (node.className.baseVal ?? node.className))"
+        surface_state = """nodes => nodes.filter(node => node.checkVisibility()).map(node => {const s=getComputedStyle(node);
+            return [node.className, decodeURIComponent(s.backgroundImage), s.backgroundRepeat, s.backgroundPosition, s.backgroundSize, node.querySelector("table") === null]})"""
+        rects = "nodes => nodes.map(node => {const r=node.getBoundingClientRect();return [r.x, r.y, r.width, r.height]})"
+        mismatched = """([surfaces, glyph]) => {
+            const allowed = new Set(document.querySelectorAll(surfaces));
+            const name = node => node.tagName + " " + (node.className.baseVal ?? node.className);
+            const results = [];
+            for (const node of document.querySelectorAll("*")) {
+                if (getComputedStyle(node).backgroundImage.includes(glyph) !== allowed.has(node)) results.push(name(node));
+                for (const part of ["::before", "::after"]) if (getComputedStyle(node, part).backgroundImage.includes(glyph)) results.push(name(node) + part);
+            }
+            return results;
+        }"""
+        contrast = """([alpha, mark, surfaces]) => {
+            const rgb = value => value.match(/[0-9.]+/g).map(Number);
+            const lum = ([r,g,b]) => [r,g,b].map(v => {v/=255;return v <= .04045 ? v/12.92 : ((v+.055)/1.055)**2.4}).reduce((sum,v,i) => sum + v*[.2126,.7152,.0722][i], 0);
+            const blend = fill => rgb(fill).slice(0, 3).map((v, i) => v * (1 - alpha) + mark[i] * alpha);
+            const against = (ink, fill) => {const [a,b] = [lum(ink), lum(fill)].sort((x,y) => y-x);return (a+.05)/(b+.05)};
+            const ratio = (ink, fill) => against(rgb(ink), blend(fill));
+            const token = name => {const node=document.createElement("span");node.style.color="rgb(var("+name+"))";document.body.append(node);const value=getComputedStyle(node).color;node.remove();return value};
+            const results = [];
+            for (const surface of document.querySelectorAll(surfaces)) {
+                if (!surface.checkVisibility()) continue;
+                for (const node of [surface, ...surface.querySelectorAll("*")]) {
+                    if (node.closest("svg") || !node.checkVisibility() || ![...node.childNodes].some(child => child.nodeType === 3 && child.textContent.trim())) continue;
+                    let back = node, fill = "rgba(0, 0, 0, 0)";
+                    while (back && (fill = getComputedStyle(back).backgroundColor) && rgb(fill)[3] === 0) back = back.parentElement;
+                    results.push([node.className, ratio(getComputedStyle(node).color, fill)]);
+                }
+            }
+            for (const stage of document.querySelectorAll(".graph-stage")) {
+                if (!stage.checkVisibility()) continue;
+                let back = stage, ground = "rgba(0, 0, 0, 0)";
+                while (back && (ground = getComputedStyle(back).backgroundColor) && rgb(ground)[3] === 0) back = back.parentElement;
+                const base = blend(ground);
+                for (const group of stage.querySelectorAll(".graph-node")) {
+                    const paint = node => {const s = getComputedStyle(node), c = rgb(s.fill);return [c.slice(0, 3), (c[3] ?? 1) * parseFloat(s.fillOpacity) * parseFloat(s.opacity)]};
+                    const over = ([colour, cover], under) => colour.map((v, i) => v * cover + under[i] * (1 - cover));
+                    let fade = 1;
+                    for (let node = group; node && node !== stage; node = node.parentElement) fade *= parseFloat(getComputedStyle(node).opacity);
+                    const fill = over(paint(group.querySelector(".graph-node-body")), base);
+                    const state = ["is-root", "is-selected"].filter(name => group.classList.contains(name)).join(" ") || "plain";
+                    for (const text of group.querySelectorAll("text")) results.push(["graph " + state + " " + text.getAttribute("class"),
+                        against(over([over(paint(text), fill), fade], base), over([fill, fade], base)), against(paint(text)[0], fill)]);
+                }
+            }
+            for (const ink of ["--secondary", "--muted"]) for (const fill of ["--panel", "--ground", "--ground-alt", "--hover"]) results.push([ink + " on " + fill, ratio(token(ink), token(fill))]);
+            return results;
+        }"""
+        themes = {"dark": ("#fff", ".06", [255, 255, 255], 0.06), "light": ("#18212F", ".04", [24, 33, 47], 0.04)}
+        rule = next(body for selector, body, context in self.rules if "background-image:var(--mark)" in body and not context)
+        sizing = re.search(r"background-size:([^;}]+)", rule).group(1).replace(",", ", ")
+        self.assertTrue(sizing.startswith("min(30%, 320px) min("), sizing)
+        for theme, (stroke, opacity, mark, alpha) in themes.items():
+            with self.browser.new_context(reduced_motion="reduce") as context:
+                context.route("**/*", self.local_route)
+                context.add_init_script("localStorage.setItem('siyab-theme', '" + theme + "')")
+                page = context.new_page()
+                for width in (1440, 390):
+                    page.set_viewport_size({"width": width, "height": 900})
+                    seen, plain, graph_states = set(), set(), set()
+                    for name in ("explore.html", "flows/rhea-collector.html", "clusters/rhea.html", "feed.html", "workspace.html",
+                                 "investigate.html", "issuers.html", "accounts/wrap.near.html"):
+                        page.goto(self.origin + "/" + name)
+                        page.wait_for_load_state("networkidle")
+                        page.evaluate("document.fonts.ready")
+                        for classes, image, repeat, position, size, table_free in page.locator(surfaces).evaluate_all(surface_state):
+                            seen.add(classes.split()[0])
+                            with self.subTest(theme=theme, width=width, page=name, surface=classes):
+                                self.assertIn(glyph, image)
+                                self.assertIn("stroke='" + stroke + "' stroke-opacity='" + opacity + "'", image)
+                                self.assertIn("stroke-width='5' stroke-linecap='square' stroke-linejoin='bevel'", image)
+                                self.assertEqual((repeat, position, size), ("no-repeat", "50% 50%", sizing))
+                                self.assertTrue(table_free)
+                        with self.subTest(theme=theme, width=width, page=name, role="marked elements equal the allowed surfaces exactly"):
+                            self.assertEqual(page.evaluate(mismatched, [surfaces, glyph]), [])
+                        with self.subTest(theme=theme, width=width, page=name, role="no mark on tables, header or placeholders"):
+                            self.assertEqual(page.locator(unmarked).evaluate_all(marked), [])
+                        plain.update(page.locator(left_plain).evaluate_all(visible_classes))
+                        measured = page.evaluate(contrast, [alpha, mark, surfaces])
+                        if page.locator(".graph-stage .graph-node:not(.is-root)").count() and page.locator(".graph-stage").first.is_visible():
+                            page.locator(".graph-stage .graph-node:not(.is-root)").first.dispatch_event("click")
+                            page.wait_for_selector(".graph-stage .graph-node.is-selected:not(.is-root)")
+                            measured += page.evaluate(contrast, [alpha, mark, surfaces])
+                        graph_states.update(item[0].rsplit(" ", 1)[0] for item in measured if item[0].startswith("graph "))
+                        with self.subTest(theme=theme, width=width, page=name, role="text contrast over the mark"):
+                            self.assertEqual([item for item in measured if item[1] < 4.5], [])
+                        before = page.locator(surfaces).evaluate_all(rects)
+                        page.add_style_tag(content="*{background-image:none!important}")
+                        with self.subTest(theme=theme, width=width, page=name, role="no layout shift or overflow"):
+                            self.assertEqual(page.locator(surfaces).evaluate_all(rects), before)
+                            self.assertLessEqual(page.evaluate("document.documentElement.scrollWidth"), width)
+                    if width == 1440:
+                        self.assertEqual(seen, {"graph-stage", "analytics-chart", "analytics-timeline-chart"})
+                        self.assertTrue({"graph plain", "graph is-root", "graph is-selected"} <= graph_states, graph_states)
+                    self.assertEqual(plain, {"feed-empty", "empty-state", "investigate-empty", "portfolio-empty", "analytics-chart"})
+                page.set_viewport_size({"width": 1440, "height": 900})
+                page.goto(self.origin + "/explore.html")
+                page.wait_for_selector(".graph-stage")
+                for faded in (".graph-node-label{fill:rgb(var(--ink)/.1)}", ".graph-node-label{fill-opacity:.1}", ".graph-node-label{opacity:.1}", ".graph-node{opacity:.1}"):
+                    style = page.add_style_tag(content="*{transition-property:none!important}" + faded)
+                    labels = [item for item in page.evaluate(contrast, [alpha, mark, surfaces]) if item[0].endswith(" graph-node-label")]
+                    style.evaluate("node => node.remove()")
+                    with self.subTest(theme=theme, role="faded graph label fails composited contrast", style=faded):
+                        self.assertTrue(labels)
+                        self.assertTrue(all(item[1] < 4.5 <= item[2] for item in labels), labels)
+                page.emulate_media(media="print")
+                with self.subTest(theme=theme, role="print"):
+                    self.assertEqual(page.locator(surfaces).evaluate_all("nodes => nodes.map(node => getComputedStyle(node).backgroundImage).filter(value => value !== 'none')"), [])
+        record = next(name for name in self.pages if name.startswith("records/") and name != "records/index.html")
+        for javascript in (True, False):
+            with self.browser.new_context(java_script_enabled=javascript, viewport={"width": 1440, "height": 900}) as context:
+                context.route("**/*", self.local_route)
+                page = context.new_page()
+                for name in ("index.html", "records/index.html", record):
+                    page.goto(self.origin + "/" + name)
+                    page.wait_for_load_state("networkidle")
+                    with self.subTest(javascript=javascript, page=name, role="landing and records stay unmarked"):
+                        self.assertEqual(page.locator("body,body *").evaluate_all(marked), [])
+                    if name.startswith("records/"):
+                        self.assertEqual(page.locator("script").count(), 0)
+                        page.locator(".record-theme summary").click()
+                        page.locator("#record-theme-light").check()
+                        with self.subTest(javascript=javascript, page=name, role="light record stays unmarked"):
+                            self.assertEqual(page.locator("body,body *").evaluate_all(marked), [])
+
+
 if __name__ == "__main__":
     unittest.main()

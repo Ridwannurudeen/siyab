@@ -215,6 +215,10 @@ Records have zero script elements. Their native Theme disclosure contains Dark a
 
 Every small text role must meet 4.5:1 contrast on its actual background in either theme. Necessary control boundaries and meaningful graphical marks must meet 3:1. Check hover, selected, tinted and disabled states as rendered, rather than inferring contrast from the palette alone.
 
+## Watermark
+
+The S glyph from the header wordmark marks a few working surfaces as a faint, decorative background image: white at 6 percent opacity in dark and ink at 4 percent in light, supplied by the --mark theme token as an inline SVG data URI. It appears once per surface, centred and never repeated, about 30 percent of the surface width and at most 320px, and never taller than the surface, so a short chart holds a smaller whole glyph instead of a cropped one. Marked surfaces are the graph canvas (Explore, flow, trace and relationship graphs and the loaded account lookup neighbourhood) and the bar and timeline chart bodies of the analytics panels. The columnar distribution list reads as a table and stays unmarked. Empty and unavailable states (feed, workspace, account lookup, portfolio) stay unmarked for now: they are one to three lines tall, so a whole glyph there shrinks to an icon behind the sentence. Tables, records, the landing page and the header carry no mark. It adds no markup, script, motion or layout, and print removes it.
+
 ## Typography and font delivery
 
 All fonts are local static weights with one font-face declaration per file, font-display:swap and font-synthesis:none. Public Sans supplies 200, 300, 400 and 500; IBM Plex Mono supplies 300, 400 and 500; Manrope supplies 600. Requested light weights use actual light files. Licences and measured font provenance are in intel/ui/fonts/PROVENANCE.json, including bytes, hashes, version, weight, glyph count and empty variable-axis metadata for these static files.
