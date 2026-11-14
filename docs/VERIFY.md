@@ -126,7 +126,7 @@ valid fixtures/records/40a5ff25...2eaef25a.json
 `record-check` validates the record fields, canonical file bytes, content-derived record id and filename, and reports duplicate supersession conflicts among the files passed to it. These fixtures are synthetic: this check does not fetch their cited evidence URLs or reports, and it does not read a report from the chain. A `get_report(report_id)` view call is needed to check a real report citation; it requires network access.
 
 
-## 5. Check a payment check receipt from siyab.xyz
+## 5. Check an unsigned check receipt
 
 Run a payment check on siyab.xyz and choose **Download evidence** on the finished result. The download saves the displayed answer without another request, as `siyab-check-<first 12 hex of evidence_hash>.json`. Check that file offline with `python -m gate verify-receipt <file>`.
 
@@ -156,3 +156,26 @@ receipt consistent (unsigned: this checks the answer against its own evidence, i
 The command checks the evidence hash, canonical JSON bytes without floats, required fields, ordered checks and reasons, the observed freshness and latency, and the same outcome and action reduction as the hosted answer. It refuses missing, malformed or mismatched data with `not verified: <reason>` and exit 1. A receipt claiming a signature is refused.
 
 Someone who replaces both the evidence and the hash can make another consistent receipt. Reads are not re-run. Signed verification is the separate Gate path in section 3.
+
+The receipt checker also accepts the frozen account, token and transaction subjects, with exactly these fields:
+
+- Account: `{"network":"mainnet","kind":"account","account":"alice.near"}`.
+- Token: `{"network":"mainnet","kind":"token","token":"token.near"}`.
+- Transaction: `network` equal to `mainnet`, `kind` equal to `transaction`, `signer`, `receiver` and `actions_sha256`.
+
+Every answer keeps the same ten payment answer fields. The checker prints the kind and its subject fields, so an account or token check cannot be read as a payment check. It rejects unknown kinds, extra or missing subject fields, invalid accounts and testnet subjects. Every kind retains the same outcome reduction: a signal gives DENY, otherwise an unknown gives ASK, otherwise ALLOW. An unsigned ALLOW is an answer about the checks, not a signed Verdict or permission from the Gate. The action word `sign` is not a signature. A non-null answer `verdict` or `signing` other than `never` is refused.
+
+Transaction evidence contains an actions digest, not the original actions. Verification therefore requires the original transaction object, with exactly `signer_id`, `receiver_id` and `actions`, passed to `verify_receipt` (`gate/verify.py:verify_receipt`):
+
+```python
+import json
+from pathlib import Path
+from gate.verify import verify_receipt
+
+transaction = json.loads(Path("transaction.json").read_text(encoding="utf-8"))
+print("\n".join(verify_receipt("receipt.json", transaction=transaction)))
+```
+
+The signer and receiver must match the subject, and `actions_sha256` must be lowercase hex equal to the SHA-256 of the canonical JSON of those actions. Object key order does not matter; changing an action, its fields or the action list order changes the digest. The checker validates the original transaction shape without re-running its risk checks. Transaction input with any other subject kind is refused. The current `verify-receipt <file>` command supplies no original transaction, so it refuses transaction receipts; use the function above to check them. No fields are added to the receipt or evidence to carry actions.
+
+These checks establish internal consistency only. Replacing both the evidence and its hash can produce another consistent unsigned answer. Unknown observations remain unknown; the checker does not authenticate the sources, prove a transaction executed, or sign anything.

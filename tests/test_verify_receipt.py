@@ -9,13 +9,25 @@ from pathlib import Path
 from unittest import mock
 
 from gate import __main__ as gate_main
-from gate import evidence, rpc, rules
+from gate import evidence, rpc, rules, verify
+from gate.account_check import check_account
+from gate.token_check import check_token
+from gate.txcheck import check_transaction
 from intel import labels, live
 
 ROOT = Path(__file__).resolve().parent.parent
 SAMPLE = ROOT / "fixtures" / "receipts" / "payment-check.json"
 LIMITS = ("receipt consistent (unsigned: this checks the answer against its own evidence, "
           "it does not authenticate the server or prove the checks are true)")
+
+TRANSACTION = {"signer_id": "sender.near", "receiver_id": "recipient.near",
+               "actions": [{"Transfer": {"deposit": "1"}}]}
+SUBJECTS = (
+    {"network": "mainnet", "kind": "account", "account": "alice.near"},
+    {"network": "mainnet", "kind": "token", "token": "token.near"},
+    {"network": "mainnet", "kind": "transaction", "signer": TRANSACTION["signer_id"],
+     "receiver": TRANSACTION["receiver_id"], "actions_sha256": evidence.evidence_hash(TRANSACTION["actions"])},
+)
 
 
 def sample_receipt():
@@ -69,6 +81,201 @@ class VerifyReceiptTest(unittest.TestCase):
     def replace_evidence(self, document):
         self.answer["evidence"] = evidence.canonical_bytes(document).decode("utf-8")
         self.answer["evidence_hash"] = hashlib.sha256(self.answer["evidence"].encode()).hexdigest()
+
+    def transaction_lines(self, transaction):
+        self.path.write_text(json.dumps(self.answer), encoding="utf-8", newline="\n")
+        return verify.verify_receipt(self.path, transaction=transaction)
+
+    def test_account_writer_answer_is_consistent_and_unsigned(self):
+        directory = ROOT / "fixtures" / "receivers" / "rpc"
+        answer = check_account("intents.near", store=labels.load(),
+            rpc=rpc.Client(rpc.MAINNET_RPC_URL, "replay", fixtures_dir=directory),
+            nearblocks=rpc.Client(rpc.NEARBLOCKS_URL, "replay", kind="http", fixtures_dir=directory),
+            archival=rpc.Client(rpc.ARCHIVAL_RPC_URL, "replay", fixtures_dir=directory),
+            issuers=rules.issuers_for("mainnet"), now_ms=1794528000000)
+        self.assertEqual(set(answer), set(self.answer))
+        output = self.check(answer, 0)
+        self.assertIn("kind: account\naccount: intents.near\n", output)
+        self.assertNotIn("amount:", output)
+        self.assertEqual(output.splitlines()[-1], LIMITS)
+
+    def test_token_writer_answer_is_consistent_and_unsigned(self):
+        answer = check_token("usdt.tether-token.near", store=labels.load(),
+            rpc=rpc.Client(rpc.MAINNET_RPC_URL, "replay", fixtures_dir=ROOT / "fixtures" / "receivers" / "rpc"),
+            now_ms=1794528000000)
+        self.assertEqual(set(answer), set(self.answer))
+        output = self.check(answer, 0)
+        self.assertIn("kind: token\ntoken: usdt.tether-token.near\n", output)
+        self.assertNotIn("receiver:", output)
+        self.assertEqual(output.splitlines()[-1], LIMITS)
+
+    def test_transaction_writer_answer_binds_original_input_and_is_unsigned(self):
+        self.answer = check_transaction(TRANSACTION, store=labels.Store([], evidence.evidence_hash([])))
+        self.assertEqual(set(self.answer), set(json.loads(SAMPLE.read_text(encoding="utf-8"))))
+        output = "\n".join(self.transaction_lines(TRANSACTION))
+        self.assertIn("kind: transaction\nsigner: sender.near\nreceiver: recipient.near\n", output)
+        self.assertIn("actions sha256: " + evidence.evidence_hash(TRANSACTION["actions"]), output)
+        self.assertIn("observed block: unknown", output)
+        self.assertIn("no modelled risk found", output)
+        self.assertNotIn("safe", output.lower())
+        self.assertEqual(output.splitlines()[-1], LIMITS)
+
+    def test_subject_kinds_cannot_be_relabelled(self):
+        original = json.loads(self.answer["evidence"])
+        subjects = [original["subject"], *SUBJECTS]
+        for subject in subjects:
+            for kind in ("near", "ft", "account", "token", "transaction"):
+                if kind == subject["kind"] or {kind, subject["kind"]} == {"near", "ft"}:
+                    continue
+                with self.subTest(subject=subject["kind"], kind=kind):
+                    document = copy.deepcopy(original)
+                    document["subject"] = dict(subject, kind=kind)
+                    self.replace_evidence(document)
+                    self.check(self.answer)
+
+    def test_new_subjects_require_exact_frozen_fields(self):
+        document = json.loads(self.answer["evidence"])
+        for subject in SUBJECTS:
+            malformed = [dict(subject, extra="claimed"), dict(subject, actions=TRANSACTION["actions"])]
+            malformed += [{key: value for key, value in subject.items() if key != field} for field in subject]
+            for value in malformed:
+                with self.subTest(subject=value):
+                    document["subject"] = value
+                    self.replace_evidence(document)
+                    if subject["kind"] == "transaction":
+                        with self.assertRaises(ValueError):
+                            self.transaction_lines(TRANSACTION)
+                    else:
+                        self.check(self.answer)
+
+    def test_new_subject_accounts_are_valid_mainnet_ids(self):
+        document = json.loads(self.answer["evidence"])
+        for subject, fields in ((SUBJECTS[0], ("account",)), (SUBJECTS[1], ("token",)),
+                                (SUBJECTS[2], ("signer", "receiver"))):
+            for field in fields:
+                for value in (None, False, 1, [], {}, "", "Bad.near", "bad/account", "testnet", "a.testnet"):
+                    with self.subTest(kind=subject["kind"], field=field, value=value):
+                        document["subject"] = dict(subject, **{field: value})
+                        self.replace_evidence(document)
+                        if subject["kind"] == "transaction":
+                            with self.assertRaises(ValueError):
+                                self.transaction_lines(TRANSACTION)
+                        else:
+                            self.check(self.answer)
+
+    def test_malformed_and_unknown_subject_kinds_are_refused(self):
+        document = json.loads(self.answer["evidence"])
+        for subject in [document["subject"], *SUBJECTS]:
+            for kind in (None, False, 1, [], {}, "", "ACCOUNT", "unknown"):
+                with self.subTest(subject=subject["kind"], kind=kind):
+                    document["subject"] = dict(subject, kind=kind)
+                    self.replace_evidence(document)
+                    self.check(self.answer)
+
+    def test_new_subjects_require_mainnet_network(self):
+        document = json.loads(self.answer["evidence"])
+        for subject in SUBJECTS:
+            for network in (None, False, 1, [], {}, "testnet", "other"):
+                with self.subTest(kind=subject["kind"], network=network):
+                    document["subject"] = dict(subject, network=network)
+                    self.replace_evidence(document)
+                    if subject["kind"] == "transaction":
+                        with self.assertRaises(ValueError):
+                            self.transaction_lines(TRANSACTION)
+                    else:
+                        self.check(self.answer)
+
+    def test_new_subjects_keep_outcome_reduction_and_signature_refusal(self):
+        original = copy.deepcopy(self.answer)
+        for subject in SUBJECTS:
+            for verdict, status, outcome in (("ALLOW", "pass", "ALLOW"), ("UNKNOWN", "unknown", "ASK"),
+                                             ("DENY", "signal", "DENY"), ("ALLOW", "unknown", "ASK"),
+                                             ("ALLOW", "signal", "DENY")):
+                with self.subTest(kind=subject["kind"], verdict=verdict, status=status):
+                    self.answer = copy.deepcopy(original)
+                    document = json.loads(self.answer["evidence"])
+                    document["subject"], document["verdict"] = subject, verdict
+                    for check in document["checks"]:
+                        check["status"] = status
+                    self.replace_evidence(document)
+                    self.answer.update(live.LiveAPI._verdict_shape(verdict, document["checks"],
+                        document["reasons"], self.answer["evidence_hash"], document["observed"], document["latency_ms"]))
+                    if subject["kind"] == "transaction":
+                        output = "\n".join(self.transaction_lines(TRANSACTION))
+                    else:
+                        output = self.check(self.answer, 0)
+                    self.assertIn(f"outcome: {outcome} (", output)
+                    self.assertEqual(output.splitlines()[-1], LIMITS)
+                    for field, value in (("verdict", {"signature": "claimed"}), ("signing", "signed")):
+                        unsigned = copy.deepcopy(self.answer)
+                        self.answer[field] = value
+                        if subject["kind"] == "transaction":
+                            with self.assertRaises(ValueError):
+                                self.transaction_lines(TRANSACTION)
+                        else:
+                            self.check(self.answer)
+                        self.answer = unsigned
+
+    def test_transaction_receipt_requires_original_transaction(self):
+        self.answer = check_transaction(TRANSACTION, store=labels.Store([], evidence.evidence_hash([])))
+        output = self.check(self.answer)
+        self.assertIn("original transaction", output)
+
+    def test_transaction_input_is_refused_for_other_subject_kinds(self):
+        document = json.loads(self.answer["evidence"])
+        for subject in [document["subject"], *SUBJECTS[:2]]:
+            with self.subTest(kind=subject["kind"]):
+                document["subject"] = subject
+                self.replace_evidence(document)
+                with self.assertRaisesRegex(ValueError, "transaction input"):
+                    self.transaction_lines(TRANSACTION)
+
+    def test_transaction_hash_uses_canonical_actions_not_object_key_order(self):
+        transaction = copy.deepcopy(TRANSACTION)
+        transaction["actions"] = ["CreateAccount", {"FunctionCall": {
+            "method_name": "status", "args": "e30=", "gas": 1, "deposit": "0"}}]
+        original = copy.deepcopy(transaction)
+        self.answer = check_transaction(transaction, store=labels.Store([], evidence.evidence_hash([])))
+        reordered = json.loads(json.dumps(transaction, sort_keys=True, indent=2))
+        self.assertNotEqual(list(transaction["actions"][1]["FunctionCall"]),
+                            list(reordered["actions"][1]["FunctionCall"]))
+        self.assertEqual(self.transaction_lines(reordered), self.transaction_lines(transaction))
+        self.assertEqual(transaction, original)
+
+    def test_transaction_changed_actions_order_or_fields_are_refused(self):
+        transaction = copy.deepcopy(TRANSACTION)
+        transaction["actions"] = ["CreateAccount", {"Transfer": {"deposit": "1"}}]
+        self.answer = check_transaction(transaction, store=labels.Store([], evidence.evidence_hash([])))
+        for actions in ([{"Transfer": {"deposit": "1"}}, "CreateAccount"],
+                        ["CreateAccount", {"Transfer": {"deposit": "2"}}], ["CreateAccount"]):
+            with self.subTest(actions=actions), self.assertRaisesRegex(ValueError, "actions_sha256"):
+                self.transaction_lines(dict(transaction, actions=actions))
+
+    def test_transaction_hash_is_strict_lowercase_hex_and_matches_actions(self):
+        self.answer = check_transaction(TRANSACTION, store=labels.Store([], evidence.evidence_hash([])))
+        document = json.loads(self.answer["evidence"])
+        for digest in (None, False, 1, [], {}, [0] * 32, "", "a" * 63, "g" * 64, "A" * 64, "0" * 64):
+            with self.subTest(digest=digest):
+                document["subject"]["actions_sha256"] = digest
+                self.replace_evidence(document)
+                with self.assertRaisesRegex(ValueError, "actions_sha256"):
+                    self.transaction_lines(TRANSACTION)
+
+    def test_transaction_signer_and_receiver_must_match_original_input(self):
+        self.answer = check_transaction(TRANSACTION, store=labels.Store([], evidence.evidence_hash([])))
+        for field in ("signer_id", "receiver_id"):
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, "transaction"):
+                self.transaction_lines(dict(TRANSACTION, **{field: "other.near"}))
+
+    def test_transaction_original_input_must_be_complete_and_well_formed(self):
+        self.answer = check_transaction(TRANSACTION, store=labels.Store([], evidence.evidence_hash([])))
+        malformed = [False, [], {}, dict(TRANSACTION, extra="claimed"), dict(TRANSACTION, signer_id="testnet"),
+                     dict(TRANSACTION, actions=None), dict(TRANSACTION, actions=[]),
+                     dict(TRANSACTION, actions=[{"Transfer": {}}])]
+        malformed += [{key: value for key, value in TRANSACTION.items() if key != field} for field in TRANSACTION]
+        for transaction in malformed:
+            with self.subTest(transaction=transaction), self.assertRaises(ValueError):
+                self.transaction_lines(transaction)
 
     def test_sample_is_produced_by_the_live_path_with_stubbed_reads(self):
         answer = sample_receipt()
