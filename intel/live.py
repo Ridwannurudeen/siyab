@@ -12,7 +12,7 @@ import time
 import urllib.parse
 from collections import OrderedDict
 
-from gate import canon, evidence, intents, rpc, rules, scan
+from gate import account_check, canon, evidence, intents, rpc, rules, scan, token_check
 from intel import accounts, enrichment, history, identity, labels, portfolio, reports
 
 RATE_PER_MINUTE = 60
@@ -29,7 +29,8 @@ HEAVY_ROUTES = ("portfolio", "portfolio-at-block", "holdings", "graph", "backfil
 # Units a request costs against COST_PER_MINUTE, about the provider calls it can make; portfolio,
 # portfolio-at-block and holdings depend on their query (LiveAPI._cost) and every other route costs 1.
 ROUTE_COSTS = {"verdict": 10, "reports/recent": 21, "reports": 22, "graph": 6, "identity": 4, "intents": 4,
-               "scan": 2, "backfill": 2, "profile": 1, "transactions": 1, "transfers": 1}
+               "scan": 2, "backfill": 2, "profile": 1, "transactions": 1, "transfers": 1,
+               "account-check": 10, "token-check": 6}
 # The max_tokens portfolio.PortfolioData.inspect reads when the query names none.
 PORTFOLIO_DEFAULT_TOKENS = 40
 # Routes the process cache never holds: retained archives, the entity directory and backfill writes.
@@ -124,6 +125,8 @@ class LiveAPI:
             return None
         client = self._client_ip(peer, headers)
         route = self._route_name(parsed.path)
+        if route in ("account-check", "token-check") and os.environ.get("SIYAB_CHECKS") != "1":
+            return self._error(404, "not_found", "No live route matches this path.")
         if route == "ask":
             return self._ask(parsed.query, peer, headers)
         key = self._cache_key(route, parsed.path, parsed.query)
@@ -289,8 +292,9 @@ class LiveAPI:
         if path.startswith("/live/accounts/"):
             parts = path.split("/")
             return parts[4] if len(parts) == 5 else "account"
-        if path.startswith("/live/scan/"):
-            return "scan"
+        for route in ("scan", "account-check", "token-check"):
+            if path.startswith(f"/live/{route}/"):
+                return route
         if path.startswith(("/live/account-data/", "/live/portfolio-data/")):
             return "snapshot"
         return path[len("/live/"):]
@@ -325,7 +329,7 @@ class LiveAPI:
             pairs = urllib.parse.parse_qsl(query, keep_blank_values=True, strict_parsing=True, max_num_fields=8)
         except ValueError:
             return None
-        if path.startswith(("/live/accounts/", "/live/scan/")):
+        if path.startswith(("/live/accounts/", "/live/scan/", "/live/account-check/", "/live/token-check/")):
             parts = path.split("/")
             try:
                 parts[3] = canon.account_id(urllib.parse.unquote(parts[3]), "account")
@@ -336,6 +340,8 @@ class LiveAPI:
             pairs = [(name, value.lower() if name == "recipient" else value) for name, value in pairs]
         elif route == "portfolio-at-block":
             pairs = [(name, ",".join(sorted(value.split(","))) if name == "contracts" else value) for name, value in pairs]
+        if route == "health":
+            return path, tuple(sorted(pairs)), os.environ.get("SIYAB_CHECKS") == "1"
         return path, tuple(sorted(pairs))
 
     @staticmethod
@@ -386,7 +392,28 @@ class LiveAPI:
             return 200, self.entity_directory.search(**values)
         if path == "/live/health":
             self._no_query(query)
-            return 200, {"ok": True, "network": "mainnet", "rate_per_minute": self.rate_per_minute}
+            return 200, {"ok": True, "network": "mainnet", "rate_per_minute": self.rate_per_minute,
+                         "checks": os.environ.get("SIYAB_CHECKS") == "1"}
+        if path.startswith(("/live/account-check/", "/live/token-check/")):
+            self._no_query(query)
+            parts = path.split("/")
+            field = "token" if parts[2] == "token-check" else "account"
+            if len(parts) != 4 or not parts[3]:
+                raise LiveInputError(f"The check path must contain one mainnet {field} id.")
+            account = self._account(urllib.parse.unquote(parts[3]), field)
+            if account == "testnet" or account.endswith(".testnet"):
+                raise LiveInputError(f"NEAR checks accept mainnet {field}s only.")
+            now_ms = int(self.wall_clock() * 1000)
+            if parts[2] == "token-check":
+                near = rpc.Client(rpc.MAINNET_RPC_URL, "off")
+                return 200, token_check.check_token(account, store=self.store, rpc=near, now_ms=now_ms)
+            near = rpc.Client(os.environ.get("NEAR_MAINNET_RPC_URL") or rpc.MAINNET_RPC_URL, "off")
+            nearblocks = (rpc.Client(os.environ.get("NEARBLOCKS_API_URL") or rpc.NEARBLOCKS_URL, "off", kind="http")
+                          if os.environ.get(VERDICT_NEARBLOCKS_ENV) == "1" else _NoNearBlocks())
+            archival = rpc.Client(os.environ.get("NEAR_ARCHIVAL_RPC_URL") or rpc.ARCHIVAL_RPC_URL, "off")
+            return 200, account_check.check_account(account, store=self.store, rpc=near, nearblocks=nearblocks,
+                                                    archival=archival, issuers=rules.issuers_for("mainnet"),
+                                                    now_ms=now_ms)
         if path == "/live/verdict":
             return 200, self._verdict(self._query(query, {"receiver", "amount", "token"}))
         if path == "/live/intents":

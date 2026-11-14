@@ -661,5 +661,19 @@ class ProviderBudgetTest(LiveLimitCase):
         self.assertEqual(service._cache, {})
 
 
+class ChecksLimitTest(LiveLimitCase):
+    def test_checks_have_cost_weights_and_normalised_distinct_cache_keys(self):
+        with mock.patch.dict(os.environ, {"SIYAB_CHECKS": "1"}), \
+                mock.patch.object(self.service, "_route", side_effect=account_answer) as route:
+            for kind, cost in (("account", 10), ("token", 6)):
+                self.assertEqual(live.LiveAPI._route_name(f"/live/{kind}-check/wrap.near"), f"{kind}-check")
+                self.assertEqual(live.LiveAPI._cost(f"{kind}-check", ""), cost)
+                first = self.request(f"/live/{kind}-check/wrap.near")
+                self.assertEqual(self.request(f"/live/{kind}-check/wrap%2Enear"), first)
+            self.request("/live/token-check/other.near")
+        self.assertEqual(route.call_count, 3)
+        self.assertEqual(self.service._rates["203.0.113.1"][2], 24)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,4 +1,4 @@
-"""A stdio MCP server with three tools: python -m mcp.server, run from the repository root.
+"""A stdio MCP server: python -m mcp.server, run from the repository root.
 
 JSON-RPC 2.0 messages arrive on stdin one per line; when the first bytes are a Content-Length
 header, every message is read and answered in that framed form instead. The methods are
@@ -12,6 +12,9 @@ The tools replay recorded fixtures unless GATE_FIXTURES_MODE says record or off:
                          with the TEST key or the live key
     check_intents_quote  gate.intents.judge_quote, the unsigned preflight on a 1Click quote
     scan_near_account    gate.scan.scan, key hygiene, verifier keys and labels of an account
+    check_near_account   unsigned mainnet account check, enabled by SIYAB_CHECKS=1
+    check_near_token     unsigned mainnet token check, enabled by SIYAB_CHECKS=1
+    check_near_transaction  unsigned offline mainnet action check, enabled by SIYAB_CHECKS=1
 
 check_near_payment binds the verdict to GATE_ACCOUNT_ID (default gate.near) and writes its evidence
 into a temporary directory, removed when the server exits unless GATE_KEEP_EVIDENCE=1. By default it
@@ -31,8 +34,10 @@ import os
 import shutil
 import sys
 import tempfile
+import time
 
-from gate import agent, base58, canon, ed25519, intents, rpc, rules, scan, signer, verdict
+from gate import (account_check, agent, base58, canon, ed25519, intents, rpc, rules, scan, signer,
+                  token_check, txcheck, verdict)
 from gate.__main__ import _clients
 from intel import labels
 
@@ -44,6 +49,8 @@ DEFAULT_POLICY = '{"allowlist": [], "caps": []}'
 LIVE_FLAG = "GATE_LIVE_SIGNING"
 KEEP_EVIDENCE = "GATE_KEEP_EVIDENCE"
 NOTHING_SIGNED = "; nothing was signed"
+CHECKS_FLAG = "SIYAB_CHECKS"
+CHECK_NAMES = ("check_near_account", "check_near_token", "check_near_transaction")
 MAX_FRAME_LENGTH = 1048576
 TEST_KEY_NOTE = ("an ALLOW here is signed with the TEST verifier key, which is derived from a published seed "
                  "and is never registered on testnet, so no Gate pays on it")
@@ -96,6 +103,44 @@ TOOLS = [
             "type": "object",
             "properties": {"account_id": {"type": "string", "description": "the NEAR account id"}},
             "required": ["account_id"],
+        },
+    },
+    {
+        "name": "check_near_account",
+        "description": "Check a mainnet NEAR account with evidence. Unsigned; requires SIYAB_CHECKS=1. "
+                       "Results read No flag found, Flagged or Not enough data. Unknown is never a pass.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"account_id": {"type": "string", "description": "the mainnet NEAR account id"}},
+            "required": ["account_id"],
+        },
+    },
+    {
+        "name": "check_near_token",
+        "description": "Check a mainnet NEAR token with evidence. Unsigned; requires SIYAB_CHECKS=1. "
+                       "Results read No flag found, Flagged or Not enough data. Unknown is never a pass.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"token_id": {"type": "string", "description": "the mainnet NEP-141 token account id"}},
+            "required": ["token_id"],
+        },
+    },
+    {
+        "name": "check_near_transaction",
+        "description": "Check proposed mainnet NEAR transaction actions using local evidence. Unsigned; "
+                       "requires SIYAB_CHECKS=1. Results read No flag found, Flagged or Not enough data. "
+                       "No flag found means no modelled risk found; unknown is never a pass.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "transaction": {
+                    "type": "object",
+                    "properties": {"signer_id": {"type": "string"}, "receiver_id": {"type": "string"},
+                                   "actions": {"type": "array", "minItems": 1}},
+                    "required": ["signer_id", "receiver_id", "actions"],
+                },
+            },
+            "required": ["transaction"],
         },
     },
 ]
@@ -232,8 +277,45 @@ def _scan_near_account(arguments, evidence_dir):
     return scan.scan(account_id, client=client, store=labels.load())
 
 
+def _require_checks():
+    if os.environ.get(CHECKS_FLAG) != "1":
+        raise ToolError("NEAR checks are disabled; enable SIYAB_CHECKS=1; nothing was signed")
+
+
+def _check_near_account(arguments, evidence_dir):
+    _require_checks()
+    client = rpc.Client(rpc.MAINNET_RPC_URL)
+    nearblocks = rpc.Client(rpc.NEARBLOCKS_URL, kind="http")
+    archival = rpc.Client(rpc.ARCHIVAL_RPC_URL)
+    try:
+        return account_check.check_account(arguments.get("account_id"), store=labels.load(), rpc=client,
+                                           nearblocks=nearblocks, archival=archival,
+                                           issuers=rules.issuers_for("mainnet"), now_ms=int(time.time() * 1000))
+    except ValueError as error:
+        raise ToolError(f"invalid request: {error}") from error
+
+
+def _check_near_token(arguments, evidence_dir):
+    _require_checks()
+    client = rpc.Client(rpc.MAINNET_RPC_URL)
+    try:
+        return token_check.check_token(arguments.get("token_id"), store=labels.load(), rpc=client,
+                                       now_ms=int(time.time() * 1000))
+    except ValueError as error:
+        raise ToolError(f"invalid request: {error}") from error
+
+
+def _check_near_transaction(arguments, evidence_dir):
+    _require_checks()
+    try:
+        return txcheck.check_transaction(arguments.get("transaction"), store=labels.load())
+    except (ValueError, RecursionError) as error:
+        raise ToolError(f"invalid request: {error}") from error
+
+
 HANDLERS = {"check_near_payment": _check_near_payment, "check_intents_quote": _check_intents_quote,
-            "scan_near_account": _scan_near_account}
+            "scan_near_account": _scan_near_account, "check_near_account": _check_near_account,
+            "check_near_token": _check_near_token, "check_near_transaction": _check_near_transaction}
 
 
 def _content(value, is_error):
@@ -268,7 +350,16 @@ def handle(message, evidence_dir):
             reply["result"] = _content("arguments must be an object", True)
         else:
             try:
-                reply["result"] = _content(HANDLERS[name](arguments, evidence_dir), False)
+                result = HANDLERS[name](arguments, evidence_dir)
+                reply["result"] = _content(result, False)
+                if name in CHECK_NAMES:
+                    wording = {"ALLOW": "No flag found", "DENY": "Flagged", "ASK": "Not enough data"}
+                    text = wording[result["outcome"]]
+                    if name != "check_near_transaction" and (os.environ.get("GATE_FIXTURES_MODE") or "replay") == "replay":
+                        block = result["freshness"]["block_height"]
+                        text += (f". Recorded fixtures (replay), block {block if block is not None else 'unknown'}; "
+                                 "this is not a live result.")
+                    reply["result"]["content"].insert(0, {"type": "text", "text": text})
             except ToolError as error:
                 reply["result"] = _content(str(error), True)
             except Exception as error:  # noqa: BLE001 (a tool failure is answered as isError, never a crash)
