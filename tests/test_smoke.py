@@ -4,6 +4,7 @@ import contextlib
 import hashlib
 import importlib.util
 import io
+import json
 import os
 import subprocess
 import sys
@@ -34,6 +35,17 @@ def snapshot(root):
 
 
 class SmokeTest(unittest.TestCase):
+    def test_mcp_step_accepts_the_listed_tools_with_checks_disabled(self):
+        from mcp import server
+
+        smoke = load_smoke()
+        with mock.patch.dict(os.environ, {"SIYAB_CHECKS": "0"}):
+            replies = [server.handle(message, "unused") for message in smoke.MCP_SESSION]
+        stdout = "\n".join(json.dumps(reply) for reply in replies if reply is not None)
+        with mock.patch.object(smoke, "_python", return_value=(stdout, "")):
+            self.assertEqual(smoke.mcp_server(ROOT),
+                             "siyab 0.1.0, tools " + ", ".join(tool["name"] for tool in server.TOOLS))
+
     def test_smoke_runs_nine_steps_read_only_and_leaves_the_tree_unchanged(self):
         before = snapshot(ROOT)
         with tempfile.TemporaryDirectory() as tmp:

@@ -8,7 +8,7 @@ web
 
 ## Users
 
-People investigating NEAR accounts and entities, and teams checking agent payment destinations. The owner confirmed that investigation is the primary website experience, with payment and access-key checks easy to reach.
+People, apps and AI agents across the NEAR ecosystem: wallet users and builders, DeFi teams, DAOs and treasuries, validators, bridge and Intents users, token issuers and security responders. Investigation is the primary website experience, with payment and access-key checks easy to reach. [Coverage](docs/COVERAGE.md) records the current scope and gaps for each group; it does not claim adoption by those groups.
 
 ## Product Purpose
 
@@ -16,7 +16,7 @@ Connect account identity, observed activity, recorded relationships and underlyi
 
 ## Positioning
 
-Every label names its source and every verdict has evidence. The browser reads mainnet data without signing. The demonstrated Gate and registry run on testnet.
+Siyab is security intelligence for NEAR. Every label names its source, every verdict has evidence, and Unknown never passes. Account, token and proposed transaction checks are unsigned advice, not permission to pay. Agent payments are the enforced case: the Gate on testnet pays only on a signed ALLOW bound to the exact transfer and subject to its payment policy. The browser reads mainnet data without signing; the demonstrated Gate and registry run on testnet. NEAR Intents destination checks are a bounded preflight, not enforcement on other chains.
 
 ## Operating Context
 

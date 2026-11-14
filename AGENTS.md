@@ -1,6 +1,6 @@
 # Siyab
 
-Every label has a source. Every verdict has evidence. Unknown never passes. A verdict service judges the receiver, the token, the amount and the memo of an agent payment on NEAR, a guard contract on testnet pays only on a signed ALLOW bound to that exact transfer, and a registry on testnet records verdicts with their evidence hashes (`docs/TESTNET.md` lists them). `README.md` has the full description.
+Siyab is security intelligence for the NEAR ecosystem: sourced labels, incident records and checks for accounts, tokens and proposed transactions. Every label has a source. Every verdict has evidence. Unknown never passes. Agent payments are the enforced case: a verdict service judges the receiver, token, amount and memo, a guard contract on testnet pays only on a signed ALLOW bound to that exact transfer, and a registry on testnet records verdicts with their evidence hashes (`docs/TESTNET.md` lists them). Unsigned checks are advice only. `README.md` has the full description and `docs/COVERAGE.md` lists the coverage and gaps.
 
 ## Install
 
