@@ -175,12 +175,17 @@ def page(title, body, depth=0, rooted=False, *, inert=False, landing=False):
     secondary = (("explore.html#explore-title", "Incidents"),
                  *((f"entities/{name}.html", label) for name, label, _ in ENTITY_SETS),
                  ("records/index.html", "Incident records"), ("issuers.html", "Issuers"))
-    navigation = []
-    for name, links in (("primary", primary), ("secondary", secondary)):
-        items = "".join(f'<a href="{up}{href}"' + (' aria-current="page"' if href == current else "")
-                        + f'>{esc(label)}</a>' for href, label in links)
-        navigation.append(f'<nav class="app-{name}-navigation" aria-label="{name.title()}">{items}</nav>')
-    nav = "".join(navigation)
+    tools = (("explore.html#tools", "Payment checks"), ("verify.html", "Verify"))
+
+    def items(links):
+        return "".join(f'<a href="{up}{href}"' + (' aria-current="page"' if href == current else "")
+                       + f'>{esc(label)}</a>' for href, label in links)
+    nav = "".join(f'<nav class="app-{name}-navigation" aria-label="{name.title()}">{items(links)}</nav>'
+                  for name, links in (("primary", primary), ("secondary", secondary)))
+    header_nav = (f'<nav class="app-header-navigation" aria-label="Primary">{items(link for link in primary if link not in tools)}</nav>'
+                  + "".join(f'<details class="app-menu"><summary>{label}</summary>'
+                            f'<nav class="app-menu-panel" aria-label="{label}">{items(links)}</nav></details>'
+                            for label, links in (("Explore", secondary), ("Tools", tools))))
     landing_nav = ('<nav class="landing-navigation" aria-label="Primary">'
                    + ''.join(f'<a href="{up}{href}">{label}</a>' for href, label in
                              (("explore.html", "Explore"), ("investigate.html", "Account lookup"),
@@ -220,10 +225,8 @@ def page(title, body, depth=0, rooted=False, *, inert=False, landing=False):
              f'{landing_nav}<div class="header-actions">{search}</div>'
              f'<details class="mobile-navigation" id="mobile-navigation"><summary>Menu</summary>'
              f'<div class="mobile-navigation-panel">{landing_nav}</div></details></header>' if landing else
-             f'<aside class="app-sidebar"><a class="site-brand" href="{up}index.html">{BRAND_MARK}<span>Siyab</span></a>{nav}</aside>'
-             f'<header class="app-topbar"><a class="app-mobile-brand" href="{up}index.html">{BRAND_MARK}<span>Siyab</span></a>'
-             f'<span class="app-context">{esc("Siyab" if title == "Siyab" else "Investigate" if title == "Explore" else title)}</span>'
-             f'<div class="header-actions">{search}</div>'
+             f'<header class="app-topbar app-header"><a class="site-brand" href="{up}index.html">{BRAND_MARK}<span>Siyab</span></a>'
+             f'{header_nav}<div class="header-actions">{search}</div>'
              f'<details class="mobile-navigation" id="mobile-navigation"><summary>Menu</summary><div class="mobile-navigation-panel">{nav}</div></details>'
              '</header>')
     return (f"<!doctype html>\n<html lang=\"en\">\n<head>\n{theme_script}<meta charset=\"utf-8\">\n"
@@ -954,7 +957,9 @@ def _profile_account_summary(subject, assertions, accounts, flows):
                f'<div><dt>Latest label observation</dt><dd class="stat-timestamp">{esc(observed[-1]) if observed else "Unavailable"}</dd></div></dl>'
                '<p class="profile-scope">Current balance unavailable. Account creation time is not established by these records.</p>'
                f'<div class="profile-actions"><button type="button" data-watch-account="{esc(subject)}">Watch account</button>'
-               '<button type="button" data-save-investigation>Save investigation</button></div></div>'
+               '<button type="button" data-save-investigation>Save investigation</button></div>'
+               '<section class="profile-section" id="account-labels"><h2>Sourced labels</h2>'
+               + _profile_table("profile-labels", ("Label", "Chain", "Provenance", "Source and observation"), labels_rows, "Search labels") + '</section></div>'
                f'<section class="profile-live-read" data-profile-live="{esc(subject)}"><h3>Read current mainnet checks</h3>'
                '<p>The payment read checks exactly 1 NEAR. It never signs or sends a payment.</p>'
                '<div class="profile-actions"><button type="button" data-profile-payment>Check 1 NEAR payment</button>'
@@ -964,8 +969,6 @@ def _profile_account_summary(subject, assertions, accounts, flows):
         start = summary.index('<section class="profile-live-read"')
         summary = summary[:start] + ('<section class="profile-live-read"><h3>Live check availability</h3>'
                                     '<p>Live checks on this site read NEAR mainnet. This recorded subject is outside that read scope.</p></section></div></section>')
-    tables = ('<section class="profile-section" id="account-labels"><h2>Sourced labels</h2>'
-              + _profile_table("profile-labels", ("Label", "Chain", "Provenance", "Source and observation"), labels_rows, "Search labels") + '</section>')
     activity_html = (f'<section class="profile-section" id="account-activity" data-profile-activity><h2>Recorded activity</h2>'
                      '<p>Rows touching this account in the committed transfer recordings. This is not a complete or live account history. USD values come from the recorded provider; unavailable values are not zero.</p>'
                      f'<script type="application/json" data-profile-sources>{payload}</script>'
@@ -983,7 +986,7 @@ def _profile_account_summary(subject, assertions, accounts, flows):
                      + '<h2>Recorded counterparties</h2><p>Ranked by row count within the same recordings; counts do not measure value or loss.</p>'
                      + _profile_table("profile-counterparties", ("Counterparty", "Recorded rows"), counter_rows, "Search counterparties")
                      + f'<p data-counterparties-scope>{min(12, len(counterparties))} of {len(counterparties)} recorded counterparties initially shown. Search loads the full recording.</p></section>')
-    return summary + tables + activity_html
+    return summary + activity_html
 
 
 def incident_page(document, accounts):
@@ -1095,9 +1098,9 @@ def incident_page(document, accounts):
                       f'<p>The guard used only on-chain state at block {esc(run["height"])} ({esc(block_time)}), with no labels. '
                       'This is a replay, not a live prediction. UNKNOWN checks never count as a pass.</p>'
                       + _profile_table("incident-replay", ("Role", "Account", "Outcome", "Checks"), rows) + '</section>')
-    body = ('\n'.join(parts[:2]) + brief + replay + '<section class="profile-section"><h2>Evidence timeline</h2>'
+    body = ('\n'.join(parts[:2]) + '<div class="profile-incident-overview">' + brief + '<section class="profile-section"><h2>Evidence timeline</h2>'
             '<p>Dates track source collection and evaluation. They are not a reconstructed sequence of attack transactions.</p>'
-            f'<ol class="profile-timeline">{timeline_html}</ol></section>' + route
+            f'<ol class="profile-timeline">{timeline_html}</ol></section></div>' + replay + route
             + '<details class="profile-evidence"><summary>Source records, account roles and full evidence</summary>'
             + '\n'.join(parts[2:]) + '</details>' + _profile_script())
     return page(document["title"], body, depth=1)
@@ -1651,14 +1654,16 @@ def issuers_page():
         action = next((method for method, phrase in issuers.HISTORY_METHODS.items() if row.label.startswith(phrase)), row.source["method"])
         history_rows.append([_subject_cell(row.subject, accounts).replace('href="../', 'href="/'), esc(action), str(row.source["block"]),
                              f'<time datetime="{esc(row.observed_at)}">{esc(row.observed_at)}</time>', _profile_source(row)])
-    summary = ('<h1>Issuer actions</h1><p>Recorded token-issuer status reads and successful issuer actions. An issuer status is not a current payment verdict.</p>'
+    summary = ('<div class="page-head issuers-heading"><h1>Issuer actions</h1><nav class="profile-anchors" aria-label="Issuer sections">'
+               '<a href="#issuer-status-section">Recorded issuer status</a><a href="#issuer-ledger">Recorded action ledger</a></nav></div>'
+               '<p class="issuers-scope">Recorded token-issuer status reads and successful issuer actions. An issuer status is not a current payment verdict.</p>'
                f'<dl class="profile-facts"><div><dt>Status reads</dt><dd>{len(reads)}</dd></div>'
                f'<div><dt>Account IDs covered</dt><dd>{len({read["subject"] for read in reads})}</dd></div>'
                f'<div><dt>Recorded banned-status rows</dt><dd>{len(status)}</dd></div>'
                f'<div><dt>Recorded issuer actions</dt><dd>{len(history)}</dd></div></dl>'
-               '<section class="profile-section"><h2>Recorded issuer status</h2>'
+               '<section class="profile-section" id="issuer-status-section"><h2>Recorded issuer status</h2>'
                + _profile_table("issuer-status", ("Account", "Issuer", "Answer", "Block", "Observed UTC", "Evidence"), status_rows, "Search issuer status")
-               + '</section><section class="profile-section"><h2>Recorded action ledger</h2>'
+               + '</section><section class="profile-section" id="issuer-ledger"><h2>Recorded action ledger</h2>'
                + _profile_table("issuer-history", ("Named account string", "Action", "Block", "Observed UTC", "Evidence"), history_rows, "Search issuer actions")
                + '</section><details class="profile-evidence"><summary>Coverage, original status reads and action evidence</summary>'
                + body.removeprefix('<h1>Issuer actions</h1>') + '</details>')

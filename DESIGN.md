@@ -149,10 +149,14 @@ spacing:
   phone-inline: "12px"
   narrow-phone-inline: "10px"
 components:
-  sidebar:
-    width: "248px"
-  topbar:
-    height: "64px"
+  app-header:
+    height: "56px"
+    navigationGap: "4px"
+    collapseBelow: "1240px"
+  menu-panel:
+    minWidth: "280px"
+    rounded: "{rounded.panel}"
+    padding: "8px"
   data-panel:
     rounded: "{rounded.panel}"
     padding: "12px"
@@ -167,7 +171,7 @@ components:
 
 ## Scope
 
-Phases 1 and 2 apply typography, colour, theme policy and shared component dimensions. The 248px desktop sidebar, 64px context topbar, page structure, section order, factual text, links, images and controls retain their existing arrangement. Page recomposition and navigation replacement require separate approval.
+Phases 1 and 2 apply typography, colour, theme policy and shared component dimensions. Phase 3 replaces the desktop sidebar and context topbar with a 56px application header and recomposes four reference pages: Explore (the recorded investigation workspace), recorded account pages, Issuer actions and incident pages. Other page families keep their phase 2 structure until phase 4. Factual text, links, images and controls are retained.
 
 The interface is an evidence workspace. Public Sans carries explanation and controls; IBM Plex Mono carries identifiers, timestamps, comparable values and table headings. Manrope SemiBold remains confined to the Siyab wordmark. Teal identifies actions and selection, blue identifies navigable references, and written semantic states retain their own colours. Unknown values, recording limits, source dates and acquisition failures remain explicit.
 
@@ -231,7 +235,15 @@ Passive chips have a 24px minimum height, 2px / 8px padding, 4px corners, 12/18p
 
 Focus uses a 2px high-contrast outline with a 3px offset. Panel content must not clip that outline. Existing icon controls retain their names and 16px icon box. Overlays retain their existing shadows; ordinary panels remain flat.
 
-The sidebar offset and topbar height remain unchanged. Content gutters are 24px desktop, 16px at tablet sizes, 12px on phones and 10px at 320px. The graph inspector uses 280px at full desktop width and retains its existing stacking breakpoint. The graph algorithm, recorded evidence, filters and command arrangement remain unchanged.
+## Application header
+
+Every workspace page shares one 56px header: the Siyab wordmark, the primary destinations (Home, Explore, Account lookup, Trace, Feed, Workspace), an Explore menu holding the collection destinations (Incidents, the four entity collections, Incident records, Issuers), a Tools menu holding Payment checks and Verify, global search and the theme toggle. Menus are native disclosures; on interactive pages Escape, a link choice, an outside click or opening the other menu closes them, and Escape returns focus to the menu button. Below 1240px the header shows the native Menu, which lists every destination in its original order. Records keep the same header without scripts, so their menus close natively. Content uses the full width with 24px gutters.
+
+Content gutters are 24px desktop, 16px at tablet sizes, 12px on phones and 10px at 320px. The graph inspector uses 280px at full desktop width and retains its existing stacking breakpoint. The graph algorithm, recorded evidence, filters and command arrangement remain unchanged. On Explore at 1280px and wider, the display count, recording scope and time range share one compact strip and the legend sits directly above the canvas, bringing the canvas to about y=352 at 1440x900; the loading reserve there is 813px.
+
+## Reference pages
+
+Recorded account pages lead with the exact identifier in the primary identifier role, with Account above it as context. Above 980px the evidence column (facts, actions and sourced labels) pairs about 2:1 with the current mainnet check panel. Issuer actions place section anchors beside the title, keep the qualification and four figures, and put each table's search beside its heading above 760px. Incident pages at 1100px and wider pair the case brief (5 of 12 columns) with the evidence timeline (7 of 12); the no-label replay, recorded transfer route and full evidence follow at full width.
 
 ## Evidence and persistence
 
@@ -243,7 +255,7 @@ Browser investigations, notes, watchlists and view settings remain browser-local
 
 ## Landing page
 
-The landing alone uses a slim top bar without the workspace sidebar. Its content is at most 1200px wide, with 64px section padding on desktop and 36px on phones, derived from the landing section spacing token. The display role is Public Sans 300 at clamp(44px, 6.2vw, 92px), 0.98 leading, -0.03em tracking and balanced wrapping. Its second line uses secondary text. The panel-title role gains one landing step, 32/38px at 300. The problem statement scales from 32 to 40px. The recorded transfer counter uses Plex Mono 300 from 40 to 56px with tabular figures.
+The landing keeps its own slim top bar and navigation. Its content is at most 1200px wide, with 64px section padding on desktop and 36px on phones, derived from the landing section spacing token. The display role is Public Sans 300 at clamp(44px, 6.2vw, 92px), 0.98 leading, -0.03em tracking and balanced wrapping. Its second line uses secondary text. The panel-title role gains one landing step, 32/38px at 300. The problem statement scales from 32 to 40px. The recorded transfer counter uses Plex Mono 300 from 40 to 56px with tabular figures.
 
 The hero graph is a deterministic seeded excerpt of the same recorded Rhea graph used by Explore, capped at the root plus 40 nodes and 60 edges. Accent paths identify the two cited transfers, never a payment verdict. The counter is the recording's transfer total and never counts through invented values. The coverage statement remains adjacent. Evidence disclosures retain full identifiers, transactions and receipts.
 
