@@ -217,6 +217,17 @@ async function main() {
     env.api.renderCases(parent, {total: 1, cases: [{...example().cases[0], id: 'c1', version: 1, updated_ms: 0}], next_offset: null}, '/teams/team1');
     for (const title of ['New investigation', 'Edit notes', 'Delete', 'Import browser workspace']) assert.equal(parent.querySelectorAll('button').find(control => control.textContent === title).disabled, true);
     assert.equal(parent.querySelectorAll('button').find(control => control.textContent === 'Export shared workspace JSON').disabled, false);
+  } else if (scenario === 'member-identifier') {
+    const env = environment(); await reply(env.requests[0], session); env.api.state.team = team;
+    const parent = new Element('section'), username = 'Alice.Near<b>x</b>';
+    env.api.renderMembers(parent, [{id: 'm1', username, role: 'viewer'}], '/teams/team1');
+    const label = parent.querySelectorAll('label')[0];
+    assert.equal(label.textContent, 'Role for ', 'The label text stays the authored prefix');
+    const name = label.children.find(child => child.tag === 'span');
+    assert.equal(name.className, 'cloud-member-name');
+    assert.equal(name.textContent, username, 'The username is set as text, case and markup intact');
+    assert.equal(parent.querySelectorAll('b').length, 0);
+    assert.equal(label.children.at(-1).tag, 'select');
   } else if (scenario === 'private-editor-transition') {
     const env = environment(); await reply(env.requests[0], session);
     env.api.editCase({...example().cases[0], id: 'c1', version: 1}, '/teams/team1');

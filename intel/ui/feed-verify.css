@@ -24,7 +24,7 @@
 .feed-table p{margin:8px 0 0}
 .feed-table details{margin-top:12px}.feed-table summary,.record-index-table summary{cursor:pointer;min-height:36px;padding-block:8px}
 .feed-table pre,.verify-result pre,.verify-saved pre{max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;font:400 var(--fs-data) var(--font-code);padding:16px;background:rgb(var(--ground));border-radius:var(--r-md);font-feature-settings:"lnum" 1,"tnum" 1,"zero" 1;font-variant-numeric:lining-nums tabular-nums slashed-zero;font-variant-ligatures:none}
-.feed-recorded-details{margin-block:24px}.feed-recorded-details>summary{cursor:pointer;padding:12px 0;font:300 var(--fs-panel) var(--font-ui);letter-spacing:.18px}
+.feed-recorded-details{margin-block:24px}.feed-recorded-details>summary{cursor:pointer;padding:12px 0;font:600 var(--fs-panel-title) var(--font-display);letter-spacing:0}
 .feed-recorded-details>ul{max-width:35rem;color:rgb(var(--secondary))}
 .record-index-note{color:rgb(var(--secondary));max-width:35rem}
 .record-index-table th:nth-child(1){width:20%}.record-index-table th:nth-child(2){width:16%}.record-index-table th:nth-child(3){width:12%}.record-index-table th:nth-child(4){width:15%}.record-index-table th:nth-child(5){width:16%}.record-index-table th:nth-child(6){width:21%}
@@ -37,7 +37,7 @@
 .verify-form #read{min-height:44px;justify-self:start;background:rgb(var(--accent-fill));color:rgb(var(--primary-ink));border-color:rgb(var(--accent-fill))}
 .verify-form #read:disabled{opacity:.6;cursor:wait}
 .verify-live #verify-example{min-height:44px}.verify-result{min-height:136px;padding:12px;border-radius:var(--r-md);background:rgb(var(--panel));border:1px solid rgb(var(--hairline))}
-.verify-result h3{font:300 var(--fs-panel) var(--font-ui);margin:0 0 8px;letter-spacing:.18px}.verify-result>p{max-width:35rem;color:rgb(var(--secondary))}
+.verify-result h3{font:600 var(--fs-panel-title) var(--font-display);margin:0 0 8px;letter-spacing:0}.verify-result>p{max-width:35rem;color:rgb(var(--secondary))}
 .verify-result[aria-busy="true"]{border-color:rgb(var(--hairline-strong))}
 .verify-example-table{table-layout:fixed}.verify-example-table th{width:38%;white-space:normal;font:400 var(--fs-data) var(--font-code);overflow-wrap:normal;letter-spacing:.24px;text-transform:uppercase;font-feature-settings:"lnum" 1,"tnum" 1,"zero" 1;font-variant-numeric:lining-nums tabular-nums slashed-zero;font-variant-ligatures:none}
 .verify-example-table td{font:400 var(--fs-data) var(--font-code);letter-spacing:0;overflow-wrap:anywhere;font-feature-settings:"lnum" 1,"tnum" 1,"zero" 1;font-variant-numeric:lining-nums tabular-nums slashed-zero;font-variant-ligatures:none}

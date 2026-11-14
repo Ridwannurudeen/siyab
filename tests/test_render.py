@@ -840,7 +840,6 @@ class RenderTest(unittest.TestCase):
             with self.subTest(page=name):
                 text = own_text(page)
                 if name == "explore.html":
-                    text = text.replace(render.HEADLINE, "")
                     text = text.replace("Is this account safe to use?", "")
                 self.assertIsNone(forbidden(text), forbidden(text))
                 self.assertIsNone(BARRED.search(text), BARRED.search(text))
@@ -987,7 +986,8 @@ class RenderTest(unittest.TestCase):
 
     def test_the_explore_headline_is_the_requested_account_sentence(self):
         self.assertIn(f'<p id="payment-introduction">{html.escape(render.HEADLINE)}</p>', self.pages["explore.html"])
-        self.assertIn("checks whether an account is safe to pay", self.pages["explore.html"])
+        self.assertIn("Siyab checks an account before you pay, with a source on every answer, and a Gate contract on testnet pays only on a signed ALLOW.", self.pages["explore.html"])
+        self.assertNotIn("enforces it on chain", self.pages["explore.html"])
 
     def test_the_verify_page_inputs_carry_placeholders_from_committed_records(self):
         record = json.loads((ROOT / "fixtures" / "registry" / "testnet-latest-kestrelridge-shop.json")

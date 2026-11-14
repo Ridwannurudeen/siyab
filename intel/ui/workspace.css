@@ -23,7 +23,7 @@ code,.mono,.graph-identifier,.graph-number{letter-spacing:0}
 .workspace-section .empty-state{padding:32px 0 12px;margin:0;border:0;border-radius:0;color:rgb(var(--secondary));font:400 var(--fs-body) var(--font-ui);max-width:35rem}
 .saved-investigation{padding:24px 0;border-bottom:1px solid rgb(var(--hairline))}
 .saved-investigation:last-child{border:0;padding-bottom:0}
-.saved-investigation h3{font:300 var(--fs-panel) var(--font-ui);margin:0 0 8px;letter-spacing:.18px}
+.saved-investigation h3{font:600 var(--fs-panel-title) var(--font-display);margin:0 0 8px;letter-spacing:0}
 .saved-investigation h3 a{color:rgb(var(--ink));text-decoration:none}
 .saved-investigation h3 a:hover{color:rgb(var(--link));text-decoration:underline}
 .saved-path{font:400 var(--fs-data) var(--font-code);color:rgb(var(--secondary));overflow-wrap:anywhere;margin-bottom:12px;font-feature-settings:"lnum" 1,"tnum" 1,"zero" 1;font-variant-numeric:lining-nums tabular-nums slashed-zero;font-variant-ligatures:none}

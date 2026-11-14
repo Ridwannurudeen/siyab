@@ -7,7 +7,7 @@ from pathlib import Path
 class CloudWorkspaceTest(unittest.TestCase):
     @unittest.skipUnless(shutil.which("node"), "Node is unavailable")
     def test_cloud_boundaries(self):
-        for scenario in ("session-unavailable", "session-temporary-failure", "session-reload-failure", "destination-description", "privacy-validation", "stale-export", "cancelled-import", "chunk-import", "body-timeout", "session-race", "version-conflict", "viewer-controls", "private-editor-transition", "global-save", "recovery-identity", "monitor-evidence", "registration-access-code"):
+        for scenario in ("session-unavailable", "session-temporary-failure", "session-reload-failure", "destination-description", "privacy-validation", "stale-export", "cancelled-import", "chunk-import", "body-timeout", "session-race", "version-conflict", "viewer-controls", "private-editor-transition", "global-save", "recovery-identity", "monitor-evidence", "registration-access-code", "member-identifier"):
             with self.subTest(scenario=scenario):
                 result = subprocess.run([shutil.which("node"), "tests/cloud_workspace_runtime.cjs", scenario],
                                         cwd=Path(__file__).resolve().parent.parent, capture_output=True,

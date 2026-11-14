@@ -437,7 +437,7 @@
     for (const member of members) {
       const row = node("li"); row.append(node("strong", member.username));
       if (state.team.role === "owner") {
-        const label = node("label", "Role for " + member.username), select = node("select");
+        const label = node("label", "Role for "), select = node("select"); label.append(node("span", member.username, "cloud-member-name"));
         for (const role of ["owner", "editor", "viewer"]) { const option = node("option", role); option.value = role; select.append(option); }
         select.value = member.role; label.append(select); row.append(label);
         button("Save role", control => action(control, async () => { await request(base + "/members/" + member.id + "/role", {role: select.value}); if (await loadSession()) status("Team role updated."); }), row);

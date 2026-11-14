@@ -74,7 +74,7 @@ class LandingMotionTest(unittest.TestCase):
     def test_display_role_and_motion_tokens_are_defined(self):
         design = (render.ROOT / "DESIGN.md").read_text(encoding="utf-8")
         self.assertIn("display", design.lower())
-        self.assertIn("clamp(44px,6.2vw,92px)", self.css.replace(" ", ""))
+        self.assertIn("clamp(38px,4.7vw,68px)", self.css.replace(" ", ""))
         self.assertIn("text-wrap:balance", self.css.replace(" ", ""))
         self.assertRegex(self.css, r'--[a-z-]*display[a-z-]*:')
         self.assertRegex(self.css, r'--landing-[a-z-]+:[^;}]*cubic-bezier')
@@ -156,11 +156,11 @@ class LandingMotionBrowserTest(unittest.TestCase):
             page.goto(self.origin + "/index.html")
             style = page.locator("#landing-title").evaluate("node => {const s=getComputedStyle(node);return {size:parseFloat(s.fontSize),line:parseFloat(s.lineHeight),tracking:parseFloat(s.letterSpacing),weight:s.fontWeight,family:s.fontFamily}}")
             with self.subTest(width=width):
-                self.assertAlmostEqual(style["size"], max(44, min(width * 0.062, 92)), places=2)
-                self.assertAlmostEqual(style["line"], style["size"] * 0.98, places=2)
-                self.assertAlmostEqual(style["tracking"], style["size"] * -0.03, places=2)
-                self.assertEqual(style["weight"], "300")
-                self.assertIn("Public Sans", style["family"])
+                self.assertAlmostEqual(style["size"], max(38, min(width * 0.047, 68)), places=2)
+                self.assertAlmostEqual(style["line"], style["size"] * 1.04, places=2)
+                self.assertAlmostEqual(style["tracking"], style["size"] * -0.035, places=2)
+                self.assertEqual(style["weight"], "600")
+                self.assertTrue(style["family"].startswith("Manrope"), style["family"])
         context.close()
 
     def test_hidden_document_jumps_to_final_state(self):
