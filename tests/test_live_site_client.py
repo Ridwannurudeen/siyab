@@ -243,9 +243,9 @@ for(const row of health.rows)assert.doesNotMatch(row,/\b1 (?:accounts|account hi
         self.run_script("""
 const assert=require('node:assert/strict');
 const ids={},el=name=>ids[name]||=( {children:[],textContent:'',replaceChildren(...items){this.children=items;},setAttribute(){}} );
-const state={epoch:0,logRevision:0,pending:new Set()},clearTimeout=()=>{},message=()=>{};
+const state={epoch:0,logRevision:0,pending:new Set()},clearTimeout=()=>{},message=()=>{},warn=value=>{el('warning').textContent=value;};el('warning').textContent='stale';
 const node=(tag,text,className)=>({tag,text,className});
-""" + clear + "clear();assert.equal(el('log').children[0].text," + json.dumps(message) + ");assert.equal(el('newer').disabled,true);assert.equal(el('older').disabled,true);")
+""" + clear + "clear();assert.equal(el('warning').textContent,'');assert.equal(el('log').children[0].text," + json.dumps(message) + ");assert.equal(el('newer').disabled,true);assert.equal(el('older').disabled,true);")
 
     def test_feed_provider_falls_back_to_recorded_url(self):
         source = (ROOT / "intel/ui/feed.js").read_text(encoding="utf-8")
