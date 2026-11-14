@@ -46,7 +46,7 @@ assert.equal(validPage({account_id:'wrap.near',network:'mainnet',items:[],pagina
 assert.equal(validPage({account_id:'other.near',network:'mainnet',items:[],pagination:{},source:{},coverage:{}}, 'wrap.near'), false);
 
 class Element {
-  constructor(tag = 'div') { this.tag = tag; this.children = []; this.listeners = {}; this.attributes = {}; this.dataset = {}; this.value = ''; this.textContent = ''; }
+  constructor(tag = 'div') { this.tag = tag; this.children = []; this.listeners = {}; this.attributes = {}; this.dataset = {}; this.value = ''; this.textContent = ''; const classes = new Set(); this.classList = {add: name => classes.add(name), remove: name => classes.delete(name), contains: name => classes.has(name)}; }
   append(...nodes) { for (const item of nodes) { item.parent = this; this.children.push(item); } }
   get childNodes() { return this.children; }
   replaceChildren(...nodes) { this.children = []; this.textContent = ''; this.append(...nodes); }
@@ -86,7 +86,7 @@ async function appBehavior() {
   assert.ok(old.every(request => request.options.signal.aborted), 'Changing accounts aborts every old read');
   reply(old[0],{account_id:'wrap.near',network:'mainnet',exists:false,labels:[],source:{},coverage:{}});
   for (const request of old.slice(1)) reply(request,page('wrap.near'));
-  await tick(); assert.equal(ids['investigate-title'].textContent,'other.near');
+  await tick(); assert.equal(ids['investigate-title'].textContent,'other.near'); assert.equal(ids['investigate-title'].classList.contains('investigate-subject'),true,'A loaded subject marks the title');
   assert.doesNotMatch(contentText(ids['investigate-profile']),/does not currently exist/,'A late old response must not overwrite the active account');
   reply(pending[4],{account_id:'other.near',network:'mainnet',exists:true,native:{amount_yocto:'1000000000000000000000001',locked_yocto:'0',block_height:'9007199254740993',storage_usage:12},labels:[],source:{provider:'RPC'},coverage:{scope:'Includes storage backing'}});
   const holdings=page('other.near');holdings.items=[{contract_id:'wrap.near',balance:'9007199254740993123456789',metadata:{name:'<img src=x onerror=bad()>',symbol:'TEST',decimals:6},balance_status:'indexed',last_update_block_height:'1'}];holdings.pagination.next_offset=10;
@@ -222,7 +222,7 @@ async function appBehavior() {
   assert.equal(ids['investigate-graph'].children[0].attributes['data-graph-account'],'other.near');
   for(const request of pending.slice(-4)) reply(request, request.url.includes('/profile') ? {account_id:'other.near',network:'mainnet',exists:false,labels:[],source:{},coverage:{}} : page('other.near'));
   await tick();
-  win.location=new URL('https://siyab.xyz/investigate.html');events.popstate();assert.equal(ids['investigate-title'].textContent,'Investigate account');assert.equal(ids['investigate-load-graph'].disabled,true);
+  win.location=new URL('https://siyab.xyz/investigate.html');events.popstate();assert.equal(ids['investigate-title'].textContent,'Investigate account');assert.equal(ids['investigate-title'].classList.contains('investigate-subject'),false,'Reset clears the subject mark');assert.equal(ids['investigate-load-graph'].disabled,true);
   assert.equal(timers.size,0,'Every completed request releases its deadline');
   select('bad.testnet');assert.match(ids['investigate-status'].textContent,/valid NEAR mainnet/);
 }
