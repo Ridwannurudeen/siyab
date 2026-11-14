@@ -105,8 +105,8 @@ def _receipt_text(value):
                    else char for char in json.dumps(value, ensure_ascii=False)[1:-1])
 
 
-def verify_receipt(path):
-    """Check an unsigned payment check answer against its canonical evidence, offline."""
+def verify_receipt(path, *, transaction=None):
+    """Check an unsigned answer against its canonical evidence and original transaction, offline."""
     from intel.live import LiveAPI
 
     answer = json.loads(Path(path).read_text(encoding="utf-8"), object_pairs_hook=_unique_object)
@@ -129,26 +129,47 @@ def verify_receipt(path):
     if document["version"] != evidence.VERSION:
         raise VerifyError("evidence version is not supported")
     if any(document[field] is not None for field in ("issued_ms", "expires_ms", "verdict_id")):
-        raise VerifyError("payment check evidence must have null issued_ms, expires_ms and verdict_id")
+        raise VerifyError("check evidence must have null issued_ms, expires_ms and verdict_id")
     subject = document["subject"]
-    if (not isinstance(subject, dict)
-            or set(subject) != {"network", "kind", "token", "receiver", "amount", "memo_sha256"}
-            or subject["network"] != "mainnet" or subject["kind"] not in ("near", "ft")):
-        raise VerifyError("evidence subject is not a payment check subject")
-    canon.account_id(subject["receiver"], "receiver")
-    if subject["receiver"].endswith(".testnet"):
-        raise VerifyError("payment check evidence must have a mainnet receiver")
-    if subject["memo_sha256"] is not None:
-        raise VerifyError("payment check evidence must have a null memo_sha256")
-    if not isinstance(subject["amount"], str):
-        raise VerifyError("payment check evidence amount must be a string")
-    canon.amount_field(subject["amount"])
-    if subject["kind"] == "ft":
-        canon.account_id(subject["token"], "token")
-        if subject["token"].endswith(".testnet"):
-            raise VerifyError("payment check evidence must have a mainnet token")
-    elif subject["token"] is not None:
-        raise VerifyError("native payment evidence must have a null token")
+    subject_fields = {
+        "near": {"network", "kind", "token", "receiver", "amount", "memo_sha256"},
+        "ft": {"network", "kind", "token", "receiver", "amount", "memo_sha256"},
+        "account": {"network", "kind", "account"},
+        "token": {"network", "kind", "token"},
+        "transaction": {"network", "kind", "signer", "receiver", "actions_sha256"},
+    }
+    if (not isinstance(subject, dict) or not isinstance(subject.get("kind"), str)
+            or subject["kind"] not in subject_fields or set(subject) != subject_fields[subject["kind"]]
+            or subject["network"] != "mainnet"):
+        raise VerifyError("evidence subject is not a supported mainnet check subject")
+    kind = subject["kind"]
+    account_fields = {"near": ("receiver",), "ft": ("receiver", "token"), "account": ("account",),
+                      "token": ("token",), "transaction": ("signer", "receiver")}
+    for field in account_fields[kind]:
+        canon.account_id(subject[field], field)
+        if subject[field] == "testnet" or subject[field].endswith(".testnet"):
+            raise VerifyError(f"check evidence must have a mainnet {field}")
+    if kind in ("near", "ft"):
+        if subject["memo_sha256"] is not None:
+            raise VerifyError("payment check evidence must have a null memo_sha256")
+        if not isinstance(subject["amount"], str):
+            raise VerifyError("payment check evidence amount must be a string")
+        canon.amount_field(subject["amount"])
+        if kind == "near" and subject["token"] is not None:
+            raise VerifyError("native payment evidence must have a null token")
+    if kind == "transaction":
+        from gate.txcheck import _validate
+
+        canon._hex_field(subject["actions_sha256"], 64, "actions_sha256")
+        if transaction is None:
+            raise VerifyError("transaction check receipt requires the original transaction")
+        _validate(transaction)
+        if subject["signer"] != transaction["signer_id"] or subject["receiver"] != transaction["receiver_id"]:
+            raise VerifyError("transaction signer or receiver does not match the evidence subject")
+        if subject["actions_sha256"] != evidence.evidence_hash(transaction["actions"]):
+            raise VerifyError("actions_sha256 does not match the canonical transaction actions")
+    elif transaction is not None:
+        raise VerifyError("transaction input requires a transaction check subject")
     observed = document["observed"]
     if (not isinstance(observed, dict) or set(observed) != {"block_height", "timestamp_ms"}
             or any(value is not None and (type(value) is not int or value < 0)
@@ -181,10 +202,18 @@ def verify_receipt(path):
         if evidence.canonical_bytes(answer[field]) != evidence.canonical_bytes(reduced[field]):
             raise VerifyError(f"answer {field} does not match the evidence")
     if answer["verdict"] is not None or answer["signing"] != "never":
-        raise VerifyError("a payment check receipt must be unsigned with signing never")
-    lines = [f"receiver: {subject['receiver']}", f"token: {subject['token'] or 'near'}",
-             f"amount: {subject['amount']}",
-             f"observed block: {observed['block_height'] if observed['block_height'] is not None else 'unknown'}"]
+        raise VerifyError("a check receipt must be unsigned with signing never")
+    if kind in ("near", "ft"):
+        lines = [f"receiver: {subject['receiver']}", f"token: {subject['token'] or 'near'}",
+                 f"amount: {subject['amount']}"]
+    elif kind == "account":
+        lines = ["kind: account", f"account: {subject['account']}"]
+    elif kind == "token":
+        lines = ["kind: token", f"token: {subject['token']}"]
+    else:
+        lines = ["kind: transaction", f"signer: {subject['signer']}", f"receiver: {subject['receiver']}",
+                 f"actions sha256: {subject['actions_sha256']}"]
+    lines.append(f"observed block: {observed['block_height'] if observed['block_height'] is not None else 'unknown'}")
     lines += [f"{check['status']:<7} {_receipt_text(check['id'])}: {_receipt_text(check['detail'])}"
               for check in checks]
     lines.append(f"outcome: {answer['outcome']} ({answer['action']})")
