@@ -110,6 +110,9 @@ class IncrementalTransfersTest(unittest.TestCase):
 
 class PollStepTest(unittest.TestCase):
     def setUp(self):
+        patcher = mock.patch.dict("os.environ", {}, clear=True)
+        patcher.start()
+        self.addCleanup(patcher.stop)
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)

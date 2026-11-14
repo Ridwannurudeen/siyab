@@ -398,7 +398,10 @@ def apply(block, state, context, source, events_dir=EVENTS_DIR):
             alert = alerts.Alert("feed", "warn", event["subject"], event["signal"],
                                  f"Feed event: {event['signal']}", event["detail"], path.stem,
                                  event["observed"]["timestamp_ms"])
-            alerts.send(alert, alerts.configured_sinks())
+            sinks = alerts.configured_sinks()
+            if source.get("mode") != "follow":
+                sinks = [sink for sink in sinks if not isinstance(sink, alerts.TelegramSink)]
+            alerts.send(alert, sinks)
         paths.append(path)
     stamp = datetime.fromtimestamp(int(block["timestamp_ns"]) // 10**9, UTC).strftime(_TIME)
     if state["start_height"] is None:

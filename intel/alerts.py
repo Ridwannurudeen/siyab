@@ -1,6 +1,7 @@
 """Local alert values and standard library delivery sinks."""
 
 from dataclasses import asdict, dataclass
+from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 import hashlib
 import hmac
@@ -30,6 +31,9 @@ RETRYABLE_STATUS = frozenset({408, 425, 429})
 _SIGNATURE = re.compile(r"t=([0-9]+),v1=([0-9a-f]{64})")
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 _STDOUT_LOCK = threading.Lock()
+_TELEGRAM_CHAT = re.compile(r"-100[0-9]{6,13}")
+_TELEGRAM_LOCK = threading.Lock()
+_TELEGRAM_USE = {"next_send": 0, "day": None, "count": 0}
 _LOG = logging.getLogger(__name__)
 
 
@@ -233,6 +237,65 @@ class WebhookSink:
         return {"ok": False, "attempts": MAX_ATTEMPTS, "status": status, "error": error}
 
 
+class TelegramSink:
+    def __init__(self, chat_id, client, *, clock=time.time):
+        if _TELEGRAM_CHAT.fullmatch(str(chat_id)) is None:
+            raise ValueError("broadcast chat must be a numeric channel id")
+        self.chat_id, self.client, self.clock = int(chat_id), client, clock
+
+    def send(self, alert):
+        from intel.delivery import TelegramError
+
+        attempts = 0
+        try:
+            if alert.source not in {"feed", "incident"}:
+                return {"ok": True, "attempts": 0, "skipped": "source"}
+            now = self.clock()
+            with _TELEGRAM_LOCK:
+                if now < _TELEGRAM_USE["next_send"]:
+                    return {"ok": False, "attempts": 0, "error": "broadcast_cooldown"}
+                day = int(now // 86400)
+                if _TELEGRAM_USE["day"] != day:
+                    _TELEGRAM_USE.update(day=day, count=0)
+                if _TELEGRAM_USE["count"] >= 200:
+                    return {"ok": False, "attempts": 0, "error": "broadcast_budget"}
+                configuration = self.client.configuration()
+                if not configuration["configured"]:
+                    return {"ok": False, "attempts": 0, "error": configuration["reason"]}
+                observed = datetime.fromtimestamp(alert.created_ms / 1000, UTC).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+                if alert.source == "feed":
+                    head = f"Siyab feed signal: {alert.ref}\nAccount: {alert.subject}\n"
+                    url = "https://siyab.xyz/feed.html"
+                else:
+                    if re.fullmatch(r"[a-z0-9-]{1,64}", alert.ref) is None:
+                        return {"ok": False, "attempts": 0, "error": "incident_invalid"}
+                    head = f"Siyab incident: {alert.title}\n"
+                    url = f"https://siyab.xyz/incidents/{alert.ref}.html"
+                time_label = "Observed" if alert.source == "feed" else "Posted"
+                head += f"{alert.detail[:600]}\n{time_label} UTC: {observed}\nEvidence: {alert.evidence_sha256}"
+                payload = {
+                    "chat_id": self.chat_id,
+                    "text": head + "\n" + url + "\nUnsigned advice. A signal is an observation, not a verdict. Unknown is never a pass.",
+                    "entities": [{"type": "pre", "offset": 0, "length": len(head.encode("utf-16-le")) // 2}],
+                }
+                _TELEGRAM_USE["next_send"] = now + 3
+                _TELEGRAM_USE["count"] += 1
+            attempts = 1
+            result = self.client.call("sendMessage", payload)
+            if (not isinstance(result, dict) or type(result.get("message_id")) is not int or result["message_id"] < 1
+                    or not isinstance(result.get("chat"), dict) or type(result["chat"].get("id")) is not int
+                    or result["chat"]["id"] != self.chat_id):
+                return {"ok": False, "attempts": 1, "error": "response_unreadable"}
+            return {"ok": True, "attempts": 1}
+        except TelegramError as error:
+            if error.code == "provider_429" and error.retry_after is not None:
+                with _TELEGRAM_LOCK:
+                    _TELEGRAM_USE["next_send"] = max(_TELEGRAM_USE["next_send"], self.clock() + error.retry_after)
+            return {"ok": False, "attempts": attempts, "error": error.code}
+        except Exception:
+            return {"ok": False, "attempts": attempts, "error": "delivery_failed"}
+
+
 class StdoutSink:
     def __init__(self, stream=None):
         self.stream = stream
@@ -246,22 +309,30 @@ class StdoutSink:
 
 def configured_sinks(environ=None):
     environ = os.environ if environ is None else environ
+    sinks = []
     url_file = environ.get("SHIELDBOT_ALERT_URL_FILE")
     if url_file:
         try:
             url = Path(url_file).read_text(encoding="utf-8").strip()
         except (OSError, UnicodeError, ValueError):
-            return []
+            url = None
         secret_path = environ.get("SHIELDBOT_ALERT_SECRET_FILE")
-        if not url or "\n" in url or "\r" in url or not secret_path:
-            return []
+        if url and "\n" not in url and "\r" not in url and secret_path:
+            try:
+                sinks.append(WebhookSink(url, secret_path))
+            except ValueError:
+                sinks = []
+    elif environ.get("SHIELDBOT_ALERT_STDOUT") == "1":
+        sinks.append(StdoutSink())
+    chat_id = environ.get("SIYAB_TELEGRAM_BROADCAST_CHAT")
+    if chat_id and _TELEGRAM_CHAT.fullmatch(chat_id) is not None:
+        from intel.delivery import configured_client
+
         try:
-            return [WebhookSink(url, secret_path)]
-        except ValueError:
-            return []
-    if environ.get("SHIELDBOT_ALERT_STDOUT") == "1":
-        return [StdoutSink()]
-    return []
+            sinks.append(TelegramSink(chat_id, configured_client(environ)))
+        except (OSError, ValueError, RuntimeError):
+            return sinks
+    return sinks
 
 
 def send(alert, sinks):
