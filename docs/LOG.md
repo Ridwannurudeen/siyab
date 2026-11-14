@@ -76,3 +76,4 @@
 14 Nov: the delivery worker requests every Telegram update type that can carry text, names or titles, including join request bios, so a pending link nonce in any of them ends that link; a group link awaiting confirmation keeps its first chat when the same start command arrives from another chat, and the confirmation step warns with the count of other chats.
 14 Nov, later: the operator posted the rhea incident to the public channel https://t.me/siyabalerts with `python -m intel incident-broadcast rhea`.
 14 Nov, later: after the post-deploy delivery check (polling advancing, no recorded error), the hosted deployment enabled Telegram group destinations with SIYAB_TELEGRAM_GROUPS=1.
+14 Nov, later: the hosted deployment enabled Ask Siyab (SIYAB_ASK=1, default model, daily cap and token limits) and the public account and token checks (SIYAB_CHECKS=1); Telegram checks, the NearBlocks fallback and automatic channel broadcast stay off.

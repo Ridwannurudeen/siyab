@@ -504,7 +504,7 @@ Copied from `docs/ATTACKS.md`. Each NEAR command is `python -m gate attack <name
 Planned work, in order. Only the first item has a date.
 
 1. **NearBlocks v3 migration, before 22 November 2026.** NearBlocks says v1 and v2 will be switched off that day; see Limits for what reads Unknown until the code moves.
-2. **Checks on in production.** The account, token and transaction checks exist behind `SIYAB_CHECKS` and are off by default. They go on once reviews are clean. The offline receipt checker already accepts their answers (`docs/VERIFY.md`, section 5); a transaction receipt still needs the Python call, not the command line.
+2. **Checks on in production.** The account, token and transaction checks exist behind `SIYAB_CHECKS` and are off by default in code. Since 14 November 2026 the hosted deployment serves the account and token checks at `/live/account-check/<account>` and `/live/token-check/<token>`; Telegram checks stay off. The offline receipt checker already accepts their answers (`docs/VERIFY.md`, section 5); a transaction receipt still needs the Python call, not the command line.
 
 After that, undated:
 
