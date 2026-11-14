@@ -384,6 +384,8 @@ class FollowModeTest(unittest.TestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
         os.environ.pop("FASTNEAR_API_KEY_FILE", None)
+        os.environ.pop("SIYAB_TELEGRAM_BROADCAST_CHAT", None)
+        os.environ.pop("SIYAB_TELEGRAM_TOKEN_FILE", None)
 
         def answer(request, timeout):
             if request.full_url.startswith(feed.TRANSFERS_URL):
@@ -1285,6 +1287,29 @@ class FollowModeTest(unittest.TestCase):
             (Path(tmp) / "state.json").write_text('{"blocks": 1', encoding="utf-8")
             with mock.patch.dict(os.environ, {"FEED_STATE_DIR": tmp}):
                 self.assertEqual(api.route("/feed", labels.load()), (503, {"error": "feed state unreadable"}))
+
+
+class FollowFixtureTest(unittest.TestCase):
+    def test_follow_tests_ignore_ambient_broadcast_settings(self):
+        from intel.delivery import TelegramClient
+        from tests.test_feed_incremental import PollStepTest
+
+        cases = [FollowModeTest("test_follow_writes_the_event_block_and_points_the_event_source_at_it"),
+                 FollowModeTest("test_the_usd_amount_is_read_as_a_magnitude_and_an_unreadable_row_is_counted_not_raised"),
+                 PollStepTest("test_pagination_retries_the_same_token_after_an_http_date_without_publishing_twice")]
+        env = {"SIYAB_TELEGRAM_BROADCAST_CHAT": "-1001234567890",
+               "SIYAB_TELEGRAM_TOKEN_FILE": "ambient-token-path"}
+        for case in cases:
+            with self.subTest(case=case.id()), mock.patch.dict(os.environ, env, clear=True), \
+                    mock.patch.object(feed.alerts, "_TELEGRAM_USE", {"next_send": 0, "day": None, "count": 0}), \
+                    mock.patch("urllib.request.OpenerDirector.open", side_effect=no_network) as opened:
+                client = TelegramClient(lambda: "123456:" + "a" * 35)
+                with mock.patch("intel.delivery.configured_client", return_value=client) as configured:
+                    result = unittest.TestResult()
+                    unittest.TestSuite([case]).run(result)
+                    self.assertTrue(result.wasSuccessful(), result.errors + result.failures)
+                    opened.assert_not_called()
+                    configured.assert_not_called()
 
 
 if __name__ == "__main__":

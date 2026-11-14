@@ -535,6 +535,42 @@ def _alert_test(args):
     return 1
 
 
+def _incident_broadcast(args):
+    from intel.delivery import configured_client
+
+    if re.fullmatch(r"[a-z0-9-]{1,64}", args.id) is None:
+        print("stopped: incident id is invalid", file=sys.stderr)
+        return 1
+    chat_id = os.environ.get("SIYAB_TELEGRAM_BROADCAST_CHAT")
+    if not chat_id or alerts._TELEGRAM_CHAT.fullmatch(chat_id) is None:
+        print("stopped: Telegram broadcast is unconfigured", file=sys.stderr)
+        return 2
+    try:
+        client = configured_client()
+        configuration = client.configuration()
+    except (OSError, ValueError, RuntimeError):
+        print("stopped: Telegram broadcast is unconfigured", file=sys.stderr)
+        return 2
+    if not configuration["configured"]:
+        print(f"stopped: {configuration['reason']}", file=sys.stderr)
+        return 2
+    try:
+        page = (ROOT / "intel" / "incidents" / f"{args.id}.json").read_bytes()
+        incident = json.loads(page)
+        detail = incident["date"] + "; " + ", ".join(source["publisher"] for source in incident["sources"])
+        alert = alerts.Alert("incident", "critical", args.id, args.id, incident["title"], detail,
+                             hashlib.sha256(page).hexdigest(), int(time.time() * 1000))
+    except (OSError, ValueError, KeyError, TypeError):
+        print("stopped: incident could not be read", file=sys.stderr)
+        return 1
+    result = alerts.send(alert, [alerts.TelegramSink(chat_id, client)])[0]
+    if result["ok"]:
+        print("incident broadcast sent")
+        return 0
+    print(f"stopped: incident broadcast failed ({result.get('error', 'delivery_failed')})", file=sys.stderr)
+    return 1
+
+
 def _snapshot(args):
     try:
         scope = snapshot.read_scope(args.scope)
@@ -789,6 +825,9 @@ def main(argv=None):
     alert_test = commands.add_parser("alert-test", help="send one test alert to an HTTPS webhook")
     alert_test.add_argument("--url", required=True, help="the HTTPS webhook URL")
     alert_test.set_defaults(handler=_alert_test)
+    broadcasting = commands.add_parser("incident-broadcast", help="send one incident to the configured Telegram channel")
+    broadcasting.add_argument("id")
+    broadcasting.set_defaults(handler=_incident_broadcast)
     snapshotting = commands.add_parser("snapshot", help="write the current label rows a scope selects, for "
                                        "offline use (docs/spec/snapshot-v1.md)")
     snapshotting.add_argument("--scope", required=True, help="the scope file: a JSON object of name and select")

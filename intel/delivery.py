@@ -537,8 +537,9 @@ class TelegramDelivery:
         return result
 
 
-def configured_client():
-    filename = os.environ.get("SIYAB_TELEGRAM_TOKEN_FILE")
+def configured_client(environ=None):
+    environ = os.environ if environ is None else environ
+    filename = environ.get("SIYAB_TELEGRAM_TOKEN_FILE")
     if not filename:
         return TelegramClient()
     path = Path(filename).expanduser()
