@@ -272,6 +272,9 @@ class WorkspaceAPI:
             elif parts == ["delivery", "link"]:
                 self._fields(values, set())
                 return 201, self.delivery.begin_link(actor, team), {}
+            elif parts == ["delivery", "link-group"]:
+                self._fields(values, set())
+                return 201, self.delivery.begin_link(actor, team, "group"), {}
             elif parts == ["delivery", "confirm"]:
                 self._fields(values, {"generation"})
                 return 200, self.delivery.confirm_link(actor, team, values["generation"]), {}
