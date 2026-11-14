@@ -4,7 +4,7 @@ const all=root=>[root,...root.children.flatMap(all)],text=root=>root.textContent
 const status=(extra={})=>({configured:true,bot_username:'siyabonnearbot',state:'disconnected',counts:{pending:1,sent:2,dead:1},capacity:{paused:false,queue_paused:false,attempts_paused:false,queue_rows_limit:10000,attempt_rows_limit:50000},last_poll_ms:Date.now(),last_send_ms:null,last_error:null,last_delivery_error:null,delivery_semantics:'at_least_once',...extra});
 async function main(){
  const ids={},events={},pending=[],timers=new Map(),emitted=[];let timer=0;
- for(const id of ['team-delivery',...['context','status','controls','refresh','log','newer','older','history'].map(id=>'delivery-'+id)])ids[id]=new Element();
+ for(const id of ['team-delivery',...['context','status','warning','controls','refresh','log','newer','older','history'].map(id=>'delivery-'+id)])ids[id]=new Element();
  const document={hidden:false,getElementById:id=>ids[id],createElement:tag=>new Element(tag),addEventListener(name,fn){events['document:'+name]=fn;}};
  const window={addEventListener(name,fn){events[name]=fn;},dispatchEvent(event){emitted.push(event.type);}};
  vm.runInNewContext(fs.readFileSync('intel/ui/delivery.js','utf8'),{window,document,AbortController,CustomEvent:class{constructor(type){this.type=type;}},
@@ -18,6 +18,82 @@ async function main(){
  assert.ok(emitted.includes('siyab:workspace-context-request'));assert.equal(pending.length,0);
  events['siyab:workspace-context'](context());assert.equal(pending.at(-1).url,'/workspace-api/session');reply(pending.at(-1),session());await tick();
  await load(status({configured:false}));assert.match(text(ids['delivery-controls']),/not configured/);assert.equal(control('Connect Telegram'),undefined);
+ if(process.argv[2]==='group-warning'){
+  const group={groups_enabled:true,kind:'group',verified:true};
+  ids['delivery-refresh'].listeners.click();await load(status({...group,state:'active'}));
+  assert.match(text(ids['delivery-controls']),/Everyone in this group/);
+  control('Disconnect Telegram').listeners.click();assert.match(pending.at(-1).url,/\/revoke$/);
+  reply(pending.at(-1),{});await tick();await load(status({...group,state:'disconnected'}));
+  assert.doesNotMatch(text(ids['delivery-controls']),/Everyone in this group/);
+  for(const extra of [{state:'expired'},{state:'pending',generation:4,expires_at:Date.now()-1},{state:'observed',generation:4,expires_at:Date.now()-1,observed_chat_label:'Expired group'}]){
+   ids['delivery-refresh'].listeners.click();await load(status({...group,...extra}));
+   assert.doesNotMatch(text(ids['delivery-controls']),/Everyone in this group/);
+  }
+  events.pagehide();assert.equal(timers.size,0);
+  console.log('Group warning clears after disconnect and link expiry.');return;
+ }
+ if(process.argv[2]==='group-conflict'){
+  const expires=Date.now()+60000,warning=ids['delivery-warning'];
+  const observed=status({groups_enabled:true,kind:'group',state:'observed',generation:4,expires_at:expires,observed_chat_label:'Group "Treasury" (ID ending 1234), sent by @owner',verified:true});
+  ids['delivery-refresh'].listeners.click();await load({...observed,link_conflict:false,link_conflict_chats:0});
+  assert.equal(warning.textContent,'');assert.equal(control('Confirm observed destination').disabled,false);
+  assert.match(text(ids['delivery-controls']),/A Telegram group was observed\. Confirm this destination/);assert.doesNotMatch(text(ids['delivery-controls']),/Telegram account was observed/);
+  ids['delivery-refresh'].listeners.click();await load({...observed,kind:'private'});
+  assert.match(text(ids['delivery-controls']),/A Telegram account was observed\. Confirm this destination/);assert.doesNotMatch(text(ids['delivery-controls']),/Telegram group was observed/);
+  ids['delivery-refresh'].listeners.click();await load({...observed,link_conflict:true,link_conflict_chats:1});
+  assert.equal(warning.textContent,'This link code was also used in another chat. If you did not post it there, someone else has it: cancel this link and create a new one.');
+  assert.ok(warning.textContent.length>0);
+  const confirm=control('Confirm observed destination');assert.ok(confirm);assert.equal(confirm.disabled,false);assert.ok(control('Cancel connection'));
+  ids['delivery-refresh'].listeners.click();await load({...observed,link_conflict:true,link_conflict_chats:3});
+  assert.match(warning.textContent,/^This link code was also used in 3 other chats\. If you did not post it there/);
+  for(const extra of [{state:'active'},{state:'pending',observed_chat_label:null},{state:'observed',expires_at:Date.now()-1},{kind:'private'}]){
+   ids['delivery-refresh'].listeners.click();await load({...observed,link_conflict:true,link_conflict_chats:1,...extra});
+   assert.equal(warning.textContent,'',JSON.stringify(extra));
+  }
+  for(const bad of [{link_conflict:'true'},{link_conflict:1},{link_conflict:true,link_conflict_chats:-1},{link_conflict:true,link_conflict_chats:'1'}]){
+   ids['delivery-refresh'].listeners.click();await load({...observed,link_conflict:true,link_conflict_chats:1});
+   ids['delivery-refresh'].listeners.click();reply(pending.at(-1),{...observed,...bad});await tick();
+   assert.match(ids['delivery-status'].textContent,/could not be validated/,JSON.stringify(bad));
+  }
+  ids['delivery-refresh'].listeners.click();await load(observed);assert.equal(warning.textContent,'');
+  ids['delivery-refresh'].listeners.click();await load({...observed,link_conflict:true,link_conflict_chats:1});
+  events['siyab:workspace-context'](context('team-b','viewer'));assert.equal(warning.textContent,'');
+  reply(pending.at(-1),session('team-b','viewer'));await tick();await load({...observed,link_conflict:true,link_conflict_chats:1});
+  assert.equal(warning.textContent,'');events.pagehide();assert.equal(timers.size,0);
+  console.log('Group link conflict warning shows only for an observed group link and keeps confirm and cancel.');return;
+ }
+ if(process.argv[2]==='groups'){
+  ids['delivery-refresh'].listeners.click();await load(status({groups_enabled:false}));assert.equal(control('Connect a Telegram group'),undefined);
+  ids['delivery-refresh'].listeners.click();await load(status({groups_enabled:true,state:'active',kind:'private'}));
+  assert.equal(control('Connect a Telegram group'),undefined);
+  ids['delivery-refresh'].listeners.click();await load(status({groups_enabled:true}));
+  control('Connect a Telegram group').listeners.click();assert.match(pending.at(-1).url,/\/link-group$/);
+  reply(pending.at(-1),{link:'https://t.me/siyabonnearbot?start='+'a'.repeat(64),generation:3,expires_at:Date.now()+60000});await tick();
+  assert.match(ids['delivery-status'].textContent,/could not be validated/);assert.equal(all(ids['delivery-controls']).some(node=>node.href),false);
+  ids['delivery-refresh'].listeners.click();await load(status({groups_enabled:true}));control('Connect a Telegram group').listeners.click();
+  const groupLink='https://t.me/siyabonnearbot?startgroup='+'a'.repeat(64),expires=Date.now()+60000;
+  reply(pending.at(-1),{link:groupLink,generation:4,expires_at:expires});await tick();
+  await load(status({groups_enabled:true,kind:'group',state:'pending',generation:4,expires_at:expires,verified:false}));
+  assert.equal(all(ids['delivery-controls']).find(node=>node.tag==='a').href,groupLink);
+  assert.ok(text(ids['delivery-controls']).includes("Everyone in this group will see this team's alerts."));
+  assert.match(text(ids['delivery-controls']),/group admin/);
+  const observed=status({groups_enabled:true,kind:'group',state:'observed',generation:4,expires_at:expires,observed_chat_label:'Group "Treasury" (ID ending 1234), sent by @owner',verified:false});
+  ids['delivery-refresh'].listeners.click();await load(observed);assert.equal(control('Confirm observed destination').disabled,true);
+  for(const verified of [undefined,'true',1]){
+   ids['delivery-refresh'].listeners.click();reply(pending.at(-1),{...observed,verified});await tick();
+   assert.equal(control('Confirm observed destination').disabled,true);assert.match(ids['delivery-status'].textContent,/could not be validated/);
+  }
+  ids['delivery-refresh'].listeners.click();await load({...observed,verified:true});assert.equal(control('Confirm observed destination').disabled,false);
+  ids['delivery-refresh'].listeners.click();reply(pending.at(-1),{...observed,verified:'true'});await tick();assert.equal(control('Confirm observed destination').disabled,true);
+  ids['delivery-refresh'].listeners.click();await load({...observed,verified:true});assert.equal(control('Confirm observed destination').disabled,false);
+  assert.ok(text(ids['delivery-controls']).includes(observed.observed_chat_label));control('Confirm observed destination').listeners.click();
+  assert.match(pending.at(-1).url,/\/confirm$/);assert.equal(JSON.parse(pending.at(-1).options.body).generation,4);
+  reply(pending.at(-1),{});await tick();await load(status({groups_enabled:true,kind:'group',state:'active',verified:true}));
+  assert.equal(control('Connect a Telegram group'),undefined);
+  events['siyab:workspace-context'](context('team-b','viewer'));reply(pending.at(-1),session('team-b','viewer'));await tick();await load(status({groups_enabled:true,kind:'group',state:'active'}));
+  assert.equal(control('Connect a Telegram group'),undefined);events.pagehide();assert.equal(timers.size,0);
+  console.log('Group connection warning, link validation, owner permissions and verified confirmation passed.');return;
+ }
  if(process.argv[2])for(const fixture of JSON.parse(fs.readFileSync(process.argv[2],'utf8'))){
   ids['delivery-refresh'].listeners.click();await load(fixture.status,fixture.log);
   assert.doesNotMatch(ids['delivery-status'].textContent,/could not be validated/);

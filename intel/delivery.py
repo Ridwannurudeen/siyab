@@ -7,6 +7,7 @@ import os
 import re
 import secrets
 import time
+import unicodedata
 from datetime import UTC, datetime
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -24,10 +25,17 @@ MAX_ATTEMPTS = 5
 MAX_QUEUE_ROWS = 10000
 MAX_ATTEMPT_ROWS = 50000
 RETENTION_MS = 30 * 86400 * 1000
+MAX_CONFLICT_CHATS = 20
 _USERNAME = re.compile(r"[A-Za-z0-9_]{5,32}")
 _BOT_TOKEN = re.compile(r"[0-9]{5,20}:[A-Za-z0-9_-]{20,128}")
 _START = re.compile(r"/start(?:@[A-Za-z0-9_]{5,32})? ([a-f0-9]{64})")
-_METHODS = frozenset({"getMe", "getWebhookInfo", "getUpdates", "sendMessage"})
+_HEX = re.compile(r"[a-f0-9]+")
+_METHODS = frozenset({"getMe", "getWebhookInfo", "getUpdates", "getChatMember", "sendMessage"})
+_UPDATE_TYPES = ("message", "edited_message", "channel_post", "edited_channel_post", "business_connection", "business_message",
+                 "edited_business_message", "deleted_business_messages", "message_reaction", "message_reaction_count",
+                 "inline_query", "chosen_inline_result", "callback_query", "shipping_query", "pre_checkout_query",
+                 "purchased_paid_media", "poll", "poll_answer", "my_chat_member", "chat_member", "chat_join_request",
+                 "chat_boost", "removed_chat_boost")
 
 
 class TelegramError(Exception):
@@ -147,6 +155,8 @@ class TelegramDelivery:
             connection.execute("INSERT OR IGNORE INTO delivery_state(singleton,version) VALUES(1,1)")
             if connection.execute("SELECT version FROM delivery_state WHERE singleton=1").fetchone()[0] != 1:
                 raise ValueError("Telegram delivery database version is unsupported")
+            if "next_verify_ms" not in {row["name"] for row in connection.execute("PRAGMA table_info(delivery_state)")}:
+                connection.execute("ALTER TABLE delivery_state ADD COLUMN next_verify_ms INTEGER NOT NULL DEFAULT 0")
             connection.execute("CREATE TABLE IF NOT EXISTS delivery_bindings ("
                                "id INTEGER PRIMARY KEY AUTOINCREMENT,team_id TEXT NOT NULL UNIQUE REFERENCES teams(id) ON DELETE CASCADE,"
                                "generation INTEGER NOT NULL,nonce_hash TEXT UNIQUE,nonce_expires_ms INTEGER,"
@@ -156,6 +166,19 @@ class TelegramDelivery:
                                "created_ms INTEGER NOT NULL,updated_ms INTEGER NOT NULL,user_id TEXT REFERENCES users(id))")
             if "user_id" not in {row["name"] for row in connection.execute("PRAGMA table_info(delivery_bindings)")}:
                 connection.execute("ALTER TABLE delivery_bindings ADD COLUMN user_id TEXT REFERENCES users(id)")
+            columns = {row["name"] for row in connection.execute("PRAGMA table_info(delivery_bindings)")}
+            for name, definition in (("kind", "TEXT NOT NULL DEFAULT 'private'"),
+                                     ("observed_sender_id", "INTEGER"), ("verified_ms", "INTEGER"), ("observed_nonce_hash", "TEXT"),
+                                     ("conflict_chats", "INTEGER NOT NULL DEFAULT 0"), ("conflict_keys", "TEXT NOT NULL DEFAULT ''")):
+                if name not in columns:
+                    connection.execute("ALTER TABLE delivery_bindings ADD COLUMN " + name + " " + definition)
+            connection.execute("CREATE TABLE IF NOT EXISTS delivery_chat_pacing ("
+                               "chat_id INTEGER PRIMARY KEY,send_after_ms INTEGER NOT NULL)")
+            connection.execute("INSERT INTO delivery_chat_pacing(chat_id,send_after_ms) "
+                               "SELECT observed_chat_id,MAX(send_after_ms) FROM delivery_bindings "
+                               "WHERE kind='group' AND observed_chat_id IS NOT NULL AND send_after_ms>? GROUP BY observed_chat_id "
+                               "ON CONFLICT(chat_id) DO UPDATE SET send_after_ms=MAX(delivery_chat_pacing.send_after_ms,excluded.send_after_ms)",
+                               (self._now(),))
             connection.execute("CREATE TABLE IF NOT EXISTS delivery_queue ("
                                "id INTEGER PRIMARY KEY AUTOINCREMENT,binding_id INTEGER NOT NULL REFERENCES delivery_bindings(id) ON DELETE CASCADE,"
                                "team_id TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,generation INTEGER NOT NULL,"
@@ -217,32 +240,43 @@ class TelegramDelivery:
             elif binding["nonce_expires_ms"] is not None:
                 state = "expired"
         result = {**configuration, "bot_username": self.bot_username, "state": state,
+                  "kind": binding["kind"] if binding and state not in ("disconnected", "expired") else "private",
+                  "groups_enabled": os.environ.get("SIYAB_TELEGRAM_GROUPS") == "1",
                   "counts": counts, "capacity": capacity, "last_poll_ms": meta["last_poll_ms"], "last_send_ms": meta["last_send_ms"],
                   "last_error": meta["last_error"], "delivery_semantics": "at_least_once",
                   "last_delivery_error": failure["last_error"] if failure else None,
                   "scope": "New eligible team alerts after confirmation. In-flight sends may complete after disconnect; uncertain acknowledgements can cause duplicates."}
-        if role == "owner" and binding:
-            result.update({"generation": binding["generation"], "expires_at": binding["nonce_expires_ms"],
-                           "observed_chat_label": binding["observed_label"], "active_ms": binding["active_ms"]})
+        if role == "owner":
+            result["verified"] = (binding is not None and binding["verified_ms"] is not None
+                                  and binding["observed_chat_id"] is not None and state in ("observed", "active"))
+            if binding:
+                result.update({"generation": binding["generation"], "expires_at": binding["nonce_expires_ms"],
+                               "observed_chat_label": binding["observed_label"], "active_ms": binding["active_ms"],
+                               "link_conflict": state == "observed" and binding["conflict_chats"] > 0,
+                               "link_conflict_chats": binding["conflict_chats"] if state == "observed" else 0})
         return result
 
-    def begin_link(self, user_id, team_id):
+    def begin_link(self, user_id, team_id, kind="private"):
         nonce, now = secrets.token_hex(32), self._now()
         with self.store._connection(write=True) as connection:
             self.store._member(connection, user_id, team_id, owner=True)
+            if kind not in ("private", "group") or kind == "group" and os.environ.get("SIYAB_TELEGRAM_GROUPS") != "1":
+                raise WorkspaceError(404, "not_found", "No delivery route matches this path.")
             if not self.client.configuration()["configured"]:
                 raise WorkspaceError(503, "delivery_unconfigured", "Telegram delivery is not configured by the operator.")
             previous = connection.execute("SELECT generation FROM delivery_bindings WHERE team_id=?", (team_id,)).fetchone()
             generation = previous["generation"] + 1 if previous else 1
             connection.execute("UPDATE delivery_queue SET state='cancelled',lease_token=NULL,lease_until_ms=0,updated_ms=? "
                                "WHERE team_id=? AND state IN ('pending','sending')", (now, team_id))
-            connection.execute("INSERT INTO delivery_bindings(team_id,generation,nonce_hash,nonce_expires_ms,created_ms,updated_ms,user_id) "
-                               "VALUES(?,?,?,?,?,?,?) ON CONFLICT(team_id) DO UPDATE SET generation=excluded.generation,"
+            connection.execute("INSERT INTO delivery_bindings(team_id,generation,nonce_hash,nonce_expires_ms,created_ms,updated_ms,user_id,kind) "
+                               "VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(team_id) DO UPDATE SET generation=excluded.generation,"
                                "nonce_hash=excluded.nonce_hash,nonce_expires_ms=excluded.nonce_expires_ms,observed_chat_id=NULL,"
-                               "observed_label=NULL,observed_ms=NULL,active=0,active_ms=NULL,updated_ms=excluded.updated_ms,user_id=excluded.user_id",
-                               (team_id, generation, hashlib.sha256(nonce.encode("ascii")).hexdigest(), now + LINK_MS, now, now, user_id))
+                               "observed_label=NULL,observed_ms=NULL,observed_sender_id=NULL,verified_ms=NULL,kind=excluded.kind,"
+                               "observed_nonce_hash=NULL,conflict_chats=0,conflict_keys='',"
+                               "active=0,active_ms=NULL,updated_ms=excluded.updated_ms,user_id=excluded.user_id",
+                               (team_id, generation, hashlib.sha256(nonce.encode("ascii")).hexdigest(), now + LINK_MS, now, now, user_id, kind))
             self.store._audit(connection, team_id, user_id, "telegram.link_started", str(generation))
-        return {"link": "https://t.me/" + self.bot_username + "?start=" + nonce,
+        return {"link": "https://t.me/" + self.bot_username + ("?startgroup=" if kind == "group" else "?start=") + nonce,
                 "expires_at": now + LINK_MS, "generation": generation}
 
     def confirm_link(self, user_id, team_id, generation):
@@ -254,12 +288,14 @@ class TelegramDelivery:
             binding = connection.execute("SELECT * FROM delivery_bindings WHERE team_id=?", (team_id,)).fetchone()
             meta = connection.execute("SELECT bot_id FROM delivery_state WHERE singleton=1").fetchone()
             if (binding is None or binding["generation"] != generation or binding["observed_chat_id"] is None
-                    or binding["nonce_expires_ms"] is None or binding["nonce_expires_ms"] <= now or meta["bot_id"] is None):
+                    or binding["nonce_expires_ms"] is None or binding["nonce_expires_ms"] <= now or meta["bot_id"] is None
+                    or binding["kind"] == "group" and (binding["verified_ms"] is None or os.environ.get("SIYAB_TELEGRAM_GROUPS") != "1")):
                 raise WorkspaceError(409, "confirmation_unavailable", "Observe the current link in Telegram before confirming it.")
             if binding["active"]:
                 return self.status(user_id, team_id)
             baseline = connection.execute("SELECT COALESCE(MAX(id),0) FROM inbox WHERE team_id=?", (team_id,)).fetchone()[0]
-            connection.execute("UPDATE delivery_bindings SET active=1,active_ms=?,baseline_id=?,cursor_id=?,nonce_hash=NULL,updated_ms=? WHERE team_id=?",
+            connection.execute("UPDATE delivery_bindings SET active=1,active_ms=?,baseline_id=?,cursor_id=?,nonce_hash=NULL,"
+                               "observed_nonce_hash=NULL,conflict_keys='',updated_ms=? WHERE team_id=?",
                                (now, baseline, baseline, now, team_id))
             self.store._audit(connection, team_id, user_id, "telegram.connected", str(generation))
         return self.status(user_id, team_id)
@@ -269,7 +305,9 @@ class TelegramDelivery:
         with self.store._connection(write=True) as connection:
             self.store._member(connection, user_id, team_id, owner=True)
             connection.execute("UPDATE delivery_bindings SET active=0,nonce_hash=NULL,nonce_expires_ms=NULL,"
-                               "observed_chat_id=NULL,observed_label=NULL,observed_ms=NULL,generation=generation+1,updated_ms=? WHERE team_id=?", (now, team_id))
+                               "observed_chat_id=NULL,observed_label=NULL,observed_ms=NULL,observed_sender_id=NULL,verified_ms=NULL,"
+                               "observed_nonce_hash=NULL,conflict_chats=0,conflict_keys='',"
+                               "generation=generation+1,updated_ms=? WHERE team_id=?", (now, team_id))
             connection.execute("UPDATE delivery_queue SET state='cancelled',lease_token=NULL,lease_until_ms=0,updated_ms=? "
                                "WHERE team_id=? AND state IN ('pending','sending')", (now, team_id))
             self.store._audit(connection, team_id, user_id, "telegram.disconnected", team_id)
@@ -338,45 +376,155 @@ class TelegramDelivery:
                 raise TelegramError("bot_identity_mismatch")
             connection.execute("UPDATE delivery_state SET bot_id=? WHERE singleton=1", (identity["id"],))
 
+    def _verify_groups(self, deadline):
+        if os.environ.get("SIYAB_TELEGRAM_GROUPS") != "1":
+            return
+        with self.store._connection() as connection:
+            if connection.execute("SELECT next_verify_ms FROM delivery_state WHERE singleton=1").fetchone()[0] > self._now():
+                return
+            bindings = connection.execute("SELECT * FROM delivery_bindings WHERE kind='group' AND active=0 "
+                                          "AND observed_chat_id IS NOT NULL AND verified_ms IS NULL AND nonce_expires_ms>? "
+                                          "ORDER BY observed_ms,id LIMIT 3", (self._now(),)).fetchall()
+        for binding in bindings:
+            if self._now() + 2 * REQUEST_SECONDS * 1000 >= deadline:
+                break
+            try:
+                member = self.client.call("getChatMember", {"chat_id": binding["observed_chat_id"], "user_id": binding["observed_sender_id"]})
+            except TelegramError as error:
+                if error.retryable:
+                    if error.retry_after is not None or error.code == "provider_429":
+                        until = self._now() + (error.retry_after or 5) * 1000
+                        with self.store._connection(write=True) as connection:
+                            connection.execute("UPDATE delivery_state SET next_verify_ms=MAX(next_verify_ms,?) WHERE singleton=1", (until,))
+                        break
+                    continue
+                member = None
+            user = member.get("user") if isinstance(member, dict) else None
+            verified = (isinstance(member, dict) and member.get("status") in ("creator", "administrator")
+                        and isinstance(user, dict) and type(user.get("id")) is int
+                        and user["id"] == binding["observed_sender_id"] and user.get("is_bot") is False)
+            now = self._now()
+            with self.store._connection(write=True) as connection:
+                change = ("verified_ms=?,updated_ms=?" if verified else
+                          "nonce_hash=NULL,nonce_expires_ms=?,updated_ms=?,observed_chat_id=NULL,observed_label=NULL,"
+                          "observed_ms=NULL,observed_sender_id=NULL,verified_ms=NULL,observed_nonce_hash=NULL,conflict_chats=0,conflict_keys=''")
+                connection.execute("UPDATE delivery_bindings SET " + change + " WHERE id=? AND generation=? AND active=0 "
+                                   "AND observed_chat_id=? AND observed_sender_id=? AND verified_ms IS NULL AND nonce_expires_ms>?",
+                                   (now, now, binding["id"], binding["generation"], binding["observed_chat_id"], binding["observed_sender_id"], now))
+
+    @staticmethod
+    def _exposed(update, live):
+        found, pending = set(), [update]
+        while pending:
+            value = pending.pop()
+            if isinstance(value, dict):
+                pending.extend(value.values())
+            elif isinstance(value, list):
+                pending.extend(value)
+            elif isinstance(value, str):
+                digits = "".join(_HEX.findall(unicodedata.normalize("NFKC", value).lower()))
+                for start in range(len(digits) - 63):
+                    digest = hashlib.sha256(digits[start:start + 64].encode("ascii")).hexdigest()
+                    if digest in live:
+                        found.add(digest)
+        return found
+
     def _poll(self):
+        deadline = self._now() + LEASE_MS
+        self._verify_groups(deadline)
         now = self._now()
         with self.store._connection() as connection:
-            meta = connection.execute("SELECT update_offset,last_update_ms FROM delivery_state WHERE singleton=1").fetchone()
-        payload = {"offset": meta["update_offset"], "limit": 100, "timeout": 10, "allowed_updates": ["message"]}
+            meta = connection.execute("SELECT update_offset,last_update_ms,next_poll_ms FROM delivery_state WHERE singleton=1").fetchone()
+        if meta["next_poll_ms"] > now or now + REQUEST_SECONDS * 1000 >= deadline:
+            return
+        payload = {"offset": meta["update_offset"], "limit": 100, "timeout": 10,
+                   "allowed_updates": list(_UPDATE_TYPES)}
         if meta["last_update_ms"] is not None and now - meta["last_update_ms"] > 7 * 86400 * 1000:
             payload.pop("offset")
-        updates = self.client.call("getUpdates", payload)
+        for limit in (100, 10, 1):
+            payload["limit"] = limit
+            try:
+                updates = self.client.call("getUpdates", payload)
+                break
+            except TelegramError as error:
+                if error.code != "response_too_large" or limit == 1 or self._now() + REQUEST_SECONDS * 1000 >= deadline:
+                    raise
         if (not isinstance(updates, list) or len(updates) > 100
                 or not all(isinstance(item, dict) and type(item.get("update_id")) is int and 0 <= item["update_id"] < 2 ** 63 for item in updates)):
             raise TelegramError("response_unreadable", retryable=True)
+        with self.store._connection() as connection:
+            live = {row[0] for row in connection.execute(
+                "SELECT nonce_hash FROM delivery_bindings WHERE nonce_hash IS NOT NULL UNION SELECT observed_nonce_hash FROM delivery_bindings "
+                "WHERE observed_nonce_hash IS NOT NULL AND active=0 AND nonce_expires_ms>?", (now,))}
+        exposed = {id(item): self._exposed(item, live) for item in updates} if live else {}
         with self.store._connection(write=True) as connection:
             current = connection.execute("SELECT update_offset,last_update_ms FROM delivery_state WHERE singleton=1").fetchone()
             reset = "offset" not in payload and current["last_update_ms"] == meta["last_update_ms"]
             updates = [item for item in updates if reset or item["update_id"] >= current["update_offset"]]
             for update in sorted(updates, key=lambda item: item["update_id"]):
+                bindings = {}
+                for digest in exposed.get(id(update), ()):
+                    binding = connection.execute("SELECT id,nonce_expires_ms FROM delivery_bindings WHERE nonce_hash=? "
+                                                 "AND nonce_expires_ms>? AND active=0 AND observed_chat_id IS NULL", (digest, now)).fetchone()
+                    if binding is not None:
+                        bindings[digest] = binding
+                        connection.execute("UPDATE delivery_bindings SET nonce_hash=NULL,nonce_expires_ms=?,updated_ms=? WHERE id=?",
+                                           (now, now, binding["id"]))
                 message = update.get("message")
-                if not isinstance(message, dict) or not isinstance(message.get("text"), str):
+                match = _START.fullmatch(message["text"]) if isinstance(message, dict) and isinstance(message.get("text"), str) else None
+                digest = hashlib.sha256(match[1].encode("ascii")).hexdigest() if match is not None else None
+                binding = bindings.get(digest)
+                if binding is None:
+                    chat = message.get("chat") if match is not None else None
+                    if digest in exposed.get(id(update), ()) and isinstance(chat, dict) and type(chat.get("id")) is int:
+                        command = message["text"].split(" ", 1)[0]
+                        seen = connection.execute("SELECT id,observed_chat_id,conflict_keys FROM delivery_bindings WHERE observed_nonce_hash=? "
+                                                  "AND kind='group' AND active=0 AND observed_chat_id IS NOT NULL AND nonce_expires_ms>?",
+                                                  (digest, now)).fetchone()
+                        if (seen is not None and chat["id"] != seen["observed_chat_id"]
+                                and ("@" not in command or command.partition("@")[2].lower() == self.bot_username.lower())):
+                            keys = [key for key in seen["conflict_keys"].split(",") if key]
+                            key = hashlib.sha256((digest + ":" + str(chat["id"])).encode("ascii")).hexdigest()[:16]
+                            if key not in keys and len(keys) < MAX_CONFLICT_CHATS:
+                                keys.append(key)
+                                connection.execute("UPDATE delivery_bindings SET conflict_chats=?,conflict_keys=?,updated_ms=? WHERE id=?",
+                                                   (len(keys), ",".join(keys), now, seen["id"]))
                     continue
-                match = _START.fullmatch(message["text"])
                 chat, sender = message.get("chat"), message.get("from")
-                if (match is None or not isinstance(chat, dict) or chat.get("type") != "private"
-                        or type(chat.get("id")) is not int or not 1 <= chat["id"] < 2 ** 52
+                if (not isinstance(chat, dict) or type(chat.get("id")) is not int
                         or not isinstance(sender, dict) or sender.get("is_bot") is not False
-                        or type(sender.get("id")) is not int or sender["id"] != chat["id"]):
+                        or type(sender.get("id")) is not int or not 1 <= sender["id"] < 2 ** 52):
                     continue
                 command = message["text"].split(" ", 1)[0]
                 if "@" in command and command.partition("@")[2].lower() != self.bot_username.lower():
+                    continue
+                kind = "private" if chat.get("type") == "private" else "group"
+                if kind == "private":
+                    if not 1 <= chat["id"] < 2 ** 52 or sender["id"] != chat["id"]:
+                        continue
+                elif (chat.get("type") not in ("group", "supergroup") or not -(2 ** 52) < chat["id"] < 0
+                      or "@" not in command or message.get("sender_chat") is not None
+                      or os.environ.get("SIYAB_TELEGRAM_GROUPS") != "1"):
                     continue
                 username = sender.get("username")
                 name = chat.get("first_name")
                 label = "@" + username if isinstance(username, str) and re.fullmatch(r"[A-Za-z0-9_]{1,32}", username) else (
                     name[:64] if isinstance(name, str) else "Private Telegram account")
                 label += " (ID ending " + str(chat["id"])[-4:] + ")"
+                if kind == "group":
+                    title = chat.get("title")
+                    title = "".join(character for character in title if character.isprintable() and character not in "\"'`\uff02\uff07\u2033\u2036"
+                                    and unicodedata.category(character) not in ("Ps", "Pe", "Pi", "Pf"))[:64] if isinstance(title, str) else ""
+                    label = ('Group "' + (title.strip() or "Telegram group")
+                             + '" (ID ending ' + str(-chat["id"])[-4:] + "), sent by "
+                             + ("@" + username if isinstance(username, str) and re.fullmatch(r"[A-Za-z0-9_]{1,32}", username)
+                                else "user ID ending " + str(sender["id"])[-4:]))
                 label = label.encode("utf-8", errors="replace").decode("utf-8")
-                digest = hashlib.sha256(match[1].encode("ascii")).hexdigest()
-                connection.execute("UPDATE delivery_bindings SET nonce_hash=NULL,observed_chat_id=?,observed_label=?,observed_ms=?,updated_ms=? "
-                                   "WHERE nonce_hash=? AND nonce_expires_ms>? AND active=0 AND observed_chat_id IS NULL",
-                                   (chat["id"], label, now, now, digest, now))
+                connection.execute("UPDATE delivery_bindings SET nonce_expires_ms=?,observed_chat_id=?,observed_label=?,observed_ms=?,"
+                                   "observed_sender_id=?,observed_nonce_hash=?,updated_ms=? WHERE id=? "
+                                   "AND kind=? AND active=0 AND observed_chat_id IS NULL",
+                                   (binding["nonce_expires_ms"], chat["id"], label, now, sender["id"] if kind == "group" else None,
+                                    digest if kind == "group" else None, now, binding["id"], kind))
             if updates:
                 connection.execute("UPDATE delivery_state SET update_offset=?,last_update_ms=? WHERE singleton=1",
                                    (max(item["update_id"] for item in updates) + 1, now))
@@ -431,6 +579,7 @@ class TelegramDelivery:
     def _claim(self):
         now, token = self._now(), secrets.token_hex(16)
         with self.store._connection(write=True) as connection:
+            connection.execute("DELETE FROM delivery_chat_pacing WHERE send_after_ms<=?", (now,))
             connection.execute("UPDATE delivery_queue SET state=CASE WHEN attempts>=? THEN 'dead' ELSE 'pending' END,"
                                "lease_token=NULL,last_error='delivery_ack_unknown',uncertain_ack=1,updated_ms=? "
                                "WHERE state='sending' AND lease_until_ms<=?", (MAX_ATTEMPTS, now, now))
@@ -438,10 +587,13 @@ class TelegramDelivery:
                 return None
             full = []
             while True:
-                row = connection.execute("SELECT q.*,b.observed_chat_id FROM delivery_queue q JOIN delivery_bindings b ON b.id=q.binding_id "
+                row = connection.execute("SELECT q.*,b.observed_chat_id,b.kind FROM delivery_queue q JOIN delivery_bindings b ON b.id=q.binding_id "
                                          "WHERE q.state='pending' AND q.next_attempt_ms<=? AND b.active=1 AND b.generation=q.generation "
-                                         "AND b.send_after_ms<=? AND q.team_id NOT IN (" + ",".join("?" * len(full)) + ") ORDER BY q.id LIMIT 1",
-                                         (now, now, *full)).fetchone()
+                                         "AND (b.kind<>'group' OR ?) "
+                                         "AND b.send_after_ms<=? AND NOT EXISTS(SELECT 1 FROM delivery_chat_pacing p WHERE b.kind='group' "
+                                         "AND p.chat_id=b.observed_chat_id AND p.send_after_ms>?) "
+                                         "AND q.team_id NOT IN (" + ",".join("?" * len(full)) + ") ORDER BY q.id LIMIT 1",
+                                         (now, os.environ.get("SIYAB_TELEGRAM_GROUPS") == "1", now, now, *full)).fetchone()
                 if row is None:
                     return None
                 if self._room(connection, row["team_id"], True, prune=True):
@@ -449,7 +601,12 @@ class TelegramDelivery:
                 full.append(row["team_id"])
             connection.execute("UPDATE delivery_queue SET state='sending',attempts=attempts+1,lease_token=?,lease_until_ms=?,updated_ms=? WHERE id=?",
                                (token, now + LEASE_MS, now, row["id"]))
-            connection.execute("UPDATE delivery_bindings SET send_after_ms=? WHERE id=?", (now + 1000, row["binding_id"]))
+            connection.execute("UPDATE delivery_bindings SET send_after_ms=? WHERE id=?",
+                               (now + (3000 if row["kind"] == "group" else 1000), row["binding_id"]))
+            if row["kind"] == "group":
+                connection.execute("INSERT INTO delivery_chat_pacing(chat_id,send_after_ms) VALUES(?,?) "
+                                   "ON CONFLICT(chat_id) DO UPDATE SET send_after_ms=excluded.send_after_ms",
+                                   (row["observed_chat_id"], now + 3000))
             attempt = connection.execute("INSERT INTO delivery_attempts(queue_id,attempt,started_ms) VALUES(?,?,?)",
                                          (row["id"], row["attempts"] + 1, now)).lastrowid
             return {**dict(row), "attempts": row["attempts"] + 1, "lease_token": token, "attempt_id": attempt}
@@ -483,7 +640,11 @@ class TelegramDelivery:
                 connection.execute("UPDATE delivery_queue SET state=?,next_attempt_ms=?,last_error=?,lease_token=NULL,lease_until_ms=0,"
                                    "uncertain_ack=MAX(uncertain_ack,?),updated_ms=? WHERE id=? AND state='sending' AND lease_token=?",
                                    ("pending" if retry else "dead", now + delay * 1000, failure.code, int(failure.uncertain), now, row["id"], row["lease_token"]))
-                if failure.code == "provider_429":
+                if failure.code == "provider_429" and row["kind"] == "group":
+                    connection.execute("INSERT INTO delivery_chat_pacing(chat_id,send_after_ms) VALUES(?,?) "
+                                       "ON CONFLICT(chat_id) DO UPDATE SET send_after_ms=MAX(delivery_chat_pacing.send_after_ms,excluded.send_after_ms)",
+                                       (row["observed_chat_id"], now + delay * 1000))
+                elif failure.code == "provider_429":
                     connection.execute("UPDATE delivery_state SET next_send_ms=MAX(next_send_ms,?),next_poll_ms=MAX(next_poll_ms,?) WHERE singleton=1",
                                        (now + delay * 1000, now + delay * 1000))
         return failure is None
@@ -501,7 +662,9 @@ class TelegramDelivery:
         if token is None:
             return {**result, "last_error": "worker_busy"}
         try:
-            with self.store._connection() as connection:
+            with self.store._connection(write=True) as connection:
+                connection.execute("UPDATE delivery_bindings SET observed_nonce_hash=NULL,conflict_keys='' WHERE (observed_nonce_hash IS NOT NULL "
+                                   "OR conflict_keys<>'') AND (active=1 OR nonce_expires_ms IS NULL OR nonce_expires_ms<=?)", (self._now(),))
                 meta = connection.execute("SELECT next_poll_ms FROM delivery_state WHERE singleton=1").fetchone()
             if meta["next_poll_ms"] > self._now():
                 return {**result, "last_error": "provider_cooldown"}

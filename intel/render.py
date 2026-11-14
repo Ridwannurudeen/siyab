@@ -614,6 +614,7 @@ def explore_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEI
 
 def _landing_graph(document, accounts, excerpt):
     payload = graph.flow_payload(document, accounts)
+    depths = {record["id"]: record["depth"] for record in payload["records"]}
     highlighted = {(hop["from"], hop["to"], hop["asset_id"]) for hop in excerpt}
     selected = [edge for edge in payload["edges"] if (edge["from"], edge["to"], edge["asset_id"]) in highlighted]
     node_ids = list(dict.fromkeys([payload["root"], *(edge["to"] for edge in selected)]))
@@ -637,7 +638,8 @@ def _landing_graph(document, accounts, excerpt):
         x2, y2 = positions[edge["to"]]
         bend = (x1 + x2) / 2
         css = "landing-edge is-highlight" if edge in selected else "landing-edge"
-        paths.append(f'<path class="{css}" data-edge-id="{esc(edge["id"])}" pathLength="1" '
+        depth = min(depths[record_id] for record_id in edge["record_ids"])
+        paths.append(f'<path class="{css}" data-edge-id="{esc(edge["id"])}" data-depth="{depth}" pathLength="1" '
                      f'd="M{x1} {y1}C{bend:g} {y1} {bend:g} {y2} {x2} {y2}"/>')
     nodes = []
     for node_id, (x, y) in positions.items():
@@ -710,7 +712,8 @@ def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVE
         '<div class="landing-actions"><a class="button primary" href="/explore.html">Investigate</a>'
         '<a class="button" href="/verify.html">Verify a record</a></div>'
         f'<p class="landing-status">{esc(status)}</p></div>'
-        f'<div class="landing-counter-block"><span class="landing-counter">{len(document["hops"]):,}</span><span>RECORDED TRANSFERS</span></div>'
+        f'<div class="landing-counter-block"><span class="landing-counter">{len(document["hops"]):,}</span><span>RECORDED TRANSFERS</span>'
+        '<button type="button" class="landing-replay" hidden>Replay trace</button></div>'
         '<figure class="landing-graph"><figcaption>Recorded evidence</figcaption><div class="landing-preview">'
         '<div class="landing-identities">' + ''.join(nodes) + '</div><div class="landing-inspector">' + ''.join(inspector) + '</div></div>'
         '<a class="landing-trace" href="/flows/rhea-collector.html">the complete trace</a></figure></section>'

@@ -22,6 +22,7 @@ class FakeClient:
         self.username = "siyabonnearbot"
         self.webhook = ""
         self.bot_id = 123456
+        self.filter_updates = True
 
     def configuration(self):
         return {"configured": True, "reason": None}
@@ -34,7 +35,8 @@ class FakeClient:
             return {"url": self.webhook}
         if method == "getUpdates":
             updates, self.updates = self.updates, []
-            return updates
+            allowed = payload.get("allowed_updates")
+            return [update for update in updates if not self.filter_updates or allowed is None or set(update) - {"update_id"} <= set(allowed)]
         if method == "sendMessage":
             result = self.send_results.pop(0) if self.send_results else None
             if isinstance(result, BaseException):
@@ -99,7 +101,9 @@ class DeliveryTest(unittest.TestCase):
         self.error(409, self.delivery.confirm_link, self.owner, self.team, link["generation"])
         self.client.updates = [self.start_update(nonce, chat_type="group")]
         self.delivery.run_once()
-        self.assertEqual(self.delivery.status(self.owner, self.team)["state"], "pending")
+        self.assertEqual(self.delivery.status(self.owner, self.team)["state"], "expired")
+        link = self.delivery.begin_link(self.owner, self.team)
+        nonce = link["link"].split("start=")[1]
         self.client.updates = [self.start_update(nonce, update_id=2)]
         self.delivery.run_once()
         observed = self.delivery.status(self.owner, self.team)

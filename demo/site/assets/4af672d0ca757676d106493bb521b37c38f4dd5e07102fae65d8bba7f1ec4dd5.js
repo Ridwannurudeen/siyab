@@ -12,13 +12,14 @@
   const owner = () => state.context?.team.role === "owner";
   const base = () => "/teams/" + encodeURIComponent(state.context.team.id) + "/delivery";
   const message = value => { el("status").textContent = value; };
+  const warn = value => { if (el("warning").textContent !== value) el("warning").textContent = value; };
   const button = (parent, label, action, disabled = false) => { const item = node("button", label); item.type = "button"; item.disabled = disabled; item.addEventListener("click", action); parent.append(item); return item; };
   class StaleRequest extends Error {}
   function clear(text = "Sign in and select a team to inspect its delivery destination.") {
     state.epoch++; state.logRevision++; clearTimeout(state.timer); state.timer = null;
     for (const controller of state.pending) controller.abort(); state.pending.clear();
     state.context = null; state.status = null; state.link = null; state.busy = false; state.uncertain = false; state.pages = [null]; state.page = 0; state.next = null;
-    el("context").textContent = text; message(""); el("controls").replaceChildren(); el("controls").setAttribute("aria-busy", "false"); el("log").replaceChildren(node("p", "Sign in and select a team to see deliveries.", "delivery-meta"));
+    el("context").textContent = text; message(""); warn(""); el("controls").replaceChildren(); el("controls").setAttribute("aria-busy", "false"); el("log").replaceChildren(node("p", "Sign in and select a team to see deliveries.", "delivery-meta"));
     el("newer").disabled = true; el("older").disabled = true;
   }
   async function request(path, values, epoch = state.epoch) {
@@ -51,6 +52,10 @@
   }
   function validStatus(data) {
     return data && typeof data.configured === "boolean" && ["disconnected", "pending", "observed", "expired", "active"].includes(data.state)
+      && (data.kind === undefined || ["private", "group"].includes(data.kind)) && (data.groups_enabled === undefined || typeof data.groups_enabled === "boolean")
+      && (!owner() || data.kind !== "group" || typeof data.verified === "boolean")
+      && (data.link_conflict === undefined || typeof data.link_conflict === "boolean")
+      && (data.link_conflict_chats === undefined || Number.isSafeInteger(data.link_conflict_chats) && data.link_conflict_chats >= 0)
       && typeof data.bot_username === "string" && /^[A-Za-z0-9_]{5,32}$/.test(data.bot_username) && data.delivery_semantics === "at_least_once"
       && (!owner() || !["pending", "observed"].includes(data.state) || positive(data.generation) && positive(data.expires_at))
       && (!owner() || data.state !== "observed" || destinationLabel(data.observed_chat_label))
@@ -61,26 +66,31 @@
   }
   function renderStatus() {
     const host = el("controls"); host.replaceChildren();
-    if (!state.context || !state.status) return;
+    if (!state.context || !state.status) { warn(""); return; }
     const data = state.status, disabled = state.busy || state.uncertain;
     const expired = data.expires_at !== null && data.expires_at !== undefined && data.expires_at <= Date.now();
-    const labels = {disconnected: "No Telegram destination connected.", pending: "Waiting for the Telegram account to open the link and press Start.", observed: "A Telegram account was observed. Confirm this destination before sending alerts.", expired: "The connection link expired. Create a new link to continue.", active: "Telegram destination confirmed for new eligible alerts."};
+    const group = data.kind === "group" && (data.state === "active" || ["pending", "observed"].includes(data.state) && !expired);
+    const labels = {disconnected: "No Telegram destination connected.", pending: "Waiting for the Telegram account to open the link and press Start.", observed: (data.kind === "group" ? "A Telegram group" : "A Telegram account") + " was observed. Confirm this destination before sending alerts.", expired: "The connection link expired. Create a new link to continue.", active: "Telegram destination confirmed for new eligible alerts."};
+    const chats = data.link_conflict_chats > 1 ? data.link_conflict_chats + " other chats" : "another chat";
+    warn(owner() && data.kind === "group" && data.state === "observed" && !expired && data.link_conflict === true ? "This link code was also used in " + chats + ". If you did not post it there, someone else has it: cancel this link and create a new one." : "");
     host.append(node("p", !data.configured ? "Telegram delivery is not configured by the operator. Team inbox alerts remain available." : labels[expired && data.state !== "active" ? "expired" : data.state]));
+    if (group) host.append(node("p", "Everyone in this group will see this team's alerts."));
     if (data.capacity.paused) {
       const resume = " until an owner disconnects or connects Telegram again, which cancels undelivered alerts.";
       const paused = data.capacity.queue_paused && data.capacity.attempts_paused ? "New alert queueing, send attempts and retries are paused" + resume : data.capacity.queue_paused ? "New alert queueing is paused; retained deliveries can still be attempted, and queueing resumes as they finish." : "Send attempts and retries are paused" + resume;
       host.append(node("p", "Delivery retention limit reached for this team. " + paused + " Team inbox evidence remains available."));
     }
-    if (owner() && destinationLabel(data.observed_chat_label)) host.append(node("p", "Observed Telegram account: " + data.observed_chat_label));
+    if (owner() && destinationLabel(data.observed_chat_label)) host.append(node("p", (group ? "Observed Telegram group: " : "Observed Telegram account: ") + data.observed_chat_label));
     if (data.state === "pending" || data.state === "observed") host.append(node("p", "Link expires " + date(data.expires_at), "delivery-meta"));
     if (state.link && !expired && state.link.expires_at > Date.now()) {
       const link = node("a", "Open connection link in Telegram", "delivery-link"); link.href = state.link.link; link.target = "_blank"; link.rel = "noopener noreferrer"; host.append(link);
-      host.append(node("p", "Press Start in Telegram, return here, then check and confirm the observed account.", "delivery-meta"));
+      host.append(node("p", group ? "A group admin must open the link, select the group and send the start command there. Return here, wait for admin verification, then check and confirm the observed group." : "Press Start in Telegram, return here, then check and confirm the observed account.", "delivery-meta"));
     }
     const actions = node("div", undefined, "delivery-actions");
     if (owner() && data.configured) {
       if (data.state !== "active") button(actions, data.state === "disconnected" ? "Connect Telegram" : "Create a new link", () => mutate("link"), disabled);
-      if (data.state === "observed" && !expired && positive(data.generation) && destinationLabel(data.observed_chat_label)) button(actions, "Confirm observed destination", () => mutate("confirm", {generation: data.generation}), disabled);
+      if (data.state !== "active" && data.groups_enabled === true) button(actions, "Connect a Telegram group", () => mutate("link-group"), disabled);
+      if (data.state === "observed" && !expired && positive(data.generation) && destinationLabel(data.observed_chat_label)) button(actions, "Confirm observed destination", () => mutate("confirm", {generation: data.generation}), disabled || group && data.verified !== true);
       if (data.state !== "disconnected") button(actions, data.state === "active" ? "Disconnect Telegram" : "Cancel connection", () => mutate("revoke"), disabled);
     } else if (!owner()) host.append(node("p", "Only a team owner can connect, confirm, disconnect or retry deliveries.", "delivery-meta"));
     host.append(actions);
@@ -102,7 +112,10 @@
     const epoch = state.epoch; state.busy = true; renderStatus(); el("controls").setAttribute("aria-busy", "true");
     try {
       const data = await request(base(), undefined, epoch);
-      if (!validStatus(data)) throw new Error("Delivery status could not be validated. Refresh delivery to retry.");
+      if (!validStatus(data)) {
+        if (state.status?.kind === "group") state.uncertain = true;
+        throw new Error("Delivery status could not be validated. Refresh delivery to retry.");
+      }
       if (state.link && state.link.generation !== data.generation) state.link = null;
       state.status = data; state.uncertain = false;
       if (reset) { state.pages = [null]; state.page = 0; }
@@ -139,12 +152,12 @@
     const epoch = state.epoch; state.busy = true; renderStatus();
     try {
       const data = await request(base() + "/" + action, values, epoch);
-      if (action === "link") {
-        const expected = new RegExp("^https://t\\.me/" + state.status.bot_username + "\\?start=[a-f0-9]{64}$");
+      if (action === "link" || action === "link-group") {
+        const expected = new RegExp("^https://t\\.me/" + state.status.bot_username + "\\?" + (action === "link-group" ? "startgroup" : "start") + "=[a-f0-9]{64}$");
         if (!data || !positive(data.generation) || !positive(data.expires_at) || typeof data.link !== "string" || !expected.test(data.link)) throw new Error("The connection link could not be validated. Refresh delivery before continuing.");
         state.link = {link: data.link, generation: data.generation, expires_at: data.expires_at};
       } else if (action === "revoke" || action === "confirm") state.link = null;
-      state.busy = false; await refresh(); message(action === "confirm" ? "Destination confirmed for new eligible alerts." : action === "revoke" ? "Telegram destination disconnected. In-flight sends may still complete." : action === "link" ? "Open the Telegram link, press Start, then verify the observed destination." : "Delivery queued for another attempt; an uncertain earlier send can cause a duplicate.");
+      state.busy = false; await refresh(); message(action === "confirm" ? "Destination confirmed for new eligible alerts." : action === "revoke" ? "Telegram destination disconnected. In-flight sends may still complete." : action === "link-group" ? "Ask a group admin to open the link and send the start command in the group, then return to confirm after verification." : action === "link" ? "Open the Telegram link, press Start, then verify the observed destination." : "Delivery queued for another attempt; an uncertain earlier send can cause a duplicate.");
     } catch (error) {
       if (!(error instanceof StaleRequest) && state.context && !error.unchanged && error.status !== 401 && error.status !== 403) {
         state.uncertain = true;
