@@ -8,7 +8,7 @@
     "SuccessValue": ""
   },
   "endpoint": "https://archival-rpc.mainnet.fastnear.com",
-  "request": {
+  "rpc_request": {
     "method": "tx",
     "params": {
       "tx_hash": "C76g8refDn8LsnXaNtcGLNtCubkeRgxoaKwNSgabnzL8",
