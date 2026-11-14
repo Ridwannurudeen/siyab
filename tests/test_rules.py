@@ -35,6 +35,11 @@ STATE_HEIGHT = 221701472
 TOKEN = "token.gate.testnet"
 VENDOR = "vendor.testnet"
 POLICY = {"allowlist": [VENDOR], "caps": [{"asset": {"Ft": TOKEN}}, {"asset": "Near"}]}
+BLOCK_HASH = rpc.base58.encode(bytes([1]) * 32)
+KEY_BLOCK_HASH = rpc.base58.encode(bytes([2]) * 32)
+CODE_HASH = rpc.base58.encode(bytes([3]) * 32)
+PUBLIC_KEY = "ed25519:" + rpc.base58.encode(bytes([4]) * 32)
+OTHER_PUBLIC_KEY = "ed25519:" + rpc.base58.encode(bytes([5]) * 32)
 
 
 def assertion(assertion_id, subject, category, label, chain="near", superseded_by=None):
@@ -68,11 +73,19 @@ class Fixtures:
     def account(self, account_id, code_hash=rpc.EMPTY_CODE_HASH, block_height=100):
         params = {"request_type": "view_account", "finality": "final", "account_id": account_id}
         result = {"amount": "1000", "locked": "0", "code_hash": code_hash, "storage_usage": 182,
-                  "storage_paid_at": 0, "block_height": block_height, "block_hash": "h"}
+                  "storage_paid_at": 0, "block_height": block_height, "block_hash": BLOCK_HASH}
         self.write(RPC_URL, "query", params, {"jsonrpc": "2.0", "id": "gate", "result": result})
 
     def rpc_error(self, params, cause, info=None):
-        error = {"name": "HANDLER_ERROR", "cause": {"name": cause, "info": info or {}}, "code": -32000}
+        context = {"block_height": 100, "block_hash": BLOCK_HASH}
+        if cause in ("UNKNOWN_ACCOUNT", "TOO_MANY_ACCESS_KEYS"):
+            context["requested_account_id"] = params["account_id"]
+        if cause == "NO_CONTRACT_CODE":
+            context["contract_account_id"] = params["account_id"]
+        if cause == "TOO_MANY_ACCESS_KEYS":
+            context["limit"] = 100
+        error = {"name": "HANDLER_ERROR", "cause": {"name": cause, "info": {**context, **(info or {})}},
+                 "code": -32000, "message": "Server error"}
         self.write(RPC_URL, "query", params, {"jsonrpc": "2.0", "id": "gate", "error": error})
 
     def missing(self, account_id):
@@ -86,18 +99,19 @@ class Fixtures:
 
     def function(self, contract, method, args, value):
         result = {"result": list(json.dumps(value).encode()), "logs": [], "block_height": 100,
-                  "block_hash": "h"}
+                  "block_hash": BLOCK_HASH}
         self.write(RPC_URL, "query", self._function_params(contract, method, args),
                    {"jsonrpc": "2.0", "id": "gate", "result": result})
 
     def function_error(self, contract, method, args, cause="CONTRACT_EXECUTION_ERROR", vm_error="GuestPanic"):
-        self.rpc_error(self._function_params(contract, method, args), cause, {"vm_error": vm_error})
+        info = {"vm_error": vm_error} if cause == "CONTRACT_EXECUTION_ERROR" else {}
+        self.rpc_error(self._function_params(contract, method, args), cause, info)
 
     def method_missing(self, contract, method, args):
         self.function_error(contract, method, args, vm_error="MethodResolveError(MethodNotFound)")
 
     def keys(self, account_id, *created_ns, transaction_hash="CreationTx"):
-        keys = [{"public_key": "ed25519:K", "account_id": account_id, "permission_kind": "FULL_ACCESS",
+        keys = [{"public_key": PUBLIC_KEY, "account_id": account_id, "permission_kind": "FULL_ACCESS",
                  "created": None if ns is None else {"transaction_hash": transaction_hash, "block_timestamp": ns},
                  "deleted": {"transaction_hash": None, "block_timestamp": None}} for ns in created_ns]
         self.write(f"{NEARBLOCKS_URL}/v1/account/{account_id}/keys", "GET", None, {"keys": keys})
@@ -121,21 +135,29 @@ class Fixtures:
         return {"request_type": "view_access_key_list", "finality": "final", "account_id": account_id}
 
     def key_rows(self, account_id, rows):
-        result = {"keys": rows, "block_height": 100, "block_hash": "h"}
+        result = {"keys": rows, "block_height": 100, "block_hash": BLOCK_HASH}
         self.write(RPC_URL, "query", self.key_list_params(account_id),
                    {"jsonrpc": "2.0", "id": "gate", "result": result})
 
     def access_keys(self, account_id, *nonces):
-        self.key_rows(account_id, [{"public_key": "ed25519:K", "access_key": {"nonce": n, "permission": "FullAccess"}}
-                                   for n in nonces])
+        self.key_rows(account_id, [{"public_key": "ed25519:" + rpc.base58.encode(bytes([index + 1]) * 32), "access_key": {"nonce": n, "permission": "FullAccess"}}
+                                   for index, n in enumerate(nonces)])
 
-    def block_at(self, height, timestamp_ns, block_hash="KeyBlock"):
+    def block_at(self, height, timestamp_ns, block_hash=KEY_BLOCK_HASH):
         header = {"height": height, "timestamp": timestamp_ns, "hash": block_hash}
         self.write(ARCHIVAL_URL, "block", {"block_id": height},
                    {"jsonrpc": "2.0", "id": "gate", "result": {"header": header}})
 
     def archival_error(self, method, params, cause):
-        error = {"name": "HANDLER_ERROR", "cause": {"name": cause, "info": {}}, "code": -32000}
+        info = {"block_height": params["block_id"]}
+        if method != "block":
+            info["block_hash"] = KEY_BLOCK_HASH
+            if cause == "UNKNOWN_BLOCK":
+                info["block_reference"] = {"block_id": params["block_id"]}
+        if "account_id" in params:
+            info["requested_account_id"] = params["account_id"]
+        error = {"name": "HANDLER_ERROR", "cause": {"name": cause, "info": info},
+                 "code": -32000, "message": "Server error"}
         self.write(ARCHIVAL_URL, method, params, {"jsonrpc": "2.0", "id": "gate", "error": error})
 
     def block_missing(self, height):
@@ -148,14 +170,12 @@ class Fixtures:
         """An archival view_account answer at block height; block_height is the height it says it read at."""
         result = {"amount": "1000", "locked": "0", "code_hash": code_hash, "storage_usage": 182,
                   "storage_paid_at": 0, "block_height": height if block_height is None else block_height,
-                  "block_hash": "StateBlock"}
+                  "block_hash": KEY_BLOCK_HASH}
         self.write(ARCHIVAL_URL, "query", self.state_params(account_id, height),
                    {"jsonrpc": "2.0", "id": "gate", "result": result})
 
     def account_missing_at(self, account_id, height):
-        error = {"cause": {"name": "UNKNOWN_ACCOUNT", "info": {
-            "block_height": height, "requested_account_id": account_id}}}
-        self.write(ARCHIVAL_URL, "query", self.state_params(account_id, height), {"error": error})
+        self.archival_error("query", self.state_params(account_id, height), "UNKNOWN_ACCOUNT")
 
 
 def request(receiver=VENDOR, kind="ft", token=TOKEN, amount="1000000", memo="invoice 1"):
@@ -273,7 +293,7 @@ class OutputsTest(RulesCase):
         self.assertEqual(judgement.verdict, "DENY")
 
     def test_allowlisted_receiver_skips_tier_2_even_without_nearblocks(self):
-        self.fx.account(VENDOR, code_hash="SomeCodeHash")
+        self.fx.account(VENDOR, code_hash=CODE_HASH)
         self.token_ok()
         judgement = self.judge(request())
         self.assertEqual(judgement.verdict, "ALLOW")
@@ -298,20 +318,21 @@ class TierTwoTest(RulesCase):
         self.assertNotEqual(judgement.verdict, "DENY")
 
     def test_code_without_metadata(self):
-        self.stranger("stranger.testnet", code_hash="SomeCodeHash")
+        self.stranger("stranger.testnet", code_hash=CODE_HASH)
         self.fx.method_missing("stranger.testnet", "contract_source_metadata", {})
         self.assertEqual(self.status(self.judge(request("stranger.testnet")), "code_without_metadata"),
                          "pass")
         self.fx.function_error("stranger.testnet", "contract_source_metadata", {})
         self.assertEqual(self.status(self.judge(request("stranger.testnet")), "code_without_metadata"),
                          "unknown")
-        self.fx.function("stranger.testnet", "contract_source_metadata", {}, {"version": "1.0.0"})
+        self.fx.function("stranger.testnet", "contract_source_metadata", {},
+                         {"version": "1.0.0", "link": None, "standards": []})
         judgement = self.judge(request("stranger.testnet"))
         self.assertEqual(self.status(judgement, "code_without_metadata"), "pass")
         self.assertEqual(judgement.verdict, "ALLOW")
 
     def test_code_without_metadata_alone_passes_with_the_detail(self):
-        self.stranger("protocol.testnet", code_hash="SomeCodeHash")
+        self.stranger("protocol.testnet", code_hash=CODE_HASH)
         self.fx.method_missing("protocol.testnet", "contract_source_metadata", {})
         judgement = self.judge(request("protocol.testnet"))
         self.assertEqual(self.status(judgement, "code_without_metadata"), "pass")
@@ -322,7 +343,7 @@ class TierTwoTest(RulesCase):
                                              "Not on the owner's allowlist."])
 
     def test_code_without_metadata_with_a_young_account_is_deny(self):
-        self.stranger("fresh.testnet", age_ns=2 * DAY_NS, code_hash="SomeCodeHash")
+        self.stranger("fresh.testnet", age_ns=2 * DAY_NS, code_hash=CODE_HASH)
         self.fx.method_missing("fresh.testnet", "contract_source_metadata", {})
         judgement = self.judge(request("fresh.testnet"))
         self.assertEqual(self.status(judgement, "account_age"), "signal")
@@ -469,7 +490,7 @@ class TierTwoTest(RulesCase):
         self.assertEqual(judgement.verdict, "UNKNOWN")
 
     def test_a_locked_contract_reads_unknown_with_the_locked_contract_detail(self):
-        self.fx.account("pool.testnet", code_hash="SomeCodeHash")
+        self.fx.account("pool.testnet", code_hash=CODE_HASH)
         self.token_ok("pool.testnet")
         self.fx.keys("pool.testnet")
         self.fx.method_missing("pool.testnet", "contract_source_metadata", {})
@@ -617,7 +638,7 @@ class NonceAgeTest(RulesCase):
         def call(method, args):
             return [{"action": "FUNCTION_CALL", "method": method, "args": args}]
 
-        named = '{"new_account_id": "stranger.testnet", "new_public_key": "ed25519:K"}'
+        named = json.dumps({"new_account_id": "stranger.testnet", "new_public_key": PUBLIC_KEY})
         for receiver, actions in (
                 ("stranger.testnet", [{"action": "ADD_KEY", "method": None, "args": None}]),
                 ("stranger.testnet", [{"action": "TRANSFER", "method": None, "args": None}]),
@@ -641,7 +662,7 @@ class NonceAgeTest(RulesCase):
         self.assert_age_unknown(self.judge(request("stranger.testnet"), archival=self.archival),
                                 "; the oldest key NearBlocks lists was created 2 d ago; could not read its "
                                 "transaction: no recorded response for the request")
-        key = {"public_key": "ed25519:K", "account_id": "stranger.testnet", "permission_kind": "FULL_ACCESS",
+        key = {"public_key": PUBLIC_KEY, "account_id": "stranger.testnet", "permission_kind": "FULL_ACCESS",
                "created": {"transaction_hash": None, "block_timestamp": NOW_MS * 10**6 - 2 * DAY_NS},
                "deleted": {"transaction_hash": None, "block_timestamp": None}}
         self.fx.write(f"{NEARBLOCKS_URL}/v1/account/stranger.testnet/keys", "GET", None, {"keys": [key]})
@@ -652,7 +673,7 @@ class NonceAgeTest(RulesCase):
     def test_a_young_creation_through_the_parent_registrar_is_deny(self):
         judgement = self.unproven(NOW_MS * 10**6 - 2 * DAY_NS, receiver="testnet", actions=[
             {"action": "FUNCTION_CALL", "method": "create_account",
-             "args": '{"new_account_id": "stranger.testnet", "new_public_key": "ed25519:K"}'}])
+             "args": json.dumps({"new_account_id": "stranger.testnet", "new_public_key": PUBLIC_KEY})}])
         self.assertEqual(self.status(judgement, "account_age"), "signal")
         self.assertEqual(self.status(judgement, "dust_funded"), "pass")
         self.assertEqual(judgement.verdict, "DENY")
@@ -666,7 +687,7 @@ class NonceAgeTest(RulesCase):
                                 "may be older")
 
     def test_a_creation_without_a_successful_outcome_reads_unknown(self):
-        named = '{"new_account_id": "stranger.testnet", "new_public_key": "ed25519:K"}'
+        named = json.dumps({"new_account_id": "stranger.testnet", "new_public_key": PUBLIC_KEY})
         for receiver, actions in (
                 ("stranger.testnet", [{"action": "CREATE_ACCOUNT", "method": None, "args": None}]),
                 ("testnet", [{"action": "FUNCTION_CALL", "method": "create_account", "args": named}])):
@@ -773,7 +794,7 @@ class NonceAgeTest(RulesCase):
                         {"transaction_hash": "", "block_timestamp": OLD_NS}):
             with self.subTest(created=created):
                 self.stranger("stranger.testnet")
-                key = {"public_key": "ed25519:K", "account_id": "stranger.testnet", "permission_kind": "FULL_ACCESS",
+                key = {"public_key": PUBLIC_KEY, "account_id": "stranger.testnet", "permission_kind": "FULL_ACCESS",
                        "created": created, "deleted": {"transaction_hash": None, "block_timestamp": None}}
                 self.fx.write(f"{NEARBLOCKS_URL}/v1/account/stranger.testnet/keys", "GET", None, {"keys": [key]})
                 judgement = self.judge(request("stranger.testnet"))
@@ -798,13 +819,11 @@ class NonceAgeTest(RulesCase):
                          "(2026-10-22T11:50:00Z) from archival.example, at least 7 d old")
         self.assertEqual(judgement.verdict, "ALLOW")
 
-    def test_nonce_zero_and_other_permissions_are_left_out_of_the_minimum(self):
+    def test_nonce_zero_is_left_out_of_the_minimum_with_function_call_permissions(self):
         self.unaged()
         self.fx.key_rows("stranger.testnet", [
-            {"public_key": "ed25519:K", "access_key": {"nonce": 0, "permission": "FullAccess"}},
-            {"public_key": "ed25519:K", "access_key": {"nonce": 5, "permission": {"Other": {}}}},
-            {"public_key": "ed25519:K", "access_key": {"nonce": 7, "permission": "Other"}},
-            {"public_key": "ed25519:K", "access_key": {"nonce": KEY_NONCE, "permission": {"FunctionCall": {
+            {"public_key": PUBLIC_KEY, "access_key": {"nonce": 0, "permission": "FullAccess"}},
+            {"public_key": OTHER_PUBLIC_KEY, "access_key": {"nonce": KEY_NONCE, "permission": {"FunctionCall": {
                 "allowance": None, "receiver_id": "app.testnet", "method_names": []}}}},
         ])
         self.fx.block_at(KEY_HEIGHT, OLD_NS)
@@ -814,11 +833,26 @@ class NonceAgeTest(RulesCase):
                          "(2026-10-22T11:50:00Z) from archival.example, at least 7 d old")
         self.assertEqual(judgement.verdict, "ALLOW")
 
+    def test_invalid_permissions_read_unknown_beside_an_old_key(self):
+        for permission in ("Other", {"Other": {}}, {"FunctionCall": None}):
+            with self.subTest(permission=permission):
+                self.unaged()
+                self.fx.key_rows("stranger.testnet", [
+                    {"public_key": PUBLIC_KEY, "access_key": {"nonce": KEY_NONCE, "permission": "FullAccess"}},
+                    {"public_key": OTHER_PUBLIC_KEY, "access_key": {"nonce": 5, "permission": permission}},
+                ])
+                self.fx.block_at(KEY_HEIGHT, OLD_NS)
+                judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+                self.assertEqual(self.status(judgement, "account_age"), "unknown")
+                self.assertIn("MalformedResponse", self.detail(judgement, "account_age"))
+                self.assertEqual(judgement.verdict, "UNKNOWN")
+
     def test_no_key_with_a_creation_height_reads_unknown(self):
         self.unaged()
         self.fx.key_rows("stranger.testnet", [
-            {"public_key": "ed25519:K", "access_key": {"nonce": 0, "permission": "FullAccess"}},
-            {"public_key": "ed25519:K", "access_key": {"nonce": 5, "permission": {"Other": {}}}},
+            {"public_key": PUBLIC_KEY, "access_key": {"nonce": 0, "permission": "FullAccess"}},
+            {"public_key": OTHER_PUBLIC_KEY, "access_key": {"nonce": 0, "permission": {"FunctionCall": {
+                "allowance": None, "receiver_id": "app.testnet", "method_names": []}}}},
         ])
         judgement = self.judge(request("stranger.testnet"), archival=self.archival)
         self.assertEqual(self.status(judgement, "account_age"), "unknown")
@@ -894,13 +928,13 @@ class NonceAgeTest(RulesCase):
     def test_a_block_of_another_height_reads_unknown(self):
         self.unaged()
         self.fx.access_keys("stranger.testnet", KEY_NONCE)
-        header = {"height": KEY_HEIGHT + 1, "timestamp": OLD_NS, "hash": "OtherBlock"}
+        header = {"height": KEY_HEIGHT + 1, "timestamp": OLD_NS, "hash": BLOCK_HASH}
         self.fx.write(ARCHIVAL_URL, "block", {"block_id": KEY_HEIGHT},
                       {"jsonrpc": "2.0", "id": "gate", "result": {"header": header}})
         judgement = self.judge(request("stranger.testnet"), archival=self.archival)
         self.assertEqual(self.detail(judgement, "account_age"),
-                         "no archival age (archival block_at could not run: MalformedResponse: block 275336351 "
-                         "came back as block 275336352); no key of stranger.testnet carries a creation time")
+                         "no archival age (archival block_at could not run: MalformedResponse: the block header "
+                         "does not match the pinned request); no key of stranger.testnet carries a creation time")
         self.assertEqual(judgement.verdict, "UNKNOWN")
 
     def test_a_block_time_out_of_range_reads_unknown(self):
@@ -908,13 +942,13 @@ class NonceAgeTest(RulesCase):
             with self.subTest(timestamp_ns=timestamp_ns):
                 self.unaged()
                 self.fx.access_keys("stranger.testnet", KEY_NONCE)
-                header = {"height": KEY_HEIGHT, "timestamp": timestamp_ns, "hash": "FarBlock"}
+                header = {"height": KEY_HEIGHT, "timestamp": timestamp_ns, "hash": BLOCK_HASH}
                 self.fx.write(ARCHIVAL_URL, "block", {"block_id": KEY_HEIGHT},
                               {"jsonrpc": "2.0", "id": "gate", "result": {"header": header}})
                 judgement = self.judge(request("stranger.testnet"), archival=self.archival)
                 self.assertEqual(self.detail(judgement, "account_age"),
                                  "no archival age (archival block_at could not run: "
-                                 f"MalformedResponse: block 275336351 has a time out of range: {timestamp_ns}); "
+                                 "MalformedResponse: the RPC field has an invalid type or value); "
                                  "no key of stranger.testnet carries a creation time")
                 self.assertEqual(judgement.verdict, "UNKNOWN")
 
@@ -1017,7 +1051,7 @@ class StateAgeTest(RulesCase):
 
     def locked(self, name="pool.testnet", block_height=ACCOUNT_HEIGHT):
         """A receiver with contract code and no access key, listed by NearBlocks with no key."""
-        self.fx.account(name, code_hash="SomeCodeHash", block_height=block_height)
+        self.fx.account(name, code_hash=CODE_HASH, block_height=block_height)
         self.token_ok(name)
         self.fx.keys(name)
         self.fx.method_missing(name, "contract_source_metadata", {})
@@ -1029,7 +1063,7 @@ class StateAgeTest(RulesCase):
     def test_a_locked_contract_found_at_an_old_block_passes_and_so_does_the_unread_deposit(self):
         self.locked()
         self.fx.block_at(STATE_HEIGHT, OLD_NS)
-        self.fx.account_at("pool.testnet", STATE_HEIGHT, code_hash="SomeCodeHash")
+        self.fx.account_at("pool.testnet", STATE_HEIGHT, code_hash=CODE_HASH)
         judgement = self.judge(request("pool.testnet"), archival=self.archival)
         age = self.age(judgement)
         self.assertEqual(age["status"], "pass")
@@ -1063,8 +1097,9 @@ class StateAgeTest(RulesCase):
         self.token_ok("stranger.testnet")
         self.fx.keys("stranger.testnet")
         self.fx.key_rows("stranger.testnet", [
-            {"public_key": "ed25519:K", "access_key": {"nonce": 0, "permission": "FullAccess"}},
-            {"public_key": "ed25519:K", "access_key": {"nonce": 5, "permission": {"Other": {}}}},
+            {"public_key": PUBLIC_KEY, "access_key": {"nonce": 0, "permission": "FullAccess"}},
+            {"public_key": OTHER_PUBLIC_KEY, "access_key": {"nonce": 0, "permission": {"FunctionCall": {
+                "allowance": None, "receiver_id": "app.testnet", "method_names": []}}}},
         ])
         self.fx.block_at(STATE_HEIGHT, OLD_NS)
         self.fx.account_at("stranger.testnet", STATE_HEIGHT)
@@ -1123,7 +1158,7 @@ class StateAgeTest(RulesCase):
         judgement = self.judge(request("pool.testnet"), archival=self.archival)
         self.assertEqual(self.detail(judgement, "account_age"),
                          "no archival age (pool.testnet has no access key; archival view_account could not run: "
-                         "MalformedResponse: view_account at block 221701472 came back at block 221701473); "
+                         "MalformedResponse: RPC response context does not match the pinned request); "
                          "NearBlocks lists no access key for the account and view_account shows contract code, "
                          "so no creation time could be read")
         self.assertEqual(judgement.verdict, "UNKNOWN")
@@ -1157,10 +1192,11 @@ class StateAgeTest(RulesCase):
                 archival = mock.Mock(spec=rpc.Client)
                 judgement = self.judge(request("pool.testnet"), archival=archival)
                 self.assertEqual(archival.method_calls, [])
+                self.assertEqual(self.status(judgement, "receiver_exists"), "unknown")
+                self.assertIn("MalformedResponse", self.detail(judgement, "receiver_exists"))
+                self.assertEqual(self.status(judgement, "account_age"), "unknown")
                 self.assertEqual(self.detail(judgement, "account_age"),
-                                 "no archival age (pool.testnet has no access key; the receiver's view_account "
-                                 "names no block height); NearBlocks lists no access key for the account and "
-                                 "view_account shows contract code, so no creation time could be read")
+                                 "no key of pool.testnet carries a creation time")
                 self.assertEqual(self.age(judgement)["source"]["provider"], "nearblocks.example")
                 self.assertEqual(judgement.verdict, "UNKNOWN")
 
@@ -1462,8 +1498,8 @@ class TierOneTest(RulesCase):
     def test_ft_metadata(self):
         for value, status in (({"name": "T", "symbol": "T", "decimals": 25}, "signal"),
                               ({"name": "", "symbol": "T", "decimals": 6}, "signal"),
-                              ({"name": "T", "symbol": "T", "decimals": True}, "signal"),
-                              (None, "signal"),
+                              ({"name": "T", "symbol": "T", "decimals": True}, "unknown"),
+                              (None, "unknown"),
                               ({"name": "T", "symbol": "T", "decimals": 0}, "pass")):
             with self.subTest(value=value):
                 self.fx.function(TOKEN, "ft_metadata", {}, value)
@@ -1472,12 +1508,41 @@ class TierOneTest(RulesCase):
         self.assertEqual(self.status(self.judge(request()), "ft_metadata_sane"), "signal")
         self.fx.function_error(TOKEN, "ft_metadata", {}, cause="NO_CONTRACT_CODE")
         self.assertEqual(self.status(self.judge(request()), "ft_metadata_sane"), "signal")
-        for cause in ("CONTRACT_EXECUTION_ERROR", "TIMEOUT_ERROR"):
+        for cause in ("CONTRACT_EXECUTION_ERROR", "NO_SYNCED_BLOCKS"):
             with self.subTest(cause=cause):
                 self.fx.function_error(TOKEN, "ft_metadata", {}, cause=cause)
                 self.assertEqual(self.status(self.judge(request()), "ft_metadata_sane"), "unknown")
         self.fx.function(TOKEN, "ft_metadata", {}, {"name": "T", "symbol": "TST", "decimals": 6})
         self.assertEqual(self.detail(self.judge(request()), "ft_metadata_sane"), 'symbol "TST", 6 decimals')
+
+    def test_malformed_storage_balance_reads_unknown(self):
+        for value in ({}, False, 0, [], ["1", "0"], {"total": "1"}, {"available": "0"},
+                      {"total": 1, "available": "0"}, {"total": "1", "available": None},
+                      {"total": "-1", "available": "0"}, {"total": "1", "available": "0.0"},
+                      {"total": "", "available": "0"}, {"total": "1", "available": " 0"}):
+            with self.subTest(value=value):
+                self.fx.function(TOKEN, "storage_balance_of", {"account_id": VENDOR}, value)
+                judgement = self.judge(request())
+                self.assertEqual(self.status(judgement, "storage_registered"), "unknown")
+                self.assertIn("MalformedResponse", self.detail(judgement, "storage_registered"))
+                self.assertEqual(judgement.verdict, "UNKNOWN")
+
+    def test_malformed_decoded_metadata_reads_unknown(self):
+        valid = {"name": "T", "symbol": "T", "decimals": 6}
+        malformed = [None, [], {}, {"name": "T", "symbol": "T"},
+                     {"name": "T", "decimals": 6}, {"symbol": "T", "decimals": 6}]
+        for field, values in (("name", (None, 1, [], {})), ("symbol", (None, False, [], {})),
+                              ("decimals", (None, True, "6", -1, 256, 6.0)),
+                              ("spec", (False, 1, [])), ("icon", (False, 1, [])),
+                              ("reference", (False, 1, [])), ("reference_hash", (False, 1, []))):
+            malformed.extend({**valid, field: value} for value in values)
+        for value in malformed:
+            with self.subTest(value=value):
+                self.fx.function(TOKEN, "ft_metadata", {}, value)
+                judgement = self.judge(request())
+                self.assertEqual(self.status(judgement, "ft_metadata_sane"), "unknown")
+                self.assertIn("MalformedResponse", self.detail(judgement, "ft_metadata_sane"))
+                self.assertEqual(judgement.verdict, "UNKNOWN")
 
     def test_unregistered_receiver(self):
         self.fx.function(TOKEN, "storage_balance_of", {"account_id": VENDOR}, None)
@@ -1710,10 +1775,10 @@ class FailClosedTest(RulesCase):
 
     def test_another_rpc_cause_on_the_receiver_reads_unknown(self):
         self.token_ok()
-        self.fx.rpc_error(self.view_params(), "TIMEOUT_ERROR")
+        self.fx.rpc_error(self.view_params(), "NO_SYNCED_BLOCKS")
         judgement = self.judge(request())
         self.assertEqual(self.detail(judgement, "receiver_exists"),
-                         "could not read vendor.testnet: RPC error TIMEOUT_ERROR")
+                         "could not read vendor.testnet: RPC error NO_SYNCED_BLOCKS")
         self.assertEqual(judgement.verdict, "UNKNOWN")
 
     def test_a_truncated_reply_reads_unknown(self):
@@ -1975,7 +2040,7 @@ class IssuerBlacklistTest(RulesCase):
                   "usdc.issuer.near: RPC error CONTRACT_EXECUTION_ERROR")
         self.assertEqual(self.detail(judgement, "issuer_blacklist"), detail)
         self.assertEqual(judgement.reasons, [f"issuer_blacklist could not run: {detail}."])
-        self.fx.function_error(self.USDC, "is_blocklisted", params, cause="TIMEOUT_ERROR")
+        self.fx.function_error(self.USDC, "is_blocklisted", params, cause="NO_SYNCED_BLOCKS")
         self.assertEqual(self.status(self.judge(request()), "issuer_blacklist"), "unknown")
         self.fx.account("nobody.testnet")
         judgement = self.judge(request("nobody.testnet", kind="near", memo=None), {"allowlist": ["nobody.testnet"]})
@@ -2034,6 +2099,18 @@ class IssuerBlacklistTest(RulesCase):
         rhea = json.loads((ROOT / "intel" / "incidents" / "rhea.json").read_text(encoding="utf-8"))
         [today] = [entry for entry in rhea["rules_today"] if entry["subject"] == collector]
         self.assertEqual({c["id"]: c["status"] for c in today["checks"]}["issuer_blacklist"], "signal")
+
+
+class MissingCodeTest(unittest.TestCase):
+    def test_contract_execution_error_with_null_info_is_unknown(self):
+        error = rpc.RpcError({"name": "HANDLER_ERROR", "code": -32000, "message": "Server error",
+                              "cause": {"name": "CONTRACT_EXECUTION_ERROR", "info": None}})
+        self.assertFalse(rules._missing_code(error))
+        client = SimpleNamespace(last_source={"provider": "rpc.example", "request_sha256": None, "fetched_at": None},
+                                 call_function=mock.Mock(side_effect=error))
+        check = rules._ft_metadata_check(client, "token.near")
+        self.assertEqual((check["status"], check["detail"]),
+                         ("unknown", "could not read ft_metadata: RPC error CONTRACT_EXECUTION_ERROR"))
 
 
 if __name__ == "__main__":

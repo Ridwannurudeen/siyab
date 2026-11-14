@@ -1,0 +1,358 @@
+{
+  "incident_id": "rhea",
+  "as_of": "2026-04-16T00:00:00Z",
+  "height": 194175706,
+  "block_timestamp": 1776297599546388707,
+  "label_store": {
+    "labels": [],
+    "incidents": []
+  },
+  "accounts": [
+    {
+      "account_id": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+      "role": "collector",
+      "verdict": "DENY",
+      "outcome": "DENY",
+      "checks": [
+        {
+          "id": "receiver_exists",
+          "status": "pass",
+          "detail": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 exists"
+        },
+        {
+          "id": "label_denylist",
+          "status": "pass",
+          "detail": "no denylist or incident label on 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+        },
+        {
+          "id": "memo_injection",
+          "status": "pass",
+          "detail": "no memo"
+        },
+        {
+          "id": "account_age",
+          "status": "signal",
+          "detail": "oldest access key nonce 194074444000553 from archival-rpc.mainnet.fastnear.com: existed by block 194074445 (2026-04-15T06:53:05Z) from archival-rpc.mainnet.fastnear.com, a key block younger than 7 days that does not date the account; 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 did not exist at block 192966106 (2026-04-07T14:14:06Z) from archival-rpc.mainnet.fastnear.com or block 193873306 (2026-04-13T21:02:07Z) from archival-rpc.mainnet.fastnear.com, which is younger than 7 days, so it was created less than 7 days ago"
+        },
+        {
+          "id": "dust_funded",
+          "status": "unknown",
+          "detail": "the creation transaction is not known"
+        },
+        {
+          "id": "lookalike",
+          "status": "pass",
+          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation"
+        },
+        {
+          "id": "code_without_metadata",
+          "status": "pass",
+          "detail": "no contract code"
+        }
+      ]
+    },
+    {
+      "account_id": "72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5",
+      "role": "master",
+      "verdict": "DENY",
+      "outcome": "DENY",
+      "checks": [
+        {
+          "id": "receiver_exists",
+          "status": "signal",
+          "detail": "receiver_missing: 72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5 does not exist"
+        },
+        {
+          "id": "label_denylist",
+          "status": "pass",
+          "detail": "no denylist or incident label on 72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5"
+        },
+        {
+          "id": "memo_injection",
+          "status": "pass",
+          "detail": "no memo"
+        },
+        {
+          "id": "account_age",
+          "status": "unknown",
+          "detail": "could not read the account keys: ProviderExcluded: NearBlocks is excluded from incident replay"
+        },
+        {
+          "id": "dust_funded",
+          "status": "unknown",
+          "detail": "the creation transaction is not known"
+        },
+        {
+          "id": "lookalike",
+          "status": "pass",
+          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation"
+        },
+        {
+          "id": "code_without_metadata",
+          "status": "unknown",
+          "detail": "the receiver account could not be read"
+        }
+      ]
+    },
+    {
+      "account_id": "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03",
+      "role": "worker",
+      "verdict": "DENY",
+      "outcome": "DENY",
+      "checks": [
+        {
+          "id": "receiver_exists",
+          "status": "signal",
+          "detail": "receiver_missing: d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03 does not exist"
+        },
+        {
+          "id": "label_denylist",
+          "status": "pass",
+          "detail": "no denylist or incident label on d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03"
+        },
+        {
+          "id": "memo_injection",
+          "status": "pass",
+          "detail": "no memo"
+        },
+        {
+          "id": "account_age",
+          "status": "unknown",
+          "detail": "could not read the account keys: ProviderExcluded: NearBlocks is excluded from incident replay"
+        },
+        {
+          "id": "dust_funded",
+          "status": "unknown",
+          "detail": "the creation transaction is not known"
+        },
+        {
+          "id": "lookalike",
+          "status": "pass",
+          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation"
+        },
+        {
+          "id": "code_without_metadata",
+          "status": "unknown",
+          "detail": "the receiver account could not be read"
+        }
+      ]
+    },
+    {
+      "account_id": "d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473",
+      "role": "worker",
+      "verdict": "DENY",
+      "outcome": "DENY",
+      "checks": [
+        {
+          "id": "receiver_exists",
+          "status": "signal",
+          "detail": "receiver_missing: d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473 does not exist"
+        },
+        {
+          "id": "label_denylist",
+          "status": "pass",
+          "detail": "no denylist or incident label on d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473"
+        },
+        {
+          "id": "memo_injection",
+          "status": "pass",
+          "detail": "no memo"
+        },
+        {
+          "id": "account_age",
+          "status": "unknown",
+          "detail": "could not read the account keys: ProviderExcluded: NearBlocks is excluded from incident replay"
+        },
+        {
+          "id": "dust_funded",
+          "status": "unknown",
+          "detail": "the creation transaction is not known"
+        },
+        {
+          "id": "lookalike",
+          "status": "pass",
+          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation"
+        },
+        {
+          "id": "code_without_metadata",
+          "status": "unknown",
+          "detail": "the receiver account could not be read"
+        }
+      ]
+    },
+    {
+      "account_id": "839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2",
+      "role": "worker",
+      "verdict": "DENY",
+      "outcome": "DENY",
+      "checks": [
+        {
+          "id": "receiver_exists",
+          "status": "signal",
+          "detail": "receiver_missing: 839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2 does not exist"
+        },
+        {
+          "id": "label_denylist",
+          "status": "pass",
+          "detail": "no denylist or incident label on 839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2"
+        },
+        {
+          "id": "memo_injection",
+          "status": "pass",
+          "detail": "no memo"
+        },
+        {
+          "id": "account_age",
+          "status": "unknown",
+          "detail": "could not read the account keys: ProviderExcluded: NearBlocks is excluded from incident replay"
+        },
+        {
+          "id": "dust_funded",
+          "status": "unknown",
+          "detail": "the creation transaction is not known"
+        },
+        {
+          "id": "lookalike",
+          "status": "pass",
+          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation"
+        },
+        {
+          "id": "code_without_metadata",
+          "status": "unknown",
+          "detail": "the receiver account could not be read"
+        }
+      ]
+    },
+    {
+      "account_id": "9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616",
+      "role": "worker",
+      "verdict": "DENY",
+      "outcome": "DENY",
+      "checks": [
+        {
+          "id": "receiver_exists",
+          "status": "signal",
+          "detail": "receiver_missing: 9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616 does not exist"
+        },
+        {
+          "id": "label_denylist",
+          "status": "pass",
+          "detail": "no denylist or incident label on 9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616"
+        },
+        {
+          "id": "memo_injection",
+          "status": "pass",
+          "detail": "no memo"
+        },
+        {
+          "id": "account_age",
+          "status": "unknown",
+          "detail": "could not read the account keys: ProviderExcluded: NearBlocks is excluded from incident replay"
+        },
+        {
+          "id": "dust_funded",
+          "status": "unknown",
+          "detail": "the creation transaction is not known"
+        },
+        {
+          "id": "lookalike",
+          "status": "pass",
+          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation"
+        },
+        {
+          "id": "code_without_metadata",
+          "status": "unknown",
+          "detail": "the receiver account could not be read"
+        }
+      ]
+    },
+    {
+      "account_id": "5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040",
+      "role": "worker",
+      "verdict": "DENY",
+      "outcome": "DENY",
+      "checks": [
+        {
+          "id": "receiver_exists",
+          "status": "signal",
+          "detail": "receiver_missing: 5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040 does not exist"
+        },
+        {
+          "id": "label_denylist",
+          "status": "pass",
+          "detail": "no denylist or incident label on 5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040"
+        },
+        {
+          "id": "memo_injection",
+          "status": "pass",
+          "detail": "no memo"
+        },
+        {
+          "id": "account_age",
+          "status": "unknown",
+          "detail": "could not read the account keys: ProviderExcluded: NearBlocks is excluded from incident replay"
+        },
+        {
+          "id": "dust_funded",
+          "status": "unknown",
+          "detail": "the creation transaction is not known"
+        },
+        {
+          "id": "lookalike",
+          "status": "pass",
+          "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation"
+        },
+        {
+          "id": "code_without_metadata",
+          "status": "unknown",
+          "detail": "the receiver account could not be read"
+        }
+      ]
+    }
+  ],
+  "fixtures": {
+    "04319fdc243a793cfd27ecd7d6125a3c5fca6df57b53ebbaa2b30b8c02bb82ae.json": "38328aadf7327398105c94494e870d78c967b8d4a9f537192c187c13ef81ad8f",
+    "05bdfe43c0f67d0d92c4a20901ed21a7dadea1849f260e4b806b272328b70b93.json": "8d2bf2f70034879176e349763482a971b6e720ad98b9236f90c3e8b699e48457",
+    "0c4a7d13a123be2e1da52178957b7f35de213d345bd3e54c6e718a2953756fab.json": "1f54f6a938adc1133112e1d68a783b365e7a4172d525bcf81e34d765e0930ccb",
+    "0d1cd09eeab67c1e242794a157907a3168b9d9df864726899b577de044f5920c.json": "606eb1df5e61b2c9188f464964b84b5dc47b7524aca39d5890e232b2bfb97b48",
+    "0f42a5f3e44a3ed026c8115734c7ac1f0425ccdff30efaeca1fd0129cd037308.json": "57845ff3bc8d896b28638de6014d21cec229195fdc6e8774d4bf4c4f370e3a5a",
+    "11a0adbb69441bd4077ea682d13faf2128381d4e93f729c7f7a14213c1388446.json": "191e9a96ba77f5539f7c7731c9592121096e80fc2267a7e2620f97e4a781b7f9",
+    "145211b6c902c9905ac0ad657dd0e93b1686f8e6b5af5935dbc840059d355f51.json": "b27da12ea5f1b1a44f0535d6c5fbe407f7e990da297eedd068c71ce3d7899eb0",
+    "1fbf024d9eb574120f0dbf6d73d9d40353128a9c6f56ec31ef1c4e67c8fd24c8.json": "850cac122aade6a1c8549640d941421204f8931a577bb1187f787d48e9a0c4ac",
+    "25017e2a72dfffb701ba06f76b587ecf470f962403e9a3fb0601078d3c511472.json": "0b90cb415a00347728e5ddadd4ff7f218ed8baa553e37d0a91b616218a35dd67",
+    "2c4f08e0bef4fc88273a438365e509cbc1debb60294e448805547c5b5454e39f.json": "9a0554ae6a1ea0c49c383df32916327828ad8fa88d979d04b93fd9b276af7635",
+    "323d71365fe8647427181a958ac0756c2ab462b05efcd06daf88a51500661594.json": "143f9fba0132ff83477f9161e48388d201d5a63806afb570598739e58ac90dbe",
+    "32fbbda5b1a1356d83d4a31124cbac14e799f622c424723e31e13d36cbfc01be.json": "5386dd4d91057f49134286dbd2e81d76f29f17bb2339b7c52b4ac7c94cdfd780",
+    "3640455794476c4172541d1d6b1b019e0de4754f6a32af3d833853fcaa472de1.json": "4e2d8d6664da4747b156c4d8458e89b1c7616d5817a1a66b5c499d3f06a70943",
+    "3b97b2abc39c397a7ab2f1cb1af88018e4f007ec1b5b8c72f3a7bed80e5d3b12.json": "5aed3417748e09914374a04f0308b6bf05c31af14ba2771b76f036751cbe8c19",
+    "412f7cd40ea2eb55b1f2bd12fe2b54b546654d8e41737926f2facc18ebb540d4.json": "3384e30470ec3383d8739f8bf0750ff6a7adeed170dceed17f3ec69052314ba3",
+    "43ecb7d00a889350a46de17a33726d6dde3a3be16bff382f727ccac74296fccc.json": "bffece290a78313f28b1588cb289824d36f101a009f889bbd45c3db14d8e4147",
+    "442318c39419b313582892442ae3cd3fd29387ce428eb0e8588169580d8737fa.json": "51e3d44e12f0a9a1c4152f0cee08fcbc647a3dc772f1908ba1a8c59c27da81b5",
+    "613d87d9b91f82f03887cbff383793ee352548b11d93ef958dfa8058c8a8287b.json": "df5c02d1826896160bf6228a8b1d7b901f202a2d6ecda6a9e7e708eec7a0a96d",
+    "70d40d5ca7447e486f5a4ebe68b25724a866691c449ef60fa3f7b2e3db8b0fa2.json": "de07be4febe5de8b9e906d42e94d2d8ca8944bdeb3f00b69640d3d1801bafbf0",
+    "70d8ea5f3c1dafb463e2a52229d506c78f31d5191dee747975908e144d0b6d26.json": "e3b0ff5dc6186ffb985c8e5573b00614b14e7a82c209ced12d70170c614a25f7",
+    "776ec33b643ff93021b9385cc51ba9e1e0d89c71f684cc806d4aedc26232e8f3.json": "1b4506f2f505dd233e64d7d107c7e5d53ab0f12622d1a4d41d4cda786f4a4e1b",
+    "7be85a679b6f9039e96e5b8e69a38cab3250b499419bd98a69793735441256ee.json": "b47c1c37c22e0d63770ec0e3efe68ee8c79a152ba2cf99894feefffe469f5251",
+    "8b2af7784057ad7f6641345bc9192c05a680b3fc19c66b36f6095f7fd481ce70.json": "615612ca61aa591fd794695bdf38b0a7323db58be44908da7d9c2c648a3d8718",
+    "8bf12d7190dfd90b477b7cfdd720c2166943a8c414b688d95cb3709be6806cfb.json": "e74d5cf1152392b4201701d316266a885cc8d52979a718a5cb772f393d9679e3",
+    "9b54918699710dde5790fcc331c1e13e0b78f87de2868aca77b815e159e37897.json": "8bfd0fe933f229ab659f79f350ac5031be0d218926287055640fcb6ee1e12a6f",
+    "a15978ba595fc50ee94e3ccd05564fbf3f728b45ce7c60215b9ed27ada4a782e.json": "005ae470a8184f8ca6fcea7f56cafa134f87f60aaae125c5f08c3983801c683c",
+    "a537043349c345953352006be57b08103044c209556203c241eb4d00297f94a7.json": "f87835a7313863444ab9059d5230ba5ae095323d4881e73424fc83ae39e018a9",
+    "acbbfb50f9d0333c0969dfb3fe549a425bc86f91316d246a69939ad5cfd332de.json": "104149a6380d3c5e316b69ef0c805f6b53dceb028f9417a4742c182ec9773626",
+    "b05ef7a3553b3bd810aa5617c56ad4c0ef61a33f5ec92386004047af1d3abc6c.json": "f275e2e0ffffebd97f6e7b600ab287a297ff1cd2897e7ad904f105e378c84716",
+    "b7bb10c3bf8705de48401c1dd35e1317b3d699054ab76dc59a141ddc431ee87a.json": "7fc88781583f8f47b0070c6e5b929c771fef60e222a7601e8054736401db7f74",
+    "bb7e1b93476d788ea52d41bc26ff8a7ee9207893a687969c1a7378a06f661e9b.json": "8fd5ace8d9265213b584de542d73461be7fa462bb5cf4d370d008d20efa9cfa2",
+    "bcb7934ec4cc0ee41a1b439e6c38f942af88028000f23708fc5498a2d8bb4f73.json": "160de8f2753399e5541c29d78c13d08431774bb061ba7b253fb67e85e502fd2f",
+    "c0ff7e7873c30629be81580801d10899651c4a9302cfad9a506c631a2d7d887d.json": "b8afe8ecc1efa45f8276841f715d56042985ab6c8e2f61a7aeb97043a45a17b3",
+    "c3d270bacf878ea482cec1682800013ea281b9a92aae68c5caf25af2c12c5429.json": "f3e7ec537af3941261b8237c0d3e350aabbb7c6ec16f4b44db07e4049b5374e6",
+    "c9d0c0a6c0672b7b71a3b9567d8f6f3ca3964b1216e621e7d81889328bc028ec.json": "92784ddf35d64b90f44373bf052ab19439147219729396f0394281688d273466",
+    "cc35be5ffe91368fd56b258796a8a8a1edcc214bf32a9416051018e996150792.json": "ed57f971f2605d235a3f9176102083dbaf1fe559808b3d706749af493c4937be",
+    "cdda00ff47fbd9590d43d476ab204c016f9f584d3ccb482a037d9c887bd9044f.json": "3d966a3065b57aa383ebbcf4382f398167210e7037f70d17af2ca55a647d997d",
+    "d148658da6e261e42ae1f6cd9399b01650e3bef19d930d561e1d3182f6621a4c.json": "66ff38517fd1b04353f004e6c025417a12e66758cd348af6a0cfcf73098ef6c7",
+    "d6b39a47b086fa7bdcbb27a1ca67d4d3a9bf72bdf2d1f1f563d578d3d8683c43.json": "f8d35bebe9b8cfcd33ea28ba5c7eb11eaa139d40b3d697162abbd3bec194e11e",
+    "d701968eea3565d7feca7e2e4ff06bf405438dd9648ca988df7698a37e332269.json": "f8b8be4b71f4420c89a9a45647f29fffa8ad5d3bb0eff55aff58d37b509addf4",
+    "dab6f69373b59929e753914e8f39edd69319207c635c477e13efa33c4fdd10cd.json": "4534d06490960a9eb418372ec6fae9d6f65428c9df26f3b95e2bd3c139a8f345",
+    "f30263dc626748bdb43c50ce790110e6d6b0e2e741ccbf34810198e3ad5912dd.json": "b9f4463f1847fb3a9546a87b8a46a8dd8d53d1cab69d556519ce7d5d7ce6fa82"
+  },
+  "fixture_directory": "rpc"
+}

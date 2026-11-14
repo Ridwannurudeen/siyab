@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import http.client
 import importlib.util
@@ -144,8 +145,9 @@ class ModeTest(unittest.TestCase):
             rpc.Client("https://rpc.example")
 
     def test_record_writes_and_the_24_hour_rule(self):
-        first = {"jsonrpc": "2.0", "id": "gate", "result": {"block_height": 1, "code_hash": "a"}}
-        second = {"jsonrpc": "2.0", "id": "gate", "result": {"block_height": 2, "code_hash": "b"}}
+        account = {"amount": "1", "locked": "0", "storage_usage": 1, "block_hash": rpc.EMPTY_CODE_HASH}
+        first = {"jsonrpc": "2.0", "id": "gate", "result": {**account, "block_height": 1, "code_hash": rpc.base58.encode(bytes([1]) * 32)}}
+        second = {"jsonrpc": "2.0", "id": "gate", "result": {**account, "block_height": 2, "code_hash": rpc.base58.encode(bytes([2]) * 32)}}
         with mock.patch("urllib.request.urlopen", return_value=reply(first)) as opened:
             self.assertEqual(self.client("record").view_account("a.near")["block_height"], 1)
         request = opened.call_args.args[0]
@@ -170,14 +172,14 @@ class ModeTest(unittest.TestCase):
             self.assertEqual(self.client("replay").view_account("a.near")["block_height"], 2)
 
     def test_replay_serves_old_fixtures(self):
-        with mock.patch("urllib.request.urlopen", return_value=reply({"result": {"x": 1}})):
+        with mock.patch("urllib.request.urlopen", return_value=reply({"jsonrpc": "2.0", "id": "gate", "result": {"x": 1}})):
             self.client("record").call("status", [])
         self.now = T0 + 365 * DAY
         with mock.patch("urllib.request.urlopen", side_effect=no_network):
             self.assertEqual(self.client("replay").call("status", []), {"x": 1})
 
     def test_off_fetches_every_time_and_writes_nothing(self):
-        with mock.patch("urllib.request.urlopen", return_value=reply({"result": {"x": 1}})) as opened:
+        with mock.patch("urllib.request.urlopen", return_value=reply({"jsonrpc": "2.0", "id": "gate", "result": {"x": 1}})) as opened:
             self.client("off").call("status", [])
             self.client("off").call("status", [])
         self.assertEqual(opened.call_count, 2)
@@ -308,13 +310,13 @@ class ModeTest(unittest.TestCase):
             self.client("replay", kind="http").call("status", [])
 
     def test_call_function_error_in_result(self):
-        body = {"result": {"error": "wasm execution failed", "block_height": 3}}
+        body = {"jsonrpc": "2.0", "id": "gate", "result": {"error": "wasm execution failed", "block_height": 3}}
         with mock.patch("urllib.request.urlopen", return_value=reply(body)), \
                 self.assertRaises(rpc.RpcError):
             self.client("off").call_function("a.near", "missing", {})
 
     def test_final_block(self):
-        body = {"result": {"header": {"height": 7, "timestamp": 1, "hash": "h"}}}
+        body = {"jsonrpc": "2.0", "id": "gate", "result": {"header": {"height": 7, "timestamp": 1, "hash": rpc.EMPTY_CODE_HASH}}}
         with mock.patch("urllib.request.urlopen", return_value=reply(body)) as opened:
             self.assertEqual(self.client("off").final_block()["header"]["height"], 7)
         self.assertEqual(json.loads(opened.call_args.args[0].data)["params"], {"finality": "final"})
@@ -421,13 +423,38 @@ class FailClosedClientTest(unittest.TestCase):
         self.addCleanup(rpc._NEARBLOCKS_USE.clear)
         rpc._NEARBLOCKS_USE.clear()
 
+    def test_envelope_binding_is_identical_for_record_and_replay(self):
+        account = {"amount": "1", "locked": "0", "storage_usage": 1, "code_hash": rpc.EMPTY_CODE_HASH,
+                   "block_height": 7, "block_hash": rpc.EMPTY_CODE_HASH}
+        for envelope in ({"id": "different-request"}, {"id": {}}, {"jsonrpc": []}, {}):
+            with self.subTest(envelope=envelope), tempfile.TemporaryDirectory() as directory:
+                response = {"jsonrpc": "2.0", "id": "gate", "result": account, **envelope}
+                client = rpc.Client("https://rpc.example", "record", fixtures_dir=directory)
+                with mock.patch.object(rpc, "_fetch", return_value=response) as fetched:
+                    if envelope:
+                        with self.assertRaises(rpc.MalformedResponse):
+                            client.view_account("old.near")
+                    else:
+                        self.assertEqual(client.view_account("old.near"), account)
+                self.assertEqual(fetched.call_args.args[1]["id"], "gate")
+                self.assertEqual(fetched.call_args.args[1]["jsonrpc"], "2.0")
+                [path] = Path(directory).iterdir()
+                self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["response"], response)
+                replayed = rpc.Client("https://rpc.example", "replay", fixtures_dir=directory)
+                with mock.patch.object(rpc, "_fetch", side_effect=no_network):
+                    if envelope:
+                        with self.assertRaises(rpc.MalformedResponse):
+                            replayed.view_account("old.near")
+                    else:
+                        self.assertEqual(replayed.view_account("old.near"), account)
+
     def test_recorded_block_is_trimmed_replayed_and_hygienic(self):
-        header = {"hash": "block-hash", "height": 7, "timestamp": 1,
-                  "prev_hash": "previous-hash"}
+        header = {"hash": rpc.EMPTY_CODE_HASH, "height": 7, "timestamp": 1,
+                  "prev_hash": rpc.EMPTY_CODE_HASH}
         full_response = {"jsonrpc": "2.0", "id": "gate", "result": {"header": header,
                          "chunks": [{"signature": "ed25519:" + "1" * 88}]}}
         expected = {"jsonrpc": "2.0", "id": "gate",
-                    "result": {"header": {"hash": "block-hash", "height": 7, "timestamp": 1}}}
+                    "result": {"header": {"hash": rpc.EMPTY_CODE_HASH, "height": 7, "timestamp": 1}}}
         client = rpc.Client("https://rpc.example", "record", fixtures_dir=self.tmp.name)
         with mock.patch("urllib.request.urlopen", return_value=reply(full_response)):
             self.assertEqual(client.block_at(7)["header"]["height"], 7)
@@ -444,17 +471,17 @@ class FailClosedClientTest(unittest.TestCase):
 
     def test_block_error_response_is_not_trimmed(self):
         error = {"jsonrpc": "2.0", "id": "gate", "error": {"code": -32000, "message": "UNKNOWN_BLOCK"},
-                 "result": {"header": {"hash": "h", "height": 7, "timestamp": 1}}}
+                 "result": {"header": {"hash": rpc.EMPTY_CODE_HASH, "height": 7, "timestamp": 1}}}
         client = rpc.Client("https://rpc.example", "record", fixtures_dir=self.tmp.name)
         with (mock.patch("urllib.request.urlopen", return_value=reply(error)),
-              self.assertRaises(rpc.RpcError)):
+              self.assertRaises(rpc.MalformedResponse)):
             client.block_at(7)
         [path] = Path(self.tmp.name).iterdir()
         self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["response"], error)
     def test_malformed_block_response_is_recorded_unchanged(self):
-        for header in ({"hash": "h", "height": 7, "timestamp": True},
+        for header in ({"hash": rpc.EMPTY_CODE_HASH, "height": 7, "timestamp": True},
                        {"hash": 5, "height": 7, "timestamp": 1},
-                       {"hash": "h", "height": -1, "timestamp": 1}):
+                       {"hash": rpc.EMPTY_CODE_HASH, "height": -1, "timestamp": 1}):
             with self.subTest(header=header):
                 for stale in Path(self.tmp.name).iterdir():
                     stale.unlink()
@@ -472,22 +499,22 @@ class FailClosedClientTest(unittest.TestCase):
             ("view_account", ("a.near",), {"jsonrpc": "2.0", "id": "gate", "result": None}),
             ("view_account", ("a.near",), {"jsonrpc": "2.0", "id": "gate"}),
             ("view_account", ("a.near",), ["a", "list"]),
-            ("view_account", ("a.near",), {"result": "oops"}),
-            ("view_account", ("a.near",), {"result": {"amount": "1"}}),
-            ("view_account_at", ("a.near", 5), {"result": {"amount": "1"}}),
-            ("call_function", ("t.near", "m", {}), {"result": {"result": "text"}}),
-            ("call_function", ("t.near", "m", {}), {"result": {"logs": []}}),
-            ("call_function", ("t.near", "m", {}), {"result": {"result": [256]}}),
-            ("call_function", ("t.near", "m", {}), {"result": {"result": list(b"{bad")}}),
-            ("view_access_key_list", ("a.near",), {"result": {"nonce": 1}}),
-            ("final_block", (), {"result": {"chunks": []}}),
-            ("final_block", (), {"result": {"header": {"height": 5}}}),
-            ("block_at", (5,), {"result": {"chunks": []}}),
-            ("block_at", (5,), {"result": {"header": {"height": 5, "timestamp": True, "hash": "h"}}}),
-            ("block_at", (5,), {"result": {"header": {"height": 5, "timestamp": -1, "hash": "h"}}}),
-            ("block_at", (5,), {"result": {"header": {"height": True, "timestamp": 1, "hash": "h"}}}),
-            ("final_block", (), {"result": {"header": {"height": 5, "timestamp": False, "hash": "h"}}}),
-            ("block_at", (5,), {"result": {"header": {"height": 5}}}),
+            ("view_account", ("a.near",), {"jsonrpc": "2.0", "id": "gate", "result": "oops"}),
+            ("view_account", ("a.near",), {"jsonrpc": "2.0", "id": "gate", "result": {"amount": "1"}}),
+            ("view_account_at", ("a.near", 5), {"jsonrpc": "2.0", "id": "gate", "result": {"amount": "1"}}),
+            ("call_function", ("t.near", "m", {}), {"jsonrpc": "2.0", "id": "gate", "result": {"result": "text"}}),
+            ("call_function", ("t.near", "m", {}), {"jsonrpc": "2.0", "id": "gate", "result": {"logs": []}}),
+            ("call_function", ("t.near", "m", {}), {"jsonrpc": "2.0", "id": "gate", "result": {"result": [256]}}),
+            ("call_function", ("t.near", "m", {}), {"jsonrpc": "2.0", "id": "gate", "result": {"result": list(b"{bad")}}),
+            ("view_access_key_list", ("a.near",), {"jsonrpc": "2.0", "id": "gate", "result": {"nonce": 1}}),
+            ("final_block", (), {"jsonrpc": "2.0", "id": "gate", "result": {"chunks": []}}),
+            ("final_block", (), {"jsonrpc": "2.0", "id": "gate", "result": {"header": {"height": 5}}}),
+            ("block_at", (5,), {"jsonrpc": "2.0", "id": "gate", "result": {"chunks": []}}),
+            ("block_at", (5,), {"jsonrpc": "2.0", "id": "gate", "result": {"header": {"height": 5, "timestamp": True, "hash": rpc.EMPTY_CODE_HASH}}}),
+            ("block_at", (5,), {"jsonrpc": "2.0", "id": "gate", "result": {"header": {"height": 5, "timestamp": -1, "hash": rpc.EMPTY_CODE_HASH}}}),
+            ("block_at", (5,), {"jsonrpc": "2.0", "id": "gate", "result": {"header": {"height": True, "timestamp": 1, "hash": rpc.EMPTY_CODE_HASH}}}),
+            ("final_block", (), {"jsonrpc": "2.0", "id": "gate", "result": {"header": {"height": 5, "timestamp": False, "hash": rpc.EMPTY_CODE_HASH}}}),
+            ("block_at", (5,), {"jsonrpc": "2.0", "id": "gate", "result": {"header": {"height": 5}}}),
         ]
         for method, args, body in cases:
             with (self.subTest(method=method, body=body),
@@ -614,7 +641,7 @@ class FailClosedClientTest(unittest.TestCase):
                 with self.subTest(host=host, header=header), \
                         mock.patch("urllib.request.urlopen", side_effect=no_network), \
                         mock.patch("gate.rpc._open_with_deadline", side_effect=no_network), \
-                        mock.patch("gate.rpc._fetch", return_value={"result": {"ok": True}}) as fetched:
+                        mock.patch("gate.rpc._fetch", return_value={"jsonrpc": "2.0", "id": "gate", "result": {"ok": True}}) as fetched:
                     rpc._NEARBLOCKS_USE.clear()
                     client = rpc.Client(f"https://{host}", "off", headers={header: "Bearer synthetic-key",
                                                                             "Accept": "application/json"})
@@ -624,11 +651,233 @@ class FailClosedClientTest(unittest.TestCase):
     def test_other_hosts_and_replay_are_not_throttled(self):
         slept = []
         client = rpc.Client("https://rpc.example", "off", clock=lambda: T0, sleep=slept.append)
-        with mock.patch("urllib.request.urlopen", return_value=reply({"result": {"x": 1}})):
+        with mock.patch("urllib.request.urlopen", return_value=reply({"jsonrpc": "2.0", "id": "gate", "result": {"x": 1}})):
             client.call("status", [])
             client.call("status", [])
         self.assertEqual(slept, [])
         self.assertEqual(rpc._NEARBLOCKS_USE, {})
+
+
+class QueryShapeTest(unittest.TestCase):
+    def setUp(self):
+        self.client = rpc.Client("https://rpc.example", "replay")
+        self.context = {"block_height": 7, "block_hash": rpc.EMPTY_CODE_HASH}
+        self.permission = {"FunctionCall": {"allowance": None, "receiver_id": "app.near", "method_names": []}}
+        self.access = {"nonce": 1, "permission": self.permission}
+        self.metadata = {"version": "1", "link": None, "standards": [{"standard": "nep330", "version": "1"}]}
+        self.results = {
+            "view_account": {"amount": "1", "locked": "0", "storage_usage": 1, "code_hash": rpc.EMPTY_CODE_HASH},
+            "view_access_key": self.access,
+            "view_access_key_list": {"keys": [{"public_key": "ed25519:" + rpc.EMPTY_CODE_HASH, "access_key": self.access}]},
+            "view_code": {"code_base64": "AA==", "hash": rpc.base58.encode(hashlib.sha256(bytes(1)).digest())},
+            "call_function": {"result": list(json.dumps(self.metadata).encode("utf-8")), "logs": []},
+        }
+
+    def read(self, kind, result):
+        params = {"request_type": kind, "account_id": "old.near", "finality": "final"}
+        if kind == "call_function":
+            params["method_name"] = "contract_source_metadata"
+        with mock.patch.object(self.client, "_exchange", return_value={"jsonrpc": "2.0", "id": "gate", "result": result}):
+            return self.client.call("query", params)
+
+    def test_query_required_fields_and_types(self):
+        invalid = {
+            "view_account": {"amount": ({}, 1, True, "", "-1", "1.0", " 1", "\u0661"),
+                             "locked": ({}, 0, "-1"), "storage_usage": (True, -1, "1"), "code_hash": (None, 1)},
+            "view_access_key": {"nonce": (True, -1, "1"),
+                                "permission": ({"FunctionCall": None}, "Other", {"Other": {}}, {})},
+            "view_access_key_list": {"keys": ({}, None, [None], [{}],
+                                              [{"public_key": 1, "access_key": self.access}],
+                                              [{"public_key": "ed25519:" + rpc.EMPTY_CODE_HASH, "access_key": {"nonce": 1}}])},
+            "view_code": {"code_base64": (None, [], "!"), "hash": (None, 1)},
+            "call_function": {"result": (None, {}, [True], [256], list(b"not JSON")), "logs": (None, {}, [1])},
+        }
+        for kind, template in self.results.items():
+            result = {**template, **self.context}
+            self.assertEqual(self.read(kind, result), result)
+            for field, values in {**invalid[kind], "block_height": (True, -1, "7"),
+                                  "block_hash": (None, 7)}.items():
+                missing = dict(result)
+                del missing[field]
+                for malformed in (missing, *({**result, field: value} for value in values)):
+                    with self.subTest(kind=kind, field=field, value=malformed.get(field)):
+                        with self.assertRaises(rpc.MalformedResponse):
+                            self.read(kind, malformed)
+
+    def test_function_call_permissions_validate_each_required_field(self):
+        valid = self.permission["FunctionCall"]
+        for allowance in (None, "0", "123"):
+            access = {**self.context, "nonce": 1,
+                      "permission": {"FunctionCall": {**valid, "allowance": allowance}}}
+            self.assertEqual(self.read("view_access_key", access), access)
+        self.read("view_access_key", {**self.context, "nonce": 0, "permission": "FullAccess"})
+        for field, values in {"allowance": (True, 1, {}, "-1", ""), "receiver_id": (None, 1),
+                              "method_names": (None, "method", [1])}.items():
+            missing = dict(valid)
+            del missing[field]
+            for permission in (missing, *({**valid, field: value} for value in values)):
+                for kind in ("view_access_key", "view_access_key_list"):
+                    access = {"nonce": 1, "permission": {"FunctionCall": permission}}
+                    result = (access if kind == "view_access_key" else
+                              {"keys": [{"public_key": "ed25519:" + rpc.EMPTY_CODE_HASH, "access_key": access}]})
+                    with self.subTest(kind=kind, field=field, permission=permission):
+                        with self.assertRaises(rpc.MalformedResponse):
+                            self.read(kind, {**result, **self.context})
+        with self.assertRaises(rpc.MalformedResponse):
+            self.read("view_access_key", {**self.context, "nonce": 1,
+                      "permission": {**self.permission, "FullAccess": {}}})
+
+    def test_contract_metadata_shape_is_required(self):
+        invalid = [None, [], "metadata", {}, {"version": "1"}]
+        for field, values in {"version": (None, 1), "link": (1, {}),
+                              "standards": (None, {}, [None], [{}], [{"standard": 1, "version": "1"}])}.items():
+            missing = dict(self.metadata)
+            del missing[field]
+            invalid.extend([missing, *({**self.metadata, field: value} for value in values)])
+        for value in invalid:
+            result = {**self.context, "logs": [], "result": list(json.dumps(value).encode("utf-8"))}
+            with self.subTest(value=value), self.assertRaises(rpc.MalformedResponse):
+                self.read("call_function", result)
+
+    def test_storage_and_token_metadata_payload_shapes(self):
+        metadata = {"name": "Token", "symbol": "T", "decimals": 6}
+        for method, valid, invalid in (
+                ("storage_balance_of", [None, {"total": "1", "available": "0"}],
+                 [{}, False, 0, [], {"total": "1"}, {"available": "0"},
+                  {"total": 1, "available": "0"}, {"total": "1", "available": False},
+                  {"total": "-1", "available": "0"}]),
+                ("ft_metadata", [metadata], [None, [], {}, {**metadata, "name": 1},
+                                             {**metadata, "symbol": None}, {**metadata, "decimals": True},
+                                             {**metadata, "decimals": "6"}, {**metadata, "decimals": -1}])):
+            for accepted, values in ((True, valid), (False, invalid)):
+                for value in values:
+                    result = {**self.context, "logs": [], "result": list(json.dumps(value).encode("utf-8"))}
+                    with self.subTest(method=method, value=value), \
+                            mock.patch.object(self.client, "_exchange", return_value={"jsonrpc": "2.0", "id": "gate", "result": result}):
+                        if accepted:
+                            self.assertEqual(self.client.call_function("token.near", method, {}), value)
+                        else:
+                            with self.assertRaises(rpc.MalformedResponse):
+                                self.client.call_function("token.near", method, {})
+
+    def test_block_header_requires_fields_and_exact_types(self):
+        header = {"height": 7, "timestamp": 1, "hash": rpc.EMPTY_CODE_HASH}
+        for field, values in {"height": (True, -1, "7"), "timestamp": (False, -1, "1"),
+                              "hash": (None, 7)}.items():
+            missing = dict(header)
+            del missing[field]
+            for value in (missing, *({**header, field: v} for v in values)):
+                with self.subTest(field=field, value=value):
+                    with mock.patch.object(self.client, "_exchange", return_value={"jsonrpc": "2.0", "id": "gate", "result": {"header": value}}):
+                        with self.assertRaises(rpc.MalformedResponse):
+                            self.client.call("block", {"finality": "final"})
+
+
+class StringEncodingTest(unittest.TestCase):
+    def setUp(self):
+        fixtures = [json.loads(path.read_text(encoding="utf-8"))
+                    for path in sorted(rpc.FIXTURES_DIR.glob("*.json"))]
+        self.account = next(item for item in fixtures
+                            if isinstance(item["response"].get("result"), dict)
+                            and "amount" in item["response"]["result"])
+        self.keys = next(item["response"]["result"]["keys"] for item in fixtures
+                         if isinstance(item["response"].get("result"), dict)
+                         and item["response"]["result"].get("keys"))
+        self.block = next(item["response"]["result"] for item in fixtures
+                          if item["request"]["method"] == "block"
+                          and "result" in item["response"])
+        self.encoded = next(item["request"]["params"]["args_base64"] for item in fixtures
+                            if isinstance(item["request"]["params"], dict)
+                            and "args_base64" in item["request"]["params"])
+
+    def check_encoding(self, schema, valid, invalid):
+        for accepted, values in ((True, valid), (False, invalid)):
+            for value in values:
+                with self.subTest(accepted=accepted, value=value):
+                    if accepted:
+                        rpc._validate_schema(value, schema)
+                    else:
+                        with self.assertRaises(rpc.MalformedResponse):
+                            rpc._validate_schema(value, schema)
+
+    def test_hash_encodings(self):
+        valid = [self.account["response"]["result"]["block_hash"],
+                 self.account["response"]["result"]["code_hash"], self.block["header"]["hash"],
+                 rpc.EMPTY_CODE_HASH]
+        invalid = ["!", "", "0" * 32, "1" * 31, "1" * 33, " " + valid[0], valid[0] + "\n"]
+        for schema, field in ((rpc._CONTEXT_SCHEMA, "block_hash"), (rpc._HEADER_SCHEMA, "hash"),
+                              (rpc._RESULT_SCHEMAS["view_account"], "code_hash"),
+                              (rpc._RESULT_SCHEMAS["view_code"], "hash"),
+                              (rpc._RESULT_SCHEMAS["view_account"], "block_hash")):
+            with self.subTest(field=field):
+                self.check_encoding(schema[field][1], valid, invalid)
+
+    def test_public_key_encodings(self):
+        key = self.keys[0]["public_key"]
+        schema = rpc._RESULT_SCHEMAS["view_access_key_list"]["keys"][1][0]["public_key"][1]
+        valid = [key, key.split(":")[1], "ed25519:" + "1" * 32, "secp256k1:" + "1" * 64]
+        invalid = ["!", "", "rsa:" + "1" * 32,
+                   "ed25519:!", "ed25519:" + "1" * 31, "ed25519:" + "1" * 33,
+                   "secp256k1:" + "1" * 63, "secp256k1:" + "1" * 65, key + "\n"]
+        self.check_encoding(schema, valid, invalid)
+
+    def test_account_id_encodings(self):
+        account_id = self.account["request"]["params"]["account_id"]
+        valid = [account_id, "aa", "a" * 64, "a-b_c.near", "12"]
+        invalid = ["", "a", "a" * 65, "Upper.near", "!", "-a", "a-", ".aa", "aa.",
+                   "a..b", "a__b", "a-_b", "a._b", "a b", "a/b", "aa\n", "a\u00e9"]
+        for schema, field in ((rpc._CONTEXT_SCHEMA, "account_id"),
+                              (rpc._CONTEXT_SCHEMA, "requested_account_id"),
+                              (rpc._CONTEXT_SCHEMA, "contract_account_id"),
+                              (rpc._RESULT_SCHEMAS["view_account"], "global_contract_account_id")):
+            with self.subTest(field=field):
+                self.check_encoding(schema[field][1], valid, invalid)
+        client = rpc.Client("https://rpc.example", "replay")
+        response = {"jsonrpc": "2.0", "id": "gate", "result": self.account["response"]["result"]}
+        for accepted, values in ((True, valid), (False, invalid)):
+            for value in values:
+                with self.subTest(request_account=value), mock.patch.object(client, "_exchange", return_value=response):
+                    if accepted:
+                        self.assertEqual(client.view_account(value), response["result"])
+                    else:
+                        with self.assertRaises(rpc.MalformedResponse):
+                            client.view_account(value)
+
+    def test_base64_encodings(self):
+        valid = [self.encoded, "", "AA==", "AAA=", "AAAA"]
+        invalid = ["!", "A", "AA", "AAA", "AA===", "AA==\n", " AA==", "\u00e9"]
+        self.check_encoding(rpc._RESULT_SCHEMAS["view_code"]["code_base64"][1], valid, invalid)
+        reference = base64.b64encode(rpc.base58.decode(self.block["header"]["hash"])).decode("ascii")
+        # Base64VecU8 permits an empty or arbitrary length byte vector.
+        schema = rpc._METHOD_SCHEMAS["ft_metadata"]["reference_hash"][1]
+        self.check_encoding(schema, [None, reference, *valid], invalid + [reference + "="])
+
+    def test_decimal_amount_encodings(self):
+        account = self.account["response"]["result"]
+        valid = [account["amount"], account["locked"], "0", str(2**128 - 1), "00"]
+        invalid = ["!", "", "-1", "+1", "1.0", " 1", "1\n", "\u0661", str(2**128), "9" * 100]
+        self.check_encoding(rpc._balance, valid, invalid)
+
+    def test_timestamp_decimal_encodings(self):
+        valid = [str(self.block["header"]["timestamp"]), "0", str(2**64 - 1)]
+        invalid = ["!", "", "-1", "+1", "1.0", " 1", "1\n", "\u0661", str(2**64), "9" * 100]
+        self.check_encoding(rpc._HEADER_SCHEMA["timestamp_nanosec"][1], valid, invalid)
+
+    def test_free_text_encodings(self):
+        metadata = rpc._METHOD_SCHEMAS["contract_source_metadata"]
+        token = rpc._METHOD_SCHEMAS["ft_metadata"]
+        fields = [(rpc._ERROR_SCHEMA, "message"), (rpc._ERROR_SCHEMA, "data"),
+                  (rpc._ERROR_INFO_SCHEMA, "vm_error"), (rpc._ERROR_INFO_SCHEMA, "error_message"),
+                  (rpc._ERROR_INFO_SCHEMA, "method_name"), (metadata, "version"), (metadata, "link"),
+                  (metadata["standards"][1][0], "standard"), (metadata["standards"][1][0], "version")]
+        fields.extend((token, field) for field in ("name", "symbol", "spec", "icon", "reference"))
+        # AccessKeyPermissionView receiver_id is String, unlike request AccountId fields.
+        fields.append((rpc._FUNCTION_PERMISSION_SCHEMA, "receiver_id"))
+        valid = [self.account["response"]["jsonrpc"], "", "\u00e9", "\U0001f600", "!", "a/b", "Upper.near"]
+        invalid = ["\ud800", "\udfff", "a\ud800z"]
+        for schema, field in fields:
+            with self.subTest(field=field):
+                self.check_encoding(schema[field][1], valid, invalid)
 
 
 class HygieneRuleTest(unittest.TestCase):

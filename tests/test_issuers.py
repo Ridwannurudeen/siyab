@@ -243,7 +243,8 @@ class IssuerBlacklistSeedTest(unittest.TestCase):
         fixture = {
             "request": {"method": "query", "params": params},
             "response": {"jsonrpc": "2.0", "id": "gate", "result": {
-                "block_height": read["block"], "result": list(json.dumps(read["answer"]).encode("utf-8"))}},
+                "block_height": read["block"], "block_hash": issuers.rpc.base58.encode(bytes([1]) * 32),
+                "logs": [], "result": list(json.dumps(read["answer"]).encode("utf-8"))}},
             "url": issuers.RPC_URL,
             "fetched_at": read["observed_at"],
         }

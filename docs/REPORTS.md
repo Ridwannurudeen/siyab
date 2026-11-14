@@ -32,6 +32,8 @@ The canonical report body behind `body_sha256` has exactly the fields `evidence_
 | `publisher_stats(account)` | Returns submitted and current accepted, rejected, withdrawn, and overturned counts. | `accepted_report_updates_summary_and_publisher_stats`, `rejected_report_updates_summary_and_publisher_stats`, `submitter_can_withdraw_pending_report`, `moderator_can_overturn_dispute`, `same_moderator_can_resolve_when_the_moderator_list_has_one_member` |
 | `totals()` | Returns total reports and total disputes. | `views_page_by_subject_and_submitter`, `dispute_contests_accepted_report_and_updates_summary` |
 
+The RPC schema for `subject_summary` refuses undeclared fields, so after a contract upgrade that adds a field every `community_report` check reads unknown until that schema is updated.
+
 Kinds, outcomes, and states serialize as the lowercase values in `intel/record_enums.json`. `rust_enum_values_match_the_canonical_json` compares the contract enums to that file. `deny_follows_kind_alone_for_every_outcome_when_accepted_and_contested` checks all 24 kind/outcome pairs in both accepted and contested states.
 
 The only report state changes are pending to accepted or rejected by a moderator, pending to withdrawn by the submitter, accepted to contested by a dispute, and contested to accepted or overturned by a moderator. `all_disallowed_report_state_transitions_are_refused` exercises every other transition from every non-pending state; the method tests above prove each allowed transition. Rows remain stored through every transition.

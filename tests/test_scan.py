@@ -14,6 +14,7 @@ from gate import base58, ed25519, rpc, scan
 from intel import labels
 
 GATE = "gate-hygiene.testnet"
+BLOCK_HASH = base58.encode(bytes([1]) * 32)
 LIVE_KEY = ed25519.public_from_seed(hashlib.sha256(b"scan test live verifier").digest())
 TEST_KEY_TEXT = (Path(__file__).resolve().parent.parent / "fixtures" / "keys" / "test-verifier.pub").read_text(
     encoding="utf-8").split()[0]
@@ -62,10 +63,12 @@ class ScanTest(unittest.TestCase):
     def record_gate(self, keys=KEYS, verifier=None):
         rows = [{"public_key": public, "access_key": {"nonce": 1, "permission": permission}}
                 for public, permission in keys]
-        self.record(GATE, "view_access_key_list", {"keys": rows, "block_height": 230000100, "block_hash": "x"})
+        self.record(GATE, "view_access_key_list", {"keys": rows, "block_height": 230000100,
+                                                  "block_hash": BLOCK_HASH})
         if verifier is not None:
             value = list(json.dumps(verifier).encode())
-            self.record(GATE, "call_function", {"result": value, "logs": [], "block_height": 230000100},
+            self.record(GATE, "call_function", {"result": value, "logs": [], "block_height": 230000100,
+                                                "block_hash": BLOCK_HASH},
                         method_name="get_verifier_keys", args_base64=base64.b64encode(b"{}").decode())
 
     def scan(self, account=GATE):
@@ -131,7 +134,9 @@ class ScanTest(unittest.TestCase):
                 self.record_gate(keys=[(key("odd"), permission)])
                 result = self.scan()
                 self.assertIsNone(result["findings"]["keys"])
-                self.assertTrue(result["findings"]["keys_error"].startswith("MalformedResponse: a key entry lacks"))
+                # The RPC schema rejects the permission before scan reads the key entry.
+                self.assertEqual(result["findings"]["keys_error"],
+                                 "MalformedResponse: the RPC field matches no declared type")
                 self.assert_heading_order(result["lines"])
                 self.assertIn("full access keys: unknown", result["lines"])
 

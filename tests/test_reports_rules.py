@@ -16,6 +16,7 @@ REPORTS_ACCOUNT = "reports.testnet"
 RECEIVER = "vendor.testnet"
 NOW_MS = 1800000000000
 AGENT = ed25519.public_from_seed(ed25519.TEST_AGENT_SEED).hex()
+BLOCK_HASH = rpc.base58.encode(bytes([1]) * 32)
 
 
 class Fixtures:
@@ -31,7 +32,7 @@ class Fixtures:
     def account(self, account_id):
         params = {"request_type": "view_account", "finality": "final", "account_id": account_id}
         response = {"amount": "1000", "locked": "0", "code_hash": rpc.EMPTY_CODE_HASH,
-                    "storage_usage": 182, "storage_paid_at": 0, "block_height": 100, "block_hash": "h"}
+                    "storage_usage": 182, "storage_paid_at": 0, "block_height": 100, "block_hash": BLOCK_HASH}
         self.write(RPC_URL, "query", params, {"jsonrpc": "2.0", "id": "gate", "result": response})
 
     def _function_params(self, contract, method, args):
@@ -41,13 +42,14 @@ class Fixtures:
 
     def function(self, contract, method, args, value):
         result = {"result": list(json.dumps(value).encode()), "logs": [], "block_height": 100,
-                  "block_hash": "h"}
+                  "block_hash": BLOCK_HASH}
         self.write(RPC_URL, "query", self._function_params(contract, method, args),
                    {"jsonrpc": "2.0", "id": "gate", "result": result})
 
     def function_error(self, contract, method, args):
         error = {"name": "HANDLER_ERROR", "cause": {"name": "CONTRACT_EXECUTION_ERROR",
-                  "info": {"vm_error": "GuestPanic"}}, "code": -32000}
+                  "info": {"vm_error": "GuestPanic", "block_height": 100, "block_hash": BLOCK_HASH}},
+                 "code": -32000, "message": "Server error"}
         self.write(RPC_URL, "query", self._function_params(contract, method, args),
                    {"jsonrpc": "2.0", "id": "gate", "error": error})
 
@@ -177,7 +179,7 @@ class ReportsRulesTest(unittest.TestCase):
 
     def test_every_effect_outcome_flows_through_the_report_check(self):
         cases = (
-            ({"accepted": 1, "pending": 2, "contested": 0, "latest_accepted_id": 19,
+            ({"accepted": 2, "pending": 2, "contested": 0, "latest_accepted_id": 19,
               "latest_deny_id": 7, "deny": True}, True, "DENY", "signal",
              "reports for vendor.testnet: deny report 7 is accepted; 0 under dispute; pending 2", None),
             ({"accepted": 1, "pending": 2, "contested": 0, "latest_accepted_id": 19,
@@ -188,14 +190,19 @@ class ReportsRulesTest(unittest.TestCase):
               "latest_deny_id": None, "deny": False}, False, "ALLOW", "pass",
              "reports for vendor.testnet: 2 pending report(s) await moderation; no effect", None),
             (None, True, "UNKNOWN", "unknown",
-             "reports for vendor.testnet: the summary is not in the fixed shape; pending unknown",
+             "reports for vendor.testnet: subject_summary could not be read: "
+             "MalformedResponse: the RPC field is not an object",
              "community reports could not be checked"),
         )
         for summary, allowlisted, outcome, status, detail, reason in cases:
             with self.subTest(outcome=outcome, status=status):
                 with mock.patch.object(reports, "effect", wraps=reports.effect) as effect_spy:
                     result, signer_spy = self.request(summary, allowlisted=allowlisted)
-                effect_spy.assert_called_once_with(summary, allowlisted)
+                # The RPC schema rejects a null summary before reports.effect runs.
+                if summary is None:
+                    effect_spy.assert_not_called()
+                else:
+                    effect_spy.assert_called_once_with(summary, allowlisted)
                 check = next(check for check in result["checks"] if check["id"] == "community_report")
                 self.assertEqual((result["outcome"], check["status"], check["detail"]),
                                  (outcome, status, detail))
@@ -205,7 +212,7 @@ class ReportsRulesTest(unittest.TestCase):
                     self.assert_unsigned(result, signer_spy, outcome)
 
     def test_a_deny_report_is_the_only_signal_and_names_its_id_and_contract(self):
-        summary = {"accepted": 1, "pending": 2, "contested": 0, "latest_accepted_id": 19,
+        summary = {"accepted": 2, "pending": 2, "contested": 0, "latest_accepted_id": 19,
                    "latest_deny_id": 7, "deny": True}
         result, verdict_signer = self.request(summary)
         self.assert_unsigned(result, verdict_signer, "DENY")
@@ -251,9 +258,10 @@ class ReportsRulesTest(unittest.TestCase):
         result, verdict_signer = self.request(summary)
         self.assert_unsigned(result, verdict_signer, "UNKNOWN")
         check = next(check for check in result["checks"] if check["id"] == "community_report")
+        # The RPC schema rejects the undeclared field before the summary reaches reports.effect.
         self.assertEqual((check["status"], check["detail"]),
-                         ("unknown", "reports for vendor.testnet: the summary is not in the fixed shape; "
-                          "pending unknown"))
+                         ("unknown", "reports for vendor.testnet: subject_summary could not be read: "
+                          "MalformedResponse: the RPC object has undeclared fields"))
 
     def test_failed_summary_read_is_unreadable_and_unsigned_without_calling_effect(self):
         with mock.patch.object(reports, "effect", wraps=reports.effect) as effect_spy:

@@ -14,6 +14,7 @@ from gate import (
     demo,
     ed25519,
     incident,
+    incident_replay,
     injected,
     intents,
     registry,
@@ -371,6 +372,12 @@ def main(argv=None):
     page.add_argument("id", help="the incident id, such as rhea")
     page.add_argument("--json", action="store_true", help="print the incident file itself")
     page.set_defaults(handler=lambda args: incident.main(args.id, args.json))
+
+    replay = commands.add_parser("incident-replay", help="replay the guard at an incident block, with no labels")
+    replay.add_argument("id", help="the incident id, such as rhea")
+    replay.add_argument("--at", help="UTC ISO time; defaults to midnight on the incident date")
+    replay.add_argument("--record", action="store_true", help="record archival reads and the run; uses the network")
+    replay.set_defaults(handler=lambda args: incident_replay.main(args.id, at=args.at, record=args.record))
 
     for name, text in (("pay", ("pay on testnet through the Gate: judge the transfer, then send request_transfer "
                                  "only on a signed ALLOW")),

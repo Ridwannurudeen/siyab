@@ -140,8 +140,14 @@ def _missing_code(error):
         return True
     if error.cause != "CONTRACT_EXECUTION_ERROR" and not isinstance(error.error, str):
         return False
-    text = error.error if isinstance(error.error, str) else json.dumps(error.error)
-    return any(marker in text for marker in MISSING_METHOD_MARKERS)
+    if isinstance(error.error, str):
+        texts = [error.error]
+    else:
+        data = error.error.get("data")
+        info = error.error["cause"].get("info")
+        texts = [error.error.get("message"), info.get("vm_error") if isinstance(info, dict) else None,
+                 data if isinstance(data, str) else data.get("vm_error") if isinstance(data, dict) else None]
+    return any(marker in text for text in texts if isinstance(text, str) for marker in MISSING_METHOD_MARKERS)
 
 
 def _age_text(age_ms):

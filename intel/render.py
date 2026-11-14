@@ -49,11 +49,14 @@ from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP, localcontext
 from pathlib import Path
 
+from gate import rules
 from intel import cluster, feed, graph, issuers, labels, records, trace
+from intel.live import LiveAPI
 
 ROOT = Path(__file__).resolve().parent.parent
 INCIDENTS_DIR = Path(__file__).resolve().parent / "incidents"
 RECORDS_DIR = ROOT / "fixtures" / "records"
+REPLAYS_DIR = ROOT / "fixtures" / "replay"
 TESTNET_RPC = "https://test.rpc.fastnear.com"
 # The record the verify page offers as its example: a latest view of the testnet registry.
 VERIFY_RECORD = ROOT / "fixtures" / "registry" / "testnet-latest-kestrelridge-shop.json"
@@ -883,7 +886,49 @@ def incident_page(document, accounts):
     route = ('<section class="profile-section"><h2>Recorded transfer route</h2><p>First three direct outbound rows in each linked recording, in provider order. These rows do not establish loss or causal attribution.</p>'
              + ('<ol class="profile-routes">' + ''.join(routes) + '</ol>' if routes else '<p>No recorded transfer route is available for this case.</p>')
              + ''.join(f'<a class="button" href="/flows/{esc(name)}.html">Open the complete recorded trace</a>' for name, _ in related) + '</section>')
-    body = ('\n'.join(parts[:2]) + brief + '<section class="profile-section"><h2>Evidence timeline</h2>'
+    replay = ""
+    replay_path = REPLAYS_DIR / document["id"] / "run.json"
+    if replay_path.is_file():
+        run = json.loads(replay_path.read_text(encoding="utf-8"))
+        if (not isinstance(run, dict) or run.get("incident_id") != document["id"]
+                or run.get("label_store") != {"labels": [], "incidents": []}):
+            raise ValueError("incident replay is unreadable")
+        if any(type(run.get(field)) is not int or run[field] < 0 for field in ("height", "block_timestamp")):
+            replay = '<section class="profile-section"><h2>Replay record invalid</h2></section>'
+        else:
+            when = datetime.fromisoformat(run["as_of"]).astimezone(UTC)
+            date = when.strftime("%d %b %Y").lstrip("0")
+            block_time = datetime.fromtimestamp(run["block_timestamp"] // 1_000_000_000, UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
+            rows = []
+            required = {"receiver_exists", "label_denylist", "memo_injection", *rules.TIER2_CHECKS}
+            for entry in run["accounts"]:
+                if not isinstance(entry, dict):
+                    raise ValueError("incident replay is unreadable")
+                checks = entry.get("checks")
+                if (entry.get("verdict") not in ("ALLOW", "DENY", "UNKNOWN")
+                        or not isinstance(checks, list) or len(checks) != len(required)
+                        or any(not isinstance(check, dict) or not isinstance(check.get("id"), str)
+                               or check.get("status") not in ("pass", "signal", "unknown")
+                               or not isinstance(check.get("detail"), str) for check in checks)
+                        or {check["id"] for check in checks} != required):
+                    raise ValueError("incident replay is unreadable")
+                outcome = LiveAPI._verdict_shape(entry["verdict"], checks, [], None, {}, 0)["outcome"]
+                if entry.get("outcome") != outcome:
+                    raise ValueError("incident replay outcome does not match its checks")
+                subject = entry["account_id"]
+                account = _subject_cell(subject, accounts)
+                if re.fullmatch(r"[0-9a-f]{64}", subject):
+                    short = subject[:12] + "…" + subject[-10:]
+                    account = (_linked(subject, f'<q class="data">{esc(short)}</q>', accounts)
+                               + f'<details class="analytics-full-account"><summary>Full identifier</summary>{account}</details>')
+                checks = '<br>'.join(f'{esc(check["id"])} {esc(check["status"])}: {esc(check["detail"])}'
+                                    for check in entry["checks"])
+                rows.append((esc(entry["role"]), account, esc(entry["outcome"]), checks))
+            replay = (f'<section class="profile-section"><h2>Replayed as of {esc(date)}, with no labels</h2>'
+                      f'<p>The guard used only on-chain state at block {esc(run["height"])} ({esc(block_time)}), with no labels. '
+                      'This is a replay, not a live prediction. UNKNOWN checks never count as a pass.</p>'
+                      + _profile_table("incident-replay", ("Role", "Account", "Outcome", "Checks"), rows) + '</section>')
+    body = ('\n'.join(parts[:2]) + brief + replay + '<section class="profile-section"><h2>Evidence timeline</h2>'
             '<p>Dates track source collection and evaluation. They are not a reconstructed sequence of attack transactions.</p>'
             f'<ol class="profile-timeline">{timeline_html}</ol></section>' + route
             + '<details class="profile-evidence"><summary>Source records, account roles and full evidence</summary>'

@@ -88,7 +88,7 @@ The canonical bytes are JSON written so that any language can reproduce them: ob
 
 ## Contract argument shapes
 
-The agent calls `request_transfer(request, verdict)` with these JSON objects; the verdict is passed through exactly as the service produced it. `gate.verdict.request` returns both under the keys `request` and `verdict` (the latter null unless the outcome is ALLOW and it is signed), and `python -m gate verdict` prints the checks, the outcome, the evidence hash, the latency and the Verdict object, which it also writes to `<verdict_id>.verdict.json` (when nothing was signed, for DENY, UNKNOWN or an ALLOW passed to a human, an unsigned `{"literal", "evidence_hash"}` record named by the evidence hash; `gate/__main__.py:119-121`).
+The agent calls `request_transfer(request, verdict)` with these JSON objects; the verdict is passed through exactly as the service produced it. `gate.verdict.request` returns both under the keys `request` and `verdict` (the latter null unless the outcome is ALLOW and it is signed), and `python -m gate verdict` prints the checks, the outcome, the evidence hash, the latency and the Verdict object, which it also writes to `<verdict_id>.verdict.json` (when nothing was signed, for DENY, UNKNOWN or an ALLOW passed to a human, an unsigned `{"literal", "evidence_hash"}` record named by the evidence hash; `gate/__main__.py:120-122`).
 
 ```
 TransferRequest {"kind": "near" | "ft", "token_id": <account id or null>, "receiver_id": <account id>,

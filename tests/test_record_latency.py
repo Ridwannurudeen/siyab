@@ -236,13 +236,13 @@ class PathTest(RulesCase):
                          "tier 1 and 2, account age from the access key nonce")
 
     def test_an_account_dated_by_its_archival_state(self):
-        self.fx.account("pool.testnet", code_hash="SomeCodeHash", block_height=ACCOUNT_HEIGHT)
+        self.fx.account("pool.testnet", code_hash=rpc.base58.encode(bytes([2]) * 32), block_height=ACCOUNT_HEIGHT)
         self.token_ok("pool.testnet")
         self.fx.keys("pool.testnet")
         self.fx.method_missing("pool.testnet", "contract_source_metadata", {})
         self.fx.access_keys("pool.testnet")
         self.fx.block_at(STATE_HEIGHT, OLD_NS)
-        self.fx.account_at("pool.testnet", STATE_HEIGHT, code_hash="SomeCodeHash")
+        self.fx.account_at("pool.testnet", STATE_HEIGHT, code_hash=rpc.base58.encode(bytes([2]) * 32))
         judgement = self.judge(request("pool.testnet"), archival=self.archival)
         self.assertEqual(judgement.verdict, "ALLOW")
         self.assertEqual(self.recorder.path_of(judgement.checks),
