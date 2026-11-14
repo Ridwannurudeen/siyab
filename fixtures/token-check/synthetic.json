@@ -1,0 +1,82 @@
+{
+  "synthetic": true,
+  "issuers": [
+    {
+      "token": "issuer.synthetic.near",
+      "method": "is_blocklisted",
+      "args_key": "account_id",
+      "banned": true,
+      "clear": false,
+      "note": "Synthetic issuer entry."
+    }
+  ],
+  "labels": [
+    {
+      "entity": "Synthetic token",
+      "subject": "token.synthetic.near",
+      "chain": "near",
+      "label": "symbol \"TOK\"",
+      "category": "catalog_token",
+      "provenance": "official_source",
+      "source": {
+        "url": "https://catalog.example/synthetic",
+        "content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "fetched_at": "2026-11-13T00:00:00Z"
+      },
+      "observed_at": "2026-11-13T00:00:00Z",
+      "confidence": 1.0,
+      "rule_id": null,
+      "superseded_by": null,
+      "note": "Synthetic catalog entry for offline token checks.",
+      "id": "e51133021256b71c64b7229d5821e0c6e21a4dd1406a9d4ed9326441622243ab"
+    },
+    {
+      "entity": "Synthetic token",
+      "subject": "catalog.synthetic.near",
+      "chain": "near",
+      "label": "symbol \"CAT\"",
+      "category": "catalog_token",
+      "provenance": "official_source",
+      "source": {
+        "url": "https://catalog.example/synthetic",
+        "content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "fetched_at": "2026-11-13T00:00:00Z"
+      },
+      "observed_at": "2026-11-13T00:00:00Z",
+      "confidence": 1.0,
+      "rule_id": null,
+      "superseded_by": null,
+      "note": "Synthetic catalog entry for offline token checks.",
+      "id": "a538bc3c4983d4e747c93bb75fe642ee65b08fe3a7a380a7f181bcfcde77523a"
+    }
+  ],
+  "tokens": {
+    "token.synthetic.near": {
+      "metadata": {
+        "name": "Synthetic Token",
+        "symbol": "TOK",
+        "decimals": 6
+      },
+      "code_hash": "US517G5965aydkZ46HS38QLi7UQiSojurfbQfKCELFx",
+      "keys": []
+    },
+    "catalog.synthetic.near": {
+      "metadata": {
+        "name": "Catalog Token",
+        "symbol": "CAT",
+        "decimals": 6
+      },
+      "code_hash": "US517G5965aydkZ46HS38QLi7UQiSojurfbQfKCELFx",
+      "keys": []
+    },
+    "issuer.synthetic.near": {
+      "metadata": {
+        "name": "Synthetic Dollar",
+        "symbol": "USDT",
+        "decimals": 6
+      },
+      "code_hash": "US517G5965aydkZ46HS38QLi7UQiSojurfbQfKCELFx",
+      "keys": []
+    }
+  }
+}
