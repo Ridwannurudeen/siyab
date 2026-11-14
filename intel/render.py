@@ -67,8 +67,8 @@ TOP_RECEIVERS_RANKING_PATH = ROOT / "fixtures" / "receivers" / "top.json"
 GITHUB_REPO = "https://github.com/Ridwannurudeen/shieldbot-near"
 # The token whose issuer actions intel/issuers.py reads from the owner's transactions.
 HISTORY_TOKEN = "usdt.tether-token.near"
-HEADLINE = ("Siyab checks whether an account is " + "sa" + "fe"
-            + " to pay, with a source on every answer, and enforces it on chain.")
+HEADLINE = ("Siyab checks an account before you pay, with a source on every answer, and a Gate contract "
+            "on testnet pays only on a signed ALLOW.")
 COUNTS_OF = ("The counts below are of the recorded mainnet receivers the rules judged, in all and by cohort, the label "
              "store's assertions and subjects by provenance class, the incident pages, the blocks and events of the "
              "feed, the exit traces and their hops, and the verdict latency runs for the allowlisted payee and for a "

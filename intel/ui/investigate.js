@@ -278,7 +278,7 @@
   }
   function start(subject, updateHistory = true) {
     if (!accountId(subject)) { status.textContent = "Enter a valid NEAR mainnet account. Testnet accounts are outside this investigation view."; input.focus(); return; }
-    stop(); account = subject; input.value = subject; title.textContent = subject;
+    stop(); account = subject; input.value = subject; title.textContent = subject; title.classList.add("investigate-subject");
     watch.dataset.watchAccount = subject; watch.disabled = false; save.disabled = false; graphButton.disabled = false;
     document.getElementById("investigate-refresh").disabled = false;
     identityButton.disabled = false; historyButton.disabled = false; backfillButton.disabled = false;
@@ -349,7 +349,7 @@
   window.addEventListener("popstate", () => {
     const subject = new URL(window.location.href).searchParams.get("account");
     if (subject) { start(subject, false); return; }
-    stop(); account = ""; input.value = ""; title.textContent = "Investigate account";
+    stop(); account = ""; input.value = ""; title.textContent = "Investigate account"; title.classList.remove("investigate-subject");
     for (const control of [watch, save, graphButton, identityButton, historyButton, backfillButton, document.getElementById("investigate-refresh")]) control.disabled = true;
     backfillStatus.replaceChildren();
     for (const kind of ["profile", "holdings", "transfers", "transactions", "identity", "history"]) {

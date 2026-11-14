@@ -6,20 +6,25 @@ from tests.test_design_system import rules, tokens
 
 
 class ComponentBoundariesTest(unittest.TestCase):
-    def test_necessary_control_boundaries_use_strong_tokens(self):
+    def test_labelled_controls_use_hairlines_and_inputs_keep_strong_boundaries(self):
         css = "\n".join(path.read_text(encoding="utf-8") for path in sorted(Path("intel/ui").glob("*.css")))
         parsed = list(rules(css))
-        for selector in (".graph-view-controls>summary", ".mobile-navigation>summary",
-                         ".entity-table-pagination a", ".graph-mode-controls",
-                         ".graph-mode-controls button+button", ".flow-evidence-pagination a",
-                         ".graph-compact-filters>summary,.graph-compact-actions>summary"):
-            bodies = [body for name, body, context in parsed if name == selector]
-            self.assertTrue(bodies, selector)
-            borders = [part for body in bodies for part in body.split(";")
-                       if part.startswith(("border:", "border-left:"))]
-            with self.subTest(selector=selector):
-                self.assertTrue(borders, selector)
-                self.assertTrue(all("var(--hairline-strong)" in border for border in borders), borders)
+        labelled = ("button,.button", ".graph-view-controls>summary", ".mobile-navigation>summary",
+                    ".entity-table-pagination a", ".graph-mode-controls",
+                    ".graph-mode-controls button+button", ".flow-evidence-pagination a",
+                    ".graph-compact-filters>summary,.graph-compact-actions>summary", ".record-theme>summary")
+        inputs = ("input,select,textarea", ".site-search-link,.site-search-button",
+                  ".cloud-workspace input,.cloud-workspace select,.cloud-workspace textarea,.case-dialog select",
+                  ".investigation-jobs input,.investigation-jobs select")
+        for selectors, token in ((labelled, "var(--hairline))"), (inputs, "var(--hairline-strong))")):
+            for selector in selectors:
+                bodies = [body for name, body, context in parsed if name == selector]
+                self.assertTrue(bodies, selector)
+                borders = [part for body in bodies for part in body.split(";")
+                           if part.startswith(("border:", "border-left:"))]
+                with self.subTest(selector=selector):
+                    self.assertTrue(borders, selector)
+                    self.assertTrue(all(border.endswith(token) for border in borders), borders)
 
     def test_semantic_chip_text_contrast_on_row_surfaces(self):
         css = Path("intel/ui/site.css").read_text(encoding="utf-8")

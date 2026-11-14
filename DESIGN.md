@@ -1,6 +1,6 @@
 ---
 name: "Siyab"
-description: "A dark evidence workspace with light typography, compact tables and explicit uncertainty."
+description: "A dark evidence workspace with Manrope titles, uppercase mono labels, quiet chrome, compact tables and explicit uncertainty."
 colors:
   ground: "#0A0D16"
   panel: "#10131C"
@@ -32,36 +32,49 @@ colors:
   light-hairline-strong: "#78849A"
 typography:
   display:
-    fontFamily: "Public Sans"
-    fontSize: "clamp(44px, 6.2vw, 92px)"
-    fontWeight: 300
-    lineHeight: "0.98"
-    letterSpacing: "-0.03em"
+    fontFamily: "Manrope"
+    fontSize: "clamp(38px, 4.7vw, 68px)"
+    fontWeight: 600
+    lineHeight: "1.04"
+    letterSpacing: "-0.035em"
     textWrap: "balance"
   panel-title-landing:
-    fontFamily: "Public Sans"
+    fontFamily: "Manrope"
     fontSize: "32px"
-    fontWeight: 300
+    fontWeight: 600
     lineHeight: "38px"
-    letterSpacing: "0.18px"
-  page-title:
-    fontFamily: "Public Sans"
-    fontSize: "24px"
-    fontWeight: 400
-    lineHeight: "30px"
-    letterSpacing: "-0.24px"
-  incident-title:
-    fontFamily: "Public Sans"
-    fontSize: "28px"
-    fontWeight: 400
-    lineHeight: "34px"
-    letterSpacing: "-0.28px"
-  panel-title:
-    fontFamily: "Public Sans"
+    letterSpacing: "-0.025em"
+  card-title-landing:
+    fontFamily: "Manrope"
     fontSize: "18px"
-    fontWeight: 300
+    fontWeight: 600
     lineHeight: "24px"
-    letterSpacing: "0.18px"
+    letterSpacing: "-0.01em"
+  page-title:
+    fontFamily: "Manrope"
+    fontSize: "24px"
+    fontWeight: 600
+    lineHeight: "30px"
+    letterSpacing: "-0.02em"
+  incident-title:
+    fontFamily: "Manrope"
+    fontSize: "28px"
+    fontWeight: 600
+    lineHeight: "34px"
+    letterSpacing: "-0.02em"
+  panel-title:
+    fontFamily: "Manrope"
+    fontSize: "16px"
+    fontWeight: 600
+    lineHeight: "22px"
+    letterSpacing: "0"
+  label:
+    fontFamily: "IBM Plex Mono"
+    fontSize: "12px"
+    fontWeight: 400
+    lineHeight: "18px"
+    letterSpacing: "0.24px"
+    textTransform: "uppercase"
   navigation:
     fontFamily: "Public Sans"
     fontSize: "13px"
@@ -173,7 +186,7 @@ components:
 
 Phases 1 and 2 apply typography, colour, theme policy and shared component dimensions. Phase 3 replaces the desktop sidebar and context topbar with a 56px application header and recomposes four reference pages: Explore (the recorded investigation workspace), recorded account pages, Issuer actions and incident pages. Other page families keep their phase 2 structure until phase 4. Factual text, links, images and controls are retained.
 
-The interface is an evidence workspace. Public Sans carries explanation and controls; IBM Plex Mono carries identifiers, timestamps, comparable values and table headings. Manrope SemiBold remains confined to the Siyab wordmark. Teal identifies actions and selection, blue identifies navigable references, and written semantic states retain their own colours. Unknown values, recording limits, source dates and acquisition failures remain explicit.
+The interface is an evidence workspace. Manrope SemiBold carries the wordmark, landing headings, page titles and panel titles; Public Sans carries explanation and controls; IBM Plex Mono carries identifiers, timestamps, comparable values, table headings and labels. Teal identifies actions and selection, blue identifies navigable references, and written semantic states retain their own colours. Unknown values, recording limits, source dates and acquisition failures remain explicit.
 
 ## Colour and themes
 
@@ -194,7 +207,7 @@ The interface is an evidence workspace. Public Sans carries explanation and cont
 | Decorative separator | #293140 | #D3DBE6 |
 | Necessary control boundary | #727D94 | #78849A |
 
-Primary buttons use canvas-coloured ink on dark-theme teal and white ink on light-theme teal. Necessary control boundaries use the stronger boundary token; decorative panel separators do not establish an actionable boundary. Semantic chips retain their written state. A selected account does not acquire ALLOW styling.
+Primary buttons use canvas-coloured ink on dark-theme teal and white ink on light-theme teal. Inputs, selects, text areas and the search field keep the stronger boundary token, because the boundary is what identifies them. Labelled buttons, tabs, chips, menu and disclosure buttons and pagination links use the decorative hairline on their surface fill, because their text label identifies them; hover and focus states are unchanged. Decorative panel separators do not establish an actionable boundary. Semantic chips retain their written state. A selected account does not acquire ALLOW styling.
 
 A new visit opens dark regardless of system preference. An explicit browser-local light preference remains honoured, and the existing toggle persists explicit choices when storage is available. The theme head applies an explicit saved choice before styles load. Without a saved choice, dark CSS and dark browser metadata apply.
 
@@ -208,20 +221,25 @@ All fonts are local static weights with one font-face declaration per file, font
 
 | Role | Family | Desktop size / leading | Weight | Tracking / case |
 |---|---|---|---|---|
-| Page title | Public Sans | 24 / 30px | 400 | -0.24px; sentence case |
-| Long incident title | Public Sans | 28 / 34px | 400 | -0.28px; sentence case |
-| Panel / section title | Public Sans | 18 / 24px | 300 | +0.18px |
+| Landing display | Manrope | clamp(38px, 4.7vw, 68px) / 1.04 | 600 | -0.035em; balanced wrap |
+| Landing section title | Manrope | 32 / 38px | 600 | -0.025em |
+| Landing card title | Manrope | 18 / 24px | 600 | -0.01em |
+| Page title | Manrope | 24 / 30px | 600 | -0.02em; sentence case |
+| Long incident title | Manrope | 28 / 34px | 600 | -0.02em; sentence case |
+| Panel / section title | Manrope | 16 / 22px | 600 | 0 |
+| Subsection heading (h4) / section disclosure summary | Manrope | 16 / 22px | 600 | 0; panel title role |
 | Navigation | Public Sans | 13 / 18px | 300; active 500 | 0 |
 | Buttons / filters | Public Sans | 13 / 18px | 400 | 0; sentence case |
 | Explanation | Public Sans | 14 / 21px | 400 | 0 |
 | Scope / source note | Public Sans | 12 / 18px | 400 | 0 |
 | Table headings / tabs | IBM Plex Mono | 12 / 18px | 400 | +0.24px; uppercase presentation |
+| Labels: stat, field, landing eyebrow, Account | IBM Plex Mono | 12 / 18px | 400 | +0.24px; uppercase presentation |
 | Table names / descriptions | Public Sans | 13 / 18px | 400 | 0 |
 | Numeric cells / timestamps | IBM Plex Mono | 12 / 18px | 400 | 0 |
 | Existing prominent figures | IBM Plex Mono | 24 / 30px | 300 | 0 |
-| Primary account identifier | IBM Plex Mono | 22 / 28px | 400 | 0; original case |
+| Primary account identifier | IBM Plex Mono | 22 / 28px | 400 | 0; original case, no quote marks; also the Account lookup title while it holds an account |
 
-Numeric text uses font-variant-numeric:lining-nums tabular-nums slashed-zero and font-feature-settings:"lnum" 1,"tnum" 1,"zero" 1. Identifiers keep original case, zero tracking and no discretionary ligatures. Comparable numeric columns remain right aligned with their existing precision. Plex supplies equal-width digits intrinsically. Ordinary explanation keeps its existing 35rem measure; full identifiers and evidence remain allowed to wrap.
+Numeric text uses font-variant-numeric:lining-nums tabular-nums slashed-zero and font-feature-settings:"lnum" 1,"tnum" 1,"zero" 1. Identifiers keep original case, zero tracking and no discretionary ligatures. Account identifiers in the page head, account links and identifier cells drop the curly quote presentation; quoted source text keeps its marks. Labels are field labels that wrap an input, select or text area, stat and fact labels, landing eyebrows and the Account label above a primary identifier; checkbox and radio labels and record field names keep the text role. Weight 600 is only ever Manrope, so no title uses synthetic bold. Comparable numeric columns remain right aligned with their existing precision. Plex supplies equal-width digits intrinsically. Ordinary explanation keeps its existing 35rem measure; full identifiers and evidence remain allowed to wrap.
 
 At 390 and 320px, explanation is 14/22px, controls 15/22px, inputs 16/24px, primary record values 14/20px, secondary data 12/18px and page titles 22/28px. Small navigation uses 400. No meaningful text is smaller than 12px. The wordmark retains its existing 18px narrow-phone treatment.
 
@@ -259,7 +277,7 @@ Browser investigations, notes, watchlists and view settings remain browser-local
 
 ## Landing page
 
-The landing keeps its own slim top bar and navigation. Its content is at most 1200px wide, with 64px section padding on desktop and 36px on phones, derived from the landing section spacing token. The display role is Public Sans 300 at clamp(44px, 6.2vw, 92px), 0.98 leading, -0.03em tracking and balanced wrapping. Its second line uses secondary text. The panel-title role gains one landing step, 32/38px at 300. The problem statement scales from 32 to 40px. The recorded transfer counter uses Plex Mono 300 from 40 to 56px with tabular figures.
+The landing keeps its own slim top bar and navigation. Its content is at most 1200px wide, with 64px section padding on desktop and 36px on phones, derived from the landing section spacing token. The display role is Manrope 600 at clamp(38px, 4.7vw, 68px), 1.04 leading, -0.035em tracking and balanced wrapping, which keeps the headline to three lines and the recorded evidence strip above the fold at 1440 by 900. Its second line uses secondary text. Section titles are Manrope 600 at 32/38px and step and capability titles Manrope 600 at 18/24px. Eyebrows keep their numbers and words in the label role. Principle quotations keep Public Sans 300 at 32/38px. The problem statement scales from 32 to 40px. The recorded transfer counter uses Plex Mono 300 from 40 to 56px with tabular figures.
 
 The hero graph is a deterministic seeded excerpt of the same recorded Rhea graph used by Explore, capped at the root plus 40 nodes and 60 edges. Accent paths identify the two cited transfers, never a payment verdict. The counter is the recording's transfer total and never counts through invented values. The coverage statement remains adjacent. Evidence disclosures retain full identifiers, transactions and receipts.
 

@@ -188,7 +188,8 @@ class DesignSystemTest(unittest.TestCase):
             "--s5": "24px", "--s6": "32px", "--s7": "48px",
             "--fs-micro": "12px/18px", "--fs-data": "12px/18px",
             "--fs-body": "14px/21px", "--fs-control": "13px/18px",
-            "--fs-panel": "18px/24px", "--fs-title": "24px/30px", "--fs-page": "24px/30px",
+            "--fs-panel": "18px/24px", "--fs-panel-title": "16px/22px", "--fs-title": "24px/30px", "--fs-page": "24px/30px",
+            "--fs-display": "clamp(38px, 4.7vw, 68px)", "--font-display": 'Manrope,"Public Sans",Arial,Helvetica,sans-serif',
         }.items():
             with self.subTest(token=name):
                 self.assertEqual(values.get(name), value)
@@ -211,11 +212,11 @@ class DesignSystemTest(unittest.TestCase):
                 if not re.fullmatch(r"[0-9.]+px", height) and not ("landing" in selector and height == "0.98"):
                     failures.append((selector, "line", height, context))
             for height in re.findall(r"(?:^|;)font:[^;]*?/[ ]*([0-9.]+)(?![0-9.])([a-z%]*)", body):
-                landing_line = {".landing .page-head h1": "0.98", ".landing-counter": "1", ".landing .landing-statement": "1.18"}
+                landing_line = {".landing .page-head h1": "1.04", ".landing-counter": "1", ".landing .landing-statement": "1.18"}
                 if height[1] != "px" and height != (landing_line.get(selector), ""):
                     failures.append((selector, "font line", height, context))
             for tracking in re.findall(r"(?:^|;)letter-spacing:([^;]+)", body):
-                if not ("landing" in selector and tracking == "-0.03em") and tracking not in ("0", "0px", "-.02em", "-0.02em", "-.015em", "-0.015em", "-.035em", "-0.035em", "-.24px", "-0.24px", "-0.22px", "-.28px", "-0.28px", ".18px", "0.18px", ".24px", "0.24px"):
+                if tracking not in ("0", "0px", "-.01em", "-0.01em", "-.02em", "-0.02em", "-.015em", "-0.015em", "-.025em", "-0.025em", "-.035em", "-0.035em", ".18px", "0.18px", ".24px", "0.24px"):
                     failures.append((selector, "tracking", tracking, context))
         self.assertEqual(failures, [])
 
@@ -285,7 +286,9 @@ class DesignSystemTest(unittest.TestCase):
         self.assertEqual(declarations[".tool-form"].get("max-width"), "960px")
         self.assertEqual(declarations[".stat-value"].get("font"), "300 24px/30px var(--font-code)")
         self.assertEqual(declarations[".stat-value"].get("letter-spacing"), "0")
-        self.assertEqual(declarations[".stat-label"].get("font"), "400 12px/18px var(--font-ui)")
+        self.assertEqual(declarations[".stat-label"].get("font"), "400 12px/18px var(--font-code)")
+        self.assertEqual(declarations[".stat-label"].get("letter-spacing"), "0.24px")
+        self.assertEqual(declarations[".stat-label"].get("text-transform"), "uppercase")
         self.assertTrue(any("min-width:2200px" in "".join(context).replace(" ", "") and "max-width:1920px" in body for selector, body, context in self.rules if "main" in selector or ".app-content" in selector))
         for selector in (".proof-grid", ".explore-grid"):
             self.assertTrue(any(selector in other.split(",") and "min-width:1700px" in "".join(context).replace(" ", "") and "grid-template-columns:repeat(3,minmax(0,1fr))" in body for other, body, context in self.rules))
@@ -325,7 +328,7 @@ class DesignSystemTest(unittest.TestCase):
                 self.assertLessEqual(max(tops) - min(tops), 1, (width, tops))
 
     def test_browser_r2_text_roles(self):
-        sample = ('<section id="role-samples"><span id="code-reference" class="mono">1</span>'
+        sample = ('<section id="role-samples"><span id="code-reference" class="mono">1</span><span id="display-reference" style="font-family:var(--font-display)">1</span>'
                   '<table class="profile-data-table"><tbody><tr><td class="num">12</td><td class="mono">account.near</td></tr></tbody></table>'
                   '<table class="investigate-table"><tbody><tr><td class="num">12</td><td class="mono">account.near</td></tr></tbody></table>'
                   '<table class="portfolio-table"><tbody><tr><td class="num">12</td><td class="mono">account.near</td></tr></tbody></table>'
@@ -355,13 +358,15 @@ class DesignSystemTest(unittest.TestCase):
                     page.set_content(document.replace('</main>', sample + '</main>'))
                     code_family = page.locator("#code-reference").evaluate("node => getComputedStyle(node).fontFamily")
                     ui_family = page.locator("body").evaluate("node => getComputedStyle(node).fontFamily")
+                    display_family = page.locator("#display-reference").evaluate("node => getComputedStyle(node).fontFamily")
+                    self.assertTrue(display_family.startswith("Manrope"), display_family)
                     checks = [(".profile-id", "22px", "28px", code_family, "400"),
-                              ("#role-samples .stat-label", "12px", "18px", ui_family, "400"),
+                              ("#role-samples .stat-label", "12px", "18px", code_family, "400"),
                               ("#role-samples .stat-value", "24px", "30px", code_family, "300"),
                               ("#role-samples .stat-timestamp", "12px", "18px", code_family, "400"),
                               ("#role-samples .graph-account-button", "12px", "18px", code_family, "400"),
-                              ("#role-samples .panel h3", "18px", "24px", ui_family, "300"),
-                              ("#role-samples .investigation-summary dt", "12px", "18px", ui_family, "400"),
+                              ("#role-samples .panel h3", "16px", "22px", display_family, "600"),
+                              ("#role-samples .investigation-summary dt", "12px", "18px", code_family, "400"),
                               ("#role-samples .registry-count .stat-connective", "14px", "21px" if width > 760 else "22px", ui_family, "400"),
                               ("#role-samples .graph-node-label", "14px", "22px" if width <= 760 else "21px", code_family, "400"),
                               ("#role-samples .graph-node-detail", "12px", "18px", ui_family, "400")]
@@ -370,7 +375,7 @@ class DesignSystemTest(unittest.TestCase):
                     with self.subTest(width=width, page=name, role="heading alignment"):
                         self.assertEqual(page.locator("#role-samples .delivery-heading").evaluate("node => getComputedStyle(node).alignItems"), "center")
                     with self.subTest(width=width, page=name, role="graph heading weight"):
-                        self.assertEqual(page.locator("#role-samples .graph-loading h2").evaluate("node => getComputedStyle(node).fontWeight"), "300")
+                        self.assertEqual(page.locator("#role-samples .graph-loading h2").evaluate("node => [getComputedStyle(node).fontWeight,getComputedStyle(node).fontFamily]"), ["600", display_family])
                     if width <= 760:
                         checks += [(".analytics-distribution-row .cell-label", "12px", "18px", ui_family, "400"),
                                    ("#role-samples td.num,#role-samples td.mono", "14px", "20px" if width <= 760 else "22px", code_family, "400"),
@@ -393,7 +398,7 @@ class DesignSystemTest(unittest.TestCase):
                         for actual in page.locator(selector).evaluate_all("nodes => nodes.map(node => {const style=getComputedStyle(node);return [style.fontSize,style.lineHeight,style.fontFamily,style.fontWeight,style.letterSpacing]})"):
                             with self.subTest(width=width, page=name, role=selector):
                                 self.assertEqual(actual[:4], [size, line, family, weight])
-                                self.assertIn(actual[4], ("0.18px",) if "panel h3" in selector else ("normal", "0px"))
+                                self.assertIn(actual[4], ("0.24px",) if selector in ("#role-samples .stat-label", "#role-samples .investigation-summary dt") else ("normal", "0px"))
 
     def test_r2_quote_identifier_markup_preserves_escaped_text(self):
         identifier = "abcdef01" * 8
@@ -558,7 +563,7 @@ class DesignSystemTest(unittest.TestCase):
                 self.assertEqual(target.count(), 1, name)
                 target.evaluate("node => {for(let parent=node.parentElement;parent;parent=parent.parentElement) if(parent.tagName==='DETAILS') parent.open=true}")
                 variant = target.evaluate("node => getComputedStyle(node).fontVariantNumeric")
-                code_variant = "graph-identifier" in selector or name == "workspace.html"
+                code_variant = "graph-identifier" in selector or name in ("workspace.html", "investigate.html")
                 self.assertEqual(variant, "lining-nums tabular-nums slashed-zero" if code_variant else "normal")
                 code_family = code_variant or name in (record, "issuers.html", "records/index.html", "entities/catalog.html") or selector.startswith(".account-assertions")
                 expected_family = page.locator("body").evaluate("(node, code) => code ? getComputedStyle(node).getPropertyValue('--font-code').trim() : getComputedStyle(node).fontFamily", code_family)
@@ -769,7 +774,7 @@ class DesignSystemTest(unittest.TestCase):
                     for actual in page.locator(selector).evaluate_all("nodes => nodes.map(node => [getComputedStyle(node).fontFamily,getComputedStyle(node).fontWeight])"):
                         with self.subTest(width=width, selector=selector):
                             self.assertEqual(actual, [family, weight])
-                self.assertEqual(page.locator("#review-roles .cloud-case h4 a").evaluate("node => getComputedStyle(node).fontSize"), "18px")
+                self.assertEqual(page.locator("#review-roles .cloud-case h4 a").evaluate("node => [getComputedStyle(node).fontSize,getComputedStyle(node).fontWeight,getComputedStyle(node).fontFamily.split(',')[0]]"), ["16px", "600", "Manrope"])
                 for selector in ("#review-roles .jobs-heading h2", "#review-roles .delivery-heading h2"):
                     self.assertEqual(page.locator(selector).evaluate("node => getComputedStyle(node).margin"), "0px")
                 if width == 390:
@@ -889,13 +894,13 @@ class DesignSystemTest(unittest.TestCase):
                 self.assertEqual(page.locator("body").evaluate("node => getComputedStyle(node).backgroundColor"), "rgb(10, 13, 22)")
 
     def test_browser_da2_real_page_type_roles(self):
-        cases = (("explore.html", "main h1", "Public Sans", "24px", "30px", "400"),
+        cases = (("explore.html", "main h1", "Manrope", "24px", "30px", "600"),
                  ("accounts/wrap.near.html", ".profile-facts dd", "IBM Plex Mono", "24px", "30px", "300"),
                  ("explore.html", ".app-header-navigation a:not([aria-current])", "Public Sans", "13px", "18px", "300"),
                  ("explore.html", ".app-menu>summary", "Public Sans", "13px", "18px", "300"),
                  ("accounts/wrap.near.html", ".profile-heading p.mono", "IBM Plex Mono", "22px", "28px", "400"),
-                 ("accounts/wrap.near.html", "main h2", "Public Sans", "18px", "24px", "300"),
-                 ("incidents/rhea.html", "main h1", "Public Sans", "28px", "34px", "400"),
+                 ("accounts/wrap.near.html", "main h2", "Manrope", "16px", "22px", "600"),
+                 ("incidents/rhea.html", "main h1", "Manrope", "28px", "34px", "600"),
                  ("issuers.html", "th", "IBM Plex Mono", "12px", "18px", "400"))
         with self.browser.new_context(viewport={"width": 1440, "height": 900}) as context:
             context.route("**/*", self.local_route)
@@ -909,6 +914,113 @@ class DesignSystemTest(unittest.TestCase):
                 with self.subTest(page=name, role=selector):
                     self.assertIn(family, actual[0])
                     self.assertEqual(actual[1:], [size, line, weight])
+
+    def test_browser_da5_type_roles_chrome_and_label_contrast(self):
+        style = """node => {const s=getComputedStyle(node);return [s.fontFamily.split(",")[0].replace(/"/g, ""),s.fontSize,s.lineHeight,s.fontWeight,s.letterSpacing,s.textTransform]}"""
+        size = lambda wide, phone: (lambda width: wide if width > 760 else phone)
+        roles = (("index.html", "#landing-title", "Manrope", lambda width: "%gpx" % round(max(38, min(width * 0.047, 68)), 2), None, "600", None, "none"),
+                 ("index.html", "#landing-problem", "Manrope", size("32px", "32px"), size("38px", "38px"), "600", size("-0.8px", "-0.8px"), "none"),
+                 ("index.html", ".landing-steps h3", "Manrope", size("18px", "18px"), size("24px", "24px"), "600", size("-0.18px", "-0.18px"), "none"),
+                 ("index.html", ".landing-label", "IBM Plex Mono", size("12px", "12px"), size("18px", "18px"), "400", size("0.24px", "0.24px"), "uppercase"),
+                 ("index.html", ".landing-counter", "IBM Plex Mono", None, None, "300", None, "none"),
+                 ("explore.html", "main h1", "Manrope", size("24px", "22px"), size("30px", "28px"), "600", size("-0.48px", "-0.44px"), "none"),
+                 ("explore.html", ".app-header-navigation a:not([aria-current])", "Public Sans", size("13px", "15px"), size("18px", "22px"), "300", size("normal", "normal"), "none"),
+                 ("accounts/wrap.near.html", ".profile-heading h1", "IBM Plex Mono", size("12px", "12px"), size("18px", "18px"), "400", size("0.24px", "0.24px"), "uppercase"),
+                 ("accounts/wrap.near.html", ".profile-heading p.mono", "IBM Plex Mono", size("22px", "22px"), size("28px", "28px"), "400", size("normal", "normal"), "none"),
+                 ("accounts/wrap.near.html", "main h2", "Manrope", size("16px", "16px"), size("22px", "22px"), "600", size("normal", "normal"), "none"),
+                 ("accounts/wrap.near.html", ".profile-facts dt", "IBM Plex Mono", size("12px", "12px"), size("18px", "18px"), "400", size("0.24px", "0.24px"), "uppercase"),
+                 ("accounts/wrap.near.html", ".profile-facts dd:not(.stat-timestamp)", "IBM Plex Mono", size("24px", "24px"), size("30px", "30px"), "300", size("normal", "normal"), "none"),
+                 ("accounts/wrap.near.html", "label:has(>input[type=search])", "IBM Plex Mono", size("12px", "12px"), size("18px", "18px"), "400", size("0.24px", "0.24px"), "uppercase"),
+                 ("issuers.html", "th", "IBM Plex Mono", size("12px", "12px"), size("18px", "18px"), "400", size("0.24px", "0.24px"), "uppercase"),
+                 ("incidents/rhea.html", "main h1", "Manrope", size("28px", "22px"), size("34px", "28px"), "600", size("-0.56px", "-0.44px"), "none"))
+        labels = ".landing-label,.landing dt,.profile-heading h1:not(.profile-id),.profile-facts dt,.stat-label,.investigation-summary dt,label:has(>input:not([type=checkbox],[type=radio]),>select,>textarea),th"
+        contrast = """nodes => nodes.filter(node => node.checkVisibility()).map(node => {
+            const rgb = value => value.match(/[0-9.]+/g).map(Number);
+            const lum = ([r,g,b]) => [r,g,b].map(v => {v/=255;return v <= .04045 ? v/12.92 : ((v+.055)/1.055)**2.4}).reduce((sum,v,i) => sum + v*[.2126,.7152,.0722][i], 0);
+            let back = node, fill = "rgba(0, 0, 0, 0)";
+            while (back && (fill = getComputedStyle(back).backgroundColor) && (rgb(fill)[3] === 0)) back = back.parentElement;
+            const [a,b] = [lum(rgb(getComputedStyle(node).color)), lum(rgb(fill))].sort((x,y) => y-x);
+            return [node.tagName, node.className, (a+.05)/(b+.05)];
+        })"""
+        members = ('<div class="cloud-workspace" id="members-sample"><ul class="cloud-members"><li><strong>alice</strong>'
+                   '<label>Role for <span class="cloud-member-name">Alice.Near</span><select><option>viewer</option></select></label></li></ul></div>')
+        for width in (1440, 390):
+            with self.browser.new_context(viewport={"width": width, "height": 900}) as context:
+                context.route("**/*", self.local_route)
+                page = context.new_page()
+                page.goto(self.origin + "/workspace.html")
+                page.locator("main").evaluate("(node, sample) => node.insertAdjacentHTML('beforeend', sample)", members)
+                page.evaluate("document.fonts.ready")
+                with self.subTest(width=width, role="authenticated team member role label"):
+                    self.assertEqual(page.locator("#members-sample label").evaluate(style), ["IBM Plex Mono", "12px", "18px", "400", "0.24px", "uppercase"])
+                    self.assertEqual(page.locator("#members-sample select").evaluate("node => getComputedStyle(node).textTransform"), "none")
+                    self.assertEqual(page.locator("#members-sample .cloud-member-name").evaluate("node => [getComputedStyle(node).textTransform, node.innerText]"), ["none", "Alice.Near"])
+                    self.assertTrue(page.locator("#members-sample label").inner_text().startswith("ROLE FOR Alice.Near"))
+        with self.browser.new_context(viewport={"width": 1440, "height": 900}) as context:
+            context.route("**/*", self.local_route)
+            page = context.new_page()
+            for name in self.template_pages():
+                page.goto(self.origin + "/" + name)
+                page.wait_for_load_state("networkidle")
+                page.evaluate("document.fonts.ready")
+                page.locator("main details").evaluate_all("nodes => nodes.forEach(node => node.open=true)")
+                headings = page.evaluate("[...document.querySelectorAll('main :is(h1,h2,h3):not(.profile-id,.graph-identifier,.landing-observations h3,.profile-heading h1:has(+p.mono))')].filter(node => node.checkVisibility()).map(node => [node.tagName, node.textContent.trim().slice(0, 40), getComputedStyle(node).fontFamily.split(',')[0], getComputedStyle(node).fontWeight])")
+                label_roles = page.evaluate("[...document.querySelectorAll('main :is(.stat-label,.profile-facts dt,.investigation-summary dt,.analytics-inline span,.portfolio-figure-label,.landing-label,.landing dt,label:has(>input:not([type=checkbox],[type=radio]),>select,>textarea))')].filter(node => node.checkVisibility()).map(node => [node.textContent.trim().slice(0, 40), getComputedStyle(node).fontFamily.split(',')[0].replace(/\"/g, ''), getComputedStyle(node).textTransform])")
+                summaries = page.evaluate("[...document.querySelectorAll('main :is(h4,.cloud-workspace>summary,.enrichment-directory>summary,.feed-recorded-details>summary,.profile-evidence>summary,.registry-individuals>summary)')].filter(node => node.checkVisibility()).map(node => [node.textContent.trim().slice(0, 40), getComputedStyle(node).fontFamily.split(',')[0], getComputedStyle(node).fontSize, getComputedStyle(node).fontWeight])")
+                if name == "investigate.html":
+                    title = page.locator("#investigate-title")
+                    with self.subTest(role="lookup title without a subject"):
+                        self.assertEqual(title.evaluate(style)[:5], ["Manrope", "24px", "30px", "600", "-0.48px"])
+                    page.locator("#investigate-account").fill("usdt.tether-token.near")
+                    page.locator("#investigate-form").evaluate("node => node.requestSubmit()")
+                    with self.subTest(role="lookup title holding an account"):
+                        self.assertEqual(title.inner_text(), "usdt.tether-token.near")
+                        self.assertEqual(title.evaluate(style)[:5], ["IBM Plex Mono", "22px", "28px", "400", "normal"])
+                with self.subTest(page=name, role="every section summary"):
+                    self.assertEqual([item for item in summaries if item[1:] != ["Manrope", "16px", "600"]], [])
+                with self.subTest(page=name, role="every title"):
+                    self.assertGreater(len(headings), 0)
+                    self.assertEqual([item for item in headings if item[2:] != ["Manrope", "600"]], [])
+                with self.subTest(page=name, role="every label"):
+                    self.assertEqual([item for item in label_roles if item[1:] != ["IBM Plex Mono", "uppercase"]], [])
+        for theme in ("dark", "light"):
+            with self.browser.new_context() as context:
+                context.route("**/*", self.local_route)
+                context.add_init_script("localStorage.setItem('siyab-theme', '" + theme + "')")
+                page = context.new_page()
+                for width in (1440, 390):
+                    page.set_viewport_size({"width": width, "height": 900})
+                    for name in ("index.html", "explore.html", "accounts/wrap.near.html", "issuers.html", "incidents/rhea.html", "feed.html", "verify.html"):
+                        page.goto(self.origin + "/" + name)
+                        page.wait_for_load_state("networkidle")
+                        page.evaluate("document.fonts.ready")
+                        for page_name, selector, family, font_size, line, weight, tracking, case in roles:
+                            if page_name != name:
+                                continue
+                            target = page.locator(selector).first
+                            self.assertGreater(page.locator(selector).count(), 0, (name, selector))
+                            actual = target.evaluate(style)
+                            expected = [family, font_size(width) if font_size else actual[1], line(width) if line else actual[2], weight, tracking(width) if tracking else actual[4], case]
+                            with self.subTest(theme=theme, width=width, page=name, role=selector):
+                                self.assertEqual(actual, expected)
+                        heavy = page.locator("body *").evaluate_all("nodes => nodes.filter(node => node.checkVisibility() && Number(getComputedStyle(node).fontWeight) >= 600 && [...node.childNodes].some(child => child.nodeType === 3 && child.textContent.trim())).map(node => [node.tagName, node.className, getComputedStyle(node).fontFamily])")
+                        with self.subTest(theme=theme, width=width, page=name, role="no synthetic bold"):
+                            self.assertEqual([item for item in heavy if not item[2].startswith("Manrope")], [])
+                        loaded = page.evaluate("[...document.fonts].filter(face => face.status === 'loaded').map(face => face.family.replace(/\"/g, '') + ' ' + face.weight)")
+                        with self.subTest(theme=theme, width=width, page=name, role="real font files"):
+                            self.assertTrue(set(loaded) <= {"Manrope 600", "Public Sans 200", "Public Sans 300", "Public Sans 400", "Public Sans 500", "IBM Plex Mono 300", "IBM Plex Mono 400", "IBM Plex Mono 500"}, loaded)
+                        for tag, classes, ratio in page.locator(labels).evaluate_all(contrast):
+                            with self.subTest(theme=theme, width=width, page=name, label=(tag, classes)):
+                                self.assertGreaterEqual(ratio, 4.5)
+                        quoted = page.locator('.profile-heading p.mono q.data,a[href*="accounts/"]>q.data,q.data-identifier').evaluate_all("nodes => nodes.map(node => getComputedStyle(node).quotes)")
+                        with self.subTest(theme=theme, width=width, page=name, role="identifier quotes"):
+                            self.assertTrue(all(value == "none" for value in quoted), quoted)
+                        borders = page.evaluate("""() => {const probe = (html) => {const holder=document.createElement('div');holder.innerHTML=html;document.querySelector('main').append(holder);const node=holder.firstElementChild;const value=getComputedStyle(node).borderTopColor;holder.remove();return value};
+                            const token = name => {const node=document.createElement('span');node.style.color='rgb(var('+name+'))';document.body.append(node);const value=getComputedStyle(node).color;node.remove();return value};
+                            return [probe('<button type=button>Read</button>'), probe('<input aria-label=Probe>'), probe('<select aria-label=Probe><option>All</option></select>'), token('--hairline'), token('--hairline-strong')]}""")
+                        with self.subTest(theme=theme, width=width, page=name, role="chrome"):
+                            self.assertEqual(borders[0], borders[3])
+                            self.assertEqual(borders[1:3], [borders[4], borders[4]])
 
     def test_browser_da2_ordinary_rows_are_forty_pixels(self):
         with self.browser.new_context(viewport={"width": 1440, "height": 900}) as context:
@@ -1035,7 +1147,7 @@ class DesignSystemTest(unittest.TestCase):
             page.set_viewport_size({"width": 390, "height": 844})
             page.goto(self.origin + "/issuers.html")
             page.evaluate("document.fonts.ready")
-            self.assertLessEqual(page.locator("#issuer-status tbody tr").first.bounding_box()["y"], 520)
+            self.assertLessEqual(page.locator("#issuer-status tbody tr").first.bounding_box()["y"], 532)
 
     def test_browser_da4_page_family_compositions(self):
         record = next(name for name in self.pages if name.startswith("records/") and name != "records/index.html")

@@ -7,13 +7,15 @@ ROOT = Path(__file__).resolve().parent.parent / "intel" / "ui"
 
 
 class SharedComponentsTest(unittest.TestCase):
-    def test_section_titles_use_genuine_light_weight(self):
+    def test_section_titles_use_the_genuine_display_weight(self):
         for name in ("profiles", "feed-verify", "investigate", "portfolio", "workspace", "cloud-workspace", "enrichment", "investigation-jobs", "delivery"):
             text = (ROOT / (name + ".css")).read_text(encoding="utf-8")
             with self.subTest(stylesheet=name):
                 self.assertNotIn("font:600 var(--fs-panel)", text)
-                self.assertNotRegex(text, r"font(?::600|-weight:600|-weight:700)")
-                self.assertIn("font:300 var(--fs-panel)", text)
+                self.assertNotRegex(text, r"font(?:-weight:600|-weight:700|:700)")
+                self.assertNotRegex(text, r"font:600 [^;}]*var\(--font-(?:ui|code)\)")
+                self.assertIn("font:600 var(--fs-panel-title) var(--font-display)", text)
+                self.assertNotRegex(text, r"(?:h2|h3|h4|summary)\{[^}]*font:300 var\(--fs-panel\)")
 
     def test_primary_account_and_figures_have_distinct_roles(self):
         text = (ROOT / "profiles.css").read_text(encoding="utf-8")
