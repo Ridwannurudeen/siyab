@@ -81,13 +81,11 @@ class DesignSystemTest(unittest.TestCase):
         if self._testMethodName.startswith("test_browser_") and self.browser is None:
             self.skipTest(self.browser_reason)
 
-    def test_dark_default_and_document_local_light_tokens(self):
+    def test_dark_default_and_explicit_light_tokens(self):
         explicit = next(body for selector, body, context in self.rules
                         if ':root[data-theme="light"]' in selector and not context)
-        local = next(body for selector, body, context in self.rules
-                     if '#record-theme-light:checked' in selector and not context)
-        self.assertEqual(tokens(local), tokens(explicit))
-        self.assertIn("color-scheme:light", local)
+        self.assertIn("color-scheme:light", explicit)
+        self.assertNotIn("record-theme", self.css)
         self.assertNotIn(LIGHT_QUERY, self.css)
         dark = next(body for selector, body, context in self.rules if selector == ":root" and not context)
         for name, value in {"--r-xs": "2px", "--r-sm": "4px", "--r-md": "6px",
@@ -140,22 +138,17 @@ class DesignSystemTest(unittest.TestCase):
         }.items():
             self.assertEqual(forced.get(selector), body)
 
-    def test_theme_head_precedes_styles_and_records_stay_script_free(self):
+    def test_theme_head_precedes_styles_on_every_page_including_records(self):
         for name, page in self.pages.items():
             with self.subTest(page=name):
                 self.assertIn('<meta name="color-scheme" content="dark light">', page)
                 self.assertIn('<meta name="theme-color" content="#0A0D16">', page)
                 if name.startswith("records/"):
-                    self.assertNotIn("<script", page)
-                elif "<script" in page:
+                    self.assertIn('id="theme-toggle"', page)
+                    self.assertIn('data-open-search', page)
+                if name.startswith("records/") or "<script" in page:
                     self.assertTrue(page.split("<head>", 1)[1].lstrip().startswith(THEME_SCRIPT), name)
                     self.assertLess(page.index(THEME_SCRIPT), page.index('<link rel="stylesheet"'))
-
-    def test_light_control_rules_support_document_local_records(self):
-        for selector, body, context in self.rules:
-            if '[data-theme="light"]' in selector:
-                with self.subTest(selector=selector):
-                    self.assertIn("#record-theme-light:checked", selector)
 
     def test_r1_colour_roles_and_focus(self):
         for rule in (
@@ -193,7 +186,7 @@ class DesignSystemTest(unittest.TestCase):
     def test_r2_header_search_preserves_control_padding(self):
         for context, padding in (((), "7px 10px"), (("@media(max-width:760px)",), "8px 10px")):
             body = next(body for selector, body, media in self.rules
-                        if selector == ".site-search-link,.site-search-button" and media == context)
+                        if selector == ".site-search-button" and media == context)
             with self.subTest(context=context):
                 self.assertIn("padding:" + padding + ";", body)
 
@@ -246,14 +239,14 @@ class DesignSystemTest(unittest.TestCase):
                     if size in (0, 2, 4, 5, 8, 10, 12, 16, 24, 32, 48):
                         continue
                     parts = selector.split(",")
-                    control_padding = property_name.startswith("padding") and all(re.search(r"(?:button|input|select|textarea|\.button|search-key|site-search-link|kbd|\btd\b|\bth\b)", part) for part in parts)
+                    control_padding = property_name.startswith("padding") and all(re.search(r"(?:button|input|select|textarea|\.button|search-key|kbd|\btd\b|\bth\b)", part) for part in parts)
                     gutter = property_name.startswith("padding") and size in (10, 12, 14, 16, 20, 24, 32) and all(part.strip() in (".app-content", ".app-topbar", ".app-footer") for part in parts)
                     panel_head = property_name == "padding" and size in (7, 14) and all(part.strip() in (".workspace-panel-head", ".analytics-panel-head", ".graph-toolbar", ".graph-list", ".graph-overview-panel") for part in parts)
                     bar_offset = size in (1, 2) and ("bar" in selector or "analytics-track" in selector)
                     mobile_menu = selector == ".mobile-navigation-panel" and property_name == "padding" and value == "12px 20px 24px"
-                    record_control = selector in (".record-theme>summary", ".graph-view-controls>summary") and property_name == "padding" and size == 6
+                    view_control = selector == ".graph-view-controls>summary" and property_name == "padding" and size == 6
                     landing_gutter = selector in (".landing-page .app-topbar", ".landing-page .app-footer") and property_name == "padding" and size == 1200 and "calc((100vw - 1200px)/2)" in value
-                    if not (control_padding or gutter or panel_head or bar_offset or mobile_menu or record_control or landing_gutter):
+                    if not (control_padding or gutter or panel_head or bar_offset or mobile_menu or view_control or landing_gutter):
                         failures.append((selector, property_name, value, context))
         self.assertEqual(failures, [])
 
@@ -744,7 +737,6 @@ class DesignSystemTest(unittest.TestCase):
                         self.assertTrue(all(len(line) > 1 for line in result["lines"]), result)
                         if width == 1440:
                             self.assertLessEqual(len(result["lines"]), 2)
-                        self.assertEqual(page.locator("script").count(), 0)
                         self.assertLessEqual(page.evaluate("document.documentElement.scrollWidth"), width)
 
     def test_browser_r2_review_component_widths(self):
@@ -907,9 +899,6 @@ class DesignSystemTest(unittest.TestCase):
                         page.goto(self.origin + "/" + name)
                         page.wait_for_load_state("networkidle")
                         page.evaluate("document.fonts.ready")
-                        if name.startswith("records/") and theme == "light":
-                            page.locator(".record-theme summary").click()
-                            page.locator("#record-theme-light").check()
                         with self.subTest(theme=theme, width=width, page=name):
                             self.assertLessEqual(page.evaluate("document.documentElement.scrollWidth"), width)
                         page.locator("main details").evaluate_all("nodes => nodes.forEach(node => node.open=true)")
@@ -925,21 +914,22 @@ class DesignSystemTest(unittest.TestCase):
             self.assertEqual(page.locator("body").evaluate("node => getComputedStyle(node).backgroundColor"), "rgb(245, 247, 250)")
             self.assertEqual(page.locator(".theme-toggle-label").inner_text(), "Use dark theme")
 
-    def test_browser_da2_native_record_theme_without_scripts(self):
+    def test_browser_records_follow_the_saved_theme_toggle_and_search(self):
         record = next(name for name in self.pages if name.startswith("records/") and name != "records/index.html")
         for name in ("records/index.html", record):
-            with self.browser.new_context(java_script_enabled=False, color_scheme="light") as context:
+            with self.browser.new_context(color_scheme="dark") as context:
                 context.route("**/*", self.local_route)
+                context.add_init_script("localStorage.setItem('siyab-theme', 'light')")
                 page = context.new_page()
                 page.goto(self.origin + "/" + name)
-                self.assertEqual(page.locator("script").count(), 0)
-                self.assertTrue(page.locator("#record-theme-dark").is_checked())
-                self.assertEqual(page.locator("body").evaluate("node => getComputedStyle(node).backgroundColor"), "rgb(10, 13, 22)")
-                page.locator(".record-theme summary").click()
-                page.locator("#record-theme-light").check()
-                self.assertEqual(page.locator("body").evaluate("node => getComputedStyle(node).backgroundColor"), "rgb(245, 247, 250)")
-                page.locator("#record-theme-dark").check()
-                self.assertEqual(page.locator("body").evaluate("node => getComputedStyle(node).backgroundColor"), "rgb(10, 13, 22)")
+                with self.subTest(page=name):
+                    self.assertEqual(page.locator("body").evaluate("node => getComputedStyle(node).backgroundColor"), "rgb(245, 247, 250)")
+                    self.assertEqual(page.locator(".theme-toggle-label").inner_text(), "Use dark theme")
+                    page.locator("#theme-toggle").click()
+                    self.assertEqual(page.locator("body").evaluate("node => getComputedStyle(node).backgroundColor"), "rgb(10, 13, 22)")
+                    self.assertEqual(page.evaluate("localStorage.getItem('siyab-theme')"), "dark")
+                    page.locator("[data-open-search]").click()
+                    self.assertTrue(page.locator("#global-search").evaluate("node => node.open"))
 
     def test_browser_da2_real_page_type_roles(self):
         cases = (("explore.html", "main h1", "Manrope", "24px", "30px", "600"),
@@ -1103,9 +1093,6 @@ class DesignSystemTest(unittest.TestCase):
                     for name in names:
                         page.goto(self.origin + "/" + name)
                         page.evaluate("document.fonts.ready")
-                        if name.startswith("records/") and theme == "light":
-                            page.locator(".record-theme summary").click()
-                            page.locator("#record-theme-light").check()
                         with self.subTest(theme=theme, width=width, page=name):
                             self.assertLessEqual(page.evaluate("document.documentElement.scrollWidth"), width + 1)
                             if width <= 390:
@@ -1176,7 +1163,8 @@ class DesignSystemTest(unittest.TestCase):
                         self.assertTrue(page.locator("#mobile-navigation>summary").evaluate("node => node === document.activeElement"))
 
     def test_issuer_scope_counts_the_recorded_answers(self):
-        sentence = ('Banned answers only. Other recorded answers: "Allowable": 365; false: 376. '
+        sentence = ('Banned answers only. Other recorded answers: get_blacklist_status answered "Allowable" 365 times; '
+                    'is_blocklisted answered false 376 times. '
                     'Counts by issuer view are in Coverage below.')
         self.assertIn('<p class="issuers-scope">' + render.data_text(sentence) + '</p>', self.pages["issuers.html"])
 
@@ -1184,8 +1172,8 @@ class DesignSystemTest(unittest.TestCase):
         original = render.issuers.reads()[0]
         answers = ["Allowable", False, None, "Pending <review>", "Pending <review>", {"error": "unavailable"}, "Banned"]
         reads = [dict(original, answer=answer) for answer in answers]
-        sentence = ('Banned answers only. Other recorded answers: "Allowable": 1; false: 1; null: 1; '
-                    '"Pending <review>": 2; {"error": "unavailable"}: 1. '
+        sentence = ('Banned answers only. Other recorded answers: get_blacklist_status answered "Allowable" 1 time, '
+                    'false 1 time, null 1 time, "Pending <review>" 2 times and {"error": "unavailable"} 1 time. '
                     'Counts by issuer view are in Coverage below.')
         with mock.patch.object(render.issuers, "reads", return_value=reads):
             page = render.issuers_page()
@@ -1221,7 +1209,7 @@ class DesignSystemTest(unittest.TestCase):
             page.goto(self.origin + "/issuers.html")
             page.evaluate("document.fonts.ready")
             scope = page.locator("#issuer-status-section>.issuers-scope")
-            self.assertEqual(scope.inner_text(), "Banned answers only. Other recorded answers: Allowable: 365; false: 376. Counts by issuer view are in Coverage below.")
+            self.assertEqual(scope.inner_text(), "Banned answers only. Other recorded answers: get_blacklist_status answered Allowable 365 times; is_blocklisted answered false 376 times. Counts by issuer view are in Coverage below.")
             self.assertTrue(scope.is_visible())
             self.assertLessEqual(page.locator("#issuer-status tbody tr").first.bounding_box()["y"], 340)
             for anchor in ("#issuer-status-section", "#issuer-ledger"):
@@ -1247,10 +1235,6 @@ class DesignSystemTest(unittest.TestCase):
                     page.set_viewport_size({"width": width, "height": 900})
                     for name in pages:
                         page.goto(self.origin + "/" + name)
-                        if name.startswith("records/") and theme == "light":
-                            page.locator(".record-theme summary").click()
-                            page.locator("#record-theme-light").check()
-                            page.wait_for_function("getComputedStyle(document.body).backgroundColor === 'rgb(245, 247, 250)'", timeout=5000)
                         page.evaluate("document.querySelectorAll('details').forEach(node => { node.open = true; })")
                         with self.subTest(theme=theme, width=width, page=name):
                             self.assertEqual(page.locator("body").evaluate("node => getComputedStyle(node).backgroundColor"),
@@ -1261,7 +1245,6 @@ class DesignSystemTest(unittest.TestCase):
             page = context.new_page()
             page.set_viewport_size({"width": 1440, "height": 900})
             page.goto(self.origin + "/" + record)
-            self.assertEqual(page.locator("script").count(), 0)
             anchors = page.locator(".record-heading .profile-anchors a")
             self.assertEqual(anchors.count(), len(render._RECORD_SECTIONS))
             for href in anchors.evaluate_all("nodes => nodes.map(node => node.getAttribute('href'))"):
@@ -1326,14 +1309,14 @@ class DesignSystemTest(unittest.TestCase):
             page.goto(self.origin + "/index.html")
             self.assertEqual(page.locator("body").evaluate("node => getComputedStyle(node).backgroundColor"), "rgb(10, 13, 22)")
 
-    def test_browser_records_default_dark_without_scripts(self):
+    def test_browser_records_default_dark_without_a_saved_choice(self):
         record = next(name for name in self.pages if name.startswith("records/") and name != "records/index.html")
         with self.browser.new_context(color_scheme="light") as context:
             context.route("**/*", self.local_route)
             page = context.new_page()
             page.goto(self.origin + "/" + record)
             self.assertEqual(page.locator("body").evaluate("node => getComputedStyle(node).backgroundColor"), "rgb(10, 13, 22)")
-            self.assertEqual(page.locator("script").count(), 0)
+            self.assertEqual(page.locator(".theme-toggle-label").inner_text(), "Use light theme")
 
 
     def test_browser_da6_watermark_surfaces_themes_print_and_layout(self):
@@ -1463,10 +1446,8 @@ class DesignSystemTest(unittest.TestCase):
                     page.wait_for_load_state("networkidle")
                     with self.subTest(javascript=javascript, page=name, role="landing and records stay unmarked"):
                         self.assertEqual(page.locator("body,body *").evaluate_all(marked), [])
-                    if name.startswith("records/"):
-                        self.assertEqual(page.locator("script").count(), 0)
-                        page.locator(".record-theme summary").click()
-                        page.locator("#record-theme-light").check()
+                    if name.startswith("records/") and javascript:
+                        page.locator("#theme-toggle").click()
                         with self.subTest(javascript=javascript, page=name, role="light record stays unmarked"):
                             self.assertEqual(page.locator("body,body *").evaluate_all(marked), [])
 

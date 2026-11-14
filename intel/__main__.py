@@ -426,7 +426,8 @@ def _feed(args):
                                                 stopped=lambda: interrupted)
             finally:
                 signal.signal(signal.SIGINT, previous)
-            print(f"followed {walked} heights to height {state['last_height']}, lag {state['lag_blocks']} blocks")
+            print(f"followed {walked} height{'' if walked == 1 else 's'} to height {state['last_height']}, "
+                  f"lag {state['lag_blocks']} block{'' if state['lag_blocks'] == 1 else 's'}")
             return 0
         if args.blocks is None:
             print("stopped: --blocks is required unless --follow is set", file=sys.stderr)

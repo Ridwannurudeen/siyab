@@ -322,6 +322,15 @@ class HostedSiteTest(unittest.TestCase):
                     self.assertIn(f"<li>follower stopped: its last update was at {written}, lag unknown</li>", page)
                     self.assertNotIn("lag 4 blocks", page)
 
+    def test_the_feed_page_names_a_lag_of_one_block_in_the_singular(self):
+        written = datetime.fromtimestamp(int(time.time()) - 10, UTC).strftime(feed._TIME)
+        with tempfile.TemporaryDirectory() as tmp:
+            write_follow_state(Path(tmp), [], lag_blocks=1, updated_at=written)
+            with mock.patch.dict(os.environ, {"FEED_STATE_DIR": tmp}):
+                page = get(self.server, "/feed.html")[3].decode("utf-8")
+        self.assertIn("<li>lag 1 block</li>", page)
+        self.assertNotIn("lag 1 blocks", page)
+
     def test_a_follow_state_without_updated_at_is_judged_by_last_time_else_by_started_at(self):
         now = int(time.time())
         fresh = datetime.fromtimestamp(now - 10, UTC).strftime(feed._TIME)

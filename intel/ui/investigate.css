@@ -18,6 +18,7 @@
 .investigate-native dt{font:400 var(--fs-data) var(--font-code);letter-spacing:.24px;text-transform:uppercase;font-variant-numeric:lining-nums tabular-nums slashed-zero;font-feature-settings:"lnum" 1,"tnum" 1,"zero" 1;font-variant-ligatures:none;color:rgb(var(--secondary));margin-bottom:8px}
 .investigate-native dd{font:300 24px/30px var(--font-code);letter-spacing:0;margin:0;overflow-wrap:anywhere;font-feature-settings:"lnum" 1,"tnum" 1,"zero" 1;font-variant-numeric:lining-nums tabular-nums slashed-zero;font-variant-ligatures:none}
 .investigate-unit{display:block;font:400 var(--fs-data) var(--font-ui);color:rgb(var(--secondary));margin-top:4px}
+.investigate-token-warning{display:block;margin-top:8px;padding-left:8px;border-left:2px solid rgb(var(--caution));font:400 var(--fs-data) var(--font-ui);color:rgb(var(--ink))}
 .investigate-source,.investigate-scope{font:400 var(--fs-data) var(--font-ui);color:rgb(var(--secondary));max-width:35rem;margin:16px 0 12px;overflow-wrap:anywhere}
 .investigate-source-detail{margin:12px 0;min-width:0}
 .investigate-source-detail>summary{min-height:36px;padding-block:8px;cursor:pointer;font:400 var(--fs-data) var(--font-ui);color:rgb(var(--secondary))}

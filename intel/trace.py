@@ -222,7 +222,7 @@ def summary(document):
             f"{document['window']['from'][:10]} 00:00 UTC{read_extent(document)}: "
             f"{usd_text(shares['direct_outbound_usd'])} across {shares['rows']} row{'' if shares['rows'] == 1 else 's'} "
             f"({shares['without_usd']['count']} row{'' if shares['without_usd']['count'] == 1 else 's'} without a USD "
-            f"amount, {shares['below_min_usd']['count']} below {MIN_USD} USD), each row counted "
+            f"amount, {shares['below_min_usd']['count']} below {usd_text(MIN_USD)}), each row counted "
             f"once as the Transfers API values it; shares of the gross outbound transfer value: {ends}; "
             f"{gross_sentence(document)[:-1]}; subject: "
             f"{_state_text(document['state_at_block']) or 'no issuer read'}")

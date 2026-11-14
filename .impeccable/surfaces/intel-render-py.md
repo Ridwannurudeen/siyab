@@ -25,6 +25,6 @@ FORM: Pinned reference convention, selected explicitly by the owner, overrides t
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 
-Constraints: inert evidence record pages stay script-free. Other browser scripts remain build-time inlined. Sourced text remains escaped. Live events are never fabricated. Recorded graphs retain all original evidence below the canvas. Null USD is unknown; direct gross outbound shares do not include deeper hops or imply loss. API polling respects existing limits and reports freshness/error/coverage honestly.
+Constraints: inert evidence record pages load the same theme and header scripts as every other page; record content inside main stays script-free. Other browser scripts remain build-time inlined. Sourced text remains escaped. Live events are never fabricated. Recorded graphs retain all original evidence below the canvas. Null USD is unknown; direct gross outbound shares do not include deeper hops or imply loss. API polling respects existing limits and reports freshness/error/coverage honestly.
 
 Acceptance: every existing section and function retained; source-backed analytics; graph selection/filter totals and keyboard inspection; independent verifier remains direct RPC; no page-wide overflow at320/375/412/768/1280/1440; both themes; reduced motion and Pause for added loops; unit/integration gates, browser interaction capture, independent finish review and documented built tokens.

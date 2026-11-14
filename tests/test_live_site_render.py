@@ -215,3 +215,61 @@ class LiveSiteRenderTest(unittest.TestCase):
             sentence = render._history_coverage([row])
         for text in ("1 function call transaction ", ", was read;", "1 successful issuer action on", "1 account id string does not exist"):
             self.assertIn(text, sentence)
+
+    def test_explore_counts_block_formats_counts_and_says_the_feed_line_is_the_committed_snapshot(self):
+        page = render.explore_page([], [], [], labels.load())
+        block = page.split("<summary>Committed data counts</summary>", 1)[1].split("</details>", 1)[0]
+        counts = labels.load().counts()
+        self.assertIn(f"Label store: {counts['assertions']:,} assertions over {counts['subjects']:,} subjects", block)
+        self.assertIn("1 exit trace,", block)
+        self.assertNotRegex(block, r"\b1 exit traces\b")
+        self.assertNotRegex(block, r"\d{4,} (?:blocks|hops|assertions|subjects|ms)\b")
+        snapshot = json.loads(render.feed.SNAPSHOT_PATH.read_text(encoding="utf-8"))
+        self.assertIn(f"Feed: following since {snapshot['started_at'][:10]}, {snapshot['blocks']:,} blocks", block)
+        self.assertIn(f"which ends at {snapshot['last_time']}. Events the running follower raised after it are on the "
+                      '<a href="feed.html">feed page</a>, not in this count.', block)
+        self.assertEqual(render._counts_display("Flows: 1 exit trace, 1708 hops, from 2026-11-03T05:22:06Z."),
+                         "<p>Flows: 1 exit trace, 1,708 hops, from 2026-11-03T05:22:06Z.</p>")
+
+    def test_issuer_scope_names_the_method_behind_each_other_answer(self):
+        page = render.issuers_page()
+        scope = page.split('id="issuer-status-section"', 1)[1].split('<p class="issuers-scope">', 1)[1].split("</p>", 1)[0]
+        self.assertIn("is_blocklisted answered false 376 times", scope)
+        self.assertIn('get_blacklist_status answered <q class="data">Allowable</q> 365 times', scope)
+        self.assertNotIn("false: 376", scope)
+
+    def test_distribution_threshold_uses_two_decimal_usd(self):
+        document = render._flows()[0][1]
+        page = render._flow_analytics(document, {})
+        self.assertIn("valued at or above 1.00 USD by the Transfers API", page)
+        self.assertIn("below 1.00 USD:", page)
+        self.assertNotRegex(page, r"\b1\.0 USD")
+        self.assertNotRegex(render._shares_table(document["shares"], {}), r"\b1\.0 USD")
+        self.assertIn("below 1.00 USD)", trace.summary(document))
+
+    def test_verify_names_the_example_account_instead_of_the_vendor(self):
+        page = render.verify_page()
+        self.assertNotIn("vendor", page)
+        self.assertIn("the latest record for <code>kestrelridge-shop.testnet</code>, the allowlisted demo payee on testnet", page)
+
+    def test_record_pages_share_the_site_header_theme_script_and_search(self):
+        record = render.records.read(next(render.RECORDS_DIR.glob("*.json")))
+        feed_page = render.page("Feed", "<h1>Feed</h1>", depth=1)
+        header = lambda html: html.split("<header", 1)[1].split("</header>", 1)[0].replace(' aria-current="page"', "")
+        for page in (render.record_index_page([record]), render.record_page(record)):
+            self.assertEqual(header(page), header(feed_page))
+            self.assertTrue(page.split("<head>\n", 1)[1].startswith("<script>try{var t=localStorage.getItem('siyab-theme')"))
+            self.assertIn('<dialog class="search-dialog" id="global-search"', page)
+            self.assertNotIn("record-theme", page)
+            self.assertIn('<main class="app-content record-content" id="main-content">', page)
+
+    def test_hop_card_names_one_unit_and_one_base_unit_in_the_singular(self):
+        hop = dict(render._flows()[0][1]["hops"][0], amount="1", asset_id="native:near")
+        card = render._hop_card(hop, {})
+        self.assertIn("1 base unit of", card)
+        self.assertNotRegex(card, r"\b1 (?:base )?units\b")
+        decimals = trace.asset_decimals(hop["asset_id"])
+        hop = dict(hop, amount=str(10 ** decimals))
+        card = render._hop_card(hop, {})
+        self.assertIn("<p>1 unit, from recorded base units.</p>", card)
+        self.assertEqual(render._transfer_amount(dict(hop, asset_id="unknown.near", amount="1")), "1 base unit")

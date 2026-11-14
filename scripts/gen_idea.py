@@ -57,25 +57,25 @@ def _count(number, noun):
 _TALLY = r"\d+ \(\d+ ALLOW, \d+ DENY, \d+ Unknown\)"
 # One template per counts line format, in the order the prose states them.
 COUNT_PROSE = (
-    (re.compile(r"Label store: (?P<a>\d+) assertions over (?P<s>\d+) subjects \(onchain (?P<o>\d+), "
+    (re.compile(r"Label store: (?P<a>\d+) assertions? over (?P<s>\d+) subjects? \(onchain (?P<o>\d+), "
                 r"official_source (?P<f>\d+), third_party (?P<t>\d+), inferred (?P<i>\d+)\)\."),
      lambda m: (f"The label store holds {_count(m['a'], 'assertion')} over {_count(m['s'], 'subject')}: onchain "
                 f"{m['o']}, official_source {m['f']}, third_party {m['t']}, inferred {m['i']}.")),
-    (re.compile(r"Incidents: (?P<n>\d+) pages\."),
+    (re.compile(r"Incidents: (?P<n>\d+) pages?\."),
      lambda m: f"Incident pages: {m['n']}."),
-    (re.compile(r"Flows: (?P<t>\d+) exit traces, (?P<h>\d+) hops, depth (?P<d>\d+) of (?P<b>\d+), "
+    (re.compile(r"Flows: (?P<t>\d+) exit traces?, (?P<h>\d+) hops?, depth (?P<d>\d+) of (?P<b>\d+), "
                 r"(?P<s>complete|stopped while reading (?:the subject|an account \d+ hops? from the subject))\."),
      lambda m: (f"The flow trace holds {_count(m['t'], 'exit trace')} over {_count(m['h'], 'hop')}, depth {m['d']} of "
                 f"{m['b']}, {m['s']}.")),
-    (re.compile(r"Feed: since (?P<d>[0-9-]+), (?P<b>\d+) blocks, (?P<c>\d+) events \(.*\)\."),
+    (re.compile(r"Feed: since (?P<d>[0-9-]+), (?P<b>\d+) blocks?, (?P<c>\d+) events? \(.*\)\."),
      lambda m: (f"The block feed has read {_count(m['b'], 'block')} since {m['d']} and raised "
                 f"{_count(m['c'], 'event')}.")),
-    (re.compile(r"Feed: following since (?P<d>[0-9-]+), (?P<b>\d+) blocks, (?P<c>\d+) events \(.*\)\."),
+    (re.compile(r"Feed: following since (?P<d>[0-9-]+), (?P<b>\d+) blocks?, (?P<c>\d+) events? \(.*\)\."),
      lambda m: (f"The block feed has followed {_count(m['b'], 'block')} since {m['d']} and raised "
                 f"{_count(m['c'], 'event')}.")),
     (re.compile(r"Feed: not run\."),
      lambda m: "The block feed has not run."),
-    (re.compile(r"On (?P<n>\d+) recorded mainnet receivers the rules returned (?P<a>\d+) ALLOW, (?P<d>\d+) DENY, "
+    (re.compile(r"On (?P<n>\d+) recorded mainnet receivers? the rules returned (?P<a>\d+) ALLOW, (?P<d>\d+) DENY, "
                 r"(?P<u>\d+) Unknown\."),
      lambda m: (f"On {_count(m['n'], 'recorded mainnet receiver')} the rules return {m['a']} ALLOW, {m['d']} DENY, "
                 f"{m['u']} Unknown.")),
@@ -84,18 +84,18 @@ COUNT_PROSE = (
      lambda m: f"By cohort: {m['c']}; {m['o']}; {m['i']}; {m['t']}."),
     (re.compile(r"(?P<a>\d+) attempts, (?P<r>\d+) refusals, (?P<b>\d+) bypasses\."),
      lambda m: f"Adversarial table: {m['a']} attempts, {m['r']} refusals, {m['b']} bypasses."),
-    (re.compile(r"Latency: p50 (?P<p50>\d+) ms, p95 (?P<p95>\d+) ms over (?P<r>\d+) verdict runs\."),
+    (re.compile(r"Latency: p50 (?P<p50>\d+) ms, p95 (?P<p95>\d+) ms over (?P<r>\d+) verdict runs?\."),
      lambda m: f"Verdict latency: p50 {m['p50']} ms, p95 {m['p95']} ms over {_count(m['r'], 'recorded run')}."),
     (re.compile(r"Latency: not measured\."),
      lambda m: "Verdict latency is not measured."),
     (re.compile(r"Latency, payee off the allowlist: p50 (?P<p50>\d+) ms, p95 (?P<p95>\d+) ms over (?P<r>\d+) verdict "
-                r"runs\."),
+                r"runs?\."),
      lambda m: (f"Verdict latency for a payee off the allowlist: p50 {m['p50']} ms, p95 {m['p95']} ms over "
                 f"{_count(m['r'], 'recorded run')}.")),
     (re.compile(r"Latency, payee off the allowlist: not measured\."),
      lambda m: "Verdict latency for a payee off the allowlist is not measured."),
     (re.compile(r"Latency, payee off the allowlist, NearBlocks fallback: p50 (?P<p50>\d+) ms, "
-                r"p95 (?P<p95>\d+) ms over (?P<r>\d+) verdict runs\."),
+                r"p95 (?P<p95>\d+) ms over (?P<r>\d+) verdict runs?\."),
      lambda m: (f"Verdict latency for the NearBlocks fallback path: p50 {m['p50']} ms, "
                 f"p95 {m['p95']} ms over {_count(m['r'], 'recorded run')}.")),
     (re.compile(r"Latency, payee off the allowlist, NearBlocks fallback: not measured\."),

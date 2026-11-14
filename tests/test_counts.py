@@ -15,23 +15,27 @@ from intel import labels, render, trace
 ROOT = Path(__file__).resolve().parent.parent
 TALLY = r"\d+ \(\d+ ALLOW, \d+ DENY, \d+ Unknown\)"
 FORMATS = (
-    r"On \d+ recorded mainnet receivers the rules returned \d+ ALLOW, \d+ DENY, \d+ Unknown\.",
+    r"On \d+ recorded mainnet receivers? the rules returned \d+ ALLOW, \d+ DENY, \d+ Unknown\.",
     (rf"By cohort: ordinary counterparties {TALLY}; organisations from registries {TALLY}; incident accounts "
      rf"{TALLY}; catalog tokens {TALLY}\."),
-    (r"Label store: \d+ assertions over \d+ subjects \(onchain \d+, official_source \d+, third_party \d+, "
+    (r"Label store: \d+ assertions? over \d+ subjects? \(onchain \d+, official_source \d+, third_party \d+, "
      r"inferred \d+\)\."),
-    r"Incidents: \d+ pages\.",
-    (r"Feed: (not run|since \d{4}-\d{2}-\d{2}, \d+ blocks, \d+ events \(\d+ code_hash_matches_incident, \d+ "
+    r"Incidents: \d+ pages?\.",
+    (r"Feed: (not run|since \d{4}-\d{2}-\d{2}, \d+ blocks?, \d+ events? \(\d+ code_hash_matches_incident, \d+ "
      r"fresh_dust_funded_pays_labelled, \d+ watch_account_key_added, \d+ labelled_account_large_transfer, \d+ "
      r"deploy_on_labelled_contract\)|following since \d{4}-\d{2}-\d{2}, \d+ "
-     r"blocks, \d+ events \(\d+ code_hash_matches_incident, \d+ fresh_dust_funded_pays_labelled, "
+     r"blocks?, \d+ events? \(\d+ code_hash_matches_incident, \d+ fresh_dust_funded_pays_labelled, "
      r"\d+ watch_account_key_added, \d+ labelled_account_large_transfer, \d+ deploy_on_labelled_contract\))\."),
-    r"Flows: \d+ exit traces, \d+ hops, depth \d+ of \d+, (complete|stopped while reading (the subject|an account \d+ hops? from the subject))\.",
-    r"Latency: (not measured|p50 \d+ ms, p95 \d+ ms over \d+ verdict runs)\.",
-    r"Latency, payee off the allowlist: (not measured|p50 \d+ ms, p95 \d+ ms over \d+ verdict runs)\.",
+    r"Flows: \d+ exit traces?, \d+ hops?, depth \d+ of \d+, (complete|stopped while reading (the subject|an account \d+ hops? from the subject))\.",
+    r"Latency: (not measured|p50 \d+ ms, p95 \d+ ms over \d+ verdict runs?)\.",
+    r"Latency, payee off the allowlist: (not measured|p50 \d+ ms, p95 \d+ ms over \d+ verdict runs?)\.",
     r"Latency, payee off the allowlist, NearBlocks fallback: (not measured|p50 \d+ ms, p95 \d+ ms over "
-    r"\d+ verdict runs)\.",
+    r"\d+ verdict runs?)\.",
 )
+
+
+def plural(number, noun):
+    return f"{number} {noun}" + ("" if number == 1 else "s")
 
 
 def load_counts():
@@ -116,8 +120,8 @@ class CountsTest(unittest.TestCase):
         signals = ", ".join(f"{count} {name}" for name, count in state["events"].items())
         since = (f"following since {state['started_at'][:10]}" if state.get("mode") == "follow"
                  else f"since {state['start_time'][:10]}")
-        self.assertEqual(self.counts.feed_line(), f"Feed: {since}, {state['blocks']} blocks, "
-                                                  f"{sum(state['events'].values())} events ({signals}).")
+        self.assertEqual(self.counts.feed_line(), f"Feed: {since}, {plural(state['blocks'], 'block')}, "
+                                                  f"{plural(sum(state['events'].values()), 'event')} ({signals}).")
         walked_skips = [height for height in state["skipped_heights"]
                         if state["start_height"] <= height <= state["last_height"]]
         self.assertEqual(state["blocks"], state["last_height"] - state["start_height"] + 1 - len(walked_skips))
@@ -127,16 +131,37 @@ class CountsTest(unittest.TestCase):
             path = Path(tmp) / "state.json"
             path.write_text(json.dumps(recorded), encoding="utf-8")
             self.assertEqual(self.counts.feed_line(path),
-                             f"Feed: since {recorded['start_time'][:10]}, {recorded['blocks']} blocks, "
-                             f"{sum(recorded['events'].values())} events ({recorded_signals}).")
+                             f"Feed: since {recorded['start_time'][:10]}, {plural(recorded['blocks'], 'block')}, "
+                             f"{plural(sum(recorded['events'].values()), 'event')} ({recorded_signals}).")
         traces = [json.loads(p.read_text(encoding="utf-8")) for p in (ROOT / "intel" / "flows").glob("*.json")]
         self.assertTrue(traces)
         least = min(traces, key=lambda t: (t["depth_reached"], t["completeness"] == "complete"))
         self.assertEqual(self.counts.flows_line(),
-                         f"Flows: {len(traces)} exit traces, {sum(len(t['hops']) for t in traces)} hops, depth "
+                         f"Flows: {plural(len(traces), 'exit trace')}, {plural(sum(len(t['hops']) for t in traces), 'hop')}, depth "
                          f"{least['depth_reached']} of {least['depth']}, {trace.stop_state(least['completeness'])}.")
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(self.counts.flows_line(Path(tmp)), "Flows: 0 exit traces, 0 hops, depth 0 of 0, complete.")
+
+    def test_a_count_of_one_names_its_noun_in_the_singular(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            flows = Path(tmp) / "flows"
+            flows.mkdir()
+            (flows / "one.json").write_text(json.dumps({"depth_reached": 1, "depth": 3, "completeness": "complete",
+                                                        "hops": [{}]}), encoding="utf-8")
+            self.assertEqual(self.counts.flows_line(flows), "Flows: 1 exit trace, 1 hop, depth 1 of 3, complete.")
+            state = Path(tmp) / "state.json"
+            state.write_text(json.dumps({"start_time": "2026-11-03T00:00:00Z", "blocks": 1,
+                                         "events": {"code_hash_matches_incident": 1}}), encoding="utf-8")
+            self.assertEqual(self.counts.feed_line(state),
+                             "Feed: since 2026-11-03, 1 block, 1 event (1 code_hash_matches_incident).")
+            runs = Path(tmp) / "verdict-runs.json"
+            runs.write_text("[5]", encoding="utf-8")
+            self.assertEqual(self.counts.latency_line(runs), "Latency: p50 5 ms, p95 5 ms over 1 verdict run.")
+            incidents = Path(tmp) / "incidents"
+            incidents.mkdir()
+            (incidents / "one.json").write_text("{}", encoding="utf-8")
+            self.assertEqual(self.counts.incidents_line(incidents), "Incidents: 1 page.")
+        self.assertNotRegex("\n".join(self.counts.lines()), r"\b1 [a-z ]*?(traces|hops|blocks|events|pages|runs|assertions|subjects|receivers)\b")
 
     def test_the_feed_line_reads_not_run_without_a_state_file(self):
         with tempfile.TemporaryDirectory() as tmp:

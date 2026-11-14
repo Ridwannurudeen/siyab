@@ -16,6 +16,22 @@
     if (!Number.isSafeInteger(milliseconds) || milliseconds > 8640000000000000) return "Not recorded";
     return new Date(milliseconds).toISOString().slice(0, 19).replace("T", " ") + "." + (stamp % 1000000000n).toString().padStart(9, "0") + " UTC";
   };
+  const storageSize = value => {
+    const bytes = typeof value === "string" && /^\d{1,15}$/.test(value) ? Number(value) : value;
+    if (!Number.isSafeInteger(bytes) || bytes < 0) return ["Unavailable", "", undefined];
+    const exact = window.SiyabNumbers.decimal(String(bytes), 0) + (bytes === 1 ? " byte" : " bytes");
+    for (const [unit, exponent, larger] of [["GB", 9], ["MB", 6, "GB"], ["kB", 3, "MB"]]) {
+      if (bytes >= 10 ** exponent) {
+        const shown = window.SiyabNumbers.decimal(bytes + "e-" + exponent, 2);
+        return shown === "1,000" && larger ? ["1", larger, exact] : [shown, unit, exact];
+      }
+    }
+    return [String(bytes), bytes === 1 ? "byte" : "bytes", exact];
+  };
+  const tokenNameWarning = name => /(?:https?:\/\/|\bwww\.)|\b[a-z0-9-]+\.(?:com|net|org|io|xyz|to|app|fi|finance|site|online|link|me|co|gg|info|club|top|live|pro|ru|cc|vip|win|ai|click|shop|bet|lol|gift|claim|cash|money|ly|de|dev|us|biz)\b/i.test(name)
+    ? "This name contains a web address. Any contract can set any name; Siyab does not check it, and the address is not a link."
+    : /\b(?:you (?:have )?won|claim (?:your|now|here)|check ?out|visit [a-z0-9-]+\.[a-z]{2,})\b/i.test(name)
+      ? "This name reads like an advertisement. Any contract can set any name, and Siyab does not check it." : "";
   const direction = (row, account) => row.from === account ? "Outgoing" : row.to === account ? "Incoming" : "Not established";
   const validPage = (data, account) => Boolean(data && data.account_id === account && data.network === "mainnet"
     && Array.isArray(data.items) && data.items.length <= 100 && data.pagination && typeof data.pagination === "object"
@@ -64,6 +80,7 @@
       const tr = node("tr"); tr.setAttribute("role", "row");
       values.forEach((value, index) => {
         const td = node("td"); td.setAttribute("data-label", headings[index]); td.setAttribute("role", "cell");
+        if (value instanceof window.Node && value.getAttribute("data-export-value") !== null) td.setAttribute("data-export-value", value.getAttribute("data-export-value"));
         td.append(value instanceof window.Node ? value : node("span", value === null || value === undefined ? "Unavailable" : value)); tr.append(td);
       }); body.append(tr);
     }
@@ -90,9 +107,10 @@
       const native = data.native;
       if (!native || typeof native.block_height !== "string" || !/^\d+$/.test(native.amount_yocto || "") || !/^\d+$/.test(native.locked_yocto || "")) throw new Error("The account balance response was incomplete.");
       const facts = node("dl", undefined, "investigate-native");
-      for (const [label, value, unit, exact] of [["Account balance", window.SiyabNumbers.baseUnits(native.amount_yocto, 24), "NEAR", baseUnits(native.amount_yocto, 24)], ["Locked balance", window.SiyabNumbers.baseUnits(native.locked_yocto, 24), "NEAR", baseUnits(native.locked_yocto, 24)], ["Storage used", native.storage_usage, "bytes"], ["Finalized block", native.block_height, ""]]) {
+      const [storage, storageUnit, storageExact] = storageSize(native.storage_usage);
+      for (const [label, value, unit, exact] of [["Account balance", window.SiyabNumbers.baseUnits(native.amount_yocto, 24), "NEAR", baseUnits(native.amount_yocto, 24) + " NEAR"], ["Locked balance", window.SiyabNumbers.baseUnits(native.locked_yocto, 24), "NEAR", baseUnits(native.locked_yocto, 24) + " NEAR"], ["Storage used", storage, storageUnit, storageExact], ["Finalized block", native.block_height, ""]]) {
         const item = node("div"); item.append(node("dt", label)); const dd = node("dd", value, "mono");
-        if (exact !== undefined) dd.title = "Exact: " + exact + " " + unit;
+        if (exact !== undefined) dd.title = "Exact: " + exact;
         if (unit) dd.append(node("span", unit, "investigate-unit")); item.append(dd); facts.append(item);
       }
       parent.append(facts);
@@ -117,7 +135,14 @@
         if (!item || !accountId(item.contract_id)) throw new Error("The token page contains an invalid contract.");
         const amount = node("div"); amount.append(node("span", baseUnits(item.balance, item.metadata?.decimals), "mono"));
         if (item.metadata && typeof item.metadata.symbol === "string") amount.append(quoted(item.metadata.symbol));
-        const metadata = node("div"); metadata.append(quoted(item.metadata?.name || "Metadata unavailable"), details("Metadata read", {metadata: item.metadata, source: item.metadata_source, balance_status: item.balance_status}));
+        const metadata = node("div"), name = item.metadata?.name;
+        if (typeof name === "string" && name) {
+          metadata.setAttribute("data-export-value", name);
+          metadata.append(node("span", "Name set by the token contract, not verified", "investigate-unit"), quoted(name));
+          const warning = tokenNameWarning(name);
+          if (warning) metadata.append(node("span", warning, "investigate-token-warning"));
+        } else metadata.append(quoted("Metadata unavailable"));
+        metadata.append(details("Metadata read", {metadata: item.metadata, source: item.metadata_source, balance_status: item.balance_status}));
         return [accountLink(item.contract_id), amount, metadata, item.last_update_block_height];
       });
     } else if (kind === "transfers") {

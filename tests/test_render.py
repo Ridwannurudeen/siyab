@@ -197,14 +197,14 @@ class AppShellTest(unittest.TestCase):
                   ("entities/organisations.html", "Organisations from on chain registries"),
                   ("records/index.html", "Incident records"), ("issuers.html", "Issuers"))
         anchor = re.compile(r'<a href="([^"]*)"(?: aria-current="page")?>([^<]*)</a>')
-        for depth, inert in ((0, False), (1, False), (1, True)):
-            page = render.page("Issuer actions", "<h1>Issuer actions</h1>", depth=depth, inert=inert)
+        for depth, record in ((0, False), (1, False), (1, True)):
+            page = render.page("Issuer actions", "<h1>Issuer actions</h1>", depth=depth, record=record)
             up = "../" * depth
             expected = [(up + href, label) for href, label in former]
             header = page.split('<header class="app-topbar app-header">', 1)[1].split('<details class="mobile-navigation"', 1)[0]
             header_links = anchor.findall(header.split('</a>', 1)[1])
             mobile = page.split('<div class="mobile-navigation-panel">', 1)[1].split('</div></details>', 1)[0]
-            with self.subTest(depth=depth, inert=inert):
+            with self.subTest(depth=depth, record=record):
                 self.assertEqual(sorted(header_links), sorted(expected))
                 self.assertEqual(anchor.findall(mobile), expected)
                 menus = re.findall(r'<details class="app-menu"><summary>([^<]+)</summary><nav class="app-menu-panel" aria-label="([^"]+)">(.*?)</nav></details>', header)
@@ -213,30 +213,28 @@ class AppShellTest(unittest.TestCase):
                 self.assertEqual(anchor.findall(menus[1][2]), expected[6:8])
                 self.assertEqual(page.count(f'href="{up}issuers.html" aria-current="page"'), 2)
 
-    def test_theme_head_precedes_styles_and_keeps_record_pages_inert(self):
+    def test_theme_head_precedes_styles_on_every_page_including_records(self):
         script = "<script>try{var t=localStorage.getItem('siyab-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>"
-        for inert in (False, True):
-            page = render.page("Feed", "<h1>Feed</h1>", inert=inert)
-            with self.subTest(inert=inert):
+        for record in (False, True):
+            page = render.page("Feed", "<h1>Feed</h1>", record=record)
+            with self.subTest(record=record):
                 self.assertIn('<meta name="color-scheme" content="dark light">', page)
                 self.assertIn('<meta name="theme-color" content="#0A0D16">', page)
                 self.assertNotIn('media="(prefers-color-scheme:', page)
-                if inert:
-                    self.assertNotIn(script, page)
-                else:
-                    self.assertTrue(page.startswith('<!doctype html>\n<html lang="en">\n<head>\n' + script))
-                    self.assertLess(page.index(script), page.index('<link rel="stylesheet"'))
+                self.assertTrue(page.startswith('<!doctype html>\n<html lang="en">\n<head>\n' + script))
+                self.assertLess(page.index(script), page.index('<link rel="stylesheet"'))
 
-    def test_record_shell_is_inert_and_nested_navigation_resolves(self):
-        page = render.page("Incident record", "<h1>Incident record</h1>", depth=1, inert=True)
-        self.assertNotIn('<script', page)
-        self.assertNotIn('<button', page)
-        self.assertIn('<details class="record-theme"><summary>Theme</summary>', page)
-        self.assertIn('<fieldset><legend>Theme</legend>', page)
-        self.assertIn('<input type="radio" id="record-theme-dark" name="record-theme" value="dark" checked>', page)
-        self.assertIn('<label for="record-theme-dark">Dark</label>', page)
-        self.assertIn('<input type="radio" id="record-theme-light" name="record-theme" value="light">', page)
-        self.assertIn('<label for="record-theme-light">Light</label>', page)
+    def test_record_shell_shares_the_site_header_theme_and_search_and_nested_navigation_resolves(self):
+        page = render.page("Incident record", "<h1>Incident record</h1>", depth=1, record=True)
+        ordinary = render.page("Feed", "<h1>Feed</h1>", depth=1)
+        header = lambda html: html.split('<header', 1)[1].split('</header>', 1)[0]
+        self.assertEqual(header(page), header(ordinary).replace(' aria-current="page"', ''))
+        self.assertIn('<button class="site-search-button" type="button" aria-label="Search accounts and entities" data-open-search>', page)
+        self.assertIn('<button class="theme-toggle" type="button" id="theme-toggle"', page)
+        self.assertIn('<dialog class="search-dialog" id="global-search"', page)
+        self.assertIn('<script>' + (render.ROOT / "intel/ui/shell.js").read_text(encoding="utf-8") + '</script>', page)
+        self.assertNotIn('record-theme', page)
+        self.assertNotIn('site-search-link', page)
         self.assertIn('<main class="app-content record-content" id="main-content">', page)
         self.assertIn('<details class="mobile-navigation" id="mobile-navigation">', page)
         for path in ('index.html', 'explore.html', 'flows/rhea-collector.html', 'feed.html', 'explore.html#tools',
@@ -350,10 +348,10 @@ class RenderTest(unittest.TestCase):
             self.assertEqual((self.out / path.lstrip("/")).read_bytes(), source)
             found.append(name)
         self.assertEqual(found.count("graphs"), 1 if 'data-siyab-graph' in page or 'id="account-investigation"' in page else 0)
-        self.assertEqual(found.count("workspace"), 0 if 'class="app-content record-content"' in page else 1)
-        self.assertEqual(found.count("cloud-workspace"), 0 if 'class="app-content record-content"' in page else 1)
+        self.assertEqual(found.count("workspace"), 1)
+        self.assertEqual(found.count("cloud-workspace"), 1)
         self.assertEqual(found.count("investigate"), 1 if 'id="account-investigation"' in page else 0)
-        self.assertEqual(found.count("number-format"), 0 if 'class="app-content record-content"' in page else 1)
+        self.assertEqual(found.count("number-format"), 1)
         self.assertEqual(found.count("landing"), 1 if 'class="landing-page"' in page else 0)
         for name, mount in (("enrichment", "entity-enrichment"), ("portfolio", "account-portfolio"),
                             ("investigation-jobs", "investigation-jobs"), ("delivery", "team-delivery")):
@@ -376,8 +374,7 @@ class RenderTest(unittest.TestCase):
         self.assertIn('id="feed-health"', home)
         for name, page in self.pages.items():
             self.assertIn('class="site-brand"', page, name)
-            if name.startswith("records/"):
-                self.assertNotIn("<script", page, name)
+            self.assertIn('id="global-search"', page, name)
         for prefix in ("flows/", "clusters/"):
             for name, page in self.pages.items():
                 if name.startswith(prefix):
@@ -561,7 +558,7 @@ class RenderTest(unittest.TestCase):
         self.assertEqual(again, names)
         self.assertEqual(second, first)
 
-    def test_record_text_is_escaped_and_keeps_the_page_inert(self):
+    def test_record_text_is_escaped(self):
         text = '<img src=x onerror="alert(1)"> & source text'
         with tempfile.TemporaryDirectory() as tmp, mock.patch("urllib.request.urlopen", side_effect=no_network):
             records_dir = Path(tmp) / "records"
@@ -572,7 +569,7 @@ class RenderTest(unittest.TestCase):
             page = (Path(tmp) / "site" / f"records/{record_path.stem}.html").read_text(encoding="utf-8")
         self.assertIn(html.escape(text), page)
         self.assertNotIn(text, page)
-        self.assertNotIn("<script", page)
+        self.assertNotIn('<img src=x', page)
         self.assertIn(f"records/{record_path.stem}.html", written)
         parser = RecordFieldParser()
         parser.feed(page)
@@ -684,7 +681,7 @@ class RenderTest(unittest.TestCase):
         self.assertNotRegex(stylesheet, r"(?<!border-)color:rgb\(var\(--accent-fill\)\)")
         theme_blocks = (
             ("dark", re.search(r":root\{(.*?)\}", stylesheet, re.DOTALL).group(1)),
-            ("light", re.search(r':root\[data-theme="light"\],:root:has\(#record-theme-light:checked\)\{(.*?)\}', stylesheet, re.DOTALL).group(1)),
+            ("light", re.search(r':root\[data-theme="light"\]\{(.*?)\}', stylesheet, re.DOTALL).group(1)),
         )
         surfaces = ("--ground", "--panel", "--ground-alt", "--hover")
         text_surfaces = {role: surfaces for role in
@@ -961,7 +958,7 @@ class RenderTest(unittest.TestCase):
 
     def test_the_explore_carries_the_counts_lines(self):
         for line in render._counts_lines():
-            self.assertIn(f"<p>{html.escape(line)}</p>", self.pages["explore.html"])
+            self.assertIn(render._counts_display(line), self.pages["explore.html"])
 
     def test_the_explore_says_what_the_counts_are_of_between_the_h1_and_the_counts_card(self):
         page = self.pages["explore.html"]
