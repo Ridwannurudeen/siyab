@@ -1286,7 +1286,7 @@ class RenderTest(unittest.TestCase):
     def test_the_entity_page_lists_its_members_with_the_registry_read(self):
         entity = json.loads((ROOT / "intel" / "entities.jsonl").read_text(encoding="utf-8").splitlines()[0])
         page = self.pages[f"entities/{entity['id']}.html"]
-        self.assertIn("<h2>Members</h2>", page)
+        self.assertIn('<h2 class="registry-members-title">Members</h2>', page)
         self.assertIn(f'<q class="data">{html.escape(entity["members"][0])}</q>', page)
         self.assertIn(entity["source"]["method"], page)
         self.assertIn(str(entity["source"]["block"]), page)
