@@ -31,6 +31,19 @@ colors:
   light-hairline: "#D3DBE6"
   light-hairline-strong: "#78849A"
 typography:
+  display:
+    fontFamily: "Public Sans"
+    fontSize: "clamp(44px, 6.2vw, 92px)"
+    fontWeight: 300
+    lineHeight: "0.98"
+    letterSpacing: "-0.03em"
+    textWrap: "balance"
+  panel-title-landing:
+    fontFamily: "Public Sans"
+    fontSize: "32px"
+    fontWeight: 300
+    lineHeight: "38px"
+    letterSpacing: "0.18px"
   page-title:
     fontFamily: "Public Sans"
     fontSize: "24px"
@@ -227,6 +240,28 @@ Source assertions and attribution hypotheses remain distinct. Registry membershi
 Collection pagination preserves script-free access to every assertion. Content-addressed scripts and graph data remain local. Record paths, scalar values, arrays, hashes, quotations, citations and re-check commands remain complete. Native record theme selection changes only presentation.
 
 Browser investigations, notes, watchlists and view settings remain browser-local by default. Authentication does not upload them. Shared imports and saves retain their explicit choices, and private workspace data stays out of public account archives. Existing worker-health, coverage, delivery and retained-history qualifications remain visible.
+
+## Landing page
+
+The landing alone uses a slim top bar without the workspace sidebar. Its content is at most 1200px wide, with 64px section padding on desktop and 36px on phones, derived from the landing section spacing token. The display role is Public Sans 300 at clamp(44px, 6.2vw, 92px), 0.98 leading, -0.03em tracking and balanced wrapping. Its second line uses secondary text. The panel-title role gains one landing step, 32/38px at 300. The problem statement scales from 32 to 40px. The recorded transfer counter uses Plex Mono 300 from 40 to 56px with tabular figures.
+
+The hero graph is a deterministic seeded excerpt of the same recorded Rhea graph used by Explore, capped at the root plus 40 nodes and 60 edges. Accent paths identify the two cited transfers, never a payment verdict. The counter is the recording's transfer total and never counts through invented values. The coverage statement remains adjacent. Evidence disclosures retain full identifiers, transactions and receipts.
+
+One focal sequence draws the recorded paths. Two supporting pieces connect the payment-detail pipeline and the incident timeline. All start once on page load, with delayed supporting strokes; text and numbers remain visible. No sequence depends on scrolling or replays. The motion tokens in site.css are:
+
+| Token | Value | Job |
+|---|---|---|
+| --landing-ease-out | cubic-bezier(.22,1,.36,1) | Settle recorded paths |
+| --landing-ease-trace | cubic-bezier(.65,0,.35,1) | Connect evidence |
+| --landing-draw-duration | 2200ms | Recorded graph paths |
+| --landing-highlight-duration | 1200ms | Cited transfer paths |
+| --landing-highlight-delay | 900ms | Cited paths follow the context |
+| --landing-pipeline-duration | 700ms | Connect the four payment risks |
+| --landing-pipeline-delay | 1800ms | Supporting relationship |
+| --landing-timeline-duration | 1000ms | Connect the recorded timestamps |
+| --landing-timeline-delay | 2900ms | Supporting chronology |
+
+Only stroke-dashoffset and transform animate. Starting states require the landing script's motion-ready class. Disabled scripts, reduced motion, missing observation support and a hidden tab produce the final state immediately. Every sequence completes within 3900ms of its start, removes its running class, and releases will-change. Existing motion elsewhere retains its timings and Pause controls.
 
 ## Preserved motion
 

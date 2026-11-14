@@ -56,7 +56,7 @@
     }
   };
   const open = (query = "") => {
-    if (typeof dialog.showModal !== "function") { location.href = "/index.html#search"; return; }
+    if (typeof dialog.showModal !== "function") { location.href = "/explore.html#search"; return; }
     if (!dialog.open) opener = document.activeElement;
     input.value = query; if (!dialog.open) dialog.showModal(); input.focus(); render();
   };

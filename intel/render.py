@@ -2,7 +2,7 @@
 
 No framework or third-party script; shared local content-hashed scripts and one stylesheet, style.css.
 The
-pages: index.html (the headline, what the counts are of, a search box whose inline script filters
+pages: index.html (the landing page), explore.html (the recorded investigation workspace, a search box whose inline script filters
 search.json in the browser, the counts block of scripts/counts.py, the links), search.json (one entry
 per subject with a current row and per registry entity of intel/entities.jsonl, each with the path of
 its page relative to the site root), feed.html
@@ -44,6 +44,7 @@ import base64
 import importlib.util
 import json
 import re
+import random
 from collections import Counter
 from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP, localcontext
@@ -158,17 +159,17 @@ def _inputs(assertion, by_id, accounts):
                        for i in assertion.source["inputs"])
 
 
-def page(title, body, depth=0, rooted=False, *, inert=False):
+def page(title, body, depth=0, rooted=False, *, inert=False, landing=False):
     """A whole HTML page; depth is how many directories below the site root it sits, and a rooted page
     links root absolute because it is served at any path."""
     body = re.sub(r"(<h1(?: [^>]*)?>.*?</h1>)", r'<div class="page-head">\1</div>', body, count=1) if body.startswith("<h1") else body
     up = "/" if rooted else "../" * depth
-    current = {"Siyab": "index.html", "Investigate account": "investigate.html", "Workspace": "workspace.html", "Feed": "feed.html", "Verify a record": "verify.html",
+    current = {"Siyab": "index.html", "Explore": "explore.html", "Investigate account": "investigate.html", "Workspace": "workspace.html", "Feed": "feed.html", "Verify a record": "verify.html",
                "Incident records": "records/index.html", "Issuer actions": "issuers.html",
                **{label: f"entities/{name}.html" for name, label, _ in ENTITY_SETS}}.get(title)
-    primary = (("index.html", "Home"), ("investigate.html", "Account lookup"), ("flows/rhea-collector.html", "Trace"), ("feed.html", "Feed"), ("workspace.html", "Workspace"),
-               ("index.html#tools", "Payment checks"), ("verify.html", "Verify"))
-    secondary = (("index.html#explore-title", "Incidents"),
+    primary = (("index.html", "Home"), ("explore.html", "Explore"), ("investigate.html", "Account lookup"), ("flows/rhea-collector.html", "Trace"), ("feed.html", "Feed"), ("workspace.html", "Workspace"),
+               ("explore.html#tools", "Payment checks"), ("verify.html", "Verify"))
+    secondary = (("explore.html#explore-title", "Incidents"),
                  *((f"entities/{name}.html", label) for name, label, _ in ENTITY_SETS),
                  ("records/index.html", "Incident records"), ("issuers.html", "Issuers"))
     navigation = []
@@ -177,6 +178,10 @@ def page(title, body, depth=0, rooted=False, *, inert=False):
                         + f'>{esc(label)}</a>' for href, label in links)
         navigation.append(f'<nav class="app-{name}-navigation" aria-label="{name.title()}">{items}</nav>')
     nav = "".join(navigation)
+    landing_nav = ('<nav class="landing-navigation" aria-label="Primary">'
+                   + ''.join(f'<a href="{up}{href}">{label}</a>' for href, label in
+                             (("explore.html", "Explore"), ("investigate.html", "Account lookup"),
+                              ("explore.html#explore-title", "Incidents"), ("verify.html", "Verify"))) + '</nav>') if landing else ''
     shell = "" if inert else (ROOT / "intel/ui/shell.js").read_text(encoding="utf-8")
     workspace_script = "" if inert else (ROOT / "intel/ui/workspace.js").read_text(encoding="utf-8")
     cloud_script = "" if inert else (ROOT / "intel/ui/cloud-workspace.js").read_text(encoding="utf-8")
@@ -185,7 +190,7 @@ def page(title, body, depth=0, rooted=False, *, inert=False):
     search = ('<details class="record-theme"><summary>Theme</summary><fieldset><legend>Theme</legend>'
               '<input type="radio" id="record-theme-dark" name="record-theme" value="dark" checked><label for="record-theme-dark">Dark</label>'
               '<input type="radio" id="record-theme-light" name="record-theme" value="light"><label for="record-theme-light">Light</label></fieldset></details>'
-              f'<a class="site-search-link" aria-label="Search accounts and entities" href="{up}index.html#search">{search_label}</a>' if inert else
+              f'<a class="site-search-link" aria-label="Search accounts and entities" href="{up}explore.html#search">{search_label}</a>' if inert else
               f'<button class="site-search-button" type="button" aria-label="Search accounts and entities" data-open-search>{search_label} <kbd class="search-key">Ctrl K</kbd></button>'
               '<button class="theme-toggle" type="button" id="theme-toggle" aria-label="Switch to light theme"><span class="theme-toggle-label">Use light theme</span></button>')
     dialog = "" if inert else (
@@ -208,24 +213,32 @@ def page(title, body, depth=0, rooted=False, *, inert=False):
                 f'<meta name="twitter:image" content="{SITE_ORIGIN}/brand/social.png">\n'
                 '<link rel="icon" type="image/svg+xml" href="/brand/favicon.svg"><link rel="alternate icon" href="/favicon.ico">\n')
     theme_script = "" if inert else "<script>try{var t=localStorage.getItem('siyab-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>\n"
+    frame = (f'<header class="app-topbar"><a class="site-brand" href="{up}index.html">{BRAND_MARK}<span>Siyab</span></a>'
+             f'{landing_nav}<div class="header-actions">{search}</div>'
+             f'<details class="mobile-navigation" id="mobile-navigation"><summary>Menu</summary>'
+             f'<div class="mobile-navigation-panel">{landing_nav}</div></details></header>' if landing else
+             f'<aside class="app-sidebar"><a class="site-brand" href="{up}index.html">{BRAND_MARK}<span>Siyab</span></a>{nav}</aside>'
+             f'<header class="app-topbar"><a class="app-mobile-brand" href="{up}index.html">{BRAND_MARK}<span>Siyab</span></a>'
+             f'<span class="app-context">{esc("Siyab" if title == "Siyab" else "Investigate" if title == "Explore" else title)}</span>'
+             f'<div class="header-actions">{search}</div>'
+             f'<details class="mobile-navigation" id="mobile-navigation"><summary>Menu</summary><div class="mobile-navigation-panel">{nav}</div></details>'
+             '</header>')
     return (f"<!doctype html>\n<html lang=\"en\">\n<head>\n{theme_script}<meta charset=\"utf-8\">\n"
             '<meta name="color-scheme" content="dark light">\n'
             '<meta name="theme-color" content="#0A0D16">\n'
             f"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n{ROBOTS}"
             f"<title>{esc(title)}</title>\n{metadata}<link rel=\"stylesheet\" href=\"/style.css\">\n"
-            + (_script_tag(number_script) if number_script else "") + "</head>\n<body>\n"
-            '<a class="skip-link" href="#main-content">Skip to content</a>'
-            f'<aside class="app-sidebar"><a class="site-brand" href="{up}index.html">{BRAND_MARK}<span>Siyab</span></a>{nav}</aside>'
-            f'<header class="app-topbar"><a class="app-mobile-brand" href="{up}index.html">{BRAND_MARK}<span>Siyab</span></a>'
-            f'<span class="app-context">{esc("Investigate" if title == "Siyab" else title)}</span>'
-            f'<div class="header-actions">{search}</div>'
-            f'<details class="mobile-navigation" id="mobile-navigation"><summary>Menu</summary><div class="mobile-navigation-panel">{nav}</div></details>'
-            f'</header>{dialog}\n<main class="{content_class}" id="main-content">\n{body}\n</main>\n'
+            + (_script_tag(number_script) if number_script else "") + '</head>\n'
+            + ('<body class="landing-page">\n' if landing else '<body>\n')
+            + '<a class="skip-link" href="#main-content">Skip to content</a>'
+            + f'{frame}{dialog}\n<main class="{content_class}" id="main-content">\n{body}\n</main>\n'
             '<footer class="app-footer"><p>Data: NearBlocks. Blocks: mainnet.neardata.xyz. Transfers: FastNEAR.</p></footer>\n'
             + ('' if inert else '<p id="workspace-feedback" class="workspace-feedback" role="status" aria-live="polite"></p>')
             + f'{"<script>" + shell + "</script>" if shell else ""}'
             + f'{_script_tag(workspace_script) if workspace_script else ""}'
-            + f'{_script_tag(cloud_script) if cloud_script else ""}</body>\n</html>\n')
+            + f'{_script_tag(cloud_script) if cloud_script else ""}'
+            + (_script_tag((ROOT / "intel/ui/landing.js").read_text(encoding="utf-8")) if landing else '')
+            + '</body>\n</html>\n')
 
 
 def _counts_lines():
@@ -422,7 +435,7 @@ def _workspace(flows, clusters, store, summary):
                   _graph_section(graph.cluster_payload(clusters[0][1], accounts), f"/clusters/{clusters[0][0]}.html") if clusters else
                   '<p>No recorded investigation is available.</p>')
     graph_link = (f'<a href="flows/{esc(flows[0][0])}.html">Open recorded trace and evidence</a>' if flows else "")
-    provenance = Counter(a.provenance for a in store.assertions if a.superseded_by is None)
+    provenance = store.counts()["provenance"]
     total = sum(provenance.values())
     def bars(items, denominator):
         return ''.join(f'<div class="analytics-row"><span>{esc(label)}</span><div class="analytics-track">'
@@ -433,7 +446,7 @@ def _workspace(flows, clusters, store, summary):
     return ('<section class="workspace-overview"><div class="workspace-heading page-head"><div>'
             '<h1 id="page-title">Investigate</h1></div>'
             '<a class="button" href="#tools">Check a payment</a></div>'
-            '<form class="workspace-search" id="search" action="/index.html" method="get">'
+            '<form class="workspace-search" id="search" action="/explore.html" method="get">'
             '<input name="q" aria-label="Search recorded accounts and entities" placeholder="Find an account or entity" autocomplete="off">'
             '<button type="submit" data-workspace-search>Investigate</button></form>'
             '<noscript><p>Browse <a href="entities/infrastructure.html">infrastructure accounts</a>, <a href="entities/organisations.html">organisations</a> and the <a href="#explore-title">recorded investigations</a>.</p></noscript>'
@@ -441,15 +454,15 @@ def _workspace(flows, clusters, store, summary):
             + graph_view + (_flow_analytics(flows[0][1], accounts) if flows else "") + '<div class="analytics-grid workspace-cohorts"><article class="analytics-panel">'
             '<div class="analytics-panel-head"><h2>Recorded receiver cohort</h2><a href="top-receivers.html">Sources and limits</a></div>'
             f'<div class="analytics-chart">{cohort}</div><p class="analytics-note">Recorded receiver judgements, not a rate over all NEAR payees.</p></article>'
-            '<article class="analytics-panel"><div class="analytics-panel-head"><h2>Current label provenance</h2>'
+            '<article class="analytics-panel"><div class="analytics-panel-head"><h2>Label store provenance</h2>'
             '<a href="#explore-title">Explore sources</a></div>'
             f'<div class="analytics-chart">{bars(sorted(provenance.items()), total)}</div>'
-            '<p class="analytics-note">Current assertions in the committed label store. Inferred labels remain hypotheses.</p></article></div>'
+            '<p class="analytics-note">All assertions in the committed label store, including superseded records. Inferred labels remain hypotheses.</p></article></div>'
             + _feed_panel() + '</section><script>'
             + (ROOT / "intel/ui/feed.js").read_text(encoding="utf-8") + '</script>')
 
 
-def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVERS_JUDGEMENTS_DIR):
+def explore_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVERS_JUDGEMENTS_DIR):
     counts = "".join(f"<p>{esc(line)}</p>" for line in _counts_lines())
     label_count = store.counts()
     scan_tool_label = "Is this account " + "sa" + "fe" + " to use?"
@@ -567,7 +580,161 @@ def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVE
         '<p class="muted">An unreadable check returns no ALLOW. Unknown never passes.</p></section>'
         f'<script>{INDEX_SCRIPT}</script>'
     )
-    return page("Siyab", _workspace(flows, clusters, store, top_summary) + body)
+    return page("Explore", _workspace(flows, clusters, store, top_summary) + body)
+
+
+def _landing_graph(document, accounts, excerpt):
+    payload = graph.flow_payload(document, accounts)
+    highlighted = {(hop["from"], hop["to"], hop["asset_id"]) for hop in excerpt}
+    selected = [edge for edge in payload["edges"] if (edge["from"], edge["to"], edge["asset_id"]) in highlighted]
+    node_ids = list(dict.fromkeys([payload["root"], *(edge["to"] for edge in selected)]))
+    for node in payload["nodes"]:
+        if len(node_ids) >= 41:
+            break
+        if node["id"] not in node_ids:
+            node_ids.append(node["id"])
+    edges = selected + [edge for edge in payload["edges"] if edge not in selected
+                        and edge["from"] in node_ids and edge["to"] in node_ids][:60 - len(selected)]
+    layout = random.Random("siyab-rhea-collector")
+    positions = {payload["root"]: (100, 280)}
+    for index, node_id in enumerate(node_ids[1:]):
+        positions[node_id] = (330 + (index % 7) * 72 + layout.randrange(-18, 19),
+                              50 + (index // 7) * 86 + layout.randrange(-18, 19))
+    for node_id, position in zip(node_ids[1:3], ((405, 180), (555, 395))):
+        positions[node_id] = position
+    paths = []
+    for edge in edges:
+        x1, y1 = positions[edge["from"]]
+        x2, y2 = positions[edge["to"]]
+        bend = (x1 + x2) / 2
+        css = "landing-edge is-highlight" if edge in selected else "landing-edge"
+        paths.append(f'<path class="{css}" data-edge-id="{esc(edge["id"])}" pathLength="1" '
+                     f'd="M{x1} {y1}C{bend:g} {y1} {bend:g} {y2} {x2} {y2}"/>')
+    nodes = []
+    for node_id, (x, y) in positions.items():
+        css = "landing-graph-node is-root" if node_id == payload["root"] else "landing-graph-node"
+        nodes.append(f'<circle class="{css}" data-node-id="{esc(node_id)}" cx="{x}" cy="{y}" '
+                     f'r="{7 if node_id == payload["root"] else 3}"/>')
+    captions = []
+    for hop in excerpt:
+        x, y = positions[hop["to"]]
+        captions.append(f'<text class="landing-graph-caption" x="{x + 12}" y="{y - 12}">{esc(_transfer_amount(hop))}</text>')
+    return ('<svg class="landing-graph-svg" viewBox="0 0 850 560" aria-hidden="true" focusable="false" data-landing-sequence="graph">'
+            + ''.join(paths + nodes + captions) + '</svg>')
+
+
+def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVERS_JUDGEMENTS_DIR):
+    document = dict(flows)["rhea-collector"]
+    accounts = account_pages(store)
+    excerpt = [hop for hop in document["hops"] if hop["from"] == document["subject"]][:2]
+    status = (f'Recorded mainnet investigation. {len(document["hops"]):,} recorded transfers. '
+              f'Depth reached: {document["depth_reached"]} of {document["depth"]}. '
+              + trace.stop_state(document["completeness"]).capitalize() + '.')
+    nodes = []
+    for subject in [document["subject"], *(hop["to"] for hop in excerpt)]:
+        short = subject[:8] + "..." + subject[-8:]
+        value = f'<q class="data" title="{esc(subject)}">{esc(short)}</q>'
+        if subject in accounts:
+            value = f'<a href="/{accounts[subject]}">{value}</a>'
+        nodes.append(f'<div class="landing-node">{value}</div>')
+    inspector = []
+    transfers = []
+    for hop in excerpt:
+        amount = f'{_transfer_amount(hop)} units of <q class="data">{esc(hop["asset_id"])}</q>.'
+        when = trace.utc_minute(hop["block_timestamp"])
+        transaction = (f'<a href="https://nearblocks.io/txns/{esc(hop["transaction_hash"])}" rel="noreferrer">'
+                       f'{esc(hop["transaction_hash"])}</a>')
+        evidence = (f'<dl><div><dt>From</dt><dd class="mono">{esc(hop["from"])}</dd></div>'
+                    f'<div><dt>To</dt><dd class="mono">{esc(hop["to"])}</dd></div>'
+                    f'<div><dt>Block</dt><dd class="mono">{hop["block"]}</dd></div>'
+                    f'<div><dt>Transaction</dt><dd class="mono">{transaction}</dd></div>'
+                    f'<div><dt>Receipt</dt><dd class="mono">{esc(hop["receipt_id"])}</dd></div></dl>')
+        inspector.append(f'<details><summary>{when}</summary><p>{amount}</p>{evidence}</details>')
+        transfers.append(f'<tr><td><time>{when}</time></td><td><p>{amount}</p>'
+                         f'<details><summary>Transaction and receipt</summary>{evidence}</details></td></tr>')
+    network = _landing_graph(document, accounts, excerpt)
+    record = json.loads(VERIFY_RECORD.read_text(encoding="utf-8"))
+    _, subject, evidence_hash = verify_example()
+    computed_hash = hashlib.sha256((EVIDENCE_DIR / f'{evidence_hash}.json').read_bytes()).hexdigest()
+    recorded_at = datetime.fromtimestamp(record["recorded_ms"] / 1000, UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
+    comparison = ''.join(f'<tr><th scope="row">{label}</th><td>{esc(value)}</td></tr>' for label, value in
+                         (("Subject", subject), ("Registry verdict", record["verdict"]), ("Recorded time", recorded_at),
+                          ("Saved file comparison", "Equal" if computed_hash == record["evidence_hash"] else "Different")))
+    counts = next(line.split(" (")[0] + "." for line in _counts_lines() if line.startswith("Label store:"))
+    attack = json.loads((ROOT / "fixtures/rpc/attacks/10-injected.json").read_text(encoding="utf-8"))
+    refusal = attack["submissions"][0]["outcome"]["status"]["Failure"]["ActionError"]["kind"]["FunctionCallError"]["ExecutionError"].split(": ", 1)[1]
+    exchange = 'Nothing was signed.' if attack["submissions"][0]["sent"]["args"]["verdict"] is None else 'Unavailable'
+    capabilities = ''.join(f'<div><h3><a href="{url}">{title}</a></h3><p>{description}</p></div>' for title, url, description in (
+        ("Account lookup", "/investigate.html", "Finalized account state, indexed activity and the evidence behind each observation."),
+        ("Fund flows", "/flows/rhea-collector.html", "Recorded transfers with transaction hashes and blocks."),
+        ("Clusters", "/clusters/rhea.html", "Account links with their source and confidence. Each edge names its heuristic and provenance."),
+        ("Feed", "/feed.html", "Follow finalized mainnet blocks, with the source block behind each event."),
+        ("Issuers", "/issuers.html", "Issuer status reads and action history."),
+        ("Organisations", "/entities/organisations.html", "Accounts from on chain registries, with a source on each assertion.")))
+    body = (
+        '<div class="landing"><section class="landing-hero" aria-labelledby="landing-title">'
+        f'{network}<div class="landing-hero-copy"><div class="page-head"><p class="landing-label">(01)  SIYAB</p>'
+        '<h1 id="landing-title"><span>Security intelligence</span> <span>for NEAR, with a source on every row.</span></h1></div>'
+        '<p>Sourced labels, incident records and payment checks for people, apps and AI agents on NEAR.</p>'
+        '<p>Siyab checks the receiver, token, amount and memo of a payment before it is sent, and shows the evidence behind every answer. For AI agents, a Gate contract on testnet holds the agent\'s funds and pays only on a signed ALLOW bound to that exact transfer.</p>'
+        '<div class="landing-actions"><a class="button primary" href="/explore.html">Investigate</a>'
+        '<a class="button" href="/verify.html">Verify a record</a></div>'
+        f'<p class="landing-status">{esc(status)}</p></div>'
+        f'<div class="landing-counter-block"><span class="landing-counter">{len(document["hops"]):,}</span><span>RECORDED TRANSFERS</span></div>'
+        '<figure class="landing-graph"><figcaption>Recorded evidence</figcaption><div class="landing-preview">'
+        '<div class="landing-identities">' + ''.join(nodes) + '</div><div class="landing-inspector">' + ''.join(inspector) + '</div></div>'
+        '<a class="landing-trace" href="/flows/rhea-collector.html">the complete trace</a></figure></section>'
+        '<section class="landing-section" aria-labelledby="landing-problem"><p class="landing-label">(02)  THE PROBLEM</p>'
+        '<h2 id="landing-problem">What if an invoice is poisoned?</h2><div class="landing-columns landing-problem-layout"><div>'
+        '<p>One recorded case:</p>'
+        '<p class="landing-statement"><span>A scripted agent follows an instruction planted in a vendor message and asks to pay an account named in a public incident report. The verdict service answers DENY.</span> The agent submits anyway, without a verdict, and the Gate refuses the transfer.</p></div>'
+        f'<div class="landing-exchange"><p>{esc(exchange)}</p><p class="mono">{esc(refusal)}</p>'
+        '<p class="landing-note">A scripted agent stands in for a prompt injected model. No model runs.</p>'
+        '<a href="/incidents/rhea.html">Rhea Lend margin trading route exploit</a></div></div>'
+        '<ol class="landing-chips" data-landing-sequence="pipeline">'
+        + ''.join('<li><span>' + text + '</span>' + ('<svg class="landing-connector" viewBox="0 0 40 16" aria-hidden="true"><path pathLength="1" d="M0 8H38M32 2L38 8L32 14"/></svg>' if index < 3 else '') + '</li>'
+                  for index, text in enumerate(("Changed payment details.", "A lookalike receiver.", "A receiver with an incident label.", "A check that cannot run."))) + '</ol></section>'
+        '<section class="landing-section" aria-labelledby="landing-process"><p class="landing-label">(03)  HOW IT WORKS</p>'
+        '<div class="landing-columns landing-process-layout"><div><h2 id="landing-process"><span>Check.</span> <span>Enforce.</span> <span>Verify.</span></h2><ol class="landing-steps">'
+        '<li><h3>Check</h3><p>Judge the receiver, token, amount and memo before a person, an app or an agent pays. A check that cannot run reads Unknown.</p></li>'
+        '<li><h3>Enforce</h3><p>The agent’s function call key can only request a transfer from the Gate. The Gate requires a signed ALLOW and enforces the owner’s payment policy.</p></li>'
+        '<li><h3>Verify</h3><p>Compare a registry record with its evidence hash.</p></li></ol></div>'
+        '<div><div class="landing-product"><div class="landing-product-bar"><span class="landing-window-dots" aria-hidden="true"><i></i><i></i><i></i></span>'
+        f'<span>siyab / verify / {esc(subject)}</span></div><table class="landing-record"><thead><tr><th scope="col">Field</th><th scope="col">Recorded value</th></tr></thead><tbody>{comparison}</tbody></table></div>'
+        '<p class="landing-note">Historical example, not a current network response. Hash equality does not verify a signature or establish the truth of the evidence sources.</p>'
+        '<a href="/verify.html">Verify a record</a></div></div></section>'
+        '<section class="landing-section" aria-labelledby="landing-incident"><p class="landing-label">(04)  RECORDED INCIDENT</p>'
+        '<h2 id="landing-incident">Rhea Lend margin trading route exploit.</h2>'
+        '<p>Recorded outbound transfers from the collector account named by rekt.news. These rows do not establish loss or causal attribution.</p>'
+        '<div class="landing-timeline" data-landing-sequence="timeline"><span class="landing-timeline-rail" aria-hidden="true"></span>'
+        '<table class="landing-transfers"><thead><tr><th scope="col">Recorded time</th><th scope="col">Transfer</th></tr></thead>'
+        f'<tbody>{"".join(transfers)}</tbody></table></div><p class="landing-note">Recorded transfers. Gross transfer value is not loss.</p>'
+        '<div class="landing-actions"><a href="/incidents/rhea.html">Source records and account evidence</a>'
+        '<a href="/flows/rhea-collector.html">Open the complete recorded trace</a></div></section>'
+        '<section class="landing-section" aria-labelledby="landing-capabilities"><p class="landing-label">(05)  CAPABILITIES</p>'
+        f'<h2 id="landing-capabilities">Explore the evidence.</h2><div class="landing-capabilities">{capabilities}</div>'
+        f'<p class="landing-count mono">{esc(counts)}</p></section>'
+        '<section class="landing-section" aria-labelledby="landing-limits"><p class="landing-label">(06)  LIMITS</p>'
+        '<div class="landing-columns"><div><h2 id="landing-limits">What these reads mean.</h2><ul class="landing-limits">'
+        '<li>Payment destination intelligence, without transaction or calldata simulation.</li>'
+        '<li>The Gate demonstrations run on testnet. There is no mainnet deployment.</li>'
+        '<li>Inferred attributions remain hypotheses and never add a subject to the refusal set.</li>'
+        '<li>Live API checks are read only and never sign.</li><li>Unknown never passes.</li></ul></div>'
+        '<div><a href="/verify.html">the recorded verification example</a></div></div></section>'
+        '<section class="landing-section landing-principles" aria-labelledby="landing-principles"><p id="landing-principles" class="landing-label">(07)  PRINCIPLES</p>'
+        '<blockquote>Every label has a source. Every verdict has evidence. Unknown never passes.</blockquote></section>'
+        '<section class="landing-section" aria-labelledby="landing-start"><p class="landing-label">(08)  START HERE</p>'
+        '<h2 id="landing-start">Investigate an account.</h2><p>Enter a NEAR account to read mainnet data. No payment is signed or sent.</p>'
+        '<form class="investigate-search" action="/investigate.html" method="get">'
+        '<label for="landing-account">NEAR mainnet account<input id="landing-account" name="account" maxlength="64" autocomplete="off" placeholder="account.near" required></label>'
+        '<button type="submit" class="primary">Investigate</button></form>'
+        '<div class="landing-observations">' + ''.join(f'<div><h3>{title}</h3><p>Select an account to read this data.</p></div>' for title in
+                                                      ("Finalized account state", "Indexed token holdings", "Transfers", "Transactions")) + '</div>'
+        '<nav class="landing-actions" aria-label="Start here"><a href="/investigate.html">Investigate</a>'
+        '<a href="/flows/rhea-collector.html">Trace</a><a href="/feed.html">Feed</a><a href="/workspace.html">Workspace</a>'
+        '<a href="/verify.html">Verify</a></nav></section></div>'
+    )
+    return page("Siyab", body, landing=True)
 
 
 def search_index(store, pages, entities, entity_paths):
@@ -1048,7 +1215,7 @@ def account_page(subject, store, accounts, incidents, flows, clusters, events_di
     overview = "".join(f'<span>{esc(kind)}<strong>{count}</strong></span>' for kind, count in sorted(provenance.items()))
     body = (f'<div class="profile-heading page-head"><div><h1>Account</h1>'
             f'<p class="mono"><q class="data">{esc(subject)}</q></p></div>'
-            '<a class="button" href="/index.html#tools">Payment and key checks</a></div>'
+            '<a class="button" href="/explore.html#tools">Payment and key checks</a></div>'
             f'<section class="workspace-panel profile-overview"><div class="workspace-panel-head"><h2>Recorded evidence overview</h2></div>'
             f'<div class="workspace-panel-body analytics-inline profile-provenance">{overview}</div>'
             '<p class="analytics-note">Current label assertions by provenance. These records do not establish a live balance or payment result.</p></section>'
@@ -1716,7 +1883,7 @@ def _cloud_workspace_panel():
 
 def workspace_page():
     body = ('<div class="workspace-page-head page-head"><div><h1>Workspace</h1></div>'
-            '<a class="button primary" href="/index.html">Start investigation</a></div>'
+            '<a class="button primary" href="/explore.html">Start investigation</a></div>'
             + _cloud_workspace_panel() +
             (ROOT / "intel/ui/investigation-jobs-panel.html").read_text(encoding="utf-8") +
             (ROOT / "intel/ui/delivery-panel.html").read_text(encoding="utf-8") +
@@ -1757,6 +1924,7 @@ def render(out_dir, store=None, incidents_dir=INCIDENTS_DIR, flows_dir=trace.FLO
                     for entity_id, name in page_names(entity["id"] for entity in registry_entities).items()}
     search = search_index(store, accounts, registry_entities, entity_paths)
     pages = {"index.html": index_page(incidents, flows, clusters, store, top_judgements_dir),
+             "explore.html": explore_page(incidents, flows, clusters, store, top_judgements_dir),
              "investigate.html": investigate_page(),
              "workspace.html": workspace_page(),
              "top-receivers.html": top_receivers_page(top_judgements_dir), "feed.html": feed_page(),
@@ -1796,7 +1964,7 @@ def render(out_dir, store=None, incidents_dir=INCIDENTS_DIR, flows_dir=trace.FLO
         path.write_text(encoded, encoding="utf-8", newline="\n")
     script_paths = []
     (out / "assets").mkdir(exist_ok=True)
-    for name in ("number-format.js", "graphs.js", "workspace.js", "investigate.js", "cloud-workspace.js", "enrichment.js", "portfolio.js", "investigation-jobs.js", "delivery.js"):
+    for name in ("landing.js", "number-format.js", "graphs.js", "workspace.js", "investigate.js", "cloud-workspace.js", "enrichment.js", "portfolio.js", "investigation-jobs.js", "delivery.js"):
         script = (ROOT / "intel/ui" / name).read_text(encoding="utf-8")
         script_path, _ = _script_asset(script)
         (out / script_path.lstrip("/")).write_text(script, encoding="utf-8", newline="\n")

@@ -208,13 +208,14 @@ class DesignSystemTest(unittest.TestCase):
                 if float(size) not in allowed and not brand:
                     failures.append((selector, "size", size, context))
             for height in re.findall(r"(?:^|;)line-height:([^;]+)", body):
-                if not re.fullmatch(r"[0-9.]+px", height):
+                if not re.fullmatch(r"[0-9.]+px", height) and not ("landing" in selector and height == "0.98"):
                     failures.append((selector, "line", height, context))
             for height in re.findall(r"(?:^|;)font:[^;]*?/[ ]*([0-9.]+)(?![0-9.])([a-z%]*)", body):
-                if height[1] != "px":
+                landing_line = {".landing .page-head h1": "0.98", ".landing-counter": "1", ".landing .landing-statement": "1.18"}
+                if height[1] != "px" and height != (landing_line.get(selector), ""):
                     failures.append((selector, "font line", height, context))
             for tracking in re.findall(r"(?:^|;)letter-spacing:([^;]+)", body):
-                if tracking not in ("0", "0px", "-.02em", "-0.02em", "-.015em", "-0.015em", "-.035em", "-0.035em", "-.24px", "-0.24px", "-0.22px", "-.28px", "-0.28px", ".18px", "0.18px", ".24px", "0.24px"):
+                if not ("landing" in selector and tracking == "-0.03em") and tracking not in ("0", "0px", "-.02em", "-0.02em", "-.015em", "-0.015em", "-.035em", "-0.035em", "-.24px", "-0.24px", "-0.22px", "-.28px", "-0.28px", ".18px", "0.18px", ".24px", "0.24px"):
                     failures.append((selector, "tracking", tracking, context))
         self.assertEqual(failures, [])
 
@@ -235,7 +236,8 @@ class DesignSystemTest(unittest.TestCase):
                     layout_offset = selector == ".app-content" and property_name == "margin-left" and value.startswith("calc(248px + ")
                     mobile_menu = selector == ".mobile-navigation-panel" and property_name == "padding" and value == "12px 20px 24px"
                     record_control = selector in (".record-theme>summary", ".graph-view-controls>summary") and property_name == "padding" and size == 6
-                    if not (control_padding or gutter or panel_head or bar_offset or rail_offset or layout_offset or mobile_menu or record_control):
+                    landing_gutter = selector in (".landing-page .app-topbar", ".landing-page .app-footer") and property_name == "padding" and size == 1200 and "calc((100vw - 1200px)/2)" in value
+                    if not (control_padding or gutter or panel_head or bar_offset or rail_offset or layout_offset or mobile_menu or record_control or landing_gutter):
                         failures.append((selector, property_name, value, context))
         self.assertEqual(failures, [])
 
@@ -291,12 +293,12 @@ class DesignSystemTest(unittest.TestCase):
             self.assertTrue(any(selector in other.split(",") and "min-width:1700px" in "".join(context).replace(" ", "") and "grid-template-columns:repeat(3,minmax(0,1fr))" in body for other, body, context in self.rules))
 
     def template_pages(self):
-        pages = [name + ".html" for name in ("index", "investigate", "feed", "workspace", "verify", "issuers", "top-receivers", "404", "accounts/wrap.near", "accounts/usdt.tether-token.near", "entities/catalog", "entities/organisations", "flows/rhea-collector", "clusters/rhea", "incidents/rhea", "records/index")]
+        pages = [name + ".html" for name in ("index", "explore", "investigate", "feed", "workspace", "verify", "issuers", "top-receivers", "404", "accounts/wrap.near", "accounts/usdt.tether-token.near", "entities/catalog", "entities/organisations", "flows/rhea-collector", "clusters/rhea", "incidents/rhea", "records/index")]
         pages.append(next(name for name in self.pages if re.fullmatch(r"accounts/[a-f0-9]{64}\.html", name)))
         for kind in ("validator", "dao"):
             pages.append(next(name for name, text in self.pages.items() if name.startswith("entities/") and 'class="profile-kind"' in text and re.search(r'class="profile-kind">' + kind, text, re.IGNORECASE)))
         pages.append(next(name for name in self.pages if name.startswith("records/") and name != "records/index.html"))
-        self.assertEqual(len(set(pages)), 20)
+        self.assertEqual(len(set(pages)), 21)
         return pages
 
     def test_browser_r2_type_histogram_and_page_head_alignment(self):
@@ -311,11 +313,14 @@ class DesignSystemTest(unittest.TestCase):
                     page.evaluate("document.fonts.ready")
                     heading = page.locator("main h1").first
                     shell = page.locator("main .page-head").first
-                    tops.append(shell.bounding_box()["y"])
+                    if name != "index.html":
+                        tops.append(shell.bounding_box()["y"])
                     self.assertGreaterEqual(heading.bounding_box()["y"], shell.bounding_box()["y"])
                     self.assertLessEqual(heading.bounding_box()["y"] + heading.bounding_box()["height"], shell.bounding_box()["y"] + shell.bounding_box()["height"])
                     sizes = page.locator("body *").evaluate_all("nodes => [...new Set(nodes.filter(node => node.getClientRects().length && getComputedStyle(node).display !== 'none' && !node.matches('.site-brand,.app-mobile-brand,.site-brand *,.app-mobile-brand *')).map(node => getComputedStyle(node).fontSize))]")
                     with self.subTest(width=width, page=name):
+                        if name == "index.html":
+                            sizes = page.locator("body *").evaluate_all("nodes => [...new Set(nodes.filter(node => !node.closest('.landing') && node.getClientRects().length && getComputedStyle(node).display !== 'none' && !node.matches('.site-brand,.app-mobile-brand,.site-brand *,.app-mobile-brand *')).map(node => getComputedStyle(node).fontSize))]")
                         self.assertTrue(set(sizes) <= ({"12px", "13px", "14px", "16px", "18px", "20px", "22px", "24px", "28px"} | ({"15px"} if width <= 760 else set())), sizes)
                         for spacing in page.locator(".graph-node-label,.graph-node-detail").evaluate_all("nodes => nodes.map(node => getComputedStyle(node).letterSpacing)"):
                             self.assertIn(spacing, ("normal", "0px"))
@@ -406,7 +411,7 @@ class DesignSystemTest(unittest.TestCase):
             page = context.new_page()
             for width in (1440, 1024, 768, 390, 360, 320):
                 page.set_viewport_size({"width": width, "height": 900})
-                for name, selector in (("incidents/rhea.html", "blockquote.data"), ("flows/rhea-collector.html", ".analytics-counterparty"), ("index.html", "q.data,.analytics-counterparty")):
+                for name, selector in (("incidents/rhea.html", "blockquote.data"), ("flows/rhea-collector.html", ".analytics-counterparty"), ("explore.html", "q.data,.analytics-counterparty")):
                     page.goto(self.origin + "/" + name)
                     page.wait_for_load_state("networkidle")
                     page.evaluate("document.fonts.ready")
@@ -464,7 +469,7 @@ class DesignSystemTest(unittest.TestCase):
     def test_browser_r2_review_numeric_contexts(self):
         record = next(name for name in self.pages if name.startswith("records/") and name != "records/index.html")
         cases = (("investigate.html", ".enrichment-pagination span"),
-                 ("index.html", ".graph-status,.chart-readout,.chart-selection,.graph-range-message,.graph-meta dd:not(.graph-identifier)"),
+                 ("explore.html", ".graph-status,.chart-readout,.chart-selection,.graph-range-message,.graph-meta dd:not(.graph-identifier)"),
                  (record, '[data-record-path$="_at"],[data-record-path$=".at"],[data-record-path="version"]'),
                  ("incidents/rhea.html", ".profile-route-bridge>span"))
         with self.browser.new_context(java_script_enabled=True) as context:
@@ -530,7 +535,7 @@ class DesignSystemTest(unittest.TestCase):
             context.route("**/*", self.local_route)
             page = context.new_page()
             cases = [(record, '[data-record-path="publisher"]', "-owner.testnet"), ("issuers.html", "td q.data", "usdt.tether-token.near")]
-            cases += [(name + ".html", ".graph-meta dd.graph-identifier", "usdt.tether-token.near") for name in ("index", "flows/rhea-collector")]
+            cases += [(name + ".html", ".graph-meta dd.graph-identifier", "usdt.tether-token.near") for name in ("explore", "flows/rhea-collector")]
             cases += [("clusters/rhea.html", ".graph-inspector-title.graph-identifier", "usdt.tether-token.near"),
                       ("investigate.html", "#investigate-title", "usdt.tether-token.near"),
                       ("workspace.html", "#watched-accounts li>span.mono", "usdt.tether-token.near"),
@@ -734,7 +739,7 @@ class DesignSystemTest(unittest.TestCase):
             with self.browser.new_context(viewport={"width": width, "height": 900}) as context:
                 context.route("**/*", self.local_route)
                 page = context.new_page()
-                page.goto(self.origin + "/index.html")
+                page.goto(self.origin + "/explore.html")
                 page.locator("main").evaluate("(node, sample) => node.insertAdjacentHTML('beforeend', sample)", sample)
                 page.evaluate("document.fonts.ready")
                 code = page.locator("#review-code").evaluate("node => getComputedStyle(node).fontFamily")
@@ -878,9 +883,9 @@ class DesignSystemTest(unittest.TestCase):
                 self.assertEqual(page.locator("body").evaluate("node => getComputedStyle(node).backgroundColor"), "rgb(10, 13, 22)")
 
     def test_browser_da2_real_page_type_roles(self):
-        cases = (("index.html", "main h1", "Public Sans", "24px", "30px", "400"),
+        cases = (("explore.html", "main h1", "Public Sans", "24px", "30px", "400"),
                  ("accounts/wrap.near.html", ".profile-facts dd", "IBM Plex Mono", "24px", "30px", "300"),
-                 ("index.html", ".app-sidebar nav a:not([aria-current])", "Public Sans", "13px", "18px", "300"),
+                 ("explore.html", ".app-sidebar nav a:not([aria-current])", "Public Sans", "13px", "18px", "300"),
                  ("accounts/wrap.near.html", ".profile-heading p.mono", "IBM Plex Mono", "22px", "28px", "400"),
                  ("accounts/wrap.near.html", "main h2", "Public Sans", "18px", "24px", "300"),
                  ("incidents/rhea.html", "main h1", "Public Sans", "28px", "34px", "400"),
@@ -903,7 +908,7 @@ class DesignSystemTest(unittest.TestCase):
             context.route("**/*", self.local_route)
             page = context.new_page()
             found = 0
-            for name in ("index.html", "issuers.html", "entities/catalog.html", "accounts/wrap.near.html"):
+            for name in ("explore.html", "issuers.html", "entities/catalog.html", "accounts/wrap.near.html"):
                 page.goto(self.origin + "/" + name)
                 page.evaluate("document.fonts.ready")
                 rows = page.locator("main tbody tr").evaluate_all("""nodes => nodes.filter(node => {
@@ -920,7 +925,7 @@ class DesignSystemTest(unittest.TestCase):
             self.assertGreater(found, 0, "No ordinary one-line rows were measured")
 
     def test_browser_da2_both_theme_width_matrix_and_phone_targets(self):
-        names = ("index.html", "accounts/wrap.near.html", "issuers.html", "incidents/rhea.html", "records/index.html")
+        names = ("index.html", "explore.html", "accounts/wrap.near.html", "issuers.html", "incidents/rhea.html", "records/index.html")
         for theme in ("dark", "light"):
             with self.browser.new_context() as context:
                 context.route("**/*", self.local_route)

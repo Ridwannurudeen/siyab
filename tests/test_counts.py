@@ -3,13 +3,14 @@ import importlib.util
 import io
 import json
 import math
+import re
 import tempfile
 import unittest
 from pathlib import Path
 
 from gate import rpc
 from intel import __main__ as intel_main
-from intel import labels, trace
+from intel import labels, render, trace
 
 ROOT = Path(__file__).resolve().parent.parent
 TALLY = r"\d+ \(\d+ ALLOW, \d+ DENY, \d+ Unknown\)"
@@ -79,6 +80,18 @@ class CountsTest(unittest.TestCase):
                          f"inferred {p['inferred']}).")
         pages = len(list((ROOT / "intel" / "incidents").glob("*.json")))
         self.assertEqual(self.counts.incidents_line(), f"Incidents: {pages} pages.")
+
+    def test_explore_provenance_uses_the_same_retained_assertions_as_counts(self):
+        store = labels.load()
+        expected = store.counts()["provenance"]
+        workspace = render._workspace([], [], store, None)
+        rows = re.findall(r'<div class="analytics-row"><span>([^<]+)</span>.*?'
+                          r'<strong class="num">(\d+)</strong></div>', workspace)
+        actual = {name: int(count) for name, count in rows}
+        self.assertEqual({name: count for name, count in actual.items() if count},
+                         {name: count for name, count in expected.items() if count})
+        self.assertEqual(sum(actual.values()), store.counts()["assertions"])
+        self.assertIn(f"Label store: {sum(actual.values())} assertions", self.counts.labels_line())
 
     def test_the_snapshot_and_tier_2_numbers_in_the_docs_equal_the_committed_files(self):
         evidence = (ROOT / "docs" / "EVIDENCE.md").read_text(encoding="utf-8")

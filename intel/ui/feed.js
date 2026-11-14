@@ -46,7 +46,7 @@
       cells[1].setAttribute("data-export-value", (row.signal.replace(/_/g, " ") + row.detail).trim().replace(/\s+/g, " "));
       add(cells[1], "strong", row.signal.replace(/_/g, " ")); add(cells[1], "p", window.SiyabNumbers.prose(row.detail));
       add(cells[2], "q", text(row.subject), "data");
-      if (typeof row.subject === "string" && /^[a-z0-9._-]{2,64}$/.test(row.subject)) add(cells[2], "a", "Investigate").href = "/index.html?q=" + encodeURIComponent(row.subject);
+      if (typeof row.subject === "string" && /^[a-z0-9._-]{2,64}$/.test(row.subject)) add(cells[2], "a", "Investigate").href = "/explore.html?q=" + encodeURIComponent(row.subject);
       add(cells[3], "q", text(row.other_account_id), "data");
       const exactAmount = typeof row.usd_amount === "string" || typeof row.usd_amount === "number" ? `${row.usd_amount} USD (provider value)` : typeof row.amount_yocto === "string" ? `${row.amount_yocto} yoctoNEAR` : "Not recorded";
       const amount = typeof row.usd_amount === "string" || typeof row.usd_amount === "number" ? `${window.SiyabNumbers.decimal(row.usd_amount, 2)} USD (provider value)` : typeof row.amount_yocto === "string" ? `${window.SiyabNumbers.baseUnits(row.amount_yocto, 24)} NEAR` : "Not recorded";

@@ -256,17 +256,16 @@ class HostedSiteTest(unittest.TestCase):
         cls.thread.join()
         cls.site.cleanup()
 
-    def test_every_index_link_answers_200_with_html_through_the_server(self):
-        index = (Path(self.site.name) / "index.html").read_text(encoding="utf-8")
-        links = [html.unescape(link) for link in LINK.findall(index) if not link.startswith("https://")]
-        self.assertIn("incidents/rhea.html", links)
-        for link in links:
-            with self.subTest(link=link):
-                status, content_type, cache, body = get(self.server, "/" + link)
-                self.assertEqual((status, cache), (200, "no-store"))
-                if link == "/style.css":
-                    self.assertEqual(content_type, "text/css")
-                else:
+    def test_landing_and_explore_links_answer_200_with_html_through_the_server(self):
+        for name in ("index.html", "explore.html"):
+            page = (Path(self.site.name) / name).read_text(encoding="utf-8")
+            links = [html.unescape(link) for link in LINK.findall(page) if not link.startswith("https://")]
+            self.assertIn("incidents/rhea.html", [link.lstrip("/") for link in links])
+            for link in links:
+                with self.subTest(page=name, link=link):
+                    path = urllib.parse.urljoin("/" + name, link)
+                    status, content_type, cache, body = get(self.server, path)
+                    self.assertEqual((status, cache), (200, "no-store"))
                     self.assertEqual(content_type, "text/html")
                     self.assertTrue(body.startswith(b"<!doctype html>"))
 
