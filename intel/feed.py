@@ -114,6 +114,7 @@ import csv
 import hashlib
 import json
 import os
+import re
 import time
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -284,6 +285,23 @@ def _event(signal, subject, detail, block, receipt, labels_used, source):
             "source": source}
 
 
+def event_counterparty(event):
+    """The stored counterparty, including the exact destination in older outflow details."""
+    if event.get("other_account_id"):
+        return event["other_account_id"]
+    if event.get("signal") != "full_access_key_then_outflow":
+        return None
+    subject, detail = event.get("subject"), event.get("detail")
+    if not isinstance(subject, str) or not isinstance(detail, str):
+        return None
+    drain = {"transfer": r"transfer of [0-9]+ yoctoNEAR", "delete_account": "DeleteAccount"}.get(event.get("drain_kind"))
+    if drain is None:
+        return None
+    matched = re.fullmatch(r"full access key \S+ added to " + re.escape(subject) + "; " + drain
+                           + r" to ([a-z0-9]+(?:[-_.][a-z0-9]+)*) within [0-9]+ ms", detail)
+    return matched.group(1) if matched else None
+
+
 def signals(block, state, context, source):
     """The events one reduced block raises; updates the fresh accounts of the state."""
     events = []
@@ -369,7 +387,7 @@ def signals(block, state, context, source):
                                    f"within {age_ms} ms", block, receipt, [], source)
                     event.update({"lockout": addition["lockout"], "drain_kind": drain_kind,
                                   "amount_yocto": None if amount is None else str(amount),
-                                  "destination": destination_kind})
+                                  "destination": destination_kind, "other_account_id": destination})
                     events.append(event)
                     pending_keys[account].remove(addition)
                     if not pending_keys[account]:

@@ -306,6 +306,22 @@ class MeteredClientTest(BudgetCase):
             self.client("https://rpc.example", headers=None).call("status", [])
         self.assertEqual(self.alerts(), ["key_cooldown", "key_cooldown"])
 
+    def test_a_rejected_key_logs_one_line_with_the_status_and_host_and_never_the_key(self):
+        for status in (401, 402, 403):
+            with self.subTest(status=status):
+                self.now[0] += budget.KEY_COOLDOWN_S + 1
+                self.answers.append(urllib.error.HTTPError(rpc.MAINNET_RPC_URL, status, "refused", {}, None))
+                with mock.patch("sys.stderr", new_callable=io.StringIO) as stderr, self.assertRaises(rpc.HttpError):
+                    self.client().call("status", [])
+                lines = [line for line in stderr.getvalue().splitlines() if line.startswith("provider rejected the key")]
+                self.assertEqual(lines, [f"provider rejected the key: HTTP {status} from free.rpc.fastnear.com"])
+                self.assertNotIn("unit-only-token", stderr.getvalue())
+        self.answers.append(urllib.error.HTTPError(rpc.MAINNET_RPC_URL, 500, "failed", {}, None))
+        self.now[0] += budget.KEY_COOLDOWN_S + 1
+        with mock.patch("sys.stderr", new_callable=io.StringIO) as stderr, self.assertRaises(rpc.HttpError):
+            self.client().call("status", [])
+        self.assertNotIn("provider rejected the key", stderr.getvalue())
+
     def test_budget_errors_exposed_by_public_details_hide_paths_counters_and_limits(self):
         from gate import rules, scan
 

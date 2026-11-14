@@ -48,7 +48,7 @@
       page = Math.min(page, Math.max(0, Math.ceil(matching.length / 20) - 1));
       const visible = new Set(matching.slice(page * 20, (page + 1) * 20));
       all.forEach(row => { row.hidden = !visible.has(row); });
-      status.textContent = matching.length ? `${page * 20 + 1} to ${Math.min((page + 1) * 20, matching.length)} of ${matching.length} matching records.` : "No matching recorded rows. Clear the search to return to the collection.";
+      status.textContent = matching.length ? `${page * 20 + 1} to ${Math.min((page + 1) * 20, matching.length)} of ${matching.length} matching ${matching.length === 1 ? "record" : "records"}.` : "No matching recorded rows. Clear the search to return to the collection.";
       pages(pagination, page, matching.length, 20, next => { page = next; render(); });
     }
     input.addEventListener("input", () => { page = 0; render(); });
@@ -98,7 +98,7 @@
               || !fields.every(field => Array.isArray(data[field]) && data[field].length <= data.access_keys && data[field].every(key => typeof key === "string"))
               || !Array.isArray(data.findings) || !data.findings.every(line => typeof line === "string")
               || !Number.isInteger(data.read_at_block) || data.read_at_block < 1) throw new Error("Access keys could not be read. Missing key data is unknown, not a clean result.");
-          output.replaceChildren(node("strong", `${data.access_keys} access keys read`), node("p", `Mainnet block ${data.read_at_block}. This is not a payment verdict.`));
+          output.replaceChildren(node("strong", `${data.access_keys} access ${data.access_keys === 1 ? "key" : "keys"} read`), node("p", `Mainnet block ${data.read_at_block}. This is not a payment verdict.`));
           const list = node("ul");
           for (const [field, label] of [["full_access_keys", "Full access"], ["empty_method_names", "Empty method list"], ["dead_keys", "Zero allowance"], ["unlimited_allowance", "Unlimited allowance"]]) list.append(node("li", `${label}: ${data[field].length}`));
           output.append(list);
@@ -145,7 +145,7 @@
         const outbound = row.from === config.subject;
         const decimals = row.asset_id === "native:near" ? 24 : row.amount_decimals;
         const amount = node("span", Number.isInteger(decimals) ? window.SiyabNumbers.baseUnits(row.amount, decimals) : `${row.amount} base units`, "profile-value");
-        amount.append(node("q", row.asset_id, "data profile-asset"));
+        amount.append(" ", node("q", row.asset_id, "data profile-asset"));
         const evidence = node("div");
         const link = node("a", "Recorded evidence"); link.href = `/flows/${row.recording}.html`;
         const detail = node("details", undefined, "profile-source-detail");
@@ -157,7 +157,7 @@
           row.usd_amount === null ? "Unavailable" : window.SiyabNumbers.decimal(row.usd_amount, 2), evidence], headings);
         tr.dataset.profileTransferRow = ""; body.append(tr);
       }
-      status.textContent = `Showing ${matches.length ? page * 20 + 1 : 0} to ${Math.min((page + 1) * 20, matches.length)} of ${matches.length} matching recorded rows. Newest first.`;
+      status.textContent = `Showing ${matches.length ? page * 20 + 1 : 0} to ${Math.min((page + 1) * 20, matches.length)} of ${matches.length} matching recorded ${matches.length === 1 ? "row" : "rows"}. Newest first.`;
       retry.hidden = true;
       pages(navigation, page, matches.length, 20, next => refresh(next));
       const scope = `${query}\u0000${direction.value}`;
@@ -167,7 +167,7 @@
         const counterBody = counterparties.querySelector("tbody"); counterBody.replaceChildren();
         [...counts].sort((a, b) => b[1] - a[1]).forEach(([account, count]) => counterBody.append(tableRow([accountLink(account), String(count)], ["Counterparty", "Recorded rows"])));
         counterparties.dispatchEvent(new Event("profile:refresh"));
-        section.querySelector("[data-counterparties-scope]").textContent = `${counts.size} counterparties across ${matches.length} rows matching the activity filters. Counts measure recorded rows, not value or loss.`;
+        section.querySelector("[data-counterparties-scope]").textContent = `${counts.size} ${counts.size === 1 ? "counterparty" : "counterparties"} across ${matches.length} ${matches.length === 1 ? "row" : "rows"} matching the activity filters. Counts measure recorded rows, not value or loss.`;
         counterpartyQuery = scope;
       }
     }

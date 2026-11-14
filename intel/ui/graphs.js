@@ -32,6 +32,12 @@
     return value.length > 24 ? value.slice(0, 11) + "…" + value.slice(-9) : value;
   }
 
+  function usd(value) {
+    const text = window.SiyabNumbers.decimal(value, 2);
+    if (/^-?[\d,]+$/.test(text)) return text + ".00";
+    return /\.\d$/.test(text) ? text + "0" : text;
+  }
+
   function decimalSum(values) {
     const parts = values.map(value => {
       const match = /^([+-]?)(\d+)(?:\.(\d*))?(?:e([+-]?\d+))?$/i.exec(String(value));
@@ -99,14 +105,14 @@
     if (payload.kind === "flow") {
       const summary = valueSummary(edgeRecords(payload, edge));
       detail = " · " + displayedAmount(edgeRecords(payload, edge), edge.asset_id) + " " + edge.asset_id +
-        " · " + (summary.usd === null ? "USD unknown" : window.SiyabNumbers.decimal(summary.usd, 2) + " known USD") +
-        (summary.unknownUsd ? " · " + summary.unknownUsd + " transfers have unknown USD" : "") +
+        " · " + (summary.usd === null ? "USD unknown" : usd(summary.usd) + " known USD") +
+        (summary.unknownUsd ? " · " + summary.unknownUsd + (summary.unknownUsd === 1 ? " transfer has unknown USD" : " transfers have unknown USD") : "") +
         " · " + exactUtc(summary.first) + " to " + exactUtc(summary.last);
     }
     return edge.from + " to " + edge.to + " · " +
       (payload.kind === "flow" ? edge.asset_id : edge.rule) + " · " +
       (edge.provenance === "inferred" ? "Attribution hypothesis" : payload.source.recorded === false ? "Live indexed reads" : "Recorded chain reads") + " · " +
-      edge.record_ids.length + (payload.source.recorded === false ? " observed " : " recorded ") + (payload.kind === "flow" ? "transfers" : "relationships") + detail;
+      edge.record_ids.length + (payload.source.recorded === false ? " observed " : " recorded ") + (payload.kind === "flow" ? (edge.record_ids.length === 1 ? "transfer" : "transfers") : (edge.record_ids.length === 1 ? "relationship" : "relationships")) + detail;
   }
 
   function edgePath(edge, from, to, siblings, compact) {
@@ -252,6 +258,13 @@
     return { positions, width, height };
   }
 
+  function fittedView(geometry, bounds) {
+    const scale = bounds.width && bounds.height ? Math.min(bounds.width / geometry.width, bounds.height / geometry.height) : 1;
+    if (scale >= 0.6) return { x: 0, y: 0, width: geometry.width, height: geometry.height };
+    const width = bounds.width / 0.6, height = bounds.height / 0.6;
+    return { x: (geometry.width - width) / 2, y: 0, width, height };
+  }
+
   function readableView(geometry, focus, bounds) {
     const fittedScale = Math.min(bounds.width / geometry.width, bounds.height / geometry.height);
     const scale = Math.max(0.8, Math.min(1, fittedScale));
@@ -273,7 +286,7 @@
       return "Recording: depth " + payload.bounds.reached_depth + " of " + payload.bounds.requested_depth +
         " requested; " + (payload.coverage.truncated ? "truncated" + reason : "acquisition complete") + ".";
     }
-    return "Recording: " + payload.bounds.seeds.length + " seeds. " + payload.coverage.standard;
+    return "Recording: " + payload.bounds.seeds.length + (payload.bounds.seeds.length === 1 ? " seed. " : " seeds. ") + payload.coverage.standard;
   }
 
   function graphAddress(source) {
@@ -609,7 +622,7 @@
 
     function fit() {
       if (!state.geometry) return;
-      state.view = { x: 0, y: 0, width: state.geometry.width, height: state.geometry.height };
+      state.view = fittedView(state.geometry, svg.getBoundingClientRect());
       applyView();
     }
 
@@ -659,10 +672,10 @@
       state.edges = state.matches.filter((edge) => ids.has(edge.from) && ids.has(edge.to));
       const visibleRecords = new Set(state.edges.flatMap((edge) => edge.record_ids));
       const matchingRecords = new Set(state.matches.flatMap((edge) => edge.record_ids));
-      status.textContent = "Display: " + state.visible.length + " of " + payload.total_nodes + " accounts shown · " +
+      status.textContent = "Display: " + state.visible.length + " of " + payload.total_nodes + (payload.total_nodes === 1 ? " account" : " accounts") + " shown · " +
         visibleRecords.size + " of " + payload.total_records + (live ? " observed " : " recorded ") +
-        (payload.kind === "flow" ? "transfers" : "relationships") + " shown · " + state.edges.length + " edges" +
-        (state.asset || state.provenance || state.from || state.to ? " · " + matchingRecords.size + " records match filters" : "");
+        (payload.kind === "flow" ? (payload.total_records === 1 ? "transfer" : "transfers") : (payload.total_records === 1 ? "relationship" : "relationships")) + " shown · " + state.edges.length + (state.edges.length === 1 ? " edge" : " edges") +
+        (state.asset || state.provenance || state.from || state.to ? " · " + matchingRecords.size + (matchingRecords.size === 1 ? " record matches filters" : " records match filters") : "");
       expandButton.hidden = false;
       expandButton.disabled = state.limit >= 72 || state.visible.length < state.limit || state.visible.length === payload.total_nodes;
       if (state.limit >= 72) expandButton.textContent = "72-account view limit";
@@ -704,7 +717,7 @@
         hit.addEventListener("pointerleave", () => { tooltip.hidden = true; });
         if (value && (selected || path)) {
           const amount = svgElement("text", {x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 - 8, class: "graph-edge-amount", "text-anchor": "middle"});
-          amount.textContent = value.usd === null ? "USD unknown" : window.SiyabNumbers.decimal(value.usd, 2) + " known USD";
+          amount.textContent = value.usd === null ? "USD unknown" : usd(value.usd) + " known USD";
           group.append(amount);
         }
         overviewDrawing.append(svgElement("path", {d, class: "graph-overview-edge" + (edge.provenance === "inferred" ? " is-inferred" : "")}));
@@ -781,7 +794,7 @@
     }
 
     function renderRecords(records) {
-      inspector.append(element("h4", "", records.length + (live ? " observed " : " recorded ") + (payload.kind === "flow" ? "transfers" : "relationships")));
+      inspector.append(element("h4", "", records.length + (live ? " observed " : " recorded ") + (payload.kind === "flow" ? (records.length === 1 ? "transfer" : "transfers") : (records.length === 1 ? "relationship" : "relationships"))));
       const rows = element("div", "graph-record-list");
       const pageRecords = records.slice(state.recordPage * 10, (state.recordPage + 1) * 10);
       for (const record of pageRecords) {
@@ -793,7 +806,7 @@
         if (payload.kind === "flow") {
           metadata(details, [["From", record.from, "graph-identifier"], ["To", record.to, "graph-identifier"], ["Asset", record.asset_id, "graph-identifier"],
             ["Provider float as recorded", record.human_amount, "graph-identifier"], ["Amount (base units)", record.amount, "graph-identifier"],
-            ["USD at provider", record.usd_amount === null ? "Unknown" : window.SiyabNumbers.decimal(record.usd_amount, 2), "graph-identifier"],
+            ["USD at provider", record.usd_amount === null ? "Unknown" : usd(record.usd_amount), "graph-identifier"],
             ["Block", record.block], ["Time (UTC)", record.timestamp_ms === null ? null : new Date(record.timestamp_ms).toISOString()],
             ["Timestamp (ns)", record.block_timestamp, "graph-identifier"], ["Transaction", record.transaction_hash, "graph-identifier"],
             ["Receipt", record.receipt_id, "graph-identifier"], ["Method", record.method_name || "None"], ["Source", payload.source.provider]]);
@@ -831,7 +844,7 @@
         button(actions, payload.kind === "flow" ? (live ? "Show observed path" : "Show recorded path") : "Show relationship path", () => {
           state.path = recordedPath(payload, state.matches, node.id);
           pathStatus.textContent = state.path ? state.path.edges.length + (live ? " observed " : " recorded ") +
-            (payload.kind === "flow" ? "transfer" : "relationship") + (live ? " edges connect the observation root to this account. " : " edges connect the recording root to this account. ") +
+            (payload.kind === "flow" ? "transfer" : "relationship") + (state.path.edges.length === 1 ? " edge connects the " : " edges connect the ") + (live ? "observation root to this account. " : "recording root to this account. ") +
             (payload.kind === "flow" ? "This is an account path, not proof of the same funds or chronological causality." :
               "A relationship path can include attribution hypotheses; it does not establish shared ownership.") :
             "No " + (payload.kind === "flow" ? "directed transfer" : "relationship") + (live ? " path from the observation root matches these filters." : " path from the recording root matches these filters.");
@@ -860,7 +873,7 @@
       if (payload.kind === "flow") {
         const relevant = [...recordIds].map(id => recordById.get(id));
         const value = valueSummary(relevant);
-        metadata(inspector, [["Known gross USD", value.usd === null ? "Unknown" : window.SiyabNumbers.decimal(value.usd, 2), "graph-number"], ["Transfers without USD", value.unknownUsd],
+        metadata(inspector, [["Known gross USD", value.usd === null ? "Unknown" : usd(value.usd), "graph-number"], ["Transfers without USD", value.unknownUsd],
           [(live ? "First observed transfer (UTC)" : "First recorded transfer (UTC)"), exactUtc(value.first)], [(live ? "Last observed transfer (UTC)" : "Last recorded transfer (UTC)"), exactUtc(value.last)]]);
         if (state.selected.kind === "edge") metadata(inspector, [["Asset", edges[0].asset_id],
           ["Amount", displayedAmount(relevant, edges[0].asset_id), "graph-number"], ["Total base units", value.base, "graph-number"]]);
@@ -871,7 +884,7 @@
             .sort((a, b) => Number(b.value.usd || -1) - Number(a.value.usd || -1));
           for (const {edge, value} of ranked.slice(0, 5)) button(counterparties,
             (edge.from === state.selected.id ? "To " + edge.to : "From " + edge.from) + " · " + edge.asset_id + " · " +
-            (value.usd === null ? "USD unknown" : window.SiyabNumbers.decimal(value.usd, 2) + " known USD") + (value.unknownUsd ? " (some USD unavailable)" : ""),
+            (value.usd === null ? "USD unknown" : usd(value.usd) + " known USD") + (value.unknownUsd ? " (some USD unavailable)" : ""),
             () => choose("edge", edge.id), "graph-counterparty");
           inspector.append(counterparties);
         }
@@ -884,7 +897,7 @@
       const matchingIds = new Set(state.matches.flatMap((edge) => [edge.from, edge.to]));
       const candidates = payload.nodes.filter((node) => (!state.asset && !state.provenance && !state.from && !state.to || matchingIds.has(node.id)) &&
         node.id.toLowerCase().includes(state.search.toLowerCase()));
-      accountList.replaceChildren(element("p", "", candidates.length + (live ? " observed accounts" : " recorded accounts")));
+      accountList.replaceChildren(element("p", "", candidates.length + (live ? " observed account" : " recorded account") + (candidates.length === 1 ? "" : "s")));
       const size = state.compact ? 4 : 12;
       state.accountPage = Math.min(state.accountPage, Math.max(0, Math.ceil(candidates.length / size) - 1));
       for (const node of candidates.slice(state.accountPage * size, (state.accountPage + 1) * size)) {
@@ -912,6 +925,11 @@
       });
     }
 
+    svg.addEventListener("wheel", event => {
+      if (!event.ctrlKey && !event.metaKey) return;
+      event.preventDefault();
+      zoom(event.deltaY < 0 ? 0.8 : 1.25);
+    }, {passive: false});
     let drag = null;
     svg.addEventListener("pointerdown", (event) => {
       if (event.pointerType !== "mouse" || event.button !== 0 || event.target !== svg) return;
@@ -1046,7 +1064,7 @@
         bars.forEach((bar, index) => bar.classList.toggle("is-outside-range", index < first || index > last));
         if (last < first) { selection.textContent = "Choose an ending interval after the starting interval."; return; }
         const count = bars.slice(first, last + 1).reduce((total, bar) => total + Number(bar.getAttribute("data-chart-count")), 0);
-        selection.textContent = count + " root outbound transfers selected. " + exactUtc(bars[first].getAttribute("data-chart-start")) +
+        selection.textContent = count + (count === 1 ? " root outbound transfer selected. " : " root outbound transfers selected. ") + exactUtc(bars[first].getAttribute("data-chart-start")) +
           " until " + exactUtc(bars[last].getAttribute("data-chart-end")) + ", end excluded.";
       };
       bars.forEach((bar, index) => {

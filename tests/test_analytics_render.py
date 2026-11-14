@@ -1,5 +1,6 @@
 import hashlib
 import html
+import importlib.util
 import json
 import shutil
 import subprocess
@@ -173,6 +174,31 @@ class AnalyticsRenderTest(unittest.TestCase):
         result = subprocess.run([shutil.which("node"), "tests/analytics_numbers_runtime.cjs"], cwd=ROOT,
                                 capture_output=True, text=True, timeout=15)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+
+    @unittest.skipUnless(importlib.util.find_spec("playwright"), "Browser runtime is unavailable")
+    def test_table_export_keeps_one_full_identifier_and_separates_line_breaks(self):
+        from playwright.sync_api import sync_playwright
+
+        full = "ab" * 32
+        short = full[:12] + "\u2026" + full[-10:]
+        table = (f'<table id="incident-replay"><tr><td><a href="#"><q class="data">{short}</q></a>'
+                 f'<details class="analytics-full-account"><summary>Full identifier</summary><a href="#">{full}</a></details></td>'
+                 '<td>receiver_exists pass: exists<br>label_denylist pass: not listed</td></tr></table>')
+        workspace = (ROOT / "intel/ui/workspace.js").read_text(encoding="utf-8")
+        extracted = workspace[workspace.index("  const csv ="):workspace.index("  function viewUrl()")]
+        with sync_playwright() as runtime:
+            browser = runtime.chromium.launch()
+            try:
+                page = browser.new_page()
+                page.route("**/*", lambda route: route.abort())
+                page.set_content(table)
+                exported = page.evaluate("source => { let text = ''; const download = (name, value) => { text = value; }; "
+                                         "const message = () => {}; new Function('download', 'message', source + "
+                                         "'; tableExport(\"incident-replay\");')(download, message); return text; }", extracted)
+            finally:
+                browser.close()
+        self.assertEqual(exported, f'"{full}","receiver_exists pass: exists; label_denylist pass: not listed"\r\n')
 
 
 if __name__ == "__main__":

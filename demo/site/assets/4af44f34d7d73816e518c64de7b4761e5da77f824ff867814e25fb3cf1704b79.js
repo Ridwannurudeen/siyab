@@ -18,7 +18,7 @@
     state.epoch++; state.logRevision++; clearTimeout(state.timer); state.timer = null;
     for (const controller of state.pending) controller.abort(); state.pending.clear();
     state.context = null; state.status = null; state.link = null; state.busy = false; state.uncertain = false; state.pages = [null]; state.page = 0; state.next = null;
-    el("context").textContent = text; message(""); el("controls").replaceChildren(); el("controls").setAttribute("aria-busy", "false"); el("log").replaceChildren();
+    el("context").textContent = text; message(""); el("controls").replaceChildren(); el("controls").setAttribute("aria-busy", "false"); el("log").replaceChildren(node("p", "Sign in and select a team to see deliveries.", "delivery-meta"));
     el("newer").disabled = true; el("older").disabled = true;
   }
   async function request(path, values, epoch = state.epoch) {

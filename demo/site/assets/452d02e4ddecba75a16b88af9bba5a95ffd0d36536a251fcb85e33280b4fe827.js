@@ -189,7 +189,7 @@
     return {
       known: "Price used",
       missing: "No price returned for this exact asset",
-      stale: "Price older than " + (age === null ? "the age limit" : age + " seconds from the balance time") + "; not used",
+      stale: "Price older than " + (age === null ? "the age limit" : age + (age === 1 ? " second" : " seconds") + " from the balance time") + "; not used",
       future: "Price timestamp is after the read; not used",
       low_confidence: "Provider confidence below " + (confidence ?? "the minimum") + "; not used",
       invalid: "Provider price entry invalid; not used",
@@ -237,10 +237,15 @@
   function summary(data, mode) {
     const result = node("div", undefined, "portfolio-summary"); result.setAttribute("data-changed", "true");
     const totals = data.summary, coverage = data.coverage, count = data.assets.length;
+    const noPrice = data.assets.filter(asset => asset.price.status !== "known").length;
+    const noBalance = data.assets.filter(asset => asset.price.status === "known" && asset.status === "balance_unavailable").length;
+    const noDecimals = data.assets.filter(asset => asset.price.status === "known" && asset.status === "decimals_unavailable").length;
     const reasons = [];
-    if (totals.unpriced_assets) reasons.push(totals.unpriced_assets + " of " + count + (count === 1 ? " asset" : " assets") + (totals.unpriced_assets === 1 ? " has" : " have") + " no usable price.");
+    if (noPrice) reasons.push(noPrice + " of " + count + (count === 1 ? " asset" : " assets") + (noPrice === 1 ? " has" : " have") + " no usable price.");
+    if (noBalance) reasons.push(noBalance + " of " + count + (count === 1 ? " asset" : " assets") + (noBalance === 1 ? " has" : " have") + " a price but no readable balance.");
+    if (noDecimals) reasons.push(noDecimals + " of " + count + (count === 1 ? " asset" : " assets") + (noDecimals === 1 ? " has" : " have") + " a price but no usable token decimals.");
     if (mode === "current" && !coverage.inventory_complete) reasons.push(Number.isSafeInteger(coverage.tokens_total) && Number.isSafeInteger(coverage.tokens_read)
-      ? coverage.tokens_read + " of " + coverage.tokens_total + " indexed tokens were read, so the inventory is incomplete."
+      ? coverage.tokens_read + " of " + coverage.tokens_total + (coverage.tokens_total === 1 ? " indexed token was read, so the inventory is incomplete." : " indexed tokens were read, so the inventory is incomplete.")
       : "The indexed token inventory could not be read in full.");
     if (mode === "block") reasons.push("Only native NEAR and the listed contracts were read at this block; other holdings are not included.");
     const figure = node("div", undefined, "portfolio-figure");
@@ -252,12 +257,14 @@
         node("p", reasons.join(" "), "portfolio-figure-note"));
     } else {
       figure.append(node("p", "USD value", "portfolio-figure-label"), node("p", "Not established", "portfolio-figure-value portfolio-unknown"),
-        node("p", (reasons.length ? reasons.join(" ") + " " : "") + "No asset in this read has a usable price.", "portfolio-figure-note"));
+        node("p", (reasons.length ? reasons.join(" ") + " " : "") + (noPrice === count ? "No asset in this read has a usable price." : "No asset in this read has an established USD value."), "portfolio-figure-note"));
     }
     const meter = node("div", undefined, "portfolio-meter"); meter.setAttribute("aria-hidden", "true");
     const fill = node("span", undefined, "portfolio-meter-fill"); fill.style.width = (count ? totals.priced_assets / count * 100 : 0) + "%"; meter.append(fill);
     const facts = node("dl", undefined, "portfolio-facts");
-    const rows = [["Priced assets", totals.priced_assets + " of " + count], ["Unpriced assets", String(totals.unpriced_assets)]];
+    const rows = [["Valued assets", totals.priced_assets + " of " + count], ["Assets without a usable price", String(noPrice)], ["Assets with unreadable balances", String(data.assets.filter(asset => asset.status === "balance_unavailable").length)]];
+    const undecimaled = data.assets.filter(asset => asset.status === "decimals_unavailable").length;
+    if (undecimaled) rows.push(["Assets with unusable decimals", String(undecimaled)]);
     if (mode === "current") rows.push(["Indexed tokens read", Number.isSafeInteger(coverage.tokens_total) ? coverage.tokens_read + " of " + coverage.tokens_total : "Inventory size unavailable"]);
     else rows.push(["Block height", typeof coverage.block_height === "string" ? coverage.block_height : "Not recorded"], ["Block time", utcLabel(data.effective_at)]);
     rows.push(["Read at", utcLabel(data.observed_at)]);
@@ -302,8 +309,8 @@
   }
   const measureLabel = () => ({total: "Complete total (USD)", known: "Known priced subtotal (USD)", balance: "Balance", value: "Value (USD)"}[measureSelect.value]);
   function unknownReason(item, measure) {
-    if (measure === "total") return item.known_value_usd !== null ? "Not complete; known subtotal " + item.known_value_usd + " USD" : "No asset was priced";
-    if (measure === "known") return "No asset was priced";
+    if (measure === "total") return item.known_value_usd !== null ? "Not complete; known subtotal " + item.known_value_usd + " USD" : "No asset value was established";
+    if (measure === "known") return "No asset value was established";
     if (measure === "balance") return item.balance_base_units ? item.balance_base_units + " base units; decimals unavailable" : "Asset not read in this observation";
     return item.balance === null || item.balance === undefined ? "Asset not read in this observation" : "Asset not priced in this observation";
   }
@@ -311,7 +318,7 @@
     const geometry = plot(items, measure), unit = measure === "balance" ? "" : " USD";
     const chart = node("div", undefined, "portfolio-chart"); chart.setAttribute("role", "img");
     const span = geometry.first === geometry.last ? utcLabel(geometry.first.effective_at) : utcLabel(geometry.first.effective_at) + " to " + utcLabel(geometry.last.effective_at);
-    chart.setAttribute("aria-label", measureLabel() + ": " + geometry.known.length + " retained observations with a value and " + geometry.unknown.length + " without one, " + span
+    chart.setAttribute("aria-label", measureLabel() + ": " + geometry.known.length + (geometry.known.length === 1 ? " retained observation with a value and " : " retained observations with a value and ") + geometry.unknown.length + " without one, " + span
       + (geometry.high ? ". Highest " + geometry.high.text + unit + ", lowest " + geometry.low.text + unit : "") + ". Exact values are in the table below.");
     const axis = node("div", undefined, "portfolio-y-axis"); axis.setAttribute("aria-hidden", "true");
     for (const [point, missing] of [[geometry.high, "No value"], [geometry.low !== geometry.high ? geometry.low : null, ""]]) {
@@ -353,7 +360,7 @@
     if (!groups.size) {
       const option = node("option", "No retained observations"); option.value = ""; scopeSelect.append(option);
       content.replaceChildren(empty("No valuation has been retained for this account yet. Read the current valuation or archived balances to retain one."),
-        node("p", history.stored + " retained observations for this account. Retained observations are not complete history.", "portfolio-note"));
+        node("p", history.stored + (history.stored === 1 ? " retained observation for this account. " : " retained observations for this account. ") + "Retained observations are not complete history.", "portfolio-note"));
       return;
     }
     scopeSelect.value = groups.has(chosen) ? chosen : [...groups.keys()][0];
@@ -383,10 +390,10 @@
       if (measure === "balance" && text !== null && text !== undefined && item.balance_base_units) value.append(node("small", item.balance_base_units + " base units", "mono portfolio-small"));
       const evidence = node("div"); evidence.append(evidenceLink(item.url, "Observation JSON"), node("small", "Read " + utcLabel(item.observed_at), "portfolio-small"), node("small", item.id, "mono portfolio-small"));
       return [node("span", utcLabel(item.effective_at), "mono"), item.kind === "historical" ? "Archived block read" : "Current read", value,
-        item.priced_assets + " priced, " + item.unpriced_assets + " unpriced of " + item.assets_count + (item.assets_count === 1 ? " asset" : " assets"), evidence];
+        item.priced_assets + " valued, " + item.unpriced_assets + " without a value of " + item.assets_count + (item.assets_count === 1 ? " asset" : " assets"), evidence];
     });
     result.append(exportButton("portfolio-history-table"), table("portfolio-history-table", ["Balance time (UTC)", "Read", measureLabel(), "Valuation coverage", "Evidence"], rows));
-    result.append(node("p", items.length + " of " + history.stored + " retained observations loaded for this account. Retained observations are not complete history, and no return or profit is calculated.", "portfolio-note"));
+    result.append(node("p", items.length + " of " + history.stored + (history.stored === 1 ? " retained observation loaded for this account. " : " retained observations loaded for this account. ") + "Retained observations are not complete history, and no return or profit is calculated.", "portfolio-note"));
     if (history.next !== null) {
       const more = button("Load older observations", () => loadHistory(true));
       more.disabled = items.length >= MAX_POINTS;
@@ -416,7 +423,7 @@
       try { data = await Promise.race([response.json(), deadline]); } catch (error) { throw new Error("The server response could not be read as JSON."); }
       if (!response.ok) {
         const message = data && typeof data.message === "string" && data.message.length <= 300 ? data.message : "The portfolio read is unavailable (HTTP " + response.status + ").";
-        const wait = /^[0-9]{1,4}$/.test(response.headers.get("retry-after") || "") ? " Retry after " + response.headers.get("retry-after") + " seconds." : "";
+        const wait = /^[0-9]{1,4}$/.test(response.headers.get("retry-after") || "") ? " Retry after " + response.headers.get("retry-after") + (response.headers.get("retry-after") === "1" ? " second." : " seconds.") : "";
         throw new Error(message + wait);
       }
       if (version !== generation || requests.get(key) !== request) return;
@@ -444,7 +451,10 @@
       current = checkPortfolio(data, account, "current");
       renderValuation(parent, current, "current");
       seriesOptions(); measureOptions(); useCurrent.disabled = !current.assets.some(asset => asset.contract_id);
-      sections.current.status.textContent = current.summary.total_value_usd !== null ? "Total value read." : current.summary.known_value_usd !== null ? "Known priced subtotal read; the total is incomplete." : "Balances read; no USD value was established.";
+      const unreadable = current.assets.filter(asset => asset.status === "balance_unavailable").length;
+      sections.current.status.textContent = current.summary.total_value_usd !== null ? "Total value read." : unreadable
+        ? "Valuation read; " + unreadable + (unreadable === 1 ? " asset has an unreadable balance." : " assets have unreadable balances.") + (current.summary.known_value_usd !== null ? " Known priced subtotal read; the total is incomplete." : " No USD value was established.")
+        : current.summary.known_value_usd !== null ? "Known priced subtotal read; the total is incomplete." : "Balances read; no USD value was established.";
     }, "Retry current valuation");
   }
   function loadHistory(older = false) {
@@ -460,7 +470,7 @@
       history.next = data.pagination.next_before; history.stored = data.coverage.stored_observations;
       measureSelect.disabled = false; renderHistory();
       for (const child of [...sections.history.content.childNodes]) parent.append(child);
-      sections.history.status.textContent = history.items.size + " retained observations loaded.";
+      sections.history.status.textContent = history.items.size + (history.items.size === 1 ? " retained observation loaded." : " retained observations loaded.");
     }, "Retry retained observations");
   }
   function fieldError(field, message) {
@@ -518,7 +528,7 @@
   useCurrent.addEventListener("click", () => {
     const contracts = (current?.assets || []).filter(asset => asset.contract_id).map(asset => asset.contract_id);
     contractsInput.value = contracts.slice(0, MAX_CONTRACTS).join("\n"); fieldError(contractsInput, "");
-    sections.block.status.textContent = contracts.length > MAX_CONTRACTS ? "Listed the first " + MAX_CONTRACTS + " of " + contracts.length + " contracts from the current valuation." : "Listed " + contracts.length + " contracts from the current valuation.";
+    sections.block.status.textContent = contracts.length > MAX_CONTRACTS ? "Listed the first " + MAX_CONTRACTS + " of " + contracts.length + " contracts from the current valuation." : "Listed " + contracts.length + (contracts.length === 1 ? " contract from the current valuation." : " contracts from the current valuation.");
   });
   document.addEventListener("siyab:account-selected", event => {
     const subject = event && event.detail && typeof event.detail.account === "string" ? event.detail.account : "";

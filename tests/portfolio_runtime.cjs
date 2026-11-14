@@ -61,6 +61,30 @@ const snapshot=(value,id='a'.repeat(64))=>({...clone(value),snapshot:{id,url:'/l
 function point(value,id,scope) {return {id,url:'/live/portfolio-data/'+id+'.json',kind:value.kind,observed_at:value.observed_at,effective_at:value.effective_at,asset_scope_id:scope||value.asset_scope_id,assets_count:value.assets.length,...value.summary};}
 const history=(items,asset=null)=>({account_id:'alice.near',network:'mainnet',items,pagination:{limit:100,next_before:null},coverage:{history_complete:false,asset_id:asset,stored_observations:items.length}});
 async function behavior() {
+  const unreadableApp=mount(),unreadable=snapshot(fixtures.current);
+  for(const asset of unreadable.assets){asset.price.status='known';asset.price.usd='2';asset.balance=null;asset.balance_base_units=null;asset.status='balance_unavailable';asset.value_usd=null;}
+  unreadable.summary={known_value_usd:null,total_value_usd:null,priced_assets:0,unpriced_assets:unreadable.assets.length};
+  unreadableApp.ids['portfolio-read'].click();reply(unreadableApp.pending.at(-1),unreadable);await tick();
+  const facts=all(unreadableApp.ids['portfolio-current']).find(item=>item.className==='portfolio-facts');
+  assert.match(facts.textContent,/Assets without a usable price 0/);
+  assert.match(facts.textContent,/Assets with unreadable balances 2/);
+  assert.doesNotMatch(facts.textContent,/Unpriced assets|unusable decimals/);
+  assert.equal(unreadableApp.ids['portfolio-current-status'].textContent,'Valuation read; 2 assets have unreadable balances. No USD value was established.');
+  submit(unreadableApp,'portfolio-history-form');reply(unreadableApp.pending.at(-1),history([point(unreadable,'7'.repeat(64))]));await tick();
+  assert.match(visibleText(unreadableApp.ids['portfolio-history']),/0 valued, 2 without a value of 2 assets/);
+  assert.doesNotMatch(visibleText(unreadableApp.ids['portfolio-history']),/unpriced|No asset was priced/);
+
+  const decimalsApp=mount(),decimals=snapshot(fixtures.current);
+  for(const asset of decimals.assets){asset.price.status='known';asset.price.usd='2';asset.status='decimals_unavailable';asset.value_usd=null;}
+  decimals.summary={known_value_usd:null,total_value_usd:null,priced_assets:0,unpriced_assets:decimals.assets.length};
+  decimalsApp.ids['portfolio-read'].click();reply(decimalsApp.pending.at(-1),decimals);await tick();
+  const decimalFacts=all(decimalsApp.ids['portfolio-current']).find(item=>item.className==='portfolio-facts');
+  assert.match(decimalFacts.textContent,/Valued assets 0 of 2/);
+  assert.match(decimalFacts.textContent,/Assets without a usable price 0/);
+  assert.match(decimalFacts.textContent,/Assets with unreadable balances 0/);
+  assert.match(decimalFacts.textContent,/Assets with unusable decimals 2/);
+  const notEstablished=all(decimalsApp.ids['portfolio-current']).filter(item=>item.ownText==='Not established').map(item=>item.className);
+  assert.deepEqual(notEstablished,['portfolio-figure-value portfolio-unknown','portfolio-unknown','portfolio-unknown']);
   const axisApp=mount();axisApp.ids['portfolio-history-measure'].value='known';
   const archived=(value,id,time)=>({...point(fixtures.large,id),kind:'historical',assets_count:1,priced_assets:1,unpriced_assets:0,total_value_usd:null,known_value_usd:value,effective_at:time});
   const lower=archived('130763096.159999999999','1'.repeat(64),'2026-11-10T15:43:09Z');
@@ -95,7 +119,7 @@ async function behavior() {
   assert.match(unpricedNotes,/table below gives the reason for each read/);
   submit(axisApp,'portfolio-history-form');reply(axisApp.pending.at(-1),history([lower]));await tick();
   assert.match(axisApp.ids['portfolio-history-scope'].children[0].textContent,/1 read, 1 asset\)/);
-  assert.match(visibleText(axisApp.ids['portfolio-history']),/1 priced, 0 unpriced of 1 asset\b/);
+  assert.match(visibleText(axisApp.ids['portfolio-history']),/1 valued, 0 without a value of 1 asset\b/);
   const upper=archived('130763988.129999999999','2'.repeat(64),'2026-11-10T15:43:20Z');
   const middle=archived('130763400.55','3'.repeat(64),'2026-11-10T15:43:14Z');
   submit(axisApp,'portfolio-history-form');reply(axisApp.pending.at(-1),history([lower,middle,upper]));await tick();

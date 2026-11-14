@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 class GraphVizTest(unittest.TestCase):
     @unittest.skipUnless(shutil.which("node"), "Node is unavailable")
-    def test_exact_values_time_filtering_and_untrusted_view_parameters(self):
+    def test_exact_values_time_filtering_view_parameters_and_modified_wheel_zoom(self):
         result = subprocess.run(
             [shutil.which("node"), "tests/graph_viz_runtime.cjs"],
             cwd=ROOT,
@@ -73,7 +73,7 @@ class GraphVizTest(unittest.TestCase):
             try:
                 for width in (1440, 375):
                     for usd, expected in (("1234567.129", "1,234,567.13"),
-                                          ("0.09999999999999999", "0.1"), (None, "Unknown")):
+                                          ("0.09999999999999999", "0.10"), ("4747932.6", "4,747,932.60"), (None, "Unknown")):
                         with self.subTest(width=width, usd=usd):
                             record["usd_amount"] = usd
                             page = browser.new_page(viewport={"width": width, "height": 900})

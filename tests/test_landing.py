@@ -119,7 +119,9 @@ class LandingTest(unittest.TestCase):
 
     def test_counts_come_from_the_counts_command(self):
         line = next(line for line in render._counts_lines() if line.startswith("Label store:"))
-        self.assertIn(line.split(" (")[0] + ".", self.text)
+        expected = re.sub(r"\d{4,}", lambda match: f"{int(match.group()):,}", line.split(" (")[0] + ".")
+        self.assertRegex(line, r"\d{4,}")
+        self.assertIn(expected, self.text)
 
     def test_recorded_transfer_excerpt_retains_source_evidence(self):
         document = dict(render._flows())["rhea-collector"]
@@ -160,7 +162,7 @@ class LandingTest(unittest.TestCase):
         main = re.search(r'<main[^>]*>\n(.*?)\n</main>', page, re.S).group(1)
         main = re.sub(r'<article class="analytics-panel"><div class="analytics-panel-head"><h2>Label store provenance</h2>.*?</article>', '', main, flags=re.S)
         main = main.replace('/index.html', '/explore.html')
-        expected = "3cabde879b71c3ad462572ba32087a77" + "35b9bd15c6fa3a4011b4cb2a3a50c98d"
+        expected = "b5a6a7c1fc357698b2f012d311a265c6" + "b9207501d795dc0d1928906b445ab6f4"
         self.assertEqual(hashlib.sha256(main.encode("utf-8")).hexdigest(), expected)
 
 

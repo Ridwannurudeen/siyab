@@ -116,12 +116,13 @@
         const kind = section.dataset.entityKind;
         const headers = Array.from(section.querySelectorAll("th"), header => header.textContent);
         const visible = selected.filter(row => row.kind === kind);
+        const matchingCount = matches.filter(row => row.kind === kind).length;
         section.querySelector("tbody").replaceChildren(...visible.map(row => rowElement(row, headers)));
         section.querySelector("[data-table-section-count]").textContent =
-          `${visible.length} of ${matches.filter(row => row.kind === kind).length} matching ${kind === "inferred" ? "hypotheses" : "source assertions"} on this page.`;
+          `${visible.length} of ${matchingCount} matching ${kind === "inferred" ? (matchingCount === 1 ? "hypothesis" : "hypotheses") : (matchingCount === 1 ? "source assertion" : "source assertions")} on this page.`;
       }
       panel.querySelector("[data-table-empty]").hidden = matches.length !== 0;
-      status.textContent = `Showing ${matches.length ? (page - 1) * 50 + 1 : 0} to ${Math.min(page * 50, matches.length)} of ${matches.length} matching assertions (${rows.length} recorded).`;
+      status.textContent = `Showing ${matches.length ? (page - 1) * 50 + 1 : 0} to ${Math.min(page * 50, matches.length)} of ${matches.length} matching ${matches.length === 1 ? "assertion" : "assertions"} (${rows.length} recorded).`;
       retry.hidden = true;
       navigation.replaceChildren();
       for (const [text, offset] of [["Previous", -1], ["Next", 1]]) {

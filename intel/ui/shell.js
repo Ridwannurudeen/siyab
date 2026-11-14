@@ -49,7 +49,7 @@
     results.replaceChildren();
     const query = input.value.trim().toLowerCase();
     const matches = entries && query ? entries.filter(row => `${row.label} ${row.detail}`.toLowerCase().includes(query)) : [];
-    const message = failed ? "Search is unavailable. Browse the account and entity collections below." : !entries ? "Loading recorded search index." : !query ? "Type an account or entity name." : !matches.length ? "No recorded match. This does not imply a favorable payment result." : `${matches.length} recorded matches; showing up to 30.`;
+    const message = failed ? "Search is unavailable. Browse the account and entity collections below." : !entries ? "Loading recorded search index." : !query ? "Type an account or entity name." : !matches.length ? "No recorded match. This does not imply a favorable payment result." : `${matches.length} recorded ${matches.length === 1 ? "match" : "matches"}; showing up to 30.`;
     const note = document.createElement("p");
     note.className = "search-empty"; note.textContent = message; results.append(note);
     if (query.length >= 2 && query.length <= 64 && /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/.test(query)

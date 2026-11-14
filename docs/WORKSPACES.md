@@ -4,7 +4,7 @@ This document describes the implemented configuration and its limits. Service fi
 
 ## Browser and shared work
 
-The existing browser workspace remains usable without an account. It keeps investigations, graph view settings, notes, watchlists and optional browser notifications on that device. Local monitoring checks the current feed window while a Siyab page stays open. Display pause controls remain separate from alert monitoring.
+The existing browser workspace remains usable without an account. It keeps investigations, graph view settings, notes, watchlists and optional browser notifications on that device. Local monitoring checks the current feed window while a Siyab page stays open. Pause updates stops feed reads on that page; Resume updates requests a current response. Browser alert monitoring runs independently while enabled.
 
 The save dialog defaults to **This browser**. Signing in does not upload local data. Choose a team explicitly to save a shared investigation, or review and confirm an import from browser storage or a JSON file. Imports create records without replacing existing notes; identical title, notes and URL triples are skipped. Import time becomes the shared record's creation time. Original browser data and backup files remain unchanged.
 
