@@ -577,7 +577,7 @@ class MalformedOutputTests(ServiceCase):
                     self.assertEqual(connection.execute("SELECT COUNT(*) FROM answers").fetchone()[0], 0)
 
     def test_deep_json_is_invalid_output(self):
-        text = "[" * 5000 + "]" * 5000
+        text = "[" * 100000 + "]" * 100000
         self.assertEqual(ask.parse_selection(text, ask.project(SERVICE_SUBJECT, SERVICE_VERDICT, self.store),
                                             "why_verdict"), (None, "json"))
         self.client.create.return_value["text"] = text
@@ -989,7 +989,7 @@ class CacheTests(ServiceCase):
 
     def test_invalid_cached_json_is_deleted_as_a_miss(self):
         cache = self.cache()
-        for text in ('{"answerable":false,"answerable":true}', "[" * 5000 + "]" * 5000,
+        for text in ('{"answerable":false,"answerable":true}', "[" * 100000 + "]" * 100000,
                      '{"n":' + "1" * 5000 + '}', "{"):
             with self.subTest(prefix=text[:40]):
                 cache.put("invalid", {}, self.now)
