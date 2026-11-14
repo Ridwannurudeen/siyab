@@ -77,3 +77,4 @@
 14 Nov, later: the operator posted the rhea incident to the public channel https://t.me/siyabalerts with `python -m intel incident-broadcast rhea`.
 14 Nov, later: after the post-deploy delivery check (polling advancing, no recorded error), the hosted deployment enabled Telegram group destinations with SIYAB_TELEGRAM_GROUPS=1.
 14 Nov, later: the hosted deployment enabled Ask Siyab (SIYAB_ASK=1, default model, daily cap and token limits) and the public account and token checks (SIYAB_CHECKS=1); Telegram checks, the NearBlocks fallback and automatic channel broadcast stay off.
+14 Nov, later: the explore page "Can I pay this?" result now carries an Ask Siyab section; signed-in team members ask the four fixed questions about the same receiver, amount and token, and signed-out visitors see a sign-in link and make no ask request.
