@@ -28,6 +28,8 @@ python -m gate incident rhea
 
 The hosted copy is at [siyab.xyz](https://siyab.xyz). The source is the public repository [Ridwannurudeen/siyab](https://github.com/Ridwannurudeen/siyab).
 
+The demo video is on YouTube: [siyab demo near hackathon](https://youtu.be/VXvnnxzofpk).
+
 ## What it is
 
 Siyab is a security intelligence layer for NEAR: a label store in which every assertion names its provenance class and its source, with incident records, account investigations and unsigned account, token and proposed transaction checks. Agent payments through the Gate are its enforced case. The store covers the NEAR Intents token catalog and the treasury accounts its documentation lists, the Sputnik DAO factory, the current validators, the Ref Finance whitelist and the Rainbow Bridge token factory.
