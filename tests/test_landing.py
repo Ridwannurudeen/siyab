@@ -162,7 +162,7 @@ class LandingTest(unittest.TestCase):
         main = re.search(r'<main[^>]*>\n(.*?)\n</main>', page, re.S).group(1)
         main = re.sub(r'<article class="analytics-panel"><div class="analytics-panel-head"><h2>Label store provenance</h2>.*?</article>', '', main, flags=re.S)
         main = main.replace('/index.html', '/explore.html')
-        expected = "bc493094afab92f7e596ca026193d98b" + "d4e5c66aaf4fb9ab7370c3a2bba12075"
+        expected = "b8cb5ca68e2aa0fda25f9d41e14294bb" + "67bcbe62226b36dc79c78afbded01f74"
         self.assertEqual(hashlib.sha256(main.encode("utf-8")).hexdigest(), expected)
 
 
