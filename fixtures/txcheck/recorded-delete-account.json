@@ -1,0 +1,11 @@
+{
+  "signer_id": "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03",
+  "receiver_id": "d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03",
+  "actions": [
+    {
+      "DeleteAccount": {
+        "beneficiary_id": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540"
+      }
+    }
+  ]
+}

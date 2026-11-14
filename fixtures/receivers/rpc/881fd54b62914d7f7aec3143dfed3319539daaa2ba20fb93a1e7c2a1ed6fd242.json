@@ -1,0 +1,21 @@
+{
+  "request": {
+    "method": "block",
+    "params": {
+      "block_id": 224460146
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": "gate",
+    "result": {
+      "header": {
+        "hash": "2WPbesk8zkrhnsDjWJ8tJBKVyaM318ZsXotWQ8ZMNhSy",
+        "height": 224460146,
+        "timestamp": 1794628374464238446
+      }
+    }
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-14T03:52:55Z"
+}

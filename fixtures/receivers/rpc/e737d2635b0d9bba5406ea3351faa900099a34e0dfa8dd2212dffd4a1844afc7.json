@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "usdt.tether-token.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "4589840318397315166733770394",
+      "block_hash": "9MG21ithCFYzSobzGzPVMkHSePKA19sEAfuJFR6rWscj",
+      "block_height": 224460142,
+      "code_hash": "51tHbmQkA8qAi8c6MoUor5mCx6CnL6tZyC2sqQifKPZC",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 248535183
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-14T03:52:51Z"
+}

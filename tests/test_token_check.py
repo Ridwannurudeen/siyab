@@ -143,6 +143,37 @@ class TokenCheckTest(unittest.TestCase):
         self.assertNotEqual(self.checks(answer)["symbol_impersonation"]["status"], "signal")
         self.assertNotEqual(answer["outcome"], "DENY")
 
+    def test_recorded_usdt_full_reads_allow(self):
+        self.recorded()
+        answer = self.run_check("usdt.tether-token.near")
+        checks = self.checks(answer)
+        self.assertEqual({name: check["status"] for name, check in checks.items()},
+                         dict.fromkeys(("token_in_catalog", "ft_metadata_sane", "symbol_impersonation", "issuer_known",
+                                        "contract_control", "incident_code"), "pass"))
+        self.assertEqual((answer["outcome"], answer["action"]), ("ALLOW", "sign"))
+        self.assertEqual(answer["freshness"]["block_height"], 224460142)
+        self.assertEqual(checks["ft_metadata_sane"]["detail"], 'symbol "USDt", 6 decimals')
+        self.assertIn("none of 0 access keys", checks["contract_control"]["detail"])
+        self.assertFalse(any("no recorded response" in check["detail"] for check in checks.values()))
+
+    def test_recorded_native_usdc_full_reads_ask_for_held_name_and_full_access_key(self):
+        """Native USDC reads ASK, not ALLOW: its name "USDC" equals its own catalog symbol, which bridged
+        USDC copies also hold, and the label store records no names to tell a copy from the same asset; and
+        one full access key at the recorded block can replace the contract code."""
+        self.recorded()
+        answer = self.run_check(native_usdc())
+        checks = self.checks(answer)
+        self.assertEqual({name: check["status"] for name, check in checks.items()},
+                         {"token_in_catalog": "pass", "ft_metadata_sane": "pass", "symbol_impersonation": "unknown",
+                          "issuer_known": "pass", "contract_control": "unknown", "incident_code": "pass"})
+        self.assertEqual((answer["outcome"], answer["action"]), ("ASK", "ask"))
+        self.assertEqual(answer["freshness"]["block_height"], 224460146)
+        self.assertIn('the name "USDC" equals its own catalog symbol', checks["symbol_impersonation"]["detail"])
+        self.assertEqual(checks["contract_control"]["detail"], "1 full access key(s) can replace the contract code")
+        self.assertEqual(answer["reasons"], [checks["symbol_impersonation"]["detail"],
+                                             checks["contract_control"]["detail"]])
+        self.assertFalse(any("no recorded response" in check["detail"] for check in checks.values()))
+
     def test_synthetic_catalog_token_reads_at_most_two_references(self):
         second = "second.synthetic.near"
         self.function(second, {"name": "Second Dollar", "symbol": "SUSD", "decimals": 6})
