@@ -101,7 +101,9 @@ def _validate(transaction):
                 if (not isinstance(call, dict) or not {"receiver_id", "method_names"} <= set(call)
                         or set(call) - {"receiver_id", "method_names", "allowance"}):
                     raise ValueError("AddKey: malformed function call permission")
-                _account(call["receiver_id"], "key receiver_id")
+                target = _account(call["receiver_id"], "key receiver_id")
+                if target not in accounts:
+                    accounts.append(target)
                 if (not isinstance(call["method_names"], list)
                         or not all(isinstance(name, str) and name for name in call["method_names"])):
                     raise ValueError("AddKey: method_names must be a list of non-empty strings")
@@ -169,6 +171,9 @@ def check_transaction(transaction, *, store):
                 f"deploys code hash {digest}, reported by incident {incident}" if incident
                 else f"deploys code hash {digest}; the code has not been assessed",
                 rules._local("incident pages") if incident else action_source))
+        elif kind == "FunctionCall" and body["method_name"] == "ft_transfer_call" and args["msg"]:
+            checks.append(evidence.check("unrecognised_action", "unknown",
+                f"ft_transfer_call passes a msg to {args['receiver_id']}; the msg is not modelled", action_source))
         elif kind not in ("CreateAccount", "Transfer") and not (kind == "FunctionCall" and args is not None):
             detail = f"unmodelled action {kind}"
             if kind == "FunctionCall":

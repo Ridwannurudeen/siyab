@@ -127,6 +127,28 @@ class TransactionCheckTest(unittest.TestCase):
         self.assertIn(denied.id, document["labels"])
         self.assertEqual(answer["outcome"], "DENY")
 
+    def test_synthetic_ft_transfer_call_msg_is_unknown(self):
+        denied = next(a for a in self.store.assertions if a.chain == "near" and a.category == "denylist"
+                      and a.superseded_by is None)
+        action = synthetic_call("ft_transfer_call", "pool.near")
+        args = {"receiver_id": "pool.near", "amount": "1", "msg": json.dumps({"receiver_id": denied.subject})}
+        action["FunctionCall"]["args"] = base64.b64encode(json.dumps(args).encode()).decode()
+        answer, document = self.document(synthetic_transaction(action, receiver="token.near"))
+        check = self.finding(document, "unrecognised_action")
+        self.assertEqual(check["status"], "unknown")
+        self.assertEqual(check["detail"], "ft_transfer_call passes a msg to pool.near; the msg is not modelled")
+        self.assertEqual(answer["outcome"], "ASK")
+        self.assertNotIn("no modelled risk found", answer["evidence"])
+
+    def test_synthetic_function_call_key_receiver_label_is_checked(self):
+        action = {"AddKey": {"public_key": PUBLIC_KEY, "access_key": {"nonce": 0, "permission": {
+            "FunctionCall": {"receiver_id": "flagged.near", "method_names": ["run"], "allowance": "1"}}}}}
+        answer, document = self.document(synthetic_transaction(action), synthetic_store(("flagged.near", "denylist")))
+        check = self.finding(document, "receiver_labels")
+        self.assertEqual(check["status"], "signal")
+        self.assertIn("flagged.near", check["detail"])
+        self.assertNotEqual(answer["outcome"], "ALLOW")
+
     def test_synthetic_ft_transfer_checks_incident_argument_receiver(self):
         answer, document = self.document(synthetic_transaction(synthetic_call("ft_transfer", "flagged.near")),
                                           synthetic_store(("flagged.near", "incident")))

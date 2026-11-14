@@ -36,7 +36,7 @@ After a run has been recorded, replay it offline:
 python -m gate incident-replay rhea
 ```
 
-The command reads `fixtures/replay/rhea/run.json` and the recorded RPC fixtures, recomputes the checks and guard outcomes, and refuses a mismatch. Every fixture the run reads, including height resolution, must be listed in the manifest and match its digest; the verified bytes are the bytes parsed. Replay proves that the derived results are consistent with a trusted `run.json` and its fixtures. It does not prove chain authenticity: someone who replaces the fixtures, their digests and the results together can produce a self-consistent forgery. Without a recorded run it cannot replay. A real Rhea run must be recorded separately. The incident page adds its replay table only when that run file exists.
+The command reads `fixtures/replay/rhea/run.json` and the recorded RPC fixtures, recomputes the checks and guard outcomes, and refuses a mismatch. Every fixture the run reads, including height resolution, must be listed in the manifest and match its digest; the verified bytes are the bytes parsed. Replay proves that the derived results are consistent with a trusted `run.json` and its fixtures. It does not prove chain authenticity: someone who replaces the fixtures, their digests and the results together can produce a self-consistent forgery. Without a recorded run it cannot replay. The incident page adds its replay table only when that run file exists.
 
 Recording is a separate network read for the operator:
 

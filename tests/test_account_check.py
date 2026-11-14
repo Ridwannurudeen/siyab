@@ -135,6 +135,43 @@ class AccountCheckTest(unittest.TestCase):
         self.assertTrue(any(reported in reason for reason in answer["reasons"]))
         self.assertFalse(any("Every check ran" in reason for reason in answer["reasons"]))
 
+    def test_recorded_global_contract_account_has_code(self):
+        answer = self.check("dvzat.sputnik-dao.near")
+        checks = {c["id"]: c for c in self.document(answer)["checks"]}
+        self.assertIn("contract_control", checks)
+        self.assertNotIn("no contract code", answer["evidence"])
+        self.assertIn("DtHZA1mUmGYeScEaUoUZYQGGFHSMpnjMCvkr5U9hJXuF", checks["incident_code"]["detail"])
+
+    def test_synthetic_global_contract_hash_matches_incident(self):
+        view_account = self.rpc.view_account
+        reported = RHEA["code_hash_as_reported"]["value"]
+
+        def synthetic_account(account):
+            return {**view_account(account), "global_contract_hash": reported}
+
+        with mock.patch.object(self.rpc, "view_account", side_effect=synthetic_account):
+            answer = self.check("dvzat.sputnik-dao.near")
+        checks = {c["id"]: c for c in self.document(answer)["checks"]}
+        self.assertEqual(checks["incident_code"]["status"], "signal")
+        self.assertIn(reported, checks["incident_code"]["detail"])
+        self.assertEqual(answer["outcome"], "DENY")
+
+    def test_synthetic_global_contract_by_account_id_is_unknown(self):
+        view_account = self.rpc.view_account
+
+        def synthetic_account(account):
+            return {**view_account(account), "global_contract_hash": None,
+                    "global_contract_account_id": "publisher.near"}
+
+        with mock.patch.object(self.rpc, "view_account", side_effect=synthetic_account):
+            answer = self.check("dvzat.sputnik-dao.near")
+        checks = {c["id"]: c for c in self.document(answer)["checks"]}
+        self.assertEqual(checks["contract_control"]["status"], "unknown")
+        self.assertEqual(checks["incident_code"]["status"], "unknown")
+        self.assertEqual(checks["incident_code"]["detail"],
+                         "runs the global contract published by publisher.near; its hash was not compared")
+        self.assertNotEqual(answer["outcome"], "ALLOW")
+
     def test_synthetic_later_account_read_cannot_erase_incident_match(self):
         view_account = self.rpc.view_account
         reported = RHEA["code_hash_as_reported"]["value"]
