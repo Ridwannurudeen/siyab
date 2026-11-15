@@ -2,6 +2,8 @@
 
 The scripts use environment variables and the near-cli-rs command lines recorded in `docs/SPIKES.md`. Set `DRY_RUN=1` or pass `--dry-run` to print the planned command lines; neither mode reads key contents or submits a transaction. The repository's `env.example` documents the environment variables used by these scripts. No script contains or prints a key.
 
+`python scripts/prefetch_follow.py --max-blocks N --stop-height H` is keyless and continues an existing cursor in `FEED_STATE_DIR` with bounded concurrent block downloads at 150 requests a minute by default and at most; merging backfill state is a separate operator step.
+
 | Variable | Use |
 |---|---|
 | `NETWORK` | Testnet only, defaults to `testnet`; `deploy_registry_mainnet.sh` alone requires `mainnet`. |
