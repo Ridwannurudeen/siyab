@@ -117,7 +117,8 @@ class CommittedStoreTest(unittest.TestCase):
             rows = (seed.treasuries("replay") + seed.catalog("replay") + seed.infrastructure("replay")
                     + seed.rhea("replay") + seed.sweat_hot("replay")
                     + [row for name in registries.REGISTRY_ORDER for row in by_registry[name]]
-                    + issuers.history_rows() + issuers.rows() + issuers.blacklist_rows())
+                    + issuers.history_rows() + issuers.rows() + issuers.blacklist_rows()
+                    + seed.skyward("replay"))
         manual_rows = [r for r in self.rows if r["entity"] == "issuer blacklist correction"]
         replaced_rows = [r for r in self.rows if r["entity"] == "issuer of usdt.tether-token.near"
                          and r["subject"] == "usdt.tether-token.near" and r["category"] == "denylist"]
@@ -385,6 +386,42 @@ class SeedTest(unittest.TestCase):
         client.view_account.side_effect = seed.rpc.RpcError({"name": "HANDLER_ERROR", "cause": {"name": "TIMEOUT"}})
         with self.assertRaises(seed.rpc.RpcError):
             seed.infrastructure("replay", client=client)
+
+    def test_skyward_rows_name_the_report_account_and_its_signed_transaction(self):
+        with mock.patch("urllib.request.urlopen", side_effect=no_network):
+            rows = seed.skyward("replay")
+        account, quote, transaction_hash = seed.skyward_report(
+            next(RAW_DIR.glob("rekt-skyward-*.html")).read_bytes())
+        self.assertIn(account, quote)
+        self.assertEqual(rows[0]["note"], f"quote {json.dumps(quote, ensure_ascii=False)}")
+        self.assertEqual([(r["subject"], r["category"], r["provenance"]) for r in rows],
+                         [(account, "incident", "third_party"), (account, "incident", "onchain"),
+                          (account, "incident", "onchain")])
+        self.assertEqual(rows[0]["source"]["url"], seed.REKT_SKYWARD_URL)
+        self.assertEqual(rows[2]["source"]["args"], {"transaction_hash": transaction_hash})
+        self.assertTrue(all(r["source"]["block"] > 0 for r in rows[1:]))
+
+    def test_skyward_refuses_a_transaction_another_account_signed(self):
+        nearblocks = mock.MagicMock()
+        nearblocks.get.return_value = {"txns": [{"signer_account_id": "other.near", "receiver_account_id": "x",
+                                                 "actions": [], "block": {"block_height": 1}}]}
+        with mock.patch("urllib.request.urlopen", side_effect=no_network), self.assertRaises(seed.SeedError):
+            seed.skyward("replay", nearblocks=nearblocks)
+
+    def test_skyward_refuses_a_transaction_lookup_that_returns_nothing(self):
+        nearblocks = mock.MagicMock()
+        nearblocks.get.return_value = {"txns": []}
+        with mock.patch("urllib.request.urlopen", side_effect=no_network), self.assertRaises(seed.SeedError):
+            seed.skyward("replay", nearblocks=nearblocks)
+
+    def test_skyward_refuses_a_transaction_that_calls_no_method(self):
+        account, _, _ = seed.skyward_report(next(RAW_DIR.glob("rekt-skyward-*.html")).read_bytes())
+        nearblocks = mock.MagicMock()
+        nearblocks.get.return_value = {"txns": [{"signer_account_id": account, "receiver_account_id": "x",
+                                                 "actions": [{"action": "TRANSFER"}],
+                                                 "block": {"block_height": 1}}]}
+        with mock.patch("urllib.request.urlopen", side_effect=no_network), self.assertRaises(seed.SeedError):
+            seed.skyward("replay", nearblocks=nearblocks)
 
 
 if __name__ == "__main__":

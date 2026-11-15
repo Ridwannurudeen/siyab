@@ -5,10 +5,12 @@ infrastructure (omft.near and intents.near source metadata, the .omft.near bridg
 v1.signer and the OutLayer accounts), rhea (the rekt.news Rhea Finance report, re-read on chain,
 which also writes intel/incidents/rhea.json), sweat-hot (the Fireblocks SWEAT and HOT report and the
 DeFiLlama hacks entry, with the HOT token contract re-read on chain, which also writes
-intel/incidents/sweat-hot.json) and intents-2026-10-01 (the DeFiLlama hacks entry only, which writes
-intel/incidents/intents-2026-10-01.json and adds no row). GATE_FIXTURES_MODE decides the network: replay (default)
-reads the newest snapshot under intel/seeds/raw/ and the recorded RPC fixtures; record fetches
-the page once, stores it byte for byte as raw/<name>-<UTC time>.<ext> and records RPC reads.
+intel/incidents/sweat-hot.json), intents-2026-10-01 (the DeFiLlama hacks entry only, which writes
+intel/incidents/intents-2026-10-01.json and adds no row) and skyward (the rekt.news Skyward Finance
+report, with the account it names and the transaction it links re-read on chain).
+GATE_FIXTURES_MODE decides the network: replay (default) reads the newest snapshot under
+intel/seeds/raw/ and the recorded RPC fixtures; record fetches the page once, stores it byte for byte
+as raw/<name>-<UTC time>.<ext> and records RPC reads.
 Each run appends only rows whose id is new and rewrites intel/seeds/README.md.
 """
 
@@ -35,13 +37,15 @@ REKT_RHEA_URL = "https://rekt.news/rhea-finance-rekt"
 QUOTE_DOC_URL = "https://docs.near-intents.org/api-reference/oneclick/request-a-swap-quote.md"
 FIREBLOCKS_URL = "https://www.fireblocks.com/blog/near-zero-day-sweat-hot-token-exploit"
 DEFILLAMA_URL = "https://api.llama.fi/hacks"
+REKT_SKYWARD_URL = "https://rekt.news/skyward-rekt"
 SNAPSHOTS = {"treasuries": ("near-intents-treasury-addresses", "md", TREASURY_URL),
              "catalog": ("1click-tokens", "json", CATALOG_URL),
              "rhea": ("rekt-rhea", "html", REKT_RHEA_URL),
              "quote_doc": ("intents-quote-doc", "md", QUOTE_DOC_URL),
              "fireblocks": ("fireblocks-sweat-hot", "html", FIREBLOCKS_URL),
-             "defillama": ("defillama-hacks", "json", DEFILLAMA_URL)}
-SOURCES = ("treasuries", "catalog", "infrastructure", "rhea", "sweat-hot", "intents-2026-10-01")
+             "defillama": ("defillama-hacks", "json", DEFILLAMA_URL),
+             "skyward": ("rekt-skyward", "html", REKT_SKYWARD_URL)}
+SOURCES = ("treasuries", "catalog", "infrastructure", "rhea", "sweat-hot", "intents-2026-10-01", "skyward")
 _STAMP = "%Y%m%dT%H%M%SZ"
 _TIME = "%Y-%m-%dT%H:%M:%SZ"
 # Page names to 1Click blockchain codes. Aurora has no code in the catalog and keeps its name;
@@ -763,6 +767,77 @@ def intents_incident(mode=None, raw_dir=RAW_DIR):
         "standard": INCIDENT_STANDARD,
     }
 
+SKYWARD_ENTITY = "the unnamed party behind the Skyward Finance treasury drain, as rekt.news reports it"
+SKYWARD_ROLE = "the one account whose address it prints, together with the one transaction it links"
+SKYWARD_ONCHAIN_NOTE = "current mainnet state read for the Skyward Finance incident, not a historical block replay"
+SKYWARD_TX_NOTE = "the transaction the report links, as the NearBlocks transaction API returns it"
+_EXPLORER_TX_LINK = re.compile(r'href="https://explorer[.]near[.]org/transactions/([1-9A-HJ-NP-Za-km-z]{43,44})"')
+
+
+def skyward_report(data):
+    """What the rekt.news Skyward Finance report names: (the account, the quote of its line and the next
+    one, which prints the transaction, and the transaction hash from the link the report gives)."""
+    lines = _report_lines(data)
+    [account], account_quote = _after(lines, "Exploiter’s address:", _HEX_ACCOUNT, 1)
+    text = data.decode("utf-8")
+    article = text[text.find("<article"): text.find("</article>")]
+    hashes = sorted(set(_EXPLORER_TX_LINK.findall(article)))
+    if len(hashes) != 1:
+        raise SeedError(f"the Skyward report links {len(hashes)} transactions, not one")
+    tx_line = lines[lines.index(account_quote) + 1]
+    printed = tx_line.split(":", 1)[1].strip().rstrip("…") if tx_line.startswith("Attack tx:") else None
+    if not printed or not hashes[0].startswith(printed):
+        raise SeedError("the line after the account is not the linked transaction the report prints")
+    return account, f"{account_quote} {tx_line}", hashes[0]
+
+
+def skyward(mode=None, raw_dir=RAW_DIR, client=None, nearblocks=None):
+    """The Skyward Finance rows: one third_party incident row for the account the rekt.news report
+    names, one onchain row for its current view_account and one for the attack transaction the
+    report links, whose signer must be that account."""
+    client, nearblocks = _clients(mode, client, nearblocks)
+    data, fetched_at, _ = snapshot("skyward", mode, raw_dir)
+    account, quote, transaction_hash = skyward_report(data)
+    rows = [make_row(entity=SKYWARD_ENTITY, subject=account, chain="near",
+                     label=f"named in the rekt.news Skyward Finance report as {SKYWARD_ROLE}", category="incident",
+                     provenance="third_party", source=_document_source(REKT_SKYWARD_URL, data, fetched_at),
+                     observed_at=fetched_at, confidence=INCIDENT_CONFIDENCE,
+                     note=f"quote {_quoted(quote)}")]
+    try:
+        view = client.view_account(account)
+        label = ("account exists with no contract code" if view["code_hash"] == rpc.EMPTY_CODE_HASH
+                 else f"account exists with contract code hash {view['code_hash']}")
+        block = client.last_block_height
+    except rpc.RpcError as error:
+        if error.cause != "UNKNOWN_ACCOUNT" or _error_block(error) is None:
+            raise
+        label, block = "account does not exist at this block (deleted or never created)", _error_block(error)
+    rows.append(make_row(entity=SKYWARD_ENTITY, subject=account, chain="near", label=label, category="incident",
+                         provenance="onchain", observed_at=client.last_source["fetched_at"],
+                         source={"rpc": client.url, "method": "view_account", "args": {"account_id": account},
+                                 "block": block}, note=SKYWARD_ONCHAIN_NOTE))
+    txns = nearblocks.get(f"/v1/txns/{transaction_hash}")["txns"]
+    if len(txns) != 1:
+        raise SeedError(f"the transaction lookup for the Skyward report returned {len(txns)} transactions, not one")
+    txn = txns[0]
+    if txn["signer_account_id"] != account:
+        raise SeedError("the attack transaction the report links is not signed by the account it names")
+    # The action kinds are left out: the upper case function call kind reads as a tool call to the
+    # injection scanner; the method names say the same and are what the report describes.
+    methods = ", ".join(_quoted(action["method"]) for action in txn["actions"] if action.get("method"))
+    if not methods:
+        raise SeedError("the attack transaction the report links calls no method")
+    rows.append(make_row(
+        entity=SKYWARD_ENTITY, subject=account, chain="near",
+        label=(f"signer of transaction {transaction_hash} at block {txn['block']['block_height']}, receiver "
+               f"{_quoted(txn['receiver_account_id'])}, methods called {methods}"),
+        category="incident", provenance="onchain", observed_at=nearblocks.last_source["fetched_at"],
+        source={"rpc": nearblocks.url, "method": "GET /v1/txns/{transaction_hash}",
+                "args": {"transaction_hash": transaction_hash}, "block": int(txn["block"]["block_height"])},
+        note=SKYWARD_TX_NOTE))
+    return rows
+
+
 def write_incident(document, path):
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     Path(path).write_bytes((json.dumps(document, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
@@ -827,7 +902,8 @@ def run(source, mode=None, store_path=labels.STORE_PATH, raw_dir=RAW_DIR, readme
     """Seed one source into the store and rewrite the README (and for rhea the incident file);
     returns the number of new rows."""
     rows = {"treasuries": treasuries, "catalog": catalog, "infrastructure": infrastructure, "rhea": rhea,
-            "sweat-hot": sweat_hot, "intents-2026-10-01": lambda mode, raw_dir: []}[source](mode=mode, raw_dir=raw_dir)
+            "sweat-hot": sweat_hot, "intents-2026-10-01": lambda mode, raw_dir: [],
+            "skyward": skyward}[source](mode=mode, raw_dir=raw_dir)
     added = append(rows, store_path)
     Path(readme_path).write_bytes(readme_text(store_path, raw_dir).encode("utf-8"))
     if source == "rhea":

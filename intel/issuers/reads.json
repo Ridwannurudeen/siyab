@@ -6843,6 +6843,28 @@
   },
   {
     "issuer": "usdt.tether-token.near",
+    "subject": "5ebc5ecca14a44175464d0e6a7d3b2a6890229cd5f19cfb29ce8b1651fd58d39",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "5ebc5ecca14a44175464d0e6a7d3b2a6890229cd5f19cfb29ce8b1651fd58d39"
+    },
+    "answer": "Allowable",
+    "block": 224646699,
+    "observed_at": "2026-11-15T09:30:42Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "5ebc5ecca14a44175464d0e6a7d3b2a6890229cd5f19cfb29ce8b1651fd58d39",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "5ebc5ecca14a44175464d0e6a7d3b2a6890229cd5f19cfb29ce8b1651fd58d39"
+    },
+    "answer": false,
+    "block": 224646700,
+    "observed_at": "2026-11-15T09:30:43Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
     "subject": "mmt-arb.near",
     "method": "get_blacklist_status",
     "args": {
