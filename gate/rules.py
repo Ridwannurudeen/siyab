@@ -20,7 +20,7 @@ from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
-from gate import canon, evidence
+from gate import canon, evidence, freshness
 from gate.rpc import (
     EMPTY_CODE_HASH,
     FixtureMiss,
@@ -33,8 +33,14 @@ from gate.rpc import (
 from intel import reports
 
 MIN_AGE_DAYS = 7
+# Rule sets judge can run: 1, the default, is the one every committed judgement was judged with; 2 adds the
+# checks of gate/freshness.py.
+RULES_VERSIONS = (1, 2)
 # The checks judge runs only for a receiver off the agent's allowlist; an owner's set_allowlist call skips them.
 TIER2_CHECKS = ("account_age", "dust_funded", "lookalike", "code_without_metadata")
+# The tier 2 check rules version 2 adds. It stays out of TIER2_CHECKS, the version 1 set the incident replay
+# page and docs/API.md pin.
+TIER2_CHECKS_V2 = ("code_changed_recently",)
 DAY_MS = 24 * 60 * 60 * 1000
 YOCTO_PER_NEAR = 10**24
 DUST_YOCTO = 10**23  # 0.1 NEAR
@@ -46,9 +52,9 @@ NONCE_PER_HEIGHT = 10**6
 BLOCKS_PER_DAY_MAX = 2 * 24 * 60 * 60
 # A candidate for a younger block (one every 2 s); only its read-back time proves its age.
 BLOCKS_PER_DAY_MIN = 43_200
-# The NearBlocks keys request carries no page parameter. The recorded answer for user.intear.near lists
-# exactly 25 keys while RPC refuses its key list as TOO_MANY_ACCESS_KEYS, so a list this long may be one
-# page of a longer one; the page size is observed there, not documented.
+# The NearBlocks keys request carries no page parameter. Its recorded answer for user.intear.near lists 25
+# keys, so a list this long may be one page of a longer one (page size observed, not documented). RPC refuses
+# that key list as TOO_MANY_ACCESS_KEYS; _state_age dates such a receiver first, this list only after it.
 NEARBLOCKS_KEYS_PAGE = 25
 # A key creation time below this (in ns, September 2001) predates every NEAR block, so it is malformed.
 MIN_CREATION_NS = 10**18
@@ -549,9 +555,9 @@ def _state_age(archival, receiver, account, account_source, now_ms, min_age_days
     """(the account_age check, False) when view_account on an archival node finds the receiver at a
     block at least min_age_days old: min_age_days times BLOCKS_PER_DAY_MAX blocks before the block its
     own view_account (account) was read at, with that block's time read back. Only _nonce_age calls
-    it, for a receiver with no access key or none with a creation height, such as a locked contract, and
-    for one whose oldest access key was added in a block younger than min_age_days, which shows only that
-    the account existed by then.
+    it, for a receiver with no access key or none with a creation height, such as a locked contract, for one
+    whose key list RPC refuses as TOO_MANY_ACCESS_KEYS, and for one whose oldest access key was added in a
+    block younger than min_age_days, which shows only that the account existed by then.
     No step down: archival view_account answered HTTP 500 at many testnet blocks (docs/SPIKES.md S8),
     which reads unknown here. If the receiver is missing at the old block, a second candidate's time
     must prove it younger than min_age_days before reading the receiver there. Missing there too signals.
@@ -624,9 +630,9 @@ def _nonce_age(rpc, archival, receiver, now_ms, min_age_days, account, account_s
     old passes. A younger one is a lower bound on the age, not the creation time, since every key the
     account was created with may have been deleted, so it never signals: _state_age dates the receiver
     instead. A key with nonce 0, or a permission other than full access or function call, carries no
-    creation height. A receiver with no access key, or none with a creation height, is dated by
-    _state_age too, which gives True when the receiver did not exist at its old block. A read that could
-    not run gives an unknown check and None."""
+    creation height. A receiver with no access key, or none with a creation height, or one whose key list
+    RPC refuses as TOO_MANY_ACCESS_KEYS, is dated by _state_age too, which gives True when the receiver did
+    not exist at its old block. Any other read that could not run gives an unknown check and None."""
     try:
         keys = rpc.view_access_key_list(receiver)["keys"]
         nonces = []
@@ -640,6 +646,9 @@ def _nonce_age(rpc, archival, receiver, now_ms, min_age_days, account, account_s
                           or isinstance(permission, dict) and "FunctionCall" in permission):
                 nonces.append(nonce)
     except UNAVAILABLE as error:
+        if isinstance(error, RpcError) and error.cause == "TOO_MANY_ACCESS_KEYS":
+            return _state_age(archival, receiver, account, account_source, now_ms, min_age_days,
+                              "view_access_key_list answers TOO_MANY_ACCESS_KEYS, so no key nonce dates the account")
         return evidence.check("account_age", "unknown", f"view_access_key_list could not run: "
                               f"{_why(error)}", _source(rpc)), None
     rpc_source = _source(rpc)
@@ -846,6 +855,7 @@ _SIGNAL_REASONS = {
     "memo_injection": "The memo carries instruction shaped text ({detail}).",
     "community_report": "The reports contract {reports_account} accepted deny report {report_id} for {receiver}.",
     "code_without_metadata": "{receiver} has contract code without contract_source_metadata.",
+    "code_changed_recently": "{receiver} changed its contract code ({detail}).",
 }
 
 
@@ -887,23 +897,41 @@ def _reasons(verdict, checks, facts, request, tier2, reports_account, report_id)
 
 
 def judge(request, policy, store, rpc, nearblocks, *, now_ms, injection_scanner, min_age_days=MIN_AGE_DAYS,
-          archival=None, issuers=None, reports_account=None):
+          archival=None, issuers=None, reports_account=None, rules_version=1):
     """Judge one TransferRequest for the agent whose policy (allowlist and caps, in the get_agent
     shape) is given; store is the label store, rpc the NEAR JSON-RPC client, nearblocks the
     NearBlocks client, injection_scanner the ShieldBot API client or None and archival the archival
     JSON-RPC client that dates the receiver before NearBlocks is used as a fallback, or None.
     issuers is the list of issuer entries (issuers_for) the issuer_blacklist check reads; None or an
     empty list adds no check. reports_account is the reports contract account or None to omit its
-    check. A receiver that is not a valid account id raises canon.CanonError, a ValueError, before any request."""
+    check. rules_version is one of RULES_VERSIONS; 2 adds label_stale after label_denylist and, for tier 2,
+    code_changed_recently (gate/freshness.py), and drops code_without_metadata for a receiver on a global
+    contract, whose empty code hash that check reads as no contract code. A receiver that is not a valid account
+    id, or another rules_version, raises a ValueError (canon.CanonError for the id) before any request."""
     canon.account_id(request["receiver_id"], "receiver_id")
+    if type(rules_version) is not int or rules_version not in RULES_VERSIONS:
+        raise ValueError(f"rules_version must be one of {RULES_VERSIONS}, not {rules_version!r}")
+    receiver = request["receiver_id"]
     tier1_checks, account, account_source, labels, report_id = _tier1(
         request, policy, store, rpc, injection_scanner, issuers, reports_account)
     block_height = account.get("block_height") if account else None
-    tier2 = request["receiver_id"] not in policy.get("allowlist", [])
+    tier2 = receiver not in policy.get("allowlist", [])
     checks, facts = list(tier1_checks), {}
+    if rules_version == 2:
+        missing = any(c["id"] == "receiver_exists" and c["status"] == "signal" for c in checks)
+        stale = freshness.label_stale(_current(store, receiver), receiver, account, missing, account_source)
+        if stale is not None:
+            checks.insert(1 + [c["id"] for c in checks].index("label_denylist"), stale)
     if tier2:
         tier2_checks, facts, matched = _tier2(request, policy, store, account, account_source, rpc,
                                               nearblocks, now_ms, min_age_days, archival)
+        if rules_version == 2:
+            if account and (account.get("global_contract_hash") is not None
+                            or account.get("global_contract_account_id") is not None):
+                tier2_checks = [check for check in tier2_checks if check["id"] != "code_without_metadata"]
+            tier2_checks.append(freshness.code_changed(archival, receiver, account, account_source, now_ms,
+                                                       min_age_days,
+                                                       any(check["status"] == "signal" for check in tier2_checks)))
         checks += tier2_checks
         labels += [assertion_id for assertion_id in matched if assertion_id not in labels]
     statuses = {check["status"] for check in checks}

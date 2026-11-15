@@ -902,16 +902,79 @@ class NonceAgeTest(RulesCase):
                 self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
                 self.assertEqual(judgement.verdict, "UNKNOWN")
 
-    def test_too_many_access_keys_reads_unknown(self):
-        self.unaged()
+    TOO_MANY = "view_access_key_list answers TOO_MANY_ACCESS_KEYS, so no key nonce dates the account"
+
+    def too_many(self):
+        """A receiver read now at ACCOUNT_HEIGHT whose key list RPC refuses as too long."""
+        self.fx.account("stranger.testnet", block_height=ACCOUNT_HEIGHT)
+        self.token_ok("stranger.testnet")
+        self.fx.keys("stranger.testnet")
         self.fx.rpc_error(self.fx.key_list_params("stranger.testnet"), "TOO_MANY_ACCESS_KEYS")
+
+    def test_too_many_access_keys_passes_on_the_block_state(self):
+        self.too_many()
+        self.fx.block_at(STATE_HEIGHT, OLD_NS)
+        self.fx.account_at("stranger.testnet", STATE_HEIGHT)
         judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+        self.assertEqual(self.status(judgement, "account_age"), "pass")
         self.assertEqual(self.detail(judgement, "account_age"),
-                         "no archival age (view_access_key_list could not run: RPC error TOO_MANY_ACCESS_KEYS); "
-                         "no key of stranger.testnet carries a creation time")
+                         f"{self.TOO_MANY}; view_account finds stranger.testnet at block 221701472 "
+                         "(2026-10-22T11:50:00Z) from archival.example, at least 7 d old")
+        self.assertEqual(self.age_provider(judgement), "archival.example")
+        self.assertEqual(self.status(judgement, "dust_funded"), "pass")
+        self.assertEqual(judgement.verdict, "ALLOW")
+
+    def test_too_many_access_keys_with_an_unread_block_state_reads_unknown(self):
+        self.too_many()
+        judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+        self.assertEqual(self.status(judgement, "account_age"), "unknown")
+        self.assertEqual(self.detail(judgement, "account_age"),
+                         f"no archival age ({self.TOO_MANY}; archival block_at could not run: no recorded "
+                         "response for the request); no key of stranger.testnet carries a creation time")
         self.assertEqual(self.age_provider(judgement), "nearblocks.example")
         self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
         self.assertEqual(judgement.verdict, "UNKNOWN")
+
+    def test_too_many_access_keys_missing_at_the_old_block_reads_unknown(self):
+        self.too_many()
+        self.fx.block_at(STATE_HEIGHT, OLD_NS)
+        self.fx.account_missing_at("stranger.testnet", STATE_HEIGHT)
+        judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+        self.assertEqual(self.status(judgement, "account_age"), "unknown")
+        self.assertTrue(self.detail(judgement, "account_age").startswith(
+            f"no archival age ({self.TOO_MANY}; stranger.testnet did not exist at block 221701472 "),
+            self.detail(judgement, "account_age"))
+        self.assertEqual(judgement.verdict, "UNKNOWN")
+
+    def test_too_many_access_keys_missing_at_the_old_block_never_passes_on_an_old_nearblocks_key(self):
+        self.too_many()
+        self.fx.keys("stranger.testnet", NOW_MS * 10**6 - 400 * DAY_NS)
+        self.fx.transaction(5e23, "stranger.testnet")
+        self.fx.block_at(STATE_HEIGHT, OLD_NS)
+        self.fx.account_missing_at("stranger.testnet", STATE_HEIGHT)
+        judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+        self.assertEqual(self.status(judgement, "account_age"), "unknown")
+        detail = self.detail(judgement, "account_age")
+        self.assertTrue(detail.startswith(f"no archival age ({self.TOO_MANY}; stranger.testnet did not exist at "),
+                        detail)
+        self.assertTrue(detail.endswith("; the oldest key NearBlocks lists was created 400 d ago, but the archival "
+                                        "node found no stranger.testnet at the old block, so that key does not "
+                                        "date the account"), detail)
+        self.assertEqual(judgement.verdict, "UNKNOWN")
+
+    def test_every_other_key_list_rpc_error_still_reads_unknown_without_a_state_read(self):
+        for cause in ("UNKNOWN_ACCOUNT", "GARBAGE_COLLECTED_BLOCK", "NO_SYNCED_BLOCKS", "NOT_SYNCED_YET"):
+            with self.subTest(cause=cause):
+                self.too_many()
+                self.fx.rpc_error(self.fx.key_list_params("stranger.testnet"), cause)
+                archival = mock.Mock(spec=rpc.Client)
+                judgement = self.judge(request("stranger.testnet"), archival=archival)
+                self.assertEqual(archival.method_calls, [])
+                self.assertEqual(self.detail(judgement, "account_age"),
+                                 f"no archival age (view_access_key_list could not run: RPC error {cause}); "
+                                 "no key of stranger.testnet carries a creation time")
+                self.assertEqual(self.age_provider(judgement), "nearblocks.example")
+                self.assertEqual(judgement.verdict, "UNKNOWN")
 
     def test_a_block_at_error_reads_unknown(self):
         self.unaged()
@@ -1204,7 +1267,7 @@ class StateAgeTest(RulesCase):
         self.fx.account("stranger.testnet", block_height=ACCOUNT_HEIGHT)
         self.token_ok("stranger.testnet")
         self.fx.keys("stranger.testnet")
-        self.fx.rpc_error(self.fx.key_list_params("stranger.testnet"), "TOO_MANY_ACCESS_KEYS")
+        self.fx.rpc_error(self.fx.key_list_params("stranger.testnet"), "GARBAGE_COLLECTED_BLOCK")
         archival = mock.Mock(spec=rpc.Client)
         judgement = self.judge(request("stranger.testnet"), archival=archival)
         self.assertEqual(archival.method_calls, [])
@@ -1262,6 +1325,18 @@ class YoungStateAgeTest(RulesCase):
     def absent(self, height):
         return rpc.RpcError({"cause": {"name": "UNKNOWN_ACCOUNT", "info": {
             "block_height": height, "requested_account_id": "stranger.testnet"}}})
+
+    def test_too_many_access_keys_missing_at_both_blocks_signals(self):
+        self.fx.rpc_error(self.fx.key_list_params("stranger.testnet"), "TOO_MANY_ACCESS_KEYS")
+        judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+        self.assertEqual(self.status(judgement, "account_age"), "signal")
+        self.assertTrue(self.detail(judgement, "account_age").startswith(
+            "view_access_key_list answers TOO_MANY_ACCESS_KEYS, so no key nonce dates the account; "
+            "stranger.testnet did not exist at block "), self.detail(judgement, "account_age"))
+        self.assertEqual(self.archival.view_account_at.call_args_list,
+                         [mock.call("stranger.testnet", STATE_HEIGHT),
+                          mock.call("stranger.testnet", self.YOUNG_HEIGHT)])
+        self.assertEqual(judgement.verdict, "DENY")
 
     def test_a_slow_clock_cannot_signal_an_account_older_than_7_days(self):
         block_ns = NOW_MS * 10**6 - 7 * DAY_NS - MINUTE_NS
@@ -2112,6 +2187,448 @@ class MissingCodeTest(unittest.TestCase):
         self.assertEqual((check["status"], check["detail"]),
                          ("unknown", "could not read ft_metadata: RPC error CONTRACT_EXECUTION_ERROR"))
 
+
+
+def onchain(assertion_id, subject, label, category="incident", provenance="onchain", method="view_account",
+            block=100):
+    """A label store row in the shape intel/seed.py writes for a view_account read of subject."""
+    source = {"rpc": RPC_URL, "method": method, "args": {"account_id": subject}, "block": block}
+    return SimpleNamespace(id=assertion_id, subject=subject, category=category, label=label, chain="near",
+                           superseded_by=None, provenance=provenance, source=source)
+
+
+class RulesVersionTwoCase(RulesCase):
+    GLOBAL_HASH = rpc.base58.encode(bytes([6]) * 32)
+    OTHER_CODE_HASH = rpc.base58.encode(bytes([7]) * 32)
+    POLICY = {"allowlist": [VENDOR], "caps": [{"asset": "Near"}]}
+    AT = "block 221701472 (2026-10-22T11:50:00Z) from archival.example"
+
+    def judge2(self, receiver="pool.testnet", policy=None, archival="default"):
+        return rules.judge(request(receiver, kind="near", memo=None), policy or self.POLICY, self.store, self.rpc,
+                           self.nearblocks, now_ms=NOW_MS, injection_scanner=None,
+                           archival=self.archival if archival == "default" else archival, rules_version=2)
+
+    def live_account(self, name, code_hash=CODE_HASH, global_hash=None, global_account=None,
+                     block_height=ACCOUNT_HEIGHT):
+        params = {"request_type": "view_account", "finality": "final", "account_id": name}
+        result = {"amount": "1000", "locked": "0", "code_hash": code_hash, "storage_usage": 182,
+                  "storage_paid_at": 0, "block_height": block_height, "block_hash": BLOCK_HASH}
+        if global_hash is not None:
+            result["global_contract_hash"] = global_hash
+        if global_account is not None:
+            result["global_contract_account_id"] = global_account
+        self.fx.write(RPC_URL, "query", params, {"jsonrpc": "2.0", "id": "gate", "result": result})
+
+    def old_account(self, name, code_hash=CODE_HASH, global_hash=None):
+        result = {"amount": "1000", "locked": "0", "code_hash": code_hash, "storage_usage": 182,
+                  "storage_paid_at": 0, "block_height": STATE_HEIGHT, "block_hash": KEY_BLOCK_HASH}
+        if global_hash is not None:
+            result["global_contract_hash"] = global_hash
+        self.fx.write(ARCHIVAL_URL, "query", self.fx.state_params(name, STATE_HEIGHT),
+                      {"jsonrpc": "2.0", "id": "gate", "result": result})
+
+    def locked(self, name="pool.testnet", **live):
+        """A contract with no access key whose age the archival view_account at STATE_HEIGHT dates."""
+        self.live_account(name, **live)
+        self.fx.keys(name)
+        self.fx.method_missing(name, "contract_source_metadata", {})
+        self.fx.access_keys(name)
+        self.fx.block_at(STATE_HEIGHT, OLD_NS)
+
+    def check(self, judgement, check_id):
+        return {c["id"]: c for c in judgement.checks}.get(check_id)
+
+
+class RulesVersionTest(RulesVersionTwoCase):
+    def test_version_1_is_the_default_and_emits_neither_new_check(self):
+        self.locked()
+        self.old_account("pool.testnet", code_hash=self.OTHER_CODE_HASH)
+        self.store = Store(onchain("a" * 64, "pool.testnet", "account exists with no contract code",
+                                   category="infrastructure"))
+        default = rules.judge(request("pool.testnet", kind="near", memo=None), self.POLICY, self.store, self.rpc,
+                              self.nearblocks, now_ms=NOW_MS, injection_scanner=None, archival=self.archival)
+        first = rules.judge(request("pool.testnet", kind="near", memo=None), self.POLICY, self.store, self.rpc,
+                            self.nearblocks, now_ms=NOW_MS, injection_scanner=None, archival=self.archival,
+                            rules_version=1)
+        self.assertEqual(default, first)
+        self.assertFalse({"code_changed_recently", "label_stale"} & {c["id"] for c in default.checks})
+        self.assertEqual(default.verdict, "ALLOW")
+        self.assertLessEqual({"code_changed_recently", "label_stale"}, {c["id"] for c in self.judge2().checks})
+
+    def test_an_unknown_rules_version_is_refused_before_any_read(self):
+        for version in (0, 3, "2", True, None):
+            store, client, nearblocks, archival = mock.Mock(), mock.Mock(), mock.Mock(), mock.Mock()
+            with self.subTest(version=version), self.assertRaises(ValueError):
+                rules.judge(request("pool.testnet", kind="near", memo=None), self.POLICY, store, client,
+                            nearblocks, now_ms=NOW_MS, injection_scanner=None, archival=archival,
+                            rules_version=version)
+            self.assertEqual([store.mock_calls, client.mock_calls, nearblocks.mock_calls, archival.mock_calls],
+                             [[], [], [], []])
+
+
+class CodeChangedRecentlyTest(RulesVersionTwoCase):
+    def test_the_same_code_at_the_old_block_passes(self):
+        self.locked()
+        self.old_account("pool.testnet")
+        judgement = self.judge2()
+        check = self.check(judgement, "code_changed_recently")
+        self.assertEqual(check["status"], "pass")
+        self.assertEqual(check["detail"], f"code hash {CODE_HASH} at {self.AT}, the same as now")
+        self.assertEqual(check["source"]["provider"], "archival.example")
+        self.assertEqual(judgement.verdict, "ALLOW")
+        self.assertEqual([c["id"] for c in judgement.checks][-2:], ["code_without_metadata", "code_changed_recently"])
+
+    def test_a_replaced_code_hash_alone_is_not_a_signal(self):
+        self.locked()
+        self.old_account("pool.testnet", code_hash=self.OTHER_CODE_HASH)
+        judgement = self.judge2()
+        check = self.check(judgement, "code_changed_recently")
+        self.assertEqual((check["status"], check["detail"]),
+                         ("pass", f"code hash {self.OTHER_CODE_HASH} at {self.AT}, code hash {CODE_HASH} now; not a "
+                                  "signal without another tier 2 signal"))
+        self.assertEqual(self.check(judgement, "account_age")["status"], "pass")
+        self.assertEqual(judgement.verdict, "ALLOW")
+
+    def test_a_replaced_code_hash_with_another_tier_2_signal_signals_with_both_hashes_and_the_block(self):
+        self.locked("vend0r.testnet")
+        self.old_account("vend0r.testnet", code_hash=self.OTHER_CODE_HASH)
+        judgement = self.judge2("vend0r.testnet")
+        self.assertEqual(self.check(judgement, "lookalike")["status"], "signal")
+        check = self.check(judgement, "code_changed_recently")
+        self.assertEqual((check["status"], check["detail"]),
+                         ("signal", f"code_changed_recently: code hash {self.OTHER_CODE_HASH} at {self.AT}, code hash "
+                                    f"{CODE_HASH} now"))
+        self.assertEqual(judgement.verdict, "DENY")
+        self.assertIn(f"vend0r.testnet changed its contract code ({check['detail']}).", judgement.reasons)
+
+    def test_code_deployed_on_an_account_that_had_none_is_a_change(self):
+        self.locked()
+        self.old_account("pool.testnet", code_hash=rpc.EMPTY_CODE_HASH)
+        check = self.check(self.judge2(), "code_changed_recently")
+        self.assertEqual((check["status"], check["detail"]),
+                         ("pass", f"no contract code at {self.AT}, code hash {CODE_HASH} now; not a signal without "
+                                  "another tier 2 signal"))
+
+    def test_a_switch_to_a_global_contract_hash_is_a_change_and_the_same_global_hash_passes(self):
+        self.locked(code_hash=rpc.EMPTY_CODE_HASH, global_hash=self.GLOBAL_HASH)
+        self.old_account("pool.testnet")
+        check = self.check(self.judge2(), "code_changed_recently")
+        self.assertEqual((check["status"], check["detail"]),
+                         ("pass", f"code hash {CODE_HASH} at {self.AT}, global contract hash {self.GLOBAL_HASH} now; "
+                                  "not a signal without another tier 2 signal"))
+        self.old_account("pool.testnet", code_hash=rpc.EMPTY_CODE_HASH, global_hash=self.GLOBAL_HASH)
+        check = self.check(self.judge2(), "code_changed_recently")
+        self.assertEqual((check["status"], check["detail"]),
+                         ("pass", f"global contract hash {self.GLOBAL_HASH} at {self.AT}, the same as now"))
+
+    def test_a_global_contract_receiver_has_no_code_without_metadata_check_at_version_2_only(self):
+        # Its view_account shows the empty code hash, which code_without_metadata reads as "no contract code".
+        for live in ({"global_hash": self.GLOBAL_HASH}, {"global_account": "publisher.testnet"}):
+            with self.subTest(live=live):
+                self.locked(code_hash=rpc.EMPTY_CODE_HASH, **live)
+                self.old_account("pool.testnet", code_hash=rpc.EMPTY_CODE_HASH, global_hash=self.GLOBAL_HASH)
+                self.assertIsNone(self.check(self.judge2(), "code_without_metadata"))
+                first = rules.judge(request("pool.testnet", kind="near", memo=None), self.POLICY, self.store,
+                                    self.rpc, self.nearblocks, now_ms=NOW_MS, injection_scanner=None,
+                                    archival=self.archival)
+                self.assertEqual(self.check(first, "code_without_metadata")["detail"], "no contract code")
+        self.locked()
+        self.old_account("pool.testnet")
+        self.assertEqual(self.check(self.judge2(), "code_without_metadata")["status"], "pass")
+
+    def test_a_global_contract_by_account_id_is_unknown_without_a_code_read(self):
+        self.locked(code_hash=rpc.EMPTY_CODE_HASH, global_account="publisher.testnet")
+        with mock.patch.object(self.archival, "view_account_at", wraps=self.archival.view_account_at) as reads:
+            judgement = self.judge2()
+        check = self.check(judgement, "code_changed_recently")
+        self.assertEqual((check["status"], check["detail"]),
+                         ("unknown", "runs the global contract published by publisher.testnet, which its publisher "
+                                     "can replace without a change to this account"))
+        # The one archival view_account is account_age's, not this check's.
+        self.assertEqual([call.args for call in reads.call_args_list], [("pool.testnet", STATE_HEIGHT)])
+        self.assertEqual(judgement.verdict, "UNKNOWN")
+
+    def test_no_contract_code_now_passes_without_an_archival_read(self):
+        self.stranger("stranger.testnet")
+        judgement = self.judge2("stranger.testnet", archival=None)
+        check = self.check(judgement, "code_changed_recently")
+        self.assertEqual((check["status"], check["detail"]), ("pass", "no contract code now"))
+        self.assertEqual(judgement.verdict, "ALLOW")
+
+    def test_contract_code_without_an_archival_client_is_unknown_never_a_pass(self):
+        self.stranger("stranger.testnet", code_hash=CODE_HASH)
+        self.fx.method_missing("stranger.testnet", "contract_source_metadata", {})
+        judgement = self.judge2("stranger.testnet", archival=None)
+        check = self.check(judgement, "code_changed_recently")
+        self.assertEqual((check["status"], check["detail"]),
+                         ("unknown", "no archival client to read the code an old block held"))
+        self.assertEqual(judgement.verdict, "UNKNOWN")
+        self.assertIn("code_changed_recently could not run: no archival client to read the code an old block "
+                      "held.", judgement.reasons)
+
+    def test_an_unreadable_receiver_is_unknown(self):
+        self.fx.rpc_error({"request_type": "view_account", "finality": "final", "account_id": "pool.testnet"},
+                          "UNKNOWN_BLOCK")
+        check = self.check(self.judge2(), "code_changed_recently")
+        self.assertEqual((check["status"], check["detail"]), ("unknown", "the receiver account could not be read"))
+
+    def test_a_missing_old_block_is_unknown(self):
+        self.locked()
+        self.fx.block_missing(STATE_HEIGHT)
+        check = self.check(self.judge2(), "code_changed_recently")
+        self.assertEqual((check["status"], check["detail"]),
+                         ("unknown", "archival block_at could not run: RPC error UNKNOWN_BLOCK"))
+
+    def test_an_old_block_younger_than_7_days_is_unknown(self):
+        self.locked()
+        self.fx.block_at(STATE_HEIGHT, NOW_MS * 10**6 - 7 * DAY_NS + 10 * MINUTE_NS)
+        check = self.check(self.judge2(), "code_changed_recently")
+        self.assertEqual((check["status"], check["detail"]),
+                         ("unknown", "block 221701472 (2026-10-22T12:10:00Z) from archival.example is younger than "
+                                     "7 days"))
+
+    def test_a_receiver_missing_at_the_old_block_is_a_change(self):
+        # account_age and dust_funded are unknown here (the archival read that dates this locked contract finds
+        # no account); the code check reads the same answer as a sourced change, not as an unknown.
+        self.locked()
+        self.fx.account_missing_at("pool.testnet", STATE_HEIGHT)
+        judgement = self.judge2()
+        check = self.check(judgement, "code_changed_recently")
+        self.assertEqual((check["status"], check["detail"]),
+                         ("pass", f"pool.testnet did not exist at {self.AT}, code hash {CODE_HASH} now; not a signal "
+                                  "without another tier 2 signal"))
+        self.assertNotIn("code_changed_recently", {c["id"] for c in judgement.checks if c["status"] == "unknown"})
+
+    def test_a_receiver_missing_at_the_old_block_with_another_tier_2_signal_signals(self):
+        self.locked("vend0r.testnet")
+        self.fx.account_missing_at("vend0r.testnet", STATE_HEIGHT)
+        check = self.check(self.judge2("vend0r.testnet"), "code_changed_recently")
+        self.assertEqual((check["status"], check["detail"]),
+                         ("signal", f"code_changed_recently: vend0r.testnet did not exist at {self.AT}, code hash "
+                                    f"{CODE_HASH} now"))
+
+    def test_an_old_state_read_that_fails_or_names_another_block_is_unknown(self):
+        self.locked()
+        check = self.check(self.judge2(), "code_changed_recently")
+        self.assertEqual((check["status"], check["detail"]),
+                         ("unknown", "archival view_account could not run: no recorded response for the request"))
+        self.fx.account_at("pool.testnet", STATE_HEIGHT, code_hash=CODE_HASH, block_height=STATE_HEIGHT + 1)
+        check = self.check(self.judge2(), "code_changed_recently")
+        self.assertEqual(check["status"], "unknown")
+        self.assertIn("MalformedResponse", check["detail"])
+
+    def test_the_archival_reads_share_one_deadline(self):
+        self.locked()
+        self.old_account("pool.testnet")
+        seen = []
+        original = rpc.request_deadline
+
+        def spy(seconds):
+            seen.append(seconds)
+            return original(seconds)
+
+        with mock.patch("gate.freshness.request_deadline", side_effect=spy):
+            self.judge2()
+        self.assertEqual(seen, [rules.freshness.CODE_READS_S])
+
+    def test_an_allowlisted_receiver_gets_no_code_check(self):
+        self.locked()
+        judgement = self.judge2(policy={"allowlist": ["pool.testnet"], "caps": []})
+        self.assertIsNone(self.check(judgement, "code_changed_recently"))
+
+
+class LabelStaleTest(RulesVersionTwoCase):
+    def setUp(self):
+        super().setUp()
+        self.locked()
+        self.old_account("pool.testnet")
+
+    def test_a_no_code_label_on_an_account_with_code_is_stale_and_changes_no_verdict(self):
+        self.store = Store(onchain("a" * 64, "pool.testnet", "account exists with no contract code",
+                                   category="infrastructure", block=222119769))
+        judgement = self.judge2()
+        check = self.check(judgement, "label_stale")
+        self.assertEqual(check["status"], "pass")
+        self.assertEqual(check["detail"],
+                         f'"account exists with no contract code" (assertion {"a" * 64}, view_account '
+                         f"at block 222119769) no longer holds: view_account now shows code hash {CODE_HASH}; "
+                         "informational, it changes no verdict")
+        self.assertEqual(check["source"]["provider"], "rpc.example")
+        self.assertEqual(judgement.verdict, "ALLOW")
+        self.assertEqual([c["id"] for c in judgement.checks][:3], ["receiver_exists", "label_denylist", "label_stale"])
+
+    def test_a_matching_code_hash_label_agrees(self):
+        self.store = Store(onchain("b" * 64, "pool.testnet", f"account exists with contract code hash {CODE_HASH}"))
+        check = self.check(self.judge2(), "label_stale")
+        self.assertEqual((check["status"], check["detail"]),
+                         ("pass", "1 on-chain label agrees with the live view_account"))
+
+    def test_another_code_hash_and_a_missing_account_label_are_both_stale(self):
+        self.store = Store(
+            onchain("c" * 64, "pool.testnet", f"account exists with contract code hash {self.OTHER_CODE_HASH}"),
+            onchain("d" * 64, "pool.testnet", "account does not exist at this block (deleted or never created)"))
+        detail = self.check(self.judge2(), "label_stale")["detail"]
+        self.assertIn(f"(assertion {'c' * 64}, view_account at block 100) no longer holds: view_account now shows "
+                      f"code hash {CODE_HASH}", detail)
+        self.assertIn(f"(assertion {'d' * 64}, view_account at block 100) no longer holds: view_account now finds "
+                      "pool.testnet", detail)
+
+    def test_the_registry_templates_are_read(self):
+        self.store = Store(
+            onchain("e" * 64, "pool.testnet", "account exists; no contract code; balance class under 8 NEAR"),
+            onchain("f" * 64, "pool.testnet", "account exists; contract code present; balance class zero"))
+        detail = self.check(self.judge2(), "label_stale")["detail"]
+        self.assertIn(f"assertion {'e' * 64}", detail)
+        self.assertNotIn(f"assertion {'f' * 64}", detail)
+
+    def test_an_existing_account_label_on_a_missing_receiver_is_stale(self):
+        self.fx.missing("gone.testnet")
+        self.store = Store(onchain("a" * 64, "gone.testnet", "account exists with no contract code"))
+        judgement = self.judge2("gone.testnet")
+        check = self.check(judgement, "label_stale")
+        self.assertEqual(check["status"], "pass")
+        self.assertIn("no longer holds: view_account now finds no gone.testnet", check["detail"])
+        self.assertEqual(judgement.verdict, "DENY")
+
+    def test_an_unreadable_receiver_leaves_its_labels_unknown(self):
+        self.fx.rpc_error({"request_type": "view_account", "finality": "final", "account_id": "lost.testnet"},
+                          "UNKNOWN_BLOCK")
+        self.store = Store(onchain("a" * 64, "lost.testnet", "account exists with no contract code"))
+        check = self.check(self.judge2("lost.testnet"), "label_stale")
+        self.assertEqual((check["status"], check["detail"]),
+                         ("unknown", "the receiver account could not be read, so 1 on-chain label was not compared"))
+
+    def test_only_onchain_view_account_rows_in_a_generated_template_about_the_receiver_are_compared(self):
+        other = onchain("d" * 64, "other.testnet", "account exists with no contract code")
+        other.subject = "pool.testnet"
+        self.store = Store(
+            onchain("a" * 64, "pool.testnet", "account exists with no contract code", provenance="third_party"),
+            onchain("b" * 64, "pool.testnet", "account exists with no contract code", method="call_function"),
+            onchain("c" * 64, "pool.testnet", "MPC signer contract"),
+            other)
+        self.assertIsNone(self.check(self.judge2(), "label_stale"))
+
+    def test_a_superseded_row_is_not_compared(self):
+        row = onchain("a" * 64, "pool.testnet", "account exists with no contract code")
+        row.superseded_by = "b" * 64
+        self.store = Store(row)
+        self.assertIsNone(self.check(self.judge2(), "label_stale"))
+
+    def test_an_allowlisted_receiver_still_gets_the_label_check(self):
+        self.store = Store(onchain("a" * 64, "pool.testnet", "account exists with no contract code"))
+        judgement = self.judge2(policy={"allowlist": ["pool.testnet"], "caps": []})
+        self.assertIn("no longer holds", self.check(judgement, "label_stale")["detail"])
+
+    def test_the_committed_rhea000453_label_is_stale_against_its_global_contract(self):
+        # A live read on 15 Nov 2026 showed rhea000453.multica.near with an empty code hash and a global contract
+        # hash; the committed label says it has no contract code.
+        store = labels.load()
+        [row] = [a for a in store.by_subject("rhea000453.multica.near", "near")
+                 if a.provenance == "onchain" and a.superseded_by is None]
+        self.assertEqual(row.label, "account exists with no contract code")
+        self.store = store
+        self.live_account("rhea000453.multica.near", code_hash=rpc.EMPTY_CODE_HASH, global_hash=self.GLOBAL_HASH)
+        judgement = self.judge2("rhea000453.multica.near", archival=None)
+        check = self.check(judgement, "label_stale")
+        self.assertEqual(check["status"], "pass")
+        self.assertEqual(check["detail"],
+                         f'"account exists with no contract code" (assertion {row.id}, view_account at '
+                         f"block {row.source['block']}) no longer holds: view_account now shows global contract hash "
+                         f"{self.GLOBAL_HASH}; informational, it changes no verdict")
+        self.assertEqual(judgement.verdict, "DENY")
+        self.assertEqual({c["id"] for c in judgement.checks if c["status"] == "signal"}, {"label_denylist"})
+
+    def test_every_generated_view_account_label_in_the_store_parses(self):
+        claims = {}
+        for row in labels.load().assertions:
+            if (row.provenance == "onchain" and row.superseded_by is None and isinstance(row.source, dict)
+                    and row.source.get("method") == "view_account"):
+                claim = rules.freshness.label_claim(row.label)
+                if claim is not None:
+                    claims.setdefault(claim[0], []).append(row.label)
+        self.assertEqual(set(claims), {"no_code", "code_hash", "absent"})
+        # Every other view_account label is free text: none starts like a generated template.
+        for row in labels.load().assertions:
+            if (row.provenance == "onchain" and isinstance(row.source, dict)
+                    and row.source.get("method") == "view_account"
+                    and row.label.startswith(("account exists", "account does not exist"))):
+                self.assertIsNotNone(rules.freshness.label_claim(row.label), row.label)
+
+
+class FreshnessBranchTest(RulesVersionTwoCase):
+    """The gate/freshness.py branches the judge level tests above do not reach."""
+
+    SOURCE = {"provider": "rpc.example", "request_sha256": None, "fetched_at": None}
+
+    def test_a_live_view_account_without_an_int_block_height_is_unknown(self):
+        account = {"code_hash": CODE_HASH, "block_height": "100"}
+        check = rules.freshness.code_changed(self.archival, "pool.testnet", account, self.SOURCE, NOW_MS, 7, False)
+        self.assertEqual((check["status"], check["detail"]),
+                         ("unknown", "the receiver's view_account names no block height"))
+
+    def test_unknown_account_naming_another_block_or_account_reads_could_not_run(self):
+        self.locked()
+        for info in ({"block_height": STATE_HEIGHT + 1, "requested_account_id": "pool.testnet"},
+                     {"block_height": STATE_HEIGHT, "requested_account_id": "other.testnet"}):
+            error = rpc.RpcError({"name": "HANDLER_ERROR", "cause": {"name": "UNKNOWN_ACCOUNT", "info": info}})
+            with self.subTest(info=info), mock.patch.object(self.archival, "view_account_at", side_effect=error):
+                check = self.check(self.judge2(), "code_changed_recently")
+            self.assertEqual((check["status"], check["detail"]),
+                             ("unknown", "archival view_account could not run: RPC error UNKNOWN_ACCOUNT"))
+
+    def test_an_archival_read_past_the_deadline_is_unknown(self):
+        self.locked()
+        self.old_account("pool.testnet")
+        with mock.patch.object(self.archival, "view_account_at", side_effect=TimeoutError("request deadline exceeded")):
+            check = self.check(self.judge2(), "code_changed_recently")
+        self.assertEqual(check["status"], "unknown")
+        self.assertTrue(check["detail"].startswith("archival view_account could not run: "), check["detail"])
+
+    def test_an_old_global_contract_by_account_id_is_named_by_its_publisher(self):
+        self.locked()
+        old = {"code_hash": rpc.EMPTY_CODE_HASH, "global_contract_account_id": "publisher.testnet",
+               "block_height": STATE_HEIGHT}
+        with mock.patch.object(self.archival, "view_account_at", return_value=old):
+            check = self.check(self.judge2(), "code_changed_recently")
+        self.assertEqual((check["status"], check["detail"]),
+                         ("pass", f"the global contract published by publisher.testnet at {self.AT}, code hash "
+                                  f"{CODE_HASH} now; not a signal without another tier 2 signal"))
+
+    def stale(self, rows, account, missing=False):
+        return rules.freshness.label_stale(rows, "pool.testnet", account, missing, self.SOURCE)
+
+    def test_a_code_present_label_on_an_account_without_code_is_stale(self):
+        rows = [onchain("a" * 64, "pool.testnet", "account exists; contract code present; balance class zero")]
+        check = self.stale(rows, {"code_hash": rpc.EMPTY_CODE_HASH})
+        self.assertIn("no longer holds: view_account now shows no contract code", check["detail"])
+
+    def test_an_absent_label_on_a_receiver_missing_now_agrees(self):
+        rows = [onchain("a" * 64, "pool.testnet", "account does not exist at this block (deleted or never created)")]
+        check = self.stale(rows, None, missing=True)
+        self.assertEqual((check["status"], check["detail"]),
+                         ("pass", "1 on-chain label agrees with the live view_account"))
+
+    def test_a_code_hash_label_on_an_account_now_on_a_global_contract_is_stale(self):
+        rows = [onchain("a" * 64, "pool.testnet", f"account exists with contract code hash {CODE_HASH}")]
+        check = self.stale(rows, {"code_hash": rpc.EMPTY_CODE_HASH, "global_contract_hash": self.GLOBAL_HASH})
+        self.assertIn(f"no longer holds: view_account now shows global contract hash {self.GLOBAL_HASH}",
+                      check["detail"])
+
+    def test_plural_wordings(self):
+        rows = [onchain("a" * 64, "pool.testnet", f"account exists with contract code hash {CODE_HASH}"),
+                onchain("b" * 64, "pool.testnet", "account exists; contract code present; balance class zero")]
+        self.assertEqual(self.stale(rows, {"code_hash": CODE_HASH})["detail"],
+                         "2 on-chain labels agree with the live view_account")
+        self.assertEqual(self.stale(rows, None)["detail"],
+                         "the receiver account could not be read, so 2 on-chain labels were not compared")
+
+    def test_a_label_text_outside_the_templates_has_no_claim(self):
+        for text in ("account exists with no contract code yet", "MPC signer contract",
+                     "account exists with contract code hash ", "account exists; no contract code; balance class "):
+            with self.subTest(text=text):
+                self.assertIsNone(rules.freshness.label_claim(text))
+        self.assertEqual(rules.freshness.label_claim(f"account exists with contract code hash {CODE_HASH}"),
+                         ("code_hash", CODE_HASH))
 
 if __name__ == "__main__":
     unittest.main()

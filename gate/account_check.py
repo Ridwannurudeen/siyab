@@ -5,18 +5,24 @@ import time
 from pathlib import Path
 
 from gate import base58, canon, evidence, rules
-from gate.rpc import MalformedResponse
+from gate.rpc import MalformedResponse, request_deadline
 from intel import feed
 
-# The rules.judge checks an account check keeps; memo_injection has no memo to read.
-KEPT_CHECKS = ("receiver_exists", "label_denylist", "issuer_blacklist", "account_age", "dust_funded",
-               "lookalike", "code_without_metadata")
+# The rules.judge checks an account check keeps; memo_injection has no memo to read. label_stale and
+# code_changed_recently come only from rules version 2.
+KEPT_CHECKS = ("receiver_exists", "label_denylist", "label_stale", "issuer_blacklist", "account_age", "dust_funded",
+               "lookalike", "code_without_metadata", "code_changed_recently")
 CODE_HASH_BYTES = 32
 # The key types a NEAR access key list names, with their public key length in bytes.
 KEY_BYTES = {"ed25519": 32, "secp256k1": 64}
 # An access key nonce is a u64 and a FunctionCall allowance a u128 in the NEAR protocol.
 NONCE_MAX = 2**64 - 1
 ALLOWANCE_MAX = 2**128 - 1
+# Pages of the paged access key list read for a contract whose whole list RPC refuses as
+# TOO_MANY_ACCESS_KEYS, and the seconds those reads may take together, well inside the live route's
+# 25 s deadline (intel/live.py); a read past either bound leaves the check unknown.
+KEY_PAGES_MAX = 5
+KEY_PAGES_S = 10
 
 
 class _OneRead:
@@ -87,6 +93,29 @@ def _full_access_count(keys):
     return count
 
 
+def _paged_full_access(client, account_id):
+    """(full access keys on the page that held the first one, keys read, whether the list was read to its
+    end) over at most KEY_PAGES_MAX pages, every page after the first pinned to the first page's block."""
+    after, block, read = None, None, 0
+    for _ in range(KEY_PAGES_MAX):
+        page = client.view_access_key_page(account_id, after_key=after, block_id=block)
+        if block is not None and page.get("block_height") != block:
+            raise MalformedResponse(f"a page of the access key list was read at block {page.get('block_height')}, "
+                                    f"not block {block}")
+        keys = page["keys"]
+        if after is not None and any(isinstance(key, dict) and key.get("public_key") == after for key in keys):
+            raise MalformedResponse("a page of the access key list repeats the key it was read after")
+        full = _full_access_count(keys)
+        read += len(keys)
+        last = page.get("last_key")
+        if full or last is None:
+            return full, read, last is None
+        if not keys or last != keys[-1]["public_key"]:
+            raise MalformedResponse("the page cursor is not the last key of its page")
+        after, block = last, page["block_height"]
+    return 0, read, False
+
+
 def _incident_code_hashes():
     """(valid reported code hash: incident id, failures) over every incident page. A page without
     code_hash_as_reported reports no hash. A page that cannot be read, is not an object with an id, or
@@ -116,7 +145,7 @@ def _incident_code_hashes():
     return reported, failures
 
 
-def check_account(account_id, *, store, rpc, nearblocks, archival, issuers, now_ms):
+def check_account(account_id, *, store, rpc, nearblocks, archival, issuers, now_ms, rules_version=1):
     canon.account_id(account_id, "account_id")
     if account_id == "testnet" or account_id.endswith(".testnet"):
         raise ValueError("account checks accept mainnet accounts only")
@@ -125,7 +154,8 @@ def check_account(account_id, *, store, rpc, nearblocks, archival, issuers, now_
                "amount": str(rules.YOCTO_PER_NEAR), "memo": None}
     client = _OneRead(rpc, account_id)
     judgement = rules.judge(request, {"allowlist": [], "caps": []}, store, client, nearblocks,
-                            now_ms=now_ms, injection_scanner=None, archival=archival, issuers=issuers)
+                            now_ms=now_ms, injection_scanner=None, archival=archival, issuers=issuers,
+                            rules_version=rules_version)
     checks = [check for check in judgement.checks if check["id"] in KEPT_CHECKS]
     extra = []
     try:
@@ -159,9 +189,34 @@ def check_account(account_id, *, store, rpc, nearblocks, archival, issuers, now_
             try:
                 full_access = _full_access_count(client.view_access_key_list(account_id)["keys"])
             except rules.UNAVAILABLE as error:
-                extra.append(evidence.check("contract_control", "unknown",
-                                            f"could not read the access key list: {rules._why(error)}",
-                                            rules._source(client)))
+                if not (isinstance(error, rules.RpcError) and error.cause == "TOO_MANY_ACCESS_KEYS"):
+                    extra.append(evidence.check("contract_control", "unknown",
+                                                f"could not read the access key list: {rules._why(error)}",
+                                                rules._source(client)))
+                else:
+                    try:
+                        info = error.error["cause"].get("info")
+                        limit = info.get("limit") if isinstance(info, dict) else None
+                        if type(limit) is not int or limit < 1:
+                            raise MalformedResponse("the access key list refusal has no positive integer limit")
+                        with request_deadline(KEY_PAGES_S):
+                            full_access, read, complete = _paged_full_access(client, account_id)
+                    except rules.UNAVAILABLE as paged_error:
+                        status = "unknown"
+                        detail = f"could not read the paged access key list: {rules._why(paged_error)}"
+                    else:
+                        status, detail = (
+                            ("unknown", f"at least {full_access} full access key{'s' if full_access > 1 else ''} "
+                                        f"among the first {read} keys of the paged access key list; whoever holds "
+                                        "one can replace the code") if full_access
+                            else ("unknown", f"the paged access key list ends after {read} keys, but RPC refused "
+                                             f"the whole list as holding more than {limit}, so it was not read in "
+                                             "full") if complete and read <= limit
+                            else ("pass", f"contract code with no full access key among the {read} keys of the "
+                                          "complete paged access key list") if complete
+                            else ("unknown", f"no full access key among the first {read} keys of the paged access "
+                                             "key list, and the rest was not read"))
+                    extra.append(evidence.check("contract_control", status, detail, rules._source(client)))
             else:
                 status = "unknown" if full_access else "pass"
                 detail = (f"{full_access} full access key{'s' if full_access > 1 else ''}; whoever holds one "

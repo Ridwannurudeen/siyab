@@ -52,18 +52,18 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "no archival age (view_access_key_list could not run: RPC error TOO_MANY_ACCESS_KEYS); could not read the account keys: no recorded response for the request",
+      "status": "pass",
+      "detail": "view_access_key_list answers TOO_MANY_ACCESS_KEYS, so no key nonce dates the account; view_account finds satojandro.near at block 222506689 (2026-11-01T02:26:42Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "ea5bd12dc18ea74aa0de6c07b8e9ec628990746508a9af6f1dc291835f89d808",
-        "fetched_at": null
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "171ed9d870f3406bc95e382de3095c46cd4d4b2b500d21f120cde9fce7c5ad32",
+        "fetched_at": "2026-11-15T10:38:48Z"
       }
     },
     {
       "id": "dust_funded",
-      "status": "unknown",
-      "detail": "the creation transaction is not known",
+      "status": "pass",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
       "source": {
         "provider": "nearblocks",
         "request_sha256": null,
@@ -93,8 +93,6 @@
   ],
   "reasons": [
     "issuer_blacklist could not run: usdt.tether-token.near get_blacklist_status answers \"Allowable\"; could not read is_blocklisted on 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1: no recorded response for the request.",
-    "account_age could not run: no archival age (view_access_key_list could not run: RPC error TOO_MANY_ACCESS_KEYS); could not read the account keys: no recorded response for the request.",
-    "dust_funded could not run: the creation transaction is not known.",
     "code_without_metadata could not run: could not read contract_source_metadata: no recorded response for the request."
   ],
   "labels": [],

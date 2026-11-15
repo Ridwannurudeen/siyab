@@ -12,6 +12,7 @@ The pass, signal and unknown check-table meanings are documentation checked by r
 """
 
 import ast
+import inspect
 import json
 import os
 import re
@@ -23,6 +24,7 @@ from types import SimpleNamespace
 from unittest import mock
 
 from gate import __main__ as gate_main
+from gate import account_check
 from gate import http as endpoint
 from gate import rules
 from mcp import server as mcp_server
@@ -31,6 +33,7 @@ from tests.test_verdict import AGENT, VerdictCase
 ROOT = Path(__file__).resolve().parent.parent
 API_DOC = ROOT / "docs" / "API.md"
 RULES = ROOT / "gate" / "rules.py"
+FRESHNESS = ROOT / "gate" / "freshness.py"
 HEX64 = re.compile(r"[0-9a-f]{64}")
 OUTCOMES = ("ALLOW", "DENY", "UNKNOWN")
 CHECK_COLUMNS = ("Kind", "Tier", "Enabled by", "Network", "pass", "signal", "unknown")
@@ -171,6 +174,28 @@ def rules_check_ids(source):
                 raise ValueError(f"evidence.check at line {node.lineno} has no literal check id")
             ids.add(first.value)
     return ids
+
+
+def rules_version_problems(source):
+    problems = []
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            positional = node.args.posonlyargs + node.args.args
+            defaults = list(zip(positional[len(positional) - len(node.args.defaults):], node.args.defaults))
+            defaults += list(zip(node.args.kwonlyargs, node.args.kw_defaults))
+            for argument, default in defaults:
+                if argument.arg == "rules_version" and default is not None and not (
+                        isinstance(default, ast.Constant) and type(default.value) is int and default.value == 1):
+                    problems.append(node.lineno)
+        if isinstance(node, ast.Call):
+            name = (node.func.id if isinstance(node.func, ast.Name)
+                    else node.func.attr if isinstance(node.func, ast.Attribute) else None)
+            for keyword in node.keywords:
+                if ((keyword.arg is None and name in ("judge", "check_account"))
+                        or (keyword.arg == "rules_version" and not (
+                            isinstance(keyword.value, ast.Name) and keyword.value.id == "rules_version"))):
+                    problems.append(node.lineno)
+    return problems
 
 
 def shorten(value):
@@ -342,6 +367,24 @@ class CheckTableTest(unittest.TestCase):
         self.assertEqual({check for check, tier in tiers.items() if tier == "2"}, set(rules.TIER2_CHECKS))
         self.assertEqual({tier for tier in tiers.values()}, {"1", "2"})
 
+    def test_the_rules_version_2_checks_stay_out_of_the_table_while_no_caller_runs_version_2(self):
+        # The table documents the rule set callers run. A module that passes rules_version other than through its
+        # own rules_version parameter fails here; switching version 2 on then needs table rows for these ids,
+        # code_changed_recently as Tier 2, and intel/ask.py would_change templates for them.
+        ids = rules_check_ids(FRESHNESS.read_text(encoding="utf-8"))
+        self.assertEqual(ids, {"code_changed_recently", "label_stale"})
+        self.assertLessEqual(set(rules.TIER2_CHECKS_V2), ids)
+        self.assertFalse(ids & set(doc_checks(self.text)))
+        for function in (rules.judge, account_check.check_account):
+            self.assertEqual(inspect.signature(function).parameters["rules_version"].default, 1)
+        passed = []
+        for path in sorted(ROOT.rglob("*.py")):
+            if set(path.relative_to(ROOT).parts) & {"tests", ".git", "__pycache__", "target", ".venv"}:
+                continue
+            passed += [f"{path.relative_to(ROOT)}:{line}"
+                       for line in rules_version_problems(path.read_text(encoding="utf-8"))]
+        self.assertEqual(passed, [])
+
     def test_a_missing_row_or_an_extra_check_is_caught(self):
         dropped = "\n".join(line for line in self.text.splitlines() if not line.startswith("| `lookalike` |"))
         self.assertNotEqual(set(doc_checks(dropped)), rules_check_ids(self.source))
@@ -349,6 +392,23 @@ class CheckTableTest(unittest.TestCase):
         self.assertNotEqual(set(doc_checks(self.text)), rules_check_ids(extra))
         with self.assertRaises(ValueError):
             rules_check_ids(self.source + "\n\nevidence.check(name, 'pass', '', None)\n")
+
+    def test_rules_version_tripwire_catches_forwarding_defaults(self):
+        for signature in ("rules_version=2", "*, rules_version=2", "rules_version=2, /",
+                          "rules_version=True", "rules_version=1.0"):
+            source = f"def forward({signature}):\n    return rules.judge(rules_version=rules_version)\n"
+            with self.subTest(signature=signature):
+                self.assertTrue(rules_version_problems(source))
+        self.assertEqual(rules_version_problems(
+            "async def forward(*, rules_version=1):\n"
+            "    return check_account(rules_version=rules_version)\n"), [])
+
+    def test_rules_version_tripwire_catches_keyword_expansion(self):
+        for function in ("judge", "rules.judge", "check_account", "account_check.check_account"):
+            with self.subTest(function=function):
+                self.assertTrue(rules_version_problems(f"{function}(**options)"))
+        self.assertTrue(rules_version_problems("rules.judge(rules_version=2)"))
+        self.assertEqual(rules_version_problems("other(**options)"), [])
 
 
 class FieldListTest(VerdictCase):

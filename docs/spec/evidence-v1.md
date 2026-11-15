@@ -18,7 +18,7 @@ A document is a JSON object with exactly these 11 keys (`gate/evidence.py:50-67`
 | `labels` | array of strings | the ids of the label assertions the rules consulted (`label-assertion-v1.md`) |
 | `verdict` | string | `ALLOW`, `DENY` or `UNKNOWN` |
 | `reasons` | array of strings | the reasons for the verdict, in Siyab's words |
-| `observed` | object | `{"block_height": integer or null, "timestamp_ms": integer or null}`: the chain state the checks read (`gate/rules.py:913`) |
+| `observed` | object | `{"block_height": integer or null, "timestamp_ms": integer or null}`: the chain state the checks read (`gate/rules.py:941`) |
 | `issued_ms` | integer or null | milliseconds since the Unix epoch |
 | `expires_ms` | integer or null | milliseconds since the Unix epoch |
 | `verdict_id` | string or null | 32 lowercase hex |
@@ -55,9 +55,9 @@ An EVM leg preflight (`gate/intents.py:580-587`) writes a document whose `subjec
 | `detail` | string | what the check found, in Siyab's words; third party strings appear inside double quotes |
 | `source` | object | `{"provider": string, "request_sha256": string or null, "fetched_at": string or null}` |
 
-In `source`, `provider` names where the answer came from (an RPC host, `label store`, `local patterns`, `local rules`, or a committed fixture path); `request_sha256` is the 64 hex key of the recorded request (`gate/rpc.py:234-237`), the sha256 of the label store file, or for `ofac_sanctioned` the sha256 of the named fixture's JSON bytes. It is null for a local rule; `fetched_at` is the UTC time `YYYY-MM-DDTHH:MM:SSZ` the response was fetched, or null when nothing was fetched (`gate/rpc.py:1046-1047,1067-1068`, `gate/rules.py:119-120,123-124`). The OFAC check detail and match reason carry the source XML hash recorded inside that fixture.
+In `source`, `provider` names where the answer came from (an RPC host, `label store`, `local patterns`, `local rules`, or a committed fixture path); `request_sha256` is the 64 hex key of the recorded request (`gate/rpc.py:235-238`), the sha256 of the label store file, or for `ofac_sanctioned` the sha256 of the named fixture's JSON bytes. It is null for a local rule; `fetched_at` is the UTC time `YYYY-MM-DDTHH:MM:SSZ` the response was fetched, or null when nothing was fetched (`gate/rpc.py:1050,1059,1081-1082`, `gate/rules.py:125-126,129-130`). The OFAC check detail and match reason carry the source XML hash recorded inside that fixture.
 
-How check statuses become a verdict: any `signal` gives DENY; otherwise any `unknown` gives UNKNOWN; otherwise ALLOW (`gate/rules.py:910`, `gate/intents.py:578`).
+How check statuses become a verdict: any `signal` gives DENY; otherwise any `unknown` gives UNKNOWN; otherwise ALLOW (`gate/rules.py:938`, `gate/intents.py:578`).
 
 ## Canonical serialization
 

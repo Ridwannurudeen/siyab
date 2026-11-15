@@ -964,6 +964,17 @@ class Client:
                                      "account_id": account_id})
         return result
 
+    def view_access_key_page(self, account_id, *, after_key=None, block_id=None):
+        """One page of up to 100 access keys, after after_key when given; the result names last_key while
+        more keys follow. Mainnet RPC answered these parameters on 15 Nov 2026 (nearcore 2.14.1)."""
+        if block_id is not None and (type(block_id) is not int or block_id < 0):
+            raise ValueError("block_id must be a non negative integer")
+        params = {"request_type": "view_access_key_list", "account_id": account_id, "limit": 100}
+        params["finality" if block_id is None else "block_id"] = "final" if block_id is None else block_id
+        if after_key is not None:
+            params["after_key"] = after_key
+        return self.call("query", params)
+
     def final_block(self):
         result = self.call("block", {"finality": "final"})
         return result

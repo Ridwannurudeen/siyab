@@ -258,7 +258,8 @@ def _print_owner_step(agent, request, policy, result, out):
             for reason in reasons)
     else:
         allowlist_refusals_only = outcome == "UNKNOWN"
-    tier2_unknowns_only = bool(unknown_checks) and all(check in rules.TIER2_CHECKS for check in unknown_checks)
+    tier2_unknowns_only = bool(unknown_checks) and all(check in rules.TIER2_CHECKS + rules.TIER2_CHECKS_V2
+                                                       for check in unknown_checks)
     if (request["receiver_id"] not in policy.get("allowlist", []) and allowlist_refusals_only
             and (outcome == "ALLOW" or (outcome == "UNKNOWN" and tier2_unknowns_only))):
         allowlist = list(dict.fromkeys([*policy.get("allowlist", []), request["receiver_id"]]))

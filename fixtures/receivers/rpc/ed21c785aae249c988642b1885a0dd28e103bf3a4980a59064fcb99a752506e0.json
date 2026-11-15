@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 222509086,
+      "account_id": "petersalomonsen.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "53733809662823166627922491",
+      "block_hash": "yFuC9Etck11JiN2habJAZmVyJNjgrjMQWSU7oGv7Dky",
+      "block_height": 222509086,
+      "code_hash": "B5rViynsu6LMA1hwFZU9DfG6iNDUGd9Lv1AiArx15H79",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 30691
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-15T10:38:50Z"
+}

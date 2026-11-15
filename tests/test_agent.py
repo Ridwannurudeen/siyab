@@ -489,6 +489,21 @@ class PayTest(AgentCase):
                       "storage_registered, account_age answers", self.lines)
         self.assertFalse(any(line.startswith("the owner's step, when the payee is known") for line in self.lines))
 
+    def test_an_unknown_rules_version_2_tier2_check_offers_the_allowlist_step(self):
+        # judge runs code_changed_recently only for a receiver off the allowlist, so allowlisting skips it.
+        context = self.make()
+        result = judged("UNKNOWN")
+        result["checks"] = [
+            {"id": "account_age", "status": "unknown", "detail": "age read unavailable"},
+            {"id": "code_changed_recently", "status": "unknown", "detail": "archival read unavailable"},
+        ]
+        result["ask"] = [f"{check['id']} could not run: {check['detail']}" for check in result["checks"]]
+        with mock.patch("gate.verdict.request", return_value=result):
+            self.assertEqual(agent.pay(context, self.request("other-payee.testnet"), out=self.lines.append), 3)
+        self.assertIn(f"the owner's step, when the payee is known to them: bash scripts/set_allowlist.sh "
+                      f"{context.public_key} vendor-shop.testnet,other-payee.testnet", self.lines)
+        self.assertFalse(any("allowlisting skips only" in line for line in self.lines))
+
     def test_unknown_tier1_check_offers_no_allowlist_step(self):
         context = self.make()
         result = judged("UNKNOWN")

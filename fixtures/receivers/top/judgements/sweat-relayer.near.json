@@ -52,18 +52,18 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "no archival age (view_access_key_list could not run: RPC error TOO_MANY_ACCESS_KEYS); could not read the account keys: no recorded response for the request",
+      "status": "pass",
+      "detail": "view_access_key_list answers TOO_MANY_ACCESS_KEYS, so no key nonce dates the account; view_account finds sweat-relayer.near at block 222506590 (2026-11-01T02:25:47Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "5f49c38dc0109c7d866c780c06aab329f5de527db5e089ace5813dfb739da9a0",
-        "fetched_at": null
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "d92f6a9551c74ee2c25b96fe71b09393099802ef0d3f798622abd38cf8e4a5d1",
+        "fetched_at": "2026-11-15T10:38:46Z"
       }
     },
     {
       "id": "dust_funded",
-      "status": "unknown",
-      "detail": "the creation transaction is not known",
+      "status": "pass",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
       "source": {
         "provider": "nearblocks",
         "request_sha256": null,
@@ -92,9 +92,7 @@
     }
   ],
   "reasons": [
-    "issuer_blacklist could not run: usdt.tether-token.near get_blacklist_status answers \"Allowable\"; could not read is_blocklisted on 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1: no recorded response for the request.",
-    "account_age could not run: no archival age (view_access_key_list could not run: RPC error TOO_MANY_ACCESS_KEYS); could not read the account keys: no recorded response for the request.",
-    "dust_funded could not run: the creation transaction is not known."
+    "issuer_blacklist could not run: usdt.tether-token.near get_blacklist_status answers \"Allowable\"; could not read is_blocklisted on 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1: no recorded response for the request."
   ],
   "labels": [],
   "observed": {
