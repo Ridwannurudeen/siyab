@@ -19,7 +19,7 @@ from scripts import scorecard
 class ScorecardTest(unittest.TestCase):
     def test_label_metrics_count_only_current_assertions_as_hostile(self):
         rows = {name: value for name, value, _ in scorecard.label_rows(ROOT)}
-        self.assertEqual(rows["Label assertions"], "3,292 / 3,292 committed assertion rows")
+        self.assertEqual(rows["Label assertions"], "3,295 / 3,295 committed assertion rows")
         self.assertEqual(rows["Current hostile assertions (incident and denylist)"],
                          "61 / 3,286 current assertion rows")
         self.assertEqual(rows["Current reference assertions (all other categories)"],

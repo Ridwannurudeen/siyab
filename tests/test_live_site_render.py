@@ -143,7 +143,8 @@ class LiveSiteRenderTest(unittest.TestCase):
 
     def test_top_receiver_deny_explains_combined_signals_and_payment_scope(self):
         page = render.top_receivers_page()
-        self.assertIn("Lookalike with code without metadata: 1.</p><p>Other DENY signal groups: 5.</p><p>Each verdict is what an agent's 1 NEAR payment to that receiver would get, not a finding that the account is malicious.</p>", page)
+        self.assertNotIn("Other DENY signal groups", page)
+        self.assertIn("New account (account_age signal only): 137.</p><p>Lookalike with code without metadata: 1.</p><p>Each verdict is what an agent's 1 NEAR payment to that receiver would get, not a finding that the account is malicious.</p>", page)
 
     def test_single_account_activity_and_counterparty_counts(self):
         subject = "account.example.near"

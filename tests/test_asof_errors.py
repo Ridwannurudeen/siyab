@@ -14,7 +14,10 @@ from tests.test_incident_replay import Chain, HEIGHT, START_NS
 # Every committed RPC response validates. The reduced demo and scan recordings
 # (gate/demo.py:4) are listed with their sha256 in fixtures/reduced-recordings.json;
 # replay alone accepts them without block_hash, amount, locked, storage_usage or logs.
-_MALFORMED_RPC_FIXTURES = set()
+# A call_function error returned as a result.error string at a pinned block carries no cause to
+# check against the pin, so it is refused and code_without_metadata stays unknown (recorded by the
+# pinned re-read).
+_MALFORMED_RPC_FIXTURES = {("receivers/rpc", "70cfa7af")}
 # Pinned at block 222848858 with no block response recorded beside them, so the
 # pinned block hash cannot be checked in replay and the read stays a FixtureMiss.
 _PINNED_BLOCK_UNRECORDED = {
