@@ -38,6 +38,8 @@ DENY refuse never receiver_exists=pass label_denylist=signal issuer_blacklist=pa
 rhea000453.multica.near carries the incident label "named in the rekt.news Rhea Finance report as an account within Rhea
 ```
 
+The harder case is the recorded mainnet judgement of `rhea000453.multica.near`. In that file `receiver_exists` and `account_age` pass, dating it at least 7 days old; `issuer_blacklist`, `memo_injection`, `dust_funded`, `lookalike` and `code_without_metadata` also pass. Its DENY comes from `label_denylist`, which cites the rekt.news report naming it within Rhea's Multichain Account system and receiving traceable funds (`fixtures/receivers/judgements/rhea000453.multica.near.json:11-100`). Replay with `python -m intel receivers`, which rewrites the recorded set's judgements from the replay, after which `git status` shows no change (`README.md:341`); then inspect that file. The live command above checks the same account with an unsigned answer and its own set of check names (`docs/API.md:254,279`).
+
 2. Account age and activity history, and 3. whether the receiver is a contract (`gate/rules.py:_tier2`, `gate/rules.py:_code_check`). A known contract account gets ALLOW, with the age and code checks named. No transaction history is read beyond the creation transaction, and an allowlisted receiver skips these checks (README, Limits):
 
 ```sh
@@ -85,6 +87,10 @@ FullAccess
 ```
 
 8. A prompt injected agent tries to pay a known bad account and gets stopped. The refused testnet submission: [`REFUSED:no_verdict`](https://testnet.nearblocks.io/txns/8M5NqTdAHGpLbGoRWzw9oo4M1foshWB4FkNKNer6yVMS). A scripted agent stands in for the injected model; `python -m gate injected` replays the log offline (below).
+
+That testnet injected DENY is the easy case: besides its labels and the memo, the collector does not exist on testnet and is not registered on the token (`fixtures/rpc/attacks/10-injected.json:3-5`), so the existence check alone refuses it. For a DENY from labels after existence and age pass, use the mainnet receiver in point 1.
+
+The mainnet run of 15 Nov, after the deadline and not in the tag `hackathon-submission`, is different again. On its refused leg the collector carries incident labels and the Tether issuer answered `Banned`, so that DENY is not label-only; `request_transfer` with a null verdict failed `REFUSED:no_verdict` and spent nothing. Its allowed leg moved 0.01 NEAR to `maryamnurudeen.near` under a signed ALLOW (`fixtures/runs/gate-mainnet-20261115.txt:25-34`). `python -m unittest tests.test_mainnet_run -v` checks retained evidence hashes and the ALLOW signature bound to that transfer, without re-querying mainnet (`tests/test_mainnet_run.py:30-72`; `fixtures/runs/gate-mainnet-20261115.txt:50-51`).
 
 The Gate's version, policy and deployed code hash, to compare with `python -m gate codehash res/gate.wasm`; more testnet transactions with explorer links are in the README sections "What the track asks for, and where it is" and "Try it live (network)":
 
