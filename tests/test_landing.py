@@ -238,7 +238,7 @@ class LandingTest(unittest.TestCase):
         main = re.search(r'<main[^>]*>\n(.*?)\n</main>', page, re.S).group(1)
         main = re.sub(r'<article class="analytics-panel"><div class="analytics-panel-head"><h2>Label store provenance</h2>.*?</article>', '', main, flags=re.S)
         main = main.replace('/index.html', '/explore.html')
-        expected = "30e2f505161de933bba1510b9720311" + "67fa806a8216955e681846be8cbb0aab2"
+        expected = "b1dc3711be51f7608278c262b87af4b81" + "943867bd544a3007e8fa7d2d3ce11ee"
         self.assertEqual(hashlib.sha256(main.encode("utf-8")).hexdigest(), expected)
 
 
@@ -249,6 +249,75 @@ class LandingBrowserTest(unittest.TestCase):
     def setUp(self):
         if self.browser is None:
             self.skipTest(self.browser_reason)
+
+    def test_warning_display_preserves_api_outcome_and_downloaded_evidence(self):
+        data = {"outcome": "ASK", "action": "ask", "verdict": None, "signing": "never",
+                "evidence_hash": "a" * 64, "evidence": "{}", "freshness": {"block_height": 1},
+                "latency_ms": 1, "reasons": ["A check could not run."],
+                "checks": [{"name": "Account age", "status": "unknown", "detail": "Unavailable."}]}
+        context = self.browser.new_context(accept_downloads=True)
+        self.addCleanup(context.close)
+        context.route("**/*", self.local_route)
+        page = context.new_page()
+        for width in (1440, 375):
+            for outcome, action, status, expected, css in (
+                    ("ASK", "ask", "unknown", "WARN", "ask"),
+                    ("ALLOW", "ask", "pass", "WARN", "ask"),
+                    ("ALLOW", "sign", "pass", "ALLOW", "allow"),
+                    ("DENY", "refuse", "signal", "DENY", "deny")):
+                with self.subTest(width=width, outcome=outcome, action=action):
+                    page.set_viewport_size({"width": width, "height": 900})
+                    page.goto(self.origin + "/index.html")
+                    data["outcome"], data["action"] = outcome, action
+                    data["checks"][0]["status"] = status
+                    result = page.evaluate("""data => {
+                      const freeze = value => {
+                        if (value && typeof value === 'object') {
+                          Object.values(value).forEach(freeze);
+                          Object.freeze(value);
+                        }
+                      };
+                      freeze(data);
+                      const panel = document.getElementById('landing-check-result');
+                      const token = window.SiyabChecks.beginRequest(panel);
+                      return {rendered: window.SiyabChecks.renderVerdict(panel, data, false, token), data};
+                    }""", data)
+                    self.assertTrue(result["rendered"])
+                    self.assertEqual(result["data"], data)
+                    panel = page.locator("#landing-check-result")
+                    self.assertEqual(panel.locator(".verdict").inner_text(), expected)
+                    self.assertEqual(panel.locator(".verdict").get_attribute("class"), "verdict " + css)
+                    self.assertIn("Action: " + ("warn" if action == "ask" else action), panel.inner_text())
+                    self.assertNotIn("ASK", panel.inner_text())
+                    self.assertLessEqual(page.evaluate("document.documentElement.scrollWidth"), width)
+                    with page.expect_download() as download:
+                        panel.get_by_role("button", name="Download evidence").click()
+                    self.assertEqual(json.loads(Path(download.value.path()).read_text(encoding="utf-8")), data)
+
+    def test_profile_warning_display_preserves_api_response(self):
+        data = {"outcome": "ASK", "action": "ask", "verdict": None, "signing": "never",
+                "evidence_hash": "a" * 64, "freshness": {"block_height": 1},
+                "reasons": ["A check could not run."],
+                "checks": [{"name": "Account age", "status": "unknown", "detail": "Unavailable."}]}
+        context = self.browser.new_context()
+        self.addCleanup(context.close)
+        context.route("**/*", self.local_route)
+        context.route("**/live/verdict?*", lambda route: route.fulfill(content_type="application/json", body=json.dumps(data)))
+        page = context.new_page()
+        path = next(name for name in self.pages if name.startswith("accounts/"))
+        for width in (1440, 375):
+            with self.subTest(width=width):
+                page.set_viewport_size({"width": width, "height": 900})
+                page.goto(self.origin + "/" + path)
+                with page.expect_response("**/live/verdict?*") as response:
+                    page.locator("[data-profile-payment]").click()
+                page.wait_for_function("document.querySelector('[data-profile-live-result]').getAttribute('aria-busy') === 'false'")
+                self.assertEqual(response.value.json(), data)
+                output = page.locator("[data-profile-live-result]")
+                self.assertEqual(output.locator(".profile-outcome").inner_text(), "WARN")
+                self.assertEqual(output.locator(".profile-outcome").get_attribute("class"), "profile-outcome ask")
+                self.assertNotIn("ASK", output.inner_text())
+                self.assertLessEqual(page.evaluate("document.documentElement.scrollWidth"), width)
 
     def test_recorded_catch_is_in_the_first_viewport_without_scripts(self):
         for width, height in ((1366, 768), (390, 844)):
