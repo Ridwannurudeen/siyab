@@ -26,9 +26,13 @@ python -m gate incident rhea
 
 ## Live demo
 
+For judges: [JUDGES.md](JUDGES.md) maps each point of the track's example prompt to one command or URL with its expected output.
+
 The hosted copy is at [siyab.xyz](https://siyab.xyz). The source is the public repository [Ridwannurudeen/siyab](https://github.com/Ridwannurudeen/siyab).
 
 The demo video is on YouTube: [siyab demo near hackathon](https://youtu.be/VXvnnxzofpk).
+
+The live demo post on X: [x.com/siyabhq](https://x.com/siyabhq/status/2121724606889255132).
 
 ## What it is
 
@@ -140,6 +144,8 @@ Latency, payee off the allowlist: p50 2148 ms, p95 2765 ms over 20 verdict runs.
 <!-- counts:end -->
 
 The feed line above is computed from the committed follower state. The live follower restarted on 14 Nov 2026, and the disclosed gap from height 224241250 to 224502861 is being backfilled; the feed page at [siyab.xyz](https://siyab.xyz) is the current source for the live feed.
+
+Update, 15 Nov 2026, after the submission deadline: that gap has since been walked by a backfill and merged into the live follower state as server data only, so the live feed page now shows a window from 9 Nov with 18 events, 17 of them unmeasured full_access_key_then_outflow observations on unlabelled accounts, not findings; key/outflow and fresh-account context was not carried across the join at height 224502862, the earlier gap from height 223457668 to 223819560 remains, and the committed counts line above is unchanged.
 
 Those outcomes cover the selected 84 receivers only and are not a network-wide receiver detection rate.
 
@@ -578,6 +584,10 @@ License: Apache-2.0 (`LICENSE`). Reproducible build: `res/gate.wasm`, `res/regis
 Business model: a metered verdict and label API for agent platforms; the approver seat in agent wallets; alert subscriptions later. No token.
 
 Static pages: `demo/site/`, written by `python -m intel render` from the committed files. The Explore page (`explore.html`) checks pasted NEAR accounts against `search.json`, shows label sources and links to account pages, then calls the same-origin read only live verdict, key scan and swap destination routes. Missing or unreadable live responses stay unavailable and never appear as ALLOW. Recent reports, report lookup, testnet run logs and the top receivers page are linked from the Explore page. See the [repository source](https://github.com/Ridwannurudeen/siyab).
+
+### Changes after the 14 Nov 23:59 UTC deadline
+
+The judged state is the tag `hackathon-submission`. On 15 Nov 2026 only documentation was added: [JUDGES.md](JUDGES.md), the X post link under Live demo, a dated note under the feed line on the hosted feed backfill (a server data change, merged into the live follower on 15 Nov), and this block. No code, fixtures or contracts changed. The diff: https://github.com/Ridwannurudeen/siyab/compare/hackathon-submission...main.
 
 ## Environment and working agreements
 
