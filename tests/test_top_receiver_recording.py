@@ -1,3 +1,5 @@
+import base64
+import hashlib
 import io
 import json
 import os
@@ -10,7 +12,7 @@ from unittest import mock
 
 from gate import rpc
 from intel import __main__ as intel_main
-from intel import budget
+from intel import budget, labels
 
 from tests.test_budget import BudgetCase, T0
 
@@ -129,6 +131,7 @@ class TopReceiverRecordingTest(unittest.TestCase):
         archival.call("status", [entry["subject"]])
         if entry["age_recorded"]:
             nearblocks.get("/v1/account/" + entry["subject"] + "/keys")
+        return {"checks": []}
 
     def test_record_run_loads_key_and_meters_the_outbound_headers(self):
         response = {"jsonrpc": "2.0", "id": "gate", "result": {"x": 1}}
@@ -323,6 +326,180 @@ class TopReceiverRecordingTest(unittest.TestCase):
                 replay.assert_not_called()
                 fetched.assert_not_called()
         self.assertFalse(self.database.exists())
+
+
+DAY = 86400
+JUDGED = 30 * DAY
+LATER = JUDGED + 6 * DAY
+START_NS = 1_790_000_000 * 10**9
+# The height each fake account is created at.
+CREATED = {"old.near": 0, "aged.near": JUDGED - 7 * DAY - DAY // 2, "young.near": JUDGED - 2 * DAY,
+           "missing.near": JUDGED + DAY, "flaky.near": JUDGED - 7 * DAY - DAY // 2}
+
+
+def _hash(height):
+    return rpc.base58.encode(hashlib.sha256(str(height).encode()).digest())
+
+
+class FakeArchive:
+    """One block a second; the final reads answer at LATER, six days after the judged block."""
+
+    def __init__(self):
+        self.missing = {JUDGED + 1}
+        self.fetched = []
+
+    def error(self, cause, info=None):
+        return {"jsonrpc": "2.0", "id": "gate", "error": {
+            "name": "HANDLER_ERROR", "code": -32000, "message": "Server error",
+            "cause": {"name": cause, **({"info": info} if info else {})}}}
+
+    def fetch(self, url, body, headers, errors):
+        method, params = body["method"], body["params"]
+        self.fetched.append((method, params))
+        height = params.get("block_id", LATER)
+        if method == "block":
+            if height in self.missing:
+                return self.error("UNKNOWN_BLOCK")
+            previous = height - 1
+            while previous in self.missing:
+                previous -= 1
+            return {"jsonrpc": "2.0", "id": "gate", "result": {"header": {
+                "height": height, "timestamp": START_NS + height * 10**9, "hash": _hash(height),
+                "prev_hash": _hash(previous)}}}
+        kind, account = params["request_type"], params["account_id"]
+        context = {"block_height": height, "block_hash": _hash(height)}
+        if kind == "view_account":
+            if height < CREATED[account]:
+                return self.error("UNKNOWN_ACCOUNT", {**context, "requested_account_id": account})
+            return {"jsonrpc": "2.0", "id": "gate", "result": {
+                "code_hash": rpc.EMPTY_CODE_HASH, "amount": "1", "locked": "0", "storage_usage": 1, **context}}
+        if kind == "view_access_key_list":
+            if account == "flaky.near" and height == JUDGED:
+                raise rpc.TransportError("the reply was cut short")
+            return {"jsonrpc": "2.0", "id": "gate", "result": {"keys": [{
+                "public_key": "ed25519:" + rpc.base58.encode(bytes([3]) * 32),
+                "access_key": {"nonce": 0, "permission": "FullAccess"}}], **context}}
+        answer = "Allowable" if account == "usdt.tether-token.near" else False
+        return {"jsonrpc": "2.0", "id": "gate", "result": {
+            "result": list(json.dumps(answer).encode("utf-8")), "logs": [], **context}}
+
+
+class PinnedSecondPassTest(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.directory = Path(temporary.name)
+        self.key = self.directory / "dummy-provider-key.txt"
+        self.key.write_text("dummy-recording-token\n", encoding="utf-8")
+        environment = mock.patch.dict(os.environ, {"FASTNEAR_API_KEY_FILE": str(self.key),
+                                                   "FEED_STATE_DIR": str(self.directory / "feed")}, clear=True)
+        environment.start()
+        self.addCleanup(environment.stop)
+        for target in ("urllib.request.urlopen", "gate.rpc._open_with_deadline"):
+            patcher = mock.patch(target, side_effect=AssertionError("the test opened the network"))
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        self.block_path = self.directory / "top" / "judged-block.json"
+        for name, value in (("RECEIVER_RPC_DIR", self.directory / "rpc"), ("JUDGED_BLOCK_PATH", self.block_path)):
+            patcher = mock.patch.object(intel_main, name, value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        self.store = labels.Store([], hashlib.sha256(b"").hexdigest())
+        self.document = {"judged_at_ms": (START_NS + JUDGED * 10**9) // 10**6 + 500, "subjects": [
+            {"subject": subject, "age_recorded": False, "as": "receiver",
+             "request": {"kind": "near", "token_id": None, "receiver_id": subject, "amount": "1", "memo": None}}
+            for subject in CREATED]}
+        self.archive = FakeArchive()
+        with mock.patch.object(rpc, "_fetch", side_effect=self.archive.fetch):
+            intel_main.record_top_receiver_judgements(self.document, self.store)
+
+    def replay(self, name, pin=True):
+        with mock.patch.object(rpc, "_fetch", side_effect=AssertionError("replay fetched")):
+            results = intel_main.judge_receivers(self.document, self.store, self.directory / name,
+                                                 pin_unknown_age=pin)
+        files = {path.name: path.read_bytes() for path in (self.directory / name / "judgements").glob("*.json")}
+        return {result["subject"]: result for result in results}, files
+
+    def age(self, result):
+        return next(check for check in result["checks"] if check["id"] == "account_age")
+
+    def test_the_judged_block_is_found_once_proved_by_the_next_block_and_written(self):
+        block = json.loads(self.block_path.read_text(encoding="utf-8"))
+        self.assertEqual(block, {"judged_at_ms": self.document["judged_at_ms"], "height": JUDGED,
+                                 "hash": _hash(JUDGED), "timestamp_ns": START_NS + JUDGED * 10**9,
+                                 "next_height": JUDGED + 2})
+        finals = [params for method, params in self.archive.fetched if method == "block" and "finality" in params]
+        self.assertEqual(len(finals), 1)
+        before = len(self.archive.fetched)
+        with mock.patch.object(rpc, "_fetch", side_effect=self.archive.fetch):
+            intel_main.record_top_receiver_judgements(self.document, self.store)
+        self.assertEqual(self.archive.fetched[before:], [("query", {
+            "request_type": "view_access_key_list", "block_id": JUDGED, "account_id": "flaky.near"})])
+
+    def test_the_pinned_pass_gives_pass_and_signal_and_keeps_unknown_and_absent_receivers(self):
+        pinned, _ = self.replay("pinned")
+        first, _ = self.replay("first", pin=False)
+        self.assertEqual({subject: result["verdict"] for subject, result in first.items()},
+                         {"old.near": "ALLOW", "aged.near": "UNKNOWN", "young.near": "UNKNOWN",
+                          "missing.near": "UNKNOWN", "flaky.near": "UNKNOWN"})
+        for subject in ("aged.near", "young.near", "missing.near", "flaky.near"):
+            self.assertEqual(self.age(first[subject])["status"], "unknown")
+        self.assertEqual(pinned["aged.near"]["verdict"], "ALLOW")
+        self.assertEqual(self.age(pinned["aged.near"])["status"], "pass")
+        self.assertEqual(pinned["aged.near"]["observed"]["block_height"], JUDGED)
+        self.assertEqual(pinned["young.near"]["verdict"], "DENY")
+        self.assertEqual(self.age(pinned["young.near"])["status"], "signal")
+        self.assertEqual(pinned["young.near"]["observed"]["block_height"], JUDGED)
+        for subject in ("old.near", "missing.near", "flaky.near"):
+            self.assertEqual(pinned[subject], first[subject])
+
+    def test_every_other_judgement_is_byte_identical_and_no_block_file_means_no_second_pass(self):
+        _, pinned = self.replay("pinned")
+        _, first = self.replay("first", pin=False)
+        changed = {name for name in first if pinned[name] != first[name]}
+        self.assertEqual(changed, {"aged.near.json", "young.near.json"})
+        self.block_path.unlink()
+        _, unpinned = self.replay("unpinned")
+        self.assertEqual(unpinned, first)
+        self.assertFalse(self.block_path.exists())
+
+    def test_a_block_file_for_another_judged_time_stops_the_replay(self):
+        block = json.loads(self.block_path.read_text(encoding="utf-8"))
+        self.block_path.write_text(json.dumps({**block, "judged_at_ms": block["judged_at_ms"] + 1}), encoding="utf-8")
+        with self.assertRaises(ValueError):
+            self.replay("pinned")
+        self.block_path.write_text(json.dumps({**block, "hash": _hash(JUDGED - 1)}), encoding="utf-8")
+        with self.assertRaises(ValueError):
+            self.replay("pinned")
+
+    def test_only_the_top_command_pins_unknown_age(self):
+        ranking = self.directory / "top.json"
+        ranking.write_text(json.dumps(self.document), encoding="utf-8")
+        with mock.patch.object(intel_main, "TOP_RECEIVERS_PATH", ranking),                 mock.patch.object(intel_main, "judge_receivers", return_value=[]) as replay,                 mock.patch("sys.stdout", new_callable=io.StringIO):
+            self.assertEqual(intel_main.main(["judge-top-receivers"]), 0)
+        self.assertIs(replay.call_args.kwargs["pin_unknown_age"], True)
+
+        class Stop(Exception):
+            pass
+
+        with mock.patch.object(intel_main, "judge_receivers", side_effect=Stop) as replay,                 self.assertRaises(Stop):
+            intel_main.main(["receivers"])
+        self.assertNotIn("pin_unknown_age", replay.call_args.kwargs)
+
+    def test_pinned_reads_per_receiver(self):
+        pinned = {}
+        for method, params in self.archive.fetched:
+            if method != "query" or "block_id" not in params or params["block_id"] == JUDGED - 8 * DAY:
+                continue
+            subject = params["account_id"]
+            if params["request_type"] == "call_function":
+                subject = json.loads(base64.b64decode(params["args_base64"]))["account_id"]
+            pinned[subject] = pinned.get(subject, 0) + 1
+        # view_account, two issuer views and the key list at the judged block, then the age reads.
+        self.assertEqual(pinned, {"aged.near": 7, "young.near": 6, "missing.near": 3, "flaky.near": 4})
+        blocks = {params["block_id"] for method, params in self.archive.fetched
+                  if method == "block" and "block_id" in params}
+        self.assertLessEqual(len(blocks), 40)
 
 
 if __name__ == "__main__":
