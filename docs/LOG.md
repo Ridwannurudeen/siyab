@@ -79,3 +79,4 @@
 14 Nov, later: the hosted deployment enabled Ask Siyab (SIYAB_ASK=1, default model, daily cap and token limits) and the public account and token checks (SIYAB_CHECKS=1); Telegram checks, the NearBlocks fallback and automatic channel broadcast stay off.
 14 Nov, later: the explore page "Can I pay this?" result now carries an Ask Siyab section; signed-in team members ask the four fixed questions about the same receiver, amount and token, and signed-out visitors see a sign-in link and make no ask request.
 15 Nov, after the deadline: documentation only; added JUDGES.md, linked it and the X demo post from the README, and dated the change under New in this hackathon vs reused; no code, fixtures or contracts changed.
+15 Nov, after the deadline: corrected global contract detection and request-only source args; regenerated five dated Rhea watch rows in fixture replay, superseding only their five earlier state readings and retaining sourced incident labels.
