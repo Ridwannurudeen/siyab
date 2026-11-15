@@ -1,0 +1,45 @@
+{
+  "charged_micro": 317,
+  "error": null,
+  "finished_at": "2026-11-15T09:28:07Z",
+  "input_token_bound": 4951,
+  "model_requested": "claude-haiku-5-5",
+  "request_sha256": "2c078e409bd22b1a23a3b0fa662941f56ccb7e0747a12efe783aab2386685e69",
+  "response": {
+    "content": [
+      {
+        "type": "thinking"
+      },
+      {
+        "length": 292,
+        "sha256": "e9d46865c685e9cd769b48eb3327757106497f7e590a73e1c1ce0c94479f5a79",
+        "type": "text"
+      },
+      {
+        "id": "toolu_015HdKYNijkkQnjRnkQav78T",
+        "input": {
+          "reason": {
+            "length": 688,
+            "sha256": "237a22c1283dcad62a5cea785d60c1934cab21c941ae53ef7ab9b5b884e8bf1a"
+          }
+        },
+        "name": "ask_a_human",
+        "type": "tool_use"
+      }
+    ],
+    "id": "msg_011Ch4UcDHdc7BTuy4ZedC5R",
+    "model": "claude-haiku-5-5",
+    "stop_details": null,
+    "stop_reason": "tool_use",
+    "usage": {
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "input_tokens": 855,
+      "output_tokens": 462
+    }
+  },
+  "started_at": "2026-11-15T09:28:04Z",
+  "trial": 4,
+  "verdicts": [],
+  "worst_case_micro": 1496
+}
