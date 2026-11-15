@@ -115,6 +115,7 @@ import hashlib
 import json
 import os
 import re
+import sqlite3
 import time
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -122,7 +123,7 @@ from email.utils import parsedate_to_datetime
 from pathlib import Path
 
 from gate import evidence, rpc, rules, wasm
-from intel import alerts, labels
+from intel import alerts, first_seen, labels
 
 ROOT = Path(__file__).resolve().parent.parent
 NEARDATA_URL = "https://mainnet.neardata.xyz"
@@ -670,6 +671,7 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
                 sleep(max(0, FOLLOW_INTERVAL_S - (clock() - last_request)))
             poll_transfers(transfers_client, state, state_path, context, events_dir, clock, pending_transfers, stamp=stamped)
             _request_day(state, clock)
+            covered = True
             if next_height == final_height:
                 raw = final_block
             else:
@@ -681,9 +683,11 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
                     if error.status != 404:
                         raise
                     raw = None
+                    covered = False
                 used = fetcher.requests - requests_before
                 state["requests"] += used
                 last_request = request_started if used == 1 else clock()
+            block = None
             if raw is None:
                 if next_height not in state["skipped_heights"]:
                     state["skipped_heights"].append(next_height)
@@ -703,6 +707,12 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
             state["lag_blocks"] = max(0, final_height - (state["last_height"] or final_height))
             _stamp(state, clock)
             stamped = True
+            if covered:
+                try:
+                    first_seen.advance(state_path.parent, next_height, block)
+                except (sqlite3.Error, OSError) as error:
+                    state["first_seen_error"] = {"height": next_height,
+                                                 "error": f"{type(error).__name__}: could not update {first_seen.DATABASE_NAME}"}
             _write_json(Path(state_path), state, indent=2)
             next_height += 1
         if next_height > final_height and not stopped() and (max_blocks is None or walked < max_blocks):
