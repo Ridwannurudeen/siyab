@@ -411,7 +411,8 @@ class CommittedTraceTest(unittest.TestCase):
                 self.assertGreater(hop["block"], 0)
                 self.assertGreaterEqual(hop["block_timestamp"] // 1000000, self.document["window"]["from_timestamp_ms"])
         store = labels.load()
-        ids = {a.id for a in store.assertions if a.subject == COLLECTOR and a.category == "incident"}
+        ids = {a.id for a in store.assertions
+               if a.subject == COLLECTOR and a.category == "incident" and a.superseded_by is None}
         self.assertEqual(set(self.document["assertion_ids"]), ids)
         self.assertEqual(self.document["window"], trace.window(RHEA["date"]))
 

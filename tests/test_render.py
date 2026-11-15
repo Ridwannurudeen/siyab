@@ -940,6 +940,22 @@ class RenderTest(unittest.TestCase):
         self.assertTrue(forbidden(own_text("<p>" + "trust" + "less</p>")))
         self.assertTrue(BARRED.search(own_text('<blockquote class="other">a fake</blockquote>')))
 
+    def test_third_party_provenance_does_not_exempt_authored_label_text(self):
+        assertion = make_row(provenance="third_party",
+                             label='authored fake label; report says "original statement"',
+                             source={"url": "https://example.org/report", "content_sha256": "a" * 64,
+                                     "fetched_at": "2026-11-03T00:00:00Z"})
+        store = labels.Store([assertion], "0" * 64)
+        accounts = render.account_pages(store)
+        documents = (render.account_page(assertion.subject, store, accounts, [], [], []),
+                     render.entity_page("Infrastructure", ("infrastructure",), store))
+        for document in documents:
+            with self.subTest(document=document[:80]):
+                self.assertIn('authored fake label; report says', own_text(document))
+                self.assertIsNotNone(BARRED.search(own_text(document)))
+                self.assertNotIn('original statement', own_text(document))
+                self.assertIn('<q class="data">original statement</q>', document)
+
     def test_an_escaped_quote_stays_inside_the_quoted_data(self):
         bs = chr(92)
         source = f'ft_metadata fails on the contract: "wasm {bs}"panicked{bs}" at {bs}{bs}src" and our words'

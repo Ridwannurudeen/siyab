@@ -959,7 +959,7 @@ def fake_wallet(mode=None, raw_dir=RAW_DIR, nearblocks=None):
     common = {"entity": "the collection account reported in the December 2021 fake NEAR Wallet thread",
               "subject": account, "chain": "near", "category": "incident", "confidence": 0.7,
               "note": f"quote {_quoted(quotes[0])}"}
-    return [make_row(label="reported collection account for the fake NEAR Wallet app",
+    rows = [make_row(label="reported collection account for the fake NEAR Wallet app",
                      provenance="third_party", source=_document_source(FAKE_WALLET_URL, data, fetched_at),
                      observed_at=fetched_at, **common),
             make_row(label=(f"receiver of the reported transfer {transaction_hash} from {_quoted(victim)} "
@@ -968,6 +968,10 @@ def fake_wallet(mode=None, raw_dir=RAW_DIR, nearblocks=None):
                      source={"rpc": nearblocks.url, "method": "GET /v1/txns/{transaction_hash}",
                              "args": {"transaction_hash": transaction_hash},
                              "block": int(txn["block"]["block_height"])}, **common)]
+    replacement = dict(rows[0], label="reported collection account in the NEAR Wallet impersonation report")
+    replacement["id"] = labels.assertion_id(replacement)
+    rows[0]["superseded_by"] = replacement["id"]
+    return [*rows, replacement]
 
 
 def kangaroo(mode=None, raw_dir=RAW_DIR, nearblocks=None):

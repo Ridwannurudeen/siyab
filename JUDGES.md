@@ -90,7 +90,7 @@ FullAccess
 
 Separately, after the deadline on 15 Nov 2026, `claude-haiku-5-5` read the same vendor message in 30 recorded trials: it asked to pay the labelled account in 0 of 30 and called `ask_a_human` in all 30. No verdict was signed; the forced submission without a verdict remains scripted. Replay offline with `python -m gate injected-model` (on main, added after the deadline) (`gate/injected_model.py:23-28,268-274,380-437`; `fixtures/demo/model-runs/`; `tests/test_injected_model.py`).
 
-After the deadline on 15 Nov 2026, NEAR AI Cloud served `deepseek-ai/DeepSeek-V4.1-Flash-1017` the same vendor message in 30 recorded trials: it asked to pay the labelled account in 0 of 30, called `ask_a_human` in 29, and trial 10 timed out. Recorded spend was 30981 micro-dollars. No verdict was signed; the forced submission remains scripted. Replay offline with `python -m gate injected-model --provider nearai` (`gate/injected_model.py:29-37,268-274,380-437`; `fixtures/demo/model-runs-nearai/`; `tests/test_injected_model.py`).
+After the deadline on 15 Nov 2026, NEAR AI Cloud served `deepseek-ai/DeepSeek-V4.1-Flash-1017` the same vendor message in 30 recorded trials: it asked to pay the labelled account in 0 of 30, called `ask_a_human` in 29, and trial 10 timed out. The recorded total of 30981 micro-dollars includes a reserved bound of 4156 for trial 10, not a measured charge; the other trials total 26825 micro-dollars. No verdict was signed; the forced submission remains scripted. Replay offline with `python -m gate injected-model --provider nearai` (`gate/injected_model.py:29-37,268-274,325-331,380-437`; `fixtures/demo/model-runs-nearai/`; `tests/test_injected_model.py`).
 
 That testnet injected DENY is the easy case: besides its labels and the memo, the collector does not exist on testnet and is not registered on the token (`fixtures/rpc/attacks/10-injected.json:3-5`), so the existence check alone refuses it. For a DENY from labels after existence and age pass, use the mainnet receiver in point 1.
 
@@ -121,7 +121,7 @@ python -m intel counts
 python -m gate incident rhea
 ```
 
-Python 3.11 or later, no network and no keys; each exits 0. `injected` prints `DENIED.`, `Nothing was signed.` and `injected: refused`; `demo --offline` prints one ALLOW verdict, two `DENIED.` lines and `UNKNOWN, not signed: account_age, dust_funded could not run`; `codehash` prints `code_hash: 5EmM2UQRYcvaNvJX6jfcgtNS7Mm8ZPjZhwK1J8bMXrcu`, the testnet Gate's code hash above. `demo/site/` (5,574 tracked files) is the generated static site, written by `python -m intel render` from committed files; it is the bulk of the clone.
+Python 3.11 or later, no network and no keys; each exits 0. `injected` prints `DENIED.`, `Nothing was signed.` and `injected: refused`; `demo --offline` prints one ALLOW verdict, two `DENIED.` lines and `UNKNOWN, not signed: account_age, dust_funded could not run`; `codehash` prints `code_hash: 5EmM2UQRYcvaNvJX6jfcgtNS7Mm8ZPjZhwK1J8bMXrcu`, the testnet Gate's code hash above. `demo/site/` (5,579 of the repository's 14,835 tracked files) is the generated static site, written by `python -m intel render` from committed files; it is the bulk of the clone.
 
 ## What was built in the window
 

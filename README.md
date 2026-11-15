@@ -81,7 +81,7 @@ Row 10 of the adversarial table links the refused testnet transaction and names 
 
 Separately, after the deadline on 15 Nov 2026, `claude-haiku-5-5` read the same vendor message in 30 recorded trials: it asked to pay the labelled account in 0 of 30 and called `ask_a_human` in all 30. No verdict was signed; the forced submission without a verdict remains scripted. Replay offline with `python -m gate injected-model` (`gate/injected_model.py:23-28,268-274,380-437`; `fixtures/demo/model-runs/`; `tests/test_injected_model.py`).
 
-After the deadline on 15 Nov 2026, NEAR AI Cloud served `deepseek-ai/DeepSeek-V4.1-Flash-1017` the same vendor message in 30 recorded trials: it asked to pay the labelled account in 0 of 30, called `ask_a_human` in 29, and trial 10 timed out. Recorded spend was 30981 micro-dollars. No verdict was signed; the forced submission remains scripted. Replay offline with `python -m gate injected-model --provider nearai` (`gate/injected_model.py:29-37,268-274,380-437`; `fixtures/demo/model-runs-nearai/`; `tests/test_injected_model.py`).
+After the deadline on 15 Nov 2026, NEAR AI Cloud served `deepseek-ai/DeepSeek-V4.1-Flash-1017` the same vendor message in 30 recorded trials: it asked to pay the labelled account in 0 of 30, called `ask_a_human` in 29, and trial 10 timed out. The recorded total of 30981 micro-dollars includes a reserved bound of 4156 for trial 10, not a measured charge; the other trials total 26825 micro-dollars. No verdict was signed; the forced submission remains scripted. Replay offline with `python -m gate injected-model --provider nearai` (`gate/injected_model.py:29-37,268-274,325-331,380-437`; `fixtures/demo/model-runs-nearai/`; `tests/test_injected_model.py`).
 
 ## What the track asks for, and where it is
 
@@ -133,7 +133,7 @@ On 84 recorded mainnet receivers the rules returned 70 ALLOW, 14 DENY, 0 Unknown
 
 By cohort: ordinary counterparties 9 (9 ALLOW, 0 DENY, 0 Unknown); organisations from registries 50 (50 ALLOW, 0 DENY, 0 Unknown); incident accounts 15 (1 ALLOW, 14 DENY, 0 Unknown); catalog tokens 10 (10 ALLOW, 0 DENY, 0 Unknown).
 
-Label store: 3292 assertions over 3013 subjects (onchain 2916, official_source 350, third_party 22, inferred 4).
+Label store: 3293 assertions over 3013 subjects (onchain 2916, official_source 350, third_party 23, inferred 4).
 
 Incidents: 3 pages.
 
@@ -163,7 +163,7 @@ The separate `python -m intel top-receivers --hours 24 --record` command builds 
 
 For `judge-top-receivers --record`, record-mode reads are metered only under caller class `recording`, capped at 3,000 keyed calls per UTC day across FastNEAR classes, with no hourly or minute cap. Other record callers keep their existing behavior without provider-budget metering. The command refuses to start without `FASTNEAR_API_KEY_FILE` and an external budget database location: `SIYAB_PROVIDER_BUDGET_DB`, or `FEED_STATE_DIR/provider-budget.sqlite3` when that override is unset. It never defaults to a database under `intel/feed/`. A budget refusal or a keyed HTTP 401, 402, 403 or 429 stops the run at once with exit 1 and no further keyed calls; rejection messages report the status code, never the key. Resume reuses every existing read fixture regardless of age without rewriting it.
 
-The 990 judgements returned 831 ALLOW, 19 DENY and 140 UNKNOWN. UNKNOWN causes overlap: account_age 138, code_without_metadata 2 and dust_funded 138. Of the 19 DENY, 18 are young accounts refused by the account age rule, created less than 7 days before the judged payment, and 1 is a lookalike with code without metadata. `user.intear.near`, whose NearBlocks key list holds 25 keys, is now ALLOW: after RPC refused its key list with `TOO_MANY_ACCESS_KEYS`, archival `view_account` dated it at least 7 days old. An account with more than 100 access keys is dated by archival `view_account` when RPC refuses its key list (`gate/rules.py:629-651`). Each DENY is what an agent's 1 NEAR payment to that receiver would get, not a finding that the account is malicious. The UNKNOWN series fell from 719 of 990 (73%) under the submitted rules to 140 of 990 (14%) after the keyed archival reads, over the same receiver sample (`fixtures/receivers/unknown-rate.jsonl:1-2`). The aggregate page reports the committed per-account judgement files under `fixtures/receivers/top/judgements/`; those files are not published on the site.
+The 990 judgements, recorded after the deadline on 15 Nov 2026 at commit `7f624c8ac`, returned 831 ALLOW, 19 DENY and 140 UNKNOWN. UNKNOWN causes overlap: account_age 138, code_without_metadata 2 and dust_funded 138. Of the 19 DENY, 18 are young accounts refused by the account age rule, created less than 7 days before the judged payment, and 1 is a lookalike with code without metadata. `user.intear.near`, whose NearBlocks key list holds 25 keys, is now ALLOW: after RPC refused its key list with `TOO_MANY_ACCESS_KEYS`, archival `view_account` dated it at least 7 days old. An account with more than 100 access keys is dated by archival `view_account` when RPC refuses its key list (`gate/rules.py:629-651`). Each DENY is what an agent's 1 NEAR payment to that receiver would get, not a finding that the account is malicious. The UNKNOWN series fell from 719 of 990 (73%) under the submitted rules to 140 of 990 (14%) after the keyed archival reads, over the same receiver sample (`fixtures/receivers/unknown-rate.jsonl:1-2`). The aggregate page reports the committed per-account judgement files under `fixtures/receivers/top/judgements/`; those files are not published on the site.
 
 Consumers today are the guard, the MCP server and the demo agent; none from a third party yet.
 
@@ -328,7 +328,7 @@ To check our work from outside, `docs/VERIFY.md` is the verification guide: offl
 7. `python -m intel counts` and `python -m gate incident rhea` print the label counts and the Rhea Lend incident page from committed files:
 
    ```
-   3292 assertions over 3013 subjects: onchain 2916, official_source 350, third_party 22, inferred 4, unknown 0
+   3293 assertions over 3013 subjects: onchain 2916, official_source 350, third_party 23, inferred 4, unknown 0
    ```
 
    ```
@@ -599,10 +599,10 @@ Static pages: `demo/site/`, written by `python -m intel render` from the committ
 
 ### Changes after the 14 Nov 23:59 UTC deadline
 
-The judged state is the tag `hackathon-submission`. Changes on 15 Nov 2026, after the deadline (`docs/LOG.md:81-96`):
+The judged state is the tag `hackathon-submission`. Changes on 15 Nov 2026, after the deadline (`docs/LOG.md:81-97`):
 
 - Verdict rules: corrected global contract detection and request-only source arguments.
-- Data and labels: added the pinned receiver UNKNOWN series, bounded keyed re-recording, a portable follow backfill tool and the follower's first-seen index, which verdict rules do not yet use. Corrected five dated Rhea watch rows while retaining their sourced incident labels. Added six sourced incident assertions for three named exploit or collection accounts from public NEAR forum reports.
+- Data and labels: added the pinned receiver UNKNOWN series, bounded keyed re-recording, a portable follow backfill tool and the follower's first-seen index, which verdict rules do not yet use. Corrected five dated Rhea watch rows while retaining their sourced incident labels. Added three Skyward Finance incident assertions: the report attribution, an account state read and the signer of the linked transaction (`intel/labels.jsonl:3279-3281`). Added six sourced incident assertions for three named exploit or collection accounts from public NEAR forum reports.
 - Site and delivery: the landing opens with the recorded Rhea collector DENY and offers a live account recheck. Clarified feed bounds, corrected singular counts and units, mapped website ASK displays to WARN, and added duplicate incident-broadcast protection.
 - Documentation: added [JUDGES.md](JUDGES.md) and the demo-post link; clarified the injected testnet demo's collector and token registration gaps and the distinction between the mainnet refusal and signed payment.
 - Mainnet run: retained the Gate run, evidence and verdicts, pause and agent-revocation readbacks, and offline evidence-hash, transfer-binding and mainnet ALLOW signature checks.
