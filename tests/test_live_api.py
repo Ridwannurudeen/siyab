@@ -101,7 +101,7 @@ class LiveRouteTest(unittest.TestCase):
 
         scan_answer = {"access_keys": 1, "full_access_keys": [], "empty_method_names": [], "dead_keys": [],
                        "unlimited_allowance": [],
-                       "findings": ["The scan read 1 access key entries.", "The scan found 0 full access keys.",
+                       "findings": ["The scan read 1 access key entry.", "The scan found 0 full access keys.",
                                     "The scan found 0 keys with empty method names.",
                                     "The scan found 0 keys with zero allowance.",
                                     "The scan found 0 keys with no allowance limit."], "read_at_block": 99}
@@ -160,6 +160,18 @@ class LiveRouteTest(unittest.TestCase):
         self.assertEqual((status, body), (200, {"reports": recent}))
         self.assertEqual(self.request("/live/health")[::2],
                          (200, {"ok": True, "network": "mainnet", "rate_per_minute": 60, "checks": False}))
+
+    def test_scan_findings_use_the_singular_for_one(self):
+        keys = {"count": 2, "full_access": ["ed25519:a"], "empty_method_names": ["ed25519:b"],
+                "dead": ["ed25519:c"], "unlimited": ["ed25519:d"]}
+        scan_result = {"findings": {"keys": keys, "block_height": 99, "verifier": {"current": "stub"}}}
+        with mock.patch("intel.live.scan.scan", return_value=scan_result):
+            status, _, body = self.request("/live/scan/agent.near")
+        self.assertEqual(status, 200)
+        self.assertEqual(body["findings"], ["The scan read 2 access key entries.", "The scan found 1 full access key.",
+                                            "The scan found 1 key with empty method names.",
+                                            "The scan found 1 key with zero allowance.",
+                                            "The scan found 1 key with no allowance limit."])
 
     def test_verdict_evidence_bytes_match_hash_and_cached_answer(self):
         judgement = self.allow_judgement()

@@ -590,11 +590,11 @@ class LiveAPI:
             dead_keys = keys["dead"]
             unlimited = keys["unlimited"]
             access_keys = keys["count"]
-            sentences = [f"The scan read {access_keys} access key entries."]
-            for values, sentence in ((full_access, "full access keys"), (empty_methods, "keys with empty method names"),
-                                     (dead_keys, "keys with zero allowance"),
-                                     (unlimited, "keys with no allowance limit")):
-                sentences.append(f"The scan found {len(values)} {sentence}.")
+            sentences = [f"The scan read {access_keys} access key {'entry' if access_keys == 1 else 'entries'}."]
+            for values, noun, rest in ((full_access, "full access key", ""), (empty_methods, "key", " with empty method names"),
+                                       (dead_keys, "key", " with zero allowance"),
+                                       (unlimited, "key", " with no allowance limit")):
+                sentences.append(f"The scan found {len(values)} {noun}{'' if len(values) == 1 else 's'}{rest}.")
         if findings["verifier"] is None:
             sentences.append("The account did not return a readable Gate key view.")
         return {"access_keys": access_keys, "full_access_keys": full_access,

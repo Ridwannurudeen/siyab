@@ -353,7 +353,7 @@ These examples are built from offline test stubs. They show response fields, not
   "empty_method_names": [],
   "dead_keys": [],
   "unlimited_allowance": [],
-  "findings": ["The scan read 1 access key entries.", "The scan found 0 full access keys.", "The scan found 0 keys with empty method names.", "The scan found 0 keys with zero allowance.", "The scan found 0 keys with no allowance limit."],
+  "findings": ["The scan read 1 access key entry.", "The scan found 0 full access keys.", "The scan found 0 keys with empty method names.", "The scan found 0 keys with zero allowance.", "The scan found 0 keys with no allowance limit."],
   "read_at_block": 99
 }
 ```

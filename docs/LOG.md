@@ -78,3 +78,4 @@
 14 Nov, later: after the post-deploy delivery check (polling advancing, no recorded error), the hosted deployment enabled Telegram group destinations with SIYAB_TELEGRAM_GROUPS=1.
 14 Nov, later: the hosted deployment enabled Ask Siyab (SIYAB_ASK=1, default model, daily cap and token limits) and the public account and token checks (SIYAB_CHECKS=1); Telegram checks, the NearBlocks fallback and automatic channel broadcast stay off.
 14 Nov, later: the explore page "Can I pay this?" result now carries an Ask Siyab section; signed-in team members ask the four fixed questions about the same receiver, amount and token, and signed-out visitors see a sign-in link and make no ask request.
+15 Nov, after the deadline: access key scan findings use the singular for a count of 1 ("1 access key entry", "1 full access key"); the landing transfer excerpt no longer repeats "units" when an asset's decimals are unknown, a path the recorded excerpt never reached.
