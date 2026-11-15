@@ -8,7 +8,7 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "UNKNOWN",
+  "verdict": "ALLOW",
   "checks": [
     {
       "id": "receiver_exists",
@@ -52,18 +52,18 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "no archival age (view_access_key_list could not run: RPC error TOO_MANY_ACCESS_KEYS); NearBlocks lists 25 keys, a full page that may leave out older ones",
+      "status": "pass",
+      "detail": "view_access_key_list answers TOO_MANY_ACCESS_KEYS, so no key nonce dates the account; view_account finds user.intear.near at block 222505290 (2026-11-01T02:13:25Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "95ae5a24c8aaa99775b8b58bc54a6a0d6cb764285f13f9cfba493d8f23e9c699",
-        "fetched_at": "2026-11-09T04:11:05Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "fe505cadd1a8e6741ffd4d172cdf21573a18ffec7798b502c026b78553f4953c",
+        "fetched_at": "2026-11-15T10:38:41Z"
       }
     },
     {
       "id": "dust_funded",
-      "status": "unknown",
-      "detail": "the creation transaction is not known",
+      "status": "pass",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
       "source": {
         "provider": "nearblocks",
         "request_sha256": null,
@@ -92,8 +92,8 @@
     }
   ],
   "reasons": [
-    "account_age could not run: no archival age (view_access_key_list could not run: RPC error TOO_MANY_ACCESS_KEYS); NearBlocks lists 25 keys, a full page that may leave out older ones.",
-    "dust_funded could not run: the creation transaction is not known."
+    "Every check ran and none found a signal.",
+    "Not on the owner's allowlist."
   ],
   "labels": [],
   "observed": {

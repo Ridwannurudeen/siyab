@@ -5,6 +5,7 @@ import json
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -97,6 +98,161 @@ class AccountCheckTest(unittest.TestCase):
                 checks = {c["id"]: c for c in self.document(answer)["checks"]}
                 self.assertEqual(checks["contract_control"]["status"], "unknown")
                 self.assertEqual(answer["outcome"], "ASK")
+
+    TOO_MANY = rpc.RpcError({"name": "HANDLER_ERROR", "cause": {"name": "TOO_MANY_ACCESS_KEYS", "info": {
+        "block_height": 100, "requested_account_id": "intents.near", "limit": 100}}})
+
+    @staticmethod
+    def key(index, full=False):
+        permission = "FullAccess" if full else {"FunctionCall": {
+            "allowance": None, "receiver_id": "intents.near", "method_names": []}}
+        return {"public_key": "ed25519:" + base58.encode(bytes([index]) * 32),
+                "access_key": {"nonce": 0, "permission": permission}}
+
+    @staticmethod
+    def page(keys, block=100, last=True):
+        page = {"keys": keys, "block_height": block}
+        if last:
+            page["last_key"] = keys[-1]["public_key"]
+        return page
+
+    def check_paged(self, *pages):
+        with (mock.patch.object(self.rpc, "view_access_key_list", side_effect=self.TOO_MANY),
+              mock.patch.object(self.rpc, "view_access_key_page", side_effect=list(pages)) as paged):
+            answer = self.check("intents.near")
+        return {c["id"]: c for c in self.document(answer)["checks"]}["contract_control"], answer, paged
+
+    def test_synthetic_too_many_keys_stops_at_the_first_page_with_a_full_access_key(self):
+        control, answer, paged = self.check_paged(self.page([self.key(1), self.key(2)]),
+                                                  self.page([self.key(3), self.key(4, full=True)]))
+        self.assertEqual(control["status"], "unknown")
+        self.assertEqual(control["detail"], "at least 1 full access key among the first 4 keys of the paged "
+                         "access key list; whoever holds one can replace the code")
+        first = "ed25519:" + base58.encode(bytes([2]) * 32)
+        self.assertEqual(paged.call_args_list, [mock.call("intents.near", after_key=None, block_id=None),
+                                                mock.call("intents.near", after_key=first, block_id=100)])
+        self.assertEqual(answer["outcome"], "ASK")
+
+    def test_synthetic_too_many_keys_with_no_full_access_key_in_a_complete_list_passes(self):
+        control, answer, paged = self.check_paged(self.page([self.key(index) for index in range(100)]),
+                                                  self.page([self.key(100)], last=False))
+        self.assertEqual(control["status"], "pass")
+        self.assertEqual(control["detail"], "contract code with no full access key among the 101 keys of the "
+                         "complete paged access key list")
+        self.assertEqual(paged.call_count, 2)
+        self.assertEqual(answer["outcome"], "ALLOW")
+
+    def test_synthetic_too_many_keys_with_an_invalid_refusal_limit_is_unknown(self):
+        for info in ({}, {"limit": "100"}, {"limit": True}, {"limit": False},
+                     {"limit": -1}, {"limit": 0}, {"limit": 1.5}):
+            error = rpc.RpcError({"name": "HANDLER_ERROR", "cause": {
+                "name": "TOO_MANY_ACCESS_KEYS", "info": {
+                    "block_height": 100, "requested_account_id": "intents.near", **info}}})
+            with self.subTest(info=info), mock.patch.object(self, "TOO_MANY", error):
+                control, answer, paged = self.check_paged(self.page([self.key(1)], last=False))
+                self.assertEqual(control["status"], "unknown")
+                self.assertIn("refusal has no positive integer limit", control["detail"])
+                self.assertEqual(answer["outcome"], "ASK")
+                paged.assert_not_called()
+
+    def test_synthetic_too_many_keys_with_a_list_no_longer_than_the_refused_limit_is_unknown(self):
+        for pages in ((self.page([self.key(1), self.key(2)]), self.page([self.key(3)], last=False)),
+                      (self.page([self.key(index) for index in range(100)], last=False),),
+                      (self.page([self.key(1)]), {"keys": [], "block_height": 100})):
+            with self.subTest(read=sum(len(page["keys"]) for page in pages)):
+                control, answer, _ = self.check_paged(*pages)
+                read = sum(len(page["keys"]) for page in pages)
+                self.assertEqual(control["status"], "unknown")
+                self.assertEqual(control["detail"], f"the paged access key list ends after {read} keys, but RPC "
+                                 "refused the whole list as holding more than 100, so it was not read in full")
+                self.assertEqual(answer["outcome"], "ASK")
+
+    def test_synthetic_the_paged_read_runs_under_its_own_time_budget(self):
+        module = importlib.import_module("gate.account_check")
+        budgets = []
+
+        def page(account_id, *, after_key, block_id):
+            budgets.append(rpc._REQUEST_DEADLINE.get() - time.monotonic())
+            raise TimeoutError("request deadline exceeded")
+
+        with (mock.patch.object(self.rpc, "view_access_key_list", side_effect=self.TOO_MANY),
+              mock.patch.object(self.rpc, "view_access_key_page", side_effect=page)):
+            answer = self.check("intents.near")
+        control = {c["id"]: c for c in self.document(answer)["checks"]}["contract_control"]
+        self.assertEqual(len(budgets), 1)
+        self.assertTrue(0 < budgets[0] <= module.KEY_PAGES_S, budgets)
+        self.assertEqual(control["status"], "unknown")
+        self.assertEqual(control["detail"], "could not read the paged access key list: TimeoutError: request "
+                         "deadline exceeded")
+        self.assertEqual(answer["outcome"], "ASK")
+
+    def test_synthetic_too_many_keys_past_the_page_cap_is_unknown(self):
+        module = importlib.import_module("gate.account_check")
+        pages = [self.page([self.key(index)]) for index in range(1, module.KEY_PAGES_MAX + 2)]
+        control, answer, paged = self.check_paged(*pages)
+        self.assertEqual(control["status"], "unknown")
+        self.assertEqual(control["detail"], f"no full access key among the first {module.KEY_PAGES_MAX} keys of "
+                         "the paged access key list, and the rest was not read")
+        self.assertEqual(paged.call_count, module.KEY_PAGES_MAX)
+        self.assertEqual(answer["outcome"], "ASK")
+
+    def test_synthetic_too_many_keys_with_an_unreadable_or_inconsistent_page_is_unknown(self):
+        cases = (
+            (rpc.TransportError("unreadable"), "TransportError: unreadable"),
+            (self.page([self.key(1), self.key(2)], block=101), "MalformedResponse: a page of the access key list "
+             "was read at block 101, not block 100"),
+            ({"keys": [self.key(3)], "block_height": 100, "last_key": "ed25519:" + base58.encode(bytes([9]) * 32)},
+             "MalformedResponse: the page cursor is not the last key of its page"),
+            (self.page([self.key(1)]), "MalformedResponse: a page of the access key list repeats the key it "
+             "was read after"),
+        )
+        for second, why in cases:
+            with self.subTest(second=second):
+                first = self.page([self.key(1)])
+                control, answer, _ = self.check_paged(first, second)
+                self.assertEqual(control["status"], "unknown")
+                self.assertEqual(control["detail"], f"could not read the paged access key list: {why}")
+                self.assertEqual(answer["outcome"], "ASK")
+
+    def test_synthetic_other_key_list_errors_read_no_page(self):
+        error = rpc.RpcError({"name": "HANDLER_ERROR", "cause": {"name": "UNKNOWN_ACCOUNT", "info": {
+            "block_height": 100, "requested_account_id": "intents.near"}}})
+        with (mock.patch.object(self.rpc, "view_access_key_list", side_effect=error),
+              mock.patch.object(self.rpc, "view_access_key_page") as paged):
+            answer = self.check("intents.near")
+        control = {c["id"]: c for c in self.document(answer)["checks"]}["contract_control"]
+        paged.assert_not_called()
+        self.assertEqual(control["detail"], "could not read the access key list: RPC error UNKNOWN_ACCOUNT")
+
+    def test_the_paged_key_list_request_names_its_limit_cursor_and_block(self):
+        client = rpc.Client(rpc.MAINNET_RPC_URL, "replay", fixtures_dir=FIXTURES)
+        with mock.patch.object(client, "call", return_value={"keys": []}) as call:
+            client.view_access_key_page("near")
+            client.view_access_key_page("near", after_key=VALID_KEY, block_id=7)
+        self.assertEqual(call.call_args_list, [
+            mock.call("query", {"request_type": "view_access_key_list", "account_id": "near", "limit": 100,
+                                "finality": "final"}),
+            mock.call("query", {"request_type": "view_access_key_list", "account_id": "near", "limit": 100,
+                                "block_id": 7, "after_key": VALID_KEY}),
+        ])
+        for block_id in (-1, True, "7", 7.0):
+            with self.subTest(block_id=block_id), self.assertRaises(ValueError):
+                client.view_access_key_page("near", block_id=block_id)
+
+    def test_a_recorded_page_with_a_cursor_passes_the_response_schema(self):
+        keys = [self.key(1), self.key(2)]
+        params = {"request_type": "view_access_key_list", "account_id": "near", "limit": 100, "finality": "final"}
+        response = {"jsonrpc": "2.0", "id": "gate", "result": {
+            "keys": keys, "block_height": 100, "block_hash": "11111111111111111111111111111111",
+            "last_key": keys[-1]["public_key"]}}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / (rpc.fixture_key(rpc.MAINNET_RPC_URL, "query", params) + ".json")
+            path.write_text(json.dumps({"request": {"method": "query", "params": params}, "response": response,
+                                        "url": rpc.MAINNET_RPC_URL, "fetched_at": "2026-11-15T00:00:00Z"}),
+                            encoding="utf-8")
+            page = rpc.Client(rpc.MAINNET_RPC_URL, "replay", fixtures_dir=directory).view_access_key_page("near")
+        self.assertEqual(page["last_key"], keys[-1]["public_key"])
+        self.assertEqual(page["keys"], keys)
 
     def test_recorded_incident_code_match(self):
         account = next(a["subject"] for a in RHEA["accounts"]
@@ -387,7 +543,7 @@ class AccountCheckTest(unittest.TestCase):
             {"kind": "near", "token_id": None, "receiver_id": "intents.near",
              "amount": str(rules.YOCTO_PER_NEAR), "memo": None},
             {"allowlist": [], "caps": []}, self.store, mock.ANY, self.nearblocks,
-            now_ms=NOW_MS, injection_scanner=None, archival=self.archival, issuers=self.issuers)
+            now_ms=NOW_MS, injection_scanner=None, archival=self.archival, issuers=self.issuers, rules_version=1)
         self.assertEqual(judge.call_args.args[3].url, self.rpc.url)
         original = rules.judge(*judge.call_args.args, **judge.call_args.kwargs)
         kept = [c for c in original.checks if c["id"] != "memo_injection"]
@@ -437,6 +593,25 @@ class AccountCheckTest(unittest.TestCase):
                 sys.setprofile(previous)
         self.assertEqual(answer["signing"], "never")
         self.assertFalse(set(calls) & {"gate.signer", "gate.verdict", "gate.agent", "gate.ed25519"})
+
+    def test_rules_version_2_keeps_its_checks_and_version_1_stays_the_default(self):
+        module = importlib.import_module("gate.account_check")
+        default = self.check("intents.near")
+        kwargs = {"store": self.store, "rpc": self.rpc, "nearblocks": self.nearblocks, "archival": self.archival,
+                  "issuers": self.issuers, "now_ms": NOW_MS}
+        first = module.check_account("intents.near", rules_version=1, **kwargs)
+        timeless = ("latency_ms", "evidence", "evidence_hash")
+        self.assertEqual({key: value for key, value in default.items() if key not in timeless},
+                         {key: value for key, value in first.items() if key not in timeless})
+        self.assertEqual({**self.document(default), "latency_ms": 0}, {**self.document(first), "latency_ms": 0})
+        self.assertNotIn("code_changed_recently", {c["name"] for c in default["checks"]})
+        answer = module.check_account("intents.near", rules_version=2, **kwargs)
+        checks = {c["id"]: c for c in self.document(answer)["checks"]}
+        # No archival view_account of intents.near at the old block is recorded, so the check cannot run.
+        self.assertEqual(checks["code_changed_recently"]["status"], "unknown")
+        self.assertEqual(answer["outcome"], "ASK")
+        self.assertIn(f"code_changed_recently could not run: {checks['code_changed_recently']['detail']}.",
+                      answer["reasons"])
 
     def test_import_loads_no_signer_module(self):
         probe = ("import sys, gate.account_check; "
