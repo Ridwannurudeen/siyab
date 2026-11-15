@@ -3,6 +3,16 @@
 Usage:
   python scripts/counts.py                    print the lines
   python scripts/counts.py --readme README.md rewrite the block between the counts markers
+  python scripts/counts.py --unknown-rate     print the pinned receiver UNKNOWN series
+  python scripts/counts.py --unknown-rate-row print a row from hackathon-submission
+  python scripts/counts.py --append-unknown-rate PATH --new-series start a series
+  python scripts/counts.py --append-unknown-rate PATH --revision HEAD append a committed observation
+
+UNKNOWN rows carry observed (the UTC date in the judgements), commit and commit_date (the UTC
+committer date). Their sample id is the SHA256 of the sorted pinned subject list serialized as
+compact JSON with separators (",", ":"), encoded as UTF-8, with no time fields or trailing newline.
+A new sample requires --new-series and an empty destination; existing series are only appended to.
+Duplicates match sample_id, observed and commit; neither date may precede the last row's date.
 
 The lines, in this order (every number is counted from the files named); the two off-allowlist lines are
 printed only while their files exist, so there are seven to nine (each count names its noun in the
@@ -43,15 +53,26 @@ singular when it is 1):
       fixtures/latency/verdict-runs-tier2-fallback.json in the same form and the same way; no line while
       the file does not exist
 
+--unknown-rate prints only:
+  UNKNOWN on the pinned N: P% (reads of D Mon, rules of D Mon); P% (reads of D Mon, rules of D Mon).
+      fixtures/receivers/unknown-rate.jsonl; rounded whole percentages, one entry per row
+It is excluded from lines() and --readme output.
+
 --readme replaces everything between the lines <!-- counts:start --> and <!-- counts:end --> with the
 lines, each followed by a blank line so each renders as its own paragraph, and exits 2 when the file
 lacks the markers.
 """
 
 import argparse
+import hashlib
+import io
 import json
 import math
+import subprocess
 import sys
+import tarfile
+from collections import Counter
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -62,6 +83,7 @@ from intel import labels, trace
 
 JUDGEMENTS_DIR = ROOT / "fixtures" / "receivers" / "judgements"
 RECEIVER_SET = ROOT / "fixtures" / "receivers" / "set.json"
+UNKNOWN_RATE = ROOT / "fixtures" / "receivers" / "unknown-rate.jsonl"
 INCIDENTS_DIR = ROOT / "intel" / "incidents"
 FEED_STATE = ROOT / "intel" / "feed" / "state.json"
 FEED_SNAPSHOT = ROOT / "intel" / "feed" / "follow-snapshot.json"
@@ -86,6 +108,86 @@ def cohorts_line(set_path=RECEIVER_SET, directory=JUDGEMENTS_DIR):
     document = json.loads(Path(set_path).read_text(encoding="utf-8"))
     judgements = [json.loads(path.read_text(encoding="utf-8")) for path in sorted(Path(directory).glob("*.json"))]
     return intel_main.cohort_line(document, judgements)
+
+
+def unknown_rate_row(revision="hackathon-submission"):
+    """Reproduce a local revision's row; sample_id hashes only compact JSON of sorted subjects,
+    encoded as UTF-8 without a trailing newline, excluding chosen_at and judged_at_ms.
+    """
+    commit = subprocess.run(["git", "rev-parse", "--verify", f"{revision}^{{commit}}"], cwd=ROOT, check=True,
+                            capture_output=True, text=True).stdout.strip()
+    committed_at = subprocess.run(["git", "show", "-s", "--format=%cI", commit], cwd=ROOT, check=True,
+                                 capture_output=True, text=True).stdout.strip()
+    commit_date = datetime.fromisoformat(committed_at).astimezone(timezone.utc).date().isoformat()
+    sample_path = "fixtures/receivers/top.json"
+    directory = "fixtures/receivers/top/judgements/"
+    archive = subprocess.run(["git", "archive", commit, sample_path, directory], cwd=ROOT,
+                             check=True, capture_output=True).stdout
+    with tarfile.open(fileobj=io.BytesIO(archive)) as tree:
+        sample = tree.extractfile(sample_path).read()
+        judgements = [json.load(tree.extractfile(member)) for member in tree.getmembers()
+                      if member.isfile() and member.name.startswith(directory) and member.name.endswith(".json")]
+    subjects = [entry["subject"] for entry in json.loads(sample)["subjects"]]
+    judged = [row["subject"] for row in judgements]
+    if len(set(subjects)) != len(subjects) or Counter(subjects) != Counter(judged):
+        raise ValueError("judgements must cover each pinned receiver exactly once")
+    dates = {datetime.fromtimestamp(row["observed"]["timestamp_ms"] / 1000, timezone.utc).date().isoformat()
+             for row in judgements}
+    if len(dates) != 1:
+        raise ValueError("judgements must share one UTC observed date")
+    verdicts = Counter(row["verdict"] for row in judgements)
+    if set(verdicts) - {"ALLOW", "DENY", "UNKNOWN"}:
+        raise ValueError("unexpected judgement verdict")
+    causes = Counter()
+    for row in judgements:
+        if row["verdict"] == "UNKNOWN":
+            causes.update([check["id"] for check in row["checks"] if check["status"] == "unknown"]
+                          or ["unspecified"])
+    canonical = json.dumps(sorted(subjects), separators=(",", ":")).encode("utf-8")
+    return {"observed": dates.pop(), "commit": commit, "commit_date": commit_date,
+            "sample_id": hashlib.sha256(canonical).hexdigest(),
+            "totals": {**{name: verdicts[name] for name in ("ALLOW", "DENY", "UNKNOWN")}, "total": len(subjects)},
+            "causes": dict(sorted(causes.items()))}
+
+
+def append_unknown_rate(path, row, new_series=False):
+    """Append without rewriting any byte; a new sample starts in a separate, empty file."""
+    path = Path(path)
+    previous = path.read_bytes() if path.is_file() else b""
+    if new_series:
+        if previous:
+            raise ValueError("a new series requires an empty destination")
+    elif not previous:
+        raise ValueError("start a new series explicitly with --new-series")
+    rows = [json.loads(line) for line in previous.splitlines()]
+    if any(old["sample_id"] != row["sample_id"] for old in rows):
+        raise ValueError("different sample id; start a new series in a separate file")
+    if any((old["sample_id"], old["observed"], old["commit"]) ==
+           (row["sample_id"], row["observed"], row["commit"]) for old in rows):
+        raise ValueError("sample id, observed date and commit already recorded")
+    if rows and date.fromisoformat(row["commit_date"]) < date.fromisoformat(rows[-1]["commit_date"]):
+        raise ValueError("commit date is earlier than the last row")
+    if rows and date.fromisoformat(row["observed"]) < date.fromisoformat(rows[-1]["observed"]):
+        raise ValueError("observed date is earlier than the last row")
+    if previous and not previous.endswith(b"\n"):
+        raise ValueError("existing series must end with a newline")
+    with path.open("ab") as destination:
+        destination.write((json.dumps(row, sort_keys=True) + "\n").encode("utf-8"))
+
+
+def unknown_rate_line(path=UNKNOWN_RATE):
+    rows = [json.loads(line) for line in Path(path).read_text(encoding="utf-8").splitlines()]
+    if not rows or len({(row["sample_id"], row["totals"]["total"]) for row in rows}) != 1:
+        raise ValueError("an UNKNOWN series must contain one pinned sample")
+    months = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+    entries = []
+    for row in rows:
+        observed = date.fromisoformat(row["observed"])
+        committed = date.fromisoformat(row["commit_date"])
+        percent = math.floor(100 * row["totals"]["UNKNOWN"] / row["totals"]["total"] + 0.5)
+        entries.append(f"{percent}% (reads of {observed.day} {months[observed.month - 1]}, "
+                       f"rules of {committed.day} {months[committed.month - 1]})")
+    return f"UNKNOWN on the pinned {rows[0]['totals']['total']}: " + "; ".join(entries) + "."
 
 
 def labels_line(store_path=labels.STORE_PATH):
@@ -185,8 +287,30 @@ def rewrite_readme(path, count_lines):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="the counts the README states, from committed files")
-    parser.add_argument("--readme", help="rewrite the counts block of this file")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--readme", help="rewrite the counts block of this file")
+    mode.add_argument("--unknown-rate", action="store_true", help="print the pinned receiver UNKNOWN series")
+    mode.add_argument("--unknown-rate-row", action="store_true", help="print a reproducible UNKNOWN row")
+    mode.add_argument("--append-unknown-rate", metavar="PATH", help="append a reproducible UNKNOWN row")
+    parser.add_argument("--revision", default="hackathon-submission", help="local git revision for UNKNOWN rows")
+    parser.add_argument("--new-series", action="store_true", help="explicitly start a series in an empty file")
     args = parser.parse_args(argv)
+    if args.new_series and not args.append_unknown_rate:
+        parser.error("--new-series requires --append-unknown-rate")
+    if args.unknown_rate_row or args.append_unknown_rate:
+        try:
+            row = unknown_rate_row(args.revision)
+            if args.append_unknown_rate:
+                append_unknown_rate(args.append_unknown_rate, row, args.new_series)
+            else:
+                print(json.dumps(row, sort_keys=True))
+        except (ValueError, OSError, subprocess.CalledProcessError) as error:
+            print(str(error), file=sys.stderr)
+            return 2
+        return 0
+    if args.unknown_rate:
+        print(unknown_rate_line())
+        return 0
     count_lines = lines()
     if args.readme:
         if not rewrite_readme(args.readme, count_lines):
