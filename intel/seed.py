@@ -5,10 +5,12 @@ infrastructure (omft.near and intents.near source metadata, the .omft.near bridg
 v1.signer and the OutLayer accounts), rhea (the rekt.news Rhea Finance report, re-read on chain,
 which also writes intel/incidents/rhea.json), sweat-hot (the Fireblocks SWEAT and HOT report and the
 DeFiLlama hacks entry, with the HOT token contract re-read on chain, which also writes
-intel/incidents/sweat-hot.json) and intents-2026-10-01 (the DeFiLlama hacks entry only, which writes
-intel/incidents/intents-2026-10-01.json and adds no row). GATE_FIXTURES_MODE decides the network: replay (default)
-reads the newest snapshot under intel/seeds/raw/ and the recorded RPC fixtures; record fetches
-the page once, stores it byte for byte as raw/<name>-<UTC time>.<ext> and records RPC reads.
+intel/incidents/sweat-hot.json), intents-2026-10-01 (the DeFiLlama hacks entry only, which writes
+intel/incidents/intents-2026-10-01.json and adds no row) and skyward (the rekt.news Skyward Finance
+report, with the account it names and the transaction it links re-read on chain).
+GATE_FIXTURES_MODE decides the network: replay (default) reads the newest snapshot under
+intel/seeds/raw/ and the recorded RPC fixtures; record fetches the page once, stores it byte for byte
+as raw/<name>-<UTC time>.<ext> and records RPC reads.
 Each run appends only rows whose id is new and rewrites intel/seeds/README.md.
 """
 
@@ -35,13 +37,15 @@ REKT_RHEA_URL = "https://rekt.news/rhea-finance-rekt"
 QUOTE_DOC_URL = "https://docs.near-intents.org/api-reference/oneclick/request-a-swap-quote.md"
 FIREBLOCKS_URL = "https://www.fireblocks.com/blog/near-zero-day-sweat-hot-token-exploit"
 DEFILLAMA_URL = "https://api.llama.fi/hacks"
+REKT_SKYWARD_URL = "https://rekt.news/skyward-rekt"
 SNAPSHOTS = {"treasuries": ("near-intents-treasury-addresses", "md", TREASURY_URL),
              "catalog": ("1click-tokens", "json", CATALOG_URL),
              "rhea": ("rekt-rhea", "html", REKT_RHEA_URL),
              "quote_doc": ("intents-quote-doc", "md", QUOTE_DOC_URL),
              "fireblocks": ("fireblocks-sweat-hot", "html", FIREBLOCKS_URL),
-             "defillama": ("defillama-hacks", "json", DEFILLAMA_URL)}
-SOURCES = ("treasuries", "catalog", "infrastructure", "rhea", "sweat-hot", "intents-2026-10-01")
+             "defillama": ("defillama-hacks", "json", DEFILLAMA_URL),
+             "skyward": ("rekt-skyward", "html", REKT_SKYWARD_URL)}
+SOURCES = ("treasuries", "catalog", "infrastructure", "rhea", "sweat-hot", "intents-2026-10-01", "skyward")
 _STAMP = "%Y%m%dT%H%M%SZ"
 _TIME = "%Y-%m-%dT%H:%M:%SZ"
 # Page names to 1Click blockchain codes. Aurora has no code in the catalog and keeps its name;
@@ -214,6 +218,17 @@ def catalog(mode=None, raw_dir=RAW_DIR):
     return rows
 
 
+def _account_code(view):
+    """The local or global contract description, or None when neither is present."""
+    if view.get("global_contract_hash"):
+        return f"global contract with hash {view['global_contract_hash']}"
+    if view.get("global_contract_account_id"):
+        return f"global contract at {view['global_contract_account_id']}"
+    if view["code_hash"] != rpc.EMPTY_CODE_HASH:
+        return f"contract code hash {view['code_hash']}"
+    return None
+
+
 def infrastructure(mode=None, raw_dir=RAW_DIR, client=None):
     """omft.near and intents.near from their source metadata, every .omft.near catalog token
     account as a bridge account, and the documented accounts that view_account confirms."""
@@ -252,7 +267,7 @@ def infrastructure(mode=None, raw_dir=RAW_DIR, client=None):
             if error.cause == "UNKNOWN_ACCOUNT":
                 continue
             raise
-        code = "no contract" if view["code_hash"] == rpc.EMPTY_CODE_HASH else "a contract"
+        code = "a contract" if _account_code(view) else "no contract"
         rows.append(make_row(
             entity=entity, subject=account, chain="near", label=label, category="infrastructure",
             provenance="onchain", observed_at=client.last_source["fetched_at"],
@@ -292,6 +307,7 @@ RHEA_EXITS = {"intents.near": "funded through intents.near", "zec.omft.near": "f
 # contract_source_metadata for intents.near, the catalog's .omft.near bridge row for zec.omft.near).
 RHEA_EXIT_CATEGORIES = {"intents.near": "infrastructure", "zec.omft.near": "bridge"}
 RHEA_ONCHAIN_NOTE = "current mainnet state read for the Rhea incident, not a historical block replay"
+RHEA_STATE_BLOCK_HASH = "AnNmtmo3psRnQbAD2QNQzXZhADHD76oNsJrn3488bTyk"
 RHEA_NOT_PUBLIC = (
     "The report names no person, and this page names none.",
     "The exploit transaction list beyond the transactions the report prints is not reproduced here.",
@@ -384,13 +400,16 @@ def _rhea_reads(client, nearblocks, report):
         try:
             view = client.view_account(subject)
             hash_now = view["code_hash"]
-            if role == "token":
+            code = _account_code(view)
+            if view.get("global_contract_hash") or view.get("global_contract_account_id"):
+                label = f"account runs the {code}"
+            elif role == "token":
                 label = ("code hash equals the hash named in the Rhea report" if hash_now == code_hash
                          else f"code hash {hash_now}, not the hash named in the Rhea report")
-            elif hash_now == rpc.EMPTY_CODE_HASH:
+            elif code is None:
                 label = "account exists with no contract code"
             else:
-                label = f"account exists with contract code hash {hash_now}"
+                label = f"account exists with {code}"
             block, result = client.last_block_height, view
             kind = "hash_equal" if role == "token" and hash_now == code_hash else "view"
         except rpc.RpcError as error:
@@ -480,9 +499,17 @@ def _rhea_rows(mode, raw_dir, client, nearblocks, store_path=labels.STORE_PATH):
     facts = _rhea_reads(client, nearblocks, report)
     by_kind = {}
     for subject, label, url, method, args, block, observed_at, _, kind in facts:
+        source = {"rpc": url, "method": method, "args": args, "block": block}
+        # Archived no-code assertions keep their ids; the dated readings supersede them.
+        for assertion in store.by_subject(subject, "near"):
+            if (assertion.provenance == "onchain" and assertion.note == RHEA_ONCHAIN_NOTE
+                    and assertion.label == "account exists with no contract code"
+                    and assertion.source == source and assertion.observed_at == observed_at):
+                label = assertion.label
+                break
         row = make_row(entity=entities[subject], subject=subject, chain="near", label=label,
                        category=category[subject], provenance="onchain", observed_at=observed_at,
-                       source={"rpc": url, "method": method, "args": args, "block": block},
+                       source=source,
                        note=RHEA_ONCHAIN_NOTE)
         rows.append(row)
         by_kind.setdefault((subject, kind), row)
@@ -506,11 +533,47 @@ def _clients(mode, client, nearblocks):
             nearblocks or rpc.Client(rpc.NEARBLOCKS_URL, _mode(mode), kind="http"))
 
 
-def rhea(mode=None, raw_dir=RAW_DIR, client=None, nearblocks=None):
+def rhea(mode=None, raw_dir=RAW_DIR, client=None, nearblocks=None, *, include_state=False):
     """The Rhea Lend incident rows: one third_party row per account the rekt.news report names, one
     onchain row per fact re-read on chain, and one inferred denylist row per token contract whose
-    code hash equals the reported hash and which has no ft_metadata."""
-    return _rhea_rows(mode, raw_dir, *_clients(mode, client, nearblocks))[0]
+    code hash equals the reported hash and which has no ft_metadata. include_state appends the
+    dated state readings that supersede the earlier no-code rows."""
+    client, nearblocks = _clients(mode, client, nearblocks)
+    rows = _rhea_rows(mode, raw_dir, client, nearblocks)[0]
+    state_rows = rhea_state_rows(mode, raw_dir, client, nearblocks, rows=rows)
+    replacements = {row["subject"]: row["id"] for row in state_rows}
+    for row in rows:
+        if row["provenance"] == "onchain" and row["label"] == "account exists with no contract code":
+            row["superseded_by"] = replacements[row["subject"]]
+    return rows + state_rows if include_state else rows
+
+
+def rhea_state_rows(mode=None, raw_dir=RAW_DIR, client=None, nearblocks=None, *, rows=None):
+    """Dated state readings for the Rhea accounts previously read as holding no code."""
+    client, nearblocks = _clients(mode, client, nearblocks)
+    if rows is None:
+        rows = _rhea_rows(mode, raw_dir, client, nearblocks)[0]
+    readings = []
+    for row in rows:
+        if row["provenance"] != "onchain" or row["label"] != "account exists with no contract code":
+            continue
+        subject = row["subject"]
+        view = client.view_account_at(subject, RHEA_STATE_BLOCK_HASH)
+        block, code_hash = view["block_height"], view["code_hash"]
+        args = {"account_id": subject, "block_id": RHEA_STATE_BLOCK_HASH}
+        if view.get("global_contract_hash"):
+            state = f"runs the global contract with hash {view['global_contract_hash']}"
+        elif view.get("global_contract_account_id"):
+            state = f"runs the global contract at {view['global_contract_account_id']}"
+        else:
+            state = ("holds no contract code and no global contract" if code_hash == rpc.EMPTY_CODE_HASH
+                     else f"holds contract code with code hash {code_hash}")
+        readings.append(make_row(
+            entity=row["entity"], subject=subject, chain="near", label=f"at block {block} the account {state}",
+            category="watch", provenance="onchain", observed_at=client.last_source["fetched_at"],
+            source={"rpc": client.url, "method": "view_account", "args": args, "block": block},
+            note="mainnet state observed at the cited block; incident role remains sourced to the report"))
+    return readings
 
 
 def rhea_incident(mode=None, raw_dir=RAW_DIR, store_path=labels.STORE_PATH, client=None, nearblocks=None):
@@ -763,17 +826,102 @@ def intents_incident(mode=None, raw_dir=RAW_DIR):
         "standard": INCIDENT_STANDARD,
     }
 
+SKYWARD_ENTITY = "the unnamed party behind the Skyward Finance treasury drain, as rekt.news reports it"
+SKYWARD_ROLE = "the one account whose address it prints, together with the one transaction it links"
+SKYWARD_ONCHAIN_NOTE = "current mainnet state read for the Skyward Finance incident, not a historical block replay"
+SKYWARD_TX_NOTE = "the transaction the report links, as the NearBlocks transaction API returns it"
+_EXPLORER_TX_LINK = re.compile(r'href="https://explorer[.]near[.]org/transactions/([1-9A-HJ-NP-Za-km-z]{43,44})"')
+
+
+def skyward_report(data):
+    """What the rekt.news Skyward Finance report names: (the account, the quote of its line and the next
+    one, which prints the transaction, and the transaction hash from the link the report gives)."""
+    lines = _report_lines(data)
+    [account], account_quote = _after(lines, "Exploiter’s address:", _HEX_ACCOUNT, 1)
+    text = data.decode("utf-8")
+    article = text[text.find("<article"): text.find("</article>")]
+    hashes = sorted(set(_EXPLORER_TX_LINK.findall(article)))
+    if len(hashes) != 1:
+        raise SeedError(f"the Skyward report links {len(hashes)} transactions, not one")
+    tx_line = lines[lines.index(account_quote) + 1]
+    printed = tx_line.split(":", 1)[1].strip().rstrip("…") if tx_line.startswith("Attack tx:") else None
+    if not printed or not hashes[0].startswith(printed):
+        raise SeedError("the line after the account is not the linked transaction the report prints")
+    return account, f"{account_quote} {tx_line}", hashes[0]
+
+
+def skyward(mode=None, raw_dir=RAW_DIR, client=None, nearblocks=None):
+    """The Skyward Finance rows: one third_party incident row for the account the rekt.news report
+    names, one onchain row for its current view_account and one for the attack transaction the
+    report links, whose signer must be that account."""
+    client, nearblocks = _clients(mode, client, nearblocks)
+    data, fetched_at, _ = snapshot("skyward", mode, raw_dir)
+    account, quote, transaction_hash = skyward_report(data)
+    rows = [make_row(entity=SKYWARD_ENTITY, subject=account, chain="near",
+                     label=f"named in the rekt.news Skyward Finance report as {SKYWARD_ROLE}", category="incident",
+                     provenance="third_party", source=_document_source(REKT_SKYWARD_URL, data, fetched_at),
+                     observed_at=fetched_at, confidence=INCIDENT_CONFIDENCE,
+                     note=f"quote {_quoted(quote)}")]
+    try:
+        view = client.view_account(account)
+        code = _account_code(view)
+        if view.get("global_contract_hash") or view.get("global_contract_account_id"):
+            label = f"account runs the {code}"
+        else:
+            label = "account exists with no contract code" if code is None else f"account exists with {code}"
+        block = client.last_block_height
+    except rpc.RpcError as error:
+        if error.cause != "UNKNOWN_ACCOUNT" or _error_block(error) is None:
+            raise
+        label, block = "account does not exist at this block (deleted or never created)", _error_block(error)
+    rows.append(make_row(entity=SKYWARD_ENTITY, subject=account, chain="near", label=label, category="incident",
+                         provenance="onchain", observed_at=client.last_source["fetched_at"],
+                         source={"rpc": client.url, "method": "view_account", "args": {"account_id": account},
+                                 "block": block}, note=SKYWARD_ONCHAIN_NOTE))
+    txns = nearblocks.get(f"/v1/txns/{transaction_hash}")["txns"]
+    if len(txns) != 1:
+        raise SeedError(f"the transaction lookup for the Skyward report returned {len(txns)} transactions, not one")
+    txn = txns[0]
+    if txn["signer_account_id"] != account:
+        raise SeedError("the attack transaction the report links is not signed by the account it names")
+    # The action kinds are left out: the upper case function call kind reads as a tool call to the
+    # injection scanner; the method names say the same and are what the report describes.
+    methods = ", ".join(_quoted(action["method"]) for action in txn["actions"] if action.get("method"))
+    if not methods:
+        raise SeedError("the attack transaction the report links calls no method")
+    rows.append(make_row(
+        entity=SKYWARD_ENTITY, subject=account, chain="near",
+        label=(f"signer of transaction {transaction_hash} at block {txn['block']['block_height']}, receiver "
+               f"{_quoted(txn['receiver_account_id'])}, methods called {methods}"),
+        category="incident", provenance="onchain", observed_at=nearblocks.last_source["fetched_at"],
+        source={"rpc": nearblocks.url, "method": "GET /v1/txns/{transaction_hash}",
+                "args": {"transaction_hash": transaction_hash}, "block": int(txn["block"]["block_height"])},
+        note=SKYWARD_TX_NOTE))
+    return rows
+
+
 def write_incident(document, path):
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     Path(path).write_bytes((json.dumps(document, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
 
 
 def append(rows, store_path=labels.STORE_PATH):
-    """Append the rows whose id the store does not hold yet; returns how many were added."""
+    """Append new ids and apply supersession links; returns how many rows were added."""
     store_path = Path(store_path)
-    existing = {a.id for a in labels.load(store_path).assertions} if store_path.exists() else set()
+    existing = {a.id: a for a in labels.load(store_path).assertions} if store_path.exists() else {}
     new = [row for row in rows if row["id"] not in existing]
-    if new:
+    superseded = {row["id"]: row["superseded_by"] for row in rows
+                  if row["id"] in existing and row["superseded_by"] is not None
+                  and row["superseded_by"] != existing[row["id"]].superseded_by}
+    if superseded:
+        stored = [json.loads(line) for line in store_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+        for row in stored:
+            if row["id"] in superseded:
+                row["superseded_by"] = superseded[row["id"]]
+        store_path.write_text("".join(labels.row_line(row) + "\n" for row in stored + new),
+                              encoding="utf-8", newline="\n")
+        labels.load(store_path)
+    elif new:
         with store_path.open("a", encoding="utf-8", newline="\n") as handle:
             for row in new:
                 handle.write(labels.row_line(row) + "\n")
@@ -826,8 +974,12 @@ def run(source, mode=None, store_path=labels.STORE_PATH, raw_dir=RAW_DIR, readme
         incident_path=RHEA_INCIDENT_PATH):
     """Seed one source into the store and rewrite the README (and for rhea the incident file);
     returns the number of new rows."""
-    rows = {"treasuries": treasuries, "catalog": catalog, "infrastructure": infrastructure, "rhea": rhea,
-            "sweat-hot": sweat_hot, "intents-2026-10-01": lambda mode, raw_dir: []}[source](mode=mode, raw_dir=raw_dir)
+    if source == "rhea":
+        rows = rhea(mode=mode, raw_dir=raw_dir, include_state=True)
+    else:
+        rows = {"treasuries": treasuries, "catalog": catalog, "infrastructure": infrastructure,
+                "sweat-hot": sweat_hot, "intents-2026-10-01": lambda mode, raw_dir: [],
+                "skyward": skyward}[source](mode=mode, raw_dir=raw_dir)
     added = append(rows, store_path)
     Path(readme_path).write_bytes(readme_text(store_path, raw_dir).encode("utf-8"))
     if source == "rhea":

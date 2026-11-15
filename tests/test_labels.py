@@ -117,7 +117,8 @@ class CommittedStoreTest(unittest.TestCase):
             rows = (seed.treasuries("replay") + seed.catalog("replay") + seed.infrastructure("replay")
                     + seed.rhea("replay") + seed.sweat_hot("replay")
                     + [row for name in registries.REGISTRY_ORDER for row in by_registry[name]]
-                    + issuers.history_rows() + issuers.rows() + issuers.blacklist_rows())
+                    + issuers.history_rows() + issuers.rows() + issuers.blacklist_rows()
+                    + seed.skyward("replay") + seed.rhea_state_rows())
         manual_rows = [r for r in self.rows if r["entity"] == "issuer blacklist correction"]
         replaced_rows = [r for r in self.rows if r["entity"] == "issuer of usdt.tether-token.near"
                          and r["subject"] == "usdt.tether-token.near" and r["category"] == "denylist"]
@@ -259,6 +260,17 @@ class StoreFileTest(unittest.TestCase):
         self.assertEqual(seed.append([self.first, self.second], self.path), 0)
         self.assertEqual(len(labels.load(self.path).assertions), 2)
 
+    def test_append_applies_supersession_without_changing_the_original_row(self):
+        seed.append([self.first], self.path)
+        replaced = dict(self.first, superseded_by=self.second["id"])
+        self.assertEqual(seed.append([replaced, self.second], self.path), 1)
+        rows = [json.loads(line) for line in self.path.read_text(encoding="utf-8").splitlines()]
+        self.assertEqual(rows, [replaced, self.second])
+        self.assertEqual(labels.validate(rows[0]).id, self.first["id"])
+        before = self.path.read_bytes()
+        self.assertEqual(seed.append([replaced, self.second], self.path), 0)
+        self.assertEqual(self.path.read_bytes(), before)
+
 
 class CategoryAndRailTest(unittest.TestCase):
     def setUp(self):
@@ -335,6 +347,130 @@ class SeedTest(unittest.TestCase):
         self.raw_dir = Path(tmp.name) / "raw"
         self.treasury = next(RAW_DIR.glob("near-intents-treasury-addresses-*.md")).read_bytes()
 
+    def test_rhea_state_readings_are_pinned_and_outside_the_refusal_categories(self):
+        with mock.patch("urllib.request.urlopen", side_effect=no_network):
+            original = seed._rhea_rows("replay", RAW_DIR, *seed._clients("replay", None, None))[0]
+            current = seed.rhea_state_rows()
+            rebuilt = seed.rhea("replay")
+        previous = [row for row in original if row["label"] == "account exists with no contract code"]
+        self.assertEqual({row["subject"] for row in current}, {row["subject"] for row in previous})
+        self.assertEqual(len(current), 5)
+        replacements = {row["subject"]: row for row in current}
+        client = rpc.Client(rpc.MAINNET_RPC_URL, "replay")
+        blocks = set()
+        for row in current:
+            with self.subTest(subject=row["subject"]), mock.patch("urllib.request.urlopen", side_effect=no_network):
+                source = row["source"]
+                view = client.view_account_at(row["subject"], source["args"]["block_id"])
+                blocks.add((source["block"], source["args"]["block_id"]))
+                self.assertEqual(source["block"], view["block_height"])
+                self.assertEqual(source["args"]["block_id"], view["block_hash"])
+                self.assertEqual(source["args"], {"account_id": row["subject"],
+                                                 "block_id": seed.RHEA_STATE_BLOCK_HASH})
+                self.assertEqual(list(source), ["rpc", "method", "args", "block"])
+                self.assertEqual(source["rpc"], rpc.MAINNET_RPC_URL)
+                self.assertEqual(source["method"], "view_account")
+                self.assertEqual(row["observed_at"], client.last_source["fetched_at"])
+                self.assertEqual(row["category"], "watch")
+                self.assertNotIn(row["category"], rules.DENY_CATEGORIES)
+                self.assertNotIn(row["category"], rules.REFERENCE_CATEGORIES)
+                self.assertEqual(row["provenance"], "onchain")
+                self.assertIn(f"at block {view['block_height']}", row["label"])
+                if view.get("global_contract_hash"):
+                    self.assertIn(f"runs the global contract with hash {view['global_contract_hash']}", row["label"])
+                    self.assertEqual(view["code_hash"], rpc.EMPTY_CODE_HASH)
+                elif view["code_hash"] == rpc.EMPTY_CODE_HASH:
+                    self.assertIn("holds no contract code and no global contract", row["label"])
+                else:
+                    self.assertIn(f"holds contract code with code hash {view['code_hash']}", row["label"])
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(len(original), len(rebuilt))
+        for before, after in zip(original, rebuilt):
+            expected = dict(before)
+            if before in previous:
+                expected["superseded_by"] = replacements[before["subject"]]["id"]
+            self.assertEqual(after, expected)
+        for row in previous:
+            with self.subTest(subject=row["subject"]):
+                report_rows = [item for item in rebuilt if item["subject"] == row["subject"]
+                               and item["category"] == "incident" and item["provenance"] == "third_party"
+                               and item["superseded_by"] is None]
+                self.assertTrue(report_rows)
+                self.assertTrue(all(item["source"]["url"] == seed.REKT_RHEA_URL for item in report_rows))
+                self.assertTrue(all(row["subject"] in item["note"] for item in report_rows))
+
+    def test_global_contracts_count_as_code_in_all_three_seed_paths(self):
+        client = rpc.Client(rpc.MAINNET_RPC_URL, "replay")
+        view = client.view_account_at("rhea000462.multica.near", seed.RHEA_STATE_BLOCK_HASH)
+        global_hash = view.pop("global_contract_hash")
+        report = {"code_hash": (global_hash, "reported hash"),
+                  "accounts": [("master", "example.near", "near", "reported account")]}
+        for field, value in (("global_contract_hash", global_hash),
+                             ("global_contract_account_id", "example.near")):
+            with self.subTest(field=field), mock.patch("urllib.request.urlopen", side_effect=no_network), \
+                    mock.patch.object(client, "view_account", return_value=dict(view, **{field: value})):
+                infrastructure = seed.infrastructure("replay", client=client)
+                documented = [row for row in infrastructure if row["entity"] in ("OutLayer", "NEAR MPC")]
+                self.assertEqual(len(documented), len(seed.DOCUMENTED_ACCOUNTS))
+                self.assertTrue(all("with a contract" in row["note"] for row in documented))
+                [fact] = seed._rhea_reads(client, None, report)
+                skyward = seed.skyward("replay", client=client)
+                for label in (fact[1], skyward[1]["label"]):
+                    self.assertIn("global contract", label)
+                    self.assertIn(value, label)
+                    self.assertNotIn("no contract code", label)
+
+    def test_rhea_state_rows_reuse_the_callers_rows_client_and_snapshot(self):
+        client, nearblocks = seed._clients("replay", None, None)
+        rows = seed.rhea("replay", client=client, nearblocks=nearblocks)
+        with mock.patch("urllib.request.urlopen", side_effect=no_network), \
+                mock.patch("intel.seed._rhea_rows", side_effect=AssertionError("repeated Rhea reads")), \
+                mock.patch("intel.seed.rpc.Client", side_effect=AssertionError("replaced caller client")):
+            current = seed.rhea_state_rows("record", self.raw_dir, client, nearblocks, rows=rows)
+        self.assertEqual(len(current), 5)
+        with mock.patch("intel.seed._rhea_rows", return_value=(rows, None, None, None)) as rhea_rows:
+            seed.rhea_state_rows("record", self.raw_dir, client, nearblocks)
+        rhea_rows.assert_called_once_with("record", self.raw_dir, client, nearblocks)
+
+    def test_rhea_run_computes_the_state_readings_once(self):
+        root = self.raw_dir.parent
+        with mock.patch("urllib.request.urlopen", side_effect=no_network), \
+                mock.patch("intel.seed._rhea_rows", wraps=seed._rhea_rows) as rhea_rows, \
+                mock.patch("intel.seed.rhea_state_rows", wraps=seed.rhea_state_rows) as state_rows, \
+                mock.patch("intel.seed.append", return_value=0) as append, \
+                mock.patch("intel.seed.rhea_incident", return_value={}), \
+                mock.patch("intel.seed.readme_text", return_value=""):
+            seed.run("rhea", "replay", raw_dir=RAW_DIR, readme_path=root / "snapshots.md",
+                     incident_path=root / "incident.json")
+        self.assertEqual(rhea_rows.call_count, 1)
+        self.assertEqual(state_rows.call_count, 1)
+        args = state_rows.call_args
+        self.assertEqual(args.args[:2], ("replay", RAW_DIR))
+        self.assertIs(args.args[2], rhea_rows.call_args.args[2])
+        self.assertIs(args.args[3], rhea_rows.call_args.args[3])
+        generated = append.call_args.args[0]
+        current = generated[-5:]
+        self.assertTrue(all(row["category"] == "watch" for row in current))
+        replacements = {row["subject"]: row["id"] for row in current}
+        superseded = [row for row in generated if row["superseded_by"] is not None]
+        self.assertEqual(len(superseded), 5)
+        self.assertTrue(all(row["superseded_by"] == replacements[row["subject"]] for row in superseded))
+
+    def test_rhea_state_reading_recognizes_a_global_contract_account_id(self):
+        client = rpc.Client(rpc.MAINNET_RPC_URL, "replay")
+        view = client.view_account_at("rhea000462.multica.near", seed.RHEA_STATE_BLOCK_HASH)
+        del view["global_contract_hash"]
+        view["global_contract_account_id"] = "example.near"
+        previous = seed.make_row(**base_fields(label="account exists with no contract code", provenance="onchain",
+                                               source=ONCHAIN))
+        with mock.patch("urllib.request.urlopen", side_effect=no_network), \
+                mock.patch.object(client, "view_account_at", return_value=view):
+            [row] = seed.rhea_state_rows("replay", client=client, rows=[previous])
+        self.assertEqual(row["label"], f"at block {view['block_height']} the account runs the global contract "
+                                      "at example.near")
+        self.assertEqual(row["source"]["args"], {"account_id": previous["subject"],
+                                                 "block_id": seed.RHEA_STATE_BLOCK_HASH})
+
     def test_record_stores_the_body_byte_for_byte_and_names_it_by_time(self):
         reply = mock.MagicMock()
         reply.__enter__.return_value.read.return_value = self.treasury
@@ -385,6 +521,42 @@ class SeedTest(unittest.TestCase):
         client.view_account.side_effect = seed.rpc.RpcError({"name": "HANDLER_ERROR", "cause": {"name": "TIMEOUT"}})
         with self.assertRaises(seed.rpc.RpcError):
             seed.infrastructure("replay", client=client)
+
+    def test_skyward_rows_name_the_report_account_and_its_signed_transaction(self):
+        with mock.patch("urllib.request.urlopen", side_effect=no_network):
+            rows = seed.skyward("replay")
+        account, quote, transaction_hash = seed.skyward_report(
+            next(RAW_DIR.glob("rekt-skyward-*.html")).read_bytes())
+        self.assertIn(account, quote)
+        self.assertEqual(rows[0]["note"], f"quote {json.dumps(quote, ensure_ascii=False)}")
+        self.assertEqual([(r["subject"], r["category"], r["provenance"]) for r in rows],
+                         [(account, "incident", "third_party"), (account, "incident", "onchain"),
+                          (account, "incident", "onchain")])
+        self.assertEqual(rows[0]["source"]["url"], seed.REKT_SKYWARD_URL)
+        self.assertEqual(rows[2]["source"]["args"], {"transaction_hash": transaction_hash})
+        self.assertTrue(all(r["source"]["block"] > 0 for r in rows[1:]))
+
+    def test_skyward_refuses_a_transaction_another_account_signed(self):
+        nearblocks = mock.MagicMock()
+        nearblocks.get.return_value = {"txns": [{"signer_account_id": "other.near", "receiver_account_id": "x",
+                                                 "actions": [], "block": {"block_height": 1}}]}
+        with mock.patch("urllib.request.urlopen", side_effect=no_network), self.assertRaises(seed.SeedError):
+            seed.skyward("replay", nearblocks=nearblocks)
+
+    def test_skyward_refuses_a_transaction_lookup_that_returns_nothing(self):
+        nearblocks = mock.MagicMock()
+        nearblocks.get.return_value = {"txns": []}
+        with mock.patch("urllib.request.urlopen", side_effect=no_network), self.assertRaises(seed.SeedError):
+            seed.skyward("replay", nearblocks=nearblocks)
+
+    def test_skyward_refuses_a_transaction_that_calls_no_method(self):
+        account, _, _ = seed.skyward_report(next(RAW_DIR.glob("rekt-skyward-*.html")).read_bytes())
+        nearblocks = mock.MagicMock()
+        nearblocks.get.return_value = {"txns": [{"signer_account_id": account, "receiver_account_id": "x",
+                                                 "actions": [{"action": "TRANSFER"}],
+                                                 "block": {"block_height": 1}}]}
+        with mock.patch("urllib.request.urlopen", side_effect=no_network), self.assertRaises(seed.SeedError):
+            seed.skyward("replay", nearblocks=nearblocks)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,53 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "txns": [
+      {
+        "transaction_hash": "92Gq7zehKPwSSnpoZ7LGGtSmgmBb4wP2XNDVJqUZRGqz",
+        "included_in_block_hash": "AzJFRbLpCMSzuAxxEZoT6fXvZ7iSb5rWJno4Sa3uuht",
+        "block_timestamp": "1667322289916064022",
+        "signer_account_id": "5ebc5ecca14a44175464d0e6a7d3b2a6890229cd5f19cfb29ce8b1651fd58d39",
+        "receiver_account_id": "skyward.near",
+        "receipt_conversion_gas_burnt": "2436549469306",
+        "receipt_conversion_tokens_burnt": "243654946930600000000",
+        "shard_id": "0",
+        "block": {
+          "block_height": 77507447
+        },
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "redeem_skyward",
+            "args": "{\"skyward_amount\": \"2400000000000000000000\", \"token_account_ids\": [\"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\", \"wrap.near\"]}"
+          }
+        ],
+        "actions_agg": {
+          "deposit": 1,
+          "gas_attached": 300000000000000
+        },
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": 2.84427573124187e+22,
+          "gas_used": 284852128186687
+        },
+        "receipts": [
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          }
+        ]
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/txns/92Gq7zehKPwSSnpoZ7LGGtSmgmBb4wP2XNDVJqUZRGqz",
+  "fetched_at": "2026-11-15T09:30:13Z"
+}

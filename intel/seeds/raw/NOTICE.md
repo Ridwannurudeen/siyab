@@ -1,6 +1,6 @@
 # Raw source snapshots
 
-These six files are source responses retained byte for byte. When a label or incident source records `content_sha256`, `intel/seed.py` computes it from the exact response bytes. A reader can recompute SHA-256 from any snapshot; full digests appear in label rows and incident records where applicable. The manifest at `intel/seeds/README.md` lists all six snapshots with abbreviated digests, including sources with no label rows.
+These seven files are source responses retained byte for byte. When a label or incident source records `content_sha256`, `intel/seed.py` computes it from the exact response bytes. A reader can recompute SHA-256 from any snapshot; full digests appear in label rows and incident records where applicable. The manifest at `intel/seeds/README.md` lists all seven snapshots with abbreviated digests, including sources with no label rows.
 
 | File | Publisher | Source URL | Fetched (UTC) | Why this copy is kept |
 |---|---|---|---|---|
@@ -10,6 +10,7 @@ These six files are source responses retained byte for byte. When a label or inc
 | `intents-quote-doc-20261029T114539Z.md` | NEAR Intents documentation | <https://docs.near-intents.org/api-reference/oneclick/request-a-swap-quote.md> | 2026-10-29 11:45:39Z | The exact bytes make the recorded SHA-256 independently reproducible. |
 | `fireblocks-sweat-hot-20261029T152642Z.html` | Fireblocks | <https://www.fireblocks.com/blog/near-zero-day-sweat-hot-token-exploit> | 2026-10-29 15:26:42Z | The exact bytes make the recorded SHA-256 independently reproducible. |
 | `defillama-hacks-20261029T152644Z.json` | DeFiLlama hacks API | <https://api.llama.fi/hacks> | 2026-10-29 15:26:44Z | The exact bytes make the recorded SHA-256 independently reproducible. |
+| `rekt-skyward-20261115T093012Z.html` | rekt.news | <https://rekt.news/skyward-rekt> | 2026-11-15 09:30:12Z | The exact bytes make the recorded SHA-256 independently reproducible. |
 
 These publisher copies are excluded from the repository's Apache-2.0 license and remain the publishers' material.
 
