@@ -4,6 +4,7 @@ import hashlib
 import io
 import json
 import os
+import sqlite3
 import tempfile
 import time
 import unittest
@@ -1296,6 +1297,216 @@ class FollowModeTest(unittest.TestCase):
             (Path(tmp) / "state.json").write_text('{"blocks": 1', encoding="utf-8")
             with mock.patch.dict(os.environ, {"FEED_STATE_DIR": tmp}):
                 self.assertEqual(api.route("/feed", labels.load()), (503, {"error": "feed state unreadable"}))
+
+
+class FirstSeenFollowTest(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        for patcher in (mock.patch.dict(os.environ, {}, clear=True),
+                        mock.patch("intel.feed.rpc.Client", return_value=TransfersStub()),
+                        mock.patch("urllib.request.urlopen", side_effect=no_network)):
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def follow(self, blocks, count, start=None):
+        fake = FakeFetcher(blocks, max(blocks))
+        state, walked = feed.follow(start=start, fetcher=fake.inner, state_path=self.root / "state.json",
+                                    events_dir=self.root / "events", event_blocks_dir=self.root / "event-blocks",
+                                    max_blocks=count, sleep=lambda _: None, clock=lambda: T0)
+        return state, walked, fake.inner.requests
+
+    def test_creation_restart_and_network_count(self):
+        from intel import first_seen
+
+        blocks = {1: raw_block(1, [raw_receipt("child.near", ["CreateAccount",
+                                  {"Transfer": {"deposit": "123"}}], "maker.near")]),
+                  2: raw_block(2, []), 3: raw_block(3, [])}
+        state, walked, requests = self.follow(blocks, 2, start=1)
+        self.assertEqual((walked, requests), (2, 3))
+        state, walked, requests = self.follow(blocks, 1)
+        self.assertEqual((walked, requests, state["blocks"]), (1, 1, 3))
+        self.assertEqual(first_seen.covered_ranges(state_dir=self.root), [(1, 3)])
+        result = first_seen.lookup("child.near", 1, 3, state_dir=self.root)
+        self.assertEqual((result["height"], result["deposit_yocto"]), (1, "123"))
+
+    def test_null_slot_is_covered_and_restart_reapplies_it_from_last_height(self):
+        from intel import first_seen
+
+        blocks = {1: raw_block(1, []), 2: None, 3: raw_block(3, [])}
+        state, _, _ = self.follow(blocks, 2, start=1)
+        self.assertEqual(state["last_height"], 1)
+        self.assertEqual(first_seen.covered_ranges(state_dir=self.root), [(1, 2)])
+        state, walked, requests = self.follow(blocks, 2)
+        self.assertEqual((walked, requests, state["last_height"]), (2, 2, 3))
+        self.assertEqual(state["skipped_heights"], [2])
+        self.assertEqual(first_seen.covered_ranges(state_dir=self.root), [(1, 3)])
+        self.assertEqual(first_seen.lookup("absent.near", 2, 2, state_dir=self.root)["status"],
+                         "not_created_in_covered")
+
+    def test_404_slot_remains_a_gap_while_the_head_cursor_behavior_is_preserved(self):
+        from intel import first_seen
+
+        class NotFound(FakeFetcher):
+            def get(self, path):
+                if path == "/v0/block/2":
+                    raise rpc.HttpError(404, path)
+                return super().get(path)
+
+        fake = NotFound({1: raw_block(1, []), 3: raw_block(3, [])}, 3)
+        state, walked = feed.follow(start=1, fetcher=fake.inner, state_path=self.root / "state.json",
+                                    max_blocks=3, sleep=lambda _: None, clock=lambda: T0)
+        self.assertEqual((state["last_height"], walked, state["skipped_heights"]), (3, 3, [2]))
+        self.assertEqual(first_seen.covered_ranges(state_dir=self.root), [(1, 1), (3, 3)])
+        self.assertEqual(first_seen.lookup("absent.near", 2, 2, state_dir=self.root)["status"], "unknown")
+
+    def test_failure_after_index_insert_rolls_back_rows_and_ranges(self):
+        from intel import first_seen
+
+        self.follow({1: raw_block(1, [])}, 1, start=1)
+        block = raw_block(2, [raw_receipt("child.near", ["CreateAccount"])])
+        with contextlib.closing(sqlite3.connect(self.root / "first_seen.sqlite3")) as connection:
+            connection.execute("CREATE TRIGGER interrupt_coverage BEFORE UPDATE ON coverage "
+                               "BEGIN SELECT RAISE(ABORT, 'interrupted'); END")
+            connection.commit()
+        state, walked, _ = self.follow({2: block, 3: raw_block(3, [])}, 2)
+        self.assertEqual((state["last_height"], state["blocks"], walked), (3, 3, 2))
+        self.assertEqual(feed.load_state(self.root / "state.json"), state)
+        self.assertEqual(state["first_seen_error"],
+                         {"height": 2, "error": "IntegrityError: could not update first_seen.sqlite3"})
+        self.assertEqual(first_seen.covered_ranges(state_dir=self.root), [(1, 1), (3, 3)])
+        self.assertEqual(first_seen.lookup("child.near", 2, 2, state_dir=self.root)["status"], "unknown")
+        with contextlib.closing(sqlite3.connect(self.root / "first_seen.sqlite3")) as connection:
+            self.assertEqual(connection.execute("SELECT count(*) FROM accounts").fetchone()[0], 0)
+            connection.execute("DROP TRIGGER interrupt_coverage")
+            connection.commit()
+        state, _, _ = self.follow({4: raw_block(4, [])}, 1)
+        self.assertEqual(state["blocks"], 4)
+        self.assertEqual(state["first_seen_error"]["height"], 2)
+        self.assertEqual(first_seen.covered_ranges(state_dir=self.root), [(1, 1), (3, 4)])
+        self.assertEqual(first_seen.lookup("child.near", 2, 2, state_dir=self.root)["status"], "unknown")
+
+    def test_index_oserror_advances_cursor_without_recording_external_paths(self):
+        from intel import first_seen
+
+        error = PermissionError(13, "permission denied", str(self.root / "first_seen.sqlite3"))
+        with mock.patch.object(first_seen, "advance", side_effect=error):
+            state, walked, _ = self.follow({1: raw_block(1, [])}, 1, start=1)
+        self.assertEqual((state["last_height"], walked), (1, 1))
+        self.assertEqual(feed.load_state(self.root / "state.json"), state)
+        self.assertEqual(state["first_seen_error"],
+                         {"height": 1, "error": "PermissionError: could not update first_seen.sqlite3"})
+        self.assertEqual(first_seen.covered_ranges(state_dir=self.root), [])
+        self.assertEqual(first_seen.lookup("absent.near", 1, 1, state_dir=self.root)["status"], "unknown")
+
+    def test_other_index_errors_still_stop_the_follower_without_advancing(self):
+        from intel import first_seen
+
+        self.follow({1: raw_block(1, [])}, 1, start=1)
+        with mock.patch.object(first_seen, "advance", side_effect=ValueError("unexpected")),                 self.assertRaises(ValueError):
+            self.follow({2: raw_block(2, [])}, 1)
+        self.assertEqual(feed.load_state(self.root / "state.json")["last_height"], 1)
+
+    def test_alert_at_index_failure_is_sent_once_across_restart(self):
+        from intel import first_seen
+
+        self.follow({1: raw_block(1, [])}, 1, start=1)
+        receipt = raw_receipt("game.hot.tg", [{"AddKey": {"public_key": "ed25519:pk",
+                              "access_key": {"nonce": 0, "permission": "FullAccess"}}}])
+        with mock.patch.object(feed.alerts, "configured_sinks", return_value=[]), \
+                mock.patch.object(feed.alerts, "send") as sent:
+            with mock.patch.object(first_seen, "advance", side_effect=sqlite3.OperationalError("index unavailable")):
+                state, walked, _ = self.follow({2: raw_block(2, [receipt])}, 1)
+            self.assertEqual((state["last_height"], walked), (2, 1))
+            self.assertEqual(feed.load_state(self.root / "state.json")["last_height"], 2)
+            state, walked, _ = self.follow({2: raw_block(2, [receipt]), 3: raw_block(3, [])}, 1)
+            self.assertEqual((state["last_height"], walked), (3, 1))
+            sent.assert_called_once()
+            self.assertEqual(sent.call_args.args[0].ref, "watch_account_key_added")
+        self.assertEqual(state["events"]["watch_account_key_added"], 1)
+        self.assertEqual(len(list((self.root / "events").glob("*.json"))), 1)
+        self.assertEqual(first_seen.covered_ranges(state_dir=self.root), [(1, 1), (3, 3)])
+        self.assertEqual(first_seen.lookup("absent.near", 2, 2, state_dir=self.root)["status"], "unknown")
+
+    def test_crash_after_index_commit_reapplies_block_before_advancing_state(self):
+        from intel import first_seen
+
+        self.follow({1: raw_block(1, [])}, 1, start=1)
+        write_json = feed._write_json
+
+        def interrupted(path, value, indent=None):
+            if Path(path).name == "state.json" and value.get("last_height") == 2:
+                raise OSError("interrupted state write")
+            write_json(path, value, indent)
+
+        block = raw_block(2, [raw_receipt("child.near", ["CreateAccount"])])
+        with mock.patch.object(feed, "_write_json", side_effect=interrupted), self.assertRaises(OSError):
+            self.follow({2: block}, 1)
+        self.assertEqual(json.loads((self.root / "state.json").read_text(encoding="utf-8"))["last_height"], 1)
+        self.assertEqual(feed.load_state(self.root / "state.json")["last_height"], 1)
+        self.assertEqual(first_seen.lookup("child.near", 2, 2, state_dir=self.root)["status"], "created")
+        self.assertEqual(first_seen.covered_ranges(state_dir=self.root), [(1, 2)])
+        state, walked, requests = self.follow({2: block, 3: raw_block(3, [])}, 1)
+        self.assertEqual((state["last_height"], state["blocks"], walked, requests), (2, 2, 1, 2))
+        self.assertEqual(first_seen.covered_ranges(state_dir=self.root), [(1, 2)])
+        with contextlib.closing(sqlite3.connect(self.root / "first_seen.sqlite3")) as connection:
+            self.assertEqual(connection.execute("SELECT count(*) FROM accounts").fetchone()[0], 1)
+            tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        self.assertEqual(tables, {"accounts", "coverage"})
+        self.assertNotIn("first_seen_height", state)
+
+    def test_rollback_advancing_json_leaves_unindexed_heights_unknown(self):
+        from intel import first_seen
+
+        state, _, _ = self.follow({1: raw_block(1, [])}, 1, start=1)
+        state.update(last_height=4, blocks=4)
+        feed._write_json(self.root / "state.json", state, indent=2)
+        self.assertEqual(feed.load_state(self.root / "state.json")["last_height"], 4)
+        state, walked, requests = self.follow({5: raw_block(5, [])}, 1)
+        self.assertEqual((state["last_height"], walked, requests), (5, 1, 1))
+        self.assertEqual(first_seen.covered_ranges(state_dir=self.root), [(1, 1), (5, 5)])
+        for height in (2, 3, 4):
+            self.assertEqual(first_seen.lookup("absent.near", height, height, state_dir=self.root)["status"], "unknown")
+
+    def test_failed_block_leaves_the_coverage_endpoint_unchanged(self):
+        from intel import first_seen
+
+        self.follow({1: raw_block(1, [])}, 1, start=1)
+        with mock.patch.object(feed, "reduce_block", side_effect=ValueError("bad block")), self.assertRaises(ValueError):
+            self.follow({2: raw_block(2, [])}, 1)
+        self.assertEqual(first_seen.covered_ranges(state_dir=self.root), [(1, 1)])
+        self.assertEqual(first_seen.lookup("absent.near", 1, 2, state_dir=self.root)["status"], "unknown")
+
+    def test_read_error_leaves_height_uncovered_and_retries_on_restart(self):
+        from intel import first_seen
+
+        self.follow({1: raw_block(1, [])}, 1, start=1)
+        fake = FakeFetcher({2: raw_block(2, []), 3: raw_block(3, [])}, 3)
+        get = fake.get
+
+        def failing(path):
+            if path == "/v0/block/2":
+                raise rpc.HttpError(500, path)
+            return get(path)
+
+        with mock.patch.object(fake, "get", side_effect=failing), self.assertRaises(rpc.HttpError):
+            feed.follow(fetcher=fake.inner, state_path=self.root / "state.json", max_blocks=1, sleep=lambda _: None)
+        self.assertEqual(feed.load_state(self.root / "state.json")["last_height"], 1)
+        self.assertEqual(first_seen.covered_ranges(state_dir=self.root), [(1, 1)])
+        self.assertEqual(first_seen.lookup("absent.near", 2, 2, state_dir=self.root)["status"], "unknown")
+        state, walked, requests = self.follow(fake.blocks, 1)
+        self.assertEqual((state["last_height"], walked, requests), (2, 1, 2))
+        self.assertEqual(first_seen.covered_ranges(state_dir=self.root), [(1, 2)])
+
+    def test_installation_does_not_claim_existing_follower_history(self):
+        from intel import first_seen
+
+        feed._write_json(self.root / "state.json", {**feed.new_state(), "last_height": 9, "blocks": 9})
+        state, walked, requests = self.follow({10: raw_block(10, [])}, 1)
+        self.assertEqual((walked, requests, state["blocks"]), (1, 1, 10))
+        self.assertEqual(first_seen.covered_ranges(state_dir=self.root), [(10, 10)])
+        self.assertEqual(first_seen.lookup("absent.near", 1, 10, state_dir=self.root)["status"], "unknown")
 
 
 class FollowFixtureTest(unittest.TestCase):
