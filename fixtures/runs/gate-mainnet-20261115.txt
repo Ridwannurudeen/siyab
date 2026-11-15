@@ -39,7 +39,7 @@ ALLOW subject: {"agent_pk":"30b651dc9fdcb09f843fab14881d83141e86463b374ba4b61911
 
 After: siyabgate.near 3.0861624753111214 NEAR, storage 265343 bytes, paused
 Commands: the command list lives outside the repo; key paths are written <keys>.
-Key-file lifecycle reported by the operator: owner and agent files deleted after the run; the mainnet verifier file is held outside the repo. The Gate remains paused with its current verifier public key still trusted.
+Key-file lifecycle reported by the operator: owner and agent files deleted after the run; the mainnet verifier file deleted on 15 Nov, so no key that the paused Gate trusts can sign a verdict. The Gate remains paused with its current verifier public key still trusted.
 
 Evidence documents (byte-for-byte copies, named by sha256):
   fixtures/evidence/ac6558987c40d07920a1c74dcf2a8dd56a6c832619cb719ddd6953557295665e.json
