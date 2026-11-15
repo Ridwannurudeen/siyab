@@ -1,11 +1,14 @@
 import contextlib
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 import hashlib
 import io
 import json
 import os
 from pathlib import Path
+import sqlite3
 import tempfile
+import threading
 import unittest
 from unittest.mock import patch
 
@@ -34,6 +37,27 @@ class TelegramAlertsTest(unittest.TestCase):
 
     def sink(self, client=None):
         return alerts.TelegramSink(CHAT, self.client if client is None else client, clock=lambda: self.now)
+
+    @contextlib.contextmanager
+    def broadcast(self):
+        root = Path(__file__).resolve().parent.parent
+        page = (root / "intel" / "incidents" / "rhea.json").read_bytes()
+        sink_type = alerts.TelegramSink
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            records = root / "intel" / "incidents"
+            records.mkdir(parents=True)
+            (records / "rhea.json").write_bytes(page)
+            state = root / "state"
+            env = {"SIYAB_TELEGRAM_BROADCAST_CHAT": CHAT, "FEED_STATE_DIR": str(state),
+                   "SHIELDBOT_ALERT_STDOUT": "1"}
+            with patch.dict(os.environ, env, clear=True), \
+                    patch.object(intel_main, "ROOT", root), \
+                    patch("intel.delivery.configured_client", return_value=self.client), \
+                    patch.object(intel_main.time, "time", side_effect=lambda: self.now), \
+                    patch.object(alerts, "TelegramSink", side_effect=lambda chat, client: sink_type(chat, client, clock=lambda: self.now)), \
+                    contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()) as errors:
+                yield records, state, errors
 
     def test_unset_or_invalid_chat_leaves_sinks_as_today(self):
         with patch("intel.delivery.configured_client", return_value=self.client) as factory:
@@ -213,13 +237,7 @@ class TelegramAlertsTest(unittest.TestCase):
         root = Path(__file__).resolve().parent.parent
         page = (root / "intel" / "incidents" / "rhea.json").read_bytes()
         incident = json.loads(page)
-        sink_type = alerts.TelegramSink
-        env = {"SIYAB_TELEGRAM_BROADCAST_CHAT": CHAT, "SHIELDBOT_ALERT_STDOUT": "1"}
-        with patch.dict(os.environ, env, clear=True), \
-                patch("intel.delivery.configured_client", return_value=self.client), \
-                patch.object(intel_main.time, "time", side_effect=lambda: self.now), \
-                patch.object(alerts, "TelegramSink", side_effect=lambda chat, client: sink_type(chat, client, clock=lambda: self.now)), \
-                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        with self.broadcast() as (_, state, errors):
             self.assertEqual(intel_main.main(["incident-broadcast", "rhea"]), 0)
             self.assertEqual(len(self.client.calls), 1)
             message = self.client.calls[0][1]["text"]
@@ -229,12 +247,21 @@ class TelegramAlertsTest(unittest.TestCase):
             self.assertIn(hashlib.sha256(page).hexdigest(), message)
             self.assertTrue(message.endswith("https://siyab.xyz/incidents/rhea.html\n" + FOOTER))
             self.now += 3
-            self.assertEqual(intel_main.main(["incident-broadcast", "rhea"]), 0)
+            self.assertEqual(intel_main.main(["incident-broadcast", "rhea"]), 3)
+            self.assertEqual(len(self.client.calls), 1)
+            self.assertIn("already broadcast", errors.getvalue())
+            self.assertIn("--repost", errors.getvalue())
+            self.assertEqual(intel_main.main(["incident-broadcast", "rhea", "--repost"]), 0)
             self.assertEqual(len(self.client.calls), 2)
+            with contextlib.closing(sqlite3.connect(state / "incident-broadcast.sqlite3")) as connection:
+                self.assertEqual(connection.execute("SELECT incident_id,record_sha256,sent_ms,channel_id,message_id "
+                                                    "FROM incident_broadcasts").fetchall(),
+                                 [("rhea", hashlib.sha256(page).hexdigest(), int(self.now * 1000), int(CHAT), 42)])
             self.now += 3
             self.client.send_results = [TelegramError("provider_403")]
-            self.assertEqual(intel_main.main(["incident-broadcast", "rhea"]), 1)
+            self.assertEqual(intel_main.main(["incident-broadcast", "rhea", "--repost"]), 1)
             self.assertEqual(len(self.client.calls), 3)
+            self.assertEqual(intel_main.main(["incident-broadcast", "rhea"]), 3)
             for identifier in ("../rhea", "Rhea", "x" * 65, "missing-incident"):
                 self.assertEqual(intel_main.main(["incident-broadcast", identifier]), 1)
             self.assertEqual(len(self.client.calls), 3)
@@ -245,6 +272,91 @@ class TelegramAlertsTest(unittest.TestCase):
             with patch("intel.delivery.configured_client", return_value=TelegramClient()):
                 self.assertEqual(intel_main.main(["incident-broadcast", "rhea"]), 2)
         self.assertEqual(len(self.client.calls), 3)
+
+    def test_incident_broadcast_changed_bytes_post_once_and_keep_earlier_hash(self):
+        with self.broadcast() as (records, state, _):
+            path = records / "rhea.json"
+            original = path.read_bytes()
+            self.assertEqual(intel_main.main(["incident-broadcast", "rhea"]), 0)
+            self.now += 3
+            path.write_bytes(original + b"\n")
+            self.assertEqual(intel_main.main(["incident-broadcast", "rhea"]), 0)
+            self.now += 3
+            self.assertEqual(intel_main.main(["incident-broadcast", "rhea"]), 3)
+            path.write_bytes(original)
+            self.assertEqual(intel_main.main(["incident-broadcast", "rhea"]), 3)
+            self.assertEqual(len(self.client.calls), 2)
+            with contextlib.closing(sqlite3.connect(state / "incident-broadcast.sqlite3")) as connection:
+                self.assertEqual(connection.execute("SELECT COUNT(*) FROM incident_broadcasts").fetchone()[0], 2)
+
+    def test_incident_broadcast_dedupes_by_id_and_hash_across_channel_changes(self):
+        with self.broadcast() as (records, _, _):
+            self.assertEqual(intel_main.main(["incident-broadcast", "rhea"]), 0)
+            self.now += 3
+            os.environ["SIYAB_TELEGRAM_BROADCAST_CHAT"] = "-1009999999999"
+            self.assertEqual(intel_main.main(["incident-broadcast", "rhea"]), 3)
+            (records / "another.json").write_bytes((records / "rhea.json").read_bytes())
+            self.assertEqual(intel_main.main(["incident-broadcast", "another"]), 0)
+            self.assertEqual(len(self.client.calls), 2)
+
+    def test_incident_broadcast_failures_leave_record_eligible(self):
+        for failure in (TelegramError("transport_unavailable", retryable=True, uncertain=True),
+                        TelegramError("provider_403"), {}, {"message_id": 42, "chat": {"id": 1}}):
+            with self.subTest(failure=failure), self.broadcast() as (_, state, _):
+                self.now += 3
+                self.client.send_results = [failure]
+                self.assertEqual(intel_main.main(["incident-broadcast", "rhea"]), 1)
+                with contextlib.closing(sqlite3.connect(state / "incident-broadcast.sqlite3")) as connection:
+                    self.assertEqual(connection.execute("SELECT COUNT(*) FROM incident_broadcasts").fetchone()[0], 0)
+                self.now += 3
+                self.assertEqual(intel_main.main(["incident-broadcast", "rhea"]), 0)
+                self.now += 3
+                self.assertEqual(intel_main.main(["incident-broadcast", "rhea"]), 3)
+
+    def test_incident_broadcast_ledger_failure_refuses_before_posting(self):
+        with self.broadcast() as (_, state, errors):
+            state.mkdir()
+            (state / "incident-broadcast.sqlite3").write_bytes(b"not a database")
+            self.assertEqual(intel_main.main(["incident-broadcast", "rhea"]), 1)
+            self.assertIn("ledger", errors.getvalue())
+            self.assertEqual(self.client.calls, [])
+            self.assertEqual(intel_main.main(["incident-broadcast", "rhea", "--repost"]), 1)
+            self.assertEqual(self.client.calls, [])
+
+    def test_incident_broadcast_uses_feed_state_default(self):
+        with self.broadcast() as (_, state, _), patch.object(feed, "STATE_PATH", state / "state.json"):
+            os.environ.pop("FEED_STATE_DIR")
+            self.assertEqual(intel_main.main(["incident-broadcast", "rhea"]), 0)
+            self.assertTrue((state / "incident-broadcast.sqlite3").is_file())
+            self.now += 3
+            self.assertEqual(intel_main.main(["incident-broadcast", "rhea"]), 3)
+
+    def test_incident_broadcast_concurrent_runs_send_once(self):
+        start = threading.Barrier(2)
+
+        def run():
+            start.wait(timeout=5)
+            return intel_main.main(["incident-broadcast", "rhea"])
+
+        with self.broadcast(), ThreadPoolExecutor(max_workers=2) as executor:
+            results = list(executor.map(lambda _: run(), range(2)))
+            self.assertEqual(sorted(results), [0, 3])
+            self.assertEqual(len(self.client.calls), 1)
+
+    def test_incident_broadcast_failed_ledger_write_reports_post_and_keeps_previous_row(self):
+        with self.broadcast() as (_, state, errors):
+            self.assertEqual(intel_main.main(["incident-broadcast", "rhea"]), 0)
+            with contextlib.closing(sqlite3.connect(state / "incident-broadcast.sqlite3")) as connection, connection:
+                previous = connection.execute("SELECT * FROM incident_broadcasts").fetchall()
+                connection.execute("CREATE TRIGGER reject_post BEFORE INSERT ON incident_broadcasts "
+                                   "BEGIN SELECT RAISE(FAIL, 'write refused'); END")
+            self.now += 3
+            self.assertEqual(intel_main.main(["incident-broadcast", "rhea", "--repost"]), 1)
+            self.assertEqual(len(self.client.calls), 2)
+            self.assertIn("sent but ledger could not be saved", errors.getvalue())
+            with contextlib.closing(sqlite3.connect(state / "incident-broadcast.sqlite3")) as connection:
+                self.assertEqual(connection.execute("SELECT * FROM incident_broadcasts").fetchall(), previous)
+            self.assertEqual(intel_main.main(["incident-broadcast", "rhea"]), 3)
 
     def test_incident_broadcast_bad_token_path_returns_2(self):
         env = {"SIYAB_TELEGRAM_BROADCAST_CHAT": CHAT}
@@ -260,7 +372,7 @@ class TelegramAlertsTest(unittest.TestCase):
 
     def test_incident_message_labels_posting_time(self):
         alert = replace(self.alert, source="incident", ref="rhea", detail="2026-04-16; recorded source")
-        self.assertTrue(self.sink().send(alert)["ok"])
+        self.assertEqual(self.sink().send(alert), {"ok": True, "attempts": 1, "message_id": 42})
         message = self.client.calls[0][1]["text"]
         self.assertIn("2026-04-16; recorded source", message)
         self.assertIn("Posted UTC: 2023-11-14T22:13:20.123Z", message)

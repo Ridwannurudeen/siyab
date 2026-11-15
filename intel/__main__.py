@@ -46,6 +46,7 @@ import hashlib
 import json
 import os
 import re
+import sqlite3
 import sys
 import time
 from pathlib import Path
@@ -564,7 +565,35 @@ def _incident_broadcast(args):
     except (OSError, ValueError, KeyError, TypeError):
         print("stopped: incident could not be read", file=sys.stderr)
         return 1
-    result = alerts.send(alert, [alerts.TelegramSink(chat_id, client)])[0]
+    state = Path(os.environ.get("FEED_STATE_DIR", feed.STATE_PATH.parent))
+    sent = False
+    try:
+        state.mkdir(parents=True, exist_ok=True)
+        with contextlib.closing(sqlite3.connect(state / "incident-broadcast.sqlite3", timeout=30)) as connection, connection:
+            connection.execute("BEGIN IMMEDIATE")
+            connection.execute("CREATE TABLE IF NOT EXISTS incident_broadcasts ("
+                               "incident_id TEXT NOT NULL,record_sha256 TEXT NOT NULL,sent_ms INTEGER NOT NULL,"
+                               "channel_id INTEGER NOT NULL,message_id INTEGER,PRIMARY KEY(incident_id,record_sha256))")
+            previous = connection.execute("SELECT 1 FROM incident_broadcasts WHERE incident_id=? AND record_sha256=?",
+                                          (args.id, alert.evidence_sha256)).fetchone()
+            if previous is not None and not args.repost:
+                print(f"stopped: incident {args.id} with this record hash was already broadcast; use --repost to post again",
+                      file=sys.stderr)
+                return 3
+            result = alerts.send(alert, [alerts.TelegramSink(chat_id, client)])[0]
+            if result["ok"]:
+                sent = True
+                connection.execute("INSERT INTO incident_broadcasts(incident_id,record_sha256,sent_ms,channel_id,message_id) "
+                                   "VALUES(?,?,?,?,?) ON CONFLICT(incident_id,record_sha256) DO UPDATE SET "
+                                   "sent_ms=excluded.sent_ms,channel_id=excluded.channel_id,message_id=excluded.message_id",
+                                   (args.id, alert.evidence_sha256, int(time.time() * 1000), int(chat_id), result.get("message_id")))
+    except (OSError, sqlite3.Error):
+        if sent:
+            print("stopped: incident broadcast sent but ledger could not be saved; check the channel before trying again",
+                  file=sys.stderr)
+        else:
+            print("stopped: incident broadcast ledger unavailable; nothing posted", file=sys.stderr)
+        return 1
     if result["ok"]:
         print("incident broadcast sent")
         return 0
@@ -828,6 +857,7 @@ def main(argv=None):
     alert_test.set_defaults(handler=_alert_test)
     broadcasting = commands.add_parser("incident-broadcast", help="send one incident to the configured Telegram channel")
     broadcasting.add_argument("id")
+    broadcasting.add_argument("--repost", action="store_true", help="post even if this incident record was already broadcast")
     broadcasting.set_defaults(handler=_incident_broadcast)
     snapshotting = commands.add_parser("snapshot", help="write the current label rows a scope selects, for "
                                        "offline use (docs/spec/snapshot-v1.md)")

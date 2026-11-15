@@ -286,6 +286,8 @@ class TelegramSink:
                     or not isinstance(result.get("chat"), dict) or type(result["chat"].get("id")) is not int
                     or result["chat"]["id"] != self.chat_id):
                 return {"ok": False, "attempts": 1, "error": "response_unreadable"}
+            if alert.source == "incident":
+                return {"ok": True, "attempts": 1, "message_id": result["message_id"]}
             return {"ok": True, "attempts": 1}
         except TelegramError as error:
             if error.code == "provider_429" and error.retry_after is not None:
