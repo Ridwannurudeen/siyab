@@ -53,7 +53,7 @@
     {
       "id": "account_age",
       "status": "unknown",
-      "detail": "no archival age (oldest access key nonce 223046866000210 from free.rpc.fastnear.com: existed by block 223046867 (2026-11-04T17:20:48Z) from archival-rpc.mainnet.fastnear.com, a key block younger than 7 days that does not date the account; block 223464745 (2026-11-07T12:13:15Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days); could not read the account keys: no recorded response for the request",
+      "detail": "no archival age (oldest access key nonce 223046866000210 from free.rpc.fastnear.com: existed by block 223046867 (2026-11-04T17:20:48Z) from archival-rpc.mainnet.fastnear.com, a key block younger than 7 days that does not date the account; block 223464745 (2026-11-07T12:13:15Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days; archival boundary could not run: MalformedResponse: the receiver's reference block is more than 10 minutes from now); could not read the account keys: no recorded response for the request",
       "source": {
         "provider": "api.nearblocks.io",
         "request_sha256": "9dcf25f6bddf39a361c3fac46f4aa475b5b35e72110e326166a096d25bacdce4",
@@ -92,7 +92,7 @@
     }
   ],
   "reasons": [
-    "account_age could not run: no archival age (oldest access key nonce 223046866000210 from free.rpc.fastnear.com: existed by block 223046867 (2026-11-04T17:20:48Z) from archival-rpc.mainnet.fastnear.com, a key block younger than 7 days that does not date the account; block 223464745 (2026-11-07T12:13:15Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days); could not read the account keys: no recorded response for the request.",
+    "account_age could not run: no archival age (oldest access key nonce 223046866000210 from free.rpc.fastnear.com: existed by block 223046867 (2026-11-04T17:20:48Z) from archival-rpc.mainnet.fastnear.com, a key block younger than 7 days that does not date the account; block 223464745 (2026-11-07T12:13:15Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days; archival boundary could not run: MalformedResponse: the receiver's reference block is more than 10 minutes from now); could not read the account keys: no recorded response for the request.",
     "dust_funded could not run: the creation transaction is not known."
   ],
   "labels": [],

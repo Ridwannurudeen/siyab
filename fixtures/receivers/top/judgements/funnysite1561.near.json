@@ -53,21 +53,21 @@
     {
       "id": "account_age",
       "status": "signal",
-      "detail": "no archival age (oldest access key nonce 223331548000263 from free.rpc.fastnear.com: existed by block 223331549 (2026-11-06T15:00:35Z) from archival-rpc.mainnet.fastnear.com, a key block younger than 7 days that does not date the account; funnysite1561.near did not exist at block 222505623 (2026-11-01T02:16:37Z) from archival-rpc.mainnet.fastnear.com, so it was created after that block, which is at least 7 d old; whether it is younger than 7 days is not known); created 2 d ago, younger than 7 days",
+      "detail": "oldest access key nonce 223331548000263 from free.rpc.fastnear.com: existed by block 223331549 (2026-11-06T15:00:35Z) from archival-rpc.mainnet.fastnear.com, a key block younger than 7 days that does not date the account; block 222667803 (2026-11-02T04:14:05Z) from archival-rpc.mainnet.fastnear.com and block 222667804 (2026-11-02T04:14:05Z) from archival-rpc.mainnet.fastnear.com are adjacent existing blocks around the 7 day cutoff; funnysite1561.near did not exist at block 222667803, so it was created less than 7 days ago",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "1622fed5d144dae56c6d4262f3405cac64beecf14b0480377ca8fb681b5a225f",
-        "fetched_at": "2026-11-15T13:49:55Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "b1750c6e37a422760235b5cc2a8460532629acba3ddaa819769a939cd79d39c7",
+        "fetched_at": "2026-11-15T15:55:28Z"
       }
     },
     {
       "id": "dust_funded",
-      "status": "signal",
-      "detail": "created by a 0 NEAR deposit, below 0.1 NEAR",
+      "status": "unknown",
+      "detail": "the creation transaction is not known",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "1622fed5d144dae56c6d4262f3405cac64beecf14b0480377ca8fb681b5a225f",
-        "fetched_at": "2026-11-15T13:49:55Z"
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
       }
     },
     {
@@ -92,7 +92,7 @@
     }
   ],
   "reasons": [
-    "Created 2 d ago by a 0 NEAR deposit.",
+    "Created less than 7 days ago.",
     "Not on the owner's allowlist."
   ],
   "labels": [],

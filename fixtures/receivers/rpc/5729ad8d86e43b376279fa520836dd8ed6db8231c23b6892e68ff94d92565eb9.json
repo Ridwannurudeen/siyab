@@ -12,10 +12,11 @@
       "header": {
         "hash": "51WVKgFPrmk62ZDKMgby37An2L12hDNrhxSX95SLKg2k",
         "height": 223716911,
-        "timestamp": 1794198599513871390
+        "timestamp": 1794198599513871390,
+        "prev_hash": "DdXhtQBFxLCyqM7M9fUJGjS9aoqJ4v2nTif9mDfQ6mSW"
       }
     }
   },
   "url": "https://archival-rpc.mainnet.fastnear.com",
-  "fetched_at": "2026-11-15T13:52:28Z"
+  "fetched_at": "2026-11-15T15:57:46Z"
 }
