@@ -8,7 +8,7 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "UNKNOWN",
+  "verdict": "DENY",
   "checks": [
     {
       "id": "receiver_exists",
@@ -52,12 +52,12 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "no archival age (oyster.v2-launchpad.justhoot.near has no access key; oyster.v2-launchpad.justhoot.near did not exist at block 222505546 (2026-11-01T02:15:53Z) from archival-rpc.mainnet.fastnear.com, so it was created after that block, which is at least 7 d old; whether it is younger than 7 days is not known); no key of oyster.v2-launchpad.justhoot.near carries a creation time",
+      "status": "signal",
+      "detail": "oyster.v2-launchpad.justhoot.near has no access key; block 222667729 (2026-11-02T04:13:22Z) from archival-rpc.mainnet.fastnear.com and block 222667730 (2026-11-02T04:13:22Z) from archival-rpc.mainnet.fastnear.com are adjacent existing blocks around the 7 day cutoff; oyster.v2-launchpad.justhoot.near did not exist at block 222667729, so it was created less than 7 days ago",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "4fb7f0645fc8be2674cc25f23e395e097f6867a9050ea7266a7a701fcd2757b9",
-        "fetched_at": "2026-11-09T04:13:29Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "285eb20c2f6529d25f21eb255637f141d4a264630285dce69afde1ee7b5b1c55",
+        "fetched_at": "2026-11-15T15:55:14Z"
       }
     },
     {
@@ -92,8 +92,8 @@
     }
   ],
   "reasons": [
-    "account_age could not run: no archival age (oyster.v2-launchpad.justhoot.near has no access key; oyster.v2-launchpad.justhoot.near did not exist at block 222505546 (2026-11-01T02:15:53Z) from archival-rpc.mainnet.fastnear.com, so it was created after that block, which is at least 7 d old; whether it is younger than 7 days is not known); no key of oyster.v2-launchpad.justhoot.near carries a creation time.",
-    "dust_funded could not run: the creation transaction is not known."
+    "Created less than 7 days ago.",
+    "Not on the owner's allowlist."
   ],
   "labels": [],
   "observed": {

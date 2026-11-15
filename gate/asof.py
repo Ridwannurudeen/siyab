@@ -9,6 +9,7 @@ class AsOf:
             raise ValueError("height must be a non negative integer")
         self.client = client
         self.height = height
+        self._block_hashes = {}
 
     @property
     def last_source(self):

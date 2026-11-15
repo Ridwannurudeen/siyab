@@ -2,12 +2,10 @@ import base64
 import hashlib
 import http.client
 import importlib.util
+import io
 import json
 import os
-import socket
 import tempfile
-import threading
-import time
 import unittest
 import urllib.error
 from datetime import UTC, datetime
@@ -327,38 +325,23 @@ class ModeTest(unittest.TestCase):
 
 class DeadlineFetchTest(unittest.TestCase):
     def test_a_deadline_bounds_slow_response_headers(self):
-        listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        listener.bind(("127.0.0.1", 0))
-        listener.listen()
+        now = [0.0]
 
-        def respond():
-            connection, _ = listener.accept()
-            with connection:
-                request = bytearray()
-                while b"\r\n\r\n" not in request:
-                    chunk = connection.recv(4096)
-                    if not chunk:
-                        return
-                    request.extend(chunk)
-                connection.sendall(b"HTTP/1.1 200 OK\r\n")
-                header = b"X-Slow: " + b"a" * 40 + b"\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}"
-                for byte in header:
-                    try:
-                        connection.sendall(bytes((byte,)))
-                    except OSError:
-                        return
-                    time.sleep(0.02)
+        class SlowStream(io.BytesIO):
+            def readinto(self, buffer):
+                now[0] += 0.02
+                return super().readinto(memoryview(buffer)[:1])
 
-        thread = threading.Thread(target=respond, daemon=True)
-        thread.start()
-        started = time.monotonic()
-        try:
-            with rpc.request_deadline(0.15), self.assertRaises(TimeoutError):
-                rpc._fetch(f"http://127.0.0.1:{listener.getsockname()[1]}/", None)
-        finally:
-            listener.close()
-            thread.join(timeout=2)
-        self.assertLess(time.monotonic() - started, 0.5)
+        connection = mock.Mock()
+        connection.makefile.return_value = SlowStream(
+            b"HTTP/1.1 200 OK\r\nX-Slow: " + b"a" * 40 + b"\r\nContent-Length: 2\r\n\r\n{}")
+        with mock.patch.object(rpc.time, "monotonic", side_effect=lambda: now[0]), \
+                rpc.request_deadline(0.5):
+            response = rpc._DeadlineHTTPResponse(connection)
+            with self.assertRaises(TimeoutError):
+                response.begin()
+        self.assertGreaterEqual(now[0], 0.5)
+        self.assertTrue(all(call.args[0] <= 0.5 for call in connection.settimeout.call_args_list))
 
     def test_a_deadline_bounds_the_whole_response_read(self):
         now = [0.0]
@@ -454,7 +437,7 @@ class FailClosedClientTest(unittest.TestCase):
         full_response = {"jsonrpc": "2.0", "id": "gate", "result": {"header": header,
                          "chunks": [{"signature": "ed25519:" + "1" * 88}]}}
         expected = {"jsonrpc": "2.0", "id": "gate",
-                    "result": {"header": {"hash": rpc.EMPTY_CODE_HASH, "height": 7, "timestamp": 1}}}
+                    "result": {"header": dict(header)}}
         client = rpc.Client("https://rpc.example", "record", fixtures_dir=self.tmp.name)
         with mock.patch("urllib.request.urlopen", return_value=reply(full_response)):
             self.assertEqual(client.block_at(7)["header"]["height"], 7)
@@ -478,6 +461,110 @@ class FailClosedClientTest(unittest.TestCase):
             client.block_at(7)
         [path] = Path(self.tmp.name).iterdir()
         self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["response"], error)
+
+    def test_block_at_caches_hash_for_a_pinned_account_read(self):
+        header = {"hash": rpc.EMPTY_CODE_HASH, "height": 7, "timestamp": 1,
+                  "prev_hash": rpc.EMPTY_CODE_HASH}
+        account = {"amount": "1", "locked": "0", "storage_usage": 1,
+                   "code_hash": rpc.EMPTY_CODE_HASH, "block_height": 7,
+                   "block_hash": header["hash"]}
+        responses = [{"jsonrpc": "2.0", "id": "gate", "result": {"header": header}},
+                     {"jsonrpc": "2.0", "id": "gate", "result": account}]
+        client = rpc.Client("https://rpc.example", "off")
+        with mock.patch.object(rpc, "_fetch", side_effect=responses) as fetched:
+            client.block_at(7)
+            self.assertEqual(client.view_account_at("old.near", 7), account)
+        self.assertEqual(fetched.call_count, 2)
+        self.assertEqual(client._block_hashes, {7: header["hash"]})
+
+    def test_block_at_hash_cache_remains_bounded(self):
+        client = rpc.Client("https://rpc.example", "off")
+        with mock.patch.object(rpc, "BLOCK_HASH_CACHE_SIZE", 2):
+            for height in (1, 2, 2, 3):
+                header = {"hash": rpc.EMPTY_CODE_HASH, "height": height, "timestamp": 1}
+                with mock.patch.object(rpc, "_fetch", return_value={
+                        "jsonrpc": "2.0", "id": "gate", "result": {"header": header}}):
+                    client.block_at(height)
+        self.assertEqual(client._block_hashes, {2: rpc.EMPTY_CODE_HASH, 3: rpc.EMPTY_CODE_HASH})
+
+    def test_record_refreshes_reused_block_fixtures_missing_linkage_fields(self):
+        header = {"hash": rpc.EMPTY_CODE_HASH, "height": 7, "timestamp": 1,
+                  "prev_hash": rpc.EMPTY_CODE_HASH}
+        response = {"jsonrpc": "2.0", "id": "gate", "result": {"header": header}}
+        params = {"block_id": 7}
+        path = Path(self.tmp.name) / (rpc.fixture_key("https://rpc.example", "block", params) + ".json")
+        for missing in ("hash", "prev_hash"):
+            for reuse_existing in (False, True):
+                with self.subTest(missing=missing, reuse_existing=reuse_existing):
+                    old_header = {key: value for key, value in header.items() if key != missing}
+                    fixture = {"request": {"method": "block", "params": params},
+                               "response": {**response, "result": {"header": old_header}},
+                               "url": "https://rpc.example", "fetched_at": rpc._timestamp(T0)}
+                    path.write_text(json.dumps(fixture), encoding="utf-8")
+                    client = rpc.Client("https://rpc.example", "record", fixtures_dir=self.tmp.name,
+                                        clock=lambda: T0 + 1, reuse_existing=reuse_existing)
+                    with mock.patch.object(rpc, "_fetch", return_value=response) as fetched:
+                        self.assertEqual(client.block_at(7), response["result"])
+                    fetched.assert_called_once()
+                    rewritten = json.loads(path.read_text(encoding="utf-8"))
+                    self.assertEqual(rewritten["response"], response)
+                    self.assertEqual(rewritten["fetched_at"], rpc._timestamp(T0 + 1))
+
+    def test_failed_block_refresh_preserves_the_reused_fixture(self):
+        header = {"hash": rpc.EMPTY_CODE_HASH, "height": 7, "timestamp": 1}
+        params = {"block_id": 7}
+        path = Path(self.tmp.name) / (rpc.fixture_key("https://rpc.example", "block", params) + ".json")
+        fixture = {"request": {"method": "block", "params": params},
+                   "response": {"jsonrpc": "2.0", "id": "gate", "result": {"header": header}},
+                   "url": "https://rpc.example", "fetched_at": rpc._timestamp(T0)}
+        original = json.dumps(fixture).encode("utf-8")
+        malformed = {"jsonrpc": "2.0", "id": "gate", "result": {"header": {**header, "timestamp": True}}}
+        wrong_height = {"jsonrpc": "2.0", "id": "gate", "result": {"header": {**header, "height": 8}}}
+        rpc_error = {"jsonrpc": "2.0", "id": "gate", "error": {
+            "name": "HANDLER_ERROR", "code": -32000, "message": "UNKNOWN_BLOCK",
+            "cause": {"name": "UNKNOWN_BLOCK", "info": {"block_reference": params}}}}
+        for reuse_existing in (False, True):
+            for response, failure in ((malformed, rpc.MalformedResponse),
+                                      (wrong_height, rpc.MalformedResponse), (rpc_error, rpc.RpcError),
+                                      (rpc.HttpError(503, "https://rpc.example"), rpc.HttpError),
+                                      (rpc.TransportError("truncated reply"), rpc.TransportError),
+                                      (TimeoutError("request deadline exceeded"), TimeoutError),
+                                      (urllib.error.URLError("connection refused"), urllib.error.URLError)):
+                with self.subTest(reuse_existing=reuse_existing, failure=failure.__name__, response=response):
+                    path.write_bytes(original)
+                    client = rpc.Client("https://rpc.example", "record", fixtures_dir=self.tmp.name,
+                                        clock=lambda: T0 + 1, reuse_existing=reuse_existing)
+                    outcome = ({"side_effect": response} if isinstance(response, Exception)
+                               else {"return_value": response})
+                    with mock.patch.object(rpc, "_fetch", **outcome) as fetched:
+                        with self.assertRaises(failure):
+                            client.block_at(7)
+                    fetched.assert_called_once()
+                    self.assertEqual(path.read_bytes(), original)
+
+    def test_replay_never_refreshes_block_fixtures_missing_linkage_fields(self):
+        header = {"hash": rpc.EMPTY_CODE_HASH, "height": 7, "timestamp": 1,
+                  "prev_hash": rpc.EMPTY_CODE_HASH}
+        params = {"block_id": 7}
+        path = Path(self.tmp.name) / (rpc.fixture_key("https://rpc.example", "block", params) + ".json")
+        for missing in ("hash", "prev_hash"):
+            with self.subTest(missing=missing):
+                old_header = {key: value for key, value in header.items() if key != missing}
+                fixture = {"request": {"method": "block", "params": params},
+                           "response": {"jsonrpc": "2.0", "id": "gate", "result": {"header": old_header}},
+                           "url": "https://rpc.example", "fetched_at": rpc._timestamp(T0)}
+                original = json.dumps(fixture).encode("utf-8")
+                path.write_bytes(original)
+                client = rpc.Client("https://rpc.example", "replay", fixtures_dir=self.tmp.name)
+                with mock.patch.object(rpc, "_fetch", side_effect=no_network) as fetched:
+                    if missing == "hash":
+                        with self.assertRaises(rpc.MalformedResponse):
+                            client.block_at(7)
+                    else:
+                        self.assertEqual(client.block_at(7), {"header": old_header})
+                fetched.assert_not_called()
+                self.assertEqual(path.read_bytes(), original)
+
     def test_malformed_block_response_is_recorded_unchanged(self):
         for header in ({"hash": rpc.EMPTY_CODE_HASH, "height": 7, "timestamp": True},
                        {"hash": 5, "height": 7, "timestamp": 1},

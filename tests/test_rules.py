@@ -36,10 +36,13 @@ TOKEN = "token.gate.testnet"
 VENDOR = "vendor.testnet"
 POLICY = {"allowlist": [VENDOR], "caps": [{"asset": {"Ft": TOKEN}}, {"asset": "Near"}]}
 BLOCK_HASH = rpc.base58.encode(bytes([1]) * 32)
-KEY_BLOCK_HASH = rpc.base58.encode(bytes([2]) * 32)
 CODE_HASH = rpc.base58.encode(bytes([3]) * 32)
 PUBLIC_KEY = "ed25519:" + rpc.base58.encode(bytes([4]) * 32)
 OTHER_PUBLIC_KEY = "ed25519:" + rpc.base58.encode(bytes([5]) * 32)
+
+
+def block_hash(height):
+    return rpc.base58.encode(height.to_bytes(32, "big"))
 
 
 def assertion(assertion_id, subject, category, label, chain="near", superseded_by=None):
@@ -143,15 +146,17 @@ class Fixtures:
         self.key_rows(account_id, [{"public_key": "ed25519:" + rpc.base58.encode(bytes([index + 1]) * 32), "access_key": {"nonce": n, "permission": "FullAccess"}}
                                    for index, n in enumerate(nonces)])
 
-    def block_at(self, height, timestamp_ns, block_hash=KEY_BLOCK_HASH):
-        header = {"height": height, "timestamp": timestamp_ns, "hash": block_hash}
+    def block_at(self, height, timestamp_ns, previous_height=None):
+        previous_height = height - 1 if previous_height is None else previous_height
+        header = {"height": height, "timestamp": timestamp_ns, "hash": block_hash(height),
+                  "prev_hash": block_hash(previous_height)}
         self.write(ARCHIVAL_URL, "block", {"block_id": height},
                    {"jsonrpc": "2.0", "id": "gate", "result": {"header": header}})
 
     def archival_error(self, method, params, cause):
         info = {"block_height": params["block_id"]}
         if method != "block":
-            info["block_hash"] = KEY_BLOCK_HASH
+            info["block_hash"] = block_hash(params["block_id"])
             if cause == "UNKNOWN_BLOCK":
                 info["block_reference"] = {"block_id": params["block_id"]}
         if "account_id" in params:
@@ -170,7 +175,7 @@ class Fixtures:
         """An archival view_account answer at block height; block_height is the height it says it read at."""
         result = {"amount": "1000", "locked": "0", "code_hash": code_hash, "storage_usage": 182,
                   "storage_paid_at": 0, "block_height": height if block_height is None else block_height,
-                  "block_hash": KEY_BLOCK_HASH}
+                  "block_hash": block_hash(height)}
         self.write(ARCHIVAL_URL, "query", self.state_params(account_id, height),
                    {"jsonrpc": "2.0", "id": "gate", "result": result})
 
@@ -206,6 +211,9 @@ class RulesCase(unittest.TestCase):
         patcher = mock.patch("urllib.request.urlopen", side_effect=AssertionError("network"))
         patcher.start()
         self.addCleanup(patcher.stop)
+        deadline_patcher = mock.patch("gate.rpc._open_with_deadline", side_effect=AssertionError("network"))
+        deadline_patcher.start()
+        self.addCleanup(deadline_patcher.stop)
         self.store = Store()
 
     def token_ok(self, receiver=VENDOR):
@@ -452,7 +460,7 @@ class TierTwoTest(RulesCase):
         self.nearblocks = rpc.Client(NEARBLOCKS_URL, "record", kind="http",
                                      fixtures_dir=self.fx.directory)
         error = urllib.error.HTTPError("https://nearblocks.example", 429, "Too Many Requests", {}, None)
-        with mock.patch("urllib.request.urlopen", side_effect=error):
+        with mock.patch("gate.rpc._open_with_deadline", side_effect=error):
             return self.judge(request("stranger.testnet"), archival=archival)
 
     def test_the_key_nonce_age_passes_without_a_nearblocks_request(self):
@@ -537,6 +545,27 @@ class NonceAgeTest(RulesCase):
         providers = {c["id"]: c["source"]["provider"] for c in judgement.checks}
         self.assertEqual(providers["account_age"], "archival.example")
         self.assertEqual(providers["dust_funded"], "nearblocks")
+
+    def test_expired_nonce_age_keeps_the_unread_deposit_detail_unresolved(self):
+        self.unaged()
+        self.fx.access_keys("stranger.testnet", KEY_NONCE)
+        self.fx.block_at(KEY_HEIGHT, OLD_NS)
+        original = self.archival.block_at
+
+        def block(height):
+            answer = original(height)
+            clock.return_value = rules.AGE_READS_S
+            return answer
+
+        with mock.patch("gate.rpc.time.monotonic", return_value=0) as clock:
+            with mock.patch.object(self.archival, "block_at", side_effect=block):
+                judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+        self.assertEqual(self.status(judgement, "account_age"), "unknown")
+        self.assertIn("deadline", self.detail(judgement, "account_age"))
+        self.assertEqual(self.status(judgement, "dust_funded"), "pass")
+        self.assertEqual(self.detail(judgement, "dust_funded"),
+                         "creation deposit not read; account_age remains unresolved after its deadline")
+        self.assertEqual(judgement.verdict, "UNKNOWN")
 
     YOUNG_KEY = ("oldest access key nonce 275336350000001 from rpc.example: existed by block 275336351 "
                  "(2026-10-28T12:00:00Z) from archival.example, a key block younger than 7 days that does not "
@@ -1063,7 +1092,7 @@ class NonceAgeTest(RulesCase):
         self.nearblocks = rpc.Client(NEARBLOCKS_URL, "record", kind="http",
                                      fixtures_dir=self.fx.directory / "nearblocks")
         error = urllib.error.HTTPError("https://nearblocks.example", 410, "Gone", {}, None)
-        with mock.patch("urllib.request.urlopen", side_effect=error) as fetch:
+        with mock.patch("gate.rpc._open_with_deadline", side_effect=error) as fetch:
             judgement = self.judge(request("stranger.testnet"), archival=self.archival)
         fetch.assert_called_once()
         detail = ("no archival age (archival block_at could not run: RPC error UNKNOWN_BLOCK); "
@@ -1294,249 +1323,455 @@ class StateAgeTest(RulesCase):
         self.assertEqual(judgement.verdict, "DENY")
 
 
-class YoungStateAgeTest(RulesCase):
-    YOUNG_HEIGHT = ACCOUNT_HEIGHT - 7 * 43_200
+class BoundaryStateAgeCase(RulesCase):
+    RECEIVER = "stranger.testnet"
+    CUTOFF = NOW_MS - 7 * rules.DAY_MS
+    B = ACCOUNT_HEIGHT - 864_000
 
     def setUp(self):
         super().setUp()
-        for target in ("gate.rpc._open_with_deadline", "gate.rpc._fetch"):
-            patcher = mock.patch(target, side_effect=AssertionError("network"))
-            patcher.start()
-            self.addCleanup(patcher.stop)
-        self.fx.account("stranger.testnet", block_height=ACCOUNT_HEIGHT)
-        self.fx.access_keys("stranger.testnet")
-        self.fx.keys("stranger.testnet")
-        self.token_ok("stranger.testnet")
-        self.archival = mock.Mock(spec=rpc.Client)
-        self.archival.last_source = {"provider": "archival.example", "request_sha256": None,
-                                     "fetched_at": "2026-10-29T00:00:00Z"}
-        self.blocks = {
-            ACCOUNT_HEIGHT: {"header": {"height": ACCOUNT_HEIGHT, "timestamp": NOW_MS * 10**6}},
-            STATE_HEIGHT: {"header": {"height": STATE_HEIGHT, "timestamp": OLD_NS}},
-            self.YOUNG_HEIGHT: {"header": {"height": self.YOUNG_HEIGHT,
-                                            "timestamp": NOW_MS * 10**6 - DAY_NS}},
-        }
-        self.archival.block_at.side_effect = self.blocks.__getitem__
-        self.archival.view_account_at.side_effect = [
-            self.absent(STATE_HEIGHT),
-            self.absent(self.YOUNG_HEIGHT),
-        ]
+        self.skipped = set()
+        self.failures = {}
+        self.unlinked = set()
+        self.created_ms = self.CUTOFF + 700
+        self.time_at = lambda h: NOW_MS - (ACCOUNT_HEIGHT - h) * 700
+        self.block_reads = []
+        self.state_reads = []
+        block_at = self.archival.block_at
+        account_at = self.archival.view_account_at
 
-    def absent(self, height):
-        return rpc.RpcError({"cause": {"name": "UNKNOWN_ACCOUNT", "info": {
-            "block_height": height, "requested_account_id": "stranger.testnet"}}})
+        def block(height):
+            self.block_reads.append(height)
+            if height in self.failures:
+                raise self.failures[height]
+            if height in self.skipped:
+                self.fx.block_missing(height)
+            else:
+                previous = height - 1
+                while previous in self.skipped:
+                    previous -= 1
+                self.fx.block_at(height, self.time_at(height) * 10**6, previous)
+            answer = block_at(height)
+            if height in self.unlinked:
+                answer["header"]["prev_hash"] = BLOCK_HASH
+            return answer
 
-    def test_too_many_access_keys_missing_at_both_blocks_signals(self):
-        self.fx.rpc_error(self.fx.key_list_params("stranger.testnet"), "TOO_MANY_ACCESS_KEYS")
-        judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+        def state(receiver, height):
+            self.state_reads.append(height)
+            if self.created_ms <= self.time_at(height):
+                self.fx.account_at(receiver, height)
+            else:
+                self.fx.account_missing_at(receiver, height)
+            return account_at(receiver, height)
+
+        self.archival.block_at = mock.Mock(side_effect=block)
+        self.archival.view_account_at = mock.Mock(side_effect=state)
+
+    def read(self, now_ms=NOW_MS):
+        return rules._state_age(self.archival, self.RECEIVER, {"block_height": ACCOUNT_HEIGHT},
+                                {"provider": "rpc.example"}, now_ms, 7, "no dated key")
+
+    def assert_boundary(self, status, b=None, y=None):
+        check, young = self.read()
+        b = self.B if b is None else b
+        y = b + 1 if y is None else y
+        self.assertEqual(check["status"], status, check["detail"])
+        self.assertIs(young, status == "signal")
+        for height in (b, y):
+            iso = datetime.fromtimestamp(self.time_at(height) / 1000, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+            self.assertIn(f"block {height} ({iso}) from archival.example", check["detail"])
+        self.assertIn(b, self.state_reads)
+        self.assertLessEqual(len(self.block_reads), rules.AGE_BLOCK_READS)
+        self.assertLessEqual(len(self.state_reads), 3)
+        return check
+
+
+class BoundaryStateAgeTest(BoundaryStateAgeCase):
+    def test_created_long_before_boundary_passes(self):
+        self.created_ms = self.CUTOFF - rules.DAY_MS
+        self.assert_boundary("pass")
+
+    def test_created_after_boundary_signals(self):
+        self.created_ms = self.time_at(self.B + 20)
+        self.assert_boundary("signal")
+
+    def test_created_exactly_at_y_signals(self):
+        self.assert_boundary("signal")
+
+    def test_created_exactly_at_cutoff_passes(self):
+        self.created_ms = self.CUTOFF
+        self.assert_boundary("pass")
+
+    def test_linked_headers_prove_adjacency_across_missing_heights(self):
+        self.skipped = {self.B, self.B + 1, self.B + 2}
+        self.created_ms = self.time_at(self.B + 3)
+        self.assert_boundary("signal", self.B - 1, self.B + 3)
+        self.assertTrue(self.skipped.issubset(self.block_reads))
+
+    def test_unproven_gap_is_unknown(self):
+        self.skipped = {self.B, self.B + 1, self.B + 2}
+        self.unlinked = {self.B + 3}
+        self.assertEqual(self.read()[0]["status"], "unknown")
+
+    def test_failed_block_reads_are_unknown(self):
+        for error in (rpc.HttpError(500, ARCHIVAL_URL), rpc.RateLimited("limit"),
+                      TimeoutError("request deadline exceeded"), rpc.MalformedResponse("bad header")):
+            with self.subTest(error=error):
+                self.failures[self.B] = error
+                self.assertEqual(self.read()[0]["status"], "unknown")
+
+    def test_malformed_block_and_mismatched_state_are_unknown(self):
+        for result in (None, {}, {"header": {}},
+                       {"header": {"height": self.B + 1, "timestamp": self.CUTOFF * 10**6}}):
+            with self.subTest(result=result):
+                original = self.archival.block_at.side_effect
+                with mock.patch.object(self.archival, "block_at", side_effect=lambda h:
+                                       result if h == self.B else original(h)):
+                    self.assertEqual(self.read()[0]["status"], "unknown")
+        original = self.archival.view_account_at.side_effect
+        with mock.patch.object(self.archival, "view_account_at", side_effect=lambda r, h:
+                               {"block_height": h + 1} if h == self.B else original(r, h)):
+            self.assertEqual(self.read()[0]["status"], "unknown")
+
+    def test_boundary_absence_info_must_match(self):
+        for info in ({}, None, [], {"block_height": self.B, "requested_account_id": "other.testnet"},
+                     {"block_height": self.B + 1, "requested_account_id": self.RECEIVER},
+                     {"block_height": str(self.B), "requested_account_id": self.RECEIVER}):
+            with self.subTest(info=info):
+                original = self.archival.view_account_at.side_effect
+                def state(receiver, height):
+                    if height == self.B:
+                        raise rpc.RpcError({"cause": {"name": "UNKNOWN_ACCOUNT", "info": info}})
+                    return original(receiver, height)
+                with mock.patch.object(self.archival, "view_account_at", side_effect=state):
+                    check, young = self.read()
+                self.assertEqual(check["status"], "unknown")
+                self.assertIs(young, True)
+
+    def test_boundary_mismatched_absence_does_not_claim_unread_state(self):
+        self.time_at = lambda h: NOW_MS - (ACCOUNT_HEIGHT - h) * 400
+        boundary = ACCOUNT_HEIGHT - 1_512_000
+        original = self.archival.view_account_at.side_effect
+        def state(receiver, height):
+            if height == boundary:
+                raise rpc.RpcError({"cause": {"name": "UNKNOWN_ACCOUNT", "info": {}}})
+            return original(receiver, height)
+        with mock.patch.object(self.archival, "view_account_at", side_effect=state):
+            check, absent = self.read()
+        self.assertEqual(check["status"], "unknown")
+        self.assertIsNone(absent)
+
+    def test_read_cap_returns_unknown(self):
+        self.skipped = set(range(self.B - 40, self.B + 41))
+        check, _ = self.read()
+        self.assertEqual(check["status"], "unknown")
+        self.assertIn("cap", check["detail"])
+        self.assertLessEqual(len(self.block_reads), rules.AGE_BLOCK_READS)
+        self.assertLessEqual(len(self.state_reads), 3)
+
+    def test_request_deadline_expiry_is_unknown(self):
+        original = self.archival.block_at.side_effect
+        def block(height):
+            answer = original(height)
+            if height == self.B:
+                clock.return_value = 2
+            return answer
+        with mock.patch("gate.rpc.time.monotonic", return_value=0) as clock:
+            with rpc.request_deadline(1):
+                with mock.patch.object(self.archival, "block_at", side_effect=block):
+                    check, _ = self.read()
+        self.assertEqual(check["status"], "unknown")
+        self.assertIn("deadline", check["detail"])
+
+    def test_judge_sets_deadline_and_expiry_cannot_pass_via_fallback(self):
+        self.time_at = lambda h: NOW_MS - (ACCOUNT_HEIGHT - h) * 400
+        self.B = ACCOUNT_HEIGHT - 1_512_000
+        self.created_ms = self.CUTOFF
+        self.fx.account(self.RECEIVER, block_height=ACCOUNT_HEIGHT)
+        self.fx.access_keys(self.RECEIVER)
+        self.fx.keys(self.RECEIVER, NOW_MS * 10**6 - 30 * DAY_NS)
+        self.token_ok(self.RECEIVER)
+        original = self.archival.block_at.side_effect
+        def block(height):
+            answer = original(height)
+            if height == self.B:
+                clock.return_value = rules.AGE_READS_S
+            return answer
+        with mock.patch("gate.rpc.time.monotonic", return_value=0) as clock:
+            with mock.patch.object(self.archival, "block_at", side_effect=block):
+                judgement = self.judge(request(self.RECEIVER), archival=self.archival)
+        self.assertEqual(self.status(judgement, "account_age"), "unknown")
+        self.assertIn("deadline", self.detail(judgement, "account_age"))
+        self.assertNotEqual(judgement.verdict, "ALLOW")
+
+    def test_unlinked_headers_are_unknown_even_at_consecutive_heights(self):
+        original = self.archival.block_at.side_effect
+        for prev_hash in (None, BLOCK_HASH):
+            with self.subTest(prev_hash=prev_hash):
+                def block(height):
+                    answer = original(height)
+                    if height == self.B + 1:
+                        answer["header"]["prev_hash"] = prev_hash
+                    return answer
+                with mock.patch.object(self.archival, "block_at", side_effect=block):
+                    self.assertEqual(self.read()[0]["status"], "unknown")
+
+    def test_boundary_pass_does_not_require_header_linkage(self):
+        self.created_ms = self.CUTOFF
+        self.unlinked = {self.B + 1}
+        self.assert_boundary("pass")
+
+    def test_boundary_reads_reuse_headers_and_pinned_hashes(self):
+        for status, created_ms in (("pass", self.CUTOFF), ("signal", self.CUTOFF + 700)):
+            with self.subTest(status=status):
+                self.created_ms = created_ms
+                self.block_reads.clear()
+                self.state_reads.clear()
+                self.archival._block_hashes.clear()
+                self.assert_boundary(status)
+                self.assertEqual(len(self.block_reads), len(set(self.block_reads)))
+                self.assertEqual(len(self.block_reads), 5)
+                self.assertEqual(len(self.state_reads), 3)
+
+    def test_fast_blocks_expand_to_an_older_proof(self):
+        self.time_at = lambda h: NOW_MS - (ACCOUNT_HEIGHT - h) * 400
+        self.B = ACCOUNT_HEIGHT - 1_512_000
+        self.created_ms = self.CUTOFF - rules.DAY_MS
+        self.assertGreater(self.time_at(STATE_HEIGHT), self.CUTOFF)
+        self.assert_boundary("pass")
+
+    def test_reference_clock_bound_applies_to_boundary_pass(self):
+        self.created_ms = self.CUTOFF - rules.DAY_MS
+        for offset in (-600_001, 600_001):
+            with self.subTest(offset=offset):
+                self.assertEqual(self.read(NOW_MS + offset)[0]["status"], "unknown")
+
+    def test_nonmonotonic_young_probe_cannot_be_ignored(self):
+        height = ACCOUNT_HEIGHT - 7 * rules.BLOCKS_PER_DAY_MIN
+        original = self.time_at
+        for invalid in (NOW_MS + 1, self.time_at(STATE_HEIGHT), self.time_at(STATE_HEIGHT) - 1):
+            with self.subTest(timestamp=invalid):
+                with mock.patch.object(self, "time_at", side_effect=lambda h:
+                                       invalid if h == height else original(h)):
+                    self.assertEqual(self.read()[0]["status"], "unknown")
+
+    def test_unknown_block_answers_cannot_prove_a_gap_without_linkage(self):
+        self.unlinked = {self.B + 1}
+        for info in ({}, {"block_height": self.B}, {"block_height": self.B + 1},
+                     {"block_reference": {"block_id": self.B + 1}},
+                     {"block_reference": {"finality": "final"}}, None):
+            with self.subTest(info=info):
+                self.failures[self.B] = rpc.RpcError({"cause": {"name": "UNKNOWN_BLOCK", "info": info}})
+                self.assertEqual(self.read()[0]["status"], "unknown")
+
+    def test_expired_deadline_before_first_read_is_unknown(self):
+        with mock.patch("gate.rpc.time.monotonic", return_value=0) as clock:
+            with rpc.request_deadline(1):
+                clock.return_value = 1
+                check, _ = self.read()
+        self.assertEqual(check["status"], "unknown")
+        self.assertEqual(self.block_reads, [])
+        self.assertEqual(self.state_reads, [])
+
+    def test_deadline_expiring_during_boundary_account_read_is_unknown(self):
+        original = self.archival.view_account_at.side_effect
+        def state(receiver, height):
+            answer = original(receiver, height)
+            if height == self.B:
+                clock.return_value = 1
+            return answer
+        self.created_ms = self.CUTOFF
+        with mock.patch("gate.rpc.time.monotonic", return_value=0) as clock:
+            with rpc.request_deadline(1):
+                with mock.patch.object(self.archival, "view_account_at", side_effect=state):
+                    check, _ = self.read()
+        self.assertEqual(check["status"], "unknown")
+        self.assertIn("deadline", check["detail"])
+
+    def test_total_cap_includes_nonce_without_repeated_headers(self):
+        self.skipped = set(range(self.B - 7, self.B + 8))
+        self.created_ms = self.time_at(self.B + 8)
+        original = self.time_at
+        self.time_at = lambda h: NOW_MS - rules.DAY_MS if h == KEY_HEIGHT else original(h)
+        self.fx.account(self.RECEIVER, block_height=ACCOUNT_HEIGHT)
+        self.fx.access_keys(self.RECEIVER, KEY_NONCE + 1)
+        self.token_ok(self.RECEIVER)
+        judgement = self.judge(request(self.RECEIVER), archival=self.archival)
         self.assertEqual(self.status(judgement, "account_age"), "signal")
-        self.assertTrue(self.detail(judgement, "account_age").startswith(
-            "view_access_key_list answers TOO_MANY_ACCESS_KEYS, so no key nonce dates the account; "
-            "stranger.testnet did not exist at block "), self.detail(judgement, "account_age"))
-        self.assertEqual(self.archival.view_account_at.call_args_list,
-                         [mock.call("stranger.testnet", STATE_HEIGHT),
-                          mock.call("stranger.testnet", self.YOUNG_HEIGHT)])
-        self.assertEqual(judgement.verdict, "DENY")
+        self.assertEqual(len(self.block_reads), rules.AGE_BLOCK_READS)
+        self.assertEqual(len(self.state_reads), 3)
+        self.assertTrue(self.skipped.issubset(self.block_reads))
+
+    def test_submillisecond_block_after_cutoff_cannot_pass(self):
+        original = self.archival.block_at.side_effect
+        def block(height):
+            answer = original(height)
+            if height == self.B:
+                answer["header"]["timestamp"] += 1
+            return answer
+        self.created_ms = self.CUTOFF
+        original_state = self.archival.view_account_at.side_effect
+        def state(receiver, height):
+            if height == self.B:
+                self.fx.account_at(receiver, height)
+                return {"block_height": height}
+            return original_state(receiver, height)
+        with (mock.patch.object(self.archival, "block_at", side_effect=block),
+              mock.patch.object(self.archival, "view_account_at", side_effect=state)):
+            check, _ = self.read()
+        self.assertEqual(check["status"], "signal")
+
+    def test_creation_time_property_across_rates_and_skips(self):
+        outcomes = set()
+        layouts = (
+            lambda h: NOW_MS - (ACCOUNT_HEIGHT - h) * 400,
+            lambda h: NOW_MS - (ACCOUNT_HEIGHT - h) * 700,
+            lambda h: NOW_MS - (ACCOUNT_HEIGHT - h) * 1200,
+            lambda h: NOW_MS - ((ACCOUNT_HEIGHT - h) * 450
+                               + max(0, ACCOUNT_HEIGHT - h - 504_000) * 600),
+        )
+        for layout in layouts:
+            for skips in (False, True):
+                for offset in (-2 * rules.DAY_MS, -1, 0, 1, 700, rules.DAY_MS):
+                    with self.subTest(layout=layouts.index(layout), skips=skips, offset=offset):
+                        self.time_at = layout
+                        low, high = 0, ACCOUNT_HEIGHT
+                        while high - low > 1:
+                            mid = (low + high) // 2
+                            if layout(mid) <= self.CUTOFF:
+                                low = mid
+                            else:
+                                high = mid
+                        self.skipped = set(range(low - 1, high + 2)) if skips else set()
+                        creation_low, creation_high = 0, ACCOUNT_HEIGHT
+                        while creation_high - creation_low > 1:
+                            mid = (creation_low + creation_high) // 2
+                            if layout(mid) < self.CUTOFF + offset:
+                                creation_low = mid
+                            else:
+                                creation_high = mid
+                        while creation_high in self.skipped:
+                            creation_high += 1
+                        self.created_ms = layout(creation_high)
+                        self.block_reads.clear()
+                        self.state_reads.clear()
+                        check, _ = self.read()
+                        outcomes.add(check["status"])
+                        self.assertEqual(check["status"], "pass" if self.created_ms <= self.CUTOFF else "signal",
+                                         check["detail"])
+                        if check["status"] == "pass":
+                            self.assertLessEqual(self.created_ms, self.CUTOFF)
+                        elif check["status"] == "signal":
+                            self.assertGreater(self.created_ms, self.CUTOFF)
+                        self.assertLessEqual(len(self.block_reads), rules.AGE_BLOCK_READS)
+                        self.assertLessEqual(len(self.state_reads), 3)
+        self.assertEqual(outcomes, {"pass", "signal"})
+
+
+class YoungStateAgeTest(BoundaryStateAgeCase):
+    def test_absence_after_the_old_young_probe_still_signals(self):
+        young_height = ACCOUNT_HEIGHT - 7 * rules.BLOCKS_PER_DAY_MIN
+        self.created_ms = self.time_at(young_height + 1)
+        check, young = self.read()
+        self.assertEqual(check["status"], "signal")
+        self.assertIs(young, True)
+
+    def test_young_probe_absence_metadata_must_match(self):
+        height = ACCOUNT_HEIGHT - 7 * rules.BLOCKS_PER_DAY_MIN
+        self.created_ms = self.time_at(height + 1)
+        for info in (None, [], {}, {"block_height": height},
+                     {"block_height": height, "requested_account_id": "other.testnet"},
+                     {"block_height": height + 1, "requested_account_id": self.RECEIVER},
+                     {"block_height": str(height), "requested_account_id": self.RECEIVER},
+                     {"block_height": float(height), "requested_account_id": self.RECEIVER},
+                     {"block_height": True, "requested_account_id": self.RECEIVER}):
+            with self.subTest(info=info):
+                original = self.archival.view_account_at.side_effect
+                def state(receiver, probe):
+                    if probe == height:
+                        raise rpc.RpcError({"cause": {"name": "UNKNOWN_ACCOUNT", "info": info}})
+                    return original(receiver, probe)
+                with mock.patch.object(self.archival, "view_account_at", side_effect=state):
+                    check, young = self.read()
+                self.assertEqual(check["status"], "unknown")
+                self.assertIs(young, True)
+
+    def test_young_probe_other_error_or_height_is_unknown(self):
+        height = ACCOUNT_HEIGHT - 7 * rules.BLOCKS_PER_DAY_MIN
+        for answer in (rpc.RpcError({"cause": {"name": "UNKNOWN_BLOCK"}}),
+                       rpc.HttpError(429, ARCHIVAL_URL), {"block_height": height + 1}, None):
+            with self.subTest(answer=answer):
+                original = self.archival.view_account_at.side_effect
+                def state(receiver, probe):
+                    if probe != height:
+                        return original(receiver, probe)
+                    if isinstance(answer, Exception):
+                        raise answer
+                    return answer
+                with mock.patch.object(self.archival, "view_account_at", side_effect=state):
+                    self.assertEqual(self.read()[0]["status"], "unknown")
 
     def test_a_slow_clock_cannot_signal_an_account_older_than_7_days(self):
-        block_ns = NOW_MS * 10**6 - 7 * DAY_NS - MINUTE_NS
-        created_ns = block_ns + 30 * 10**9
-        self.assertEqual(NOW_MS * 10**6 - created_ns, 7 * DAY_NS + 30 * 10**9)
-        self.blocks[self.YOUNG_HEIGHT]["header"]["timestamp"] = block_ns
-        check, young = rules._state_age(self.archival, "stranger.testnet",
-                                        {"block_height": ACCOUNT_HEIGHT}, self.rpc.last_source,
-                                        NOW_MS - 120_000, 7, "stranger.testnet has no access key")
-        self.assertEqual(check["status"], "unknown")
-        self.assertIn("whether it is younger than 7 days is not known", check["detail"])
-        self.assertIs(young, True)
-        self.archival.view_account_at.assert_called_once_with("stranger.testnet", STATE_HEIGHT)
+        self.created_ms = self.CUTOFF - 30_000
+        check, young = self.read(NOW_MS - 120_000)
+        self.assertEqual(check["status"], "pass")
+        self.assertIs(young, False)
 
-    def test_a_block_younger_than_7_days_on_chain_signals_despite_a_fast_clock(self):
-        self.blocks[self.YOUNG_HEIGHT]["header"]["timestamp"] = NOW_MS * 10**6 - 7 * DAY_NS + MINUTE_NS
-        check, young = rules._state_age(self.archival, "stranger.testnet",
-                                        {"block_height": ACCOUNT_HEIGHT}, self.rpc.last_source,
-                                        NOW_MS + 120_000, 7, "stranger.testnet has no access key")
+    def test_a_young_account_signals_despite_a_fast_clock(self):
+        check, young = self.read(NOW_MS + 120_000)
         self.assertEqual(check["status"], "signal")
         self.assertIs(young, True)
-        self.assertEqual(self.archival.view_account_at.call_count, 2)
 
     def test_a_reference_time_more_than_10_minutes_from_now_keeps_unknown(self):
-        for offset_ms in (-600_001, 600_001):
-            with self.subTest(offset_ms=offset_ms):
-                self.archival.view_account_at.side_effect = [
-                    self.absent(STATE_HEIGHT), self.absent(self.YOUNG_HEIGHT)]
-                self.archival.view_account_at.reset_mock()
-                self.blocks[ACCOUNT_HEIGHT]["header"]["timestamp"] = (NOW_MS + offset_ms) * 10**6
-                judgement = self.judge(request("stranger.testnet"), archival=self.archival)
-                self.assertEqual(self.status(judgement, "account_age"), "unknown")
-                self.assertEqual(judgement.verdict, "UNKNOWN")
-                self.archival.view_account_at.assert_called_once_with("stranger.testnet", STATE_HEIGHT)
+        for offset in (-600_001, 600_001):
+            with self.subTest(offset=offset):
+                self.assertEqual(self.read(NOW_MS + offset)[0]["status"], "unknown")
 
-    def test_a_failed_reference_block_read_keeps_the_original_unknown_answer(self):
-        self.archival.block_at.side_effect = [self.blocks[STATE_HEIGHT],
-                                             self.blocks[self.YOUNG_HEIGHT], rpc.HttpError(500, ARCHIVAL_URL)]
-        judgement = self.judge(request("stranger.testnet"), archival=self.archival)
-        self.assertEqual(self.status(judgement, "account_age"), "unknown")
-        self.assertIn("whether it is younger than 7 days is not known", self.detail(judgement, "account_age"))
-        self.assertEqual(judgement.verdict, "UNKNOWN")
-        self.archival.view_account_at.assert_called_once_with("stranger.testnet", STATE_HEIGHT)
-
-    def test_absence_metadata_must_match_the_account_and_height_at_each_probe(self):
-        for height in (STATE_HEIGHT, self.YOUNG_HEIGHT):
-            for info in (
-                    {"block_height": height + 1, "requested_account_id": "stranger.testnet"},
-                    {"block_height": height, "requested_account_id": "other.testnet"},
-                    {"block_height": str(height), "requested_account_id": "stranger.testnet"},
-                    {"block_height": float(height), "requested_account_id": "stranger.testnet"},
-                    {"block_height": True, "requested_account_id": "stranger.testnet"},
-                    {"block_height": height, "requested_account_id": ["stranger.testnet"]},
-                    {"requested_account_id": "stranger.testnet"}, {"block_height": height},
-                    {}, None, [], "missing"):
-                with self.subTest(height=height, info=info):
-                    errors = [self.absent(STATE_HEIGHT), self.absent(self.YOUNG_HEIGHT)]
-                    errors[0 if height == STATE_HEIGHT else 1] = rpc.RpcError({
-                        "cause": {"name": "UNKNOWN_ACCOUNT", "info": info}})
-                    self.archival.view_account_at.side_effect = errors
-                    self.archival.view_account_at.reset_mock()
-                    judgement = self.judge(request("stranger.testnet"), archival=self.archival)
-                    self.assertEqual(self.status(judgement, "account_age"), "unknown")
-                    self.assertEqual(judgement.verdict, "UNKNOWN")
-                    self.assertEqual(self.archival.view_account_at.call_count,
-                                     1 if height == STATE_HEIGHT else 2)
+    def test_a_failed_reference_block_read_keeps_unknown_and_absence(self):
+        self.failures[ACCOUNT_HEIGHT] = rpc.HttpError(500, ARCHIVAL_URL)
+        check, young = self.read()
+        self.assertEqual(check["status"], "unknown")
+        self.assertIs(young, True)
+        self.assertEqual(self.state_reads, [STATE_HEIGHT])
 
     def test_first_probe_absence_with_an_old_fallback_key_keeps_unknown(self):
-        self.fx.keys("stranger.testnet", NOW_MS * 10**6 - 30 * DAY_NS)
-        self.fx.transaction(5e23, "stranger.testnet")
-        for metadata in (
-                {}, {"info": None}, {"info": []}, {"info": "missing"}, {"info": {}},
-                {"info": {"requested_account_id": "stranger.testnet"}},
-                {"info": {"block_height": STATE_HEIGHT}},
-                {"info": {"block_height": str(STATE_HEIGHT), "requested_account_id": "stranger.testnet"}},
-                {"info": {"block_height": float(STATE_HEIGHT), "requested_account_id": "stranger.testnet"}},
-                {"info": {"block_height": True, "requested_account_id": "stranger.testnet"}},
-                {"info": {"block_height": STATE_HEIGHT, "requested_account_id": ["stranger.testnet"]}},
-                {"info": {"block_height": STATE_HEIGHT + 1, "requested_account_id": "stranger.testnet"}},
-                {"info": {"block_height": STATE_HEIGHT, "requested_account_id": "other.testnet"}}):
-            with self.subTest(metadata=metadata):
-                self.archival.view_account_at.side_effect = [
-                    rpc.RpcError({"cause": {"name": "UNKNOWN_ACCOUNT", **metadata}}),
-                    self.absent(self.YOUNG_HEIGHT),
-                ]
-                self.archival.view_account_at.reset_mock()
-                self.archival.block_at.reset_mock()
-                judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+        self.fx.account(self.RECEIVER, block_height=ACCOUNT_HEIGHT)
+        self.fx.access_keys(self.RECEIVER)
+        self.fx.keys(self.RECEIVER, NOW_MS * 10**6 - 30 * DAY_NS)
+        self.fx.transaction(5e23, self.RECEIVER)
+        self.token_ok(self.RECEIVER)
+        for info in (None, [], {}, {"block_height": STATE_HEIGHT},
+                     {"requested_account_id": self.RECEIVER},
+                     {"block_height": str(STATE_HEIGHT), "requested_account_id": self.RECEIVER},
+                     {"block_height": float(STATE_HEIGHT), "requested_account_id": self.RECEIVER},
+                     {"block_height": True, "requested_account_id": self.RECEIVER},
+                     {"block_height": STATE_HEIGHT + 1, "requested_account_id": self.RECEIVER},
+                     {"block_height": STATE_HEIGHT, "requested_account_id": "other.testnet"}):
+            with self.subTest(info=info):
+                error = rpc.RpcError({"cause": {"name": "UNKNOWN_ACCOUNT", "info": info}})
+                with mock.patch.object(self.archival, "view_account_at", side_effect=error) as state:
+                    judgement = self.judge(request(self.RECEIVER), archival=self.archival)
                 self.assertEqual(judgement.verdict, "UNKNOWN")
                 self.assertEqual(self.status(judgement, "account_age"), "unknown")
-                self.assertEqual(self.detail(judgement, "account_age"),
-                                 "no archival age (stranger.testnet has no access key; stranger.testnet did not "
-                                 "exist at block 221701472 (2026-10-22T11:50:00Z) from archival.example, so it "
-                                 "was created after that block, which is at least 7 d old; whether it is younger "
-                                 "than 7 days is not known); the oldest key NearBlocks lists was created 30 d "
-                                 "ago, but the archival node found no stranger.testnet at the old block, so "
-                                 "that key does not date the account")
-                self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
-                self.archival.view_account_at.assert_called_once_with("stranger.testnet", STATE_HEIGHT)
-                self.archival.block_at.assert_called_once_with(STATE_HEIGHT)
+                self.assertIn("that key does not date the account", self.detail(judgement, "account_age"))
+                state.assert_called_once_with(self.RECEIVER, STATE_HEIGHT)
 
-    def test_absence_without_info_at_either_probe_keeps_unknown(self):
-        for probe in (0, 1):
-            with self.subTest(probe=probe):
-                errors = [self.absent(STATE_HEIGHT), self.absent(self.YOUNG_HEIGHT)]
-                errors[probe] = rpc.RpcError({"cause": {"name": "UNKNOWN_ACCOUNT"}})
-                self.archival.view_account_at.side_effect = errors
-                judgement = self.judge(request("stranger.testnet"), archival=self.archival)
-                self.assertEqual(self.status(judgement, "account_age"), "unknown")
-                self.assertEqual(judgement.verdict, "UNKNOWN")
-
-    def test_missing_at_both_blocks_signals_with_both_times_and_true(self):
-        check, young = rules._state_age(self.archival, "stranger.testnet",
-                                        {"block_height": ACCOUNT_HEIGHT}, self.rpc.last_source,
-                                        NOW_MS, 7, "stranger.testnet has no access key")
-        self.assertEqual(check["status"], "signal")
-        self.assertIs(young, True)
-        self.assertEqual(check["detail"],
-                         "stranger.testnet has no access key; stranger.testnet did not exist at block "
-                         "221701472 (2026-10-22T11:50:00Z) from archival.example or block "
-                         "222608672 (2026-10-28T12:00:00Z) from archival.example, which is younger than "
-                         "7 days, so it was created less than 7 days ago")
-        self.assertEqual(self.archival.view_account_at.call_args_list,
-                         [mock.call("stranger.testnet", STATE_HEIGHT),
-                          mock.call("stranger.testnet", self.YOUNG_HEIGHT)])
-
-    def test_missing_at_both_blocks_is_deny_without_nearblocks(self):
+    def test_too_many_access_keys_uses_boundary_and_signals_without_nearblocks(self):
+        self.fx.account(self.RECEIVER, block_height=ACCOUNT_HEIGHT)
+        self.fx.rpc_error(self.fx.key_list_params(self.RECEIVER), "TOO_MANY_ACCESS_KEYS")
+        self.token_ok(self.RECEIVER)
         with mock.patch.object(self.nearblocks, "get", side_effect=AssertionError("unexpected fallback")):
-            judgement = self.judge(request("stranger.testnet"), archival=self.archival)
+            judgement = self.judge(request(self.RECEIVER), archival=self.archival)
         self.assertEqual(self.status(judgement, "account_age"), "signal")
-        self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
         self.assertEqual(judgement.verdict, "DENY")
-        self.assertEqual(judgement.reasons,
-                         ["Created less than 7 days ago.", "Not on the owner's allowlist."])
+        self.assertEqual(self.state_reads, [STATE_HEIGHT, ACCOUNT_HEIGHT - 7 * rules.BLOCKS_PER_DAY_MIN, self.B])
 
-    def test_present_at_the_young_block_keeps_the_unknown_answer(self):
-        self.archival.view_account_at.side_effect = [
-            self.absent(STATE_HEIGHT),
-            {"block_height": self.YOUNG_HEIGHT},
-        ]
-        judgement = self.judge(request("stranger.testnet"), archival=self.archival)
-        self.assertEqual(self.status(judgement, "account_age"), "unknown")
-        self.assertIn("whether it is younger than 7 days is not known", self.detail(judgement, "account_age"))
-        self.assertEqual(judgement.verdict, "UNKNOWN")
-        self.assertEqual(self.archival.view_account_at.call_count, 2)
-
-    def test_a_young_candidate_dated_7_days_or_older_never_reads_its_state(self):
-        for days in (7, 8):
-            with self.subTest(days=days):
-                self.blocks[self.YOUNG_HEIGHT]["header"]["timestamp"] = NOW_MS * 10**6 - days * DAY_NS
-                self.archival.view_account_at.side_effect = [
-                    self.absent(STATE_HEIGHT), self.absent(self.YOUNG_HEIGHT)]
-                self.archival.view_account_at.reset_mock()
-                judgement = self.judge(request("stranger.testnet"), archival=self.archival)
-                self.assertEqual(self.status(judgement, "account_age"), "unknown")
-                self.assertEqual(judgement.verdict, "UNKNOWN")
-                self.archival.view_account_at.assert_called_once_with("stranger.testnet", STATE_HEIGHT)
-                self.assertEqual(self.archival.block_at.call_args_list[-2:],
-                                 [mock.call(self.YOUNG_HEIGHT), mock.call(ACCOUNT_HEIGHT)])
-
-    def test_a_failed_young_block_read_keeps_the_unknown_answer(self):
-        self.archival.block_at.side_effect = [self.blocks[STATE_HEIGHT], rpc.HttpError(500, ARCHIVAL_URL)]
-        judgement = self.judge(request("stranger.testnet"), archival=self.archival)
-        self.assertEqual(self.status(judgement, "account_age"), "unknown")
-        self.assertIn("whether it is younger than 7 days is not known", self.detail(judgement, "account_age"))
-        self.assertEqual(judgement.verdict, "UNKNOWN")
-        self.assertEqual(self.archival.block_at.call_count, 2)
-        self.archival.view_account_at.assert_called_once_with("stranger.testnet", STATE_HEIGHT)
-
-    def test_another_young_state_error_keeps_the_unknown_answer(self):
-        self.archival.view_account_at.side_effect = [
-            self.absent(STATE_HEIGHT),
-            rpc.RpcError({"cause": {"name": "UNKNOWN_BLOCK"}}),
-        ]
-        judgement = self.judge(request("stranger.testnet"), archival=self.archival)
-        self.assertEqual(self.status(judgement, "account_age"), "unknown")
-        self.assertIn("whether it is younger than 7 days is not known", self.detail(judgement, "account_age"))
-        self.assertEqual(judgement.verdict, "UNKNOWN")
-        self.assertEqual(self.archival.view_account_at.call_count, 2)
-
-    def test_a_young_state_from_another_height_keeps_the_unknown_answer(self):
-        self.archival.view_account_at.side_effect = [
-            self.absent(STATE_HEIGHT),
-            {"block_height": self.YOUNG_HEIGHT + 1},
-        ]
-        judgement = self.judge(request("stranger.testnet"), archival=self.archival)
-        self.assertEqual(self.status(judgement, "account_age"), "unknown")
-        self.assertEqual(judgement.verdict, "UNKNOWN")
-        self.assertEqual(self.archival.view_account_at.call_count, 2)
-
-    def test_an_old_account_passes_without_a_second_probe(self):
-        self.archival.view_account_at.side_effect = [{"block_height": STATE_HEIGHT}]
-        judgement = self.judge(request("stranger.testnet"), archival=self.archival)
-        self.assertEqual(self.status(judgement, "account_age"), "pass")
-        self.assertEqual(self.detail(judgement, "account_age"),
-                         "stranger.testnet has no access key; view_account finds stranger.testnet at block "
-                         "221701472 (2026-10-22T11:50:00Z) from archival.example, at least 7 d old")
-        self.assertEqual(judgement.verdict, "ALLOW")
-        self.archival.block_at.assert_called_once_with(STATE_HEIGHT)
-        self.archival.view_account_at.assert_called_once_with("stranger.testnet", STATE_HEIGHT)
+    def test_an_old_account_keeps_the_established_single_probe(self):
+        self.created_ms = self.time_at(STATE_HEIGHT) - rules.DAY_MS
+        check, young = self.read()
+        self.assertEqual(check["status"], "pass")
+        self.assertIs(young, False)
+        self.assertEqual(self.state_reads, [STATE_HEIGHT])
 
 
 class TierOneTest(RulesCase):
@@ -2221,7 +2456,7 @@ class RulesVersionTwoCase(RulesCase):
 
     def old_account(self, name, code_hash=CODE_HASH, global_hash=None):
         result = {"amount": "1000", "locked": "0", "code_hash": code_hash, "storage_usage": 182,
-                  "storage_paid_at": 0, "block_height": STATE_HEIGHT, "block_hash": KEY_BLOCK_HASH}
+                  "storage_paid_at": 0, "block_height": STATE_HEIGHT, "block_hash": block_hash(STATE_HEIGHT)}
         if global_hash is not None:
             result["global_contract_hash"] = global_hash
         self.fx.write(ARCHIVAL_URL, "query", self.fx.state_params(name, STATE_HEIGHT),

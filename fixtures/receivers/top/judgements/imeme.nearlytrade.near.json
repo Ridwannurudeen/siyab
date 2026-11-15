@@ -8,7 +8,7 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "UNKNOWN",
+  "verdict": "DENY",
   "checks": [
     {
       "id": "receiver_exists",
@@ -52,12 +52,12 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "no archival age (imeme.nearlytrade.near has no access key; imeme.nearlytrade.near did not exist at block 222505597 (2026-11-01T02:16:22Z) from archival-rpc.mainnet.fastnear.com, so it was created after that block, which is at least 7 d old; whether it is younger than 7 days is not known); no key of imeme.nearlytrade.near carries a creation time",
+      "status": "signal",
+      "detail": "imeme.nearlytrade.near has no access key; block 222667778 (2026-11-02T04:13:50Z) from archival-rpc.mainnet.fastnear.com and block 222667779 (2026-11-02T04:13:51Z) from archival-rpc.mainnet.fastnear.com are adjacent existing blocks around the 7 day cutoff; imeme.nearlytrade.near did not exist at block 222667778, so it was created less than 7 days ago",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "f10698a40eacaeac4eb937ca245ef2dded0cc2061da4a8166fc9b3ce7c71bf51",
-        "fetched_at": "2026-11-09T04:13:59Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "7d16843b617bc76c87f88dce9e25dde072d3b614bd3a20ddd1553587270bdb71",
+        "fetched_at": "2026-11-15T15:55:19Z"
       }
     },
     {
@@ -92,8 +92,8 @@
     }
   ],
   "reasons": [
-    "account_age could not run: no archival age (imeme.nearlytrade.near has no access key; imeme.nearlytrade.near did not exist at block 222505597 (2026-11-01T02:16:22Z) from archival-rpc.mainnet.fastnear.com, so it was created after that block, which is at least 7 d old; whether it is younger than 7 days is not known); no key of imeme.nearlytrade.near carries a creation time.",
-    "dust_funded could not run: the creation transaction is not known."
+    "Created less than 7 days ago.",
+    "Not on the owner's allowlist."
   ],
   "labels": [],
   "observed": {

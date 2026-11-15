@@ -53,7 +53,7 @@
     {
       "id": "account_age",
       "status": "unknown",
-      "detail": "no archival age (singularty.nearlytrade.near has no access key; block 223464734 (2026-11-07T12:13:09Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days); could not read the account keys: no recorded response for the request",
+      "detail": "no archival age (singularty.nearlytrade.near has no access key; block 223464734 (2026-11-07T12:13:09Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days; archival boundary could not run: MalformedResponse: the receiver's reference block is more than 10 minutes from now); could not read the account keys: no recorded response for the request",
       "source": {
         "provider": "api.nearblocks.io",
         "request_sha256": "8d58d797eadab3d41077de07ba527ed60987faec237611680a71fdc302419271",
@@ -92,7 +92,7 @@
     }
   ],
   "reasons": [
-    "account_age could not run: no archival age (singularty.nearlytrade.near has no access key; block 223464734 (2026-11-07T12:13:09Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days); could not read the account keys: no recorded response for the request.",
+    "account_age could not run: no archival age (singularty.nearlytrade.near has no access key; block 223464734 (2026-11-07T12:13:09Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days; archival boundary could not run: MalformedResponse: the receiver's reference block is more than 10 minutes from now); could not read the account keys: no recorded response for the request.",
     "dust_funded could not run: the creation transaction is not known."
   ],
   "labels": [
