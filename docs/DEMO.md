@@ -50,7 +50,7 @@ Caption: "DENY, with the evidence. The agent submits anyway; the guard has no si
 
 This testnet injected DENY is the easy case: besides its labels and the memo, the collector does not exist on testnet and is not registered on the token (`fixtures/rpc/attacks/10-injected.json:3-5`), so the existence check alone refuses it. For the harder case, use the recorded mainnet judgement of `rhea000453.multica.near`. In that file `receiver_exists` and `account_age` pass, dating it at least 7 days old; `issuer_blacklist`, `memo_injection`, `dust_funded`, `lookalike` and `code_without_metadata` also pass. Its DENY comes from `label_denylist`, which cites the rekt.news report naming it within Rhea's Multichain Account system and receiving traceable funds (`fixtures/receivers/judgements/rhea000453.multica.near.json:11-100`).
 
-Replay with `python -m intel receivers`, which rewrites the recorded set's judgements from the replay, after which `git status` shows no change (`README.md:341`); then inspect that file. For a live unsigned check of the same account (`docs/API.md:254,279`):
+Replay with `python -m intel receivers`, which rewrites the recorded set's judgements from the replay, after which `git status` shows no change (`README.md:343`); then inspect that file. For a live unsigned check of the same account (`docs/API.md:254,279`):
 
 ```sh
 curl -s https://siyab.xyz/live/account-check/rhea000453.multica.near
