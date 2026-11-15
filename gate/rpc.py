@@ -5,7 +5,7 @@ The mode comes from GATE_FIXTURES_MODE:
     replay  (default) answer from fixtures only; a request with no fixture raises FixtureMiss,
             which the rules report as unknown, never as a pass
     record  answer from a fixture younger than 24 hours without a request; otherwise fetch,
-            write the fixture and answer
+            write the fixture and answer; reuse_existing keeps existing fixtures at any age
     off     fetch every time and write nothing
 
 A fixture is fixtures/rpc/<key>.json holding {"request", "response", "url", "fetched_at"}, where
@@ -20,13 +20,15 @@ allows 6 calls a minute and 333 a day) are spaced at least 10 s apart, and past 
 day per process they raise RateLimited without a request. Inside request_deadline (a request being
 served) a NearBlocks fetch whose slot is not free yet raises RateLimited instead of sleeping.
 
-In mode off, each fetch is first reserved against the durable provider budget (intel/budget.py:reserve)
+In mode off, and in record only for caller class recording, each fetch is first reserved against the durable
+provider budget (intel/budget.py:reserve)
 for the provider class of its host and the caller class the entry point set with caller_class
 (operator when none is set). A spent budget raises BudgetExhausted, a RateLimited, without a request.
 The FastNEAR key (an Authorization header to a FastNEAR host) goes out only when reserve allows it:
 when no budget database is configured, or a key cooldown runs, the request goes out without it. A 403
-or 429 answering a keyed request starts that cooldown (intel/budget.py:key_failure). Replay and record
-never touch the budget database.
+or 429 answering a keyed request starts that cooldown (intel/budget.py:key_failure). The recording caller
+class stops when the budget refuses the key, including during cooldown, or HTTP 401, 402, 403 or 429 rejects it.
+Replay and other record callers never touch the budget database.
 """
 
 import base64
@@ -191,6 +193,13 @@ class HttpError(Exception):
         super().__init__(f"HTTP {status} from {url}")
         self.status = status
         self.retry_after = retry_after
+
+
+class RecordingKeyRejected(Exception):
+    """A keyed recording request was rejected; stop the run even inside judgement rules."""
+
+    def __init__(self, status):
+        super().__init__(f"the provider rejected the recording key: HTTP {status}")
 
 
 class TransportError(Exception):
@@ -874,7 +883,7 @@ class Client:
     """
 
     def __init__(self, url, mode=None, *, kind="rpc", fixtures_dir=FIXTURES_DIR, clock=time.time,
-                 sleep=time.sleep, headers=None):
+                 sleep=time.sleep, headers=None, reuse_existing=False):
         mode = mode or os.environ.get("GATE_FIXTURES_MODE") or "replay"
         if mode not in MODES:
             raise ValueError(f"GATE_FIXTURES_MODE must be one of {MODES}, not {mode!r}")
@@ -887,6 +896,7 @@ class Client:
         self.clock = clock
         self.sleep = sleep
         self.headers = dict(headers or {})
+        self.reuse_existing = reuse_existing
         self.last_source = None
         self.last_block_height = None
         self.last_reduced = False
@@ -1019,6 +1029,9 @@ class Client:
                  and any(name.lower() == "authorization" for name in self.headers))
         try:
             send_key = budget.reserve(provider, _CALLER_CLASS.get() or "operator", keyed=keyed, now=self.clock())
+            if keyed and not send_key and _CALLER_CLASS.get() == "recording":
+                raise budget.Refused("The provider budget refused the recording key; retry later.",
+                                     budget.REFUSAL_RETRY_S)
         except budget.Refused as refused:
             error = BudgetExhausted(str(refused), refused.retry_after)
             refusals = _BUDGET_REFUSALS.get()
@@ -1044,7 +1057,8 @@ class Client:
                 fixture = json.loads(data)
             except RecursionError as error:
                 raise MalformedResponse("the body is nested too deeply to parse") from error
-            if self.mode == "replay" or self.clock() - _seconds(fixture["fetched_at"]) < MAX_AGE_S:
+            if (self.mode == "replay" or self.reuse_existing
+                    or self.clock() - _seconds(fixture["fetched_at"]) < MAX_AGE_S):
                 self.last_source["fetched_at"] = fixture["fetched_at"]
                 response = fixture["response"]
                 used_fixture = True
@@ -1054,15 +1068,21 @@ class Client:
         if not used_fixture:
             if self.mode == "replay":
                 raise FixtureMiss(key, url, method, params)
+            if _CALLER_CLASS.get() == "recording" and _BUDGET_REFUSALS.get():
+                raise _BUDGET_REFUSALS.get()[0]
             if host in NEARBLOCKS_HOSTS:
                 self._respect_nearblocks(host)
-            headers, keyed = self._metered(host) if self.mode == "off" else (self.headers, False)
+            headers, keyed = (self._metered(host) if self.mode == "off" or _CALLER_CLASS.get() == "recording"
+                              else (self.headers, False))
             if self.mode == "record" and budget.provider_class(host) not in budget.FASTNEAR_CLASSES:
                 headers = {name: value for name, value in headers.items() if name.lower() != "authorization"}
             try:
                 response = _fetch(request_url or url, body, headers, record_http_errors)
             except HttpError as error:
                 if keyed:
+                    if _CALLER_CLASS.get() == "recording" and error.status in (401, 402, 403, 429):
+                        budget.key_failure(error.status, self.clock())
+                        raise RecordingKeyRejected(error.status) from None
                     if error.status in (401, 402, 403):
                         print(f"provider rejected the key: HTTP {error.status} from {host}", file=sys.stderr)
                     budget.key_failure(error.status, self.clock())

@@ -265,21 +265,29 @@ def bisect_start_height(end_height, end_timestamp_ns, target_timestamp_ns, fetch
     return high_height, high_timestamp
 
 
-def _neardata_fetcher():
-    """The neardata fetcher and request interval for a scan: keyed (an Authorization Bearer header read from the file
-    FASTNEAR_API_KEY_FILE names, the key never printed) when that variable is set and a provider budget database
-    is configured, keyless otherwise. With a database, a set variable whose file cannot be read or is empty stops
-    the scan rather than falling back to keyless."""
+def fastnear_headers():
+    """Read the configured FastNEAR credential only with a provider budget database."""
     key_file = os.environ.get("FASTNEAR_API_KEY_FILE")
     if not key_file or budget.database() is None:
-        return feed.Fetcher(max_requests=None, max_consecutive_429s=MAX_CONSECUTIVE_429S), REQUEST_INTERVAL_S
+        return {}
     try:
         api_key = Path(key_file).read_text(encoding="utf-8").strip()
     except (OSError, UnicodeDecodeError) as error:
         raise TopReceiversError("the file FASTNEAR_API_KEY_FILE names cannot be read") from error
     if not api_key:
         raise TopReceiversError("the file FASTNEAR_API_KEY_FILE names is empty")
-    client = rpc.Client(feed.NEARDATA_URL, "off", kind="http", headers={"Authorization": f"Bearer {api_key}"})
+    if "\r" in api_key or "\n" in api_key:
+        raise TopReceiversError("the file FASTNEAR_API_KEY_FILE names is invalid")
+    return {"Authorization": f"Bearer {api_key}"}
+
+
+def _neardata_fetcher():
+    """The neardata fetcher and request interval for a scan: keyed when a credential and provider budget database
+    are configured, keyless otherwise. An unreadable or invalid configured credential stops the scan."""
+    headers = fastnear_headers()
+    if not headers:
+        return feed.Fetcher(max_requests=None, max_consecutive_429s=MAX_CONSECUTIVE_429S), REQUEST_INTERVAL_S
+    client = rpc.Client(feed.NEARDATA_URL, "off", kind="http", headers=headers)
     return feed.Fetcher(client, max_requests=None, max_consecutive_429s=MAX_CONSECUTIVE_429S), KEYED_REQUEST_INTERVAL_S
 
 

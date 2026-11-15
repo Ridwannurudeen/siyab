@@ -348,12 +348,29 @@ def top_receiver_exclusions(store):
 
 def record_top_receiver_judgements(document, store, reports_account=None):
     """Record missing RPC reads for the top set, using the existing age lookup limit."""
-    client = rpc.Client(rpc.MAINNET_RPC_URL, "record", fixtures_dir=RECEIVER_RPC_DIR)
-    archival = rpc.Client(rpc.ARCHIVAL_RPC_URL, "record", fixtures_dir=RECEIVER_RPC_DIR)
-    for entry in document["subjects"]:
-        nearblocks = rpc.Client(rpc.NEARBLOCKS_URL, "record" if entry["age_recorded"] else "replay",
-                                kind="http", fixtures_dir=RECEIVER_RPC_DIR)
-        _judge(entry, store, client, nearblocks, document["judged_at_ms"], archival, reports_account)
+    if not os.environ.get("FASTNEAR_API_KEY_FILE"):
+        raise ValueError("judge-top-receivers --record requires FASTNEAR_API_KEY_FILE")
+    configured = os.environ.get(budget.DATABASE_ENV)
+    state = os.environ.get("FEED_STATE_DIR")
+    location_message = ("judge-top-receivers --record requires FEED_STATE_DIR or SIYAB_PROVIDER_BUDGET_DB "
+                        "outside the repository")
+    if not configured and not state:
+        raise ValueError(location_message)
+    database = (Path(configured) if configured else Path(state) / budget.DATABASE_NAME).resolve()
+    if database == ROOT or ROOT in database.parents:
+        raise ValueError(location_message)
+    with budget.use_database(database), rpc.caller_class("recording") as refusals:
+        headers = top_receivers.fastnear_headers()
+        client = rpc.Client(rpc.MAINNET_RPC_URL, "record", fixtures_dir=RECEIVER_RPC_DIR,
+                            headers=headers, reuse_existing=True)
+        archival = rpc.Client(rpc.ARCHIVAL_RPC_URL, "record", fixtures_dir=RECEIVER_RPC_DIR,
+                              headers=headers, reuse_existing=True)
+        for entry in document["subjects"]:
+            nearblocks = rpc.Client(rpc.NEARBLOCKS_URL, "record" if entry["age_recorded"] else "replay",
+                                    kind="http", fixtures_dir=RECEIVER_RPC_DIR, reuse_existing=True)
+            _judge(entry, store, client, nearblocks, document["judged_at_ms"], archival, reports_account)
+            if refusals:
+                raise refusals[0]
 
 
 def top_receivers_coverage_line(document, results):
@@ -398,7 +415,7 @@ def _judge_top_receivers(args):
             record_top_receiver_judgements(document, store, os.environ.get("REPORTS_ACCOUNT_ID"))
         results = judge_receivers(document, store, TOP_RECEIVERS_DIR,
                                   reports_account=os.environ.get("REPORTS_ACCOUNT_ID"))
-    except (feed.FeedError, rpc.FixtureMiss, rpc.HttpError, rpc.RateLimited, rpc.TransportError,
+    except (feed.FeedError, rpc.FixtureMiss, rpc.HttpError, rpc.RecordingKeyRejected, rpc.RateLimited, rpc.TransportError,
             OSError, ValueError) as error:
         print(f"stopped: {error}", file=sys.stderr)
         return 1

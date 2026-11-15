@@ -2,7 +2,8 @@
 
 The API and the history and investigation workers are separate processes, so a provider count kept in memory
 would be neither shared nor kept across a restart. gate.rpc.Client._exchange calls reserve before every real
-fetch (mode off; replay and record never call it). reserve counts the call in one SQLite BEGIN IMMEDIATE
+fetch in mode off, or record with caller class recording; replay and other record callers never call it.
+reserve counts the call in one SQLite BEGIN IMMEDIATE
 transaction, which every process takes in turn, after checking every window the call falls in, so concurrent
 processes cannot overshoot a limit; when one is spent it raises Refused and counts nothing. A reserved call stays
 counted whether or not the provider answers.
@@ -44,7 +45,7 @@ KEY_FAILURE_STATUSES = (403, 429)
 # Retry-After for a call refused because the database could not be read.
 REFUSAL_RETRY_S = 60
 # backfill is the public backfill route: its calls count toward the anonymous budget as well as its own.
-CALLER_CLASSES = ("anonymous", "backfill", "team", "watch", "investigation", "feed", "operator")
+CALLER_CLASSES = ("anonymous", "backfill", "team", "watch", "investigation", "feed", "operator", "recording")
 PARENT_CLASSES = {"backfill": "anonymous"}
 # Keyed calls a caller class may make: provider class, or "*" for every provider class together, to
 # (per UTC day, per hour, per minute), None leaving that window open. A provider class a table leaves out gets
@@ -58,6 +59,7 @@ KEYED_LIMITS = {
     "investigation": {"*": (1500, 250, None)},
     "feed": {"*": (0, 0, None)},
     "operator": {"*": (1500, None, None)},
+    "recording": {"*": (3000, None, None)},
 }
 # Keyless FastNEAR calls spend no credit; these politeness ceilings are shared by every caller class.
 KEYLESS_LIMITS = {"fastnear_rpc": (20000, 2000, None), "fastnear_archival": (3000, 300, None)}
@@ -166,7 +168,7 @@ def reserve(provider, caller, *, keyed, now):
 
     Returns True when the call may carry the FastNEAR key: keyed is true, a database is configured and no key
     cooldown runs. Raises Refused, counting nothing, when a window the call falls in is spent or the database
-    cannot be opened or read."""
+    cannot be opened or read. A keyed recording call also refuses during cooldown instead of going keyless."""
     path = database()
     if path is None:
         return False
@@ -176,6 +178,9 @@ def reserve(provider, caller, *, keyed, now):
             if keyed:
                 cooldown = connection.execute("SELECT until_ms FROM key_cooldown WHERE singleton=1").fetchone()
                 keyed = cooldown is None or cooldown[0] <= int(now * 1000)
+                if not keyed and caller == "recording":
+                    raise Refused("The provider budget refused the recording key during cooldown; retry later.",
+                                  math.ceil(cooldown[0] / 1000 - now))
             counters = _counters(provider, caller, keyed)
             spent, retry_after = [], 1
             for (counter, span), limit in counters.items():
