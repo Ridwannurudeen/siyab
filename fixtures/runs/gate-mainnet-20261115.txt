@@ -1,0 +1,51 @@
+Siyab Gate mainnet run, 15 Nov 2026 (UTC), completed 12:02 UTC
+
+Summary of the supplied public run report and its section 11 command-list template, with the original evidence and verdict files retained below. This is a recorded run, not a new network check or a verbatim terminal transcript.
+
+Gate account and owner_id: siyabgate.near (single account; owner calls signed by siyabgate.near with its one FullAccess key ed25519:7TPhZL78c12nxfn4RSk6f8rd59f3AA1rsMD5JSk6rAmz)
+Artifact: res/gate.wasm 264604 bytes, sha256 3ef57087f7f83c7862cc7313007c89bdd4601bc21e3483c9fae52079622f0b76, code_hash 5EmM2UQRYcvaNvJX6jfcgtNS7Mm8ZPjZhwK1J8bMXrcu
+Repo: siyab-hold 30d0d4bbb for the verdict commands; near-cli-rs 0.30.1 (WSL Ubuntu); PyNaCl 1.6.2
+Verifier public key: ed25519:77nn97D9twagzd1h5HYsdxySe4sNrCLwQwR7vi66Y9ZW (hex 5ae35e39d1b9c089402670c38d4ed8011003fc9798df7fb61f33859e0e307b85), new for mainnet
+Agent public key: ed25519:4H9pDNonqT2MMjAzcmPRWYkAcYLYwQZpLwym4dp6Fqm6 (hex 30b651dc9fdcb09f843fab14881d83141e86463b374ba4b619110233a8f8651d), FunctionCall request_transfer on siyabgate.near, allowance 0.05 NEAR
+Payee (allowlisted): maryamnurudeen.near
+Collector (refused leg): 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 (fixtures/demo/injected-message.txt:6)
+Transfer amount in each leg: 10000000000000000000000 yoctoNEAR (0.01 NEAR), no token, no memo
+
+Before: siyabgate.near 3.1 NEAR, storage 182 bytes, no code; maryamnurudeen.near 0.3764553634875 NEAR
+
+1 deploy + new  tx 4adrzFfU4F9fQDgo2o1xnb5mvoDf9QrdrzBQViTAZALq
+  args {"owner_id":"siyabgate.near","verifier_key":"ed25519:77nn97D9twagzd1h5HYsdxySe4sNrCLwQwR7vi66Y9ZW","max_ttl_ms":300000}
+  code_hash read back 5EmM2UQRYcvaNvJX6jfcgtNS7Mm8ZPjZhwK1J8bMXrcu MATCH (equals python -m gate codehash)
+  version 0.2.2; get_policy {"denylist":[],"max_ttl_ms":300000,"paused":false}; get_verifier_keys current 5ae35e39d1b9c089402670c38d4ed8011003fc9798df7fb61f33859e0e307b85 previous null
+2 register_agent  tx AeYvbSX7H8f1oRCgaRG5UiRhrNXrCArioHkD7Qzujx9X
+  caps Near per_call 10000000000000000000000 window_cap 20000000000000000000000 window_ms 86400000; unknown_caps []
+  event agent_registered 30b651dc9fdcb09f843fab14881d83141e86463b374ba4b619110233a8f8651d; list-keys: FullAccess + FunctionCall(request_transfer), allowance 0.05 NEAR
+3 set_allowlist  tx 7TtHtnBTdkx66gyV4TEpXQkGyEKmLWfA9aEBo7NNJXkt
+  set_allowlist [maryamnurudeen.near]; get_agent allowlist ["maryamnurudeen.near"]
+4 refused request_transfer  tx CMfWZvQnK5NUH5PqndbophW3RSas5BadQxhFhbgDboK7
+  live verdict DENY action refuse, evidence ac6558987c40d07920a1c74dcf2a8dd56a6c832619cb719ddd6953557295665e, nothing signed (20437 ms)
+  collector carries an incident label and the Tether issuer answers Banned
+  request_transfer verdict null; receipt failed REFUSED:no_verdict; spent 0
+  collector balance unchanged 1.0217753634875 NEAR
+5 allowed request_transfer  tx HTjDizXtxSmb96PqdBTyEBqKbzvarKiCeck8GNGzFNCW
+  live signed verdict ALLOW action sign, verdict_id cda042b301257caf3cdbbce62a424f3b, evidence b7805115bbbafceb9af3b9891e796b68c19e8f1bdd119a237d552ec0879f9518, issued_ms 1794744039834 expires_ms 1794744339834 (12231 ms)
+  logs transfer_scheduled request_id 0, transfer_completed; is_verdict_used true; spent 10000000000000000000000
+  maryamnurudeen.near 0.3764553634875 -> 0.3864553634875 NEAR (+0.01)
+ALLOW subject: {"agent_pk":"30b651dc9fdcb09f843fab14881d83141e86463b374ba4b619110233a8f8651d","amount":"10000000000000000000000","gate":"siyabgate.near","kind":"near","memo_sha256":null,"receiver":"maryamnurudeen.near","token":null}
+6 set_paused true  tx EFb3MPRvz7PrB1TQ6LG86NAteM4ZdmmUDFAmD1eCS8xc
+  get_policy paused true
+7 revoke_agent  tx ZvP8BEnBMXAdpsnxyd67Y67JS8tyosA2Ha6RwdjUu2S
+  agent_revoked; get_agent null; list-keys: only ed25519:7TPhZL78c12nxfn4RSk6f8rd59f3AA1rsMD5JSk6rAmz FullAccess
+
+After: siyabgate.near 3.0861624753111214 NEAR, storage 265343 bytes, paused
+Commands: the command list lives outside the repo; key paths are written <keys>.
+Key-file lifecycle reported by the operator: owner and agent files deleted after the run; the mainnet verifier file is held outside the repo. The Gate remains paused with its current verifier public key still trusted.
+
+Evidence documents (byte-for-byte copies, named by sha256):
+  fixtures/evidence/ac6558987c40d07920a1c74dcf2a8dd56a6c832619cb719ddd6953557295665e.json
+  fixtures/evidence/b7805115bbbafceb9af3b9891e796b68c19e8f1bdd119a237d552ec0879f9518.json
+Verdict files (byte-for-byte copies; signed verdicts live outside recorded-network folders, which reject hex signatures):
+  fixtures/ac6558987c40d07920a1c74dcf2a8dd56a6c832619cb719ddd6953557295665e.verdict.json
+  fixtures/cda042b301257caf3cdbbce62a424f3b.verdict.json
+Offline checks: python -m unittest tests.test_mainnet_run -v
+The checks bind the retained ALLOW signature to its evidence and transfer; they do not re-query transaction outcomes, balances or current mainnet state.
