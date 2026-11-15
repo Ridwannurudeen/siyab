@@ -1,0 +1,13 @@
+{
+  "charged_micro": 4156,
+  "error": "timeout",
+  "finished_at": "2026-11-15T15:03:27Z",
+  "input_token_bound": 5851,
+  "model_requested": "deepseek-ai/DeepSeek-V4.1-Flash-1017",
+  "request_sha256": "1dc9f9befde332a42778e584d67d0cb7c33275ff9d29188acd5ad5fb03854461",
+  "response": null,
+  "started_at": "2026-11-15T15:02:26Z",
+  "trial": 10,
+  "verdicts": [],
+  "worst_case_micro": 4156
+}
