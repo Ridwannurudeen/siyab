@@ -1,0 +1,26 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 222505095,
+      "account_id": "jom-xs4j.nearrr-fun.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "220514744876347800000144",
+      "block_hash": "DCRPkdvxUUZ9Q5HZaZGUTbLaHetM1LjeAyx2gTGTSx6m",
+      "block_height": 222505095,
+      "code_hash": "11111111111111111111111111111111",
+      "global_contract_hash": "AV2tF8CMPhgMLF13oiuuHvn5ArhR8dUx6HcspxqFUB69",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 5142
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-15T17:07:16Z"
+}

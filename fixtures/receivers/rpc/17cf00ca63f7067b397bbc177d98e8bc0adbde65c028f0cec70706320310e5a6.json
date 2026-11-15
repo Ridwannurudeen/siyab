@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "account_id": "sparefile9404.near",
+      "block_id": 223714695
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "34b3TNTG2quWULdcZKE7hxAwQNN836DASZcLud3XYZ6k",
+      "block_height": 223714695,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 223315403000081,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:HkUxZ96s9VyBrNdhjV8zL7RTiRtTELMk7romEbpLqgTz"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-15T17:06:37Z"
+}

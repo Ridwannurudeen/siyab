@@ -8,16 +8,16 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "UNKNOWN",
+  "verdict": "ALLOW",
   "checks": [
     {
       "id": "receiver_exists",
       "status": "pass",
       "detail": "lock_6.nearlytrade.near exists",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "3c9bf9fc930237d0299d83a1ff8915716c29bc16c1d64f90f5a1a950e1ce5ed3",
-        "fetched_at": "2026-11-15T13:54:21Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "fe0a3f3e53a00b906a80832d9866a7f316e2296031e7a7a9878e29698e7b4e33",
+        "fetched_at": "2026-11-15T17:08:13Z"
       }
     },
     {
@@ -35,9 +35,9 @@
       "status": "pass",
       "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "6b2d0fbf97ef822cb51062a4ac47b50aa79e706cf5ef24d0d05ac5b4c6422a03",
-        "fetched_at": "2026-11-09T04:45:16Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "2a5f26e0e9382772f984bd659c99499943131f00d1f74daa0852be33a6f00ac5",
+        "fetched_at": "2026-11-15T17:08:14Z"
       }
     },
     {
@@ -52,18 +52,18 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "no archival age (lock_6.nearlytrade.near has no access key; block 223465038 (2026-11-07T12:16:08Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days; archival boundary could not run: MalformedResponse: the receiver's reference block is more than 10 minutes from now); could not read the account keys: no recorded response for the request",
+      "status": "pass",
+      "detail": "lock_6.nearlytrade.near has no access key; view_account finds lock_6.nearlytrade.near at block 222505095 (2026-11-01T02:11:33Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "d78133f55cc06ef0be82645905eba22a5401f57971df64e14a8408bdf25c4b4a",
-        "fetched_at": null
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "77870cc9167af58b4f4fa9e38ca2f976182671c52469e9fe08c282e7c1f5c29a",
+        "fetched_at": "2026-11-15T17:08:14Z"
       }
     },
     {
       "id": "dust_funded",
-      "status": "unknown",
-      "detail": "the creation transaction is not known",
+      "status": "pass",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
       "source": {
         "provider": "nearblocks",
         "request_sha256": null,
@@ -85,19 +85,19 @@
       "status": "pass",
       "detail": "contract code with contract_source_metadata",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "1a11634beb58a5b7c1c253f0d94a45856311ef9c1d2bac11a1860f332878a04b",
-        "fetched_at": "2026-11-15T13:54:22Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "3f6776c482806a393606defbf86e04c7bae6bd1ed4e39017ffc7fed2c4114964",
+        "fetched_at": "2026-11-15T17:08:15Z"
       }
     }
   ],
   "reasons": [
-    "account_age could not run: no archival age (lock_6.nearlytrade.near has no access key; block 223465038 (2026-11-07T12:16:08Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days; archival boundary could not run: MalformedResponse: the receiver's reference block is more than 10 minutes from now); could not read the account keys: no recorded response for the request.",
-    "dust_funded could not run: the creation transaction is not known."
+    "Every check ran and none found a signal.",
+    "Not on the owner's allowlist."
   ],
   "labels": [],
   "observed": {
-    "block_height": 224674638,
+    "block_height": 223714695,
     "timestamp_ms": 1794197345742
   }
 }

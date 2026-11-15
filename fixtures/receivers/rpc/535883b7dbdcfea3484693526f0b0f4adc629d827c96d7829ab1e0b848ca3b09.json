@@ -1,0 +1,30 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 222505095,
+      "account_id": "agent.bakeoff.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "error": {
+      "name": "HANDLER_ERROR",
+      "cause": {
+        "info": {
+          "block_hash": "DCRPkdvxUUZ9Q5HZaZGUTbLaHetM1LjeAyx2gTGTSx6m",
+          "block_height": 222505095,
+          "requested_account_id": "agent.bakeoff.near"
+        },
+        "name": "UNKNOWN_ACCOUNT"
+      },
+      "code": -32000,
+      "message": "Server error",
+      "data": "account agent.bakeoff.near does not exist while viewing"
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-15T17:06:17Z"
+}

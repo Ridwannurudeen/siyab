@@ -8,16 +8,16 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "UNKNOWN",
+  "verdict": "ALLOW",
   "checks": [
     {
       "id": "receiver_exists",
       "status": "pass",
       "detail": "hooters-f5dd7a.launchpad.justhoot.near exists",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "fe9f70ea452cd89bea4756d65870f32cd9717da232d085d2820f8bf767be6781",
-        "fetched_at": "2026-11-15T13:50:54Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "f20a5d7ce1edfa2b07360c8ff789229f2941e42f11c8beff26d4f5e86bb2ef3d",
+        "fetched_at": "2026-11-15T17:05:58Z"
       }
     },
     {
@@ -35,9 +35,9 @@
       "status": "pass",
       "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "528aebae8a8a36d1eb94da4f4c4615b25dfd67c329e58f66762f3dfb8a747516",
-        "fetched_at": "2026-11-15T13:50:54Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "5b24b56231cb8bbf0b2def50db89a41b327fa37ed4d78d0685dd143df2554d4e",
+        "fetched_at": "2026-11-15T17:05:58Z"
       }
     },
     {
@@ -52,18 +52,18 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "no archival age (hooters-f5dd7a.launchpad.justhoot.near has no access key; block 223464669 (2026-11-07T12:12:31Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days; archival boundary could not run: MalformedResponse: the receiver's reference block is more than 10 minutes from now); could not read the account keys: no recorded response for the request",
+      "status": "pass",
+      "detail": "hooters-f5dd7a.launchpad.justhoot.near has no access key; view_account finds hooters-f5dd7a.launchpad.justhoot.near at block 222505095 (2026-11-01T02:11:33Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "ec651d436d0710b2a857788002e013389097ab3816e650f2d30a4b8ee23713bf",
-        "fetched_at": null
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "7768bcc68edb000462568659101140f6157c94c637f097d40ee0a3a3e24b6ac6",
+        "fetched_at": "2026-11-15T17:05:59Z"
       }
     },
     {
       "id": "dust_funded",
-      "status": "unknown",
-      "detail": "the creation transaction is not known",
+      "status": "pass",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
       "source": {
         "provider": "nearblocks",
         "request_sha256": null,
@@ -85,21 +85,21 @@
       "status": "pass",
       "detail": "no contract code",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "fe9f70ea452cd89bea4756d65870f32cd9717da232d085d2820f8bf767be6781",
-        "fetched_at": "2026-11-15T13:50:54Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "f20a5d7ce1edfa2b07360c8ff789229f2941e42f11c8beff26d4f5e86bb2ef3d",
+        "fetched_at": "2026-11-15T17:05:58Z"
       }
     }
   ],
   "reasons": [
-    "account_age could not run: no archival age (hooters-f5dd7a.launchpad.justhoot.near has no access key; block 223464669 (2026-11-07T12:12:31Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days; archival boundary could not run: MalformedResponse: the receiver's reference block is more than 10 minutes from now); could not read the account keys: no recorded response for the request.",
-    "dust_funded could not run: the creation transaction is not known."
+    "Every check ran and none found a signal.",
+    "Not on the owner's allowlist."
   ],
   "labels": [
     "08d30a8f063362ec3cf996f1617eb27a6aaa2715b3126e5f1da349b02d271f48"
   ],
   "observed": {
-    "block_height": 224674269,
+    "block_height": 223714695,
     "timestamp_ms": 1794197345742
   }
 }

@@ -8,16 +8,16 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "UNKNOWN",
+  "verdict": "DENY",
   "checks": [
     {
       "id": "receiver_exists",
       "status": "pass",
       "detail": "vault-1-r.sputnik-dao.near exists",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "55f7be65767e2abdf1c311db42120de3e4f9024a785a0ea46b1b5367ee245a30",
-        "fetched_at": "2026-11-09T04:57:35Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "6263a64330c55d93967d975d09f0f59a878424540796b264260f2060b9e2787f",
+        "fetched_at": "2026-11-15T17:09:10Z"
       }
     },
     {
@@ -35,9 +35,9 @@
       "status": "pass",
       "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "4b863cba7750bde7ebc3eadab1f711778cbb2417336c8efce96196551cea71a5",
-        "fetched_at": "2026-11-09T04:57:36Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "276cc77c14711bdd0f546723835d39b008e11d7df5436ff7564a7b1dd41e7b81",
+        "fetched_at": "2026-11-15T17:09:10Z"
       }
     },
     {
@@ -52,12 +52,12 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "no archival age (vault-1-r.sputnik-dao.near has no access key; vault-1-r.sputnik-dao.near did not exist at block 222510214 (2026-11-01T03:01:02Z) from archival-rpc.mainnet.fastnear.com, so it was created after that block, which is at least 7 d old; whether it is younger than 7 days is not known); could not read the account keys: no recorded response for the request",
+      "status": "signal",
+      "detail": "vault-1-r.sputnik-dao.near has no access key; vault-1-r.sputnik-dao.near did not exist at block 222505095 (2026-11-01T02:11:33Z) from archival-rpc.mainnet.fastnear.com or block 223412295 (2026-11-07T03:53:12Z) from archival-rpc.mainnet.fastnear.com, which is younger than 7 days, so it was created less than 7 days ago",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "24c8d96aaf199207c370bbb79057ab152d6c12a762065eb9ecf06312aaaa2b5e",
-        "fetched_at": null
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "5fbb6d513c387c00b4edf2f47d64c1752a388a02ff010105c478d817f8493901",
+        "fetched_at": "2026-11-15T17:09:11Z"
       }
     },
     {
@@ -85,19 +85,19 @@
       "status": "pass",
       "detail": "no contract code",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "55f7be65767e2abdf1c311db42120de3e4f9024a785a0ea46b1b5367ee245a30",
-        "fetched_at": "2026-11-09T04:57:35Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "6263a64330c55d93967d975d09f0f59a878424540796b264260f2060b9e2787f",
+        "fetched_at": "2026-11-15T17:09:10Z"
       }
     }
   ],
   "reasons": [
-    "account_age could not run: no archival age (vault-1-r.sputnik-dao.near has no access key; vault-1-r.sputnik-dao.near did not exist at block 222510214 (2026-11-01T03:01:02Z) from archival-rpc.mainnet.fastnear.com, so it was created after that block, which is at least 7 d old; whether it is younger than 7 days is not known); could not read the account keys: no recorded response for the request.",
-    "dust_funded could not run: the creation transaction is not known."
+    "Created less than 7 days ago.",
+    "Not on the owner's allowlist."
   ],
   "labels": [],
   "observed": {
-    "block_height": 223719814,
+    "block_height": 223714695,
     "timestamp_ms": 1794197345742
   }
 }

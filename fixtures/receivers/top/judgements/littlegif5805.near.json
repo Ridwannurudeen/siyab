@@ -8,16 +8,16 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "UNKNOWN",
+  "verdict": "DENY",
   "checks": [
     {
       "id": "receiver_exists",
       "status": "pass",
       "detail": "littlegif5805.near exists",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "e5ee05d2a4a748676fe3f62f2e847ed40399c225f3f019f9d9970372c7c2bd30",
-        "fetched_at": "2026-11-09T04:45:10Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "0bc45546c2a9b83263b601ec29bc3c70652e5f75db021d668580e1fdbc4de68c",
+        "fetched_at": "2026-11-15T17:08:10Z"
       }
     },
     {
@@ -35,9 +35,9 @@
       "status": "pass",
       "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "010b8e6a8df0bf0183d6dead16597eacd0a5c1d6d8ad47df00f4f2523f4b561f",
-        "fetched_at": "2026-11-15T13:54:19Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "cca996be122ed5f4c0365baa60dc5e1be192e1e3f09e253e1241b7ec5f9beb2e",
+        "fetched_at": "2026-11-15T17:08:10Z"
       }
     },
     {
@@ -52,12 +52,12 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "no archival age (oldest access key nonce 223060753000005 from free.rpc.fastnear.com: existed by block 223060754 (2026-11-04T19:37:15Z) from archival-rpc.mainnet.fastnear.com, a key block younger than 7 days that does not date the account; littlegif5805.near did not exist at block 222508900 (2026-11-01T02:48:02Z) from archival-rpc.mainnet.fastnear.com, so it was created after that block, which is at least 7 d old; whether it is younger than 7 days is not known); could not read the account keys: no recorded response for the request",
+      "status": "signal",
+      "detail": "oldest access key nonce 223060753000005 from archival-rpc.mainnet.fastnear.com: existed by block 223060754 (2026-11-04T19:37:15Z) from archival-rpc.mainnet.fastnear.com, a key block younger than 7 days that does not date the account; block 222667279 (2026-11-02T04:09:05Z) from archival-rpc.mainnet.fastnear.com and block 222667280 (2026-11-02T04:09:06Z) from archival-rpc.mainnet.fastnear.com are adjacent existing blocks around the 7 day cutoff; littlegif5805.near did not exist at block 222667279, so it was created less than 7 days ago",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "939bcde3536b484f37deeade928ecef9f55f0b31f14334da46811385a58dc876",
-        "fetched_at": null
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "e13f3ef24ffb449d1ce8fa6c4a95940c510eab8948c55f77ed53dc8951e3413b",
+        "fetched_at": "2026-11-15T17:08:11Z"
       }
     },
     {
@@ -85,19 +85,19 @@
       "status": "pass",
       "detail": "no contract code",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "e5ee05d2a4a748676fe3f62f2e847ed40399c225f3f019f9d9970372c7c2bd30",
-        "fetched_at": "2026-11-09T04:45:10Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "0bc45546c2a9b83263b601ec29bc3c70652e5f75db021d668580e1fdbc4de68c",
+        "fetched_at": "2026-11-15T17:08:10Z"
       }
     }
   ],
   "reasons": [
-    "account_age could not run: no archival age (oldest access key nonce 223060753000005 from free.rpc.fastnear.com: existed by block 223060754 (2026-11-04T19:37:15Z) from archival-rpc.mainnet.fastnear.com, a key block younger than 7 days that does not date the account; littlegif5805.near did not exist at block 222508900 (2026-11-01T02:48:02Z) from archival-rpc.mainnet.fastnear.com, so it was created after that block, which is at least 7 d old; whether it is younger than 7 days is not known); could not read the account keys: no recorded response for the request.",
-    "dust_funded could not run: the creation transaction is not known."
+    "Created less than 7 days ago.",
+    "Not on the owner's allowlist."
   ],
   "labels": [],
   "observed": {
-    "block_height": 223718500,
+    "block_height": 223714695,
     "timestamp_ms": 1794197345742
   }
 }

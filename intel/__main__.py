@@ -51,7 +51,8 @@ import sys
 import time
 from pathlib import Path
 
-from gate import rpc, rules
+from gate import incident_replay, rpc, rules
+from gate.asof import AsOf
 from intel import alerts, api, budget, cluster, feed, issuers, labels, records, render, reports, sanctions, seed, snapshot, top_receivers, trace
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -61,6 +62,8 @@ FASTNEAR_DIR = ROOT / "fixtures" / "fastnear"
 RECEIVER_RPC_DIR = RECEIVERS_DIR / "rpc"
 TOP_RECEIVERS_PATH = top_receivers.RANKING_PATH
 TOP_RECEIVERS_DIR = RECEIVERS_DIR / "top"
+# The block the top set is judged at, with the next block that proves it last (top_judged_block).
+JUDGED_BLOCK_PATH = TOP_RECEIVERS_DIR / "judged-block.json"
 RHEA_INCIDENT = ROOT / "intel" / "incidents" / "rhea.json"
 TRANSFERS_URL = "https://transfers.main.fastnear.com"
 # The public accounts whose counterparties join the set, each with its role.
@@ -237,6 +240,55 @@ def _judge(entry, store, client, nearblocks, now_ms, archival, reports_account=N
             "labels": judgement.labels, "observed": judgement.observed}
 
 
+def _age_unknown(result):
+    return any(check["id"] == "account_age" and check["status"] == "unknown" for check in result["checks"])
+
+
+def top_judged_block(archival, judged_at_ms, discover=False):
+    """{judged_at_ms, height, hash, timestamp_ns, next_height}: the last block whose time in ms is at or before
+    judged_at_ms, proved by the next existing block, which is later and names it as prev_hash. It is read from
+    JUDGED_BLOCK_PATH and proved again on archival; when the file is absent, discover finds the block with the
+    incident replay block search (gate/incident_replay.py:_resolve) and writes the file, and otherwise None is
+    returned."""
+    target_ns = judged_at_ms * 10**6 + 10**6 - 1
+    saved = json.loads(JUDGED_BLOCK_PATH.read_text(encoding="utf-8")) if JUDGED_BLOCK_PATH.is_file() else None
+    if saved is None and not discover:
+        return None
+    if saved is not None and saved["judged_at_ms"] != judged_at_ms:
+        raise ValueError(f"{JUDGED_BLOCK_PATH.name} names another judged_at_ms")
+    height = incident_replay._resolve(archival, target_ns)["height"] if saved is None else saved["height"]
+    header = archival.block_at(height)["header"]
+    following = None
+    for probe in range(height + 1, height + 1 + incident_replay.MAX_SKIPPED_HEIGHTS):
+        try:
+            following = archival.block_at(probe)["header"]
+            break
+        except rpc.RpcError as error:
+            if error.cause != "UNKNOWN_BLOCK":
+                raise
+    if (following is None or header["timestamp"] > target_ns or following["timestamp"] <= target_ns
+            or following["prev_hash"] != header["hash"]):
+        raise ValueError(f"block {height} is not the last block at or before judged_at_ms")
+    block = {"judged_at_ms": judged_at_ms, "height": height, "hash": header["hash"],
+             "timestamp_ns": header["timestamp"], "next_height": following["height"]}
+    if saved is None:
+        _write_json(JUDGED_BLOCK_PATH, block)
+    elif block != saved:
+        raise ValueError(f"{JUDGED_BLOCK_PATH.name} does not match the archival blocks")
+    return block
+
+
+def _pinned_judgement(entry, store, archival, nearblocks, block, now_ms, reports_account):
+    """entry judged with every chain read pinned to the judged block (gate/asof.py), or None when the receiver
+    is not read as existing there or its account_age is still unknown, so that the first judgement stands."""
+    pinned = AsOf(archival, block["height"])
+    result = _judge(entry, store, pinned, nearblocks, now_ms, pinned, reports_account)
+    statuses = {check["id"]: check["status"] for check in result["checks"]}
+    if statuses["receiver_exists"] != "pass" or statuses["account_age"] == "unknown":
+        return None
+    return result
+
+
 def _write_json(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes((json.dumps(value, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
@@ -283,14 +335,20 @@ def record_receivers(store, previous, exclude, clock=time.time, reports_account=
             "subjects": subjects}
 
 
-def judge_receivers(document, store, directory=RECEIVERS_DIR, reports_account=None):
-    """Judge every subject of the set in replay and write its judgement file; returns the judgements."""
+def judge_receivers(document, store, directory=RECEIVERS_DIR, reports_account=None, pin_unknown_age=False):
+    """Judge every subject of the set in replay and write its judgement file; returns the judgements. With
+    pin_unknown_age, once the judged block is recorded (top_judged_block), a subject whose account_age is
+    unknown is judged again at that block, and _pinned_judgement decides whether that judgement replaces it."""
     client = rpc.Client(rpc.MAINNET_RPC_URL, "replay", fixtures_dir=RECEIVER_RPC_DIR)
     nearblocks = rpc.Client(rpc.NEARBLOCKS_URL, "replay", kind="http", fixtures_dir=RECEIVER_RPC_DIR)
     archival = rpc.Client(rpc.ARCHIVAL_RPC_URL, "replay", fixtures_dir=RECEIVER_RPC_DIR)
+    block = top_judged_block(archival, document["judged_at_ms"]) if pin_unknown_age else None
     results = []
     for entry in document["subjects"]:
         result = _judge(entry, store, client, nearblocks, document["judged_at_ms"], archival, reports_account)
+        if block is not None and _age_unknown(result):
+            result = _pinned_judgement(entry, store, archival, nearblocks, block, document["judged_at_ms"],
+                                       reports_account) or result
         _write_json(Path(directory) / "judgements" / f"{entry['subject']}.json", result)
         results.append(result)
     return results
@@ -347,7 +405,8 @@ def top_receiver_exclusions(store):
 
 
 def record_top_receiver_judgements(document, store, reports_account=None):
-    """Record missing RPC reads for the top set, using the existing age lookup limit."""
+    """Record missing RPC reads for the top set, using the existing age lookup limit, then for each subject whose
+    account_age is unknown the judged block (found and written once) and the reads pinned to it."""
     if not os.environ.get("FASTNEAR_API_KEY_FILE"):
         raise ValueError("judge-top-receivers --record requires FASTNEAR_API_KEY_FILE")
     configured = os.environ.get(budget.DATABASE_ENV)
@@ -365,12 +424,20 @@ def record_top_receiver_judgements(document, store, reports_account=None):
                             headers=headers, reuse_existing=True)
         archival = rpc.Client(rpc.ARCHIVAL_RPC_URL, "record", fixtures_dir=RECEIVER_RPC_DIR,
                               headers=headers, reuse_existing=True)
+        block = None
         for entry in document["subjects"]:
             nearblocks = rpc.Client(rpc.NEARBLOCKS_URL, "record" if entry["age_recorded"] else "replay",
                                     kind="http", fixtures_dir=RECEIVER_RPC_DIR, reuse_existing=True)
-            _judge(entry, store, client, nearblocks, document["judged_at_ms"], archival, reports_account)
+            result = _judge(entry, store, client, nearblocks, document["judged_at_ms"], archival, reports_account)
             if refusals:
                 raise refusals[0]
+            if _age_unknown(result):
+                if block is None:
+                    block = top_judged_block(archival, document["judged_at_ms"], discover=True)
+                _pinned_judgement(entry, store, archival, nearblocks, block, document["judged_at_ms"],
+                                  reports_account)
+                if refusals:
+                    raise refusals[0]
 
 
 def top_receivers_coverage_line(document, results):
@@ -414,9 +481,9 @@ def _judge_top_receivers(args):
         if args.record:
             record_top_receiver_judgements(document, store, os.environ.get("REPORTS_ACCOUNT_ID"))
         results = judge_receivers(document, store, TOP_RECEIVERS_DIR,
-                                  reports_account=os.environ.get("REPORTS_ACCOUNT_ID"))
-    except (feed.FeedError, rpc.FixtureMiss, rpc.HttpError, rpc.RecordingKeyRejected, rpc.RateLimited, rpc.TransportError,
-            OSError, ValueError) as error:
+                                  reports_account=os.environ.get("REPORTS_ACCOUNT_ID"), pin_unknown_age=True)
+    except (feed.FeedError, rpc.FixtureMiss, rpc.HttpError, rpc.RecordingKeyRejected, rpc.RateLimited, rpc.RpcError,
+            rpc.TransportError, OSError, ValueError) as error:
         print(f"stopped: {error}", file=sys.stderr)
         return 1
     print(top_receivers_coverage_line(document, results))

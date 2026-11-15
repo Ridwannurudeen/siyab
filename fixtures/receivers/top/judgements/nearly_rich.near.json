@@ -8,16 +8,16 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "UNKNOWN",
+  "verdict": "ALLOW",
   "checks": [
     {
       "id": "receiver_exists",
       "status": "pass",
       "detail": "nearly_rich.near exists",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "055900230f516e432dfd14a8578f5604b7b5d7583681406734486c15627db081",
-        "fetched_at": "2026-11-15T13:54:34Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "387dface104198135bcba69f348cdd1d74cb1182bae8248be6f1614eacc77cdb",
+        "fetched_at": "2026-11-15T17:08:25Z"
       }
     },
     {
@@ -35,9 +35,9 @@
       "status": "pass",
       "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "6ae52c31b73ad9a8e4d1e4b61ba72dc1c3335609c581e032da037ff2c1dc3bcc",
-        "fetched_at": "2026-11-15T13:54:34Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "7b3c6208489b18e4af951feea14241559e4bfc1e8ea8cbdb07d518a8616ba47b",
+        "fetched_at": "2026-11-15T17:08:25Z"
       }
     },
     {
@@ -52,18 +52,18 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "no archival age (view_access_key_list answers TOO_MANY_ACCESS_KEYS, so no key nonce dates the account; block 223465060 (2026-11-07T12:16:20Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days; archival boundary could not run: MalformedResponse: the receiver's reference block is more than 10 minutes from now); could not read the account keys: no recorded response for the request",
+      "status": "pass",
+      "detail": "view_access_key_list answers TOO_MANY_ACCESS_KEYS, so no key nonce dates the account; view_account finds nearly_rich.near at block 222505095 (2026-11-01T02:11:33Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "de676bbf4c73018415f99c6732b596c211e961314c3bf75eb1e792ee971ba3b7",
-        "fetched_at": null
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "5fe780f375c8c0d9a5183374f73299514f4d9513d8d5a3d770f8151972aad990",
+        "fetched_at": "2026-11-15T17:08:26Z"
       }
     },
     {
       "id": "dust_funded",
-      "status": "unknown",
-      "detail": "the creation transaction is not known",
+      "status": "pass",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
       "source": {
         "provider": "nearblocks",
         "request_sha256": null,
@@ -85,19 +85,19 @@
       "status": "pass",
       "detail": "no contract code",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "055900230f516e432dfd14a8578f5604b7b5d7583681406734486c15627db081",
-        "fetched_at": "2026-11-15T13:54:34Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "387dface104198135bcba69f348cdd1d74cb1182bae8248be6f1614eacc77cdb",
+        "fetched_at": "2026-11-15T17:08:25Z"
       }
     }
   ],
   "reasons": [
-    "account_age could not run: no archival age (view_access_key_list answers TOO_MANY_ACCESS_KEYS, so no key nonce dates the account; block 223465060 (2026-11-07T12:16:20Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days; archival boundary could not run: MalformedResponse: the receiver's reference block is more than 10 minutes from now); could not read the account keys: no recorded response for the request.",
-    "dust_funded could not run: the creation transaction is not known."
+    "Every check ran and none found a signal.",
+    "Not on the owner's allowlist."
   ],
   "labels": [],
   "observed": {
-    "block_height": 224674660,
+    "block_height": 223714695,
     "timestamp_ms": 1794197345742
   }
 }

@@ -8,16 +8,16 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "UNKNOWN",
+  "verdict": "DENY",
   "checks": [
     {
       "id": "receiver_exists",
       "status": "pass",
       "detail": "fairblog5693.near exists",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "dbf2dc270547e352897b3d6c93de9b10e5bb9eebaf39e45d16ba55462d07211f",
-        "fetched_at": "2026-11-15T13:51:15Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "c88d5d9b5a61f1d670b8265525c2abf4340e962dc7b31b3d026006b91869d637",
+        "fetched_at": "2026-11-15T17:06:09Z"
       }
     },
     {
@@ -35,9 +35,9 @@
       "status": "pass",
       "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "ec990f13d08120c15c5d91b132bd03a428405ad6b6c4af885578d9c821f045bd",
-        "fetched_at": "2026-11-15T13:51:15Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "76020bdc27d6d07fb63d15c8b554ff42915482111db26c32b8501afc2ff47ea3",
+        "fetched_at": "2026-11-15T17:06:09Z"
       }
     },
     {
@@ -52,12 +52,12 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "no archival age (oldest access key nonce 223550467000013 from free.rpc.fastnear.com: existed by block 223550468 (2026-11-08T02:04:55Z) from archival-rpc.mainnet.fastnear.com, a key block younger than 7 days that does not date the account; block 223464705 (2026-11-07T12:12:52Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days; archival boundary could not run: MalformedResponse: the receiver's reference block is more than 10 minutes from now); could not read the account keys: no recorded response for the request",
+      "status": "signal",
+      "detail": "oldest access key nonce 223550467000013 from archival-rpc.mainnet.fastnear.com: existed by block 223550468 (2026-11-08T02:04:55Z) from archival-rpc.mainnet.fastnear.com, a key block younger than 7 days that does not date the account; fairblog5693.near did not exist at block 222505095 (2026-11-01T02:11:33Z) from archival-rpc.mainnet.fastnear.com or block 223412295 (2026-11-07T03:53:12Z) from archival-rpc.mainnet.fastnear.com, which is younger than 7 days, so it was created less than 7 days ago",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "23035109b16eda431337085b66d8bbf6eab75e92c2dff2842392ee76158a8b4a",
-        "fetched_at": null
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "b823c4c02db6b34de556f4ae9cbf6b6e74c15cafff4b96f791f285fcf9e277a9",
+        "fetched_at": "2026-11-15T17:06:11Z"
       }
     },
     {
@@ -85,19 +85,19 @@
       "status": "pass",
       "detail": "no contract code",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "dbf2dc270547e352897b3d6c93de9b10e5bb9eebaf39e45d16ba55462d07211f",
-        "fetched_at": "2026-11-15T13:51:15Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "c88d5d9b5a61f1d670b8265525c2abf4340e962dc7b31b3d026006b91869d637",
+        "fetched_at": "2026-11-15T17:06:09Z"
       }
     }
   ],
   "reasons": [
-    "account_age could not run: no archival age (oldest access key nonce 223550467000013 from free.rpc.fastnear.com: existed by block 223550468 (2026-11-08T02:04:55Z) from archival-rpc.mainnet.fastnear.com, a key block younger than 7 days that does not date the account; block 223464705 (2026-11-07T12:12:52Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days; archival boundary could not run: MalformedResponse: the receiver's reference block is more than 10 minutes from now); could not read the account keys: no recorded response for the request.",
-    "dust_funded could not run: the creation transaction is not known."
+    "Created less than 7 days ago.",
+    "Not on the owner's allowlist."
   ],
   "labels": [],
   "observed": {
-    "block_height": 224674305,
+    "block_height": 223714695,
     "timestamp_ms": 1794197345742
   }
 }

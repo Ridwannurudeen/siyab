@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 223412295,
+      "account_id": "uponwave.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "786117239466327412166004",
+      "block_hash": "EP51UuGfXW8ZYxvsrCFVc9fevtZ9hXd1WpTog58bHNJr",
+      "block_height": 223412295,
+      "code_hash": "11111111111111111111111111111111",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 182
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-15T17:08:39Z"
+}

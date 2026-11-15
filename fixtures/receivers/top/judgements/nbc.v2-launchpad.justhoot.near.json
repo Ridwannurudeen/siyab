@@ -8,16 +8,16 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "UNKNOWN",
+  "verdict": "DENY",
   "checks": [
     {
       "id": "receiver_exists",
       "status": "pass",
       "detail": "nbc.v2-launchpad.justhoot.near exists",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "b16953677adcf3d08f49e01f8b894a14e1db5f0f353a7152c86977d93a524556",
-        "fetched_at": "2026-11-09T04:46:15Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "2288e65a6df6d29d6074dcf9677bd3a628d9c054c92afe4b55fb229001a855bb",
+        "fetched_at": "2026-11-15T17:08:22Z"
       }
     },
     {
@@ -35,9 +35,9 @@
       "status": "pass",
       "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "f5196cd5bc2fb3716b79cd4cb878fce041514b916fbb0abda1fe7e8da1127808",
-        "fetched_at": "2026-11-09T04:46:15Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "a40980b59b01ac774b618a5fd942b72345dbefa6e754181334438ec6e465c136",
+        "fetched_at": "2026-11-15T17:08:22Z"
       }
     },
     {
@@ -52,12 +52,12 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "no archival age (nbc.v2-launchpad.justhoot.near has no access key; nbc.v2-launchpad.justhoot.near did not exist at block 222509010 (2026-11-01T02:49:08Z) from archival-rpc.mainnet.fastnear.com, so it was created after that block, which is at least 7 d old; whether it is younger than 7 days is not known); could not read the account keys: no recorded response for the request",
+      "status": "signal",
+      "detail": "nbc.v2-launchpad.justhoot.near has no access key; block 222667279 (2026-11-02T04:09:05Z) from archival-rpc.mainnet.fastnear.com and block 222667280 (2026-11-02T04:09:06Z) from archival-rpc.mainnet.fastnear.com are adjacent existing blocks around the 7 day cutoff; nbc.v2-launchpad.justhoot.near did not exist at block 222667279, so it was created less than 7 days ago",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "be8ecec8d13345b080bbca53e2c8a6f0aa6fada7637d2d324522ff58d5fadcb7",
-        "fetched_at": null
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "25ded13739ef23d9c1551df505769473edc769a073f4767f2db37d9eac96a582",
+        "fetched_at": "2026-11-15T17:08:23Z"
       }
     },
     {
@@ -85,19 +85,19 @@
       "status": "pass",
       "detail": "no contract code",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "b16953677adcf3d08f49e01f8b894a14e1db5f0f353a7152c86977d93a524556",
-        "fetched_at": "2026-11-09T04:46:15Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "2288e65a6df6d29d6074dcf9677bd3a628d9c054c92afe4b55fb229001a855bb",
+        "fetched_at": "2026-11-15T17:08:22Z"
       }
     }
   ],
   "reasons": [
-    "account_age could not run: no archival age (nbc.v2-launchpad.justhoot.near has no access key; nbc.v2-launchpad.justhoot.near did not exist at block 222509010 (2026-11-01T02:49:08Z) from archival-rpc.mainnet.fastnear.com, so it was created after that block, which is at least 7 d old; whether it is younger than 7 days is not known); could not read the account keys: no recorded response for the request.",
-    "dust_funded could not run: the creation transaction is not known."
+    "Created less than 7 days ago.",
+    "Not on the owner's allowlist."
   ],
   "labels": [],
   "observed": {
-    "block_height": 223718610,
+    "block_height": 223714695,
     "timestamp_ms": 1794197345742
   }
 }

@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 222505095,
+      "account_id": "nearly_rich.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "123025646892818101458068836",
+      "block_hash": "DCRPkdvxUUZ9Q5HZaZGUTbLaHetM1LjeAyx2gTGTSx6m",
+      "block_height": 222505095,
+      "code_hash": "11111111111111111111111111111111",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 18520
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-15T17:08:26Z"
+}

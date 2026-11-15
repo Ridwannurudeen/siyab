@@ -1,0 +1,21 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "account_id": "3digits-da1e65.launchpad.justhoot.near",
+      "block_id": 223714695
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "34b3TNTG2quWULdcZKE7hxAwQNN836DASZcLud3XYZ6k",
+      "block_height": 223714695,
+      "keys": []
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-15T17:06:15Z"
+}

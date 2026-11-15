@@ -8,16 +8,16 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "UNKNOWN",
+  "verdict": "ALLOW",
   "checks": [
     {
       "id": "receiver_exists",
       "status": "pass",
       "detail": "token.sweat exists",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "3389f9645631b4f194ebfeb7d539b4eaa61fd711c443ad866460a1e1b68b9b13",
-        "fetched_at": "2026-11-15T13:50:38Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "e69584fc3a85e6935dcda455f6ba42debdac626e534e19612a0113f433cfc1c0",
+        "fetched_at": "2026-11-15T17:05:50Z"
       }
     },
     {
@@ -35,9 +35,9 @@
       "status": "pass",
       "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "388afdb7988688e9f9e77d84849df6cb206d509c411bca202b29e382d09116d8",
-        "fetched_at": "2026-11-15T13:50:38Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "e07df58f1568f4e67acb26e7773b5820d8c5d2425a0162ea346781d4e22fb66e",
+        "fetched_at": "2026-11-15T17:05:50Z"
       }
     },
     {
@@ -52,18 +52,18 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "no archival age (token.sweat has no access key; block 223464640 (2026-11-07T12:12:15Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days; archival boundary could not run: MalformedResponse: the receiver's reference block is more than 10 minutes from now); could not read the account keys: no recorded response for the request",
+      "status": "pass",
+      "detail": "token.sweat has no access key; view_account finds token.sweat at block 222505095 (2026-11-01T02:11:33Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "69c5f73e2bcaf3f2e87895d7c8f783b48f845f634851ff649b9802ac66a03730",
-        "fetched_at": null
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "53d9ec042528ab959ce4a20b064e27539586f50b226f7ac9c6ba241a830e61b5",
+        "fetched_at": "2026-11-15T17:05:51Z"
       }
     },
     {
       "id": "dust_funded",
-      "status": "unknown",
-      "detail": "the creation transaction is not known",
+      "status": "pass",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
       "source": {
         "provider": "nearblocks",
         "request_sha256": null,
@@ -85,22 +85,22 @@
       "status": "pass",
       "detail": "contract code with contract_source_metadata",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "aa94e6798181c8ac4d35cabf751e7bd747839c1ab2d0f32e3aa3e24c5412f570",
-        "fetched_at": "2026-11-15T13:50:39Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "15909368531be4057110d23b3b4cf1fa817917ab3d70753b52f38a8cac2ca346",
+        "fetched_at": "2026-11-15T17:05:51Z"
       }
     }
   ],
   "reasons": [
-    "account_age could not run: no archival age (token.sweat has no access key; block 223464640 (2026-11-07T12:12:15Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days; archival boundary could not run: MalformedResponse: the receiver's reference block is more than 10 minutes from now); could not read the account keys: no recorded response for the request.",
-    "dust_funded could not run: the creation transaction is not known."
+    "Every check ran and none found a signal.",
+    "Not on the owner's allowlist."
   ],
   "labels": [
     "9a075ea26f03632ea0286a056d249300c3114ee94374ab7898888b0c0ec40bfb",
     "6e016a68c403dfae46abe1e1a15a8818d90794d10c666e0b6dc020d148ad40d8"
   ],
   "observed": {
-    "block_height": 224674240,
+    "block_height": 223714695,
     "timestamp_ms": 1794197345742
   }
 }
