@@ -8,7 +8,7 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "UNKNOWN",
+  "verdict": "DENY",
   "checks": [
     {
       "id": "receiver_exists",
@@ -26,7 +26,7 @@
       "detail": "no denylist or incident label on kite-demo.sputnik-dao.near",
       "source": {
         "provider": "label store",
-        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "request_sha256": "cf335f98f9dd43c560a6f3d4c743bca4c7a60dd7bd02c3c28de5143ec85b7079",
         "fetched_at": null
       }
     },
@@ -52,12 +52,12 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "no archival age (kite-demo.sputnik-dao.near has no access key; kite-demo.sputnik-dao.near did not exist at block 222505835 (2026-11-01T02:18:39Z) from archival-rpc.mainnet.fastnear.com, so it was created after that block, which is at least 7 d old; whether it is younger than 7 days is not known); could not read the account keys: no recorded response for the request",
+      "status": "signal",
+      "detail": "kite-demo.sputnik-dao.near has no access key; kite-demo.sputnik-dao.near did not exist at block 222505835 (2026-11-01T02:18:39Z) from archival-rpc.mainnet.fastnear.com or block 223413035 (2026-11-07T04:00:11Z) from archival-rpc.mainnet.fastnear.com, which is younger than 7 days, so it was created less than 7 days ago",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "c285bac80a288e215900889c9f0a91bdef56e7868316e9ec910ab5e46850f694",
-        "fetched_at": null
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "b33d58619ea8660d62ab99c2d215b18d54d536dac8945ba04bd607ec547a4414",
+        "fetched_at": "2026-11-15T13:50:15Z"
       }
     },
     {
@@ -76,7 +76,7 @@
       "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
       "source": {
         "provider": "allowlist and label store",
-        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "request_sha256": "cf335f98f9dd43c560a6f3d4c743bca4c7a60dd7bd02c3c28de5143ec85b7079",
         "fetched_at": null
       }
     },
@@ -92,8 +92,8 @@
     }
   ],
   "reasons": [
-    "account_age could not run: no archival age (kite-demo.sputnik-dao.near has no access key; kite-demo.sputnik-dao.near did not exist at block 222505835 (2026-11-01T02:18:39Z) from archival-rpc.mainnet.fastnear.com, so it was created after that block, which is at least 7 d old; whether it is younger than 7 days is not known); could not read the account keys: no recorded response for the request.",
-    "dust_funded could not run: the creation transaction is not known."
+    "Created less than 7 days ago.",
+    "Not on the owner's allowlist."
   ],
   "labels": [],
   "observed": {

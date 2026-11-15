@@ -1,0 +1,21 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "lock_6.nearlytrade.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "HqJghR7JkFD5Y8g7nPq5spn1ccMeDwW4w67jsrqHvyUR",
+      "block_height": 224674639,
+      "keys": []
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:54:21Z"
+}

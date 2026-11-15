@@ -1,0 +1,295 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "rusty_spire.user.intear.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "W4s7t3LJAXYjbspYgj52Kp8F7rQ4YBKeENPcAmNuhRd",
+      "block_height": 224674272,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 131115512000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:13RRPW81FRMEgcx13aLRCeuo4b3Gi9zej1mE2wwHAunp"
+        },
+        {
+          "access_key": {
+            "nonce": 161408173000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:8s6NHe4sAiSHb3xsk31TRLH8TzWoZUrbxCmRtXyo64r"
+        },
+        {
+          "access_key": {
+            "nonce": 161342775000233,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Afk5cz9XhRjp7XGneh7ehNw1RfkFQLSKRRJhEzjTeTp"
+        },
+        {
+          "access_key": {
+            "nonce": 184858678000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:GDCWbe3Ek61BzmNCDSHk6RAdaXGuTqHTN5TyDNXdQ3m"
+        },
+        {
+          "access_key": {
+            "nonce": 142226624000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:WHk2ayhuCk7B4U5t1YZpWnkEVNF8J28zExiCHu4gZN1"
+        },
+        {
+          "access_key": {
+            "nonce": 176935610000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:dZQ3pTZ3RaXDM6LEAvoxWg8tLhVjZFKh8VCn6JrwJFS"
+        },
+        {
+          "access_key": {
+            "nonce": 182540577000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:mgx65Wt9o5HGyWb3eR56DFwqCFTUajteEE8rWUWWxUS"
+        },
+        {
+          "access_key": {
+            "nonce": 133129759000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:2B151QHCcP8HQ4YqRhgQQRPBpzWK8T5g1U1CDDhfDCwG"
+        },
+        {
+          "access_key": {
+            "nonce": 177477707000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:3L9xJ5RA2GrV2vNZacBNVGYR4xdDF3kcRb2SgQFwxwZd"
+        },
+        {
+          "access_key": {
+            "nonce": 169309314000320,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:3eB64RQCta3UqUwioesH3NjgttYTnzmj195Y68Xgb1RY"
+        },
+        {
+          "access_key": {
+            "nonce": 168086898000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:4GVNkvKGxo5e7u2vv5Sg1qCTpiDPgP4VzKZUBM3H52Vm"
+        },
+        {
+          "access_key": {
+            "nonce": 133569562000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6XrS9R2jfU1qhtrMFSZRxefWw6an89i8U5CLVqKPxdzB"
+        },
+        {
+          "access_key": {
+            "nonce": 175557904005642,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6ZfcBEyCE5sPRLBp8fEKF3pgwbxjpxMyWXYA4FK7FvHZ"
+        },
+        {
+          "access_key": {
+            "nonce": 162110250000052,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:7cYGTugtZHGq8mETev5TqGn83EbKb6G3hQmiTLMow86o"
+        },
+        {
+          "access_key": {
+            "nonce": 161439792000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:7oaJjnjChiqqCmbRhXmFoBbUjMVyqPuHP6U7P1zWaYGF"
+        },
+        {
+          "access_key": {
+            "nonce": 133809682000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8Mwco7uYJovqhpKU9c3gH5FwToz4dbeX5PfnPPATuScg"
+        },
+        {
+          "access_key": {
+            "nonce": 182540121000002,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9Bs2CcST6zGzM7QdBi45mroBySv3yC1kLumAMqDauKr3"
+        },
+        {
+          "access_key": {
+            "nonce": 161343745000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:AM9HvUXimG85LEaAE8jS1iYFyiNa8v38Ha9vkrCTxvXJ"
+        },
+        {
+          "access_key": {
+            "nonce": 180117618000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:B7KvBDVQxoofGGFzptw6DDAsD8ngPaU75yFMekWHC2Ua"
+        },
+        {
+          "access_key": {
+            "nonce": 133111005000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:BWoCbQpEdvbSLyGm3HPJSWXS9VxTKekktoWGNLBC4jcP"
+        },
+        {
+          "access_key": {
+            "nonce": 180117686000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:Bfu4uaZRZUDd39ZV6VHXRY5TDyua2hwJ9xxQ6VfQXqLB"
+        },
+        {
+          "access_key": {
+            "nonce": 133130028000006,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:CCC2dTNvtt8ZMbEoBujP3kqxG2AohUQPLpkrMnTXVDrP"
+        },
+        {
+          "access_key": {
+            "nonce": 217000913000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:D9b6oSLjyJxAE3Ssgk6EMKXVSW5mPskHzCA4J7V68hbM"
+        },
+        {
+          "access_key": {
+            "nonce": 176930994000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:DBetGAc9LSH1KSAdpcFXxy7JxjrqEAweG3L7VHDeDn1v"
+        },
+        {
+          "access_key": {
+            "nonce": 182289224000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:ETyuRM6sQ6oLcumMxbFSWetJPdrsSZQzQDgUEkZPXPJw"
+        },
+        {
+          "access_key": {
+            "nonce": 182540592000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:FjVvsLNWFuFYruz43NtEe1jssv2Do6ELnRyYvyKaNk2T"
+        },
+        {
+          "access_key": {
+            "nonce": 177477718000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:HFoZecVcGrYrgDEzpgYQvKLx41u4N9xVTAETcaPLAxFL"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:50:56Z"
+}

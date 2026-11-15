@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "frankfish1.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "8iJNjBWDVQeGfuwhjtZLEHiVNBBXxTX4rUMZ7je4Njpp",
+      "block_height": 224674602,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 133786310011000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:BAXco9Qq4FPsQGtfh5UxhHdUdbio1pSCFswg7eHbWZHn"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:54:02Z"
+}

@@ -1,0 +1,42 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "creampiez69.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "4ph9oZYAxH23CjseBHJiRn1JV16d1zq5gDKGEQNqRmEL",
+      "block_height": 224674577,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 177400570000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:5AhpuvTEhxHX9vwLeFu7oSwygVb7BAVn6266jgJ9TZP"
+        },
+        {
+          "access_key": {
+            "nonce": 177396378000587,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:3Bx4f9ZaKXyYFSg8rXtskmRWkqraRi4nDDvE4286Us79"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:53:47Z"
+}

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "gudangharta888.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "Fg6Ba7wvdaseKZv7CgA1kpNtMt8etDCJCPEfswLJcHfT",
+      "block_height": 224674439,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 220673643000003,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:CaoYEbYYCQMrBxB57uPJWk1Ya2k1YDvAWSrjMnb6gewp"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:52:30Z"
+}

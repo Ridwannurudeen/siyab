@@ -1,0 +1,290 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "kushkings.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "3VZy7J3fDY4UYQ2nJfFtjS96ypGFx77ksMMmNEbP4eiC",
+      "block_height": 224674826,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 122526191001541,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:2RPrxGJz6FQn3dm9cekvVFS64mBKT7hLe66o3RvVRYmq"
+        },
+        {
+          "access_key": {
+            "nonce": 221618407000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:2ZQu3EsMbkAgNs9FhT8XyAJVDY7Q6WdCXVeA35URfDMt"
+        },
+        {
+          "access_key": {
+            "nonce": 222186560000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:3U9D7hzLRBg1okZ8itfA7FFhWoTj9yQun4n3rFqnrczq"
+        },
+        {
+          "access_key": {
+            "nonce": 222809794000012,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1",
+                "method_names": [],
+                "receiver_id": "aa-harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:457bmErKqgPU5Z8PaQbCvZR35T7dod3bAq48jnsiqYqG"
+        },
+        {
+          "access_key": {
+            "nonce": 114173202001114,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4YTkzAUCCQYBEXTGfVWa9kwEMexcKovZC3oyB6R51hUJ"
+        },
+        {
+          "access_key": {
+            "nonce": 222186812000023,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "245280302742413400000000",
+                "method_names": [],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:6pZ7QQd9AjdLMpTHyUPrqHjRV6D9s3LgpGqKksDxXbWA"
+        },
+        {
+          "access_key": {
+            "nonce": 222371262000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:7nRzzCceScYFw3PdDiRgrEVBnvh7Hpp2gCL4L6ycU3J8"
+        },
+        {
+          "access_key": {
+            "nonce": 222186355000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:8XiHBQsGgFw9eMLxpFsnSEyRp3cJKTzFKeD7jwFNDC6M"
+        },
+        {
+          "access_key": {
+            "nonce": 222186248000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:8iD9Ux8URpfmeKNdwq1nTBrRG5U6LC4yJ9YJSqBdBnVR"
+        },
+        {
+          "access_key": {
+            "nonce": 222186542000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:AYdVXyQQAeUp4861HabSRi4pEs5DHY8tdJwEiRpm1qzv"
+        },
+        {
+          "access_key": {
+            "nonce": 128085547000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "linear-protocol.near"
+              }
+            }
+          },
+          "public_key": "ed25519:AtzTwLXbjUXQccJ4QrPvD2kFKhVc3smkBZSeC3U4J4pF"
+        },
+        {
+          "access_key": {
+            "nonce": 222178560000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BPZtjuWrRHaAvj1y9pxx9D9mmogFMvpKyNfQWnAj3gWt"
+        },
+        {
+          "access_key": {
+            "nonce": 222186792000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:Bf4bT8CeR7QnHhV3mCKCiXrHi6GmDRxn345rGy52wj1r"
+        },
+        {
+          "access_key": {
+            "nonce": 222371211000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BmXfDKA7fnimnPqVjRWspdUeevCsxYiV1qfFw1BD3Wyh"
+        },
+        {
+          "access_key": {
+            "nonce": 129361309000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "grid.deltatrade.near"
+              }
+            }
+          },
+          "public_key": "ed25519:F4UjUnui3nmYGe2y4uFjttEW2GGRDrgZQTM9rinjwqFk"
+        },
+        {
+          "access_key": {
+            "nonce": 222186301000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:FDvyqjuKjVkVNksaHNsYYTWrbo5gsVVR9UwP1G5tbNTV"
+        },
+        {
+          "access_key": {
+            "nonce": 115667129000072,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:GN1YrpzKNbJcvaTBPfdi1zxCRBZqDv5bzjxeGyEo2gHB"
+        },
+        {
+          "access_key": {
+            "nonce": 211542974000003,
+            "permission": "FullAccess"
+          },
+          "public_key": "ml-dsa-65-hash:2VnHuqMDyzYw8cPCVmSGqemrQ1hRmxeqYqY5GrNiTF29"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:56:08Z"
+}

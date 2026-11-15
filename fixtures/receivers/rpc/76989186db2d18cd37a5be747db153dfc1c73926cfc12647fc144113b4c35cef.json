@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "monakasan.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "BzDFmJwxzZ6jHwwAo2f8ZE7uxNQR9CkaQ31NKozpVxWp",
+      "block_height": 224674459,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 135708819014950,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:3PaBCUqS2kAH5fhqGb4H5T7yhvhaZhmMK76WDz3NFoJ2"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:52:41Z"
+}

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "darkstargirl.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "PSuz8bop35Xbda42eYF6Hveh1TpCjLy5TPVvdbakh1b",
+      "block_height": 224674581,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 139714608011280,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:7Uy2o4o4bPpD5T5CEWytBEeQ8P9ftpYWrGy3PDcsxhwH"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:53:49Z"
+}

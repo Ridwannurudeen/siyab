@@ -8,16 +8,16 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "UNKNOWN",
+  "verdict": "ALLOW",
   "checks": [
     {
       "id": "receiver_exists",
-      "status": "unknown",
-      "detail": "could not read treasury.j1-racing.near: no recorded response for the request",
+      "status": "pass",
+      "detail": "treasury.j1-racing.near exists",
       "source": {
         "provider": "free.rpc.fastnear.com",
         "request_sha256": "887c6b3fce5e49762fb8dff6b5bf705d3bbd68914b89a536b47075dc7db3676f",
-        "fetched_at": null
+        "fetched_at": "2026-11-15T13:56:25Z"
       }
     },
     {
@@ -26,18 +26,18 @@
       "detail": "no denylist or incident label on treasury.j1-racing.near",
       "source": {
         "provider": "label store",
-        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "request_sha256": "cf335f98f9dd43c560a6f3d4c743bca4c7a60dd7bd02c3c28de5143ec85b7079",
         "fetched_at": null
       }
     },
     {
       "id": "issuer_blacklist",
-      "status": "unknown",
-      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; could not read is_blocklisted on 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1: no recorded response for the request",
+      "status": "pass",
+      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
       "source": {
         "provider": "free.rpc.fastnear.com",
-        "request_sha256": "61be162337b170240ac58c0213c0dbc13d02b1fd9f410d4a80ffaa111f3b8f5f",
-        "fetched_at": null
+        "request_sha256": "8421932db74982336d95e370f9de7fedd0f95c11f3c742eb1a7244b3c975c135",
+        "fetched_at": "2026-11-09T04:59:07Z"
       }
     },
     {
@@ -52,18 +52,18 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "could not read the account keys: no recorded response for the request",
+      "status": "pass",
+      "detail": "oldest access key nonce 217076566000000 from free.rpc.fastnear.com: existed by block 217076567 (2026-09-24T16:54:53Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "49e0e10a5bb1968dbb9f52d87e31dddc30606b0ffc3f943bb8e303c67172b2ac",
-        "fetched_at": null
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "88dd0b547070b7a475a8e501ab1db143da312a8dee11a4b231a5d9c296a6d516",
+        "fetched_at": "2026-11-15T13:56:26Z"
       }
     },
     {
       "id": "dust_funded",
-      "status": "unknown",
-      "detail": "the creation transaction is not known",
+      "status": "pass",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
       "source": {
         "provider": "nearblocks",
         "request_sha256": null,
@@ -76,31 +76,28 @@
       "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
       "source": {
         "provider": "allowlist and label store",
-        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "request_sha256": "cf335f98f9dd43c560a6f3d4c743bca4c7a60dd7bd02c3c28de5143ec85b7079",
         "fetched_at": null
       }
     },
     {
       "id": "code_without_metadata",
-      "status": "unknown",
-      "detail": "the receiver account could not be read",
+      "status": "pass",
+      "detail": "no contract code",
       "source": {
         "provider": "free.rpc.fastnear.com",
         "request_sha256": "887c6b3fce5e49762fb8dff6b5bf705d3bbd68914b89a536b47075dc7db3676f",
-        "fetched_at": null
+        "fetched_at": "2026-11-15T13:56:25Z"
       }
     }
   ],
   "reasons": [
-    "receiver_exists could not run: could not read treasury.j1-racing.near: no recorded response for the request.",
-    "issuer_blacklist could not run: usdt.tether-token.near get_blacklist_status answers \"Allowable\"; could not read is_blocklisted on 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1: no recorded response for the request.",
-    "account_age could not run: could not read the account keys: no recorded response for the request.",
-    "dust_funded could not run: the creation transaction is not known.",
-    "code_without_metadata could not run: the receiver account could not be read."
+    "Every check ran and none found a signal.",
+    "Not on the owner's allowlist."
   ],
   "labels": [],
   "observed": {
-    "block_height": null,
+    "block_height": 224674857,
     "timestamp_ms": 1794197345742
   }
 }

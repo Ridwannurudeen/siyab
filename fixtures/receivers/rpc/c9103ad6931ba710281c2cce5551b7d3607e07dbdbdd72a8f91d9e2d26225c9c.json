@@ -1,0 +1,68 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "softcheese5841.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "FdYJsFiUWAPTVaBC4x6HEMonFSR4usXbFoTHSV1uUHdq",
+      "block_height": 224674301,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 117828315000017,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meteor-points.near"
+              }
+            }
+          },
+          "public_key": "ed25519:WA5NBRF2NTTe5JsiDLjsZm55CGs8LzXhRgnzKwombkh"
+        },
+        {
+          "access_key": {
+            "nonce": 222679813000022,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1",
+                "method_names": [],
+                "receiver_id": "aa-harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:457bmErKqgPU5Z8PaQbCvZR35T7dod3bAq48jnsiqYqG"
+        },
+        {
+          "access_key": {
+            "nonce": 116121372000042,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Doiv3jmcasJAbpyYdidvxGqzp8zb397YRCt52EYZBcdr"
+        },
+        {
+          "access_key": {
+            "nonce": 116170340000013,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:GN1YrpzKNbJcvaTBPfdi1zxCRBZqDv5bzjxeGyEo2gHB"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:13Z"
+}

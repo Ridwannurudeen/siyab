@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "munawardekgam17.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "Aizipa7YwpCByGepfzrpJYw747mRn7VboY5HcGekes8v",
+      "block_height": 224674814,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 211363939000010,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:HEurdDC9remDUi9fo2GuHPQiUe8eYffNhT2MgTFn5Kne"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:56:01Z"
+}

@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 222509116,
+      "account_id": "premium.nearmobile.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "46075249416811384800000000",
+      "block_hash": "Bke9qStFMaB6jfhRhZbEJjXJfz6u4gcdJgsMjkoE5zEb",
+      "block_height": 222509116,
+      "code_hash": "BXS4ApV34fqSQQmZKPhyxU1rZHF1wunrGdCNMX6Nyuu1",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 401562
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-15T13:54:41Z"
+}

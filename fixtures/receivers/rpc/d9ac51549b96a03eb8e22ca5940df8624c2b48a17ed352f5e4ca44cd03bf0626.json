@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "nalsurid-hot.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "23BfNARtk8GCzQ8SpDYDF79cFggWbZq6h1YyUA3P3qMK",
+      "block_height": 224674656,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 133073431028710,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:3W27fZJ1J2NBQieute5mtWvotfWpEDkTs5SSXS8Qmqv7"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:54:31Z"
+}

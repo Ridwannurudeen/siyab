@@ -1,0 +1,43 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "kyakinnv.user.intear.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "EpHWhTMMbuMxvzpQ74sVpCq8EewzwsTSGRPy3PxvEJuA",
+      "block_height": 224674307,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 217449855000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4ZjM3pDCUTcuQtaJ5nLHyNfGeRFGVMLBwwqVkpV3SgEc"
+        },
+        {
+          "access_key": {
+            "nonce": 217447726000312,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6ZfcBEyCE5sPRLBp8fEKF3pgwbxjpxMyWXYA4FK7FvHZ"
+        },
+        {
+          "access_key": {
+            "nonce": 217449699000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:FbiqFQdujjUkjNBwCoxvNyS1PL5wrBmdv1mJR8eQiQxr"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:16Z"
+}

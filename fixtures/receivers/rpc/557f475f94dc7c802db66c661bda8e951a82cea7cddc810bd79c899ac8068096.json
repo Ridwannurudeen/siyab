@@ -1,0 +1,42 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "veilsurf.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "FoijbG8ibv7Unw8SVJ8F2bbPR11er4dTetAeNs67wCHu",
+      "block_height": 224674858,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 219552921000062,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:DTzGVSYnXgGjGjdwH46iCxqUkP9pnHo3NX4ZVyqG3xkn"
+        },
+        {
+          "access_key": {
+            "nonce": 220190552000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "v2.ref-finance.near"
+              }
+            }
+          },
+          "public_key": "ed25519:HKdXGKKuhtdi1kFEv8Cpyjv9D3uxBKygkEvCFEsFA9Dr"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:56:26Z"
+}

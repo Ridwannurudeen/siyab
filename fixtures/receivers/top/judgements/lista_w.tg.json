@@ -8,16 +8,16 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "UNKNOWN",
+  "verdict": "ALLOW",
   "checks": [
     {
       "id": "receiver_exists",
-      "status": "unknown",
-      "detail": "could not read lista_w.tg: no recorded response for the request",
+      "status": "pass",
+      "detail": "lista_w.tg exists",
       "source": {
         "provider": "free.rpc.fastnear.com",
         "request_sha256": "b7321e4a8e889288875080635683f4fc17fda523d81d9512f1b2b83620d33d9f",
-        "fetched_at": null
+        "fetched_at": "2026-11-15T13:52:37Z"
       }
     },
     {
@@ -26,7 +26,7 @@
       "detail": "no denylist or incident label on lista_w.tg",
       "source": {
         "provider": "label store",
-        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "request_sha256": "cf335f98f9dd43c560a6f3d4c743bca4c7a60dd7bd02c3c28de5143ec85b7079",
         "fetched_at": null
       }
     },
@@ -52,18 +52,18 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "could not read the account keys: no recorded response for the request",
+      "status": "pass",
+      "detail": "oldest access key nonce 124925039014160 from free.rpc.fastnear.com: existed by block 124925040 (2024-08-03T15:46:47Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "35d71f95ae58ec7f96aa9ee266699cd25ec50bfa40823bcd4cde05110139f6b4",
-        "fetched_at": null
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "535f12f414d0a8d05568ac85fadd3749b556fc1f0587943407ad01837a4bf4ab",
+        "fetched_at": "2026-11-15T13:52:37Z"
       }
     },
     {
       "id": "dust_funded",
-      "status": "unknown",
-      "detail": "the creation transaction is not known",
+      "status": "pass",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
       "source": {
         "provider": "nearblocks",
         "request_sha256": null,
@@ -76,30 +76,28 @@
       "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
       "source": {
         "provider": "allowlist and label store",
-        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "request_sha256": "cf335f98f9dd43c560a6f3d4c743bca4c7a60dd7bd02c3c28de5143ec85b7079",
         "fetched_at": null
       }
     },
     {
       "id": "code_without_metadata",
-      "status": "unknown",
-      "detail": "the receiver account could not be read",
+      "status": "pass",
+      "detail": "no contract code",
       "source": {
         "provider": "free.rpc.fastnear.com",
         "request_sha256": "b7321e4a8e889288875080635683f4fc17fda523d81d9512f1b2b83620d33d9f",
-        "fetched_at": null
+        "fetched_at": "2026-11-15T13:52:37Z"
       }
     }
   ],
   "reasons": [
-    "receiver_exists could not run: could not read lista_w.tg: no recorded response for the request.",
-    "account_age could not run: could not read the account keys: no recorded response for the request.",
-    "dust_funded could not run: the creation transaction is not known.",
-    "code_without_metadata could not run: the receiver account could not be read."
+    "Every check ran and none found a signal.",
+    "Not on the owner's allowlist."
   ],
   "labels": [],
   "observed": {
-    "block_height": null,
+    "block_height": 224674451,
     "timestamp_ms": 1794197345742
   }
 }

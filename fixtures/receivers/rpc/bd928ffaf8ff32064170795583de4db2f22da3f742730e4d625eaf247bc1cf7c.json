@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 222510141,
+      "account_id": "neardevgov.sputnik-dao.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "2750165891026715699900000003",
+      "block_hash": "57iB2TSotGsz9XRjqaLdgvY3nD5igxJ9xSDUZUHyL6bw",
+      "block_height": 222510141,
+      "code_hash": "2Zof1Tyy4pMeJM48mDSi5ww2QQhTz97b9S8h6W6r4HnK",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 563093
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-15T13:56:09Z"
+}

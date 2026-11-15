@@ -1,0 +1,109 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "pskoob.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "47uRCZvJhbNu6VrCmW9xHa9NP3YPJoRk9tD5ExZ4Apcs",
+      "block_height": 224674675,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 135439593000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "market.tradeport.near"
+              }
+            }
+          },
+          "public_key": "ed25519:25buiQNU658txppjhbCKdTxGpoHH63TUzhs9oe91yBqb"
+        },
+        {
+          "access_key": {
+            "nonce": 120589625000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "asset-manager.orderly-network.near"
+              }
+            }
+          },
+          "public_key": "ed25519:2CLmdwkTLHbHh4J7LsLxmze3yv5JpmnPvU68gXTHDDy2"
+        },
+        {
+          "access_key": {
+            "nonce": 131151154000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "a.mitte-orderbook.near"
+              }
+            }
+          },
+          "public_key": "ed25519:2SaCP8SeJufStYwkF7k5S3LzCHUKA495UFmm5XFbQW5Q"
+        },
+        {
+          "access_key": {
+            "nonce": 224661686000001,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "249880083590141100000000",
+                "method_names": [
+                  "__fastdata_kv"
+                ],
+                "receiver_id": "nearhunt.near"
+              }
+            }
+          },
+          "public_key": "ed25519:9fafsSgyy1VonSacMJw23ERwJoKbZZCqWMKQ7aERjB6r"
+        },
+        {
+          "access_key": {
+            "nonce": 123463859000159,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "aa-harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BS5tkyAHU6dyLHVYBGGxCKzqAa5jB1j1xyAMQ1Cwaqny"
+        },
+        {
+          "access_key": {
+            "nonce": 148272646000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "marketplace.paras.near"
+              }
+            }
+          },
+          "public_key": "ed25519:Eqc6pe8BYBGoFPmdMshCFWpvGhnCaP9v3NW9nTyozgnz"
+        },
+        {
+          "access_key": {
+            "nonce": 111888696044911,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:GRUvQGVmD23CCMTAkufNaN7cHZxeGZUytFTtAZmuNVeT"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:54:42Z"
+}

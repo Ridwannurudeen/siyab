@@ -8,7 +8,7 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "UNKNOWN",
+  "verdict": "ALLOW",
   "checks": [
     {
       "id": "receiver_exists",
@@ -26,18 +26,18 @@
       "detail": "no denylist or incident label on sneering_yeti.near",
       "source": {
         "provider": "label store",
-        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "request_sha256": "cf335f98f9dd43c560a6f3d4c743bca4c7a60dd7bd02c3c28de5143ec85b7079",
         "fetched_at": null
       }
     },
     {
       "id": "issuer_blacklist",
-      "status": "unknown",
-      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; could not read is_blocklisted on 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1: no recorded response for the request",
+      "status": "pass",
+      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
       "source": {
         "provider": "free.rpc.fastnear.com",
-        "request_sha256": "55e751fd4b654155f1966193bf5c70821cbfdd5f6f4cecbd0db0b84c6976cfc0",
-        "fetched_at": null
+        "request_sha256": "935d7b0f470e513c3596c34283888d7c1ce447b3729863e833d7740123d0b9a1",
+        "fetched_at": "2026-11-09T04:48:51Z"
       }
     },
     {
@@ -52,18 +52,18 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "no archival age (view_access_key_list could not run: no recorded response for the request); could not read the account keys: no recorded response for the request",
+      "status": "pass",
+      "detail": "oldest access key nonce 221541818000094 from free.rpc.fastnear.com: existed by block 221541819 (2026-10-25T12:54:35Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "6fe8db7a00644127a8b246c00ff5878fce139342565fe659869dd0ef03cd30bc",
-        "fetched_at": null
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "20ccb0eac1498482aca4b85925bfd59f82cfa35e81dfc5b26b8b0f520cc1355b",
+        "fetched_at": "2026-11-15T13:54:53Z"
       }
     },
     {
       "id": "dust_funded",
-      "status": "unknown",
-      "detail": "the creation transaction is not known",
+      "status": "pass",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
       "source": {
         "provider": "nearblocks",
         "request_sha256": null,
@@ -76,7 +76,7 @@
       "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
       "source": {
         "provider": "allowlist and label store",
-        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "request_sha256": "cf335f98f9dd43c560a6f3d4c743bca4c7a60dd7bd02c3c28de5143ec85b7079",
         "fetched_at": null
       }
     },
@@ -92,9 +92,8 @@
     }
   ],
   "reasons": [
-    "issuer_blacklist could not run: usdt.tether-token.near get_blacklist_status answers \"Allowable\"; could not read is_blocklisted on 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1: no recorded response for the request.",
-    "account_age could not run: no archival age (view_access_key_list could not run: no recorded response for the request); could not read the account keys: no recorded response for the request.",
-    "dust_funded could not run: the creation transaction is not known."
+    "Every check ran and none found a signal.",
+    "Not on the owner's allowlist."
   ],
   "labels": [],
   "observed": {

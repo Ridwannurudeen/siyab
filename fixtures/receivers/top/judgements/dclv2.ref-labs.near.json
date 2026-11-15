@@ -26,7 +26,7 @@
       "detail": "no denylist or incident label on dclv2.ref-labs.near",
       "source": {
         "provider": "label store",
-        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "request_sha256": "cf335f98f9dd43c560a6f3d4c743bca4c7a60dd7bd02c3c28de5143ec85b7079",
         "fetched_at": null
       }
     },
@@ -53,21 +53,21 @@
     {
       "id": "account_age",
       "status": "pass",
-      "detail": "no archival age (dclv2.ref-labs.near has no access key; archival block_at could not run: no recorded response for the request); oldest listed key created 1383 d ago",
+      "detail": "dclv2.ref-labs.near has no access key; view_account finds dclv2.ref-labs.near at block 220928245 (2026-10-21T09:33:57Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "66011372a3747cd5ed66e7c3c93d9b0b6592e60d007fb6f320215dc65af45e67",
-        "fetched_at": "2026-10-29T14:41:15Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "6100af4ac2abdf9e86b3afa3d7b14936318689a65147bb3b0afaff78b8f73f45",
+        "fetched_at": "2026-11-15T13:48:21Z"
       }
     },
     {
       "id": "dust_funded",
       "status": "pass",
-      "detail": "created by a 50 NEAR deposit",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "806b99c3914e2f73f573626cd1b5c49ec86d42243f2b666699674fbc9d7e136c",
-        "fetched_at": "2026-10-29T14:41:25Z"
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
       }
     },
     {
@@ -76,7 +76,7 @@
       "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
       "source": {
         "provider": "allowlist and label store",
-        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "request_sha256": "cf335f98f9dd43c560a6f3d4c743bca4c7a60dd7bd02c3c28de5143ec85b7079",
         "fetched_at": null
       }
     },

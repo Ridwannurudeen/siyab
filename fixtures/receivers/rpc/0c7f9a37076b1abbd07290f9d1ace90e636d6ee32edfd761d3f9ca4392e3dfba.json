@@ -1,0 +1,30 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 223412864,
+      "account_id": "alexchad.v2-launchpad.justhoot.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "error": {
+      "name": "HANDLER_ERROR",
+      "cause": {
+        "info": {
+          "block_hash": "6jhoXhT7P27xKvaoLWsehdwqQDiJeqjHiB7c1H5mPu2T",
+          "block_height": 223412864,
+          "requested_account_id": "alexchad.v2-launchpad.justhoot.near"
+        },
+        "name": "UNKNOWN_ACCOUNT"
+      },
+      "code": -32000,
+      "message": "Server error",
+      "data": "account alexchad.v2-launchpad.justhoot.near does not exist while viewing"
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-15T13:49:56Z"
+}

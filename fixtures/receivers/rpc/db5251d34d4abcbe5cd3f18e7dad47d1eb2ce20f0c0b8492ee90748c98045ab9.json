@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "orhea-conv.rhealab.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "13310201997595358099999761",
+      "block_hash": "9GeTqXHt17FEAvQVfFPNMTR92wfgv3FwgdMuHWKjqkuv",
+      "block_height": 224674237,
+      "code_hash": "HG7h3RGsW7FW1MxgDLyPB9H92ksVvZfa5UwHFCmvyKJh",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 1118987
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:50:36Z"
+}

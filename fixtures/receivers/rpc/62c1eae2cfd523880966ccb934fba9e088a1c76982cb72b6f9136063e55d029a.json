@@ -1,0 +1,44 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "jopka.sendler-b.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "63Ke7m1Y7dqbhFnnkgnmniHSJt3as79gFXohLLEk2bfH",
+      "block_height": 224674768,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 220837847001317,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:7RsB15ruXrSh8D9aiwUK9f5iUjPmvm3mweivSb8pq5LP"
+        },
+        {
+          "access_key": {
+            "nonce": 224659263000001,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "249880083590141100000000",
+                "method_names": [
+                  "__fastdata_kv"
+                ],
+                "receiver_id": "nearhunt.near"
+              }
+            }
+          },
+          "public_key": "ed25519:8nB78c1x1QwPVa5jfo4QKxXasR9ha686TbR8FkkcPkom"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:55:36Z"
+}

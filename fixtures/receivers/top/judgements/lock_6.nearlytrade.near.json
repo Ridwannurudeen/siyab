@@ -12,12 +12,12 @@
   "checks": [
     {
       "id": "receiver_exists",
-      "status": "unknown",
-      "detail": "could not read lock_6.nearlytrade.near: no recorded response for the request",
+      "status": "pass",
+      "detail": "lock_6.nearlytrade.near exists",
       "source": {
         "provider": "free.rpc.fastnear.com",
         "request_sha256": "3c9bf9fc930237d0299d83a1ff8915716c29bc16c1d64f90f5a1a950e1ce5ed3",
-        "fetched_at": null
+        "fetched_at": "2026-11-15T13:54:21Z"
       }
     },
     {
@@ -26,7 +26,7 @@
       "detail": "no denylist or incident label on lock_6.nearlytrade.near",
       "source": {
         "provider": "label store",
-        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "request_sha256": "cf335f98f9dd43c560a6f3d4c743bca4c7a60dd7bd02c3c28de5143ec85b7079",
         "fetched_at": null
       }
     },
@@ -53,7 +53,7 @@
     {
       "id": "account_age",
       "status": "unknown",
-      "detail": "could not read the account keys: no recorded response for the request",
+      "detail": "no archival age (lock_6.nearlytrade.near has no access key; block 223465038 (2026-11-07T12:16:08Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days); could not read the account keys: no recorded response for the request",
       "source": {
         "provider": "api.nearblocks.io",
         "request_sha256": "d78133f55cc06ef0be82645905eba22a5401f57971df64e14a8408bdf25c4b4a",
@@ -76,30 +76,28 @@
       "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
       "source": {
         "provider": "allowlist and label store",
-        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "request_sha256": "cf335f98f9dd43c560a6f3d4c743bca4c7a60dd7bd02c3c28de5143ec85b7079",
         "fetched_at": null
       }
     },
     {
       "id": "code_without_metadata",
-      "status": "unknown",
-      "detail": "the receiver account could not be read",
+      "status": "pass",
+      "detail": "contract code with contract_source_metadata",
       "source": {
         "provider": "free.rpc.fastnear.com",
-        "request_sha256": "3c9bf9fc930237d0299d83a1ff8915716c29bc16c1d64f90f5a1a950e1ce5ed3",
-        "fetched_at": null
+        "request_sha256": "1a11634beb58a5b7c1c253f0d94a45856311ef9c1d2bac11a1860f332878a04b",
+        "fetched_at": "2026-11-15T13:54:22Z"
       }
     }
   ],
   "reasons": [
-    "receiver_exists could not run: could not read lock_6.nearlytrade.near: no recorded response for the request.",
-    "account_age could not run: could not read the account keys: no recorded response for the request.",
-    "dust_funded could not run: the creation transaction is not known.",
-    "code_without_metadata could not run: the receiver account could not be read."
+    "account_age could not run: no archival age (lock_6.nearlytrade.near has no access key; block 223465038 (2026-11-07T12:16:08Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days); could not read the account keys: no recorded response for the request.",
+    "dust_funded could not run: the creation transaction is not known."
   ],
   "labels": [],
   "observed": {
-    "block_height": null,
+    "block_height": 224674638,
     "timestamp_ms": 1794197345742
   }
 }

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "kangjp88.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "72KRyVTc2rc1a9vFqTY5TkhFJ5kzcKWHfs2enG1cdQXq",
+      "block_height": 224674451,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 121633171018140,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:GEstfJaBpPsA1koJo2MEYhoNC9oRof8tN2RpeJG2RobU"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:52:37Z"
+}

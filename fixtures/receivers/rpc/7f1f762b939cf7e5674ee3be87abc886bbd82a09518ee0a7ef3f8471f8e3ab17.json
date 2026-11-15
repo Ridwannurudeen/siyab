@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "aisthetic.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "2656974255080387404186159",
+      "block_hash": "9dXx94XXEFAyhGcVpJTTcnpawELj4zDDPN5SyVNgfou7",
+      "block_height": 224674282,
+      "code_hash": "GKot5hBsd81kMupNCXHaqbhv3huEbxAFMLnpcX2hniwn",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 437
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:02Z"
+}

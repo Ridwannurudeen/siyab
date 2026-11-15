@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "token.sweat"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "44319090562373677093969591174",
+      "block_hash": "4EzgCCG1r4gzHhoGxbQpKHKWaonVZA7Vx41fdut7yzEM",
+      "block_height": 224674240,
+      "code_hash": "9EUtV11wgCZ4N16xa24ETnn8E78GjeSit1r7gMyQZ6Zi",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 3485861751
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:50:38Z"
+}

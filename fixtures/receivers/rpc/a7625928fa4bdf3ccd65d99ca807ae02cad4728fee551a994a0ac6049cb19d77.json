@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "treasury.j1-racing.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "9bMUMszp55BQ6CsTs3btbuEcQnmifVVy6PeGRr4T8xNp",
+      "block_height": 224674857,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 217076566000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:3pzoZV8QG7LDXZDyRHyZMjpxd8k1UJfz81Pd8dAtT5GR"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:56:26Z"
+}

@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "bucks05.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "DabxUXWzvxoa7kmsfSdmfGNf1bZzD4HY57QvikZQhZjr",
+      "block_height": 224674574,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 223533618000004,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:AKeCNQjxUATh2nyTawaQs2tDFyQtbcQEwyKzJEVfeWX3"
+        },
+        {
+          "access_key": {
+            "nonce": 223533629000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:GKe6w3rFxJMDwNnbWi4jfrczzi1Um3iYv9uS5aGd4ve2"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:53:46Z"
+}

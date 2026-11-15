@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "salmfed.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "6KkXDFAasyCuH9Umfm8eB3NVGzAux2arr7w73kQE6Khx",
+      "block_height": 224674686,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 216349664000034,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Hd2N8oPHtgU8et6SPNFtRuyzcubhfEJGHt1msETPJ8Vu"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:54:49Z"
+}

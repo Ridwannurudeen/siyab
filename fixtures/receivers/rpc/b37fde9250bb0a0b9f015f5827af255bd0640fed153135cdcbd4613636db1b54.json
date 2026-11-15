@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "zacflor25.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "CtWCqvPTE88gEuyWW74Fb3Hi7qceuv4byZ6Y1d2pHSaF",
+      "block_height": 224674743,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 222019394000018,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:CVysMUBA7GQyW8uRwFpXETJNwF6kwWPbcyjgSjTK6trL"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:55:22Z"
+}

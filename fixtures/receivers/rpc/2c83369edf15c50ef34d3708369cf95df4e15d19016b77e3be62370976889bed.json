@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "djins87.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "CmuevotVQtLFPrYg2aAtyHuHzzKdNGkV5u5WjVZiQEMf",
+      "block_height": 224674587,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 114480153014171,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:2vWPgExPKRS83pH73LQLf4MYn2GR8xndRW2F6sAH2Nbt"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:53:53Z"
+}

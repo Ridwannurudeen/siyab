@@ -12,12 +12,12 @@
   "checks": [
     {
       "id": "receiver_exists",
-      "status": "unknown",
-      "detail": "could not read pool.near-meme-router.near: no recorded response for the request",
+      "status": "pass",
+      "detail": "pool.near-meme-router.near exists",
       "source": {
         "provider": "free.rpc.fastnear.com",
         "request_sha256": "a9e716c8d8c5d9cb2103fbb2e9e10befb3f97c6fea3a7537c59ecb585ae7072b",
-        "fetched_at": null
+        "fetched_at": "2026-11-15T13:51:56Z"
       }
     },
     {
@@ -26,18 +26,18 @@
       "detail": "no denylist or incident label on pool.near-meme-router.near",
       "source": {
         "provider": "label store",
-        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "request_sha256": "cf335f98f9dd43c560a6f3d4c743bca4c7a60dd7bd02c3c28de5143ec85b7079",
         "fetched_at": null
       }
     },
     {
       "id": "issuer_blacklist",
-      "status": "unknown",
-      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; could not read is_blocklisted on 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1: no recorded response for the request",
+      "status": "pass",
+      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
       "source": {
         "provider": "free.rpc.fastnear.com",
-        "request_sha256": "79d485f8b50b3591c54e51974504260e2604db95d9d353d7482b7ab6451d3398",
-        "fetched_at": null
+        "request_sha256": "773c4bd86e8480ffc66d4ad850342ecb25d083d8976212cff0f553a5be1ada0e",
+        "fetched_at": "2026-11-09T04:23:49Z"
       }
     },
     {
@@ -53,7 +53,7 @@
     {
       "id": "account_age",
       "status": "unknown",
-      "detail": "could not read the account keys: no recorded response for the request",
+      "detail": "no archival age (pool.near-meme-router.near has no access key; block 223464778 (2026-11-07T12:13:35Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days); could not read the account keys: no recorded response for the request",
       "source": {
         "provider": "api.nearblocks.io",
         "request_sha256": "8b44efd76aaa12de348dcada80c120ac5343135b1ff38a90fe2851aedf8ad2a6",
@@ -76,31 +76,28 @@
       "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
       "source": {
         "provider": "allowlist and label store",
-        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "request_sha256": "cf335f98f9dd43c560a6f3d4c743bca4c7a60dd7bd02c3c28de5143ec85b7079",
         "fetched_at": null
       }
     },
     {
       "id": "code_without_metadata",
-      "status": "unknown",
-      "detail": "the receiver account could not be read",
+      "status": "pass",
+      "detail": "contract code with contract_source_metadata",
       "source": {
         "provider": "free.rpc.fastnear.com",
-        "request_sha256": "a9e716c8d8c5d9cb2103fbb2e9e10befb3f97c6fea3a7537c59ecb585ae7072b",
-        "fetched_at": null
+        "request_sha256": "99630ac9021fb94a75fd645cd2c510f1fc794259226e381505cf3d2d695b7362",
+        "fetched_at": "2026-11-15T13:51:57Z"
       }
     }
   ],
   "reasons": [
-    "receiver_exists could not run: could not read pool.near-meme-router.near: no recorded response for the request.",
-    "issuer_blacklist could not run: usdt.tether-token.near get_blacklist_status answers \"Allowable\"; could not read is_blocklisted on 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1: no recorded response for the request.",
-    "account_age could not run: could not read the account keys: no recorded response for the request.",
-    "dust_funded could not run: the creation transaction is not known.",
-    "code_without_metadata could not run: the receiver account could not be read."
+    "account_age could not run: no archival age (pool.near-meme-router.near has no access key; block 223464778 (2026-11-07T12:13:35Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days); could not read the account keys: no recorded response for the request.",
+    "dust_funded could not run: the creation transaction is not known."
   ],
   "labels": [],
   "observed": {
-    "block_height": null,
+    "block_height": 224674378,
     "timestamp_ms": 1794197345742
   }
 }

@@ -1,0 +1,21 @@
+{
+  "request": {
+    "method": "block",
+    "params": {
+      "block_id": 210326007
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": "gate",
+    "result": {
+      "header": {
+        "hash": "61xpgX5xXnJtw4uYzUkNP77bDcCnBc8d4UwiqPXXVnzn",
+        "height": 210326007,
+        "timestamp": 1786114850362176183
+      }
+    }
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:24Z"
+}

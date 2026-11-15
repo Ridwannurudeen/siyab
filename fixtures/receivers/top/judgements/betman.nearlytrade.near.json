@@ -8,7 +8,7 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "UNKNOWN",
+  "verdict": "DENY",
   "checks": [
     {
       "id": "receiver_exists",
@@ -26,7 +26,7 @@
       "detail": "no denylist or incident label on betman.nearlytrade.near",
       "source": {
         "provider": "label store",
-        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "request_sha256": "cf335f98f9dd43c560a6f3d4c743bca4c7a60dd7bd02c3c28de5143ec85b7079",
         "fetched_at": null
       }
     },
@@ -52,12 +52,12 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "no archival age (betman.nearlytrade.near has no access key; betman.nearlytrade.near did not exist at block 222505438 (2026-11-01T02:14:51Z) from archival-rpc.mainnet.fastnear.com, so it was created after that block, which is at least 7 d old; whether it is younger than 7 days is not known); no key of betman.nearlytrade.near carries a creation time",
+      "status": "signal",
+      "detail": "betman.nearlytrade.near has no access key; betman.nearlytrade.near did not exist at block 222505438 (2026-11-01T02:14:51Z) from archival-rpc.mainnet.fastnear.com or block 223412638 (2026-11-07T03:56:25Z) from archival-rpc.mainnet.fastnear.com, which is younger than 7 days, so it was created less than 7 days ago",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "a0696328dde4a124c298d15d6e1116104a53fc5c9095666ddbf3a78a7bbc4e68",
-        "fetched_at": "2026-11-09T04:12:33Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "b0d82675794a0980dfe439db0b7da8f334c533bc55d115f69df792c060d523e4",
+        "fetched_at": "2026-11-15T13:48:36Z"
       }
     },
     {
@@ -76,7 +76,7 @@
       "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
       "source": {
         "provider": "allowlist and label store",
-        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "request_sha256": "cf335f98f9dd43c560a6f3d4c743bca4c7a60dd7bd02c3c28de5143ec85b7079",
         "fetched_at": null
       }
     },
@@ -92,8 +92,8 @@
     }
   ],
   "reasons": [
-    "account_age could not run: no archival age (betman.nearlytrade.near has no access key; betman.nearlytrade.near did not exist at block 222505438 (2026-11-01T02:14:51Z) from archival-rpc.mainnet.fastnear.com, so it was created after that block, which is at least 7 d old; whether it is younger than 7 days is not known); no key of betman.nearlytrade.near carries a creation time.",
-    "dust_funded could not run: the creation transaction is not known."
+    "Created less than 7 days ago.",
+    "Not on the owner's allowlist."
   ],
   "labels": [],
   "observed": {

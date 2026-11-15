@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "asadmasar.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "83a4yuRyoueYaXb1A6dad5qp766wxzyarkXjnUoUY8pK",
+      "block_height": 224674567,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 127545485012200,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:CJh6J8CSiXxD8mKdrXDiVa6YDqbNHetaVDF5c5QxUbR7"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:53:41Z"
+}

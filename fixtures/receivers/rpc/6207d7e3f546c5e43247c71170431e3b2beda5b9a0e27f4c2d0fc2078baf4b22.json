@@ -1,0 +1,64 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "venom-trading.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "CMQnQeYj5T4eT9E8ZHHDGWycmep5sW7M1iz9jTjcoFVP",
+      "block_height": 224674480,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 221464055000241,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:WXSci2qbSL8PCwpURLRhX9dEDdSj6ZrazNp9vBDLECG"
+        },
+        {
+          "access_key": {
+            "nonce": 224241201000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "488453347380375600000000",
+                "method_names": [
+                  "arb",
+                  "harvest",
+                  "resume",
+                  "fund_gas",
+                  "ship",
+                  "ship_ft",
+                  "depart",
+                  "lend",
+                  "recall",
+                  "prepare_lend",
+                  "adopt",
+                  "adopt_near",
+                  "keep_gas",
+                  "start_near",
+                  "wrap_near",
+                  "unwrap_inventory",
+                  "swap_wrapped",
+                  "buy_near",
+                  "sell_near",
+                  "sell_inventory",
+                  "start_sale"
+                ],
+                "receiver_id": "venom-trading.near"
+              }
+            }
+          },
+          "public_key": "ed25519:86RvjkxFmh22W7zSK3Si9AqwGu84yn6kVy13Bf9hC7DS"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:52:53Z"
+}

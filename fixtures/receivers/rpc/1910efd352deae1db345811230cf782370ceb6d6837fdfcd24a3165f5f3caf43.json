@@ -1,0 +1,68 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "volat.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "EyjKcSSZPbjMHUniwoGqvoBghzW7s2BnuZ1hbHXe67DM",
+      "block_height": 224674320,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 216823122000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "nearlytrade.near"
+              }
+            }
+          },
+          "public_key": "ed25519:5aTM2BoaLpXsb6PXM9wWMAPFVEHXhikxHGJeGhpr9GHo"
+        },
+        {
+          "access_key": {
+            "nonce": 210326006004566,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:C897uTPxD3wgk8mjR2Cvcn4jYz55ZqBkpbcSnSeaCM5J"
+        },
+        {
+          "access_key": {
+            "nonce": 224405215000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "drop1.neargochi-dev.near"
+              }
+            }
+          },
+          "public_key": "ed25519:HXmNtBp6Y2f4ApRM7M4Xe8buAzAygL1jjk64fcedxDXi"
+        },
+        {
+          "access_key": {
+            "nonce": 224404943000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "drop1.neargochi-dev.near"
+              }
+            }
+          },
+          "public_key": "ed25519:Hxh8Pnztf35BZ9t7wqyrCxaARaA1CbBdF3pRr32bNo8w"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:23Z"
+}

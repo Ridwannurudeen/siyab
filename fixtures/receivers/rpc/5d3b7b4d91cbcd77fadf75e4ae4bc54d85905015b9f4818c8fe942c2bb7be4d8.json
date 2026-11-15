@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "aa-router.justhoot.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "13212735469203143399997061",
+      "block_hash": "4ELoZH3fWE7zBVKVUFY9D3CqBviK5PmmkbaW3YG1xEXm",
+      "block_height": 224674264,
+      "code_hash": "HeJ5srrcFex5Q52QtSGTNquqJosatVpu7WGP98doznii",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 305979
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:50:51Z"
+}

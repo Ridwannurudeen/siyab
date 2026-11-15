@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "lucky-owl-65.sendler-b.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "EWZeVwdRwqFVZHZHeMjRFreyWSGcJS2RjHRv4Z1bn5oo",
+      "block_height": 224674642,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 221860999000015,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Cm7LPjqarMbdg1gEmNm8A3mQuKWxqisLUP3afvaR87yM"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:54:23Z"
+}

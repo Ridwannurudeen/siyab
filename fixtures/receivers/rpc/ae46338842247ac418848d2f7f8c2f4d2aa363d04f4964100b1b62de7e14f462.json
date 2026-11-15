@@ -1,0 +1,61 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "txns": [
+      {
+        "transaction_hash": "7RtVAhMw1MC6MB7xbiywytrCN82oQf7DEK7bhHFKRtud",
+        "included_in_block_hash": "HDsP8uWTffa3boWB1XghZ6m9PbQnWjJcZ6yxab4eSeRK",
+        "block_timestamp": "1793814203242301595",
+        "signer_account_id": "tg",
+        "receiver_account_id": "tg",
+        "receipt_conversion_gas_burnt": "308296509004",
+        "receipt_conversion_tokens_burnt": "30829650900400000000",
+        "shard_id": "4",
+        "block": {
+          "block_height": 223049207
+        },
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "create_accounts",
+            "args": "{\"accounts\": [[\"musas101-hot.tg\", \"ed25519:F5UoMgPJb2sXEKBbBp61ewDediQG6UQi6p1jAqrrqJJS\"]]}"
+          }
+        ],
+        "actions_agg": {
+          "deposit": 0,
+          "gas_attached": 300000000000000
+        },
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": 7.2740707629903e+21,
+          "gas_used": 10387072754903
+        },
+        "receipts": [
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          }
+        ]
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/txns/7RtVAhMw1MC6MB7xbiywytrCN82oQf7DEK7bhHFKRtud",
+  "fetched_at": "2026-11-15T13:48:35Z"
+}

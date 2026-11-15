@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "mahmedyaro.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "6AcYBiyetFNj9PcCvQmB2B4tysbkVLvjTUtmSzBA734s",
+      "block_height": 224674643,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 112738944026050,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:5cnyfYAkqvkpPS7JtdD7omwQQnWphagrZrHG5Tvh7zBn"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:54:24Z"
+}

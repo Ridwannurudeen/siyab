@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "proven-board.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "4aC3AXDkhpVSkuLpnJV6Dm8XqwpCRLx3DjPJz3irxTpj",
+      "block_height": 224674537,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 223434786000003,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:FEkpX8oV37gSmfvmKhKETHabXZ1meyiFkoXnVWxkgzdc"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:53:24Z"
+}

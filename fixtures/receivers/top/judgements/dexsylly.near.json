@@ -8,16 +8,16 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "UNKNOWN",
+  "verdict": "ALLOW",
   "checks": [
     {
       "id": "receiver_exists",
-      "status": "unknown",
-      "detail": "could not read dexsylly.near: no recorded response for the request",
+      "status": "pass",
+      "detail": "dexsylly.near exists",
       "source": {
         "provider": "free.rpc.fastnear.com",
         "request_sha256": "e146aff6a2fb4b16358c0ad4bb14f6ed452775470c31d33d1e651864e03432fb",
-        "fetched_at": null
+        "fetched_at": "2026-11-15T13:53:51Z"
       }
     },
     {
@@ -26,7 +26,7 @@
       "detail": "no denylist or incident label on dexsylly.near",
       "source": {
         "provider": "label store",
-        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "request_sha256": "cf335f98f9dd43c560a6f3d4c743bca4c7a60dd7bd02c3c28de5143ec85b7079",
         "fetched_at": null
       }
     },
@@ -52,18 +52,18 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "could not read the account keys: no recorded response for the request",
+      "status": "pass",
+      "detail": "oldest access key nonce 219307091000376 from free.rpc.fastnear.com: existed by block 219307092 (2026-10-10T01:01:42Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "d9d1064251ae799470fbaf6c1cd4c1e2473983bfb8adc8d6401bbb4c1012a90e",
-        "fetched_at": null
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "b2bc0b9721cbb11ff8b027411deaab6b4bc1a75a817a6163e5c6f2c3059e4787",
+        "fetched_at": "2026-11-15T13:53:52Z"
       }
     },
     {
       "id": "dust_funded",
-      "status": "unknown",
-      "detail": "the creation transaction is not known",
+      "status": "pass",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
       "source": {
         "provider": "nearblocks",
         "request_sha256": null,
@@ -76,30 +76,28 @@
       "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
       "source": {
         "provider": "allowlist and label store",
-        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "request_sha256": "cf335f98f9dd43c560a6f3d4c743bca4c7a60dd7bd02c3c28de5143ec85b7079",
         "fetched_at": null
       }
     },
     {
       "id": "code_without_metadata",
-      "status": "unknown",
-      "detail": "the receiver account could not be read",
+      "status": "pass",
+      "detail": "no contract code",
       "source": {
         "provider": "free.rpc.fastnear.com",
         "request_sha256": "e146aff6a2fb4b16358c0ad4bb14f6ed452775470c31d33d1e651864e03432fb",
-        "fetched_at": null
+        "fetched_at": "2026-11-15T13:53:51Z"
       }
     }
   ],
   "reasons": [
-    "receiver_exists could not run: could not read dexsylly.near: no recorded response for the request.",
-    "account_age could not run: could not read the account keys: no recorded response for the request.",
-    "dust_funded could not run: the creation transaction is not known.",
-    "code_without_metadata could not run: the receiver account could not be read."
+    "Every check ran and none found a signal.",
+    "Not on the owner's allowlist."
   ],
   "labels": [],
   "observed": {
-    "block_height": null,
+    "block_height": 224674584,
     "timestamp_ms": 1794197345742
   }
 }

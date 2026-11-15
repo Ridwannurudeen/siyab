@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "sweetbread9616.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "ApgEzTbNU7wBjKEPeDeN7WshwYMw17KU3qB7dEWN8cvN",
+      "block_height": 224674699,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 204833104000213,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9Bcno6jqRk1PJEp2iizULwnToSz3qyoXPFWxAsZ4zWr7"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:54:57Z"
+}

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "realeyes.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "2UUXVCyKnF55pNjTnykY8iRLeYUKQMgbyobefrWdrKL4",
+      "block_height": 224674679,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 217796043000145,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4w1FmzPTb2UmvEDWaeki8pquupkYP6PYaHkAdMDdHCZ4"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:54:45Z"
+}

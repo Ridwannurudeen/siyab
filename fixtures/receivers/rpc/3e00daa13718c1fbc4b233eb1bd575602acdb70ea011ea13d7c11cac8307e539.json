@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "luckyharbor2137.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "CGapmAwm41AB9qcnARvpgAtD9YSFwfgwqQmdBsgnWuXg",
+      "block_height": 224674328,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 223496616000004,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:G5afhpyQCa3qyogg6FtZt9oWfKdxcumKDPPFnNUSUL8M"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:28Z"
+}

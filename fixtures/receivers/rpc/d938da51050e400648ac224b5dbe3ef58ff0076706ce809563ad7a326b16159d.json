@@ -1,0 +1,21 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "hoodl-95275b.launchpad.justhoot.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "BUQVi76sVrA31sNkCtfnYTScUx92be6NUjyxpPqCoeMo",
+      "block_height": 224674774,
+      "keys": []
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:55:39Z"
+}

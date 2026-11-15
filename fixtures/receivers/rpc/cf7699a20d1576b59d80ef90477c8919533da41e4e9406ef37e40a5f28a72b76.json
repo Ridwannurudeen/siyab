@@ -1,0 +1,138 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "biophyzix.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "AvXzfMABJZmYpb6YGS2a9WzF3fj2raQAqxw1SqCDrXe2",
+      "block_height": 224674572,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 112376299008276,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:293pH1fUT6aQZkPUwZkQDZ4cRuwFtFxfSkfz3rhSczhF"
+        },
+        {
+          "access_key": {
+            "nonce": 113209022000012,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meteor-points.near"
+              }
+            }
+          },
+          "public_key": "ed25519:3yW8vDHLxXPKS2TP7wvcYrfVYY6WccJSB4b9jKwdhyek"
+        },
+        {
+          "access_key": {
+            "nonce": 114078221000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "asset-manager.orderly-network.near"
+              }
+            }
+          },
+          "public_key": "ed25519:5SWCUiKhEYa5J8WupdTw1gZRT773EZTEVeGtNbFZwoVi"
+        },
+        {
+          "access_key": {
+            "nonce": 224670363000003,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "249640240786493500000000",
+                "method_names": [
+                  "__fastdata_kv"
+                ],
+                "receiver_id": "nearhunt.near"
+              }
+            }
+          },
+          "public_key": "ed25519:6WDSi36ZBsVKDgT8xphp4AbDsoy1Yw7XTFtnAnxoiZmh"
+        },
+        {
+          "access_key": {
+            "nonce": 112656002000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "market.tradeport.near"
+              }
+            }
+          },
+          "public_key": "ed25519:9TKqskC3FKFjtAbpPDS6ZcGUsvm5DNJSpr1KGM3LJq7u"
+        },
+        {
+          "access_key": {
+            "nonce": 224670647000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "__fastdata_kv",
+                  "__fastdata_fastfs"
+                ],
+                "receiver_id": "social"
+              }
+            }
+          },
+          "public_key": "ed25519:AbFDfWLT1WJ2WFzTxHy8sfGoEUohxLd4DhCZKWjow9Nz"
+        },
+        {
+          "access_key": {
+            "nonce": 116493074000091,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "aa-harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BS5tkyAHU6dyLHVYBGGxCKzqAa5jB1j1xyAMQ1Cwaqny"
+        },
+        {
+          "access_key": {
+            "nonce": 113413064000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "market.tradeport.near"
+              }
+            }
+          },
+          "public_key": "ed25519:Fc2VHxeLVse1LFbChcwq4sZh4SRD2C6AkhNijtioUjRM"
+        },
+        {
+          "access_key": {
+            "nonce": 112471950000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "market.tradeport.near"
+              }
+            }
+          },
+          "public_key": "ed25519:FyPeMQGidA5m5PRpSpgWicdQdbwTf5Zpkms32jp9PN1E"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:53:44Z"
+}

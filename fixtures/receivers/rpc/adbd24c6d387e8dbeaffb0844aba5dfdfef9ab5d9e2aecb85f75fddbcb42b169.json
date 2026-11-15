@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "keys": [
+      {
+        "public_key": "ed25519:99GBFb88HZoSF9czvoJC4GEWjYRWZvehLtcagnisHXra",
+        "account_id": "sharpicon3186.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "9QFjqRwTazMK9uoZQbCxaVDo1ai9yKteC6h1BWe82U2Z",
+          "block_timestamp": 1793976986107663000
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/account/sharpicon3186.near/keys",
+  "fetched_at": "2026-11-15T13:49:04Z"
+}

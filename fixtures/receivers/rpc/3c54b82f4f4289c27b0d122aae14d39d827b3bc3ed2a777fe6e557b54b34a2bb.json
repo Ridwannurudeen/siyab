@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "sera_firm.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "DRJyU4jBTiJh7JdzCLg5X2ANhf7USwvi6yfgbSGQE2iB",
+      "block_height": 224674471,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 124997184014110,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:B5HRXAU9zZ4upCg33KwaGCiixzFHDGv5tQgfv5d2ETEp"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:52:48Z"
+}

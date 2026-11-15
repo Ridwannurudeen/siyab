@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "mike222.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "8mGy9Nd3TkSiTPH6PwVwKi87DvthBdwYhtFsfbxXtj2P",
+      "block_height": 224674330,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 112527213224483,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6aUNCPa7Uerf3DZwajahstgbkRmgFz4hx7ufvmyUcAJA"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:29Z"
+}

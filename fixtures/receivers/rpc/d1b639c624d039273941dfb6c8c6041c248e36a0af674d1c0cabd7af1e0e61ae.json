@@ -1,0 +1,26 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 222510324,
+      "account_id": "l000000.factory.shardsmarket.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "8510944548787955000009199",
+      "block_hash": "2ok8XhJ8ecVC5w3GVdgDdE4Jvgp5iEB7yNLcRnH8Y8Ak",
+      "block_height": 222510324,
+      "code_hash": "11111111111111111111111111111111",
+      "global_contract_hash": "BqWmwKZ5H95Hjtrn5dfZb17K8xi7HSriStdTbiNYYLVo",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 340653
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-15T13:56:21Z"
+}

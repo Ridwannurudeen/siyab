@@ -1,0 +1,435 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "jabyl.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "SDzsJ3QohDAJinaMB5Zrrnq1BDuQ7Nz5G3ko66CGpgL",
+      "block_height": 224674625,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 151283893000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "vibesflow.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:sjKLRvggRvGoXEp6y3vcWXxBkcVxYqFYzP3snnLh1Sv"
+        },
+        {
+          "access_key": {
+            "nonce": 97824691000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:2TqQTBJHfH9L87ZiYwuz1Mb55ssPMKHf9iCfaY7gRgsp"
+        },
+        {
+          "access_key": {
+            "nonce": 97823728000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:3hQnu8b3k8aiV3Du5oCFF6cbuBHUHYvDzmYBCPmwKfGV"
+        },
+        {
+          "access_key": {
+            "nonce": 116758611000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "social.near"
+              }
+            }
+          },
+          "public_key": "ed25519:43Zw69EX6BsrYTCTZu3hR9CNAyUB4SXvZbuaomCS5cZX"
+        },
+        {
+          "access_key": {
+            "nonce": 74771772000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:47P5s9DLW4Msopa45Jo3NqVDfdaFPonRFcEBdBHYFpzB"
+        },
+        {
+          "access_key": {
+            "nonce": 74266315000009,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4LpMKe4i8kqz9gcs8gQU15mtuojFC69YQMc6CMA3QyvZ"
+        },
+        {
+          "access_key": {
+            "nonce": 152563144000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "vibesflow.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:4Xzbd6dv1B27GCuQyQtyyp7itRpKpeixdQegUMqsyUk5"
+        },
+        {
+          "access_key": {
+            "nonce": 152561293000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "vibesflow.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:4fyKb5hsqpRBXFXbdZ2gVX2is1yeMjiqx37KctSQABTZ"
+        },
+        {
+          "access_key": {
+            "nonce": 74037422000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "sputnikdao.near"
+              }
+            }
+          },
+          "public_key": "ed25519:5JqA117nHXj5v3zQCtddeiGCWAv8jzaUqhEmDVnQKxkd"
+        },
+        {
+          "access_key": {
+            "nonce": 151291702000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "vibesflow.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:5MvXZaPLro6GJDsXrWz5ykC4FdpkbZBdg9sdNDpBkjcf"
+        },
+        {
+          "access_key": {
+            "nonce": 151658588000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "vibesflow.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:5NSgiA7F6WwgjgQZ63Do2gJ8LpPJnUeptsqBZCPJYYYh"
+        },
+        {
+          "access_key": {
+            "nonce": 151299516000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "vibesflow.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:5zrgV4Y6kWPji53fZhpTsWkes6sc5jfNyRvGdSyduxZg"
+        },
+        {
+          "access_key": {
+            "nonce": 93538670000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6Y9EheuxmbG7WSa9G8HmEaUgTQtRYmmLTqyUm1jmGP9U"
+        },
+        {
+          "access_key": {
+            "nonce": 55403131000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6f5GxJJT8SYgmPPvmk6AgSFBWUxYqy8oxgRh6GNhDt4Y"
+        },
+        {
+          "access_key": {
+            "nonce": 74032449000004,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6ss6ZWbvKhxgGPBm9M3hvoFKQWh3FGk2fGM8iJa5NYY5"
+        },
+        {
+          "access_key": {
+            "nonce": 152560424000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "vibesflow.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:72XKWZnYCJ67BPeV2LdD72yf7ewTVdTHxgG72uvyby5V"
+        },
+        {
+          "access_key": {
+            "nonce": 151282717000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "create_composition",
+                  "mint_nft",
+                  "get_user_data"
+                ],
+                "receiver_id": "vibesflow.near"
+              }
+            }
+          },
+          "public_key": "ed25519:73wEUCnWijbi7TgTPsKP6Qpmbjzn3HvJ6mN7jAUViZb9"
+        },
+        {
+          "access_key": {
+            "nonce": 151282336000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "create_composition",
+                  "mint_nft",
+                  "get_user_data"
+                ],
+                "receiver_id": "vibesflow.near"
+              }
+            }
+          },
+          "public_key": "ed25519:765fB3vz9CzG1avDDKrdJhwLHudoriKzHtdYpLNww8jU"
+        },
+        {
+          "access_key": {
+            "nonce": 4,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:7RFzwzKqDwVfSqniQV8RQC2QTanNGSAdVLrWHvts2USF"
+        },
+        {
+          "access_key": {
+            "nonce": 152558393000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "vibesflow.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:7rHQDCuUbPjUFGp8QdtvfZNgwFytgJ1hqaCwJJ21bLN1"
+        },
+        {
+          "access_key": {
+            "nonce": 97823677000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8X8MXPzaXpjHx6S31un5v2r7zeKmJJhvrvbjudykqBna"
+        },
+        {
+          "access_key": {
+            "nonce": 151288435000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "vibesflow.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:8YyFjQr5AKFky1smie3CEnZy5y4Dd9XPFCX7WLG2fpHE"
+        },
+        {
+          "access_key": {
+            "nonce": 151282278000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "create_composition",
+                  "mint_nft",
+                  "get_user_data"
+                ],
+                "receiver_id": "vibesflow.near"
+              }
+            }
+          },
+          "public_key": "ed25519:9HgjSFtbGLe8RSL9A9J46RB7vHjErGKEM8o9hvAdnjDC"
+        },
+        {
+          "access_key": {
+            "nonce": 85749250000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:A7J6eAf11wpN4ouvAfPa5J62MChVTnq2y4NWGYS12qbS"
+        },
+        {
+          "access_key": {
+            "nonce": 86276345000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:ALuiJomYYxxSjzHpN5fmh3LoSyHa7jzUKsyUt5kuKKLo"
+        },
+        {
+          "access_key": {
+            "nonce": 82736391000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:AuFUEuLKJ2BYGLExpdcP87RbBw8hf6cshViKzPYahQg7"
+        },
+        {
+          "access_key": {
+            "nonce": 151283657000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "create_composition",
+                  "mint_nft",
+                  "get_user_data"
+                ],
+                "receiver_id": "vibesflow.near"
+              }
+            }
+          },
+          "public_key": "ed25519:B2Wz97wKRw1PmLo9CryR8b2956VStWWbNH7nRqAEhSpJ"
+        },
+        {
+          "access_key": {
+            "nonce": 92597821000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:C8iboNzBnvbdZkmfco8hzJJcrPn2NqVVPszb6zpaTukk"
+        },
+        {
+          "access_key": {
+            "nonce": 152399876000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "vibesflow.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:CKxkvMa8roAuvPNZYtDin4mcRStX7kcE14gX6PEYyjvF"
+        },
+        {
+          "access_key": {
+            "nonce": 76018014000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:CZBWCyJZwT3F4tXee9ktdeJXr53ibZmh22M3siELdSyY"
+        },
+        {
+          "access_key": {
+            "nonce": 88359088000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:CkxBzpQ7FNtVzHBtjsFeKWEsJTz1P3VCW9wVMHyaM8aH"
+        },
+        {
+          "access_key": {
+            "nonce": 77800629000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:DjRqd7hbW2ogBF2MRPFiBjw3Bs1wSJ3GaFDP8jScEdeX"
+        },
+        {
+          "access_key": {
+            "nonce": 71111254000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:ENfoLWbC8RgvJbD4x7tHYaCSEjumg87adEmZgMHhyodd"
+        },
+        {
+          "access_key": {
+            "nonce": 151285379000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "vibesflow.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:FncMCZLzwFwFBMa69KYgdFm2qrxnAMwS7xzefbheBcTC"
+        },
+        {
+          "access_key": {
+            "nonce": 0,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:GTe9qJVhFfdD2nvaAx4ZmZBY4JN17r4S79AXNzncomwr"
+        },
+        {
+          "access_key": {
+            "nonce": 232,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Gk8UJjY6MUmeod8eRH9PD2pe2psG8EAjhkWDiyK5FQXJ"
+        },
+        {
+          "access_key": {
+            "nonce": 151283828000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "vibesflow.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:GsVy6NvtEHuEFrzoKR6uU5z8YSbhdWQSPqwER3HJNnj8"
+        },
+        {
+          "access_key": {
+            "nonce": 74032539000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "sputnik-dao.near"
+              }
+            }
+          },
+          "public_key": "ed25519:HZ1DNWpGZXk9te9Kj4nfwoQLW4MosuFmLo175AKhZqbm"
+        },
+        {
+          "access_key": {
+            "nonce": 151282353000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "create_composition",
+                  "mint_nft",
+                  "get_user_data"
+                ],
+                "receiver_id": "vibesflow.near"
+              }
+            }
+          },
+          "public_key": "ed25519:Hgm2AaueRpQVtKrYsptjY5aZXmgUMvurAzaDuopiTT38"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:54:14Z"
+}

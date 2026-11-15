@@ -1,0 +1,42 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "tron_rent_energy.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "EVfcqbpwDVzXbJHew7EWZqB6B8qRefbpVnuQSDFdF9tz",
+      "block_height": 224674359,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 118071067000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "asset-manager.orderly-network.near"
+              }
+            }
+          },
+          "public_key": "ed25519:Ed34z65dKgRwjjjPgYafmn5wbVq1pkWZFgZZ1wU2Wnd4"
+        },
+        {
+          "access_key": {
+            "nonce": 111778700020146,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:FUZuUtK4V2oC5X8EFpqHCmCR293DvzJmjFWSAs3MhJkm"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:46Z"
+}

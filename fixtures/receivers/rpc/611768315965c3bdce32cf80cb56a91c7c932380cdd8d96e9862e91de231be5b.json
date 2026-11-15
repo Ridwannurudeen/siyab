@@ -1,0 +1,709 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "r3ndaik.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "AsKDEktcBWiXurpo42X6uRaCJ7XN2D84aLL8Ym8W7Jxe",
+      "block_height": 224674542,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 172074269000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meme-cooking.near"
+              }
+            }
+          },
+          "public_key": "ed25519:bohzC5H3XPSXneR9hxnstKjW5Yz2F6WKUV9RUKs8wTU"
+        },
+        {
+          "access_key": {
+            "nonce": 169398942000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meme-cooking.near"
+              }
+            }
+          },
+          "public_key": "ed25519:24r1GMgcw6ujkaLNnLXNEa79VwQNYSbwZ5zhpM96tuLB"
+        },
+        {
+          "access_key": {
+            "nonce": 147572629000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "siberia-tap-contract.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:2Lk8fzwAVeyfqy7KyWqodtsDuDvAYoYGvas3fVmq5zj8"
+        },
+        {
+          "access_key": {
+            "nonce": 169100562000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meme-cooking.near"
+              }
+            }
+          },
+          "public_key": "ed25519:2VnFDsouG3orYGwAASpfVm6nwQMt9hCwH6WeexoX2A1B"
+        },
+        {
+          "access_key": {
+            "nonce": 152317728000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "social.near"
+              }
+            }
+          },
+          "public_key": "ed25519:2eKJBfoRpxE23XCjbMQGY3zGqTmXDQLzDbiLqGd1BoaK"
+        },
+        {
+          "access_key": {
+            "nonce": 169097843000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meme-cooking.near"
+              }
+            }
+          },
+          "public_key": "ed25519:2q78pDV271p2Ryx7dUcsu1deY8XGYB7oC8QmxmX99TTu"
+        },
+        {
+          "access_key": {
+            "nonce": 147718128000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "siberia-tap-contract.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:2sD9UFyx3u4LD7SeB8Q6RKvYuk2YpsSTyQtqaQk3e7xy"
+        },
+        {
+          "access_key": {
+            "nonce": 152018785000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "social.near"
+              }
+            }
+          },
+          "public_key": "ed25519:39y7h4ryzPVnhzPDcTZGT5smUNein7VcgxPUwxuzaZwn"
+        },
+        {
+          "access_key": {
+            "nonce": 147718051000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "siberia-tap-contract.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:3QV18RMAPQFmY9GVQmdMkPrZ2J8oNfPhuVeo12zbvbtc"
+        },
+        {
+          "access_key": {
+            "nonce": 171112288000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meme-cooking.near"
+              }
+            }
+          },
+          "public_key": "ed25519:3xV9s2Fc6scVjp6Y4gKx3MPpnL6bdhUkKJYEKXGw5GNP"
+        },
+        {
+          "access_key": {
+            "nonce": 168806154000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meme-cooking.near"
+              }
+            }
+          },
+          "public_key": "ed25519:447VLS2Gos8ZiQhSTfBu87r85DXFF2t2mSq2GBYgVD25"
+        },
+        {
+          "access_key": {
+            "nonce": 152318944000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "social.near"
+              }
+            }
+          },
+          "public_key": "ed25519:46Q7AKM4ZJkSZaE8m7gPTFzGwb7XPBcPAZTbQ3vVaE3d"
+        },
+        {
+          "access_key": {
+            "nonce": 156110681000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "social.near"
+              }
+            }
+          },
+          "public_key": "ed25519:46XydaC9mEWDfpgT3VESsWGMFTHwsVoxZQRzDet5EMuK"
+        },
+        {
+          "access_key": {
+            "nonce": 151616747000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "social.near"
+              }
+            }
+          },
+          "public_key": "ed25519:4g1394mKpT7DasRLSWK77MgvbYM1Qq1zvcq3JUnpEQBN"
+        },
+        {
+          "access_key": {
+            "nonce": 147801313000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "siberia-tap-contract.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:4rghh8ouKz3aS8R638KSL7YZZqMqTGrKqYHMJmEMi4pq"
+        },
+        {
+          "access_key": {
+            "nonce": 147688716000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "siberia-tap-contract.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:54DFa1WfUgFPNvq6KLfxXoJGokXymdT4Cw1TvS5S1sGa"
+        },
+        {
+          "access_key": {
+            "nonce": 169068533000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meme-cooking.near"
+              }
+            }
+          },
+          "public_key": "ed25519:5coG1VeLiR6Et852qDWmaar4nbPaFQmkzuDfFRZed8G1"
+        },
+        {
+          "access_key": {
+            "nonce": 147801364000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "siberia-tap-contract.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:5oV1Tah5ZaQKqBtAELxciUSibRdf65aK5ybCc3hERv9S"
+        },
+        {
+          "access_key": {
+            "nonce": 168689500000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meme-cooking.near"
+              }
+            }
+          },
+          "public_key": "ed25519:6B6TR3Cnz39UvZm8DQHEsUvZPhYJRoD9H4w18RLL7vrW"
+        },
+        {
+          "access_key": {
+            "nonce": 169627149000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meme-cooking.near"
+              }
+            }
+          },
+          "public_key": "ed25519:6G42ot7qJCeZGHCq3z5vH5gTMY8ZkG6SXvaJAi9Uy5uU"
+        },
+        {
+          "access_key": {
+            "nonce": 171663151000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meme-cooking.near"
+              }
+            }
+          },
+          "public_key": "ed25519:6TZiXCH9cFwZptPdGgAHwWq4o4ZebLUGEvFepHiaJGXm"
+        },
+        {
+          "access_key": {
+            "nonce": 158926008000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "social.near"
+              }
+            }
+          },
+          "public_key": "ed25519:715bLYiKHz1yRdaWs292qJLb6NjdYd364L3Ys1MumNjt"
+        },
+        {
+          "access_key": {
+            "nonce": 224664012000001,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "249879908871369600000000",
+                "method_names": [
+                  "__fastdata_kv"
+                ],
+                "receiver_id": "nearhunt.near"
+              }
+            }
+          },
+          "public_key": "ed25519:7MNsFgf5yraAad9PP8ypowKQtg18QBmRKMme7vXW1r4g"
+        },
+        {
+          "access_key": {
+            "nonce": 147592095000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "siberia-tap-contract.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:7NiYwnaL1kD2tbsk4fDfMGLyPEKmjPcMqmxeJuV2RLmm"
+        },
+        {
+          "access_key": {
+            "nonce": 171112989000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meme-cooking.near"
+              }
+            }
+          },
+          "public_key": "ed25519:7V7vRBxVyiM7LPhazZpWYNys5eXAkn1bZ5zbzZCN3Msb"
+        },
+        {
+          "access_key": {
+            "nonce": 151363562000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "social.near"
+              }
+            }
+          },
+          "public_key": "ed25519:7wD2QBwcmTingGxaHdpGBdMPTfNciAWApsd6HqWuW2DF"
+        },
+        {
+          "access_key": {
+            "nonce": 139407147000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "gra-fun.near"
+              }
+            }
+          },
+          "public_key": "ed25519:8EczVnNC4DUXN3A9CyRQB8oUoXtNZzfXqpi1f9pKAcoW"
+        },
+        {
+          "access_key": {
+            "nonce": 152073313000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "social.near"
+              }
+            }
+          },
+          "public_key": "ed25519:8iAAwmKat9DmfkdiEZUYRav7v33SLsgBaDSZhg94GdEp"
+        },
+        {
+          "access_key": {
+            "nonce": 151342160000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "social.near"
+              }
+            }
+          },
+          "public_key": "ed25519:98sp88jNyyzZY8eCdfWBgPgJ1JE4f4htsgK18aoci267"
+        },
+        {
+          "access_key": {
+            "nonce": 168687846000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meme-cooking.near"
+              }
+            }
+          },
+          "public_key": "ed25519:9AF7wnAxZrgtzYtH2j3A2y775owxWNM5WKTQvYojBfeh"
+        },
+        {
+          "access_key": {
+            "nonce": 147724498000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "siberia-tap-contract.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:9eLNpdkvTSbwQxgQHdxXri1jbFzRXa2tNSaqFTDUaMPv"
+        },
+        {
+          "access_key": {
+            "nonce": 151356789000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "social.near"
+              }
+            }
+          },
+          "public_key": "ed25519:9qG3dbdoCk2mjSq3tsFFRfJDCMqAaMoMUf3AXs12PEan"
+        },
+        {
+          "access_key": {
+            "nonce": 224660067000001,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "249880083590141100000000",
+                "method_names": [
+                  "__fastdata_kv"
+                ],
+                "receiver_id": "nearhunt.near"
+              }
+            }
+          },
+          "public_key": "ed25519:A7jvvSFm5ZQHD7En6bYuqd5yj6xkbh99G44Kcv9mx7ap"
+        },
+        {
+          "access_key": {
+            "nonce": 147670552000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "siberia-tap-contract.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:ACNARkVm6mWvhJmu5obBv1ZzHgeoTsdFN6RU8dQcpNKJ"
+        },
+        {
+          "access_key": {
+            "nonce": 169784899000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meme-cooking.near"
+              }
+            }
+          },
+          "public_key": "ed25519:AhU6h9EMLUhhuKNCzHJwFPcCikNZ2PQ8u6RY3yrtB1Cs"
+        },
+        {
+          "access_key": {
+            "nonce": 168688189000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meme-cooking.near"
+              }
+            }
+          },
+          "public_key": "ed25519:ApymxN8vV3w753UHCBSdxNPK686mEKT4kpYx1p8pqgNT"
+        },
+        {
+          "access_key": {
+            "nonce": 152078360000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "social.near"
+              }
+            }
+          },
+          "public_key": "ed25519:Au1Mn15S8PBTSFjakZTytw161PcCPMRzjKwjJz5P8LVy"
+        },
+        {
+          "access_key": {
+            "nonce": 172077501000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meme-cooking.near"
+              }
+            }
+          },
+          "public_key": "ed25519:AvCods54oGWuRY2YpsxKmdntXAcQPuR59uSYXDZt5goy"
+        },
+        {
+          "access_key": {
+            "nonce": 147573292000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "siberia-tap-contract.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:B76DX5SstrQsmX3dZ39LQizE4ftLTejcRHetnZKG4AdA"
+        },
+        {
+          "access_key": {
+            "nonce": 111839674081650,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:BAjYsNdiAEWVVD5xa46Cj5vJSWg6i1n8ihNmRYWooU5G"
+        },
+        {
+          "access_key": {
+            "nonce": 147801289000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "siberia-tap-contract.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:BJtaJUkNsJAJ3uUFixbfCnxfS3dkDCfgzZWA9vq3F71D"
+        },
+        {
+          "access_key": {
+            "nonce": 168998224000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meme-cooking.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BQx7LwEunPFB2UVfjbXwZHfvwY8ZCLdtrCYeSPQBJWzU"
+        },
+        {
+          "access_key": {
+            "nonce": 170205010000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meme-cooking.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BptkhAT5n294fA6wsabNkubcJzNf1Y13124Hk83GA9gu"
+        },
+        {
+          "access_key": {
+            "nonce": 170669571000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meme-cooking.near"
+              }
+            }
+          },
+          "public_key": "ed25519:CG7FrcUhUby6PULtY9emGZiKmtXtuH9qq1BuPu8ZUV45"
+        },
+        {
+          "access_key": {
+            "nonce": 156110247000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "social.near"
+              }
+            }
+          },
+          "public_key": "ed25519:CaTYwYA3HBuokJoGCQLzVSDgKEiH7t9n4gF8Z7k766p4"
+        },
+        {
+          "access_key": {
+            "nonce": 147794097000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "siberia-tap-contract.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:CxMHBGrESA1EtWh6e3QQrzvMQcYRi4gANni27JSLU1MX"
+        },
+        {
+          "access_key": {
+            "nonce": 152317173000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "social.near"
+              }
+            }
+          },
+          "public_key": "ed25519:D1pnYXHTzr5Ka9tgoZEev1MsRz3w29hiow47yvooz51E"
+        },
+        {
+          "access_key": {
+            "nonce": 147590655000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "siberia-tap-contract.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:DfgpCpWWhxKANh1m664WrzYN9ZNTKGxMVGLLVWU6cA9z"
+        },
+        {
+          "access_key": {
+            "nonce": 152320880000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "social.near"
+              }
+            }
+          },
+          "public_key": "ed25519:E6fUaY9LgpCD6RCpRuxyMLUjLZXJKPL1G6gRt2DnWd8E"
+        },
+        {
+          "access_key": {
+            "nonce": 147689760000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "siberia-tap-contract.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:GcRiw2YcyY4pdyqw5kcnYkuwuFkC2ppCiUQbpahkJMQp"
+        },
+        {
+          "access_key": {
+            "nonce": 152020796000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "social.near"
+              }
+            }
+          },
+          "public_key": "ed25519:Gk6X28P84CMCEPoMz9rCmwZ3VDwBh9MZjUGaugYHi8AS"
+        },
+        {
+          "access_key": {
+            "nonce": 152073813000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "social.near"
+              }
+            }
+          },
+          "public_key": "ed25519:GzdxUDk7Ga3LYQDD85Ffwe7jZcPKNyDbhVKs488h3t4Z"
+        },
+        {
+          "access_key": {
+            "nonce": 168675771000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meme-cooking.near"
+              }
+            }
+          },
+          "public_key": "ed25519:JCtnSkw9ZiZTbnU2YhisozKBzhDG3BVRRz8kZsP9TuDx"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:53:27Z"
+}

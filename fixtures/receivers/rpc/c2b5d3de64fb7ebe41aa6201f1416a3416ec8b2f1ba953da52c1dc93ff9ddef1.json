@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "developafrikaa.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "CF65vE3dbGXS45gVjVUo5EPeUHYnz4aQ3YoEqdCx9YDL",
+      "block_height": 224674584,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 217537105000353,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:CP1h7iKxGKh38CNeXQdrWtpUt5p6jM4U78nC21988Xmb"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:53:51Z"
+}

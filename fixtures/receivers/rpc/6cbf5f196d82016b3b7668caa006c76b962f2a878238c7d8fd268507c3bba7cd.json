@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "jake888.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "9j7mh7hQxDSJMuKQyFSn5GBu9g62ywnwFEjUBABKumUz",
+      "block_height": 224674800,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 217543951000048,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:F87Ljc7it7ABKQDJ6LXTKjjF5Lw7nKbnDDz2gA4cZDXe"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:55:53Z"
+}

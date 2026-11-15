@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "theworldsgreatestdetective.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "Ajb1eG7UD6nhSdwKxiD1NexzULEkxYdRT3cxAQNh22co",
+      "block_height": 224674771,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 219863789000017,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:GK4HDnpVuqvEHjEjJZhyAAfBHrtJMomKrtrJWYP38194"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:55:37Z"
+}

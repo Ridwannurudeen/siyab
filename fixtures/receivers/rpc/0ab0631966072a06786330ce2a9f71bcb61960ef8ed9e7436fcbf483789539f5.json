@@ -1,0 +1,42 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "chef_23.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "EZM45DS7kAG4GrjjpXftzQyagRtuGh7e75m7DDhgk68z",
+      "block_height": 224674498,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 111776805006942,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:EaYijjb6CMzn8ECCkv8mRvwKEkkuSYSMRkJG2G39cgzH"
+        },
+        {
+          "access_key": {
+            "nonce": 115710843000004,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:GN1YrpzKNbJcvaTBPfdi1zxCRBZqDv5bzjxeGyEo2gHB"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:53:03Z"
+}

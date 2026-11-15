@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "brahminy.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "HsMrprXz48Gr8JTDTnLFKCJcLZNDdoo1JrLffh1PCSiD",
+      "block_height": 224674212,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 217658239000233,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:CoFNeinZAQ9uxHDz8M6rpzqLhzaH5UKkqwr8x6nRiwC9"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:50:22Z"
+}

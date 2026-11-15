@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "arrozeth.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "5XLXwhDzfn5nvdMCP23qURF7KTcUVj8B1GmwqGBvXgnN",
+      "block_height": 224674294,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 217512552000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:2fdBUWY2BxUkYKFMde4nTASZXiFZqDCtxvK7cM4so5bj"
+        },
+        {
+          "access_key": {
+            "nonce": 217512542000357,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9qm3v6VjKhwLqnkZDGgcHaaRKnX4h3bez7L4oL4GanxB"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:08Z"
+}

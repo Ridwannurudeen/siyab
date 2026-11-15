@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "sponsor.trezu.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "BM3aLGtonxpSdAZUScLHK183yW5PP3ZxnHy9HYGYhfD5",
+      "block_height": 224674312,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 186263406000005,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:3wASMmCs6XzyzF9hWoNNiGgKXKDfH4VNgHNi3dMNtdxv"
+        },
+        {
+          "access_key": {
+            "nonce": 186263452048947,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:7r9YdTv6TGpWaC6FW5MWjA3h2EAiASsDuvGmCsCEjyEv"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:19Z"
+}

@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "vertumion-hot2.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "11788840459120125800001000",
+      "block_hash": "8RrGRjYAAm5B4fxMcxkPDdGyi8D9tk6ESfm1YufKWxcr",
+      "block_height": 224674720,
+      "code_hash": "DbSnX4yvh7x7EVXb4WyT33drEUUQ77qkr8F42eWD1kTj",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 237229
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:55:09Z"
+}

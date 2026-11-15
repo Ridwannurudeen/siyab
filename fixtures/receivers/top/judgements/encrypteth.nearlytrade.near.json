@@ -8,7 +8,7 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "UNKNOWN",
+  "verdict": "DENY",
   "checks": [
     {
       "id": "receiver_exists",
@@ -26,7 +26,7 @@
       "detail": "no denylist or incident label on encrypteth.nearlytrade.near",
       "source": {
         "provider": "label store",
-        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "request_sha256": "cf335f98f9dd43c560a6f3d4c743bca4c7a60dd7bd02c3c28de5143ec85b7079",
         "fetched_at": null
       }
     },
@@ -52,12 +52,12 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "no archival age (encrypteth.nearlytrade.near has no access key; encrypteth.nearlytrade.near did not exist at block 222505429 (2026-11-01T02:14:46Z) from archival-rpc.mainnet.fastnear.com, so it was created after that block, which is at least 7 d old; whether it is younger than 7 days is not known); no key of encrypteth.nearlytrade.near carries a creation time",
+      "status": "signal",
+      "detail": "encrypteth.nearlytrade.near has no access key; encrypteth.nearlytrade.near did not exist at block 222505429 (2026-11-01T02:14:46Z) from archival-rpc.mainnet.fastnear.com or block 223412629 (2026-11-07T03:56:20Z) from archival-rpc.mainnet.fastnear.com, which is younger than 7 days, so it was created less than 7 days ago",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "09ad9882f2b449732cb87034ce26238801975804f4a461df5fe5434f28dea50e",
-        "fetched_at": "2026-11-09T04:12:23Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "ce9fc8048f8b8e03ee52bfefdc89bc6b926c6784b39fa1c207a565b25e6babf8",
+        "fetched_at": "2026-11-15T13:48:35Z"
       }
     },
     {
@@ -76,7 +76,7 @@
       "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
       "source": {
         "provider": "allowlist and label store",
-        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "request_sha256": "cf335f98f9dd43c560a6f3d4c743bca4c7a60dd7bd02c3c28de5143ec85b7079",
         "fetched_at": null
       }
     },
@@ -92,8 +92,8 @@
     }
   ],
   "reasons": [
-    "account_age could not run: no archival age (encrypteth.nearlytrade.near has no access key; encrypteth.nearlytrade.near did not exist at block 222505429 (2026-11-01T02:14:46Z) from archival-rpc.mainnet.fastnear.com, so it was created after that block, which is at least 7 d old; whether it is younger than 7 days is not known); no key of encrypteth.nearlytrade.near carries a creation time.",
-    "dust_funded could not run: the creation transaction is not known."
+    "Created less than 7 days ago.",
+    "Not on the owner's allowlist."
   ],
   "labels": [],
   "observed": {

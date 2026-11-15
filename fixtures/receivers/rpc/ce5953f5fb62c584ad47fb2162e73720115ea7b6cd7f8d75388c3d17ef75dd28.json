@@ -1,0 +1,967 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "glazednugget.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "D9s2y8SVZUzQvMSs8QJGSTUAD87Yi5JcQnhDNGGy1Nvb",
+      "block_height": 224674325,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 216831900000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:9GhSysmp8NdzCyKT16egZNZTWJxzyMQ86hxhybmXe6T"
+        },
+        {
+          "access_key": {
+            "nonce": 196310738000849,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:oWHvJ1PsGTyCdMxLDmSMRV9XfHC73b6wU8yd9GVnD8M"
+        },
+        {
+          "access_key": {
+            "nonce": 216865839000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "elite_build",
+                  "elite_move",
+                  "move_player"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:23nC487rpFNGLdPrQQePF1zTUGt6DjxjK2FQabTCUhp5"
+        },
+        {
+          "access_key": {
+            "nonce": 196655709000001,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "999777969121282700000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:2NUSskqW54TQbnS983mQ98WZkPVd5QxU12t2ohezJX6i"
+        },
+        {
+          "access_key": {
+            "nonce": 196703432000001,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "999807282576235400000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:2jWAAJFhxihuAYz2to9t4EaJ67CqL6HgzP8LK4N7WCoZ"
+        },
+        {
+          "access_key": {
+            "nonce": 216865981000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:3CKSYchfPwGqMbJVSqjkWbrzvVMMPwvMWaa68jDh5CCJ"
+        },
+        {
+          "access_key": {
+            "nonce": 222930517000004,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1",
+                "method_names": [],
+                "receiver_id": "aa-harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:457bmErKqgPU5Z8PaQbCvZR35T7dod3bAq48jnsiqYqG"
+        },
+        {
+          "access_key": {
+            "nonce": 222606577000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:4BCLGEtdB65wNaEEJgeF1VmuoT3zVoYF989eft8AmZnk"
+        },
+        {
+          "access_key": {
+            "nonce": 196746708000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:4UtrhUwahYF75jjn5DstXbMrg1H19j4xzSaAAJADcX6G"
+        },
+        {
+          "access_key": {
+            "nonce": 196615968000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:4bJaoe7P8Ny1PJAXxXVC9HqEGnjNNbiYa1TQM5eAPuRj"
+        },
+        {
+          "access_key": {
+            "nonce": 216832365000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:515E3m58jEXA7JXeHYJug2JmPtRNfVa8ga8uGmYV2Q2M"
+        },
+        {
+          "access_key": {
+            "nonce": 216554926000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "elite_build",
+                  "elite_move",
+                  "move_player"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:5ntuHa5F3RmgYxB5VzomGkAXC6eFH4TkuRwQFxjbScva"
+        },
+        {
+          "access_key": {
+            "nonce": 216832312000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "elite_build",
+                  "elite_move",
+                  "move_player"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:6MGZHQoLUsFTWwS7suEouaXbgcXF2gsQMebhLcTzrVyv"
+        },
+        {
+          "access_key": {
+            "nonce": 215828495000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:6gfunaU9b6hLHT5X7wgH73Gerxox52rH7T2warfNvHqE"
+        },
+        {
+          "access_key": {
+            "nonce": 198206677000019,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "996119170176619900000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:77aWG4JFG6MiTzkhcoWUN9nLXhWqnNH3Z5CSXHW4wHCx"
+        },
+        {
+          "access_key": {
+            "nonce": 216833378000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "elite_build",
+                  "elite_move",
+                  "move_player"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:7uxLSxVGtJWGWwNUQ1NzDo9bDT4vf7Q1r5wSJbidyYdk"
+        },
+        {
+          "access_key": {
+            "nonce": 197643638000734,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "845951201781871500000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "elite_build",
+                  "elite_move",
+                  "move_player"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:8Na5xrYHo2fEq7mUj5E8XLGwMaTGLDo8r9DJ9Dq7dhzx"
+        },
+        {
+          "access_key": {
+            "nonce": 216831760000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:8Ufm6YvJuoKf6PXcTTMQsyiEz341iHqRseLKL46ss1ja"
+        },
+        {
+          "access_key": {
+            "nonce": 216865927000193,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "959427404337601000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "elite_build",
+                  "elite_move",
+                  "move_player"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:8n2cfWyRKoGTYieZzCTngyoj5kqTsnoU8MBcX7tETqgC"
+        },
+        {
+          "access_key": {
+            "nonce": 219965723000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "elite_build",
+                  "elite_move",
+                  "move_player"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:91AwQPzhvk5MYUBwuoa7XgtDULLgs3mXJ7w15sKfNc5v"
+        },
+        {
+          "access_key": {
+            "nonce": 216832191000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:9Q3FAf6xBdXTwTB5BEj863NYJkobaAwSStnXkRK7myvP"
+        },
+        {
+          "access_key": {
+            "nonce": 219966009000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:9TGyLtGv23HUgBaw96bxR4ps6iwh955kfB8VzjD38dM1"
+        },
+        {
+          "access_key": {
+            "nonce": 196598705000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:9YSx9sj45TfW7ywJgfnQRm8SosJs5NSVABJ7oBHgH4z6"
+        },
+        {
+          "access_key": {
+            "nonce": 216832380000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:A6yHysR3AeJs75kLRwnB1MAamYTiRH2FQK3BajowkiJ4"
+        },
+        {
+          "access_key": {
+            "nonce": 216865640000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:AaA2JU1YKZiKJZXdcRvgnRVVLSzawyNzBi9nAqNUkgxK"
+        },
+        {
+          "access_key": {
+            "nonce": 196499891000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BRp48JCo9sd6cTkMhNDCWnVKUYLsGyoxbut7Y9W7ocm1"
+        },
+        {
+          "access_key": {
+            "nonce": 216832414000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BVh9hLt1718YHwSy1MuBjfwbk8V7K7XbBBc6zQXdrfTi"
+        },
+        {
+          "access_key": {
+            "nonce": 216831828000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:CCfRSfMnnBoBev65Y1uuVNri8Pt12ScfcZusw8KhAfo7"
+        },
+        {
+          "access_key": {
+            "nonce": 216865889000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:CHUXrosZCnyWAY7MtmqvtzCaYfyJc1zLLgn8QRnAkYaL"
+        },
+        {
+          "access_key": {
+            "nonce": 196470227000002,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "998928551511500800000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:CNcTDhFdeTZ1wcnG2LP6xXPAMAnMnPJvcVKtUpsPete8"
+        },
+        {
+          "access_key": {
+            "nonce": 196879038000010,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "998012722382140900000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:CnvQvfUkkNdjXNL73HyqjKqcVdeR3kcisGEgxWeyjQWZ"
+        },
+        {
+          "access_key": {
+            "nonce": 196587863000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:EBAiAsUisKGviXXmCpJjW8EqHiGUXUdXXWucQvJ1n3ed"
+        },
+        {
+          "access_key": {
+            "nonce": 196494999000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:EQ9kF6VK9XgAAj1utdJwWzLXwdbuyaVnggEdrKHHMq98"
+        },
+        {
+          "access_key": {
+            "nonce": 216865684000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:Fcx3vtXGjHKEnPZUcZyeLK4eAw4svdALYUVvGYyBwNqw"
+        },
+        {
+          "access_key": {
+            "nonce": 216832573000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:FeFUDVVfNTZyGqf5yL3S4urxA53ssF8g5S3oEDyyp5Pm"
+        },
+        {
+          "access_key": {
+            "nonce": 216865772000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "elite_build",
+                  "elite_move",
+                  "move_player"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:FucwyA45Nc5ZByv6RZW8cugmmiwzyxhnoy4ywbnC7JDC"
+        },
+        {
+          "access_key": {
+            "nonce": 196624364000001,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "999776763081234200000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:Fy29UDqmV8oxSzVGBKQBGUENafdg13uSFRNBUSR44bmV"
+        },
+        {
+          "access_key": {
+            "nonce": 196494929000001,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "999467585044276100000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:GhavC1Zcf7nreNnUAAuU6AQ7NxQCABu22zddSZD6HSB1"
+        },
+        {
+          "access_key": {
+            "nonce": 216832266000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "buy_tokens",
+                  "cashout",
+                  "claim_nft",
+                  "deposit",
+                  "elite_build",
+                  "elite_move",
+                  "end_sale",
+                  "move_player",
+                  "sell_land",
+                  "sync_nft"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:HHgBkjQKK141PvZCwRRAZ7NYST9RnnjK7giJQTBYcWxR"
+        },
+        {
+          "access_key": {
+            "nonce": 197643614000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "build",
+                  "buy_land",
+                  "elite_build",
+                  "elite_move",
+                  "move_player"
+                ],
+                "receiver_id": "world.pumpopoly.near"
+              }
+            }
+          },
+          "public_key": "ed25519:Hv9YKDPZERC7Eo3L8sn41UuDrtSog3VXWn4HxePWzj5R"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:27Z"
+}

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "colddress6080.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "8JkBjr62yzVC8wnoeVf5h97TovPM8CsAHo8gLNyCrPRe",
+      "block_height": 224674787,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 216669263004010,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:CSwfqJTjtFg3XnWKfaJhN51GjP9Cr4TEKh9xee1z3V7E"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:55:46Z"
+}

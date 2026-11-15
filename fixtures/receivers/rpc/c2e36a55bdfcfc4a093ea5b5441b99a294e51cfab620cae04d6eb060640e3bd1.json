@@ -1,0 +1,55 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "love_ir_korosh.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "AnH4N98obUedp7zBpeXZo37LQvEUYT96pbTzdpZwngCL",
+      "block_height": 224674640,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 161565229000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:3ziRms7JHUNSDzXjDiDX6hwjk9RCUi2QRngJKeFsVhxs"
+        },
+        {
+          "access_key": {
+            "nonce": 133405329007040,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:75YBSEAV4zHCFigt4iV426GfL56j8ShZ8H2sBa7Z15Bb"
+        },
+        {
+          "access_key": {
+            "nonce": 161563730000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:CGBXvnvPZg2p9twqGRmhk1i7Ewqy74rzs9PzRHRpt68q"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:54:22Z"
+}

@@ -1,0 +1,43 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "speedster123.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "J3SABLciKUN6A6rusHihDwB2wKNQVDPGGYSTeERZJnDy",
+      "block_height": 224674319,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 212403867000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6uGmDdPNbGVgqzYoyeahNXXsNoFV7kXnMUSfUmL3BEAQ"
+        },
+        {
+          "access_key": {
+            "nonce": 212403854000181,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:C5L83puv1336dDZJ4HXwpTnxy6MHk9FZ28dLueS3gzZD"
+        },
+        {
+          "access_key": {
+            "nonce": 217065282000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:J868ugPZXv472fPTpu6GwmbRXb8cFVaPh3Xj1LKW2YvZ"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:23Z"
+}

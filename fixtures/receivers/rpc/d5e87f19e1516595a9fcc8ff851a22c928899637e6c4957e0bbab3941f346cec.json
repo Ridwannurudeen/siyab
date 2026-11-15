@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "jakobkolumnus.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "JBgLJdr9vD17vFmLbPYGcbt4GHSsUNZVmFzbVUJu2cCM",
+      "block_height": 224674349,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 153575860000003,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:3Dpn2GNs5m24mbj4X3VzhL8iJq6a5xveAmvKaUrf1M4Y"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:40Z"
+}

@@ -1,0 +1,42 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "vertumion-hot2.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "HDEuggHBj4hmf6vdSCQJUC2xNGkLW2yqQkvccLMGoHjT",
+      "block_height": 224674721,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 223519029000005,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6S7DA84Vn5YHPWqpdddDPEAc5vC7jhrn8gvwFrvHGXG"
+        },
+        {
+          "access_key": {
+            "nonce": 224475088000002,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "249760167180282200000000",
+                "method_names": [],
+                "receiver_id": "nearhunt.near"
+              }
+            }
+          },
+          "public_key": "ed25519:HBGVREUnfCiL3ziQdH9xcarmandjwfjqatXDyYULS31T"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:55:09Z"
+}

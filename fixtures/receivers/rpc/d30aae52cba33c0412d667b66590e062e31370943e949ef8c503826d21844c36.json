@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "vitya_003.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "J5xRffWk24YKiESxoHczA3Gsr2SEyvXzNdnV3fNK7DGV",
+      "block_height": 224674362,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 113682767010247,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:C62BCb92WmJQAnSKhGuyrMiC6fdMNsYuWjyLf8kRNveB"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:47Z"
+}

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "badrinarayanan.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "3bztkbDxPq9qvQXMsB4VJQR6XtUwPWwfiEQ9U44XZF8j",
+      "block_height": 224674292,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 214771231000155,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:FyupsrYMcqgf888eBDJMZ2NPk7gD6g2q9pLw1nD5aiEi"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:07Z"
+}

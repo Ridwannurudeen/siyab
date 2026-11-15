@@ -1,0 +1,42 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "evgeniilebe.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "HRWjS1nLZYxcxEywEowUMQvZTFYRbEGCiSD9UYmNrU2V",
+      "block_height": 224674347,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 126939485000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "a.mitte-orderbook.near"
+              }
+            }
+          },
+          "public_key": "ed25519:ERm5uXhQC8XvxRQfGpVA84b7zSr1P6v5oGCgExzHYxcP"
+        },
+        {
+          "access_key": {
+            "nonce": 124928670006020,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:HB4LRCcZa9ATp83GR7cXsUBSJ9xHW2HU3smHRQAMSET1"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:39Z"
+}

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "primark7581.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "56s1avHDH2FZf4iWofbhcfVCvFe1U1uNNuoYE4dhg9XT",
+      "block_height": 224674674,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 217952108000014,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:FACgeKLaB1nqextnFQLJvPD77Ba5TcMHxYULVQ624VXb"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:54:41Z"
+}

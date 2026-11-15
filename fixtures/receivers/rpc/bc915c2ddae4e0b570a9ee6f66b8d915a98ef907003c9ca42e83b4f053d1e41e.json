@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "cresten1.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "4ph9oZYAxH23CjseBHJiRn1JV16d1zq5gDKGEQNqRmEL",
+      "block_height": 224674577,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 112801174010990,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Fp1cS5536f1jdZYhjoFoSVqKJ5yYcryK6bQF1t3qNRRV"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:53:47Z"
+}

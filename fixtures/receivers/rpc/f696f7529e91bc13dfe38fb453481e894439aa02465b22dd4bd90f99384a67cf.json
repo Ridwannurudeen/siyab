@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "urijlutsk.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "GnZXGgqFJjB2NvRaYYsnFfNHRogeNwuaxSbSxvMQ6k57",
+      "block_height": 224674714,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 112245457021256,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:31SBAeD5ixfx4YEociHCw5RjydE6eujqEBXv4FKv3vLp"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:55:05Z"
+}

@@ -1,0 +1,68 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "blackdragonmeme.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "4waFyuMjdfv2fVCAD8VT7ywVVJjgBQk6HcQ16vjBiWec",
+      "block_height": 224674820,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 178234536002663,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:42tr85FT4K8zJunLYKU7LBZTAoJvsDQwbV3eAJ5oqW85"
+        },
+        {
+          "access_key": {
+            "nonce": 179492201000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BwEJxvLNpsebJFcSa1Qr2gNv5YcPuuHDHNQTTypGuMxb"
+        },
+        {
+          "access_key": {
+            "nonce": 178235494000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:CLBZVhVx8ZaYTkrxh2pG5cDAKhQET93j8ZAtDfa2J89M"
+        },
+        {
+          "access_key": {
+            "nonce": 178954766000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "contract.portalbridge.near"
+              }
+            }
+          },
+          "public_key": "ed25519:Hb6Cvd5Mz8bKV5ihWMpLvYjkijwBXTmonZsncvKRSMyH"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:56:05Z"
+}

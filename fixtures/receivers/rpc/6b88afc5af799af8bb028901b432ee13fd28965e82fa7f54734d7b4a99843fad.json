@@ -1,0 +1,66 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "erwin3003.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "A9k8xT2gxsx9J1Xrmk6AZRhy2GZUK4RJtE5WrCQ4VCex",
+      "block_height": 224674508,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 185419701000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:yzkYGaejrERabCLauhYyNQvbmQFtATDvFQnoCbwdWFy"
+        },
+        {
+          "access_key": {
+            "nonce": 114118909025805,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:BPsnRjPtVQvVhnu89ncvdPQ1xgBH6z55rZ57J5BLVP8N"
+        },
+        {
+          "access_key": {
+            "nonce": 118850105000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:EWe1k1qedebTn6aHM8qwDcMBEWaUW94jbxX4dDihdDe2"
+        },
+        {
+          "access_key": {
+            "nonce": 175448922000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "deposit_and_stake",
+                  "unstake",
+                  "withdraw_all"
+                ],
+                "receiver_id": "npro.poolv1.near"
+              }
+            }
+          },
+          "public_key": "ed25519:HzkmiveByHm2zvqGaz8pG6HZ9KECUQEfYRLhZaSicXvH"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:53:09Z"
+}

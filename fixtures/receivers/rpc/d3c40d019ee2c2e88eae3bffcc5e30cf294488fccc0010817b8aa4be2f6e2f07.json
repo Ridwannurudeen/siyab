@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "jacktheripper007.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "E4Kyjei54HkiBCrujpnH5n5MaDeJvmJgCdtk1amg82k7",
+      "block_height": 224674626,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 113756207028190,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8UWd5FBkVdx1cS6wr6qra5sD3TQQyCMakpF85Wq75Wdy"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:54:15Z"
+}

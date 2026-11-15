@@ -1,0 +1,81 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "newear.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "8gzc1vUJmVAYK2cs6rvLyD2zS7mUexMe8CQymCtHYpva",
+      "block_height": 224674816,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 216794815001128,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:3eKCFGzG24JtDq4DEdinnt1WetPytbKhAjGRqE7JGgNZ"
+        },
+        {
+          "access_key": {
+            "nonce": 216814775000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "nearlytrade.near"
+              }
+            }
+          },
+          "public_key": "ed25519:8gN8RVTwhbFe94vd5JfpaFngiSrcLcPusSduo7SBsy3K"
+        },
+        {
+          "access_key": {
+            "nonce": 217345821000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "chipfi.near"
+              }
+            }
+          },
+          "public_key": "ed25519:9o5wkwMmGtAoUr81NFHZLvCjaHG4EY4aioVUgKQ3WoLo"
+        },
+        {
+          "access_key": {
+            "nonce": 217509977000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "nucleusbroker.near"
+              }
+            }
+          },
+          "public_key": "ed25519:9rErqn8FS3kU1rfbdKaUVC2aJaYLUpqmRLKPjgpW7voh"
+        },
+        {
+          "access_key": {
+            "nonce": 217096655000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "pad.onetokenhub.near"
+              }
+            }
+          },
+          "public_key": "ed25519:ArzXa2cMxb5CXXcTncYGj2V4j3RiZ1wHCNcKWDUQXpCU"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:56:02Z"
+}

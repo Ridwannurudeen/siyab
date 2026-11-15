@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "mehran229229.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "28zgToCDFToHMQa1ZEerwJWdMT6V2HS7bjsvJhMioo97",
+      "block_height": 224674457,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 111824288016400,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:BrfEMzaebnndVneePe9AwVkujwQtZxHV4JNQa3WUwcNr"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:52:40Z"
+}

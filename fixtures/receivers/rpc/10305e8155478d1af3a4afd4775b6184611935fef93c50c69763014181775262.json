@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "sergeivld.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "7oHfPFS1xN6Lg4a7Ywykog34YD4nSnP9XZbRP9fp3Eft",
+      "block_height": 224674688,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 113079805019632,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:FnoyMtKvUjmzYHSP3JaWKsamYqyX4L2VF4TngpgdH6pn"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:54:50Z"
+}

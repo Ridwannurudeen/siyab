@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "oldquokka4541.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "FZCYEzbCbEKT6ZnfsYdxuRaNXASUvMhRhYjV2mmK2Pzv",
+      "block_height": 224674832,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 217356662000125,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Ais3cbk7UruSZqUPUowWDBx2aURufLGvihthMGoBBHVY"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:56:12Z"
+}

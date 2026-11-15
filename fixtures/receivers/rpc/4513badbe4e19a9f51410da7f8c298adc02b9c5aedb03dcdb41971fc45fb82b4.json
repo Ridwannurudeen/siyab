@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "haibian.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "DtyBmKfCRYn6kmt5eVb26DTpyznDdxfx8pxWr5iWBM7u",
+      "block_height": 224674512,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 222241885000017,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8EuXQKGPjxtTsw3wo7kBWovc4inCEmE4y7MjRWmcpKcJ"
+        },
+        {
+          "access_key": {
+            "nonce": 222241897000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:EPVy3zViBtUcbFUcnzfx1GgkmLsvjn1UHXF1BiE24cwr"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:53:11Z"
+}
