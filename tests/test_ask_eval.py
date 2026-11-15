@@ -35,8 +35,8 @@ class AskEvalTests(unittest.TestCase):
 
     def test_corpus_counts(self):
         self.assertEqual(ask_eval.counts(self.items),
-                         {"judgement": 336, "evidence": 48, "unknown": 48, "adversarial": 22, "free": 8})
-        self.assertEqual(len(self.items), 462)
+                         {"judgement": 336, "evidence": 48, "unknown": 8, "adversarial": 22, "free": 8})
+        self.assertEqual(len(self.items), 422)
 
     def test_unknown_items_are_committed_unknown_judgements(self):
         files = sorted(p for p in (ROOT / "fixtures/receivers/top/judgements").glob("*.json")
