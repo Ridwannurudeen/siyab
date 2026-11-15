@@ -8,16 +8,16 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "UNKNOWN",
+  "verdict": "DENY",
   "checks": [
     {
       "id": "receiver_exists",
       "status": "pass",
       "detail": "vertumion-hot2.tg exists",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "31cf9387aab08de66e12f7e7f271d00721da64b414f20e0637feb8fc247ac4fa",
-        "fetched_at": "2026-11-15T13:55:09Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "b3c1abbe5ed98b1c96cd3b8aa6e8304fe6a7b3f3595b48915a881580241114cf",
+        "fetched_at": "2026-11-15T17:08:40Z"
       }
     },
     {
@@ -35,9 +35,9 @@
       "status": "pass",
       "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "3a3e04b3d0956035e11ebbd8cde66cfe5b5883b385b167839373582a41797a31",
-        "fetched_at": "2026-11-09T04:50:10Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "d7b8f0e8fae98c6b217b50e5aa782fa6e77acf3f77da44824ca0d11e61c4db6d",
+        "fetched_at": "2026-11-15T17:08:41Z"
       }
     },
     {
@@ -52,12 +52,12 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "no archival age (oldest access key nonce 223519029000005 from free.rpc.fastnear.com: existed by block 223519030 (2026-11-07T21:04:03Z) from archival-rpc.mainnet.fastnear.com, a key block younger than 7 days that does not date the account; block 223465120 (2026-11-07T12:16:53Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days; archival boundary could not run: MalformedResponse: the receiver's reference block is more than 10 minutes from now); could not read the account keys: no recorded response for the request",
+      "status": "signal",
+      "detail": "oldest access key nonce 223519029000001 from archival-rpc.mainnet.fastnear.com: existed by block 223519030 (2026-11-07T21:04:03Z) from archival-rpc.mainnet.fastnear.com, a key block younger than 7 days that does not date the account; vertumion-hot2.tg did not exist at block 222505095 (2026-11-01T02:11:33Z) from archival-rpc.mainnet.fastnear.com or block 223412295 (2026-11-07T03:53:12Z) from archival-rpc.mainnet.fastnear.com, which is younger than 7 days, so it was created less than 7 days ago",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "15b6fff8016e65f75cc65267aa9ad7035141f06c61e223516f9469ee21b393e1",
-        "fetched_at": null
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "672bf8a1751aa1dbac538a4f50574d5fe986969275c5cd0ff63e0a86a3e927c9",
+        "fetched_at": "2026-11-15T17:08:42Z"
       }
     },
     {
@@ -85,19 +85,19 @@
       "status": "pass",
       "detail": "contract code with contract_source_metadata",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "11d9f19963c5b0c71e93a386b0add57cd4bb50a656747f919b733316149fdcdd",
-        "fetched_at": "2026-11-15T13:55:10Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "c9bbecb48f347999685962927d5be62e5b8ea0cd8ed8ac138c86f322cae13200",
+        "fetched_at": "2026-11-15T17:08:42Z"
       }
     }
   ],
   "reasons": [
-    "account_age could not run: no archival age (oldest access key nonce 223519029000005 from free.rpc.fastnear.com: existed by block 223519030 (2026-11-07T21:04:03Z) from archival-rpc.mainnet.fastnear.com, a key block younger than 7 days that does not date the account; block 223465120 (2026-11-07T12:16:53Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days; archival boundary could not run: MalformedResponse: the receiver's reference block is more than 10 minutes from now); could not read the account keys: no recorded response for the request.",
-    "dust_funded could not run: the creation transaction is not known."
+    "Created less than 7 days ago.",
+    "Not on the owner's allowlist."
   ],
   "labels": [],
   "observed": {
-    "block_height": 224674720,
+    "block_height": 223714695,
     "timestamp_ms": 1794197345742
   }
 }

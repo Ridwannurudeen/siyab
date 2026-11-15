@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "account_id": "pool.near-meme-router.near",
+      "block_id": 223714695
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "136935591920411993499998997",
+      "block_hash": "34b3TNTG2quWULdcZKE7hxAwQNN836DASZcLud3XYZ6k",
+      "block_height": 223714695,
+      "code_hash": "8oLuwwfBDWSfhp2SSVfnbR8M2ui6mp6NeDDSzgApvrw5",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 498031
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-15T17:06:34Z"
+}

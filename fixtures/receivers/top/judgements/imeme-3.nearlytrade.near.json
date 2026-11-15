@@ -8,16 +8,16 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "UNKNOWN",
+  "verdict": "DENY",
   "checks": [
     {
       "id": "receiver_exists",
       "status": "pass",
       "detail": "imeme-3.nearlytrade.near exists",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "745e8aa3e32e8220a9b737c64bb1ec6791d4980d2805a5f5aeea234eaa8aa50f",
-        "fetched_at": "2026-11-09T04:44:16Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "a071ac7db1b77a77b8356e2381986da2800b0db93c44a9946b75a0e814c4a41c",
+        "fetched_at": "2026-11-15T17:08:05Z"
       }
     },
     {
@@ -35,9 +35,9 @@
       "status": "pass",
       "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "8888b1b7142926f3b3ea48e5bb8c71def7360b99f8c01702d117234adf0d6c49",
-        "fetched_at": "2026-11-15T13:54:13Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "9227225d7f1695afe0132c1e20975499d6594553502fd100ce8de20d136e5b4f",
+        "fetched_at": "2026-11-15T17:08:05Z"
       }
     },
     {
@@ -52,12 +52,12 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "no archival age (imeme-3.nearlytrade.near has no access key; imeme-3.nearlytrade.near did not exist at block 222508805 (2026-11-01T02:47:04Z) from archival-rpc.mainnet.fastnear.com, so it was created after that block, which is at least 7 d old; whether it is younger than 7 days is not known); could not read the account keys: no recorded response for the request",
+      "status": "signal",
+      "detail": "imeme-3.nearlytrade.near has no access key; block 222667279 (2026-11-02T04:09:05Z) from archival-rpc.mainnet.fastnear.com and block 222667280 (2026-11-02T04:09:06Z) from archival-rpc.mainnet.fastnear.com are adjacent existing blocks around the 7 day cutoff; imeme-3.nearlytrade.near did not exist at block 222667279, so it was created less than 7 days ago",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "3281dc457a502cd8844db936d7e534252a16ae432733ae7e4fd00a9b9169d125",
-        "fetched_at": null
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "ebc1f3cb63bdb22fcf018893167d09eea0bb5c4ecca3bc554a9bcf987b9166cd",
+        "fetched_at": "2026-11-15T17:08:07Z"
       }
     },
     {
@@ -85,19 +85,19 @@
       "status": "pass",
       "detail": "no contract code",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "745e8aa3e32e8220a9b737c64bb1ec6791d4980d2805a5f5aeea234eaa8aa50f",
-        "fetched_at": "2026-11-09T04:44:16Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "a071ac7db1b77a77b8356e2381986da2800b0db93c44a9946b75a0e814c4a41c",
+        "fetched_at": "2026-11-15T17:08:05Z"
       }
     }
   ],
   "reasons": [
-    "account_age could not run: no archival age (imeme-3.nearlytrade.near has no access key; imeme-3.nearlytrade.near did not exist at block 222508805 (2026-11-01T02:47:04Z) from archival-rpc.mainnet.fastnear.com, so it was created after that block, which is at least 7 d old; whether it is younger than 7 days is not known); could not read the account keys: no recorded response for the request.",
-    "dust_funded could not run: the creation transaction is not known."
+    "Created less than 7 days ago.",
+    "Not on the owner's allowlist."
   ],
   "labels": [],
   "observed": {
-    "block_height": 223718405,
+    "block_height": 223714695,
     "timestamp_ms": 1794197345742
   }
 }

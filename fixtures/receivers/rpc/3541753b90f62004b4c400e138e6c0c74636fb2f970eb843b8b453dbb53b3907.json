@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "account_id": "agentverse-survival.near",
+      "block_id": 223714695
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "34b3TNTG2quWULdcZKE7hxAwQNN836DASZcLud3XYZ6k",
+      "block_height": 223714695,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 223562642000024,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:5VzKsrfx41Fe2fiZzwuuVuYxcgwkqChbBQQU2THp5ZVN"
+        },
+        {
+          "access_key": {
+            "nonce": 223566104000016,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8qrgebRhGEMgFpo6n4tgFFFHuD727f2y3uxBfQkB5gqs"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-15T17:07:47Z"
+}

@@ -1,0 +1,44 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "account_id": "vertumion-hot3.tg",
+      "block_id": 223714695
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "34b3TNTG2quWULdcZKE7hxAwQNN836DASZcLud3XYZ6k",
+      "block_height": 223714695,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 223519236000003,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4Qu4cpguPUbmKWViCKAgUYPUUpUN6uYaWpsB98HsFdPz"
+        },
+        {
+          "access_key": {
+            "nonce": 223522640000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "4500000000000000000000000",
+                "method_names": [
+                  "claim"
+                ],
+                "receiver_id": "vertumion-hot2.tg"
+              }
+            }
+          },
+          "public_key": "ed25519:8qLVs9A9ZrsSASE2evKDZsB5TWw5eGPR1xnD77ZZoqow"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-15T17:08:43Z"
+}

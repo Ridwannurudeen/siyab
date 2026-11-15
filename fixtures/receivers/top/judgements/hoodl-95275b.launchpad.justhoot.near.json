@@ -8,16 +8,16 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "UNKNOWN",
+  "verdict": "ALLOW",
   "checks": [
     {
       "id": "receiver_exists",
       "status": "pass",
       "detail": "hoodl-95275b.launchpad.justhoot.near exists",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "fbd50a8f6580b50008c4db396d4e4530cb56e57801a3ffe548f3bcece258a153",
-        "fetched_at": "2026-11-15T13:55:39Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "b3d92df710f88706c67e0a7d6617906516f0cb16d9970df35aecdfee0d807d56",
+        "fetched_at": "2026-11-15T17:08:59Z"
       }
     },
     {
@@ -35,9 +35,9 @@
       "status": "pass",
       "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "133e47bd3aac9e88fa4f6cd5f22e07bc27c5578ac1f9a3e985f1bebfec3e2d15",
-        "fetched_at": "2026-11-09T04:52:43Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "6064f1a154ab472f7958fd348924b6db540ce1d746b7f0ff139e2c27fe5582a9",
+        "fetched_at": "2026-11-15T17:08:59Z"
       }
     },
     {
@@ -52,18 +52,18 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "no archival age (hoodl-95275b.launchpad.justhoot.near has no access key; block 223465174 (2026-11-07T12:17:25Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days; archival boundary could not run: MalformedResponse: the receiver's reference block is more than 10 minutes from now); could not read the account keys: no recorded response for the request",
+      "status": "pass",
+      "detail": "hoodl-95275b.launchpad.justhoot.near has no access key; view_account finds hoodl-95275b.launchpad.justhoot.near at block 222505095 (2026-11-01T02:11:33Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "16384bb93561d2a42e033d231f6e7abef2a8608ab6f81a6d6fd6b4d183ac6177",
-        "fetched_at": null
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "9563e36d254defb5fab25b2bfcb4d34591baea356f4a2dcdf6b01a7107277f9a",
+        "fetched_at": "2026-11-15T17:09:00Z"
       }
     },
     {
       "id": "dust_funded",
-      "status": "unknown",
-      "detail": "the creation transaction is not known",
+      "status": "pass",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
       "source": {
         "provider": "nearblocks",
         "request_sha256": null,
@@ -85,21 +85,21 @@
       "status": "pass",
       "detail": "no contract code",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "fbd50a8f6580b50008c4db396d4e4530cb56e57801a3ffe548f3bcece258a153",
-        "fetched_at": "2026-11-15T13:55:39Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "b3d92df710f88706c67e0a7d6617906516f0cb16d9970df35aecdfee0d807d56",
+        "fetched_at": "2026-11-15T17:08:59Z"
       }
     }
   ],
   "reasons": [
-    "account_age could not run: no archival age (hoodl-95275b.launchpad.justhoot.near has no access key; block 223465174 (2026-11-07T12:17:25Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days; archival boundary could not run: MalformedResponse: the receiver's reference block is more than 10 minutes from now); could not read the account keys: no recorded response for the request.",
-    "dust_funded could not run: the creation transaction is not known."
+    "Every check ran and none found a signal.",
+    "Not on the owner's allowlist."
   ],
   "labels": [
     "ad690a62a7cb1686385aaba1f76307dc85856bd9818f989aa490ee37a2f4949f"
   ],
   "observed": {
-    "block_height": 224674774,
+    "block_height": 223714695,
     "timestamp_ms": 1794197345742
   }
 }

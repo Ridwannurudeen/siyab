@@ -1,0 +1,31 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "account_id": "nearly_rich.near",
+      "block_id": 223714695
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "error": {
+      "name": "HANDLER_ERROR",
+      "cause": {
+        "info": {
+          "block_hash": "34b3TNTG2quWULdcZKE7hxAwQNN836DASZcLud3XYZ6k",
+          "block_height": 223714695,
+          "limit": 100,
+          "requested_account_id": "nearly_rich.near"
+        },
+        "name": "TOO_MANY_ACCESS_KEYS"
+      },
+      "code": -32000,
+      "message": "Server error",
+      "data": "Account nearly_rich.near has more than 100 access keys; use a paginated view_access_key_list request"
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-15T17:08:26Z"
+}

@@ -8,16 +8,16 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "UNKNOWN",
+  "verdict": "DENY",
   "checks": [
     {
       "id": "receiver_exists",
       "status": "pass",
       "detail": "holyshit.nearlytrade.near exists",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "2ca0c8cc839ca3150717a1aa934c227f555dc196eb56460b4801d6a6359f74d7",
-        "fetched_at": "2026-11-15T13:50:35Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "605ff8b4ba7460a3f665ce1cbc65bcdbe9dd4d82fc090f13dfbed378b489b909",
+        "fetched_at": "2026-11-15T17:05:47Z"
       }
     },
     {
@@ -35,9 +35,9 @@
       "status": "pass",
       "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "58302da2c37940e1ee21034bc39ea9bb02a733b55fce3c5c765fb5b28c805e67",
-        "fetched_at": "2026-11-15T13:50:36Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "631eedb842bfd1cf722dfccea68383d19cc462d55ffe4cecfd92021440d85c4e",
+        "fetched_at": "2026-11-15T17:05:47Z"
       }
     },
     {
@@ -52,12 +52,12 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "no archival age (holyshit.nearlytrade.near has no access key; block 223464636 (2026-11-07T12:12:13Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days; archival boundary could not run: MalformedResponse: the receiver's reference block is more than 10 minutes from now); could not read the account keys: no recorded response for the request",
+      "status": "signal",
+      "detail": "holyshit.nearlytrade.near has no access key; block 222667279 (2026-11-02T04:09:05Z) from archival-rpc.mainnet.fastnear.com and block 222667280 (2026-11-02T04:09:06Z) from archival-rpc.mainnet.fastnear.com are adjacent existing blocks around the 7 day cutoff; holyshit.nearlytrade.near did not exist at block 222667279, so it was created less than 7 days ago",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "6267e089ff6596082fb9eff4302bf5b7c123c5378eb7fbd002ee90fe20df1e7f",
-        "fetched_at": null
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "96d439e63c0231ccb61d18ad8a599d50cccd5bcc6060e08d28d098f3efb10db7",
+        "fetched_at": "2026-11-15T17:05:48Z"
       }
     },
     {
@@ -85,19 +85,19 @@
       "status": "pass",
       "detail": "no contract code",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "2ca0c8cc839ca3150717a1aa934c227f555dc196eb56460b4801d6a6359f74d7",
-        "fetched_at": "2026-11-15T13:50:35Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "605ff8b4ba7460a3f665ce1cbc65bcdbe9dd4d82fc090f13dfbed378b489b909",
+        "fetched_at": "2026-11-15T17:05:47Z"
       }
     }
   ],
   "reasons": [
-    "account_age could not run: no archival age (holyshit.nearlytrade.near has no access key; block 223464636 (2026-11-07T12:12:13Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days; archival boundary could not run: MalformedResponse: the receiver's reference block is more than 10 minutes from now); could not read the account keys: no recorded response for the request.",
-    "dust_funded could not run: the creation transaction is not known."
+    "Created less than 7 days ago.",
+    "Not on the owner's allowlist."
   ],
   "labels": [],
   "observed": {
-    "block_height": 224674236,
+    "block_height": 223714695,
     "timestamp_ms": 1794197345742
   }
 }

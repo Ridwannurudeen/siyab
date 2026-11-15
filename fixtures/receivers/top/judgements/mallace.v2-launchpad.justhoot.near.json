@@ -8,16 +8,16 @@
     "amount": "1000000000000000000000000",
     "memo": null
   },
-  "verdict": "UNKNOWN",
+  "verdict": "DENY",
   "checks": [
     {
       "id": "receiver_exists",
       "status": "pass",
       "detail": "mallace.v2-launchpad.justhoot.near exists",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "11010e60c7229d3caddb8cc052b7a14366346695d1673463c2e8f41b10e75bf3",
-        "fetched_at": "2026-11-09T04:45:31Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "6105b3e277626770f8da19e8c7bad1c019f10f1e2e90e9883976ae87600da105",
+        "fetched_at": "2026-11-15T17:08:18Z"
       }
     },
     {
@@ -35,9 +35,9 @@
       "status": "pass",
       "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "b4ff819446e91ab10f3e9ec5159011892d6fdc6eafd89a27f90006b020d72ad9",
-        "fetched_at": "2026-11-09T04:45:32Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "cd94d572bf3303f52cc1fc35e21b057ef961bae440c86860ca1da47541dee14a",
+        "fetched_at": "2026-11-15T17:08:19Z"
       }
     },
     {
@@ -52,12 +52,12 @@
     },
     {
       "id": "account_age",
-      "status": "unknown",
-      "detail": "no archival age (mallace.v2-launchpad.justhoot.near has no access key; mallace.v2-launchpad.justhoot.near did not exist at block 222508937 (2026-11-01T02:48:26Z) from archival-rpc.mainnet.fastnear.com, so it was created after that block, which is at least 7 d old; whether it is younger than 7 days is not known); could not read the account keys: no recorded response for the request",
+      "status": "signal",
+      "detail": "mallace.v2-launchpad.justhoot.near has no access key; block 222667279 (2026-11-02T04:09:05Z) from archival-rpc.mainnet.fastnear.com and block 222667280 (2026-11-02T04:09:06Z) from archival-rpc.mainnet.fastnear.com are adjacent existing blocks around the 7 day cutoff; mallace.v2-launchpad.justhoot.near did not exist at block 222667279, so it was created less than 7 days ago",
       "source": {
-        "provider": "api.nearblocks.io",
-        "request_sha256": "db9e0d81d27fa402aa7bc39f8940b24067bd8274e2625a9cf0868a5ab38ccaba",
-        "fetched_at": null
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "da13cbf3b3bbc6dca46838e3081876369763b6264617aa3f046a51c0ef35a00e",
+        "fetched_at": "2026-11-15T17:08:20Z"
       }
     },
     {
@@ -85,19 +85,19 @@
       "status": "pass",
       "detail": "no contract code",
       "source": {
-        "provider": "free.rpc.fastnear.com",
-        "request_sha256": "11010e60c7229d3caddb8cc052b7a14366346695d1673463c2e8f41b10e75bf3",
-        "fetched_at": "2026-11-09T04:45:31Z"
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "6105b3e277626770f8da19e8c7bad1c019f10f1e2e90e9883976ae87600da105",
+        "fetched_at": "2026-11-15T17:08:18Z"
       }
     }
   ],
   "reasons": [
-    "account_age could not run: no archival age (mallace.v2-launchpad.justhoot.near has no access key; mallace.v2-launchpad.justhoot.near did not exist at block 222508937 (2026-11-01T02:48:26Z) from archival-rpc.mainnet.fastnear.com, so it was created after that block, which is at least 7 d old; whether it is younger than 7 days is not known); could not read the account keys: no recorded response for the request.",
-    "dust_funded could not run: the creation transaction is not known."
+    "Created less than 7 days ago.",
+    "Not on the owner's allowlist."
   ],
   "labels": [],
   "observed": {
-    "block_height": 223718537,
+    "block_height": 223714695,
     "timestamp_ms": 1794197345742
   }
 }

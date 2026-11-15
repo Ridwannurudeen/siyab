@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "account_id": "pearlquant.near",
+      "block_id": 223714695
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "34b3TNTG2quWULdcZKE7hxAwQNN836DASZcLud3XYZ6k",
+      "block_height": 223714695,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 222703009002353,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:7R1x8S2k6otGu2PnQH5fR8JapauY4K4pwAh1HtrWRTCV"
+        },
+        {
+          "access_key": {
+            "nonce": 223053141000462,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:DbhKH9ssqnv197u2pJBPWuFnAkDAg5LDbjc7ZdXxR4Qu"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-15T17:08:53Z"
+}
