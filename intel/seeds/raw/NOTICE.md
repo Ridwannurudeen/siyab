@@ -1,6 +1,6 @@
 # Raw source snapshots
 
-These seven files are source responses retained byte for byte. When a label or incident source records `content_sha256`, `intel/seed.py` computes it from the exact response bytes. A reader can recompute SHA-256 from any snapshot; full digests appear in label rows and incident records where applicable. The manifest at `intel/seeds/README.md` lists all seven snapshots with abbreviated digests, including sources with no label rows.
+These 29 files are source responses retained byte for byte. When a label or incident source records `content_sha256`, `intel/seed.py` computes it from the exact response bytes. A reader can recompute SHA-256 from any snapshot; full digests appear in label rows and incident records where applicable. The manifest at `intel/seeds/README.md` lists all 29 snapshots with abbreviated digests, including sources with no label rows.
 
 | File | Publisher | Source URL | Fetched (UTC) | Why this copy is kept |
 |---|---|---|---|---|
@@ -11,6 +11,28 @@ These seven files are source responses retained byte for byte. When a label or i
 | `fireblocks-sweat-hot-20261029T152642Z.html` | Fireblocks | <https://www.fireblocks.com/blog/near-zero-day-sweat-hot-token-exploit> | 2026-10-29 15:26:42Z | The exact bytes make the recorded SHA-256 independently reproducible. |
 | `defillama-hacks-20261029T152644Z.json` | DeFiLlama hacks API | <https://api.llama.fi/hacks> | 2026-10-29 15:26:44Z | The exact bytes make the recorded SHA-256 independently reproducible. |
 | `rekt-skyward-20261115T093012Z.html` | rekt.news | <https://rekt.news/skyward-rekt> | 2026-11-15 09:30:12Z | The exact bytes make the recorded SHA-256 independently reproducible. |
+| `l2-aurora-bounties-20261115T140031Z.json` | Aurora forum contributors | <https://forum.aurora.dev/t/1257.json> | 2026-11-15 14:00:31Z | Source review and exclusions; this snapshot adds no label row. |
+| `l2-chainabuse-home-20261115T135613Z.html` | Chainabuse | <https://www.chainabuse.com/> | 2026-11-15 13:56:13Z | Source review and exclusions; this snapshot adds no label row. |
+| `l2-forum-11112-20261115T140054Z.json` | NEAR governance forum contributors | <https://gov.near.org/t/11112.json> | 2026-11-15 14:00:54Z | Attribution replay and the quoted collection or exploit report. |
+| `l2-forum-17380-20261115T140054Z.json` | NEAR governance forum contributors | <https://gov.near.org/t/17380.json> | 2026-11-15 14:00:54Z | Source review and exclusions; this snapshot adds no label row. |
+| `l2-forum-17616-20261115T140843Z.json` | NEAR governance forum contributors | <https://gov.near.org/t/17616.json> | 2026-11-15 14:08:43Z | Source review and exclusions; this snapshot adds no label row. |
+| `l2-forum-17750-20261115T140841Z.json` | NEAR governance forum contributors | <https://gov.near.org/t/17750.json> | 2026-11-15 14:08:41Z | Source review and exclusions; this snapshot adds no label row. |
+| `l2-forum-18659-20261115T140052Z.json` | NEAR governance forum contributors | <https://gov.near.org/t/18659.json> | 2026-11-15 14:00:52Z | Source review and exclusions; this snapshot adds no label row. |
+| `l2-forum-19675-20261115T140842Z.json` | NEAR governance forum contributors | <https://gov.near.org/t/19675.json> | 2026-11-15 14:08:42Z | Source review and exclusions; this snapshot adds no label row. |
+| `l2-forum-21725-20261115T140053Z.json` | NEAR governance forum contributors | <https://gov.near.org/t/21725.json> | 2026-11-15 14:00:53Z | Attribution replay and the quoted collection or exploit report. |
+| `l2-forum-25445-20261115T140336Z.json` | NEAR governance forum contributors | <https://gov.near.org/t/25445.json> | 2026-11-15 14:03:36Z | Attribution replay and the quoted collection or exploit report. |
+| `l2-forum-2733-20261115T140053Z.json` | NEAR governance forum contributors | <https://gov.near.org/t/2733.json> | 2026-11-15 14:00:53Z | Source review and exclusions; this snapshot adds no label row. |
+| `l2-forum-35032-20261115T140841Z.json` | NEAR governance forum contributors | <https://gov.near.org/t/35032.json> | 2026-11-15 14:08:41Z | Source review and exclusions; this snapshot adds no label row. |
+| `l2-forum-38862-20261115T140052Z.json` | NEAR governance forum contributors | <https://gov.near.org/t/38862.json> | 2026-11-15 14:00:52Z | Source review and exclusions; this snapshot adds no label row. |
+| `l2-forum-42360-20261115T140842Z.json` | NEAR governance forum contributors | <https://gov.near.org/t/42360.json> | 2026-11-15 14:08:42Z | Source review and exclusions; this snapshot adds no label row. |
+| `l2-near-discord-20261115T135729Z.html` | NEAR Foundation | <https://www.near.org/blog/post-mortem-near-discord-security-incident> | 2026-11-15 13:57:29Z | Source review and exclusions; this snapshot adds no label row. |
+| `l2-near-wallet-update-20261115T135728Z.html` | NEAR Foundation | <https://www.near.org/blog/near-web-wallet-security-update> | 2026-11-15 13:57:28Z | Source review and exclusions; this snapshot adds no label row. |
+| `l2-nearblocks-openapi-20261115T140447Z.json` | NearBlocks | <https://api.nearblocks.io/openapi.json> | 2026-11-15 14:04:47Z | Source review and exclusions; this snapshot adds no label row. |
+| `l2-quill-rhea-20261115T135752Z.html` | QuillAudits | <https://www.quillaudits.com/blog/hack-analysis/rhea-finance-hack> | 2026-11-15 13:57:52Z | Source review and exclusions; this snapshot adds no label row. |
+| `l2-ref-week22-20261115T140028Z.json` | NEAR governance forum contributors | <https://gov.near.org/t/5823.json> | 2026-11-15 14:00:28Z | Source review and exclusions; this snapshot adds no label row. |
+| `l2-rekt-intents-20261115T135906Z.html` | rekt.news | <https://rekt.news/near-intents-rekt> | 2026-11-15 13:59:06Z | Source review and exclusions; this snapshot adds no label row. |
+| `l2-telegram-final-post-20261115T141436Z.json` | NEAR governance forum contributors | <https://gov.near.org/t/21725/21.json> | 2026-11-15 14:14:36Z | Source review and exclusions; this snapshot adds no label row. |
+| `l2-uk-sanctions-list-page-20261115T135612Z.html` | UK Foreign, Commonwealth and Development Office | <https://www.gov.uk/government/publications/the-uk-sanctions-list> | 2026-11-15 13:56:12Z | Source review and exclusions; this snapshot adds no label row. |
 
 These publisher copies are excluded from the repository's Apache-2.0 license and remain the publishers' material.
 

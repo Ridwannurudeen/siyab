@@ -1,0 +1,53 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "txns": [
+      {
+        "transaction_hash": "74WVb6WAGnCuJ9dZX7hoYytLwnVHZdswKvh8wnrTBoWJ",
+        "included_in_block_hash": "CUxWC4vdsaxELv539B6y2LpCGR7TnDsT1YQrrer2R9mM",
+        "block_timestamp": "1653599349115206258",
+        "signer_account_id": "geminirising.near",
+        "receiver_account_id": "087184b14c3cad5de72090c4a48816d46e53f39454df13b957e14350793b18e7",
+        "receipt_conversion_gas_burnt": "424555062500",
+        "receipt_conversion_tokens_burnt": "42455506250000000000",
+        "shard_id": "2",
+        "block": {
+          "block_height": 66433235
+        },
+        "actions": [
+          {
+            "action": "TRANSFER",
+            "method": null,
+            "args": null
+          }
+        ],
+        "actions_agg": {
+          "deposit": 5.945392345213332e+25,
+          "gas_attached": 0
+        },
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": 84911012500000000000,
+          "gas_used": 1072292687500
+        },
+        "receipts": [
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          }
+        ]
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/txns/74WVb6WAGnCuJ9dZX7hoYytLwnVHZdswKvh8wnrTBoWJ",
+  "fetched_at": "2026-11-15T14:08:12Z"
+}

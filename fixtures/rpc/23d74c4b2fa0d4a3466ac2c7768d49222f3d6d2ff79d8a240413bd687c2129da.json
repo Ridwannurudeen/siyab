@@ -1,0 +1,1007 @@
+{
+  "request": {
+    "method": "GET",
+    "params": {
+      "receiver": "kcfhouse.near",
+      "before_ts": "1658366626549000000",
+      "limit": 25
+    }
+  },
+  "response": {
+    "data": [
+      {
+        "actions": [
+          {
+            "action": "TRANSFER",
+            "method": null
+          }
+        ],
+        "actions_agg": {
+          "deposit": "100000000000000000000000000"
+        },
+        "block": {
+          "block_hash": "GqJVaajLzs3dSKzVVZbCgntUvvdeNKi9nSoZdKmFwqXj",
+          "block_height": "69616060",
+          "block_timestamp": "1657556328208260646"
+        },
+        "block_timestamp": "1657556328208260646",
+        "index_in_chunk": 0,
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": "44636512500000000000"
+        },
+        "receiver_account_id": "kcfhouse.near",
+        "shard_id": 0,
+        "signer_account_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+        "transaction_hash": "3agt5qtmNtFNNtG6VviCfFJX7JPQ7nzhEJLvUPxCR2Jj"
+      },
+      {
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "deposit"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "retrieve_credits"
+          }
+        ],
+        "actions_agg": {
+          "deposit": "5001000000000000000000000"
+        },
+        "block": {
+          "block_hash": "2h3qeBtRUegfyCHr2Xmiqd9kKiob7GGnuweTFF69A6Ua",
+          "block_height": "69616018",
+          "block_timestamp": "1657556277517263524"
+        },
+        "block_timestamp": "1657556277517263524",
+        "index_in_chunk": 1,
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": "2158970670978300000000"
+        },
+        "receiver_account_id": "kcfhouse.near",
+        "shard_id": 0,
+        "signer_account_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+        "transaction_hash": "9XMv7qZJwyNEyHutjR6dsuDv8qJNwCwhh6PFLDZTzgYV"
+      },
+      {
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "deposit"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "retrieve_credits"
+          }
+        ],
+        "actions_agg": {
+          "deposit": "5001000000000000000000000"
+        },
+        "block": {
+          "block_hash": "3cYsfqYmUZkFzmZLmerpaLyNhBxkBA3SsCTDKRRJWmHj",
+          "block_height": "69616014",
+          "block_timestamp": "1657556272852872847"
+        },
+        "block_timestamp": "1657556272852872847",
+        "index_in_chunk": 0,
+        "outcomes": {
+          "status": false
+        },
+        "outcomes_agg": {
+          "transaction_fee": "1784129420129100000000"
+        },
+        "receiver_account_id": "kcfhouse.near",
+        "shard_id": 0,
+        "signer_account_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+        "transaction_hash": "7koUx7HRqsNgySesebLwYwmi9Lk6U5tG6JmWmpJsWf2G"
+      },
+      {
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "deposit"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "retrieve_credits"
+          }
+        ],
+        "actions_agg": {
+          "deposit": "5001000000000000000000000"
+        },
+        "block": {
+          "block_hash": "3XPwC2M6Hhz1ExX7YfUBC2cBRvueuizYZEVNQgb4s9Cr",
+          "block_height": "69616010",
+          "block_timestamp": "1657556267689486599"
+        },
+        "block_timestamp": "1657556267689486599",
+        "index_in_chunk": 1,
+        "outcomes": {
+          "status": false
+        },
+        "outcomes_agg": {
+          "transaction_fee": "1784129420129100000000"
+        },
+        "receiver_account_id": "kcfhouse.near",
+        "shard_id": 0,
+        "signer_account_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+        "transaction_hash": "EL92vn5xvt9m3smqdStqL4X9J9E8ciMmqRvoBgzsPfUn"
+      },
+      {
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "deposit"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "retrieve_credits"
+          }
+        ],
+        "actions_agg": {
+          "deposit": "5001000000000000000000000"
+        },
+        "block": {
+          "block_hash": "Dv3wz4V3QttcHbaTMyc6BCvSkmzefEutquLVox9YJpTH",
+          "block_height": "69616005",
+          "block_timestamp": "1657556261780978156"
+        },
+        "block_timestamp": "1657556261780978156",
+        "index_in_chunk": 0,
+        "outcomes": {
+          "status": false
+        },
+        "outcomes_agg": {
+          "transaction_fee": "1784129420129100000000"
+        },
+        "receiver_account_id": "kcfhouse.near",
+        "shard_id": 0,
+        "signer_account_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+        "transaction_hash": "6aAxSPB6mjtboGB2bRf4cHEz3Ux23443voFexBTedrCX"
+      },
+      {
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "deposit"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "retrieve_credits"
+          }
+        ],
+        "actions_agg": {
+          "deposit": "5001000000000000000000000"
+        },
+        "block": {
+          "block_hash": "4Bsvrx7BZqSAkijzFs5iVUN6yMnTomtfx5otPT1oCBo1",
+          "block_height": "69615991",
+          "block_timestamp": "1657556245546734630"
+        },
+        "block_timestamp": "1657556245546734630",
+        "index_in_chunk": 1,
+        "outcomes": {
+          "status": false
+        },
+        "outcomes_agg": {
+          "transaction_fee": "1784129420129100000000"
+        },
+        "receiver_account_id": "kcfhouse.near",
+        "shard_id": 0,
+        "signer_account_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+        "transaction_hash": "595NmYt7fz5DK6fFVisHRrsUiA8Ajq9vQu2N3TqPSGZD"
+      },
+      {
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "deposit"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "retrieve_credits"
+          }
+        ],
+        "actions_agg": {
+          "deposit": "5001000000000000000000000"
+        },
+        "block": {
+          "block_hash": "9UKAgSkqD8wmSRv4VM4BkmGDJyKJbVaePoPhiUNDuehG",
+          "block_height": "69615988",
+          "block_timestamp": "1657556242021106847"
+        },
+        "block_timestamp": "1657556242021106847",
+        "index_in_chunk": 1,
+        "outcomes": {
+          "status": false
+        },
+        "outcomes_agg": {
+          "transaction_fee": "2116548353039800000000"
+        },
+        "receiver_account_id": "kcfhouse.near",
+        "shard_id": 0,
+        "signer_account_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+        "transaction_hash": "9tBnxNYRcA4PzJfnafQf9RmGuG8rsRaHaVxYtS9U7uwG"
+      },
+      {
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "deposit"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "retrieve_credits"
+          }
+        ],
+        "actions_agg": {
+          "deposit": "5001000000000000000000000"
+        },
+        "block": {
+          "block_hash": "FfPyptiS5ejQ89f1xeRci9XhGNtij77Da1kX63GN94eP",
+          "block_height": "69615986",
+          "block_timestamp": "1657556239622225778"
+        },
+        "block_timestamp": "1657556239622225778",
+        "index_in_chunk": 1,
+        "outcomes": {
+          "status": false
+        },
+        "outcomes_agg": {
+          "transaction_fee": "1784129420129100000000"
+        },
+        "receiver_account_id": "kcfhouse.near",
+        "shard_id": 0,
+        "signer_account_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+        "transaction_hash": "DLwnnVMQgd6AZYpuVf4ve2K9UQLXgxVVxteawmVW2GYU"
+      },
+      {
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "deposit"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "retrieve_credits"
+          }
+        ],
+        "actions_agg": {
+          "deposit": "5001000000000000000000000"
+        },
+        "block": {
+          "block_hash": "DTFsKdWCZd4B21mdedYFFygdCcqQFXgQaLDpbLSZWLsw",
+          "block_height": "69615984",
+          "block_timestamp": "1657556237279182599"
+        },
+        "block_timestamp": "1657556237279182599",
+        "index_in_chunk": 1,
+        "outcomes": {
+          "status": false
+        },
+        "outcomes_agg": {
+          "transaction_fee": "2116548353039800000000"
+        },
+        "receiver_account_id": "kcfhouse.near",
+        "shard_id": 0,
+        "signer_account_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+        "transaction_hash": "9bPoUe35zmLsX7TRoaqfaTwrtdWwkBbudPaJaPfdUfx6"
+      },
+      {
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "deposit"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "retrieve_credits"
+          }
+        ],
+        "actions_agg": {
+          "deposit": "5001000000000000000000000"
+        },
+        "block": {
+          "block_hash": "HS5knQKzs24iPwnN4QdxRDngTvFrbB1GJyGeZDK92DvA",
+          "block_height": "69615982",
+          "block_timestamp": "1657556234956966681"
+        },
+        "block_timestamp": "1657556234956966681",
+        "index_in_chunk": 0,
+        "outcomes": {
+          "status": false
+        },
+        "outcomes_agg": {
+          "transaction_fee": "1784129420129100000000"
+        },
+        "receiver_account_id": "kcfhouse.near",
+        "shard_id": 0,
+        "signer_account_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+        "transaction_hash": "53dp3ovvP6HbLfuwTt993ano96w33U8TKYndhKrR17PK"
+      },
+      {
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "deposit"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "retrieve_credits"
+          }
+        ],
+        "actions_agg": {
+          "deposit": "5001000000000000000000000"
+        },
+        "block": {
+          "block_hash": "95LHmKBf7HtazwbD4pTEvUXZRVctfvxEmsteUnGW8U8e",
+          "block_height": "69615980",
+          "block_timestamp": "1657556232641876497"
+        },
+        "block_timestamp": "1657556232641876497",
+        "index_in_chunk": 1,
+        "outcomes": {
+          "status": false
+        },
+        "outcomes_agg": {
+          "transaction_fee": "2116548353039800000000"
+        },
+        "receiver_account_id": "kcfhouse.near",
+        "shard_id": 0,
+        "signer_account_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+        "transaction_hash": "A9FSeqFWHEUiV2DQkxezzsTsepFbW6uMd3NngDS9Brkg"
+      },
+      {
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "deposit"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "retrieve_credits"
+          }
+        ],
+        "actions_agg": {
+          "deposit": "5001000000000000000000000"
+        },
+        "block": {
+          "block_hash": "DN1LVaBoZgJnYr4KU4mW8ZzMpcLN3BgUbKUFW5Js68L3",
+          "block_height": "69615977",
+          "block_timestamp": "1657556229325655950"
+        },
+        "block_timestamp": "1657556229325655950",
+        "index_in_chunk": 0,
+        "outcomes": {
+          "status": false
+        },
+        "outcomes_agg": {
+          "transaction_fee": "1784129420129100000000"
+        },
+        "receiver_account_id": "kcfhouse.near",
+        "shard_id": 0,
+        "signer_account_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+        "transaction_hash": "72BZYtw6os5m4Q5SscwPeKZWTvcfpyR17ZC4c71Jq6GU"
+      },
+      {
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "deposit"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "retrieve_credits"
+          }
+        ],
+        "actions_agg": {
+          "deposit": "5001000000000000000000000"
+        },
+        "block": {
+          "block_hash": "Cr4REk4mDybHeu5Uj8naAa3RZZt3MEDc2KxqEqcHiNtA",
+          "block_height": "69615974",
+          "block_timestamp": "1657556225710218601"
+        },
+        "block_timestamp": "1657556225710218601",
+        "index_in_chunk": 1,
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": "2159003859289800000000"
+        },
+        "receiver_account_id": "kcfhouse.near",
+        "shard_id": 0,
+        "signer_account_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+        "transaction_hash": "BjcNykVbKVqBctW4QbFkcNjMqAia9QHvwhVHLZRKQnz8"
+      },
+      {
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "deposit"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "retrieve_credits"
+          }
+        ],
+        "actions_agg": {
+          "deposit": "5001000000000000000000000"
+        },
+        "block": {
+          "block_hash": "7qjvYQDFHSYzwP8U7e3pri91ezdPveJeWTZtJffGmu7c",
+          "block_height": "69615971",
+          "block_timestamp": "1657556221729144330"
+        },
+        "block_timestamp": "1657556221729144330",
+        "index_in_chunk": 1,
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": "2159003859289800000000"
+        },
+        "receiver_account_id": "kcfhouse.near",
+        "shard_id": 0,
+        "signer_account_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+        "transaction_hash": "J77f2z8d3zHYxRGVqZzP4VGn3ZJy8pD9UshKGQien4pi"
+      },
+      {
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "deposit"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "retrieve_credits"
+          }
+        ],
+        "actions_agg": {
+          "deposit": "5001000000000000000000000"
+        },
+        "block": {
+          "block_hash": "EHbM2FMmddiC9VEstGMEhkgFnZuh2pQYu45YvgyVbKLS",
+          "block_height": "69615968",
+          "block_timestamp": "1657556218473059193"
+        },
+        "block_timestamp": "1657556218473059193",
+        "index_in_chunk": 1,
+        "outcomes": {
+          "status": false
+        },
+        "outcomes_agg": {
+          "transaction_fee": "1784129420129100000000"
+        },
+        "receiver_account_id": "kcfhouse.near",
+        "shard_id": 0,
+        "signer_account_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+        "transaction_hash": "AhpRZidyWAw5ExZb8VDCpk1qgQvxK2NnEUNkAQrM2Pge"
+      },
+      {
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "deposit"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "retrieve_credits"
+          }
+        ],
+        "actions_agg": {
+          "deposit": "5001000000000000000000000"
+        },
+        "block": {
+          "block_hash": "FpPMD1QZJGQvVP4oQ6122ZpACVzdm2YDjie9toj7CDw9",
+          "block_height": "69615965",
+          "block_timestamp": "1657556214965224826"
+        },
+        "block_timestamp": "1657556214965224826",
+        "index_in_chunk": 1,
+        "outcomes": {
+          "status": false
+        },
+        "outcomes_agg": {
+          "transaction_fee": "1778600637758700000000"
+        },
+        "receiver_account_id": "kcfhouse.near",
+        "shard_id": 0,
+        "signer_account_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+        "transaction_hash": "yqAp9723Xr6U2XFpLHwSc1n44BkUh5xgppFufSYjyk9"
+      },
+      {
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "deposit"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "retrieve_credits"
+          }
+        ],
+        "actions_agg": {
+          "deposit": "5001000000000000000000000"
+        },
+        "block": {
+          "block_hash": "62jY6x1yEuLoCmHq1PCZeyndzpGZAtDa8XCKLDMgkqJs",
+          "block_height": "69615963",
+          "block_timestamp": "1657556212537863855"
+        },
+        "block_timestamp": "1657556212537863855",
+        "index_in_chunk": 1,
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": "2158970670978300000000"
+        },
+        "receiver_account_id": "kcfhouse.near",
+        "shard_id": 0,
+        "signer_account_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+        "transaction_hash": "4LGW1YMGJAmtJ8WrLf9b5PKT8a6R9Z2Q4VUDJyrabqDB"
+      },
+      {
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "deposit"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "retrieve_credits"
+          }
+        ],
+        "actions_agg": {
+          "deposit": "5001000000000000000000000"
+        },
+        "block": {
+          "block_hash": "Ad8RntkjkVjaoZ6YcFVjq1mALQACZE9vj8KCR6zM9yoa",
+          "block_height": "69615960",
+          "block_timestamp": "1657556209003480598"
+        },
+        "block_timestamp": "1657556209003480598",
+        "index_in_chunk": 1,
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": "2158970670978300000000"
+        },
+        "receiver_account_id": "kcfhouse.near",
+        "shard_id": 0,
+        "signer_account_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+        "transaction_hash": "7pG7f6oWKyWsUZGt9NLSmx7e9u8imDqFgEf48JNjhasV"
+      },
+      {
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "deposit"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "retrieve_credits"
+          }
+        ],
+        "actions_agg": {
+          "deposit": "5001000000000000000000000"
+        },
+        "block": {
+          "block_hash": "7ShABWcFBDUrPMUShkUsZDb5XXDmRqfvTgFrD8WiMni9",
+          "block_height": "69615957",
+          "block_timestamp": "1657556205702608860"
+        },
+        "block_timestamp": "1657556205702608860",
+        "index_in_chunk": 0,
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": "2158970670978300000000"
+        },
+        "receiver_account_id": "kcfhouse.near",
+        "shard_id": 0,
+        "signer_account_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+        "transaction_hash": "4ZgseDyPqEJ28tLp7HLgjwrnVqNXW9FxQRHi6VZ9jYwx"
+      },
+      {
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "deposit"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "retrieve_credits"
+          }
+        ],
+        "actions_agg": {
+          "deposit": "5001000000000000000000000"
+        },
+        "block": {
+          "block_hash": "8pdFnixKuBQ2fQznm8nJT1VKbBAPCYrYvjC8F19in1QW",
+          "block_height": "69615954",
+          "block_timestamp": "1657556201808210975"
+        },
+        "block_timestamp": "1657556201808210975",
+        "index_in_chunk": 4,
+        "outcomes": {
+          "status": false
+        },
+        "outcomes_agg": {
+          "transaction_fee": "1784129420129100000000"
+        },
+        "receiver_account_id": "kcfhouse.near",
+        "shard_id": 0,
+        "signer_account_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+        "transaction_hash": "3XDdAaJu53Sb6opfM41oAmHNYspM6WBHc4CwNZDqwn6P"
+      },
+      {
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "deposit"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "retrieve_credits"
+          }
+        ],
+        "actions_agg": {
+          "deposit": "5001000000000000000000000"
+        },
+        "block": {
+          "block_hash": "DZCRXVcNLZrukqnekdzwS9EKbMJBSuL96wtVvQn6fDtL",
+          "block_height": "69615952",
+          "block_timestamp": "1657556199136026656"
+        },
+        "block_timestamp": "1657556199136026656",
+        "index_in_chunk": 2,
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": "2158970670978300000000"
+        },
+        "receiver_account_id": "kcfhouse.near",
+        "shard_id": 0,
+        "signer_account_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+        "transaction_hash": "4EjksTo8E61HkdRTob3MCDqBUkJrub2cuJLDLuQDgVLw"
+      },
+      {
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "deposit"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "retrieve_credits"
+          }
+        ],
+        "actions_agg": {
+          "deposit": "5001000000000000000000000"
+        },
+        "block": {
+          "block_hash": "BeyihE5WbyXKrQzSmZMVUYxRpSrfLh7RHkWRxfu3o7GM",
+          "block_height": "69615949",
+          "block_timestamp": "1657556195189369016"
+        },
+        "block_timestamp": "1657556195189369016",
+        "index_in_chunk": 2,
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": "2159003859289800000000"
+        },
+        "receiver_account_id": "kcfhouse.near",
+        "shard_id": 0,
+        "signer_account_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+        "transaction_hash": "AbdTq9Mj5qRRJdFTDFXU6KVDrf1u98tQAafmpYE5Hvfs"
+      },
+      {
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "deposit"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "retrieve_credits"
+          }
+        ],
+        "actions_agg": {
+          "deposit": "5001000000000000000000000"
+        },
+        "block": {
+          "block_hash": "6pR98ijzSzajXTJRtJBTh6G4CgFHwRyFuHVCg38kHeDp",
+          "block_height": "69615946",
+          "block_timestamp": "1657556191412246308"
+        },
+        "block_timestamp": "1657556191412246308",
+        "index_in_chunk": 2,
+        "outcomes": {
+          "status": false
+        },
+        "outcomes_agg": {
+          "transaction_fee": "1784129420129100000000"
+        },
+        "receiver_account_id": "kcfhouse.near",
+        "shard_id": 0,
+        "signer_account_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+        "transaction_hash": "F4mKDh9AiMpi6QPzjW4EdbcGtKVhiNcwJ4ffi4WzADFZ"
+      },
+      {
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "deposit"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "retrieve_credits"
+          }
+        ],
+        "actions_agg": {
+          "deposit": "5001000000000000000000000"
+        },
+        "block": {
+          "block_hash": "ABVwEZoYmwfKn6Yu3EqkC7JfpmZZUJoesu15SbaEqsPc",
+          "block_height": "69615944",
+          "block_timestamp": "1657556188961952631"
+        },
+        "block_timestamp": "1657556188961952631",
+        "index_in_chunk": 2,
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": "2158970670978300000000"
+        },
+        "receiver_account_id": "kcfhouse.near",
+        "shard_id": 0,
+        "signer_account_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+        "transaction_hash": "3Ki1myDHqv18WdMriCogyFPS16rV5XYNk91NNNvsTudv"
+      },
+      {
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "deposit"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "retrieve_credits"
+          }
+        ],
+        "actions_agg": {
+          "deposit": "5001000000000000000000000"
+        },
+        "block": {
+          "block_hash": "HGjBSCutMSVMkr6JKG9uBHJHuAWE5SVfH3a7ZQeRSqpA",
+          "block_height": "69615941",
+          "block_timestamp": "1657556185656867581"
+        },
+        "block_timestamp": "1657556185656867581",
+        "index_in_chunk": 0,
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": "2159003859289800000000"
+        },
+        "receiver_account_id": "kcfhouse.near",
+        "shard_id": 0,
+        "signer_account_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+        "transaction_hash": "2JBJNNTDb5M72oZCQE6QxjPnKPH6eVymfhySJrAi9jUb"
+      }
+    ],
+    "meta": {
+      "next_page": "eyJpbmRleCI6MCwic2hhcmQiOjAsInRpbWVzdGFtcCI6IjE2NTc1NTYxODU2NTY4Njc1ODEifQ=="
+    }
+  },
+  "url": "https://api.nearblocks.io/v3/accounts/9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180/txns",
+  "fetched_at": "2026-11-15T14:07:12Z"
+}

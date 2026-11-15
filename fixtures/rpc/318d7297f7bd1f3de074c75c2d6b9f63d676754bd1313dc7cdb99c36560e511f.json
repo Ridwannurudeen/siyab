@@ -1,0 +1,76 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "txns": [
+      {
+        "transaction_hash": "9XMv7qZJwyNEyHutjR6dsuDv8qJNwCwhh6PFLDZTzgYV",
+        "included_in_block_hash": "2h3qeBtRUegfyCHr2Xmiqd9kKiob7GGnuweTFF69A6Ua",
+        "block_timestamp": "1657556277517263524",
+        "signer_account_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+        "receiver_account_id": "kcfhouse.near",
+        "receipt_conversion_gas_burnt": "9387843126034",
+        "receipt_conversion_tokens_burnt": "938784312603400000000",
+        "shard_id": "0",
+        "block": {
+          "block_height": 69616018
+        },
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "deposit",
+            "args": "{}"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play",
+            "args": "{\"bet_size\": \"5000000000000000000000000\", \"_bet_type\": false}"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "play",
+            "args": "{\"bet_size\": \"5000000000000000000000000\", \"_bet_type\": false}"
+          },
+          {
+            "action": "FUNCTION_CALL",
+            "method": "retrieve_credits",
+            "args": "{}"
+          }
+        ],
+        "actions_agg": {
+          "deposit": 5.001e+24,
+          "gas_attached": 200000000000000
+        },
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": 2.1589706709783e+21,
+          "gas_used": 22438816834783
+        },
+        "receipts": [
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          }
+        ]
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/txns/9XMv7qZJwyNEyHutjR6dsuDv8qJNwCwhh6PFLDZTzgYV",
+  "fetched_at": "2026-11-15T14:06:29Z"
+}

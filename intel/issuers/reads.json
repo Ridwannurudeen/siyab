@@ -6865,6 +6865,72 @@
   },
   {
     "issuer": "usdt.tether-token.near",
+    "subject": "bigbank101.near",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "bigbank101.near"
+    },
+    "answer": "Allowable",
+    "block": 224676693,
+    "observed_at": "2026-11-15T14:13:48Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "bigbank101.near",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "bigbank101.near"
+    },
+    "answer": false,
+    "block": 224676696,
+    "observed_at": "2026-11-15T14:13:50Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180"
+    },
+    "answer": "Allowable",
+    "block": 224676699,
+    "observed_at": "2026-11-15T14:13:52Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180"
+    },
+    "answer": false,
+    "block": 224676702,
+    "observed_at": "2026-11-15T14:13:54Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
+    "subject": "087184b14c3cad5de72090c4a48816d46e53f39454df13b957e14350793b18e7",
+    "method": "get_blacklist_status",
+    "args": {
+      "account_id": "087184b14c3cad5de72090c4a48816d46e53f39454df13b957e14350793b18e7"
+    },
+    "answer": "Allowable",
+    "block": 224676705,
+    "observed_at": "2026-11-15T14:13:55Z"
+  },
+  {
+    "issuer": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "subject": "087184b14c3cad5de72090c4a48816d46e53f39454df13b957e14350793b18e7",
+    "method": "is_blocklisted",
+    "args": {
+      "account_id": "087184b14c3cad5de72090c4a48816d46e53f39454df13b957e14350793b18e7"
+    },
+    "answer": false,
+    "block": 224676708,
+    "observed_at": "2026-11-15T14:13:57Z"
+  },
+  {
+    "issuer": "usdt.tether-token.near",
     "subject": "mmt-arb.near",
     "method": "get_blacklist_status",
     "args": {
