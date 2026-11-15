@@ -55,7 +55,7 @@ singular when it is 1):
 
 --unknown-rate prints only:
   UNKNOWN on the pinned N: P% (reads of D Mon, rules of D Mon); P% (reads of D Mon, rules of D Mon).
-      fixtures/receivers/unknown-rate.jsonl; rounded whole percentages, one entry per row
+      fixtures/receivers/unknown-rate.jsonl; rounded whole percentages (one decimal below 1%), one entry per row
 It is excluded from lines() and --readme output.
 
 --readme replaces everything between the lines <!-- counts:start --> and <!-- counts:end --> with the
@@ -184,7 +184,9 @@ def unknown_rate_line(path=UNKNOWN_RATE):
     for row in rows:
         observed = date.fromisoformat(row["observed"])
         committed = date.fromisoformat(row["commit_date"])
-        percent = math.floor(100 * row["totals"]["UNKNOWN"] / row["totals"]["total"] + 0.5)
+        share = 100 * row["totals"]["UNKNOWN"] / row["totals"]["total"]
+        percent = (f"{math.floor(10 * share + 0.5) / 10:g}" if 0 < share < 1
+                   else math.floor(share + 0.5))
         entries.append(f"{percent}% (reads of {observed.day} {months[observed.month - 1]}, "
                        f"rules of {committed.day} {months[committed.month - 1]})")
     return f"UNKNOWN on the pinned {rows[0]['totals']['total']}: " + "; ".join(entries) + "."

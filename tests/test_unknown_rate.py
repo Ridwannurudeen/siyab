@@ -23,7 +23,7 @@ class UnknownRateTest(unittest.TestCase):
 
     def test_committed_row_is_reproducible(self):
         rows = [json.loads(line) for line in counts.UNKNOWN_RATE.read_text(encoding="utf-8").splitlines()]
-        self.assertEqual(len(rows), 2)
+        self.assertEqual(len(rows), 3)
         self.assertEqual(rows[0], self.row)
         self.assertEqual(rows[1], counts.unknown_rate_row("7f624c8ac"))
         self.assertEqual(rows[1]["observed"], "2026-11-09")
@@ -32,6 +32,12 @@ class UnknownRateTest(unittest.TestCase):
         self.assertEqual(rows[1]["totals"], {"ALLOW": 831, "DENY": 19, "UNKNOWN": 140, "total": 990})
         self.assertEqual(rows[1]["causes"], {"account_age": 138, "code_without_metadata": 2,
                                            "dust_funded": 138})
+        self.assertEqual(rows[2], counts.unknown_rate_row("7d2b8134b"))
+        self.assertEqual(rows[2]["observed"], "2026-11-09")
+        self.assertEqual(rows[2]["commit_date"], "2026-11-15")
+        self.assertEqual(rows[2]["sample_id"], self.row["sample_id"])
+        self.assertEqual(rows[2]["totals"], {"ALLOW": 850, "DENY": 138, "UNKNOWN": 2, "total": 990})
+        self.assertEqual(rows[2]["causes"], {"code_without_metadata": 2})
         self.assertEqual(self.row["observed"], "2026-11-09")
         self.assertEqual(self.row["commit_date"], "2026-11-14")
         self.assertNotIn("date", self.row)
@@ -163,7 +169,7 @@ class UnknownRateTest(unittest.TestCase):
     def test_output_has_one_entry_per_row_with_both_dates(self):
         first = "UNKNOWN on the pinned 990: 73% (reads of 9 Nov, rules of 14 Nov)"
         self.assertEqual(counts.unknown_rate_line(),
-                         first + "; 14% (reads of 9 Nov, rules of 15 Nov).")
+                         first + "; 14% (reads of 9 Nov, rules of 15 Nov); 0.2% (reads of 9 Nov, rules of 15 Nov).")
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "series.jsonl"
             counts.append_unknown_rate(path, self.row, new_series=True)
@@ -172,6 +178,11 @@ class UnknownRateTest(unittest.TestCase):
                                                         "total": 990}))
             self.assertEqual(counts.unknown_rate_line(path),
                              first + "; 50% (reads of 15 Nov, rules of 16 Nov).")
+            counts.append_unknown_rate(path, dict(self.row, observed="2026-11-16", commit_date="2026-11-17",
+                                                totals={"ALLOW": 990, "DENY": 0, "UNKNOWN": 0,
+                                                        "total": 990}))
+            self.assertEqual(counts.unknown_rate_line(path),
+                             first + "; 50% (reads of 15 Nov, rules of 16 Nov); 0% (reads of 16 Nov, rules of 17 Nov).")
 
     def test_cli_exposes_the_line_only_through_its_own_flag(self):
         result = subprocess.run([sys.executable, str(COUNTS), "--unknown-rate"], cwd=ROOT,

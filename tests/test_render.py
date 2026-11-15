@@ -797,11 +797,10 @@ class RenderTest(unittest.TestCase):
         self.assertEqual(len(documents), 990)
         self.assertTrue(all(document["subject"] not in page for document in documents))
         for text in (
-            "831 ALLOW, 19 DENY, 140 UNKNOWN",
-            "account_age: 138",
-            "code_without_metadata: 2",
-            "dust_funded: 138",
-            "New account (account_age signal only): 13.",
+            "850 ALLOW, 138 DENY, 2 UNKNOWN",
+            "<li>code_without_metadata: 2</li></ul>",
+            "Counts overlap.</p><ul><li>code_without_metadata: 2</li>",
+            "New account (account_age signal only): 137.",
             "Lookalike with code without metadata: 1.",
             "Each verdict is what an agent's 1 NEAR payment to that receiver would get, not a finding that the account is malicious.",
             "Only aggregate counts are public on this page. Per-account judgement files are not public.",
@@ -809,12 +808,15 @@ class RenderTest(unittest.TestCase):
         ):
             with self.subTest(text=text):
                 self.assertIn(text, page)
+        for text in ("<li>account_age:", "<li>dust_funded:", "Other DENY signal groups"):
+            with self.subTest(absent=text):
+                self.assertNotIn(text, page)
         ranking = json.loads((ROOT / "fixtures" / "receivers" / "top.json").read_text(encoding="utf-8"))
         window = ranking["window"]
         self.assertIn(f'{window["hours"]} hours, {window["start_timestamp"]}', page)
         self.assertIn(f'{window["end_timestamp"]}', page)
         index = self.pages["explore.html"]
-        self.assertIn("990 judged: 831 ALLOW, 19 DENY, 140 UNKNOWN.", index)
+        self.assertIn("990 judged: 850 ALLOW, 138 DENY, 2 UNKNOWN.", index)
         self.assertIn('href="top-receivers.html">Open aggregate results</a>', index)
 
     def test_the_404_page_has_no_canonical_link_and_other_pages_keep_theirs(self):
