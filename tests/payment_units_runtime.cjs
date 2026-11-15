@@ -28,7 +28,7 @@ function setup(deferVerdict = false) {
     body: new Element(),
   };
   vm.runInNewContext(fs.readFileSync("intel/ui/index.js", "utf8"), {
-    document, URLSearchParams, Blob, setTimeout,
+    document, window: {}, URLSearchParams, Blob, setTimeout,
     URL: class extends URL { static createObjectURL(blob) { downloads.push(blob); return "blob:receipt"; } static revokeObjectURL() {} },
     FormData: class { constructor(form) { this.values = form.values; } get(key) { return this.values[key]; } },
     fetch: async path => {

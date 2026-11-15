@@ -74,7 +74,7 @@ For each event in `fixtures/registry/labels-20261103.json`, `standard` is `shiel
 | Path | What it pins | Reproduced by |
 |---|---|---|
 | `fixtures/spec/label-assertion-v1.json` | five rows, each with `row`, `canonical_body`, `id` and `line`: one `official_source`, one `onchain`, one `third_party` with confidence `0.9`, one `inferred`, and the synthetic row above; `in_store` says whether `line` is a line of `intel/labels.jsonl` | `intel.labels.validate`, `intel.labels.assertion_id`, `intel.labels.row_line` |
-| `fixtures/registry/labels-20261103.json` | 43 `label_recorded` events from testnet; each `assertion_hash` is the `id` of a current store row with the same `subject`, `chain`, `label`, `category` and `provenance` | `intel.labels.load` |
+| `fixtures/registry/labels-20261103.json` | 43 `label_recorded` events from testnet; each `assertion_hash` is the `id` of a historical store row with the same `subject`, `chain`, `label`, `category` and `provenance`; a row may since have been superseded | `intel.labels.load` |
 | `intel/labels.jsonl` | every committed row validates and every id is its own body's sha256 (not under `fixtures/`, but the largest vector set) | `intel.labels.load` |
 
 ## Source of truth

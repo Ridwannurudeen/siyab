@@ -1163,8 +1163,8 @@ class DesignSystemTest(unittest.TestCase):
                         self.assertTrue(page.locator("#mobile-navigation>summary").evaluate("node => node === document.activeElement"))
 
     def test_issuer_scope_counts_the_recorded_answers(self):
-        sentence = ('Banned answers only. Other recorded answers: get_blacklist_status answered "Allowable" 365 times; '
-                    'is_blocklisted answered false 376 times. '
+        sentence = ('Banned answers only. Other recorded answers: get_blacklist_status answered "Allowable" 369 times; '
+                    'is_blocklisted answered false 380 times. '
                     'Counts by issuer view are in Coverage below.')
         self.assertIn('<p class="issuers-scope">' + render.data_text(sentence) + '</p>', self.pages["issuers.html"])
 
@@ -1209,7 +1209,7 @@ class DesignSystemTest(unittest.TestCase):
             page.goto(self.origin + "/issuers.html")
             page.evaluate("document.fonts.ready")
             scope = page.locator("#issuer-status-section>.issuers-scope")
-            self.assertEqual(scope.inner_text(), "Banned answers only. Other recorded answers: get_blacklist_status answered Allowable 365 times; is_blocklisted answered false 376 times. Counts by issuer view are in Coverage below.")
+            self.assertEqual(scope.inner_text(), "Banned answers only. Other recorded answers: get_blacklist_status answered Allowable 369 times; is_blocklisted answered false 380 times. Counts by issuer view are in Coverage below.")
             self.assertTrue(scope.is_visible())
             self.assertLessEqual(page.locator("#issuer-status tbody tr").first.bounding_box()["y"], 340)
             for anchor in ("#issuer-status-section", "#issuer-ledger"):

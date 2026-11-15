@@ -26,7 +26,7 @@
       "detail": "no denylist or incident label on hoot-8ecf65.launchpad.justhoot.near",
       "source": {
         "provider": "label store",
-        "request_sha256": "cf335f98f9dd43c560a6f3d4c743bca4c7a60dd7bd02c3c28de5143ec85b7079",
+        "request_sha256": "9dfefbd7cf2951827f06613f52cfe92c9c4e65275453e6fe304dbcd7cc5c3d98",
         "fetched_at": null
       }
     },
@@ -76,7 +76,7 @@
       "detail": "hoot-8ecf65.launchpad.justhoot.near is itself a labelled reference account (assertion e17741a0640f4096afc8412412073860028f2889787f98089601e004eac63a96)",
       "source": {
         "provider": "allowlist and label store",
-        "request_sha256": "cf335f98f9dd43c560a6f3d4c743bca4c7a60dd7bd02c3c28de5143ec85b7079",
+        "request_sha256": "9dfefbd7cf2951827f06613f52cfe92c9c4e65275453e6fe304dbcd7cc5c3d98",
         "fetched_at": null
       }
     },

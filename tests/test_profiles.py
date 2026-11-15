@@ -52,11 +52,34 @@ class ProfilesTest(unittest.TestCase):
         for line in incident["not_public"]:
             self.assertIn(html.escape(line), document)
 
+    def test_third_party_labels_keep_authored_text_in_both_account_tables(self):
+        subject = "bigbank101.near"
+        assertion = next(row for row in self.store.assertions
+                         if row.subject == subject and row.provenance == "third_party" and row.superseded_by is None)
+        document = render.account_page(subject, self.store, self.accounts, self.incidents, self.flows, [])
+        quoted = '<q class="data">' + html.escape(assertion.label, quote=True) + '</q>'
+        self.assertNotIn(quoted, document)
+        self.assertEqual(document.count(render.data_text(assertion.label)), 2)
+
+    def test_third_party_entity_labels_keep_authored_text(self):
+        for _, title, categories in render.ENTITY_SETS:
+            assertions = [row for row in self.store.assertions
+                          if row.provenance == "third_party" and row.category in categories and row.superseded_by is None]
+            if not assertions:
+                continue
+            rows = render._entity_rows(categories, self.store)
+            for assertion in assertions:
+                with self.subTest(assertion=assertion.id):
+                    page_number = next(index for index, row in enumerate(rows) if row["id"] == assertion.id) // 50 + 1
+                    document = render.entity_page(title, categories, self.store, page_number=page_number)
+                    self.assertNotIn('<q class="data">' + html.escape(assertion.label, quote=True) + '</q>', document)
+                    self.assertIn(render.data_text(assertion.label), document)
+
     def test_issuer_tables_keep_observation_dates_and_coverage(self):
         document = render.issuers_page()
         self.assertIn('data-profile-table="issuer-status"', document)
         self.assertIn('data-profile-table="issuer-history"', document)
-        self.assertIn('752', document)
+        self.assertIn(f'<dt>Status reads</dt><dd>{len(issuers.reads())}</dd>', document)
         for row in labels.load(issuers.STATUS_PATH).assertions:
             self.assertIn(row.id, document)
             self.assertIn(row.observed_at, document)

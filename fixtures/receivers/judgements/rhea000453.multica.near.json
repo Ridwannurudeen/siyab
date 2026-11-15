@@ -23,10 +23,10 @@
     {
       "id": "label_denylist",
       "status": "signal",
-      "detail": "rhea000453.multica.near carries the incident label \"named in the rekt.news Rhea Finance report as an account within Rhea's own Multichain Account system that became active and later received funds traceable to the subject wallet\" (assertion ad091cc5fd41c831a8415f5cdd4bd83ef52ecc951826f126243d1afb995434e5); rhea000453.multica.near carries the incident label \"account exists with no contract code\" (assertion 27b6edab01f0941464ab22e14a1aee2bfee20208062df19fe16a7f1ade5fbe27)",
+      "detail": "rhea000453.multica.near carries the incident label \"named in the rekt.news Rhea Finance report as an account within Rhea's own Multichain Account system that became active and later received funds traceable to the subject wallet\" (assertion ad091cc5fd41c831a8415f5cdd4bd83ef52ecc951826f126243d1afb995434e5)",
       "source": {
         "provider": "label store",
-        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "request_sha256": "9dfefbd7cf2951827f06613f52cfe92c9c4e65275453e6fe304dbcd7cc5c3d98",
         "fetched_at": null
       }
     },
@@ -76,7 +76,7 @@
       "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
       "source": {
         "provider": "allowlist and label store",
-        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "request_sha256": "9dfefbd7cf2951827f06613f52cfe92c9c4e65275453e6fe304dbcd7cc5c3d98",
         "fetched_at": null
       }
     },
@@ -93,11 +93,11 @@
   ],
   "reasons": [
     "Not on the owner's allowlist.",
-    "rhea000453.multica.near carries the incident label \"named in the rekt.news Rhea Finance report as an account within Rhea's own Multichain Account system that became active and later received funds traceable to the subject wallet\" (assertion ad091cc5fd41c831a8415f5cdd4bd83ef52ecc951826f126243d1afb995434e5); rhea000453.multica.near carries the incident label \"account exists with no contract code\" (assertion 27b6edab01f0941464ab22e14a1aee2bfee20208062df19fe16a7f1ade5fbe27)."
+    "rhea000453.multica.near carries the incident label \"named in the rekt.news Rhea Finance report as an account within Rhea's own Multichain Account system that became active and later received funds traceable to the subject wallet\" (assertion ad091cc5fd41c831a8415f5cdd4bd83ef52ecc951826f126243d1afb995434e5)."
   ],
   "labels": [
     "ad091cc5fd41c831a8415f5cdd4bd83ef52ecc951826f126243d1afb995434e5",
-    "27b6edab01f0941464ab22e14a1aee2bfee20208062df19fe16a7f1ade5fbe27"
+    "0382f975880275c9b67f6fa52a4f03532aab7f1afe2a739fdd57335034f74c00"
   ],
   "observed": {
     "block_height": 222119769,

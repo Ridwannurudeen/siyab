@@ -80,6 +80,18 @@ class RheaIncidentTest(unittest.TestCase):
         self.store = labels.load()
         self.ids = {a.id: a for a in self.store.assertions}
 
+    def test_rebuilt_incident_keeps_the_report_snapshot_source(self):
+        data, fetched_at, _ = seed.snapshot("rhea", "replay")
+        with mock.patch("urllib.request.urlopen", side_effect=no_network):
+            rebuilt = seed.rhea_incident("replay")
+        self.assertEqual(rebuilt["sources"], [{
+            "id": seed.RHEA_SOURCE_ID,
+            "publisher": "rekt.news",
+            "url": seed.REKT_RHEA_URL,
+            "content_sha256": hashlib.sha256(data).hexdigest(),
+            "fetched_at": fetched_at,
+        }])
+
     def test_the_file_matches_the_schema(self):
         for key, kind in SCHEMA.items():
             with self.subTest(key=key):

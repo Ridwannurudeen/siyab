@@ -2754,22 +2754,19 @@ class LabelStaleTest(RulesVersionTwoCase):
         judgement = self.judge2(policy={"allowlist": ["pool.testnet"], "caps": []})
         self.assertIn("no longer holds", self.check(judgement, "label_stale")["detail"])
 
-    def test_the_committed_rhea000453_label_is_stale_against_its_global_contract(self):
-        # A live read on 15 Nov 2026 showed rhea000453.multica.near with an empty code hash and a global contract
-        # hash; the committed label says it has no contract code.
+    def test_the_committed_rhea000453_no_code_label_is_superseded(self):
         store = labels.load()
-        [row] = [a for a in store.by_subject("rhea000453.multica.near", "near")
-                 if a.provenance == "onchain" and a.superseded_by is None]
-        self.assertEqual(row.label, "account exists with no contract code")
+        rows = store.by_subject("rhea000453.multica.near", "near")
+        [old] = [a for a in rows if a.provenance == "onchain"
+                 and a.label == "account exists with no contract code"]
+        [current] = [a for a in rows if a.id == old.superseded_by]
+        self.assertEqual(current.category, "watch")
+        self.assertIsNone(current.superseded_by)
+        self.assertIn("the account runs the global contract with hash", current.label)
         self.store = store
         self.live_account("rhea000453.multica.near", code_hash=rpc.EMPTY_CODE_HASH, global_hash=self.GLOBAL_HASH)
         judgement = self.judge2("rhea000453.multica.near", archival=None)
-        check = self.check(judgement, "label_stale")
-        self.assertEqual(check["status"], "pass")
-        self.assertEqual(check["detail"],
-                         f'"account exists with no contract code" (assertion {row.id}, view_account at '
-                         f"block {row.source['block']}) no longer holds: view_account now shows global contract hash "
-                         f"{self.GLOBAL_HASH}; informational, it changes no verdict")
+        self.assertIsNone(self.check(judgement, "label_stale"))
         self.assertEqual(judgement.verdict, "DENY")
         self.assertEqual({c["id"] for c in judgement.checks if c["status"] == "signal"}, {"label_denylist"})
 

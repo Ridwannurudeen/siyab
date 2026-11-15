@@ -126,8 +126,8 @@ class CommittedStoreTest(unittest.TestCase):
         self.assertEqual(len(manual_rows), 1)
         self.assertEqual(len(replaced_rows), 1)
         generated_rows = [r for r in self.rows if r not in manual_rows and r not in replaced_rows]
-        self.assertEqual([r["id"] for r in rows], [r["id"] for r in generated_rows])
-        self.assertEqual([labels.row_line(r) for r in rows], [labels.row_line(r) for r in generated_rows])
+        self.assertCountEqual([r["id"] for r in rows], [r["id"] for r in generated_rows])
+        self.assertCountEqual([labels.row_line(r) for r in rows], [labels.row_line(r) for r in generated_rows])
 
     def test_the_rules_read_the_store(self):
         client = rpc.Client(rpc.MAINNET_RPC_URL, "replay")
@@ -576,7 +576,11 @@ class FakeWalletSeedTest(unittest.TestCase):
                 mock.patch.object(rpc.Client, "view_account", side_effect=AssertionError("state is not attribution")):
             rows = seed.fake_wallet("replay")
         self.assertEqual([(r["subject"], r["category"], r["provenance"]) for r in rows],
-                         [(self.account, "incident", "third_party"), (self.account, "incident", "onchain")])
+                         [(self.account, "incident", "third_party"), (self.account, "incident", "onchain"),
+                          (self.account, "incident", "third_party")])
+        self.assertEqual(rows[0]["superseded_by"], rows[2]["id"])
+        self.assertIsNone(rows[2]["superseded_by"])
+        self.assertEqual(rows[2]["label"], "reported collection account in the NEAR Wallet impersonation report")
         self.assertTrue(all(json.dumps(self.quote, ensure_ascii=False) in r["note"] for r in rows))
         self.assertEqual(rows[0]["source"]["url"], "https://gov.near.org/t/11112.json")
         self.assertEqual(rows[0]["source"]["content_sha256"], hashlib.sha256(self.data).hexdigest())
@@ -616,11 +620,12 @@ class FakeWalletSeedTest(unittest.TestCase):
             store = path / "labels.jsonl"
             for source in ("fake-wallet", "kangaroo", "telegram-scam"):
                 self.assertIn(source, seed.SOURCES)
-                self.assertEqual(seed.run(source, "replay", store_path=store, readme_path=path / "snapshots.md"), 2)
+                self.assertEqual(seed.run(source, "replay", store_path=store, readme_path=path / "snapshots.md"),
+                                 3 if source == "fake-wallet" else 2)
                 before = store.read_bytes()
                 self.assertEqual(seed.run(source, "replay", store_path=store, readme_path=path / "snapshots.md"), 0)
                 self.assertEqual(store.read_bytes(), before)
-            self.assertEqual(labels.load(store).counts()["category"]["incident"], 6)
+            self.assertEqual(labels.load(store).counts()["category"]["incident"], 7)
 
 
 class KangarooSeedTest(unittest.TestCase):

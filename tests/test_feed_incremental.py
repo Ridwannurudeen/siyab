@@ -87,9 +87,10 @@ class IncrementalTransfersTest(unittest.TestCase):
             events = [json.loads(path.read_text()) for path in (root / "events").glob("*.json")]
         self.assertEqual((walked, state["last_height"]), (40, 40))
         self.assertEqual(before_retry, [(19, 0)])
-        self.assertEqual([body["account_id"] for body in calls[:24]], subjects[:19] + subjects[18:])
-        self.assertTrue(all(body["to_timestamp_ms"] == T0_MS for body in calls[:24]))
-        self.assertTrue(all(body["from_timestamp_ms"] == T0_MS for body in calls[24:]))
+        first_window_requests = len(subjects) + 1
+        self.assertEqual([body["account_id"] for body in calls[:first_window_requests]], subjects[:19] + subjects[18:])
+        self.assertTrue(all(body["to_timestamp_ms"] == T0_MS for body in calls[:first_window_requests]))
+        self.assertTrue(all(body["from_timestamp_ms"] == T0_MS for body in calls[first_window_requests:]))
         self.assertEqual(len(events), len(subjects))
         self.assertEqual(state["last_large_transfer_poll_ms"], T0_MS)
         self.assertGreaterEqual(state["last_large_transfer_completed_ms"], T0_MS + 1_200_000)

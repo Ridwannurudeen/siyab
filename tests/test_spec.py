@@ -106,7 +106,8 @@ class LabelAssertionTest(unittest.TestCase):
                 self.assertEqual((event["standard"], event["version"], event["event"]), expected_envelope)
                 self.assertEqual(list(data), ["subject", "chain", "label", "category", "provenance", "assertion_hash"])
                 assertion = by_id[data["assertion_hash"]]
-                self.assertIsNone(assertion.superseded_by)
+                if assertion.superseded_by is not None:
+                    self.assertIn(assertion.superseded_by, by_id)
                 for key in ("subject", "chain", "label", "category", "provenance"):
                     self.assertEqual(getattr(assertion, key), data[key])
 

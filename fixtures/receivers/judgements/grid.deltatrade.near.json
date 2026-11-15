@@ -26,7 +26,7 @@
       "detail": "no denylist or incident label on grid.deltatrade.near",
       "source": {
         "provider": "label store",
-        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "request_sha256": "9dfefbd7cf2951827f06613f52cfe92c9c4e65275453e6fe304dbcd7cc5c3d98",
         "fetched_at": null
       }
     },
@@ -57,7 +57,7 @@
       "source": {
         "provider": "archival-rpc.mainnet.fastnear.com",
         "request_sha256": "0619e9c19d72b9f69af87a3bc4a4d26c57c6e38059adbc22216c2b5e81a446fe",
-        "fetched_at": "2026-11-09T04:12:56Z"
+        "fetched_at": "2026-11-15T15:55:04Z"
       }
     },
     {
@@ -76,7 +76,7 @@
       "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
       "source": {
         "provider": "allowlist and label store",
-        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "request_sha256": "9dfefbd7cf2951827f06613f52cfe92c9c4e65275453e6fe304dbcd7cc5c3d98",
         "fetched_at": null
       }
     },

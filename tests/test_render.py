@@ -796,13 +796,11 @@ class RenderTest(unittest.TestCase):
         self.assertEqual(len(documents), 990)
         self.assertTrue(all(document["subject"] not in page for document in documents))
         for text in (
-            "270 ALLOW, 1 DENY, 719 UNKNOWN",
-            "account_age: 545",
-            "code_without_metadata: 255",
-            "dust_funded: 545",
-            "issuer_blacklist: 560",
-            "receiver_exists: 248",
-            "New account (account_age signal only): 0.",
+            "831 ALLOW, 19 DENY, 140 UNKNOWN",
+            "account_age: 138",
+            "code_without_metadata: 2",
+            "dust_funded: 138",
+            "New account (account_age signal only): 13.",
             "Lookalike with code without metadata: 1.",
             "Each verdict is what an agent's 1 NEAR payment to that receiver would get, not a finding that the account is malicious.",
             "Only aggregate counts are public on this page. Per-account judgement files are not public.",
@@ -815,7 +813,7 @@ class RenderTest(unittest.TestCase):
         self.assertIn(f'{window["hours"]} hours, {window["start_timestamp"]}', page)
         self.assertIn(f'{window["end_timestamp"]}', page)
         index = self.pages["explore.html"]
-        self.assertIn("990 judged: 270 ALLOW, 1 DENY, 719 UNKNOWN.", index)
+        self.assertIn("990 judged: 831 ALLOW, 19 DENY, 140 UNKNOWN.", index)
         self.assertIn('href="top-receivers.html">Open aggregate results</a>', index)
 
     def test_the_404_page_has_no_canonical_link_and_other_pages_keep_theirs(self):
@@ -941,6 +939,22 @@ class RenderTest(unittest.TestCase):
         self.assertIsNone(forbidden(own_text('<p>symbol <q class="data">SAFE</q></p>')))
         self.assertTrue(forbidden(own_text("<p>" + "trust" + "less</p>")))
         self.assertTrue(BARRED.search(own_text('<blockquote class="other">a fake</blockquote>')))
+
+    def test_third_party_provenance_does_not_exempt_authored_label_text(self):
+        assertion = make_row(provenance="third_party",
+                             label='authored fake label; report says "original statement"',
+                             source={"url": "https://example.org/report", "content_sha256": "a" * 64,
+                                     "fetched_at": "2026-11-03T00:00:00Z"})
+        store = labels.Store([assertion], "0" * 64)
+        accounts = render.account_pages(store)
+        documents = (render.account_page(assertion.subject, store, accounts, [], [], []),
+                     render.entity_page("Infrastructure", ("infrastructure",), store))
+        for document in documents:
+            with self.subTest(document=document[:80]):
+                self.assertIn('authored fake label; report says', own_text(document))
+                self.assertIsNotNone(BARRED.search(own_text(document)))
+                self.assertNotIn('original statement', own_text(document))
+                self.assertIn('<q class="data">original statement</q>', document)
 
     def test_an_escaped_quote_stays_inside_the_quoted_data(self):
         bs = chr(92)

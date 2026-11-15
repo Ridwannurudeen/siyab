@@ -514,7 +514,7 @@ def _rhea_rows(mode, raw_dir, client, nearblocks, store_path=labels.STORE_PATH):
     store = labels.load(store_path)
     data, fetched_at, _ = snapshot("rhea", mode, raw_dir)
     report = rhea_report(data)
-    source = _document_source(REKT_RHEA_URL, data, fetched_at)
+    report_source = _document_source(REKT_RHEA_URL, data, fetched_at)
     rows, category = [], {}
     for role, subject, chain, quote in report["accounts"]:
         category[subject] = RHEA_EXIT_CATEGORIES.get(role, "incident")
@@ -522,7 +522,7 @@ def _rhea_rows(mode, raw_dir, client, nearblocks, store_path=labels.STORE_PATH):
                   if role == "multica" else RHEA_ATTACKER)
         rows.append(make_row(entity=entity, subject=subject, chain=chain,
                              label=f"named in the rekt.news Rhea Finance report as {RHEA_ROLES[role]}",
-                             category=category[subject], provenance="third_party", source=source,
+                             category=category[subject], provenance="third_party", source=report_source,
                              observed_at=fetched_at, confidence=RHEA_CONFIDENCE,
                              note=f"quote {_quoted(quote)}"
                              + (f"; {_exit_note(store, subject, category[subject])}" if role in RHEA_EXITS else "")))
@@ -556,7 +556,7 @@ def _rhea_rows(mode, raw_dir, client, nearblocks, store_path=labels.STORE_PATH):
             source={"rule_id": "fake_token_shared_hash", "inputs": [r["id"] for r in inputs]},
             observed_at=max(r["observed_at"] for r in inputs), confidence=RHEA_CONFIDENCE,
             note="derived from the two onchain assertions in source.inputs"))
-    return rows, report, facts, source
+    return rows, report, facts, report_source
 
 
 def _clients(mode, client, nearblocks):
@@ -959,7 +959,7 @@ def fake_wallet(mode=None, raw_dir=RAW_DIR, nearblocks=None):
     common = {"entity": "the collection account reported in the December 2021 fake NEAR Wallet thread",
               "subject": account, "chain": "near", "category": "incident", "confidence": 0.7,
               "note": f"quote {_quoted(quotes[0])}"}
-    return [make_row(label="reported collection account for the fake NEAR Wallet app",
+    rows = [make_row(label="reported collection account for the fake NEAR Wallet app",
                      provenance="third_party", source=_document_source(FAKE_WALLET_URL, data, fetched_at),
                      observed_at=fetched_at, **common),
             make_row(label=(f"receiver of the reported transfer {transaction_hash} from {_quoted(victim)} "
@@ -968,6 +968,10 @@ def fake_wallet(mode=None, raw_dir=RAW_DIR, nearblocks=None):
                      source={"rpc": nearblocks.url, "method": "GET /v1/txns/{transaction_hash}",
                              "args": {"transaction_hash": transaction_hash},
                              "block": int(txn["block"]["block_height"])}, **common)]
+    replacement = dict(rows[0], label="reported collection account in the NEAR Wallet impersonation report")
+    replacement["id"] = labels.assertion_id(replacement)
+    rows[0]["superseded_by"] = replacement["id"]
+    return [*rows, replacement]
 
 
 def kangaroo(mode=None, raw_dir=RAW_DIR, nearblocks=None):
