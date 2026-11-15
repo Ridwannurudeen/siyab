@@ -16,6 +16,7 @@ from gate import (
     incident,
     incident_replay,
     injected,
+    injected_model,
     intents,
     registry,
     rpc,
@@ -335,6 +336,16 @@ def main(argv=None):
               "prompt injected model; no model runs"),
     )
     injected_demo.set_defaults(handler=lambda args: injected.main())
+
+    model_demo = commands.add_parser(
+        "injected-model",
+        help=("offline replay of recorded trials in which a hosted language model read the same vendor message; "
+              "each pay call is judged again on recorded testnet reads"),
+    )
+    model_demo.add_argument("--record", type=int, metavar="N",
+                            help="send N new trials to the model (key path in ANTHROPIC_API_KEY_FILE), "
+                                 "capped at 30 trials and $5 in all")
+    model_demo.set_defaults(handler=lambda args: injected_model.main(args.record))
 
     show = commands.add_parser("demo", help="four verdicts over recorded testnet data, or the same four live")
     mode = show.add_mutually_exclusive_group(required=True)
