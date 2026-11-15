@@ -1,0 +1,44 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "proven-relay.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "HZxAPa4hMwBY7WoBjiEwGoZi7v41MwWS4hp1PHg5HDws",
+      "block_height": 224674396,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 223434827000040,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:AkFMcbii2VnpezyBzoEM5mGuSXSq2Epv5tF9qLwBE5vi"
+        },
+        {
+          "access_key": {
+            "nonce": 223436823000005,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "48882568362893400000000",
+                "method_names": [
+                  "record_review"
+                ],
+                "receiver_id": "proven-board.near"
+              }
+            }
+          },
+          "public_key": "ed25519:GethkEt6VpBqyNp884T2VCfK7vwQVLHoi5jARhMTB61m"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:52:06Z"
+}

@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "keys": [
+      {
+        "public_key": "ed25519:2onHxdMwUNHNscr7Hw53V9m4qXmBAuggCuqLXjtBNZzF",
+        "account_id": "weirdglove364.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "4ZVxZf4xHwaSWK3amCBH91RnpEKHHSqCxHR7AwGNqeLE",
+          "block_timestamp": 1793985340183878100
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/account/weirdglove364.near/keys",
+  "fetched_at": "2026-11-15T13:49:25Z"
+}

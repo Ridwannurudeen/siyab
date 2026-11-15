@@ -1,0 +1,81 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "i1378949451.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "EenQdKQ4m6oPAEsMQNHi9zAsZcb8xGVqTa2UJgVZH1yB",
+      "block_height": 224674295,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 197627108000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "login.namesky.near"
+              }
+            }
+          },
+          "public_key": "ed25519:y8Sh46kPZ79qYgb1sL5h7fSNeM5WSuAquw7UWzA39FY"
+        },
+        {
+          "access_key": {
+            "nonce": 188237063000016,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "211518509638664100000000",
+                "method_names": [],
+                "receiver_id": "near-fm.near"
+              }
+            }
+          },
+          "public_key": "ed25519:3HGP8RC3EN79r2MmaaAoVABKWPiQ7cp4eoJ6h2n3thmR"
+        },
+        {
+          "access_key": {
+            "nonce": 185672110000391,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "aa-harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BS5tkyAHU6dyLHVYBGGxCKzqAa5jB1j1xyAMQ1Cwaqny"
+        },
+        {
+          "access_key": {
+            "nonce": 112529321144979,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:FGAY6quyvge9TpDBUrsUBmYC49J118vJPaAPQK7tFtX7"
+        },
+        {
+          "access_key": {
+            "nonce": 204005866000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "staking.enleap.near"
+              }
+            }
+          },
+          "public_key": "ed25519:GFbggkgDu7YASP4vp4YLTPDfXQrEshueb25wVD3mbir6"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:09Z"
+}

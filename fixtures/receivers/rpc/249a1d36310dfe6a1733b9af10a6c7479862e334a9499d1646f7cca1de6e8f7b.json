@@ -1,0 +1,70 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "lilia_rosa.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "2P175uSSQWdEEVNsXVaHbyLcdRdXJ7iWBb1AYoSa8q4v",
+      "block_height": 224674633,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 224665784000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [
+                  "__fastdata_kv"
+                ],
+                "receiver_id": "nearhunt.near"
+              }
+            }
+          },
+          "public_key": "ed25519:7WSWEhxNGQU4TX8nHEqqrQPrLSRN1GodyB2Bs6ygjmpg"
+        },
+        {
+          "access_key": {
+            "nonce": 147847508000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "siberia-tap-contract.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:9VczARNuTC4nsCvoTbf6wFw7wHXWReXoxJyxGPcYsget"
+        },
+        {
+          "access_key": {
+            "nonce": 147879632000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "siberia-tap-contract.testnet"
+              }
+            }
+          },
+          "public_key": "ed25519:BVnVAZgVBHNcP6VB23EccqJfyjx13dXm2rEaSbkcdCBU"
+        },
+        {
+          "access_key": {
+            "nonce": 129628668110960,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:DuuLpy3YR2YTvVVN7ZiU5b85dHKcp2NRHroAuMjwFidh"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:54:19Z"
+}

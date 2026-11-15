@@ -1,0 +1,42 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "6547766026-hot.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "ENRWsBskiB8hxVryPiMFt1uHpf6nqrE3oeaNy12whMk8",
+      "block_height": 224674897,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 137136962000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "market.tradeport.near"
+              }
+            }
+          },
+          "public_key": "ed25519:5wXc9y2nFeLUinkePzarLJZfsMQgwHfmbSUhRJxWaz7e"
+        },
+        {
+          "access_key": {
+            "nonce": 135629271032951,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9VLGEbaTQKemdEZG5cNTWvs9AVmEfyE4rGCrrHzgxGdk"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:56:48Z"
+}

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "rapgaame.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "CgmJ4624Dm1XibcP5C4PRcZw5b5nURLZfvcaEBsBUXua",
+      "block_height": 224674356,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 111871043016660,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6sp5uHUPWufzT9GVhjp6morMBXK154dYY7JDiAMSxN7M"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:44Z"
+}

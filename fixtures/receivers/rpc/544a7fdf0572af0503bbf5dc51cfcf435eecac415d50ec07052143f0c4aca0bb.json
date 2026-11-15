@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "widefield6395.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "37wDUn9nmNoEoygcHAHxphDf1TCNWUMH4ftCnUhiAy1T",
+      "block_height": 224674315,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 217693431000024,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:48Vop77UnfgepRWvnpMVFfZibZiHoGHcsWnj1tm3KSoo"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:21Z"
+}

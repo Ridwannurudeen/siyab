@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "vitalcoin_new.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "HXAN8r6AvnsBsdUKtzg99H2VAsMNAaK4QpyEVBoL5yi1",
+      "block_height": 224674481,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 147460628031920,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:BYZrDehbjX7rkbyTvS6hrz7wDAWisufoTf6PCMt1T3Co"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:52:54Z"
+}

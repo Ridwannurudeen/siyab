@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "hydro786.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "4SpgYUPmaWyton1Lsmvijx9Jsj8Qk8P7kGVvzR9X1Vhs",
+      "block_height": 224674443,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 120351916024001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:DXQTjEFzqK6uQPCHk1PTwz8uBzCZLoSmy369KjDTUYtf"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:52:32Z"
+}

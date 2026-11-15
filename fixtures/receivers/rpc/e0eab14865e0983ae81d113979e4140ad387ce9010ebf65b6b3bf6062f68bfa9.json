@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "zainahmad1989.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "6mcXmXiQWFkYWW8zqjEYQpWVgxEMV7hm9wNykuT3GFn7",
+      "block_height": 224674744,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 214967945000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:3hAVqxBT3MzWW9juonzxKFeC85f74wfwiaWYeae23e7Z"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:55:22Z"
+}

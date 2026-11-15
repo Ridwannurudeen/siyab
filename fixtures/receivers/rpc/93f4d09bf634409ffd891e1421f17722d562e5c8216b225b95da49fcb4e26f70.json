@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "eugene_vm.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "6RzMsnzsnc97v56APguuA1R6hMoX9VPuDSA4E8rCvJ3K",
+      "block_height": 224674595,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 170117478003840,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:AeAkcN5qckkvoJaV5u3rJQcuAgmmSsF4jASWpJhx1vAa"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:53:58Z"
+}

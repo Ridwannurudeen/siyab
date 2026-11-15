@@ -1,0 +1,186 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "mmt-arb.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "Ce9zsKzaSJaaYsypsUKvpB8exyL7VXHrNUacLwv3keYW",
+      "block_height": 224674390,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 222099712013931,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:5iTZKveG7myR2cWipRZhSGycxofRHo6Ky6TLMfmrwoC"
+        },
+        {
+          "access_key": {
+            "nonce": 222311952000074,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "swap"
+                ],
+                "receiver_id": "v2.ref-finance.near"
+              }
+            }
+          },
+          "public_key": "ed25519:ZFEWidfTWA6gTCRU4t3zLory4LNjC1nR8cyddNvG9WK"
+        },
+        {
+          "access_key": {
+            "nonce": 222311904000083,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "swap"
+                ],
+                "receiver_id": "v2.ref-finance.near"
+              }
+            }
+          },
+          "public_key": "ed25519:29vjQ7yAgR8uCtxkTRke7iWqS9y9M27X5Wg854n1SRHZ"
+        },
+        {
+          "access_key": {
+            "nonce": 222311920000079,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "swap"
+                ],
+                "receiver_id": "v2.ref-finance.near"
+              }
+            }
+          },
+          "public_key": "ed25519:2vMnCvhZpYY14W4TmVzXZ8cW7ciHvrFeYXmQrczJKZcp"
+        },
+        {
+          "access_key": {
+            "nonce": 222311985000073,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "swap"
+                ],
+                "receiver_id": "v2.ref-finance.near"
+              }
+            }
+          },
+          "public_key": "ed25519:4UNwrL4Aak48v7CFPo7cicc1hLWvg3a4kg3YSbRxskPN"
+        },
+        {
+          "access_key": {
+            "nonce": 222128687000352,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "swap"
+                ],
+                "receiver_id": "v2.ref-finance.near"
+              }
+            }
+          },
+          "public_key": "ed25519:59FaUAn32N663pg8d6AuCymt6FcANKfvE7WDx6ZT5MRx"
+        },
+        {
+          "access_key": {
+            "nonce": 218618643000056,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:673m3jrtdd11tXYHHnSZ4RxERwUEZRbcYJKyRNkf6B57"
+        },
+        {
+          "access_key": {
+            "nonce": 222311860000084,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "swap"
+                ],
+                "receiver_id": "v2.ref-finance.near"
+              }
+            }
+          },
+          "public_key": "ed25519:7kp2iws9z1YSGHquUyf1sCZFajFNmyfTVPnWQ71apKyN"
+        },
+        {
+          "access_key": {
+            "nonce": 222311968000075,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "swap"
+                ],
+                "receiver_id": "v2.ref-finance.near"
+              }
+            }
+          },
+          "public_key": "ed25519:7nXeQu1L73ct6xRB3shbQ9MBjCNM2PzupKajPr5RREwL"
+        },
+        {
+          "access_key": {
+            "nonce": 222311936000077,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "swap"
+                ],
+                "receiver_id": "v2.ref-finance.near"
+              }
+            }
+          },
+          "public_key": "ed25519:9sDw3xzTykEtgoZPwg19oFfcEft19oaaAs3e7A9dWfo9"
+        },
+        {
+          "access_key": {
+            "nonce": 218619899001936,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "swap"
+                ],
+                "receiver_id": "v2.ref-finance.near"
+              }
+            }
+          },
+          "public_key": "ed25519:DArJjbzhwVe44qdbZBdffuPwDfdhEnGg1ddqKdvvjzKf"
+        },
+        {
+          "access_key": {
+            "nonce": 222128704000350,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "swap"
+                ],
+                "receiver_id": "v2.ref-finance.near"
+              }
+            }
+          },
+          "public_key": "ed25519:DJzWFLAyVeVK8jYfbXQPRx6VJsZ7ZByjsyWk2wT7TPdu"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:52:02Z"
+}

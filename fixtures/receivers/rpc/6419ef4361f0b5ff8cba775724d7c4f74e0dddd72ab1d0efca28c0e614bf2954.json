@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "tx-bench.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "DF83nNrrcwuYmq8fvfJ54yhmZYotK2Q3DtkQrzToMe5K",
+      "block_height": 224674757,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 117386688301051,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9XMdCmpw5jtV6uv4ZwdVwzF7wVWMFMovwu7G2WkbrYEn"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:55:29Z"
+}

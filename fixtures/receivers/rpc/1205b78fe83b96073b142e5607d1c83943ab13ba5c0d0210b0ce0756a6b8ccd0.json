@@ -1,0 +1,75 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "cosmosnock.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "8nwrN2ajVe2zUQCXB82pPZEXKnM8ooNkvrDEvTzt57wt",
+      "block_height": 224674499,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 162035114000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "veax.near"
+              }
+            }
+          },
+          "public_key": "ed25519:ZfwRmxyZbLGqZRfbqZUmwUephNWKJ3cgC3Kq2TW7mia"
+        },
+        {
+          "access_key": {
+            "nonce": 162642713000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "veax.near"
+              }
+            }
+          },
+          "public_key": "ed25519:6NbXeT4qQeV3b9CmxMc5iAHRuRftmmfGPWCeioFitQ6b"
+        },
+        {
+          "access_key": {
+            "nonce": 121281591000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "unifat.near"
+              }
+            }
+          },
+          "public_key": "ed25519:EAchjM3ZF2XEst5niAgdxyq3eGp75tMqy6wuJQ6LyYei"
+        },
+        {
+          "access_key": {
+            "nonce": 189507537000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Et87rg5AwW3TpGKbKGuFj62xMkYMZsidNs9cRaCbSNdm"
+        },
+        {
+          "access_key": {
+            "nonce": 189507684140091,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:GAvVBqRZpSqmjUGhUZq8wnU2EoQ1N7tR8cbRL8LN7m56"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:53:04Z"
+}

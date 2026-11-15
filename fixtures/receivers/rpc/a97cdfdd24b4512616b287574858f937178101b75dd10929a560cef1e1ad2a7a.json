@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "okpalaugonwanne9.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "C3hUsoq6AhzPZor9gqEfzadGaA5XVSkPwCH1wwu8qS74",
+      "block_height": 224674527,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 220988511000012,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:FU9Y3dBKkcARCoruNy253DphBSYS7bsXaTfk1Qmrk3iQ"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:53:19Z"
+}

@@ -1,0 +1,26 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 223412525,
+      "account_id": "robinhoot-2.v2-launchpad.justhoot.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "178470000000000000000183",
+      "block_hash": "AdbKQRwBVYATFvjDbuq2w5BdBmicbU5wmj4Sfm9h3wdx",
+      "block_height": 223412525,
+      "code_hash": "11111111111111111111111111111111",
+      "global_contract_hash": "kS1z69vkEemTNtvSokhdwRZGiMZrGEiUsxM1h6T898N",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 15269
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-15T13:48:22Z"
+}

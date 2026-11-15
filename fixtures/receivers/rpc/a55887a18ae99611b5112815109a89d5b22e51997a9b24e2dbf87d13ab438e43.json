@@ -1,0 +1,315 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "petersmd.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "6VBMDSKpqmFAfh7RkX7bVp4MASef2mS69ejkKuAttNv1",
+      "block_height": 224674533,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 130470081000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meme-cooking.near"
+              }
+            }
+          },
+          "public_key": "ed25519:REkJCfg1WhkSSnvqs8Bnzu2r16s2BqEdUpnVwY7yG5S"
+        },
+        {
+          "access_key": {
+            "nonce": 139408416000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "gra-fun.near"
+              }
+            }
+          },
+          "public_key": "ed25519:24HzbbBYGw3Kh6oBWUfVeQrs27LikHQwuzhxr8pBBcen"
+        },
+        {
+          "access_key": {
+            "nonce": 133035001000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "the_booth.near"
+              }
+            }
+          },
+          "public_key": "ed25519:33fwWZachhrFwcoa66e1kR6G7BK9itzvEwan9Xczy4hx"
+        },
+        {
+          "access_key": {
+            "nonce": 139876082000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "a.mitte-orderbook.near"
+              }
+            }
+          },
+          "public_key": "ed25519:4itST5eBLKXykyAKsNdT9s5SK3QBrtAbiRFntua7srpv"
+        },
+        {
+          "access_key": {
+            "nonce": 133168887000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "the_booth.near"
+              }
+            }
+          },
+          "public_key": "ed25519:5Qg8otmxM8hokWRKRdYvN1knTU66YHVLdK9Y3Fv4SAqf"
+        },
+        {
+          "access_key": {
+            "nonce": 130634164000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:5qh33Z9DnBU6XY9hKBccb4rRfNfyA4SWLd2wj7NzFTMx"
+        },
+        {
+          "access_key": {
+            "nonce": 157488674000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:6BDxiX5A8hvvrtA3nVM154uYRrt3RfqHBDFum5R3SHJm"
+        },
+        {
+          "access_key": {
+            "nonce": 138993211000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meme-cooking.near"
+              }
+            }
+          },
+          "public_key": "ed25519:71GRh3aP9Y65BNTpxeaEa5jUQNfTApRWZAM7vKq5gSzE"
+        },
+        {
+          "access_key": {
+            "nonce": 129245642007541,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:7gsLcAnDEuTbXYt1o7TkoHXS1VtNu1yZ3n8XXdN9yHVi"
+        },
+        {
+          "access_key": {
+            "nonce": 157502108000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:8XfDHwFXB4uS9Z7EyQD1FYu9RjfPi8V313Ubva8QiTCU"
+        },
+        {
+          "access_key": {
+            "nonce": 157080777000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:9TcG4HGuFxgWjXpRXJHURtKTJYcE3q1qwqzZmE5cdoWX"
+        },
+        {
+          "access_key": {
+            "nonce": 130470061000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meme-cooking.near"
+              }
+            }
+          },
+          "public_key": "ed25519:9oWmjLvwrFrhd4F4qE3Nz3MwSRY1gpEnFcBLHwZnycb2"
+        },
+        {
+          "access_key": {
+            "nonce": 134417736000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:9rKkqLfy36M69ZUDTwtEzngrXbs2YeizTsHdquzB15Hd"
+        },
+        {
+          "access_key": {
+            "nonce": 135115163000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "a.mitte-orderbook.near"
+              }
+            }
+          },
+          "public_key": "ed25519:A7mC2HT86KLaqCSrCem7RZFwr9kfCKj2B5CSg1W2fWEq"
+        },
+        {
+          "access_key": {
+            "nonce": 139407720000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "gra-fun.near"
+              }
+            }
+          },
+          "public_key": "ed25519:AtbMUc2TF4PUWYD2cpedrnoaq3N2eTDQLSJTXHa66MKx"
+        },
+        {
+          "access_key": {
+            "nonce": 130639262000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BwyHMcSWVQxf7Uwc23ZyFFjXwsd6yg5gVz1UrDZFg293"
+        },
+        {
+          "access_key": {
+            "nonce": 134417638000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "nftstaking.jumpfinance.near"
+              }
+            }
+          },
+          "public_key": "ed25519:CP8hZfX2Nj5FNneNGMMFrda2ZjAbzBq3PB6LgSP7MHQ8"
+        },
+        {
+          "access_key": {
+            "nonce": 130634233000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:CvRMSeSf3hjAdsdM2ZZMgYkNpYu7ivoruweBBFEXwDMe"
+        },
+        {
+          "access_key": {
+            "nonce": 130634216000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:D3e1gqEKuQRV67xJawsfVifKfGVoWUykJHwks66wt9Q1"
+        },
+        {
+          "access_key": {
+            "nonce": 134371599000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "nftstaking.jumpfinance.near"
+              }
+            }
+          },
+          "public_key": "ed25519:DZQ9RgzQmnp826voY6qhEVeHGSAkG4dm4ZrtF3EmtaBT"
+        },
+        {
+          "access_key": {
+            "nonce": 135115261000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "a.mitte-orderbook.near"
+              }
+            }
+          },
+          "public_key": "ed25519:EXVENkkRzRntFPgVSRpmJP75KvCHDfbX8f5b6skRRuTt"
+        },
+        {
+          "access_key": {
+            "nonce": 157593705000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:FAkFng3JR7o3iAgtg2xFSaLV4Wjuzb3qZQTuXYTj7PEm"
+        },
+        {
+          "access_key": {
+            "nonce": 140972935000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:GrcNNFCkGsRGu73Za5mEwwQxqRnp1fsbSjE1Tn8LKdRU"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:53:22Z"
+}

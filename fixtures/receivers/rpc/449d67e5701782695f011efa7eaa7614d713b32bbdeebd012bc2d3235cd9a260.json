@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 222509545,
+      "account_id": "zcash-connector.bridge.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "503834466590853601699953182",
+      "block_hash": "CrUjgNP9HLaTms4j7TSqPfNUxfHbvwWSfPxpmyW56cdw",
+      "block_height": 222509545,
+      "code_hash": "FZTjPcuYDkPwNGzy957qWQ8K1kCcLZuQuRfMXgTGtVnw",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 8958827
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-15T13:55:27Z"
+}

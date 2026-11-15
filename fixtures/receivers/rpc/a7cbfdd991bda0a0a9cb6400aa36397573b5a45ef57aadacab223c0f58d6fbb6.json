@@ -1,0 +1,42 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "nearbearcoin.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "EdqfjHKVjbg3A5XVpXFePzNdP358SWtmynAYLKZUdjDy",
+      "block_height": 224674297,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 223523446000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "nbc.v2-launchpad.justhoot.near"
+              }
+            }
+          },
+          "public_key": "ed25519:4gEi2AboczUxhbBph9ekL7Fvd9tWeqdACFh96GBYRQmC"
+        },
+        {
+          "access_key": {
+            "nonce": 222716371000049,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:7mXTuZsBUFdjGrvLc2G2pGWDZigZ9qn1Fcha1BbsebbJ"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:10Z"
+}

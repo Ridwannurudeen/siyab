@@ -12,12 +12,12 @@
   "checks": [
     {
       "id": "receiver_exists",
-      "status": "unknown",
-      "detail": "could not read richgogogo.near: no recorded response for the request",
+      "status": "pass",
+      "detail": "richgogogo.near exists",
       "source": {
         "provider": "free.rpc.fastnear.com",
         "request_sha256": "56001a06fa60b83d0d3fc04f69c90a9baa4b4c1eb630ff3b6d23c03ee98f1b76",
-        "fetched_at": null
+        "fetched_at": "2026-11-15T13:53:29Z"
       }
     },
     {
@@ -26,18 +26,18 @@
       "detail": "no denylist or incident label on richgogogo.near",
       "source": {
         "provider": "label store",
-        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "request_sha256": "cf335f98f9dd43c560a6f3d4c743bca4c7a60dd7bd02c3c28de5143ec85b7079",
         "fetched_at": null
       }
     },
     {
       "id": "issuer_blacklist",
-      "status": "unknown",
-      "detail": "could not read get_blacklist_status on usdt.tether-token.near: no recorded response for the request; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+      "status": "pass",
+      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
       "source": {
         "provider": "free.rpc.fastnear.com",
         "request_sha256": "d438a03cfea45f676aa36db37596b6be85fb0decb9708cfa2832e206a79f189c",
-        "fetched_at": null
+        "fetched_at": "2026-11-15T13:53:29Z"
       }
     },
     {
@@ -53,7 +53,7 @@
     {
       "id": "account_age",
       "status": "unknown",
-      "detail": "could not read the account keys: no recorded response for the request",
+      "detail": "no archival age (oldest access key nonce 223289466000281 from free.rpc.fastnear.com: existed by block 223289467 (2026-11-06T08:13:37Z) from archival-rpc.mainnet.fastnear.com, a key block younger than 7 days that does not date the account; block 223464945 (2026-11-07T12:15:12Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days); could not read the account keys: no recorded response for the request",
       "source": {
         "provider": "api.nearblocks.io",
         "request_sha256": "92817e6988c2a898332c82320f547d04d6904a400605e44b61c439a55772722c",
@@ -76,31 +76,28 @@
       "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
       "source": {
         "provider": "allowlist and label store",
-        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "request_sha256": "cf335f98f9dd43c560a6f3d4c743bca4c7a60dd7bd02c3c28de5143ec85b7079",
         "fetched_at": null
       }
     },
     {
       "id": "code_without_metadata",
-      "status": "unknown",
-      "detail": "the receiver account could not be read",
+      "status": "pass",
+      "detail": "no contract code",
       "source": {
         "provider": "free.rpc.fastnear.com",
         "request_sha256": "56001a06fa60b83d0d3fc04f69c90a9baa4b4c1eb630ff3b6d23c03ee98f1b76",
-        "fetched_at": null
+        "fetched_at": "2026-11-15T13:53:29Z"
       }
     }
   ],
   "reasons": [
-    "receiver_exists could not run: could not read richgogogo.near: no recorded response for the request.",
-    "issuer_blacklist could not run: could not read get_blacklist_status on usdt.tether-token.near: no recorded response for the request; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false.",
-    "account_age could not run: could not read the account keys: no recorded response for the request.",
-    "dust_funded could not run: the creation transaction is not known.",
-    "code_without_metadata could not run: the receiver account could not be read."
+    "account_age could not run: no archival age (oldest access key nonce 223289466000281 from free.rpc.fastnear.com: existed by block 223289467 (2026-11-06T08:13:37Z) from archival-rpc.mainnet.fastnear.com, a key block younger than 7 days that does not date the account; block 223464945 (2026-11-07T12:15:12Z) from archival-rpc.mainnet.fastnear.com is younger than 7 days); could not read the account keys: no recorded response for the request.",
+    "dust_funded could not run: the creation transaction is not known."
   ],
   "labels": [],
   "observed": {
-    "block_height": null,
+    "block_height": 224674545,
     "timestamp_ms": 1794197345742
   }
 }

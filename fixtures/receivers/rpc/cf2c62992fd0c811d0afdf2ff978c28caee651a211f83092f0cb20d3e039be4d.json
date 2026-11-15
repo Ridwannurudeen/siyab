@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "nazurian.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "Gb1iouL79NVhB6RptNJi4keEQqgVWrmB8HiQWG6QHbD9",
+      "block_height": 224674657,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 113041015017078,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:HWFxZEurogWixvatyupxqxVoPp2vmCGKQ48M7HVcgq78"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:54:32Z"
+}

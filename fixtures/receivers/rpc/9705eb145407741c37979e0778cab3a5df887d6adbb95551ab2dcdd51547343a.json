@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "traplife800.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "JBfn2Un3LUhcoFuCwbsQhW8asTF78cz41kawPBLUFXrU",
+      "block_height": 224674706,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 219071763000022,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:H55oF8QJMAfHhvrTUaqzmkUZeeJbvwV85cimnkMamt1f"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:55:00Z"
+}

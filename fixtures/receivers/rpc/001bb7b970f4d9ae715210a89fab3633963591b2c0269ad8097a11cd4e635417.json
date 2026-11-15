@@ -1,0 +1,126 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "washedrickrosss.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "2VSRiyGBuNagvsTXDKbPDL8H4yVetzy9ptY7ndKHC4Zh",
+      "block_height": 224674728,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 223297967000015,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "38068559531721400000000",
+                "method_names": [
+                  "draw",
+                  "draw_many"
+                ],
+                "receiver_id": "fcd66acf517ad5d77f4814ad939b2b69b4ab2529e8332fbbeb3aaed63076f59e"
+              }
+            }
+          },
+          "public_key": "ed25519:33oWt8FkS6LMCc474ZqBWmPPF2bjuwcRWpwk58TvJsoX"
+        },
+        {
+          "access_key": {
+            "nonce": 221020218000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "nearlytrade.near"
+              }
+            }
+          },
+          "public_key": "ed25519:64MSCYFG3ZUT2XQEkA89tzwcmKr1fBHkDENBvNfXwpJx"
+        },
+        {
+          "access_key": {
+            "nonce": 224363583000021,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "225111421050131400000000",
+                "method_names": [
+                  "draw",
+                  "draw_many"
+                ],
+                "receiver_id": "board.meta-poo-stall.near"
+              }
+            }
+          },
+          "public_key": "ed25519:6EwkEsMUnCmW8FoVoKtZ1mPgY1Z9JH129LFdFVNyZutD"
+        },
+        {
+          "access_key": {
+            "nonce": 224431061000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "drop1.neargochi-dev.near"
+              }
+            }
+          },
+          "public_key": "ed25519:AaCYNr9GEyUZFFZVPYppA7bjDuGTvHFVhWMicSvVftUi"
+        },
+        {
+          "access_key": {
+            "nonce": 217903093000740,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:B2gxtFAeTbCHHWRBvfb5mg8SmhY3Mgkv7UxpikWdHPdD"
+        },
+        {
+          "access_key": {
+            "nonce": 220232110000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "nearlytrade.near"
+              }
+            }
+          },
+          "public_key": "ed25519:E5uCJTtbuifE5cj76hoYDef3mUyNVxc9NJ5Txu1vwspH"
+        },
+        {
+          "access_key": {
+            "nonce": 219909566000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "nearlytrade.near"
+              }
+            }
+          },
+          "public_key": "ed25519:EHT3z3keaTJLpBqMZmCLTHtoZeDoBHEmjJQLppTj57jg"
+        },
+        {
+          "access_key": {
+            "nonce": 221936913000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "nearlytrade.near"
+              }
+            }
+          },
+          "public_key": "ed25519:GJL7DtA2TTf64KLEfkwa7Y2wCkpBkYNhGLECjzHdMdG6"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:55:14Z"
+}

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "bombero9111.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "2wku4YDfbENPWwT7XQLf1ZzW9YYVZDJjTLQekLZR9pa8",
+      "block_height": 224674316,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 112548750016668,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:HR77hUytJ9EYBRwKgCaWpM3bjZtQEA11Xh7LSPquBkn3"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:21Z"
+}

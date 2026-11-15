@@ -1,0 +1,81 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "darkcaprica.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "H9pan5mKLYgWQ4D22vCEss64kSkn572AKoYhVSHPfBku",
+      "block_height": 224674580,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 112604851003802,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:3aGHwPfa53eYnyKmjamf1ciXUtRFYTUt39Vp41zDMA6E"
+        },
+        {
+          "access_key": {
+            "nonce": 119948565000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "contract.main.burrow.near"
+              }
+            }
+          },
+          "public_key": "ed25519:4HHhPFKd9gmWQW55oJM8dbAmmh3hBdfF6xadtMC4tNgk"
+        },
+        {
+          "access_key": {
+            "nonce": 119948700000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meta-pool.near"
+              }
+            }
+          },
+          "public_key": "ed25519:4exdr8QiZsEuyQB3FjqQDFKEzbEG5pfLZr5DMuZPg6UG"
+        },
+        {
+          "access_key": {
+            "nonce": 119948623000001,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "linear-protocol.near"
+              }
+            }
+          },
+          "public_key": "ed25519:56jJPUjmNUkvdFrnos1hVA5Xz4EB1MNnngQLMijbLfSY"
+        },
+        {
+          "access_key": {
+            "nonce": 129612925000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "allstake.near"
+              }
+            }
+          },
+          "public_key": "ed25519:HHatg381NAU7TKLRsWqpk1Ncs3B7CK19StzFfVeWoecG"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:53:49Z"
+}

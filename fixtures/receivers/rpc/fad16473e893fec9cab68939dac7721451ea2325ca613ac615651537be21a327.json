@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "silviotsi.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "CmnUEQ4EceyujgSSXEj9NDc3ovMiHspTWNG73tCBsVBh",
+      "block_height": 224674690,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 209234833000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:F9RwTixcYVvqJgmq4jpLNHaEYU2aRuR7nSyK5RzSkXJu"
+        },
+        {
+          "access_key": {
+            "nonce": 209234822000009,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:HJ5iC85nYeWB8cchYwXxjpPQj3JhdNqgdBQti65t8eRf"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:54:51Z"
+}

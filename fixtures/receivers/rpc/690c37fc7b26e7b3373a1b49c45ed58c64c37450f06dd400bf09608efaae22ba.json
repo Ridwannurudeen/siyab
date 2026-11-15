@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "vaikaw.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "31eT55LKMew5H9Tw6GbnnkvR2w34c5YRbznrRk84Xs6R",
+      "block_height": 224674717,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 136774979013297,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:zHHsQFj1X1LGMb2nP9EuG57hgPB4evVXzfPrPD8agig"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:55:07Z"
+}

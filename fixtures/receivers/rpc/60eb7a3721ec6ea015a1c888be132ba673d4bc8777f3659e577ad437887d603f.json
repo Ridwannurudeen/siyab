@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "richgogogo.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "Q6MMvQpEU4m4wciARpgj96r1JGDEATJvs91azwj7toQ",
+      "block_height": 224674545,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 223289466000281,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:B82KxffEbsFUmramjFkXQNemNuDtDcmHUjnqYdZeGHQM"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:53:29Z"
+}

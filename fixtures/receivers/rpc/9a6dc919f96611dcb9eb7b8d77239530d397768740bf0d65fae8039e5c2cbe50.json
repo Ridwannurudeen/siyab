@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "onboard.nearlegion.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "BrCxWfDfd996ig4xxiMjaU8Ftxu3i4mdLseg9MdYUGck",
+      "block_height": 224674833,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 206405647001269,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:qm6zsC6j4Vrb5sxW2XfGAjG5s3ugqVvUSezyPqQCvWQ"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:56:12Z"
+}

@@ -1,0 +1,26 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 223412746,
+      "account_id": "oyster.v2-launchpad.justhoot.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "256920029398995300000658",
+      "block_hash": "e1SpEDoWCX81ZBAMq7MAqJv9Q8XZ77nU5fZxmLZ3sfC",
+      "block_height": 223412746,
+      "code_hash": "11111111111111111111111111111111",
+      "global_contract_hash": "kS1z69vkEemTNtvSokhdwRZGiMZrGEiUsxM1h6T898N",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 17075
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-15T13:48:56Z"
+}

@@ -1,0 +1,59 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "mansoorniazi.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "Fh4uzeKwo3kA836FWaqENHBoy3ra3FSHqYifDfBtZsoZ",
+      "block_height": 224674524,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 160459634000018,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:V5NspUKGW1ffdwqTqt1NLGFi9wXNwDgm72cMKpvZN3y"
+        },
+        {
+          "access_key": {
+            "nonce": 170646045000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "deposit_and_stake",
+                  "unstake",
+                  "withdraw_all"
+                ],
+                "receiver_id": "npro.poolv1.near"
+              }
+            }
+          },
+          "public_key": "ed25519:2Szj6hVERm3Rf2ayLF74AComFxCNgbbdBNzHsCnKeYS8"
+        },
+        {
+          "access_key": {
+            "nonce": 177067722000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:HVJEGyGHLk5oB2YwLBqqz4QpmrQcCmfn8m1fDCx6RV5w"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:53:18Z"
+}

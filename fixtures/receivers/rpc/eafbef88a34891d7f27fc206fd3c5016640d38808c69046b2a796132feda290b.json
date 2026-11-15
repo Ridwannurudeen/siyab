@@ -1,0 +1,42 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "olgaalo.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "ARLhBFkNpRkGixByaeJYGeDnUfYNYCBvVCp7j2MDHxZP",
+      "block_height": 224674332,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 119558085001884,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:L3cbbjUPGMMn6GP2vW7AEEoFMWtffurESomQgfN8UWQ"
+        },
+        {
+          "access_key": {
+            "nonce": 222704822000024,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1",
+                "method_names": [],
+                "receiver_id": "aa-harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:457bmErKqgPU5Z8PaQbCvZR35T7dod3bAq48jnsiqYqG"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:30Z"
+}

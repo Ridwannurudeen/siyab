@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "shumnft.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "2VE4SA7CSA3FaVQFPkVTnJw9USL1KvNzpf6WQxqXvipd",
+      "block_height": 224674225,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 159425033013233,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:EoGDyV1dLiwB8mtiKAEPdG1y1aSx9UNq3twQJcjUzGZA"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:50:29Z"
+}

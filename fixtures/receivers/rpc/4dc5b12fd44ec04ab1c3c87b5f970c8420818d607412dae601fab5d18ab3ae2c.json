@@ -1,0 +1,133 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "i796742797.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "7mN1VZBo3hTHip5rYF4aBs7tWav1pK7H74AQWZAQxCg6",
+      "block_height": 224674617,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 222677946000022,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1",
+                "method_names": [],
+                "receiver_id": "aa-harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:457bmErKqgPU5Z8PaQbCvZR35T7dod3bAq48jnsiqYqG"
+        },
+        {
+          "access_key": {
+            "nonce": 127262096000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "a.mitte-orderbook.near"
+              }
+            }
+          },
+          "public_key": "ed25519:65C7JPruijizZjYYEtzzLEwhkyjLyJrZj6K89AAbFfhV"
+        },
+        {
+          "access_key": {
+            "nonce": 141379360000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "market.tradeport.near"
+              }
+            }
+          },
+          "public_key": "ed25519:8adZgJdrH7FsLjoJCe8Qe69dpFVtgGZQw55RwMFNRSgq"
+        },
+        {
+          "access_key": {
+            "nonce": 114522314021607,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9YCFzq5S9PStTyqKBEMhb52tXk8ekvHLhn2aftP1yoGb"
+        },
+        {
+          "access_key": {
+            "nonce": 124719105000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "marketplace.paras.near"
+              }
+            }
+          },
+          "public_key": "ed25519:9tTQaDZ79eZwWwbatuNhy7vwppBM13zEeEsRrnPvwozf"
+        },
+        {
+          "access_key": {
+            "nonce": 129685144000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "asset-manager.orderly-network.near"
+              }
+            }
+          },
+          "public_key": "ed25519:9yG2ongmCheWT7ahUAHGLpDaY4GRaUbqauQaX8vf8JsJ"
+        },
+        {
+          "access_key": {
+            "nonce": 119983350000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "market.tradeport.near"
+              }
+            }
+          },
+          "public_key": "ed25519:EKqoiFhQHmzKP8bZEfExFbBFdCEV9MRDnEXUCVPAVacq"
+        },
+        {
+          "access_key": {
+            "nonce": 124719733000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "marketplace.paras.near"
+              }
+            }
+          },
+          "public_key": "ed25519:G1i1rs8wwg8YjQPTBcEH4ZPJkXW5SosVA6YtsZqXoL54"
+        },
+        {
+          "access_key": {
+            "nonce": 115678674000088,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:GN1YrpzKNbJcvaTBPfdi1zxCRBZqDv5bzjxeGyEo2gHB"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:54:10Z"
+}

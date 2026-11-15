@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 222506601,
+      "account_id": "btc-connector.bridge.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "2032995278578178882799711119",
+      "block_hash": "G2YMPCuztY9gP5epFcDpNkurmxQLxQkZYvMhKozKny2X",
+      "block_height": 222506601,
+      "code_hash": "H5mH14wdLG6uRZsSCXJaDMnuatAztuWNSNbXxHnigZ29",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 35451412
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:50Z"
+}

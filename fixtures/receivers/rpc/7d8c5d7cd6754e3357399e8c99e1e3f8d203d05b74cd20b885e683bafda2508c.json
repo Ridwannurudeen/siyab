@@ -1,0 +1,94 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "buybacks.multisignature.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "FNehBmPb7x3VibJTARPBeKnmnySFVcxQegNbpFc5YRZ9",
+      "block_height": 224674772,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 190077123000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "add_request",
+                  "add_request_and_confirm",
+                  "delete_request",
+                  "confirm"
+                ],
+                "receiver_id": "buybacks.multisignature.near"
+              }
+            }
+          },
+          "public_key": "ed25519:4BGbi2xFEp7hBsfGGLsrzB2DY2VTaADxh4KdpqdCsgSf"
+        },
+        {
+          "access_key": {
+            "nonce": 190077123009517,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "add_request",
+                  "add_request_and_confirm",
+                  "delete_request",
+                  "confirm"
+                ],
+                "receiver_id": "buybacks.multisignature.near"
+              }
+            }
+          },
+          "public_key": "ed25519:52QSJjJv7Ra4NgpajbYLgX5nr9goszbZvkNTX72SjJtU"
+        },
+        {
+          "access_key": {
+            "nonce": 190077123000212,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "add_request",
+                  "add_request_and_confirm",
+                  "delete_request",
+                  "confirm"
+                ],
+                "receiver_id": "buybacks.multisignature.near"
+              }
+            }
+          },
+          "public_key": "ed25519:6ss8i9d8nG8vsiAw5DYrKbdrokmP9KCjSj6N3RhgjgrE"
+        },
+        {
+          "access_key": {
+            "nonce": 190077123000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "add_request",
+                  "add_request_and_confirm",
+                  "delete_request",
+                  "confirm"
+                ],
+                "receiver_id": "buybacks.multisignature.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BFVZgNSbUf3rVcwFww7vbXXfWy38VLgpv3PdPFbHotkP"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:55:38Z"
+}

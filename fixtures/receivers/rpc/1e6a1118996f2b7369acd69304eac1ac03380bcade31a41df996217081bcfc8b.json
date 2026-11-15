@@ -1,0 +1,58 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "omni-relayer.bridge.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "4t2i54QPmcLknfqYK6XQi4bJJZS3N9vkqUy42Y8NUmHt",
+      "block_height": 224674242,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 217063294000067,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:5VqkGjDPFv6HgJaUaCRWjmgNhKYKz4NwuGGM7oHpDvGN"
+        },
+        {
+          "access_key": {
+            "nonce": 213861928000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [
+                  "active_utxo_management"
+                ],
+                "receiver_id": "zcash-connector.bridge.near"
+              }
+            }
+          },
+          "public_key": "ed25519:65EwUnCqtiFtJV55yhNmJVQqWRohEtptrp8zygdGVnVq"
+        },
+        {
+          "access_key": {
+            "nonce": 216076366297497,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:E9BDwGP3hgUmVXxSBWwWRF5JFqg2F7UZi1nagUf5m9D7"
+        },
+        {
+          "access_key": {
+            "nonce": 208891873569112,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:HadLtKE3NYv6XaptvVoaLrFG8Nsd3XyCM2NJBmED9JtH"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:50:39Z"
+}

@@ -1,0 +1,81 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "my6bom.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "FXzXqoJeZrfQzhG9GLFphoUsEgSKU7jkYmnxJjVmFs3e",
+      "block_height": 224674778,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 126686694000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "linear-protocol.near"
+              }
+            }
+          },
+          "public_key": "ed25519:4DARRmZmZJvSiBJUbHcGmjCWAwS4Nam4BA6utTcRA3kK"
+        },
+        {
+          "access_key": {
+            "nonce": 126688381000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meta-pool.near"
+              }
+            }
+          },
+          "public_key": "ed25519:9wYCqzyXMe8aFX8dHJVFRDZHcCrtBHPPaaRhyo6j9NTK"
+        },
+        {
+          "access_key": {
+            "nonce": 118361046005303,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:DocHRyLxcm5exDwcZhUzyX5x1qnsU2dcbo85i7JLuGho"
+        },
+        {
+          "access_key": {
+            "nonce": 120860820000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "asset-manager.orderly-network.near"
+              }
+            }
+          },
+          "public_key": "ed25519:EajmqYxufT6HKw3vP5EqZiNzSMtfTqFihmhFFHL7CmFq"
+        },
+        {
+          "access_key": {
+            "nonce": 126684302000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "contract.main.burrow.near"
+              }
+            }
+          },
+          "public_key": "ed25519:Fxvu9vN9THjUwGgMgVxj22f8uB5U9rPR6U1ShsZUcdoX"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:55:41Z"
+}

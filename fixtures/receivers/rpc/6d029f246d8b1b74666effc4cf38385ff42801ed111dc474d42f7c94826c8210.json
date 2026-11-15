@@ -1,0 +1,94 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "ilarievich16.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "H6Aw7ScHbLVDGZVANTePCoSTkGZCaYre9VqzV7nYPW8w",
+      "block_height": 224674517,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 176966434000003,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "login.learnclub.near"
+              }
+            }
+          },
+          "public_key": "ed25519:5BEzorvdwve4Mz29Y3FQs9NZtg2v4noboHRwkVstQq8z"
+        },
+        {
+          "access_key": {
+            "nonce": 170250543000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meme-cooking.near"
+              }
+            }
+          },
+          "public_key": "ed25519:9HxWHe7NQA8BFMsM2nYS6rXdoRFz8mdindjsP13kxUN1"
+        },
+        {
+          "access_key": {
+            "nonce": 111943620024984,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:ANcZ5C8yUM3uo6HutkjkuGAFH7vbo8SSd1GM1BywcdTM"
+        },
+        {
+          "access_key": {
+            "nonce": 159595496000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BXqGRguB9J62GfBRcvrHwozGqvt79DuDpVMAci6U8gY8"
+        },
+        {
+          "access_key": {
+            "nonce": 177059351000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "login.learnclub.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BjG7sggNukmGmeKBABFCyQEXRnbaSGMcrMZjgTHbbJB5"
+        },
+        {
+          "access_key": {
+            "nonce": 170251349000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meme-cooking.near"
+              }
+            }
+          },
+          "public_key": "ed25519:EQQ4WcZdx9LFnXPPxMdTTuc38Kr5wDQpmLT7nc7Ab9Ru"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:53:14Z"
+}

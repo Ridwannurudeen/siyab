@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "feeswaps.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "2BaC5wh3uYv3opMySAmaQpoUH728vpZw6KjJjKKbNy8a",
+      "block_height": 224674811,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 219456245000128,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8p8nYLLwqu2gfjya69W5LZGPsJx3XApQSLCV4CV7Zzjo"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:56:00Z"
+}

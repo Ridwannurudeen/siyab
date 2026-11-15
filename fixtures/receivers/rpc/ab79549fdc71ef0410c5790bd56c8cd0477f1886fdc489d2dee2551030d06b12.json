@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "fairblog5693.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "79nfj8yeoyqSBYG5ijENQUoB3dS1Mn86Qn8MnB5sz9qk",
+      "block_height": 224674305,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 223550467000013,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:72ZuyrXFFGRukaNg2ExLqqRWBkEbZ5v4CfYtcEoDUXX8"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:15Z"
+}

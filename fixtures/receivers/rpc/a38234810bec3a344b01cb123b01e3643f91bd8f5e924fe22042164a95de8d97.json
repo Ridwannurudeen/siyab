@@ -1,0 +1,68 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "fractaldeveloper.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "DiiABpwmeMbS4YdsJTLpKP3E9ytP9HzzWbT7H5BW95Wj",
+      "block_height": 224674600,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 223536664000010,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1",
+                "method_names": [],
+                "receiver_id": "aa-harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:457bmErKqgPU5Z8PaQbCvZR35T7dod3bAq48jnsiqYqG"
+        },
+        {
+          "access_key": {
+            "nonce": 115245583000038,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:E2FspKsHur82XcXyJG41EBmeFyQnqUyfcgRhTKmBW7Av"
+        },
+        {
+          "access_key": {
+            "nonce": 116056632000024,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meteor-points.near"
+              }
+            }
+          },
+          "public_key": "ed25519:F12gmH9ka7nc5rfi7ffHS2HvnZnqVwtU2spA3Uptiym8"
+        },
+        {
+          "access_key": {
+            "nonce": 116056569000008,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:GN1YrpzKNbJcvaTBPfdi1zxCRBZqDv5bzjxeGyEo2gHB"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:54:00Z"
+}

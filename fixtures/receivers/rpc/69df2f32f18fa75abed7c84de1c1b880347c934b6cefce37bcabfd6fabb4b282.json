@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "donutsniffer.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "2Zr7tND8RdbLPZ7uuyBbp14ydaf3vrs72YjW9qLHnJx8",
+      "block_height": 224674788,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 220092856000281,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:85EmqY1gTRYZywRH3VqXP83K9wsdViTiL3gK4jZ7NNpb"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:55:47Z"
+}

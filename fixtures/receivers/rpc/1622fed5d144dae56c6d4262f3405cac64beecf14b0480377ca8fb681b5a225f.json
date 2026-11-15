@@ -1,0 +1,73 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "txns": [
+      {
+        "transaction_hash": "BYzCpqm21SbzWFPCfab4EtjXSMpkjyno8KD9v8mFt19j",
+        "included_in_block_hash": "5FHSchaspyxKNzng2wkABJVuSNGrqYpPd5LodGgeYXR5",
+        "block_timestamp": "1793977234012312183",
+        "signer_account_id": "meteor-relayer.near",
+        "receiver_account_id": "near",
+        "receipt_conversion_gas_burnt": "314019964375",
+        "receipt_conversion_tokens_burnt": "31401996437500000000",
+        "shard_id": "4",
+        "block": {
+          "block_height": 223331547
+        },
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "create_account",
+            "args": "{\"new_account_id\": \"funnysite1561.near\", \"new_public_key\": \"ed25519:DatubUKudasAhBomth16qGut2KzpWkKPcqEp9up4zBVs\"}"
+          }
+        ],
+        "actions_agg": {
+          "deposit": 0,
+          "gas_attached": 30000000000000
+        },
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": 7.4432273160808e+21,
+          "gas_used": 12301820848308
+        },
+        "receipts": [
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          }
+        ]
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/txns/BYzCpqm21SbzWFPCfab4EtjXSMpkjyno8KD9v8mFt19j",
+  "fetched_at": "2026-11-15T13:49:55Z"
+}

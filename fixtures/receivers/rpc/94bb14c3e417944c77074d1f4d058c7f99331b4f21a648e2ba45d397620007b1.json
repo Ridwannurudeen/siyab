@@ -1,0 +1,98 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "kabansikach.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "CmgwBLnY5fXTx49PqXYVLA5F1ExbCvTVgd9w59wod3RZ",
+      "block_height": 224674629,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 169411966000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "vault.intellex_xyz.near"
+              }
+            }
+          },
+          "public_key": "ed25519:5b9WziTbzRckj94n3yV5pJF5LYagQVe2pB5XAiBRAbnW"
+        },
+        {
+          "access_key": {
+            "nonce": 224664159000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [
+                  "__fastdata_kv"
+                ],
+                "receiver_id": "nearhunt.near"
+              }
+            }
+          },
+          "public_key": "ed25519:7vdNR8WxmeAGw7fk5gtutqRakEQjjCMY9RPC7Z8nzKN5"
+        },
+        {
+          "access_key": {
+            "nonce": 224664204000005,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "249400397982845900000000",
+                "method_names": [
+                  "__fastdata_kv"
+                ],
+                "receiver_id": "nearhunt.near"
+              }
+            }
+          },
+          "public_key": "ed25519:Apcpr5UrRQnw6hzsqDE8Yjix9NuxdKrMV41iYYgiSqvM"
+        },
+        {
+          "access_key": {
+            "nonce": 124482440000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "aa-harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BS5tkyAHU6dyLHVYBGGxCKzqAa5jB1j1xyAMQ1Cwaqny"
+        },
+        {
+          "access_key": {
+            "nonce": 111913488167470,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:BwdPzQaurF2Zve1T1onj7EoXCnwhboeDV5xifBqx6j8q"
+        },
+        {
+          "access_key": {
+            "nonce": 111921901000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "login.learnclub.near"
+              }
+            }
+          },
+          "public_key": "ed25519:GXma4nkHQeQHRjyyxnr4GhAxQoSry1VgD1x1aZS6s4p9"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:54:16Z"
+}

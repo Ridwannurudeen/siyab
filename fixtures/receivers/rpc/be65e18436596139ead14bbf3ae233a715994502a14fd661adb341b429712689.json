@@ -1,0 +1,43 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "zengane.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "CahtY5mvzzMqBuwrrKjuDW3k3BJSENxBaQz34YUstKnp",
+      "block_height": 224674837,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 205585381000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:7R3sGtuWNdu94vnfPAox5psVeaNM6UsiNXfb2zTVdhYQ"
+        },
+        {
+          "access_key": {
+            "nonce": 209132300000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:A47rYgvDCguyfxxcJLo7GMtbCrTSvbbPLGgUXvngha1W"
+        },
+        {
+          "access_key": {
+            "nonce": 205585394000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:AAaFXPdnpoT2U34tds6DeT55fpoKnXCESHWRViPUAwj1"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:56:14Z"
+}

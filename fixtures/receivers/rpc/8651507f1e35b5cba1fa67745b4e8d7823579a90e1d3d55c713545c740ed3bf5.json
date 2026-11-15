@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "stanio.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "EVfcqbpwDVzXbJHew7EWZqB6B8qRefbpVnuQSDFdF9tz",
+      "block_height": 224674359,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 219448526000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6GdzzGvUdqCx8TAhFa8QW2tiqA4Wndga7XMMxGYLm8Zq"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:45Z"
+}

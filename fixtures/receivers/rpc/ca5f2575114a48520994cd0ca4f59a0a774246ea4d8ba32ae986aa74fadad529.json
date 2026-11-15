@@ -1,0 +1,55 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "wubba_labba_dub_dub.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "E7ikZpEFScqqfopcHXjLTsLFPw1zdERYMPgcaYwK2DKF",
+      "block_height": 224674742,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 126673893000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "a.mitte-orderbook.near"
+              }
+            }
+          },
+          "public_key": "ed25519:2Su58M8BpX2eAnmdbJPvLjQmqbTLZAxKwDFra1ihhkUd"
+        },
+        {
+          "access_key": {
+            "nonce": 112738500024243,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4L9C76xCm58g16kUUshKNEY3wMkm4qRb5nUMUAmsszHT"
+        },
+        {
+          "access_key": {
+            "nonce": 139410666000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "gra-fun.near"
+              }
+            }
+          },
+          "public_key": "ed25519:CZURrLvyTqjnLibZZU6XQpP5fuXZjGQSgVvWWSUDzwHE"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:55:21Z"
+}

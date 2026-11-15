@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "jackfriar.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "H71mYJKc9aTjg2hdFjeqXQPqTUeJdCBSWFTVspcNxRdv",
+      "block_height": 224674784,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 217212589000416,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:3SfNzwuGFazu9w67SPe9rkFo5bn3QveseQD9g7MYVmdJ"
+        },
+        {
+          "access_key": {
+            "nonce": 217212600000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:G8LkzzYGpdSpMuWVsHcYcoYqrZ3aLZNGH8fKGXKBZu94"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:55:45Z"
+}

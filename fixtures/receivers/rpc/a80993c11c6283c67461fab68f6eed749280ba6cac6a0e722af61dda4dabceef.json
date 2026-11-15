@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "keys": [
+      {
+        "public_key": "ed25519:CJ52WXAiHXYzpxPdswkyW3vzP5d7FJD67XP3rnKHF33D",
+        "account_id": "nearaddict.near",
+        "permission_kind": "FULL_ACCESS",
+        "created": {
+          "transaction_hash": "3brJ3UW4KEzevPrLTeviA6pXS4wvruzxKmKLdmnqUA8P",
+          "block_timestamp": 1793884023418189000
+        },
+        "deleted": {
+          "transaction_hash": null,
+          "block_timestamp": null
+        }
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/account/nearaddict.near/keys",
+  "fetched_at": "2026-11-15T13:48:44Z"
+}

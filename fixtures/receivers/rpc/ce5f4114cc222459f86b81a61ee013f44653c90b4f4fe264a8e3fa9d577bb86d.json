@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "cfdemo.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "DNC1xg9AKXjHSb3KjmZFyyTK2vSTQVs8V74972BeMhaS",
+      "block_height": 224674807,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 221138264000009,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:unZicYdbrjCWSFf6AGVGTJVZFWKP1uk5422ALWHK78v"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:55:58Z"
+}

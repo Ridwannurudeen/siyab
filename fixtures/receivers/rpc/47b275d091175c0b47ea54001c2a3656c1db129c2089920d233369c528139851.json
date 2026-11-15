@@ -1,0 +1,71 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "hollowpine4417.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "4hDPZtazFqh94EFDAttpNiE6jqCVDsMof5TxQ5cA4QHi",
+      "block_height": 224674365,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 221434480032995,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:VwDGxJbGqU5ALW7QBSMQbKXfubGC2NStFc7EPTJqwhe"
+        },
+        {
+          "access_key": {
+            "nonce": 221434480032989,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:2UiWE4EPW4Bg2Si2SN9xcdME8ZEETRsQpkeBbiQ1foU8"
+        },
+        {
+          "access_key": {
+            "nonce": 221434480033015,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8aaPQWphMXDzSYGVvbjPZ9D3AvR68pV3ayS6gLq56QxF"
+        },
+        {
+          "access_key": {
+            "nonce": 221434480033003,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Bpzkd4PB1NywdXmjU3TGHGUYE8rJuEd6C1Sh3rd56Cv4"
+        },
+        {
+          "access_key": {
+            "nonce": 221434199000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:C22C4ygqAdgfuJXXuuxrzeALgfrvDkrsUgAoLVkf216B"
+        },
+        {
+          "access_key": {
+            "nonce": 221434480033025,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:DZzxV5zhj1U2Z6ZzcYkpyRmbR82XLY8gn8cEBu3oF1Aw"
+        },
+        {
+          "access_key": {
+            "nonce": 221248740000010,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:HEoWFST8gtG6J4jTJhLB6dZPPzTVN2q1AGujJmVV1L8a"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:49Z"
+}

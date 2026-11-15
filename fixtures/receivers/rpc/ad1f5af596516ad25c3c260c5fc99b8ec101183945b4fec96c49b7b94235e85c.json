@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 222509641,
+      "account_id": "v2-pool-creator.justhoot.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "4039504066840047100006508",
+      "block_hash": "24RjEoq4kvHKVuKpwrurQXjMxkRmqpSsYsH6TbQhSPAp",
+      "block_height": 222509641,
+      "code_hash": "27VY43WZGKWmRcAwVjMRSWg1CpYha5tJWLd7nW7ugdPf",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 383422
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-15T13:55:35Z"
+}

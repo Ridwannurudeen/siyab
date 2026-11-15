@@ -1,0 +1,50 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "fastest.user.intear.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "5p4BsCsMNH8b45kfHqBokP2E5xDJLTxyQ7B7zYrLMwd5",
+      "block_height": 224674395,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 222992330000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:2d9pYQadcQkDTMt4V39jGh5Lvqe3WRvLPKMoZhpQqVcC"
+        },
+        {
+          "access_key": {
+            "nonce": 221209907000468,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6ZfcBEyCE5sPRLBp8fEKF3pgwbxjpxMyWXYA4FK7FvHZ"
+        },
+        {
+          "access_key": {
+            "nonce": 221699404000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:BSrBwUazBnGKsMDN3p8xkeWY175TbYdQxDgqdTVf1Las"
+        },
+        {
+          "access_key": {
+            "nonce": 221232185000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:DrBxACuZJPSo5yBNmX1KPQqwvUfuhugoJL2jnCDgBPjk"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:52:05Z"
+}

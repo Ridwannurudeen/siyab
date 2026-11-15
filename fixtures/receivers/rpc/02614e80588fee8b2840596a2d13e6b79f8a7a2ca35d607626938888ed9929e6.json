@@ -1,0 +1,55 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "mefirst.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "4nRNi3QLTr29VyhL1esN1WbAPF4ycuhjnbRtQQYLmSLb",
+      "block_height": 224674827,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 114634420000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "asset-manager.orderly-network.near"
+              }
+            }
+          },
+          "public_key": "ed25519:7RSngcy5ekTXgDizKks6kXauweWEztDVf579AQRV25xU"
+        },
+        {
+          "access_key": {
+            "nonce": 114632831000015,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8LX9ax47AvhXvg6qUxJQVEPMtvb1p1byaonw8ZSiXboF"
+        },
+        {
+          "access_key": {
+            "nonce": 114632922000008,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meteor-points.near"
+              }
+            }
+          },
+          "public_key": "ed25519:9aQQmfU6EUDNefvSGHXfb3GUcngHXz11CByz1s4whaEf"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:56:08Z"
+}

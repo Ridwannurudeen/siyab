@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "prathikrajsingh.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "CrGjvaBf6xYdyKv26qqpFvHHRuFiS2bsNefWuC6xBaYv",
+      "block_height": 224674465,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 113724700045094,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:F9HLfG6JNjk7tQLyZyAnumej99aPPyybiy7uukJF5E8k"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:52:45Z"
+}

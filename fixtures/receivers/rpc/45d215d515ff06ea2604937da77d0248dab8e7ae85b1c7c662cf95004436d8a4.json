@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "heomun.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "7ek7Z3fvspszt9qQsrUpZkYGjmAT6A1f8XnomxHy7khD",
+      "block_height": 224674612,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 203545888000029,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Fjqefbw7HS7YdJLjWoALgkfRkRaKKzVJFXyarfhgAJaw"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:54:07Z"
+}

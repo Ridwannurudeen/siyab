@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "squaregarden2312.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "BHW7RTGd5wwL5esc3GWutExmoKbeK9TR6G3qthKToQ5Z",
+      "block_height": 224674856,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 217537907000007,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:HzwEk8S8gsiKz9D4C2dbcefhnVBPYnvDxtzK5BHHpngN"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:56:25Z"
+}

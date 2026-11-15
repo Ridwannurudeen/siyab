@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "owed-test.nearhackathons.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "zmVGaFc6tMNL1pSfFknFEhq9LemrY5MKbqhyuaAd6wR",
+      "block_height": 224674668,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 221965423000103,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:FYoyzc9gzBNRR7vo8mXg2ce68z6AfZbFpS9Rn9mZBcML"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:54:38Z"
+}

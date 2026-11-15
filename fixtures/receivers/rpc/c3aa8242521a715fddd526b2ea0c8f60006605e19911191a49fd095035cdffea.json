@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "openquiche4831.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "6nM5iY6wiqCzwMJQ3CWJJwALg8tPFySKAJDkP76aBW3b",
+      "block_height": 224674528,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 217539815000115,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:CMcU1erNS9bev3bQhDUFGhuvUx3vckrN5hzfCeer5BNt"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:53:20Z"
+}

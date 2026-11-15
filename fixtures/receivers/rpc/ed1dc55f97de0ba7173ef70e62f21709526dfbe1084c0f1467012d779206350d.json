@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "pircing.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "B4Uok2xY4EWRT64Jq7vERA1vWUjkg6B6nCbPd69PszFz",
+      "block_height": 224674355,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 111824525022236,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8UeUX6C4TvMv7N5m77gz1Kpp9tACFqrmiqLJGCg9JrB5"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:43Z"
+}

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "rubydude.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "BHzMCbwLzRkGuekiofac24oXmWye1JBSdzKnGR7DwKrQ",
+      "block_height": 224674685,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 219430186000013,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:AtQepLxF48Ruvz5jG8nyGVRS1Ts3ZQLWLvFW8xn4CyaB"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:54:48Z"
+}

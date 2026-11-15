@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "norbert263.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "3gQ58KZ4hqaLu5x8p7zB5qVsvSyPEpWjDBPh9JuwgQoJ",
+      "block_height": 224674317,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 118251451013398,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Eb28bYdyR4MR5FT55eL1A9E2iWgLNx7VkSioCrjbjhDv"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:22Z"
+}

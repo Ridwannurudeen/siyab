@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "shanti15.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "7ocfAknGBKKFrYFwdF1xMHarkwabxyiiHALAryecRGaR",
+      "block_height": 224674689,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 65918366005012,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:J8bjN4pxZV6sheXTREAhwQ3fM9CiXhHsUWwiRxxmXqka"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:54:51Z"
+}

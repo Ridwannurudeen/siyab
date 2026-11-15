@@ -1,0 +1,42 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "joeyhbar.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "4uwqLHPZ1jWQ99LVthqo29KyovPkeehphJSU57Gu3iSp",
+      "block_height": 224674628,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 222754799000001,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "aa-harvest-moon.near"
+              }
+            }
+          },
+          "public_key": "ed25519:457bmErKqgPU5Z8PaQbCvZR35T7dod3bAq48jnsiqYqG"
+        },
+        {
+          "access_key": {
+            "nonce": 217407891000235,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:DjUQ2a6M5ukttU9xC9EE5NPxbGdWhYbmNFQoJHPfQ1FR"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:54:16Z"
+}

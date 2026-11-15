@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "nobelieee.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "Hy8XQNFX3G7GZwij2NzCCbDJ917TkdeN8zvMNjp8nRRQ",
+      "block_height": 224674830,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 220106503000403,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4T3u8kEQexRRYzF49iKY7Jnf1TTmsW6bLe56vQZDZoTU"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:56:10Z"
+}

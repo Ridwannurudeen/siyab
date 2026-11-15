@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "deepeater1.tg"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "Bwzc4jyVfgbSzVauRZChvRedm4RJqzgkad3T7yk5srXj",
+      "block_height": 224674304,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 112037408018186,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:AFjb9XUjMPr9AbMW97WxKsJ5pdS6qDJwBqhk2RqaXSse"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:51:14Z"
+}

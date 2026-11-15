@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "sneering_yeti.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "8NFnUCSKmrtQoUQiRXp5Sh1fXo7AiNW2AFCgQuHK1vSG",
+      "block_height": 224674694,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 221541818000094,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:HYPyKfmZQm2Z9RiCQJ72VSg9EAEGxmxwMArrKHVhxqMD"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:54:53Z"
+}

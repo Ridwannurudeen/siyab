@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "dao-v6.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "H9pan5mKLYgWQ4D22vCEss64kSkn572AKoYhVSHPfBku",
+      "block_height": 224674580,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 189911057012069,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8g37vkQnP5V9aatTdhcuXzPuyxbH5wihRMRGeXYHdMxj"
+        },
+        {
+          "access_key": {
+            "nonce": 189910929000042,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:HyZ6v8GXzKNxa39SgohChJymeVWyXE5cUqtZr3WW9Qbd"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:53:49Z"
+}

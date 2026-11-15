@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "luckycheese2216.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "5NeJyf9aWGrmrzaz5vsEzqtWApuB52qBptrctam4M3D5",
+      "block_height": 224674851,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 217336143000187,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:DUDcC6Y2gABNKFx4ruUCi8zp8cUj2PhBYVvN8d2tXMxi"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-15T13:56:22Z"
+}
