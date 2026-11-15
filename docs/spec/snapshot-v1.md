@@ -67,7 +67,7 @@ A consumer may infer:
 
 - Each row is the label assertion with its `id`, and states its fact on the authority of its source as `label-assertion-v1.md` and `docs/LABEL-RECORD.md` define it: a document by its URL, its content hash and its fetch time; a chain read by its RPC, method, arguments and block; an inferred row by its rule and the ids of its inputs.
 - The rows are every current row of the store at `store_sha256` that the scope selects, and no other.
-- A current row in category `denylist` or `incident` whose provenance is anything but `inferred` is a reason to refuse the payment, as the verdict service's `label_denylist` check refuses on the same row (`gate/rules.py:442-446`).
+- A current row in category `denylist` or `incident` whose provenance is anything but `inferred` is a reason to refuse the payment, as the verdict service's `label_denylist` check refuses on the same row (`gate/rules.py:443-447`).
 
 A consumer may not infer:
 

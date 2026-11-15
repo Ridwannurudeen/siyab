@@ -516,7 +516,7 @@ _ENVELOPE_SCHEMA = {
 _ERROR_RESULT_SCHEMA = {**_CONTEXT_SCHEMA, "error": (True, _ERROR_VALUE_SCHEMA), "logs": (False, [_text])}
 _HEADER_SCHEMA = {
     "height": (True, _uint64), "timestamp": (True, _uint64), "hash": (True, _hash),
-    "timestamp_nanosec": (False, _decimal_uint64),
+    "timestamp_nanosec": (False, _decimal_uint64), "prev_hash": (False, _hash),
 }
 _FUNCTION_PERMISSION_SCHEMA = {
     "allowance": (True, (type(None), _balance)), "receiver_id": (True, _text), "method_names": (True, [_text]),
@@ -872,7 +872,8 @@ def trim_block_response(response):
     if not all(key in response for key in ("jsonrpc", "id")):
         return response
     return {"jsonrpc": response["jsonrpc"], "id": response["id"],
-            "result": {"header": {key: header[key] for key in ("hash", "height", "timestamp")}}}
+            "result": {"header": {key: header[key] for key in ("hash", "height", "timestamp", "prev_hash")
+                                  if key in header}}}
 
 
 class Client:
@@ -994,6 +995,9 @@ class Client:
         header = result["header"]
         if _uint(height) and header["height"] != height:
             raise MalformedResponse(f"block {height} came back as block {header['height']}")
+        if height not in self._block_hashes and len(self._block_hashes) >= BLOCK_HASH_CACHE_SIZE:
+            del self._block_hashes[next(iter(self._block_hashes))]
+        self._block_hashes[height] = header["hash"]
         return result
 
     def _block_hash(self, height):
@@ -1004,9 +1008,6 @@ class Client:
             value = self.block_at(height)["header"]["hash"]
         finally:
             self.last_source, self.last_block_height, self.last_reduced = source, observed, reduced
-        if len(self._block_hashes) >= BLOCK_HASH_CACHE_SIZE:
-            del self._block_hashes[next(iter(self._block_hashes))]
-        self._block_hashes[height] = value
         return value
 
     def _absolute(self, url):
@@ -1062,6 +1063,7 @@ class Client:
         host = urllib.parse.urlsplit(url).netloc
         self.last_source = {"provider": host, "request_sha256": key, "fetched_at": None}
         used_fixture = False
+        refresh_block = False
         if self.mode != "off" and path.exists():
             data = self._fixture_bytes(path)
             try:
@@ -1073,6 +1075,12 @@ class Client:
                 self.last_source["fetched_at"] = fixture["fetched_at"]
                 response = fixture["response"]
                 used_fixture = True
+                if self.mode == "record" and method == "block" and isinstance(response, dict):
+                    result = response.get("result")
+                    header = result.get("header") if isinstance(result, dict) else None
+                    if isinstance(header, dict) and not {"hash", "prev_hash"} <= header.keys():
+                        used_fixture = False
+                        refresh_block = True
                 if self.mode == "replay" and path.resolve().is_relative_to(FIXTURES_DIR.parent):
                     name = path.resolve().relative_to(FIXTURES_DIR.parent).as_posix()
                     self.last_reduced = REDUCED_RECORDINGS.get(name) == hashlib.sha256(data).hexdigest()
@@ -1106,6 +1114,8 @@ class Client:
                     try:
                         response_gate(response, method, params, block_hash=self._block_hash, request_id=body["id"])
                     except (RpcError, MalformedResponse):
+                        if refresh_block:
+                            raise
                         recorded_response = response
                     else:
                         if method == "block":
@@ -1173,3 +1183,10 @@ def _fetch(url, body, extra_headers=None, record_http_errors=()):
         raise TransportError(type(error).__name__) from error
     except RecursionError as error:
         raise MalformedResponse("the body is nested too deeply to parse") from error
+
+
+def check_request_deadline():
+    """Refuse work after the current request deadline, including during fixture replay."""
+    deadline = _REQUEST_DEADLINE.get()
+    if deadline is not None and time.monotonic() >= deadline:
+        raise TimeoutError("request deadline exceeded")

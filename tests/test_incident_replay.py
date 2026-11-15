@@ -38,7 +38,8 @@ class Chain(incident_replay._FixtureClient):
             if height in self.missing:
                 raise rpc.RpcError({"name": "HANDLER_ERROR", "code": -32000, "message": "Server error",
                                     "cause": {"name": "UNKNOWN_BLOCK"}})
-            return {"header": {"height": height, "timestamp": START_NS + height * 10**9, "hash": BLOCK_HASH}}
+            return {"header": {"height": height, "timestamp": START_NS + height * 10**9,
+                               "hash": BLOCK_HASH, "prev_hash": BLOCK_HASH}}
         kind = params["request_type"]
         account = params["account_id"]
         if kind == "view_account":
