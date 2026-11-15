@@ -685,7 +685,7 @@ def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVE
     transfers = []
     for hop in excerpt:
         transfer = _transfer_amount(hop)
-        amount = f'{transfer} unit{"" if transfer == "1" else "s"} of <q class="data">{esc(hop["asset_id"])}</q>.'
+        amount = f'{transfer}{"" if trace.asset_decimals(hop["asset_id"]) is None else " unit" + ("" if transfer == "1" else "s")} of <q class="data">{esc(hop["asset_id"])}</q>.'
         when = trace.utc_minute(hop["block_timestamp"])
         transaction = (f'<a href="https://nearblocks.io/txns/{esc(hop["transaction_hash"])}" rel="noreferrer">'
                        f'{esc(hop["transaction_hash"])}</a>')

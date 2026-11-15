@@ -132,6 +132,14 @@ class LandingTest(unittest.TestCase):
             self.assertIn('https://nearblocks.io/txns/' + row["transaction_hash"], self.main)
             self.assertIn(f'{amount} units of', self.text)
 
+    def test_unknown_decimals_do_not_repeat_units(self):
+        with mock.patch("urllib.request.urlopen", side_effect=AssertionError("Unexpected network read")), \
+                mock.patch.object(trace, "asset_decimals", return_value=None):
+            page = render.index_page(render._incidents(), render._flows(), render._clusters(), labels.load())
+        self.assertNotIn("units units", page)
+        self.assertNotIn("unit units", page)
+        self.assertRegex(page, r"\d base units? of <q")
+
     def test_verification_values_are_computed_from_the_saved_record(self):
         record = json.loads(render.VERIFY_RECORD.read_text(encoding="utf-8"))
         _, subject, evidence_hash = render.verify_example()
