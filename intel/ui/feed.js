@@ -118,7 +118,11 @@
     add(panel, "p", "Events below are the latest response, not a complete transaction history. Filtered results do not change recording coverage.");
     if (stats.last_error) add(panel, "p", `Last recorded error: ${JSON.stringify(stats.last_error)}`);
     if (stats.disabled_signals && Object.keys(stats.disabled_signals).length) add(panel, "p", `Disabled signals: ${JSON.stringify(stats.disabled_signals)}`);
-    if (stats.last_large_transfer_error) { const error = stats.last_large_transfer_error; add(panel, "p", `labelled_account_large_transfer last failed poll at ${text(error.at)}: ${text(error.error)}, ${error.status == null ? "no HTTP status" : `HTTP ${text(error.status)}`}.`); }
+    if (stats.last_large_transfer_error) {
+      const error = stats.last_large_transfer_error;
+      add(panel, "p", error.status === 429 ? `The transfer read was rate limited (HTTP 429) at ${text(error.at)}. This read adds no observations; previously recorded rows are retained.`
+        : `labelled_account_large_transfer last failed poll at ${text(error.at)}: ${text(error.error)}, ${error.status == null ? "no HTTP status" : `HTTP ${text(error.status)}`}.`);
+    }
     if (stats.coverage_reset) {
       const previousHeight = stats.coverage_reset.previous_last_height, startHeight = stats.start_height;
       add(panel, "p", `Coverage reset: ${stats.coverage_reset.reason}; previous last height ${previousHeight}.`);
@@ -133,9 +137,11 @@
     clearTimeout(timer); if (controller) controller.abort();
     const requestController = new AbortController(); controller = requestController;
     const deadline = setTimeout(() => requestController.abort(), 12000), request = ++generation;
+    let rateLimited = false;
     retry.hidden = true; panel.setAttribute("aria-busy", "true");
     try {
       const response = await fetch("/feed", {headers: {Accept: "application/json"}, signal: requestController.signal});
+      rateLimited = response.status === 429;
       if (!response.ok || !(response.headers.get("content-type") || "").includes("application/json")) throw new Error("Feed unavailable");
       const data = await response.json();
       if (!data || !Array.isArray(data.events) || data.events.length > 50 || !data.events.every(row => row && typeof row.signal === "string" && typeof row.detail === "string" && row.observed && Number.isSafeInteger(row.observed.block_height) && row.observed.block_height >= 0) || data.stats !== null && (typeof data.stats !== "object" || Array.isArray(data.stats)) || ![null, "running", "stopped"].includes(data.follower) || data.event_ids !== undefined && (!Array.isArray(data.event_ids) || data.event_ids.length !== data.events.length || !data.event_ids.every(id => id === null || typeof id === "string" && /^[0-9a-f]{64}$/.test(id)))) throw new Error("Feed unreadable");
@@ -145,7 +151,8 @@
       else if (JSON.stringify([data.events, data.event_ids || null]) !== previous) { pending = data; apply.hidden = false; apply.textContent = "Show updated events"; updateStatus.textContent = "New response available; displayed events are unchanged until you apply it"; }
       else { pending = null; apply.hidden = true; current = data; updateStatus.textContent = responseStatus(data); notify(data); }
     } catch (error) {
-      if (!paused && request === generation) { panel.replaceChildren(); add(panel, "p", "Live follower health is unavailable. Previously displayed events are retained and may be stale."); updateStatus.textContent = "Current read unavailable; retry or wait for the next scheduled read"; retry.hidden = false; }
+      if (!paused && request === generation) { panel.replaceChildren(); add(panel, "p", rateLimited ? "The feed read was rate limited (HTTP 429). Previously displayed observations are retained and may be stale. Retry shortly."
+        : "Live follower health is unavailable. Previously displayed events are retained and may be stale."); updateStatus.textContent = "Current read unavailable; retry or wait for the next scheduled read"; retry.hidden = false; }
     } finally { clearTimeout(deadline); if (request === generation) panel.setAttribute("aria-busy", "false"); }
     if (!paused && request === generation) timer = setTimeout(poll, 30000);
   };

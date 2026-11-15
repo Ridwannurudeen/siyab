@@ -138,7 +138,7 @@ def write_decision_record(directory, text):
 class BrowserRuntimeTest(unittest.TestCase):
     @unittest.skipUnless(shutil.which("node"), "Node is unavailable")
     def test_feed_and_search_boundary_regressions(self):
-        for scenario in ("stall", "body-stall", "queue-revert", "bfcache", "url-shell", "url-index", "menu"):
+        for scenario in ("stall", "body-stall", "rate-limit", "queue-revert", "bfcache", "url-shell", "url-index", "menu"):
             with self.subTest(scenario=scenario):
                 result = subprocess.run([shutil.which("node"), "tests/frontend_runtime.cjs", scenario],
                                         cwd=ROOT, capture_output=True, text=True, timeout=15)
@@ -146,6 +146,20 @@ class BrowserRuntimeTest(unittest.TestCase):
 
 
 class AppShellTest(unittest.TestCase):
+    def test_feed_explains_unmeasured_observations_without_server_figures(self):
+        state = json.loads(feed.STATE_PATH.read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as tmp, mock.patch("urllib.request.urlopen", side_effect=no_network):
+            documents = (render.feed_page(Path(tmp) / "missing.json"),
+                         render.feed_page(state=state, event_rows=[]))
+        for document in documents:
+            with self.subTest(has_run="The feed has not run." not in document):
+                self.assertIn("Feed rows are observations, not findings about an account.", document)
+                self.assertIn("Rows such as full_access_key_then_outflow on unlabelled accounts are unmeasured observations, not findings.", document)
+                context = document.split("Feed rows are observations, not findings about an account.", 1)[1].split('</p>', 2)[:2]
+                self.assertNotRegex(" ".join(context), r"\d")
+                for height in ("224241250", "224502861", "224502862", "223457668", "223819560"):
+                    self.assertNotIn(height, document)
+
     def test_recorded_search_links_open_explore(self):
         feed_script = (ROOT / "intel/ui/feed.js").read_text(encoding="utf-8")
         shell_script = (ROOT / "intel/ui/shell.js").read_text(encoding="utf-8")
@@ -331,7 +345,7 @@ class RenderTest(unittest.TestCase):
 
     def assert_local_script_assets(self, page):
         expected = {}
-        for name in ("number-format", "graphs", "workspace", "investigate", "cloud-workspace", "enrichment", "portfolio", "investigation-jobs", "delivery", "landing"):
+        for name in ("number-format", "graphs", "workspace", "investigate", "cloud-workspace", "enrichment", "portfolio", "investigation-jobs", "delivery", "landing", "index"):
             source = (ROOT / f"intel/ui/{name}.js").read_text(encoding="utf-8").encode("utf-8")
             digest = hashlib.sha256(source)
             expected[f"/assets/{digest.hexdigest()}.js"] = (name, source, "sha256-" + base64.b64encode(digest.digest()).decode("ascii"))
@@ -353,6 +367,7 @@ class RenderTest(unittest.TestCase):
         self.assertEqual(found.count("investigate"), 1 if 'id="account-investigation"' in page else 0)
         self.assertEqual(found.count("number-format"), 1)
         self.assertEqual(found.count("landing"), 1 if 'class="landing-page"' in page else 0)
+        self.assertEqual(found.count("index"), 1 if 'class="landing-page"' in page else 0)
         for name, mount in (("enrichment", "entity-enrichment"), ("portfolio", "account-portfolio"),
                             ("investigation-jobs", "investigation-jobs"), ("delivery", "team-delivery")):
             self.assertEqual(found.count(name), 1 if f'id="{mount}"' in page else 0)
@@ -524,7 +539,7 @@ class RenderTest(unittest.TestCase):
         for path in (ROOT / "intel/flows").glob("*.json"):
             count = len(json.loads(path.read_text(encoding="utf-8"))["hops"])
             expected.extend(f"flows/{path.stem}.page-{number}.html" for number in range(2, (count + 49) // 50 + 1))
-        for name in ("number-format", "graphs", "workspace", "investigate", "cloud-workspace", "enrichment", "portfolio", "investigation-jobs", "delivery", "landing"):
+        for name in ("number-format", "graphs", "workspace", "investigate", "cloud-workspace", "enrichment", "portfolio", "investigation-jobs", "delivery", "landing", "index"):
             source = (ROOT / f"intel/ui/{name}.js").read_text(encoding="utf-8").encode("utf-8")
             expected.append(f"assets/{hashlib.sha256(source).hexdigest()}.js")
         expected.extend(f"brand/{source.name}" for source in (ROOT / "intel/ui/brand").iterdir() if source.is_file())

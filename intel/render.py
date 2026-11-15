@@ -254,7 +254,7 @@ def page(title, body, depth=0, rooted=False, *, record=False, landing=False):
             + f'<script>{shell}</script>'
             + _script_tag(workspace_script)
             + _script_tag(cloud_script)
-            + (_script_tag((ROOT / "intel/ui/landing.js").read_text(encoding="utf-8")) if landing else '')
+            + (_script_tag(INDEX_SCRIPT) + _script_tag((ROOT / "intel/ui/landing.js").read_text(encoding="utf-8")) if landing else '')
             + '</body>\n</html>\n')
 
 
@@ -669,6 +669,38 @@ def _landing_graph(document, accounts, excerpt):
 
 def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVERS_JUDGEMENTS_DIR):
     document = dict(flows)["rhea-collector"]
+    judgement = json.loads((ROOT / "fixtures/receivers/judgements" / (document["subject"] + ".json")).read_text(encoding="utf-8"))
+    if judgement["verdict"] != "DENY":
+        raise ValueError("Landing recorded judgement must have verdict DENY")
+    recorded_subject = judgement["subject"]
+    short_subject = recorded_subject[:8] + "..." + recorded_subject[-8:]
+    recorded_at = datetime.fromtimestamp(judgement["observed"]["timestamp_ms"] / 1000, UTC).strftime("%d %b %Y")
+    cited = [assertion for assertion in labels.load().assertions if assertion.id in judgement["labels"]]
+    incident = next(assertion for assertion in cited if assertion.category == "incident" and assertion.source.get("url"))
+    issuer = next(assertion for assertion in cited if assertion.source.get("method") == "get_blacklist_status" and assertion.category == "watch")
+    incident_source = esc(urlsplit(incident.source["url"]).hostname)
+    if incident.source["url"].startswith("https://"):
+        incident_source = f'<a href="{esc(incident.source["url"])}">{incident_source}</a>'
+    reasons = ''.join(f'<li>{esc(reason)}</li>' for reason in judgement["reasons"])
+    sources = ''.join(f'<li>{esc(check["id"])}: {esc(check["source"]["provider"])}'
+                      + (f' {esc(check["source"]["fetched_at"])}' if check["source"]["fetched_at"] else '')
+                      + f'<p>{esc(check["detail"])}</p></li>'
+                      for check in judgement["checks"] if check["status"] == "signal")
+    recorded_check = (
+        '<article class="landing-check" id="landing-check" aria-labelledby="landing-check-title">'
+        '<div id="landing-check-record"><div class="landing-check-heading">'
+        f'<h2 id="landing-check-title" class="verdict {esc(judgement["verdict"].lower())}">{esc(judgement["verdict"])}</h2>'
+        f'<q class="data" title="{esc(recorded_subject)}">{esc(short_subject)}</q></div>'
+        f'<p class="landing-note">Recorded {esc(recorded_at)}. Unsigned receiver judgement for {esc(_display_amount(judgement["request"]["amount"], 4, decimals=24))} NEAR.</p>'
+        '<ul class="landing-check-reasons">'
+        f'<li><q class="data">{esc(incident.label)}</q> {incident_source}</li>'
+        f'<li><q class="data">{esc(issuer.label)}</q> {esc(urlsplit(issuer.source["rpc"]).hostname)}</li>'
+        f'<li>{esc(judgement["reasons"][0])}</li></ul></div>'
+        f'<button id="landing-check-live" type="button" data-account="{esc(recorded_subject)}">Re-run check live</button>'
+        '<p id="landing-check-status" class="landing-note" role="status">Live check runs only when requested.</p>'
+        '<details><summary>Full recorded reasons and sources</summary>'
+        f'<ul class="landing-check-full">{reasons}</ul><ul class="landing-check-full">{sources}</ul></details>'
+        '<div id="landing-check-result" aria-live="polite"></div></article>')
     accounts = account_pages(store)
     excerpt = [hop for hop in document["hops"] if hop["from"] == document["subject"]][:2]
     status = (f'Recorded mainnet investigation. {len(document["hops"]):,} recorded transfer{"" if len(document["hops"]) == 1 else "s"}. '
@@ -721,6 +753,7 @@ def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVE
         '<div class="landing"><section class="landing-hero" aria-labelledby="landing-title">'
         f'{network}<div class="landing-hero-copy"><div class="page-head"><p class="landing-label">(01)  SIYAB</p>'
         '<h1 id="landing-title"><span>Security intelligence</span> <span>for NEAR, with a source on every row.</span></h1></div>'
+        + recorded_check +
         '<p>Sourced labels, incident records and payment checks for people, apps and AI agents on NEAR.</p>'
         '<p>Siyab checks the receiver, token, amount and memo of a payment before it is sent, and shows the evidence behind every answer. For AI agents, a Gate contract on testnet holds the agent\'s funds and pays only on a signed ALLOW bound to that exact transfer.</p>'
         '<div class="landing-actions"><a class="button primary" href="/explore.html">Investigate</a>'
@@ -873,9 +906,11 @@ def feed_page(state_path=feed.STATE_PATH, events_dir=feed.EVENTS_DIR, *, state=N
     selected from, and unreadable, the number of event files skipped, come from a caller that selected them,
     else every event under events_dir is shown; stopped_since, the time of the last update of a follower
     judged stopped, comes from the caller that judged it."""
+    context = ('<p>Feed rows are observations, not findings about an account.</p>'
+               '<p>Rows such as full_access_key_then_outflow on unlabelled accounts are unmeasured observations, not findings.</p>')
     if state is None:
         if not Path(state_path).is_file():
-            return page("Feed", "<h1>Feed</h1><p>The feed has not run.</p>" + _feed_panel()
+            return page("Feed", "<h1>Feed</h1><p>The feed has not run.</p>" + context + _feed_panel()
                         + '<script>' + (ROOT / "intel/ui/feed.js").read_text(encoding="utf-8") + '</script>')
         state = json.loads(Path(state_path).read_text(encoding="utf-8"))
     window = ""
@@ -906,7 +941,7 @@ def feed_page(state_path=feed.STATE_PATH, events_dir=feed.EVENTS_DIR, *, state=N
             + (cards or ("" if unreadable else "<p>No signal fired over the recorded blocks.</p>"))
             + "\n<p class=\"muted\">The signals: " + ", ".join(feed.SIGNALS) + ".</p></details>")
     return page("Feed", '<div class="page-head feed-heading"><div><h1>Feed over finalized mainnet blocks</h1><p>Inspect observed signals and their evidence. The current read contains at most 50 recent events; filters apply to that response.</p></div></div>'
-                + _feed_panel(event_rows) + body + '<script>' + (ROOT / "intel/ui/feed.js").read_text(encoding="utf-8") + '</script>')
+                + context + _feed_panel(event_rows) + body + '<script>' + (ROOT / "intel/ui/feed.js").read_text(encoding="utf-8") + '</script>')
 
 
 def _profile_script():
@@ -2091,7 +2126,7 @@ def render(out_dir, store=None, incidents_dir=INCIDENTS_DIR, flows_dir=trace.FLO
         path.write_text(encoded, encoding="utf-8", newline="\n")
     script_paths = []
     (out / "assets").mkdir(exist_ok=True)
-    for name in ("landing.js", "number-format.js", "graphs.js", "workspace.js", "investigate.js", "cloud-workspace.js", "enrichment.js", "portfolio.js", "investigation-jobs.js", "delivery.js"):
+    for name in ("landing.js", "index.js", "number-format.js", "graphs.js", "workspace.js", "investigate.js", "cloud-workspace.js", "enrichment.js", "portfolio.js", "investigation-jobs.js", "delivery.js"):
         script = (ROOT / "intel/ui" / name).read_text(encoding="utf-8")
         script_path, _ = _script_asset(script)
         (out / script_path.lstrip("/")).write_text(script, encoding="utf-8", newline="\n")

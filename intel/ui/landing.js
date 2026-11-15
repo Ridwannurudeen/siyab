@@ -67,3 +67,41 @@
     sequences.forEach(sequence => observer.observe(sequence));
   }
 })();
+(() => {
+  "use strict";
+  const button = document.getElementById("landing-check-live");
+  if (!button) return;
+  const panel = document.getElementById("landing-check-result"), status = document.getElementById("landing-check-status");
+  const {beginRequest, renderVerdict} = window.SiyabChecks;
+  const recordedVerdict = document.getElementById("landing-check-title").textContent.trim();
+  button.addEventListener("click", async () => {
+    button.disabled = true;
+    panel.setAttribute("aria-busy", "true");
+    status.textContent = "Reading the live account check.";
+    const controller = new AbortController(), deadline = setTimeout(() => controller.abort(), 12000);
+    let unavailable = false;
+    try {
+      const token = beginRequest(panel);
+      panel.replaceChildren();
+      const response = await fetch("/live/account-check/" + encodeURIComponent(button.dataset.account), {
+        headers: {Accept: "application/json"}, signal: controller.signal
+      });
+      unavailable = response.status === 404;
+      if (!response.ok || !(response.headers.get("content-type") || "").toLowerCase().includes("application/json")) {
+        throw new Error("The live account check did not return a result.");
+      }
+      const data = await response.json();
+      if (!data || typeof data !== "object" || !renderVerdict(panel, data, false, token)) {
+        throw new Error("The live account check returned an unreadable result.");
+      }
+      status.textContent = "Live account check returned. Unsigned advice; the recorded check is retained above.";
+    } catch (error) {
+      panel.textContent = unavailable ? "Live checks are not available on this copy" : "The live read did not complete. Try again.";
+      status.textContent = `Live read failed. The recorded ${recordedVerdict} is retained above. Try again.`;
+    } finally {
+      clearTimeout(deadline);
+      button.disabled = false;
+      panel.setAttribute("aria-busy", "false");
+    }
+  });
+})();
