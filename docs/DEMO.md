@@ -48,6 +48,16 @@ DENIED. Not on the owner's allowlist. 31ac7a27...e724a540 does not exist. 31ac7a
 
 Caption: "DENY, with the evidence. The agent submits anyway; the guard has no signed ALLOW and refuses on chain."
 
+This testnet injected DENY is the easy case: besides its labels and the memo, the collector does not exist on testnet and is not registered on the token (`fixtures/rpc/attacks/10-injected.json:3-5`), so the existence check alone refuses it. For the harder case, use the recorded mainnet judgement of `rhea000453.multica.near`. In that file `receiver_exists` and `account_age` pass, dating it at least 7 days old; `issuer_blacklist`, `memo_injection`, `dust_funded`, `lookalike` and `code_without_metadata` also pass. Its DENY comes from `label_denylist`, which cites the rekt.news report naming it within Rhea's Multichain Account system and receiving traceable funds (`fixtures/receivers/judgements/rhea000453.multica.near.json:11-100`).
+
+Replay with `python -m intel receivers`, which rewrites the recorded set's judgements from the replay, after which `git status` shows no change (`README.md:341`); then inspect that file. For a live unsigned check of the same account (`docs/API.md:254,279`):
+
+```sh
+curl -s https://siyab.xyz/live/account-check/rhea000453.multica.near
+```
+
+The mainnet run of 15 Nov, after the deadline and not in the tag `hackathon-submission`, is different again. On its refused leg the collector carries incident labels and the Tether issuer answered `Banned`, so that DENY is not label-only; `request_transfer` with a null verdict failed `REFUSED:no_verdict` and spent nothing. The allowed leg moved 0.01 NEAR to `maryamnurudeen.near` under a signed ALLOW (`fixtures/runs/gate-mainnet-20261115.txt:25-34`). `python -m unittest tests.test_mainnet_run -v` checks retained evidence hashes and the ALLOW signature bound to that transfer, without re-querying mainnet (`tests/test_mainnet_run.py:30-72`; `fixtures/runs/gate-mainnet-20261115.txt:50-51`).
+
 ### 5. 55 to 72 seconds: the real invoice
 
 ```console
