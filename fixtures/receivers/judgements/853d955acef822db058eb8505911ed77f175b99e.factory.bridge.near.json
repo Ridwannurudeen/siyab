@@ -26,7 +26,7 @@
       "detail": "no denylist or incident label on intents.near or 853d955acef822db058eb8505911ed77f175b99e.factory.bridge.near",
       "source": {
         "provider": "label store",
-        "request_sha256": "9dfefbd7cf2951827f06613f52cfe92c9c4e65275453e6fe304dbcd7cc5c3d98",
+        "request_sha256": "1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8",
         "fetched_at": null
       }
     },
@@ -46,7 +46,7 @@
       "detail": "853d955acef822db058eb8505911ed77f175b99e.factory.bridge.near is a catalog_token in the label store",
       "source": {
         "provider": "label store",
-        "request_sha256": "9dfefbd7cf2951827f06613f52cfe92c9c4e65275453e6fe304dbcd7cc5c3d98",
+        "request_sha256": "1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8",
         "fetched_at": null
       }
     },
@@ -106,7 +106,7 @@
       "detail": "intents.near is itself a labelled reference account (assertion 522c8a621dbd41266cdf8a2d5020f4b27a608037e06ec4d3a50d2d9bb0681402, a4620b716e67ab13490ba33b67297ca168d93d4461c229e30dfa8a36b5396ebc, 17ef934e0652d8aa8cd4795e1b1f1f7259124fc1422601906c0272e5f9d71062, c55b108c502a3834f1acf605aed7284991956078fe345a72d5025a54e6b5c4a2)",
       "source": {
         "provider": "allowlist and label store",
-        "request_sha256": "9dfefbd7cf2951827f06613f52cfe92c9c4e65275453e6fe304dbcd7cc5c3d98",
+        "request_sha256": "1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8",
         "fetched_at": null
       }
     },

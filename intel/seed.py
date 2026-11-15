@@ -970,8 +970,16 @@ def fake_wallet(mode=None, raw_dir=RAW_DIR, nearblocks=None):
                              "block": int(txn["block"]["block_height"])}, **common)]
     replacement = dict(rows[0], label="reported collection account in the NEAR Wallet impersonation report")
     replacement["id"] = labels.assertion_id(replacement)
+    labels.validate(replacement)
     rows[0]["superseded_by"] = replacement["id"]
-    return [*rows, replacement]
+    rows.append(replacement)
+    for row in rows[1:]:
+        replacement = dict(row, entity="the collection account reported in the December 2021 NEAR Wallet impersonation thread")
+        replacement["id"] = labels.assertion_id(replacement)
+        labels.validate(replacement)
+        row["superseded_by"] = replacement["id"]
+        rows.append(replacement)
+    return rows
 
 
 def kangaroo(mode=None, raw_dir=RAW_DIR, nearblocks=None):

@@ -79,6 +79,7 @@ class ProfilesTest(unittest.TestCase):
         document = render.issuers_page()
         self.assertIn('data-profile-table="issuer-status"', document)
         self.assertIn('data-profile-table="issuer-history"', document)
+        self.assertEqual(len(issuers.reads()), 760)
         self.assertIn(f'<dt>Status reads</dt><dd>{len(issuers.reads())}</dd>', document)
         for row in labels.load(issuers.STATUS_PATH).assertions:
             self.assertIn(row.id, document)

@@ -26,7 +26,7 @@
       "detail": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \"named in the rekt.news Rhea Finance report as the collector account, which the report also prints as the attacker NEAR wallet\" (assertion 664db39d7af57209306fd948412fe59353389d94aba4aafc6c3b2779f1767ee2); 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \"created at block 194074444 by transaction 8ogy5xrbQG78Kw5Eo52iJnfNZQZzeh2iLMWeWXV1Wyuu with a deposit of 0.0000000000000000000001 NEAR\" (assertion 6ac99683a4192b79113c521dfde4a5e45ad506d353609438e48e48104f7010ad); 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the denylist label \"The issuer of usdt.tether-token.near blacklists 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 as of block 222839362\" (assertion c8805cbe989d08c8ad15e77a1bac1bf0ebef5e1c8e00e5163c244b423f69db65)",
       "source": {
         "provider": "label store",
-        "request_sha256": "9dfefbd7cf2951827f06613f52cfe92c9c4e65275453e6fe304dbcd7cc5c3d98",
+        "request_sha256": "1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8",
         "fetched_at": null
       }
     },
@@ -76,7 +76,7 @@
       "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
       "source": {
         "provider": "allowlist and label store",
-        "request_sha256": "9dfefbd7cf2951827f06613f52cfe92c9c4e65275453e6fe304dbcd7cc5c3d98",
+        "request_sha256": "1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8",
         "fetched_at": null
       }
     },

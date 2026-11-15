@@ -577,10 +577,17 @@ class FakeWalletSeedTest(unittest.TestCase):
             rows = seed.fake_wallet("replay")
         self.assertEqual([(r["subject"], r["category"], r["provenance"]) for r in rows],
                          [(self.account, "incident", "third_party"), (self.account, "incident", "onchain"),
+                          (self.account, "incident", "third_party"), (self.account, "incident", "onchain"),
                           (self.account, "incident", "third_party")])
         self.assertEqual(rows[0]["superseded_by"], rows[2]["id"])
-        self.assertIsNone(rows[2]["superseded_by"])
+        self.assertEqual(rows[1]["superseded_by"], rows[3]["id"])
+        self.assertEqual(rows[2]["superseded_by"], rows[4]["id"])
+        for row in rows[3:]:
+            self.assertIsNone(row["superseded_by"])
+            self.assertEqual(row["entity"], "the collection account reported in the December 2021 NEAR Wallet impersonation thread")
         self.assertEqual(rows[2]["label"], "reported collection account in the NEAR Wallet impersonation report")
+        self.assertEqual(rows[3]["label"], rows[1]["label"])
+        self.assertEqual(rows[4]["label"], rows[2]["label"])
         self.assertTrue(all(json.dumps(self.quote, ensure_ascii=False) in r["note"] for r in rows))
         self.assertEqual(rows[0]["source"]["url"], "https://gov.near.org/t/11112.json")
         self.assertEqual(rows[0]["source"]["content_sha256"], hashlib.sha256(self.data).hexdigest())
@@ -621,11 +628,11 @@ class FakeWalletSeedTest(unittest.TestCase):
             for source in ("fake-wallet", "kangaroo", "telegram-scam"):
                 self.assertIn(source, seed.SOURCES)
                 self.assertEqual(seed.run(source, "replay", store_path=store, readme_path=path / "snapshots.md"),
-                                 3 if source == "fake-wallet" else 2)
+                                 5 if source == "fake-wallet" else 2)
                 before = store.read_bytes()
                 self.assertEqual(seed.run(source, "replay", store_path=store, readme_path=path / "snapshots.md"), 0)
                 self.assertEqual(store.read_bytes(), before)
-            self.assertEqual(labels.load(store).counts()["category"]["incident"], 7)
+            self.assertEqual(labels.load(store).counts()["category"]["incident"], 9)
 
 
 class KangarooSeedTest(unittest.TestCase):

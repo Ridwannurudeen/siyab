@@ -11,6 +11,7 @@ import subprocess
 import tempfile
 import unittest
 from decimal import Decimal
+from dataclasses import replace
 from html.parser import HTMLParser
 from pathlib import Path
 from unittest import mock
@@ -949,6 +950,12 @@ class RenderTest(unittest.TestCase):
         accounts = render.account_pages(store)
         documents = (render.account_page(assertion.subject, store, accounts, [], [], []),
                      render.entity_page("Infrastructure", ("infrastructure",), store))
+        source_store = labels.load()
+        for category in ("incident", "watch"):
+            assertions = [replace(row, label=assertion.label) if row.category == category else row
+                          for row in source_store.assertions]
+            with mock.patch.object(labels, "load", return_value=labels.Store(assertions, source_store.sha256)):
+                documents += (render.index_page(render._incidents(), render._flows(), [], store),)
         for document in documents:
             with self.subTest(document=document[:80]):
                 self.assertIn('authored fake label; report says', own_text(document))

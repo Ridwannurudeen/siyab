@@ -414,6 +414,8 @@ class CommittedTraceTest(unittest.TestCase):
         ids = {a.id for a in store.assertions
                if a.subject == COLLECTOR and a.category == "incident" and a.superseded_by is None}
         self.assertEqual(set(self.document["assertion_ids"]), ids)
+        superseded = next(a for a in store.assertions if a.id.startswith("2c7133b4"))
+        self.assertNotIn(superseded.id, self.document["assertion_ids"])
         self.assertEqual(self.document["window"], trace.window(RHEA["date"]))
 
     def test_the_committed_trace_reads_the_subject_in_full_and_the_budget_stops_it_at_depth_1(self):

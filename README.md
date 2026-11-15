@@ -133,7 +133,7 @@ On 84 recorded mainnet receivers the rules returned 70 ALLOW, 14 DENY, 0 Unknown
 
 By cohort: ordinary counterparties 9 (9 ALLOW, 0 DENY, 0 Unknown); organisations from registries 50 (50 ALLOW, 0 DENY, 0 Unknown); incident accounts 15 (1 ALLOW, 14 DENY, 0 Unknown); catalog tokens 10 (10 ALLOW, 0 DENY, 0 Unknown).
 
-Label store: 3293 assertions over 3013 subjects (onchain 2916, official_source 350, third_party 23, inferred 4).
+Label store: 3295 assertions over 3013 subjects (onchain 2917, official_source 350, third_party 24, inferred 4).
 
 Incidents: 3 pages.
 
@@ -328,7 +328,7 @@ To check our work from outside, `docs/VERIFY.md` is the verification guide: offl
 7. `python -m intel counts` and `python -m gate incident rhea` print the label counts and the Rhea Lend incident page from committed files:
 
    ```
-   3293 assertions over 3013 subjects: onchain 2916, official_source 350, third_party 23, inferred 4, unknown 0
+   3295 assertions over 3013 subjects: onchain 2917, official_source 350, third_party 24, inferred 4, unknown 0
    ```
 
    ```

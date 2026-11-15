@@ -11,7 +11,7 @@ These counts are not a precision or recall measurement against any outside groun
 | Receiver ALLOW | 70 / 84 receivers | fixtures/receivers/set.json; fixtures/receivers/judgements/*.json |
 | Receiver DENY | 14 / 84 receivers | fixtures/receivers/set.json; fixtures/receivers/judgements/*.json |
 | Receiver UNKNOWN | 0 / 84 receivers | fixtures/receivers/set.json; fixtures/receivers/judgements/*.json |
-| Label assertions | 3,293 / 3,293 committed assertion rows | intel/labels.jsonl |
+| Label assertions | 3,295 / 3,295 committed assertion rows | intel/labels.jsonl |
 | Current hostile assertions (incident and denylist) | 61 / 3,286 current assertion rows | intel/labels.jsonl; intel/incidents/*.json |
 | Current reference assertions (all other categories) | 3,225 / 3,286 current assertion rows | intel/labels.jsonl |
 | Testnet payments | 7 / 7 payment table rows | docs/TESTNET.md |

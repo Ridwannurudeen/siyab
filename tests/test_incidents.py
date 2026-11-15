@@ -168,12 +168,13 @@ class RheaIncidentTest(unittest.TestCase):
             with self.subTest(bad=bad):
                 self.assertTrue(barred_words_outside_quotes(bad))
 
-    def test_the_rhea_label_rows_keep_barred_words_inside_the_quote(self):
+    def test_incident_label_rows_keep_barred_words_inside_the_quote(self):
         rows = [json.loads(line) for line in labels.STORE_PATH.read_text(encoding="utf-8").splitlines()]
-        rhea = [r for r in rows if r["source"].get("url") == seed.REKT_RHEA_URL or r["subject"] in TOKENS
-                or r["subject"] in WORKERS or r["subject"] in (COLLECTOR, MASTER)]
-        self.assertTrue(rhea)
-        for row in rhea:
+        incident_rows = [r for r in rows if r["source"].get("url") == seed.REKT_RHEA_URL or r["subject"] in TOKENS
+                         or r["subject"] in WORKERS or r["subject"] in (COLLECTOR, MASTER)
+                         or (r["category"] == "incident" and r["superseded_by"] is None)]
+        self.assertTrue(incident_rows)
+        for row in incident_rows:
             for field in ("entity", "label", "category", "note"):
                 with self.subTest(id=row["id"], field=field):
                     outside = re.sub(r'^quote "(.*?)"(;.*)?$', lambda m: m.group(2) or "", row[field], flags=re.DOTALL)

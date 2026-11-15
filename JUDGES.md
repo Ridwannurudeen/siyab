@@ -121,7 +121,7 @@ python -m intel counts
 python -m gate incident rhea
 ```
 
-Python 3.11 or later, no network and no keys; each exits 0. `injected` prints `DENIED.`, `Nothing was signed.` and `injected: refused`; `demo --offline` prints one ALLOW verdict, two `DENIED.` lines and `UNKNOWN, not signed: account_age, dust_funded could not run`; `codehash` prints `code_hash: 5EmM2UQRYcvaNvJX6jfcgtNS7Mm8ZPjZhwK1J8bMXrcu`, the testnet Gate's code hash above. `demo/site/` (5,579 of the repository's 14,835 tracked files) is the generated static site, written by `python -m intel render` from committed files; it is the bulk of the clone.
+Python 3.11 or later, no network and no keys; each exits 0. `injected` prints `DENIED.`, `Nothing was signed.` and `injected: refused`; `demo --offline` prints one ALLOW verdict, two `DENIED.` lines and `UNKNOWN, not signed: account_age, dust_funded could not run`; `codehash` prints `code_hash: 5EmM2UQRYcvaNvJX6jfcgtNS7Mm8ZPjZhwK1J8bMXrcu`, the testnet Gate's code hash above. `demo/site/` (5,579 of the repository's 15,862 tracked files) is the generated static site, written by `python -m intel render` from committed files; it is the bulk of the clone.
 
 ## What was built in the window
 
