@@ -43,6 +43,11 @@ assert.match(window.vizTest.edgeLabel(noisy, noisyEdge), /1 transfer has unknown
 assert.doesNotMatch(window.vizTest.edgeLabel(noisy, noisyEdge), /0\.09999999999999999/);
 noisy.records[0].amount_decimals = null; noisyEdge.asset_id = 'nep141:unknown.near';
 assert.match(window.vizTest.edgeLabel(noisy, noisyEdge), /100000000000000000000000 base units/);
+noisy.records[0].amount = '1';
+assert.match(window.vizTest.edgeLabel(noisy, noisyEdge), /1 base unit\b/);
+assert.doesNotMatch(window.vizTest.edgeLabel(noisy, noisyEdge), /1 base units\b/);
+noisy.records[0].amount = '2';
+assert.match(window.vizTest.edgeLabel(noisy, noisyEdge), /2 base units\b/);
 const before = JSON.stringify(payload);
 const summary = valueSummary(payload.records);
 assert.equal(summary.usd, '1.000000000000000000000001');

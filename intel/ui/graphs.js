@@ -97,7 +97,7 @@
       const display = window.SiyabNumbers.baseUnits(amount, decimals[0]);
       if (display !== "Unavailable") return display;
     }
-    return amount + " base units";
+    return amount + (amount === "1" ? " base unit" : " base units");
   }
 
   function edgeLabel(payload, edge) {

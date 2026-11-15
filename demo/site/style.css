@@ -451,6 +451,19 @@ blockquote.data .data-id,q.data-identifier,#issuer-status td:nth-child(-n+2) q.d
 @media(max-width:900px){.jobs-table td{height:auto}}
 @media(max-width:760px){.investigation-jobs button,.investigation-jobs input,.investigation-jobs select{min-height:44px}.investigation-jobs button{font:400 15px/22px var(--font-ui)}.investigation-jobs input,.investigation-jobs select{font:400 16px/24px var(--font-ui)}.jobs-table td{font:400 14px/20px var(--font-ui)}.jobs-table td[data-label=Amount]{font:400 var(--fs-data) var(--font-code);font-feature-settings:"lnum" 1,"tnum" 1,"zero" 1;font-variant-numeric:lining-nums tabular-nums slashed-zero;font-variant-ligatures:none}}
 
+.landing-check{margin:0 0 var(--s5);padding:var(--s4);border:1px solid rgb(var(--hairline));border-radius:var(--r-md);background:rgb(var(--panel));pointer-events:auto}
+.landing-check-heading{display:flex;align-items:center;flex-wrap:wrap;gap:var(--s3)}
+.landing-check .landing-check-heading h2{margin:0;font:600 var(--fs-panel) var(--font-display);color:rgb(var(--block-text));letter-spacing:0}
+.landing-check-heading q{font:400 var(--fs-data) var(--font-code);quotes:none}
+.landing-check-reasons{margin:var(--s3) 0;padding-left:var(--s4);font:400 var(--fs-body) var(--font-ui)}
+.landing-check-reasons li+li{margin-top:var(--s2)}
+.landing-check-reasons q{quotes:none}
+.landing-check-reasons a{font:400 var(--fs-data) var(--font-ui)}
+.landing-check-full{padding-left:var(--s4);overflow-wrap:anywhere}
+.landing-check-full p{margin:var(--s2) 0}
+.landing-check #landing-check-result{overflow-wrap:anywhere}
+@media(max-width:760px){.landing-check{padding:var(--s3)}.landing-check-reasons{font:400 var(--fs-body) var(--font-ui)}.landing-check-reasons a{display:flex;width:fit-content}}
+
 .portfolio{min-width:0;--portfolio-chart-height:220px}
 .portfolio h2{margin:0 0 12px}.portfolio h3{font:600 var(--fs-panel-title) var(--font-display);letter-spacing:0;margin:0 0 8px}
 .portfolio-intro,.portfolio-note,.portfolio-hint,.portfolio-legend{color:rgb(var(--secondary));font:400 var(--fs-data) var(--font-ui);max-width:35rem;overflow-wrap:anywhere}

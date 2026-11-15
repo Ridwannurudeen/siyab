@@ -3,9 +3,11 @@ import html
 import json
 import re
 import unittest
+from dataclasses import replace
 from html.parser import HTMLParser
 from pathlib import Path
 from unittest import mock
+from urllib.parse import urlsplit
 
 from intel import labels, render, trace
 from tests import test_design_system
@@ -105,6 +107,72 @@ class LandingTest(unittest.TestCase):
     def test_problem_story_is_labeled_as_one_recorded_case(self):
         self.assertIn('<p>One recorded case:</p><p class="landing-statement">', self.main)
 
+    def test_recorded_check_uses_the_committed_judgement_and_sources(self):
+        subject = dict(render._flows())["rhea-collector"]["subject"]
+        record = json.loads((render.ROOT / "fixtures/receivers/judgements" / (subject + ".json")).read_text(encoding="utf-8"))
+        panel = self.main.split('id="landing-check"', 1)[1].split('</article>', 1)[0]
+        self.assertIn(record["verdict"], panel)
+        self.assertIn('class="verdict deny">DENY<', panel)
+        self.assertNotIn("label store Recorded label store", panel)
+        self.assertIn(subject[:8] + "..." + subject[-8:], panel)
+        self.assertIn('data-account="' + subject + '"', panel)
+        for reason in record["reasons"]:
+            self.assertIn(html.escape(reason, quote=True), panel)
+        for check in record["checks"]:
+            if check["status"] == "signal":
+                self.assertIn(check["source"]["provider"], panel)
+        self.assertIn('https://rekt.news/rhea-finance-rekt', panel)
+        self.assertIn('Recorded', panel)
+
+    def test_recorded_check_rejects_a_judgement_other_than_deny(self):
+        subject = dict(render._flows())["rhea-collector"]["subject"]
+        path = render.ROOT / "fixtures/receivers/judgements" / (subject + ".json")
+        record = json.loads(path.read_text(encoding="utf-8"))
+        original = Path.read_text
+        for verdict in ("ALLOW", "UNKNOWN"):
+            with self.subTest(verdict=verdict):
+                changed = dict(record, verdict=verdict)
+                def read(candidate, *args, **kwargs):
+                    return json.dumps(changed) if candidate == path else original(candidate, *args, **kwargs)
+                with mock.patch.object(Path, "read_text", read), self.assertRaisesRegex(ValueError, "recorded.*DENY|Recorded.*DENY"):
+                    render.index_page(render._incidents(), render._flows(), render._clusters(), labels.load())
+
+    def test_recorded_check_amount_comes_from_the_request(self):
+        subject = dict(render._flows())["rhea-collector"]["subject"]
+        path = render.ROOT / "fixtures/receivers/judgements" / (subject + ".json")
+        record = json.loads(path.read_text(encoding="utf-8"))
+        record["request"]["amount"] = "1250000000000000000000000"
+        original = Path.read_text
+        def read(candidate, *args, **kwargs):
+            return json.dumps(record) if candidate == path else original(candidate, *args, **kwargs)
+        with mock.patch.object(Path, "read_text", read):
+            page = render.index_page(render._incidents(), render._flows(), render._clusters(), labels.load())
+        panel = page.split('id="landing-check"', 1)[1].split('</article>', 1)[0]
+        self.assertIn("Unsigned receiver judgement for 1.25 NEAR.", panel)
+
+    def test_recorded_check_links_only_https_incidents_and_keeps_rpc_as_text(self):
+        store = labels.load()
+        for url in ("https://incident.example/report", "http://incident.example/report", "//incident.example/report"):
+            with self.subTest(url=url):
+                assertions = [replace(row, source=dict(row.source, url=url))
+                              if row.category == "incident" and row.source.get("url") else row
+                              for row in store.assertions]
+                with mock.patch.object(labels, "load", return_value=labels.Store(assertions, store.sha256)):
+                    page = render.index_page(render._incidents(), render._flows(), render._clusters(), store)
+                panel = page.split('id="landing-check"', 1)[1].split('</article>', 1)[0]
+                reasons = panel.split('<ul class="landing-check-reasons">', 1)[1].split('</ul>', 1)[0]
+                self.assertIn("incident.example", reasons)
+                self.assertEqual('href="' + url + '"' in reasons, url.startswith("https://"))
+                issuer = next(row for row in assertions if row.source.get("method") == "get_blacklist_status"
+                              and row.category == "watch" and urlsplit(row.source["rpc"]).hostname in reasons)
+                self.assertIn(urlsplit(issuer.source["rpc"]).hostname, reasons)
+                self.assertNotIn('href="' + issuer.source["rpc"] + '"', reasons)
+
+    def test_recorded_check_keeps_its_sources_with_a_different_page_store(self):
+        with mock.patch("urllib.request.urlopen", side_effect=AssertionError("Unexpected network read")):
+            page = render.index_page(render._incidents(), render._flows(), render._clusters(), labels.Store([], "0" * 64))
+        self.assertIn('https://rekt.news/rhea-finance-rekt', page)
+
     def test_hero_copy_and_graph_have_separate_grid_areas(self):
         css = (render.ROOT / "intel/ui/site.css").read_text(encoding="utf-8")
         styles = {selector: dict(re.findall(r"([a-z-]+):([^;]+)", body))
@@ -170,7 +238,7 @@ class LandingTest(unittest.TestCase):
         main = re.search(r'<main[^>]*>\n(.*?)\n</main>', page, re.S).group(1)
         main = re.sub(r'<article class="analytics-panel"><div class="analytics-panel-head"><h2>Label store provenance</h2>.*?</article>', '', main, flags=re.S)
         main = main.replace('/index.html', '/explore.html')
-        expected = "b8cb5ca68e2aa0fda25f9d41e14294bb" + "67bcbe62226b36dc79c78afbded01f74"
+        expected = "30e2f505161de933bba1510b9720311" + "67fa806a8216955e681846be8cbb0aab2"
         self.assertEqual(hashlib.sha256(main.encode("utf-8")).hexdigest(), expected)
 
 
@@ -181,6 +249,140 @@ class LandingBrowserTest(unittest.TestCase):
     def setUp(self):
         if self.browser is None:
             self.skipTest(self.browser_reason)
+
+    def test_recorded_catch_is_in_the_first_viewport_without_scripts(self):
+        for width, height in ((1366, 768), (390, 844)):
+            with self.subTest(width=width):
+                context = self.browser.new_context(viewport={"width": width, "height": height}, java_script_enabled=False)
+                self.addCleanup(context.close)
+                context.route("**/*", self.local_route)
+                page = context.new_page()
+                page.goto(self.origin + "/index.html")
+                page.evaluate("document.fonts.ready")
+                for selector in ("#landing-check h2", ".landing-check-reasons", "#landing-check-live"):
+                    box = page.locator(selector).bounding_box()
+                    self.assertGreaterEqual(box["y"], 0)
+                    self.assertLessEqual(box["y"] + box["height"], height)
+
+    def test_live_check_is_on_demand_and_retains_the_record_on_failure(self):
+        context = self.browser.new_context()
+        self.addCleanup(context.close)
+        requests = []
+        def route(request):
+            if "/live/account-check/" in request.request.url:
+                requests.append(request.request.url)
+                request.fulfill(status=503, content_type="application/json", body='{"message":"Unavailable"}')
+            else:
+                self.local_route(request)
+        context.route("**/*", route)
+        page = context.new_page()
+        page.goto(self.origin + "/index.html")
+        page.wait_for_load_state("networkidle")
+        self.assertEqual(requests, [])
+        original = page.locator("#landing-check-record").inner_text()
+        page.locator("#landing-check-live").click()
+        page.wait_for_function('document.getElementById("landing-check-status").textContent.includes("failed")')
+        self.assertEqual(len(requests), 1)
+        self.assertEqual(page.locator("#landing-check-record").inner_text(), original)
+        self.assertFalse(page.locator("#landing-check-live").is_disabled())
+        self.assertNotIn("ALLOW", page.locator("#landing-check-result").inner_text())
+        self.assertIn("did not complete", page.locator("#landing-check-result").inner_text())
+        subject = dict(render._flows())["rhea-collector"]["subject"]
+        record = json.loads((render.ROOT / "fixtures/receivers/judgements" / (subject + ".json")).read_text(encoding="utf-8"))
+        live = {"outcome": record["verdict"], "action": "refuse", "verdict": None, "signing": "never",
+                "evidence_hash": "a" * 64, "freshness": record["observed"], "latency_ms": 1,
+                "reasons": record["reasons"], "checks": [dict(name=check["id"], status=check["status"], detail=check["detail"])
+                                                          for check in record["checks"]]}
+        for status, content_type, body, expected in (
+                (404, "text/html", "Unavailable", "failed"),
+                (429, "application/json", '{}', "failed"),
+                (0, "", "", "failed"),
+                (200, "application/json", '{', "failed"),
+                (200, "application/json", 'null', "failed"),
+                (200, "application/json", '{"outcome":"ALLOW"}', "failed"),
+                (200, "application/json", json.dumps(live), "returned")):
+            with self.subTest(status=status, expected=expected):
+                context.route("**/live/account-check/*", lambda request: request.fulfill(status=status, content_type=content_type, body=body)
+                              if status else request.abort())
+                page.locator("#landing-check-live").click()
+                page.wait_for_function("text => document.getElementById('landing-check-status').textContent.includes(text)", arg=expected)
+                self.assertEqual(page.locator("#landing-check-record").inner_text(), original)
+                self.assertFalse(page.locator("#landing-check-live").is_disabled())
+                if expected == "failed":
+                    self.assertNotIn("ALLOW", page.locator("#landing-check-result").inner_text())
+                    if status == 404:
+                        self.assertIn("not available on this copy", page.locator("#landing-check-result").inner_text())
+                    else:
+                        self.assertIn("did not complete", page.locator("#landing-check-result").inner_text())
+                        self.assertNotIn("not available on this copy", page.locator("#landing-check-result").inner_text())
+
+    def test_live_check_handles_a_thrown_renderer_and_names_the_rendered_record(self):
+        context = self.browser.new_context()
+        self.addCleanup(context.close)
+        context.add_init_script("""Object.defineProperty(window, 'SiyabChecks', {
+          configurable: true,
+          set(value) {
+            value.renderVerdict = () => { throw new Error('Renderer failed'); };
+            Object.defineProperty(window, 'SiyabChecks', {value, configurable: true});
+          }
+        });""")
+        def route(request):
+            if request.request.url == self.origin + "/index.html":
+                document = self.pages["index.html"].replace('class="verdict deny">DENY<', 'class="verdict deny">RECORDED TEST<', 1)
+                request.fulfill(content_type="text/html", body=document)
+            elif "/live/account-check/" in request.request.url:
+                request.fulfill(content_type="application/json", body='{}')
+            else:
+                self.local_route(request)
+        context.route("**/*", route)
+        page = context.new_page()
+        page.goto(self.origin + "/index.html")
+        original = page.locator("#landing-check-record").inner_text()
+        page.locator("#landing-check-live").click()
+        page.wait_for_function('document.getElementById("landing-check-status").textContent.includes("failed")')
+        self.assertIn("The recorded RECORDED TEST is retained above", page.locator("#landing-check-status").inner_text())
+        self.assertFalse(page.locator("#landing-check-live").is_disabled())
+        self.assertEqual(page.locator("#landing-check-record").inner_text(), original)
+        self.assertNotIn("ALLOW", page.locator("#landing-check-result").inner_text())
+        self.assertIn("did not complete", page.locator("#landing-check-result").inner_text())
+
+    def test_live_check_aborts_a_route_that_never_responds(self):
+        context = self.browser.new_context()
+        self.addCleanup(context.close)
+        requests = []
+        def route(request):
+            if "/live/account-check/" in request.request.url:
+                requests.append(request)
+            else:
+                self.local_route(request)
+        context.route("**/*", route)
+        page = context.new_page()
+        page.goto(self.origin + "/index.html")
+        original = page.locator("#landing-check-record").inner_text()
+        page.evaluate("""() => {
+          window.landingReadStarted = 0;
+          window.landingReadAborted = 0;
+          const originalFetch = window.fetch;
+          window.fetch = (path, options) => {
+            if (path.startsWith('/live/account-check/')) {
+              window.landingReadStarted = performance.now();
+              options.signal.addEventListener('abort', () => { window.landingReadAborted = performance.now(); });
+            }
+            return originalFetch(path, options);
+          };
+        }""")
+        page.locator("#landing-check-live").click()
+        page.wait_for_function('document.getElementById("landing-check-status").textContent.includes("failed")', timeout=14000)
+        self.assertEqual(len(requests), 1)
+        requests[0].abort()
+        elapsed = page.evaluate("landingReadAborted - landingReadStarted")
+        self.assertGreaterEqual(elapsed, 11900)
+        self.assertLess(elapsed, 13000)
+        self.assertFalse(page.locator("#landing-check-live").is_disabled())
+        self.assertEqual(page.locator("#landing-check-record").inner_text(), original)
+        self.assertNotIn("ALLOW", page.locator("#landing-check-result").inner_text())
+        self.assertIn("did not complete", page.locator("#landing-check-result").inner_text())
+        self.assertNotIn("not available on this copy", page.locator("#landing-check-result").inner_text())
 
     def test_both_themes_reflow_and_phone_targets_without_scripts(self):
         for width in (320, 390, 768, 1024, 1440):

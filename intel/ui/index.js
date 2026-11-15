@@ -17,8 +17,6 @@ const updateAmountLabel = () => {
   document.getElementById("tool-amount-label").textContent = tokenInput.value.trim() === "near"
     ? "Amount in NEAR" : "Amount in base units";
 };
-tokenInput.addEventListener("input", updateAmountLabel);
-updateAmountLabel();
 const paymentAmount = (value, token) => {
   const amount = value.trim();
   let units;
@@ -47,9 +45,9 @@ const showUnavailable = (panel, token) => {
   panel.replaceChildren();
   addText(panel, "p", liveUnavailable, "empty-state");
 };
-const readJson = async (path, panel, token) => {
+const readJson = async (path, panel, token, signal) => {
   try {
-    const response = await fetch(path, {headers: {Accept: "application/json"}});
+    const response = await fetch(path, {headers: {Accept: "application/json"}, signal});
     if (!isCurrentRequest(panel, token)) return null;
     const contentType = (response.headers.get("content-type") || "").toLowerCase();
     if (response.status === 404 || !contentType.includes("application/json")) {
@@ -176,6 +174,10 @@ const renderVerdict = (panel, data, showOfac = false, token) => {
   }
   return true;
 };
+window.SiyabChecks = {beginRequest, readJson, renderVerdict};
+if (!labelForm) return;
+tokenInput.addEventListener("input", updateAmountLabel);
+updateAmountLabel();
 const askQuestions = [["why_verdict", "Why did the checks reach this outcome?"], ["what_unknown", "What is unknown, and why?"],
   ["what_changes", "What in the evidence would have to change for the outcome to change?"],
   ["explain_labels", "What do the labels in the evidence say about these accounts?"]];

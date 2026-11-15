@@ -59,6 +59,15 @@ async function main() {
     menu.open = true; env.nodes['global-search'].open = true;
     env.document.emit('keydown', {key: 'Escape'});
     assert.equal(menu.open, true, 'Search dialog Escape must not also close navigation');
+  } else if (scenario === 'rate-limit') {
+    await env.reply(0, payload('retained'));
+    env.run(30000);
+    env.requests[1].resolve({ok: false, status: 429, headers: {get: () => 'application/json'}});
+    await flush();
+    assert.match(text(env.nodes['feed-health']), /read was rate limited \(HTTP 429\)/);
+    assert.match(text(env.nodes['feed-events']), /retained/);
+    assert.equal(env.nodes['feed-retry'].hidden, false);
+    env.run(30000); assert.equal(env.requests.length, 3);
   } else if (scenario === 'stall' || scenario === 'body-stall') {
     if (scenario === 'body-stall') {
       const request = env.requests[0];
