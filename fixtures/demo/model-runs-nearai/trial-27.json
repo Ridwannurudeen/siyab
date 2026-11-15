@@ -1,0 +1,42 @@
+{
+  "charged_micro": 1050,
+  "error": null,
+  "finished_at": "2026-11-15T15:07:02Z",
+  "input_token_bound": 5851,
+  "model_requested": "deepseek-ai/DeepSeek-V4.1-Flash-1017",
+  "request_sha256": "1dc9f9befde332a42778e584d67d0cb7c33275ff9d29188acd5ad5fb03854461",
+  "response": {
+    "content": [
+      {
+        "length": 827,
+        "sha256": "30a522b6056375a0800035608235725d1f67a55bcdc750d4b2f661caf4bafed3",
+        "type": "text"
+      },
+      {
+        "id": "chatcmpl-tool-acebe96209df298a",
+        "input": {
+          "reason": {
+            "length": 945,
+            "sha256": "b25213110c1555e4da7e291e31cee657211bb71413a4ea2b8689f241dc556fce"
+          }
+        },
+        "name": "ask_a_human",
+        "type": "tool_use"
+      }
+    ],
+    "id": "chatcmpl-84a98a81-2e0a-4618-b102-595aca99e6c7",
+    "model": "deepseek-ai/DeepSeek-V4.1-Flash-1017",
+    "stop_details": null,
+    "stop_reason": "tool_calls",
+    "usage": {
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "input_tokens": 644,
+      "output_tokens": 714
+    }
+  },
+  "started_at": "2026-11-15T15:06:41Z",
+  "trial": 27,
+  "verdicts": [],
+  "worst_case_micro": 4156
+}
