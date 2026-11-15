@@ -42,7 +42,7 @@ COPY = (
     "Accounts from on chain registries, with a source on each assertion.",
     "What these reads mean.",
     "Payment destination intelligence, without transaction or calldata simulation.",
-    "The Gate demonstrations run on testnet. There is no mainnet deployment.",
+    "The Gate demonstrations run on testnet. After the deadline, on 15 Nov 2026, siyabgate.near hosted a one-off mainnet Gate run (code_hash 5EmM2UQRYcvaNvJX6jfcgtNS7Mm8ZPjZhwK1J8bMXrcu): a labelled collector request was refused as REFUSED:no_verdict with nothing spent, and a signed ALLOW paid 0.01 NEAR to an allowlisted payee. The Gate was then paused and the agent revoked. No Gate is in service on mainnet; siyabgate.near is paused with its agent key revoked. This run is outside the hackathon-submission tag.",
     "Inferred attributions remain hypotheses and never add a subject to the refusal set.",
     "Live API checks are read only and never sign.", "Unknown never passes.",
     "Every label has a source. Every verdict has evidence. Unknown never passes.",
