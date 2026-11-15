@@ -323,6 +323,13 @@ class AnalyticsPresentationTest(unittest.TestCase):
             self.assertIn(f'>{heading}</h2><p class="muted">{label}</p>', page)
         self.assertIn(f'{html.escape(render.HEADLINE)}</p><div class="hero-topline"><p class="muted">NEAR PAYMENT PREFLIGHT</p></div>', page)
 
+    def test_outcomes_legend_explains_warn_display_for_api_ask(self):
+        page = render.explore_page([], [], [], labels.load())
+        self.assertIn("ALLOW, WARN and DENY are the outcomes.", own_text(page))
+        self.assertEqual(own_text(page).count("WARN is shown for the API outcome ASK."), 1)
+        self.assertIn('<span class="outcome ask">WARN</span>', page)
+        self.assertNotIn('<span class="outcome ask">ASK</span>', page)
+
 
 class RenderTest(unittest.TestCase):
     @classmethod
@@ -669,7 +676,9 @@ class RenderTest(unittest.TestCase):
         self.assertIn("data.freshness !== null", is_green)
         self.assertIn('data.checks.every(check => check.status.trim().toLowerCase() === "pass")', page)
         self.assertIn('const displayOutcome = data.outcome === "ALLOW" && !isGreen ? "ASK" : data.outcome;', page)
+        self.assertIn('addText(panel, "p", displayOutcome === "ASK" ? "WARN" : displayOutcome,', page)
         self.assertIn('`verdict ${isGreen ? "allow" : displayOutcome.toLowerCase()}`', page)
+        self.assertIn('`Action: ${data.action === "ask" ? "warn" : data.action}`', page)
         self.assertIn('if (data.outcome === "ALLOW" && data.action === "ask")', page)
         self.assertIn("A person must decide before this payment can proceed.", page)
 

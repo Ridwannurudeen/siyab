@@ -544,9 +544,9 @@ def explore_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEI
         '<section class="hero-grid" aria-labelledby="payment-introduction"><div class="hero-copy">'
         f'<p id="payment-introduction">{esc(HEADLINE)}</p>'
         '<div class="hero-topline"><p class="muted">NEAR PAYMENT PREFLIGHT</p></div>'
-        '<p class="lede">Every answer names its source. ALLOW, ASK and DENY are the outcomes. Only an ALLOW is signed, and the Gate contract enforces it.</p>'
+        '<p class="lede">Every answer names its source. ALLOW, WARN and DENY are the outcomes. Only an ALLOW is signed, and the Gate contract enforces it. WARN is shown for the API outcome ASK.</p>'
         '<div class="outcomes" aria-label="Verdict outcomes"><span class="outcome allow">ALLOW</span>'
-        '<span class="outcome ask">ASK</span><span class="outcome deny">DENY</span></div>'
+        '<span class="outcome ask">WARN</span><span class="outcome deny">DENY</span></div>'
         '</div><form class="lookup-card" id="account-form"><label for="account-input">Paste any NEAR account'
         '<input id="account-input" name="account" type="text" autocomplete="off" spellcheck="false" '
         'placeholder="account.near" required></label>'
@@ -1176,7 +1176,7 @@ def incident_page(document, accounts):
                                + f'<details class="analytics-full-account"><summary>Full identifier</summary>{account}</details>')
                 checks = '<br>'.join(f'{esc(check["id"])} {esc(check["status"])}: {esc(check["detail"])}'
                                     for check in entry["checks"])
-                rows.append((esc(entry["role"]), account, esc(entry["outcome"]), checks))
+                rows.append((esc(entry["role"]), account, esc("WARN" if entry["outcome"] == "ASK" else entry["outcome"]), checks))
             replay = (f'<section class="profile-section"><h2>Replayed as of {esc(date)}, with no labels</h2>'
                       f'<p>The guard used only on-chain state at block {esc(run["height"])} ({esc(block_time)}), with no labels. '
                       'This is a replay, not a live prediction. UNKNOWN checks never count as a pass.</p>'

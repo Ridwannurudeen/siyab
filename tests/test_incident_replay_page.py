@@ -50,7 +50,7 @@ class IncidentReplayPageTest(unittest.TestCase):
         self.assertIn(f"block {recorded['height']}", section)
         for row in recorded["accounts"]:
             self.assertIn(row["account_id"], section)
-            self.assertIn(row["outcome"], section)
+            self.assertIn("WARN" if row["outcome"] == "ASK" else row["outcome"], section)
 
     def test_replay_section_exists_only_with_a_run_file(self):
         before = render.incident_page(self.document, {})
@@ -86,17 +86,25 @@ class IncidentReplayPageTest(unittest.TestCase):
         self.assertIn("block 0 (1970-01-01 00:00:00 UTC)", page)
         self.assertNotIn("Replay record invalid", page)
 
-    def test_unknown_check_keeps_ask_outcome(self):
+    def test_unknown_check_shows_warn_and_keeps_original_ask_outcome(self):
         row = self.run["accounts"][0]
         row.update(verdict="UNKNOWN", outcome="ASK")
         row["checks"][3].update(status="unknown", detail="Account age is unavailable.")
+        api = render.LiveAPI._verdict_shape(row["verdict"], row["checks"], [], None, {}, 0)
+        row["action"] = api["action"]
         self.write_run()
+        path = self.replays / "rhea/run.json"
+        original = path.read_bytes()
         page = render.incident_page(self.document, {})
         section = page.split("<h2>Replayed as of", 1)[1].split("</section>", 1)[0]
-        self.assertIn("ASK", section)
+        self.assertIn('<span class="cell-label" aria-hidden="true">Outcome</span>WARN</td>', section)
+        self.assertNotIn("ASK", section)
         self.assertIn("unknown", section)
         self.assertIn("Account age is unavailable.", section)
         self.assertNotIn("ALLOW", section)
+        self.assertEqual((api["outcome"], api["action"]), ("ASK", "ask"))
+        self.assertEqual((row["outcome"], row["action"]), ("ASK", "ask"))
+        self.assertEqual(path.read_bytes(), original)
 
     def test_replay_fields_are_escaped_and_full_account_is_retained(self):
         row = self.run["accounts"][0]

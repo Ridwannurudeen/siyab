@@ -86,7 +86,7 @@
                 || !Number.isFinite(data.freshness.timestamp_ms) || data.freshness.timestamp_ms < 0))) {
             throw new Error("The mainnet response was incomplete. No favorable payment result is established.");
           }
-          output.replaceChildren(node("strong", data.outcome, `profile-outcome ${data.outcome.toLowerCase()}`),
+          output.replaceChildren(node("strong", data.outcome === "ASK" ? "WARN" : data.outcome, `profile-outcome ${data.outcome.toLowerCase()}`),
             node("p", `1 NEAR to ${account}. Read only; signing never.`));
           const list = node("ul", undefined, "profile-checks");
           data.checks.forEach(check => { const item = node("li"); item.append(node("strong", `${check.name}: ${check.status}`), node("p", check.detail)); list.append(item); });

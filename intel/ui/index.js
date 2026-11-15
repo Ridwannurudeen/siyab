@@ -133,8 +133,8 @@ const renderVerdict = (panel, data, showOfac = false, token) => {
     && data.checks.every(check => check.status.trim().toLowerCase() === "pass");
   const displayOutcome = data.outcome === "ALLOW" && !isGreen ? "ASK" : data.outcome;
   panel.replaceChildren();
-  addText(panel, "p", displayOutcome, `verdict ${isGreen ? "allow" : displayOutcome.toLowerCase()}`);
-  if (typeof data.action === "string") addText(panel, "p", `Action: ${data.action}`);
+  addText(panel, "p", displayOutcome === "ASK" ? "WARN" : displayOutcome, `verdict ${isGreen ? "allow" : displayOutcome.toLowerCase()}`);
+  if (typeof data.action === "string") addText(panel, "p", `Action: ${data.action === "ask" ? "warn" : data.action}`);
   if (data.outcome === "ALLOW" && data.action === "ask") {
     addText(panel, "p", "A person must decide before this payment can proceed.", "panel-status");
   }
