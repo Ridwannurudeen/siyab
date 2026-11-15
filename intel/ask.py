@@ -292,8 +292,8 @@ def sdk_client(api_key):
     return Adapter()
 
 
-def _read_key():
-    name = os.environ.get("ANTHROPIC_API_KEY_FILE")
+def _read_key(env_name="ANTHROPIC_API_KEY_FILE"):
+    name = os.environ.get(env_name)
     if not name:
         return None
     path = Path(name)
