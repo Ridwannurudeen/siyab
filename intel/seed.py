@@ -8,6 +8,8 @@ DeFiLlama hacks entry, with the HOT token contract re-read on chain, which also 
 intel/incidents/sweat-hot.json), intents-2026-10-01 (the DeFiLlama hacks entry only, which writes
 intel/incidents/intents-2026-10-01.json and adds no row) and skyward (the rekt.news Skyward Finance
 report, with the account it names and the transaction it links re-read on chain).
+fake-wallet reads the December 2021 NEAR forum report and confirms its named collection transfer.
+kangaroo confirms the batch in its post-mortem; telegram-scam confirms only the reported direct recipient.
 GATE_FIXTURES_MODE decides the network: replay (default) reads the newest snapshot under
 intel/seeds/raw/ and the recorded RPC fixtures; record fetches the page once, stores it byte for byte
 as raw/<name>-<UTC time>.<ext> and records RPC reads.
@@ -38,14 +40,43 @@ QUOTE_DOC_URL = "https://docs.near-intents.org/api-reference/oneclick/request-a-
 FIREBLOCKS_URL = "https://www.fireblocks.com/blog/near-zero-day-sweat-hot-token-exploit"
 DEFILLAMA_URL = "https://api.llama.fi/hacks"
 REKT_SKYWARD_URL = "https://rekt.news/skyward-rekt"
+FAKE_WALLET_URL = "https://gov.near.org/t/11112.json"
+KANGAROO_URL = "https://gov.near.org/t/25445.json"
+TELEGRAM_SCAM_URL = "https://gov.near.org/t/21725.json"
 SNAPSHOTS = {"treasuries": ("near-intents-treasury-addresses", "md", TREASURY_URL),
              "catalog": ("1click-tokens", "json", CATALOG_URL),
              "rhea": ("rekt-rhea", "html", REKT_RHEA_URL),
              "quote_doc": ("intents-quote-doc", "md", QUOTE_DOC_URL),
              "fireblocks": ("fireblocks-sweat-hot", "html", FIREBLOCKS_URL),
              "defillama": ("defillama-hacks", "json", DEFILLAMA_URL),
-             "skyward": ("rekt-skyward", "html", REKT_SKYWARD_URL)}
-SOURCES = ("treasuries", "catalog", "infrastructure", "rhea", "sweat-hot", "intents-2026-10-01", "skyward")
+             "skyward": ("rekt-skyward", "html", REKT_SKYWARD_URL),
+             "fake-wallet": ("l2-forum-11112", "json", FAKE_WALLET_URL),
+             "kangaroo": ("l2-forum-25445", "json", KANGAROO_URL),
+             "telegram-scam": ("l2-forum-21725", "json", TELEGRAM_SCAM_URL),
+             "telegram-scam-context": ("l2-telegram-final-post", "json", "https://gov.near.org/t/21725/21.json"),
+             "aurora-bounties": ("l2-aurora-bounties", "json", "https://forum.aurora.dev/t/1257.json"),
+             "chainabuse": ("l2-chainabuse-home", "html", "https://www.chainabuse.com/"),
+             "wallet-warning": ("l2-forum-17380", "json", "https://gov.near.org/t/17380.json"),
+             "unsupported-report": ("l2-forum-17616", "json", "https://gov.near.org/t/17616.json"),
+             "name-squatting": ("l2-forum-17750", "json", "https://gov.near.org/t/17750.json"),
+             "wallet-phishing": ("l2-forum-18659", "json", "https://gov.near.org/t/18659.json"),
+             "airdrop-scam": ("l2-forum-19675", "json", "https://gov.near.org/t/19675.json"),
+             "fraudster-report": ("l2-forum-2733", "json", "https://gov.near.org/t/2733.json"),
+             "exchange-report": ("l2-forum-35032", "json", "https://gov.near.org/t/35032.json"),
+             "wallet-theft": ("l2-forum-38862", "json", "https://gov.near.org/t/38862.json"),
+             "btc-theft": ("l2-forum-42360", "json", "https://gov.near.org/t/42360.json"),
+             "discord-postmortem": ("l2-near-discord", "html",
+                                    "https://www.near.org/blog/post-mortem-near-discord-security-incident"),
+             "wallet-update": ("l2-near-wallet-update", "html",
+                               "https://www.near.org/blog/near-web-wallet-security-update"),
+             "nearblocks-openapi": ("l2-nearblocks-openapi", "json", "https://api.nearblocks.io/openapi.json"),
+             "quill-rhea": ("l2-quill-rhea", "html", "https://www.quillaudits.com/blog/hack-analysis/rhea-finance-hack"),
+             "ref-postmortem-link": ("l2-ref-week22", "json", "https://gov.near.org/t/5823.json"),
+             "rekt-intents": ("l2-rekt-intents", "html", "https://rekt.news/near-intents-rekt"),
+             "uk-sanctions": ("l2-uk-sanctions-list-page", "html",
+                              "https://www.gov.uk/government/publications/the-uk-sanctions-list")}
+SOURCES = ("treasuries", "catalog", "infrastructure", "rhea", "sweat-hot", "intents-2026-10-01", "skyward",
+           "fake-wallet", "kangaroo", "telegram-scam")
 _STAMP = "%Y%m%dT%H%M%SZ"
 _TIME = "%Y-%m-%dT%H:%M:%SZ"
 # Page names to 1Click blockchain codes. Aurora has no code in the catalog and keeps its name;
@@ -900,6 +931,145 @@ def skyward(mode=None, raw_dir=RAW_DIR, client=None, nearblocks=None):
     return rows
 
 
+def fake_wallet(mode=None, raw_dir=RAW_DIR, nearblocks=None):
+    """The reported fake wallet collection account, only after its cited transfer is confirmed."""
+    data, fetched_at, _ = snapshot("fake-wallet", mode, raw_dir)
+    posts = {post["post_number"]: post["cooked"] for post in json.loads(data)["post_stream"]["posts"]}
+    paragraphs = [_paragraph_text(p) for p in re.findall(r"<p>.*?</p>", posts[1], re.DOTALL)]
+    quotes = [p for p in paragraphs if p.startswith("This fake wallet request for pass phrase")]
+    accounts = re.findall(r"account called ([a-z0-9_.-]+[.]near)", " ".join(quotes))
+    hashes = sorted(set(_EXPLORER_TX_LINK.findall(posts[1])))
+    victims = re.findall(r"wallet used to stole the tokens from ([a-z0-9_.-]+[.]near)",
+                         _paragraph_text(posts[5]))
+    if len(quotes) != 1 or len(accounts) != 1 or len(hashes) != 1 or len(victims) != 1:
+        raise SeedError("the fake wallet report must name one collection account, transfer and sending account")
+    [account], [transaction_hash], [victim] = accounts, hashes, victims
+    if account + " this is that wallet" not in _paragraph_text(posts[5]):
+        raise SeedError("the two fake wallet reports name different collection accounts")
+    nearblocks = nearblocks or rpc.Client(rpc.NEARBLOCKS_URL, _mode(mode), kind="http")
+    txns = nearblocks.get(f"/v1/txns/{transaction_hash}")["txns"]
+    if len(txns) != 1:
+        raise SeedError("the fake wallet transfer lookup must return exactly one transaction")
+    txn = txns[0]
+    if (txn["transaction_hash"] != transaction_hash or txn["signer_account_id"] != victim
+            or txn["receiver_account_id"] != account or txn["outcomes"]["status"] is not True
+            or txn["actions"] != [{"action": "TRANSFER", "method": None, "args": None}]
+            or int(txn["block"]["block_height"]) < 1):
+        raise SeedError("the cited transaction does not confirm the reported collection transfer")
+    common = {"entity": "the collection account reported in the December 2021 fake NEAR Wallet thread",
+              "subject": account, "chain": "near", "category": "incident", "confidence": 0.7,
+              "note": f"quote {_quoted(quotes[0])}"}
+    return [make_row(label="reported collection account for the fake NEAR Wallet app",
+                     provenance="third_party", source=_document_source(FAKE_WALLET_URL, data, fetched_at),
+                     observed_at=fetched_at, **common),
+            make_row(label=(f"receiver of the reported transfer {transaction_hash} from {_quoted(victim)} "
+                            f"at block {txn['block']['block_height']}"),
+                     provenance="onchain", observed_at=nearblocks.last_source["fetched_at"],
+                     source={"rpc": nearblocks.url, "method": "GET /v1/txns/{transaction_hash}",
+                             "args": {"transaction_hash": transaction_hash},
+                             "block": int(txn["block"]["block_height"])}, **common)]
+
+
+def kangaroo(mode=None, raw_dir=RAW_DIR, nearblocks=None):
+    """The account named by the Kangaroo post-mortem, confirmed against its example batch."""
+    data, fetched_at, _ = snapshot("kangaroo", mode, raw_dir)
+    post = json.loads(data)["post_stream"]["posts"][0]
+    paragraphs = [_paragraph_text(p) for p in re.findall(r"<p>.*?</p>", post["cooked"], re.DOTALL)]
+    quotes = [p for p in paragraphs if p.startswith("Link to the NEAR address of the attacker")]
+    accounts = sorted(set(_HEX_ACCOUNT.findall(" ".join(quotes))))
+    batches = [_paragraph_text(p) for p in re.findall(r"<pre><code[^>]*>.*?</code></pre>",
+                                                      post["cooked"], re.DOTALL)
+               if "Batch Transaction" in p]
+    if len(quotes) != 1 or len(accounts) != 1 or len(batches) != 1:
+        raise SeedError("the Kangaroo report must name one account and one example batch")
+    [account], [batch] = accounts, batches
+    calls = re.findall(r"Called method: '([a-z_]+)' in contract: ([a-z0-9_.-]+[.]near)", batch)
+    methods = [method for method, _ in calls]
+    receivers = {receiver for _, receiver in calls}
+    if (not batch.startswith(f"Batch Transaction by {account} ") or len(receivers) != 1
+            or methods != ["deposit", "play", "play", "retrieve_credits"]):
+        raise SeedError("the Kangaroo example is not the reported four-call batch by the named account")
+    [receiver] = receivers
+    created = datetime.fromisoformat(post["created_at"].replace("Z", "+00:00"))
+    before = str(int(created.timestamp()) * 1000000000 + created.microsecond * 1000)
+    nearblocks = nearblocks or rpc.Client(rpc.NEARBLOCKS_URL, _mode(mode), kind="http")
+    page = nearblocks.get(f"/v3/accounts/{account}/txns",
+                          params={"receiver": receiver, "before_ts": before, "limit": 25})
+    matches = [txn for txn in page["data"]
+               if txn["signer_account_id"] == account and txn["receiver_account_id"] == receiver
+               and txn["outcomes"]["status"] is True and int(txn["block_timestamp"]) < int(before)
+               and [action.get("method") for action in txn["actions"]] == methods]
+    if not matches:
+        raise SeedError("no successful matching Kangaroo batch in the bounded account page")
+    transaction_hash = matches[0]["transaction_hash"]
+    txns = nearblocks.get(f"/v1/txns/{transaction_hash}")["txns"]
+    if len(txns) != 1:
+        raise SeedError("the Kangaroo batch lookup must return exactly one transaction")
+    txn = txns[0]
+    if (txn["transaction_hash"] != transaction_hash or txn["signer_account_id"] != account
+            or txn["receiver_account_id"] != receiver or txn["outcomes"]["status"] is not True
+            or [action.get("method") for action in txn["actions"]] != methods
+            or int(txn["block"]["block_height"]) < 1):
+        raise SeedError("the transaction does not confirm the Kangaroo report's named account and batch")
+    common = {"entity": "the account named in the Kangaroo Coin Flip exploit post-mortem",
+              "subject": account, "chain": "near", "category": "incident", "confidence": 0.8,
+              "note": f"quote {_quoted(quotes[0])}; example batch {_quoted(batch)}"}
+    return [make_row(label="named as the attacker account in the Kangaroo Coin Flip post-mortem",
+                     provenance="third_party", source=_document_source(KANGAROO_URL, data, fetched_at),
+                     observed_at=fetched_at, **common),
+            make_row(label=(f"signer of matching batch {transaction_hash} at block {txn['block']['block_height']}, "
+                            f"receiver {_quoted(receiver)}, methods called " + ", ".join(_quoted(m) for m in methods)),
+                     provenance="onchain", observed_at=nearblocks.last_source["fetched_at"],
+                     source={"rpc": nearblocks.url, "method": "GET /v1/txns/{transaction_hash}",
+                             "args": {"transaction_hash": transaction_hash},
+                             "block": int(txn["block"]["block_height"])}, **common)]
+
+
+def telegram_scam(mode=None, raw_dir=RAW_DIR, nearblocks=None):
+    """Only the reported direct collection account, with the claimed transfer independently read."""
+    data, fetched_at, _ = snapshot("telegram-scam", mode, raw_dir)
+    post = json.loads(data)["post_stream"]["posts"][0]
+    paragraphs = [_paragraph_text(p) for p in re.findall(r"<p>.*?</p>", post["cooked"], re.DOTALL)]
+    quotes = [p for p in paragraphs if p.startswith("*** the thief put my funds to this address")]
+    accounts = _HEX_ACCOUNT.findall(" ".join(quotes))
+    victims = re.findall(r"personal wallet[.] - ([a-z0-9_.-]+[.]near)", _paragraph_text(post["cooked"]))
+    if len(quotes) != 1 or len(accounts) != 3 or len(victims) != 1:
+        raise SeedError("the Telegram report must name a direct collection account and one sending account")
+    account, [victim] = accounts[0], victims
+    updated = datetime.fromisoformat(post["updated_at"].replace("Z", "+00:00"))
+    before = int(updated.timestamp()) * 1000000000 + updated.microsecond * 1000
+    nearblocks = nearblocks or rpc.Client(rpc.NEARBLOCKS_URL, _mode(mode), kind="http")
+    page = nearblocks.get(f"/v3/accounts/{account}/txns", params={"signer": victim, "limit": 25})
+    matches = [txn for txn in page["data"]
+               if txn["signer_account_id"] == victim and txn["receiver_account_id"] == account
+               and txn["outcomes"]["status"] is True and int(txn["block_timestamp"]) < before
+               and [action["action"] for action in txn["actions"]] == ["TRANSFER"]]
+    if not matches:
+        raise SeedError("no successful direct transfer from the reported sending account in the bounded page")
+    transaction_hash = matches[0]["transaction_hash"]
+    txns = nearblocks.get(f"/v1/txns/{transaction_hash}")["txns"]
+    if len(txns) != 1:
+        raise SeedError("the Telegram collection transfer lookup must return exactly one transaction")
+    txn = txns[0]
+    if (txn["transaction_hash"] != transaction_hash or txn["signer_account_id"] != victim
+            or txn["receiver_account_id"] != account or txn["outcomes"]["status"] is not True
+            or txn["actions"] != [{"action": "TRANSFER", "method": None, "args": None}]
+            or int(txn["block"]["block_height"]) < 1):
+        raise SeedError("the transaction does not confirm the reported direct collection transfer")
+    common = {"entity": "the direct collection account in the May 2022 Telegram impersonation report",
+              "subject": account, "chain": "near", "category": "incident", "confidence": 0.7,
+              "note": f"quote {_quoted(quotes[0])}"}
+    return [make_row(label="reported direct collection account for a Telegram impersonation theft",
+                     provenance="third_party", source=_document_source(TELEGRAM_SCAM_URL, data, fetched_at),
+                     observed_at=fetched_at, **common),
+            make_row(label=(f"receiver of the reported direct transfer {transaction_hash} from {_quoted(victim)} "
+                            f"at block {txn['block']['block_height']}"),
+                     provenance="onchain", observed_at=nearblocks.last_source["fetched_at"],
+                     source={"rpc": nearblocks.url, "method": "GET /v1/txns/{transaction_hash}",
+                             "args": {"transaction_hash": transaction_hash},
+                             "block": int(txn["block"]["block_height"])}, **common)]
+
+
 def write_incident(document, path):
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     Path(path).write_bytes((json.dumps(document, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
@@ -979,7 +1149,8 @@ def run(source, mode=None, store_path=labels.STORE_PATH, raw_dir=RAW_DIR, readme
     else:
         rows = {"treasuries": treasuries, "catalog": catalog, "infrastructure": infrastructure,
                 "sweat-hot": sweat_hot, "intents-2026-10-01": lambda mode, raw_dir: [],
-                "skyward": skyward}[source](mode=mode, raw_dir=raw_dir)
+                "skyward": skyward, "fake-wallet": fake_wallet, "kangaroo": kangaroo,
+                "telegram-scam": telegram_scam}[source](mode=mode, raw_dir=raw_dir)
     added = append(rows, store_path)
     Path(readme_path).write_bytes(readme_text(store_path, raw_dir).encode("utf-8"))
     if source == "rhea":

@@ -1,0 +1,53 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "txns": [
+      {
+        "transaction_hash": "EBE8wkaFvJR6pzvLY68dVt1hBXti7PMMfkZA7zFW1eqT",
+        "included_in_block_hash": "DeipHBtpXWweVAfwgXJCkvgzZRuG4MmEUQCeLDyPWTrX",
+        "block_timestamp": "1639766363092195840",
+        "signer_account_id": "platohedro.near",
+        "receiver_account_id": "bigbank101.near",
+        "receipt_conversion_gas_burnt": "223182562500",
+        "receipt_conversion_tokens_burnt": "22318256250000000000",
+        "shard_id": "3",
+        "block": {
+          "block_height": 55390139
+        },
+        "actions": [
+          {
+            "action": "TRANSFER",
+            "method": null,
+            "args": null
+          }
+        ],
+        "actions_agg": {
+          "deposit": 1.2107645595614005e+26,
+          "gas_attached": 0
+        },
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": 44636512500000000000,
+          "gas_used": 669547687500
+        },
+        "receipts": [
+          {
+            "fts": [],
+            "nfts": []
+          },
+          {
+            "fts": [],
+            "nfts": []
+          }
+        ]
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v1/txns/EBE8wkaFvJR6pzvLY68dVt1hBXti7PMMfkZA7zFW1eqT",
+  "fetched_at": "2026-11-15T14:01:15Z"
+}

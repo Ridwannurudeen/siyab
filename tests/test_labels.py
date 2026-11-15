@@ -118,7 +118,8 @@ class CommittedStoreTest(unittest.TestCase):
                     + seed.rhea("replay") + seed.sweat_hot("replay")
                     + [row for name in registries.REGISTRY_ORDER for row in by_registry[name]]
                     + issuers.history_rows() + issuers.rows() + issuers.blacklist_rows()
-                    + seed.skyward("replay") + seed.rhea_state_rows())
+                    + seed.skyward("replay") + seed.rhea_state_rows()
+                    + seed.fake_wallet("replay") + seed.kangaroo("replay") + seed.telegram_scam("replay"))
         manual_rows = [r for r in self.rows if r["entity"] == "issuer blacklist correction"]
         replaced_rows = [r for r in self.rows if r["entity"] == "issuer of usdt.tether-token.near"
                          and r["subject"] == "usdt.tether-token.near" and r["category"] == "denylist"]
@@ -557,6 +558,149 @@ class SeedTest(unittest.TestCase):
                                                  "block": {"block_height": 1}}]}
         with mock.patch("urllib.request.urlopen", side_effect=no_network), self.assertRaises(seed.SeedError):
             seed.skyward("replay", nearblocks=nearblocks)
+
+
+class FakeWalletSeedTest(unittest.TestCase):
+    def setUp(self):
+        self.data = next(RAW_DIR.glob("l2-forum-11112-*.json")).read_bytes()
+        posts = json.loads(self.data)["post_stream"]["posts"]
+        self.quote = next(seed._paragraph_text(p) for p in re.findall(r"<p>.*?</p>", posts[0]["cooked"], re.DOTALL)
+                          if "account called" in p)
+        self.account = re.search(r"account called ([a-z0-9_.-]+[.]near)", self.quote)[1]
+        [self.transaction_hash] = set(seed._EXPLORER_TX_LINK.findall(posts[0]["cooked"]))
+        nearblocks = rpc.Client(rpc.NEARBLOCKS_URL, "replay", kind="http")
+        self.response = nearblocks.get(f"/v1/txns/{self.transaction_hash}")
+
+    def test_replay_confirms_the_reported_collection_account_without_state_labels(self):
+        with mock.patch("urllib.request.urlopen", side_effect=no_network), \
+                mock.patch.object(rpc.Client, "view_account", side_effect=AssertionError("state is not attribution")):
+            rows = seed.fake_wallet("replay")
+        self.assertEqual([(r["subject"], r["category"], r["provenance"]) for r in rows],
+                         [(self.account, "incident", "third_party"), (self.account, "incident", "onchain")])
+        self.assertTrue(all(json.dumps(self.quote, ensure_ascii=False) in r["note"] for r in rows))
+        self.assertEqual(rows[0]["source"]["url"], "https://gov.near.org/t/11112.json")
+        self.assertEqual(rows[0]["source"]["content_sha256"], hashlib.sha256(self.data).hexdigest())
+        self.assertEqual(rows[1]["source"], {"rpc": rpc.NEARBLOCKS_URL,
+                                          "method": "GET /v1/txns/{transaction_hash}",
+                                          "args": {"transaction_hash": self.transaction_hash}, "block": 55390139})
+        self.assertNotIn(self.response["txns"][0]["signer_account_id"], [r["subject"] for r in rows])
+
+    def test_unconfirmed_or_mismatched_transfers_produce_no_rows(self):
+        for field, value in (("signer_account_id", "other.near"), ("receiver_account_id", "other.near"),
+                             ("transaction_hash", "another-transaction"), ("outcomes", {"status": False}),
+                             ("actions", []), ("block", {"block_height": 0})):
+            response = json.loads(json.dumps(self.response))
+            response["txns"][0][field] = value
+            nearblocks = mock.Mock()
+            nearblocks.get.return_value = response
+            with self.subTest(field=field), mock.patch("urllib.request.urlopen", side_effect=no_network), \
+                    self.assertRaises(seed.SeedError):
+                seed.fake_wallet("replay", nearblocks=nearblocks)
+        for txns in ([], self.response["txns"] * 2):
+            nearblocks = mock.Mock()
+            nearblocks.get.return_value = {"txns": txns}
+            with self.subTest(count=len(txns)), mock.patch("urllib.request.urlopen", side_effect=no_network), \
+                    self.assertRaises(seed.SeedError):
+                seed.fake_wallet("replay", nearblocks=nearblocks)
+
+    def test_a_report_without_the_collection_account_or_transaction_is_refused(self):
+        for value in (self.account, self.transaction_hash):
+            data = self.data.replace(value.encode(), b"omitted")
+            with self.subTest(value=value), mock.patch("intel.seed.snapshot", return_value=(data, None, None)), \
+                    mock.patch("urllib.request.urlopen", side_effect=no_network), self.assertRaises(seed.SeedError):
+                seed.fake_wallet("replay")
+
+    def test_new_threat_seeds_are_wired_and_idempotent(self):
+        with tempfile.TemporaryDirectory() as directory, mock.patch("urllib.request.urlopen", side_effect=no_network):
+            path = Path(directory)
+            store = path / "labels.jsonl"
+            for source in ("fake-wallet", "kangaroo", "telegram-scam"):
+                self.assertIn(source, seed.SOURCES)
+                self.assertEqual(seed.run(source, "replay", store_path=store, readme_path=path / "snapshots.md"), 2)
+                before = store.read_bytes()
+                self.assertEqual(seed.run(source, "replay", store_path=store, readme_path=path / "snapshots.md"), 0)
+                self.assertEqual(store.read_bytes(), before)
+            self.assertEqual(labels.load(store).counts()["category"]["incident"], 6)
+
+
+class KangarooSeedTest(unittest.TestCase):
+    def setUp(self):
+        self.data = next(RAW_DIR.glob("l2-forum-25445-*.json")).read_bytes()
+        post = json.loads(self.data)["post_stream"]["posts"][0]
+        [self.account] = set(seed._HEX_ACCOUNT.findall(post["cooked"]))
+        self.transaction_hash = "9XMv7qZJwyNEyHutjR6dsuDv8qJNwCwhh6PFLDZTzgYV"
+        nearblocks = rpc.Client(rpc.NEARBLOCKS_URL, "replay", kind="http")
+        self.response = nearblocks.get(f"/v1/txns/{self.transaction_hash}")
+
+    def test_replay_confirms_the_named_account_and_the_reported_batch(self):
+        with mock.patch("urllib.request.urlopen", side_effect=no_network):
+            rows = seed.kangaroo("replay")
+        self.assertEqual([(r["subject"], r["category"], r["provenance"]) for r in rows],
+                         [(self.account, "incident", "third_party"), (self.account, "incident", "onchain")])
+        self.assertTrue(all("Link to the NEAR address of the attacker" in r["note"] for r in rows))
+        self.assertTrue(all(self.account in r["note"] for r in rows))
+        self.assertEqual(rows[0]["source"]["url"], "https://gov.near.org/t/25445.json")
+        self.assertEqual(rows[1]["source"]["args"], {"transaction_hash": self.transaction_hash})
+        self.assertEqual(rows[1]["source"]["block"], 69616018)
+        self.assertNotIn("kcfhouse.near", [r["subject"] for r in rows])
+
+    def test_a_missing_or_different_batch_is_refused(self):
+        for txns in ([], [dict(self.response["txns"][0], actions=[])]):
+            nearblocks = mock.Mock()
+            nearblocks.get.return_value = {"data": txns}
+            with self.subTest(count=len(txns)), mock.patch("urllib.request.urlopen", side_effect=no_network), \
+                    self.assertRaises(seed.SeedError):
+                seed.kangaroo("replay", nearblocks=nearblocks)
+        for field, value in (("signer_account_id", "other.near"), ("receiver_account_id", "other.near"),
+                             ("transaction_hash", "other-transaction"), ("actions", []),
+                             ("outcomes", {"status": False}), ("block", {"block_height": 0})):
+            response = json.loads(json.dumps(self.response))
+            response["txns"][0][field] = value
+            nearblocks = mock.Mock()
+            nearblocks.get.side_effect = [{"data": self.response["txns"]}, response]
+            with self.subTest(field=field), mock.patch("urllib.request.urlopen", side_effect=no_network), \
+                    self.assertRaises(seed.SeedError):
+                seed.kangaroo("replay", nearblocks=nearblocks)
+
+
+class TelegramScamSeedTest(unittest.TestCase):
+    def setUp(self):
+        self.data = next(RAW_DIR.glob("l2-forum-21725-*.json")).read_bytes()
+        post = json.loads(self.data)["post_stream"]["posts"][0]
+        self.quote = next(seed._paragraph_text(p) for p in re.findall(r"<p>.*?</p>", post["cooked"], re.DOTALL)
+                          if "*** the thief put my funds" in p)
+        self.accounts = seed._HEX_ACCOUNT.findall(self.quote)
+        self.transaction_hash = "74WVb6WAGnCuJ9dZX7hoYytLwnVHZdswKvh8wnrTBoWJ"
+        nearblocks = rpc.Client(rpc.NEARBLOCKS_URL, "replay", kind="http")
+        self.response = nearblocks.get(f"/v1/txns/{self.transaction_hash}")
+
+    def test_only_the_direct_collection_account_gets_rows(self):
+        with mock.patch("urllib.request.urlopen", side_effect=no_network):
+            rows = seed.telegram_scam("replay")
+        self.assertEqual([(r["subject"], r["category"], r["provenance"]) for r in rows],
+                         [(self.accounts[0], "incident", "third_party"), (self.accounts[0], "incident", "onchain")])
+        self.assertTrue(all(json.dumps(self.quote, ensure_ascii=False) in r["note"] for r in rows))
+        self.assertEqual(rows[0]["source"]["url"], "https://gov.near.org/t/21725.json")
+        self.assertEqual(rows[1]["source"]["args"], {"transaction_hash": self.transaction_hash})
+        self.assertEqual(rows[1]["source"]["block"], 66433235)
+        self.assertFalse(set(self.accounts[1:]) & {r["subject"] for r in rows})
+        self.assertNotIn("geminirising.near", [r["subject"] for r in rows])
+
+    def test_a_report_without_a_direct_transfer_is_refused(self):
+        nearblocks = mock.Mock()
+        nearblocks.get.return_value = {"data": []}
+        with mock.patch("urllib.request.urlopen", side_effect=no_network), self.assertRaises(seed.SeedError):
+            seed.telegram_scam("replay", nearblocks=nearblocks)
+        for field, value in (("signer_account_id", "other.near"), ("receiver_account_id", self.accounts[1]),
+                             ("transaction_hash", "other-transaction"), ("outcomes", {"status": False}),
+                             ("actions", []), ("block", {"block_height": 0})):
+            response = json.loads(json.dumps(self.response))
+            response["txns"][0][field] = value
+            nearblocks = mock.Mock()
+            nearblocks.get.side_effect = [{"data": self.response["txns"]}, response]
+            with self.subTest(field=field), mock.patch("urllib.request.urlopen", side_effect=no_network), \
+                    self.assertRaises(seed.SeedError):
+                seed.telegram_scam("replay", nearblocks=nearblocks)
 
 
 if __name__ == "__main__":

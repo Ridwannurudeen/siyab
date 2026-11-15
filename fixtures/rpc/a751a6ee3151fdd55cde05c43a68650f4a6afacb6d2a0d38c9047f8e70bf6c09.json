@@ -1,0 +1,71 @@
+{
+  "request": {
+    "method": "GET",
+    "params": {
+      "signer": "geminirising.near",
+      "limit": 25
+    }
+  },
+  "response": {
+    "data": [
+      {
+        "actions": [
+          {
+            "action": "TRANSFER",
+            "method": null
+          }
+        ],
+        "actions_agg": {
+          "deposit": "59453923452133320795572005"
+        },
+        "block": {
+          "block_hash": "CUxWC4vdsaxELv539B6y2LpCGR7TnDsT1YQrrer2R9mM",
+          "block_height": "66433235",
+          "block_timestamp": "1653599349115206258"
+        },
+        "block_timestamp": "1653599349115206258",
+        "index_in_chunk": 0,
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": "84911012500000000000"
+        },
+        "receiver_account_id": "087184b14c3cad5de72090c4a48816d46e53f39454df13b957e14350793b18e7",
+        "shard_id": 2,
+        "signer_account_id": "geminirising.near",
+        "transaction_hash": "74WVb6WAGnCuJ9dZX7hoYytLwnVHZdswKvh8wnrTBoWJ"
+      },
+      {
+        "actions": [
+          {
+            "action": "TRANSFER",
+            "method": null
+          }
+        ],
+        "actions_agg": {
+          "deposit": "1000000000000000000000000"
+        },
+        "block": {
+          "block_hash": "g5jgfR3qTZr1Yf7gHNJMxenuahq95nZmizLwJMsuAj1",
+          "block_height": "66433032",
+          "block_timestamp": "1653599092195655234"
+        },
+        "block_timestamp": "1653599092195655234",
+        "index_in_chunk": 0,
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": "84911012500000000000"
+        },
+        "receiver_account_id": "087184b14c3cad5de72090c4a48816d46e53f39454df13b957e14350793b18e7",
+        "shard_id": 2,
+        "signer_account_id": "geminirising.near",
+        "transaction_hash": "5jPjLyKRqubHagYvX7HeLxiVAC1E5EuMxTe6ysyQqpgH"
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v3/accounts/087184b14c3cad5de72090c4a48816d46e53f39454df13b957e14350793b18e7/txns",
+  "fetched_at": "2026-11-15T14:07:26Z"
+}
