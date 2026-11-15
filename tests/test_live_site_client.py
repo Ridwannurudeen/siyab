@@ -271,7 +271,8 @@ const text=""" + text + """
 const panel={rows:[],replaceChildren(){this.rows=[];}},add=(parent,tag,value)=>{parent.rows.push(value);return {rows:[]};};
 const freshness=()=>({stale:false}),health=""" + health + """
 for(const status of [429,null]){health({follower:'running',stats:{last_large_transfer_error:{at:'2026-11-14T10:54:27Z',error:'HttpError',status}}});
-assert.ok(panel.rows.some(row=>typeof row==='string'&&row.includes('labelled_account_large_transfer last failed poll at 2026-11-14T10:54:27Z: HttpError, '+(status===null?'no HTTP status':'HTTP 429'))));}
+const expected=status===429?'The transfer read was rate limited (HTTP 429) at 2026-11-14T10:54:27Z. This read adds no observations; previously recorded rows are retained.':'labelled_account_large_transfer last failed poll at 2026-11-14T10:54:27Z: HttpError, no HTTP status.';
+assert.ok(panel.rows.includes(expected));}
 """)
 
 

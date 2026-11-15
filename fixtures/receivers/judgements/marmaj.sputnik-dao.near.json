@@ -26,7 +26,7 @@
       "detail": "no denylist or incident label on marmaj.sputnik-dao.near",
       "source": {
         "provider": "label store",
-        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "request_sha256": "9bd121fd0ceffffebecdcfbb8fed7c15d8a634df0cf5d8fc936f4f610e8e38db",
         "fetched_at": null
       }
     },
@@ -76,7 +76,7 @@
       "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
       "source": {
         "provider": "allowlist and label store",
-        "request_sha256": "b6dc860b0b24d266e826a39dd52353760f93566cc7391942acb9c810425ac071",
+        "request_sha256": "9bd121fd0ceffffebecdcfbb8fed7c15d8a634df0cf5d8fc936f4f610e8e38db",
         "fetched_at": null
       }
     },

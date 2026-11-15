@@ -143,7 +143,7 @@ class LiveSiteRenderTest(unittest.TestCase):
 
     def test_top_receiver_deny_explains_combined_signals_and_payment_scope(self):
         page = render.top_receivers_page()
-        self.assertIn("Lookalike with code without metadata: 1.</p><p>The single DENY came from the lookalike and code-without-metadata signals together; it is the verdict an agent's 1 NEAR payment would get, not a finding about the account.</p>", page)
+        self.assertIn("Lookalike with code without metadata: 1.</p><p>Other DENY signal groups: 5.</p><p>Each verdict is what an agent's 1 NEAR payment to that receiver would get, not a finding that the account is malicious.</p>", page)
 
     def test_single_account_activity_and_counterparty_counts(self):
         subject = "account.example.near"
@@ -234,9 +234,9 @@ class LiveSiteRenderTest(unittest.TestCase):
     def test_issuer_scope_names_the_method_behind_each_other_answer(self):
         page = render.issuers_page()
         scope = page.split('id="issuer-status-section"', 1)[1].split('<p class="issuers-scope">', 1)[1].split("</p>", 1)[0]
-        self.assertIn("is_blocklisted answered false 376 times", scope)
-        self.assertIn('get_blacklist_status answered <q class="data">Allowable</q> 365 times', scope)
-        self.assertNotIn("false: 376", scope)
+        self.assertIn("is_blocklisted answered false 380 times", scope)
+        self.assertIn('get_blacklist_status answered <q class="data">Allowable</q> 369 times', scope)
+        self.assertNotIn("false: 380", scope)
 
     def test_distribution_threshold_uses_two_decimal_usd(self):
         document = render._flows()[0][1]

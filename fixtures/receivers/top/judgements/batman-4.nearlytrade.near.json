@@ -26,7 +26,7 @@
       "detail": "no denylist or incident label on batman-4.nearlytrade.near",
       "source": {
         "provider": "label store",
-        "request_sha256": "cf335f98f9dd43c560a6f3d4c743bca4c7a60dd7bd02c3c28de5143ec85b7079",
+        "request_sha256": "9bd121fd0ceffffebecdcfbb8fed7c15d8a634df0cf5d8fc936f4f610e8e38db",
         "fetched_at": null
       }
     },
@@ -76,7 +76,7 @@
       "detail": "batman-4.nearlytrade.near is itself a labelled reference account (assertion c369f018af042be363a16ddac8e7d2f25cfd41b43241bae79c27f41918d49a81)",
       "source": {
         "provider": "allowlist and label store",
-        "request_sha256": "cf335f98f9dd43c560a6f3d4c743bca4c7a60dd7bd02c3c28de5143ec85b7079",
+        "request_sha256": "9bd121fd0ceffffebecdcfbb8fed7c15d8a634df0cf5d8fc936f4f610e8e38db",
         "fetched_at": null
       }
     },

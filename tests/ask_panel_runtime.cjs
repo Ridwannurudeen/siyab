@@ -37,7 +37,7 @@ function setup(session, askReply = explained) {
     body: new Element(),
   };
   vm.runInNewContext(fs.readFileSync("intel/ui/index.js", "utf8"), {
-    document, URLSearchParams, Blob, setTimeout, URL,
+    document, window: {}, URLSearchParams, Blob, setTimeout, URL,
     FormData: class { constructor(form) { this.values = form.values; } get(key) { return this.values[key]; } },
     fetch: async (path, options = {}) => {
       calls.push({path, options});

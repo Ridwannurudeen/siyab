@@ -801,8 +801,8 @@ def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVE
         '(code_hash 5EmM2UQRYcvaNvJX6jfcgtNS7Mm8ZPjZhwK1J8bMXrcu): a labelled collector request was refused as REFUSED:no_verdict '
         'with nothing spent, and a signed ALLOW paid 0.01 NEAR to an allowlisted payee. The Gate was then paused and the agent revoked. '
         'No Gate is in service on mainnet; siyabgate.near is paused with its agent key revoked. This run is outside the hackathon-submission tag. '
-        '<a href="https://github.com/Ridwannurudeen/siyab/blob/main/fixtures/runs/gate-mainnet-20261115.txt">Run record</a>; '
-        '<a href="https://github.com/Ridwannurudeen/siyab/blob/main/tests/test_mainnet_run.py">offline checks</a>.</li>'
+        'Run record: <span class="mono">fixtures/runs/gate-mainnet-20261115.txt</span>; '
+        'offline checks: <span class="mono">tests/test_mainnet_run.py</span>.</li>'
         '<li>Inferred attributions remain hypotheses and never add a subject to the refusal set.</li>'
         '<li>Live API checks are read only and never sign.</li><li>Unknown never passes.</li></ul></div>'
         '<div><a href="/verify.html">the recorded verification example</a></div></div></section>'
@@ -1018,7 +1018,8 @@ def _profile_account_summary(subject, assertions, accounts, flows):
                             for category in sorted({row.category.replace("_", " ") for row in inferred}))
     assertion_counts = (f'<dd><span class="profile-observed">{len(assertions) - len(inferred)} sourced, {len(inferred)} inferred</span></dd>'
                         if inferred else '')
-    labels_rows = [[data_text(row.label), esc(row.chain), esc(row.provenance.replace("_", " ")), _profile_source(row)]
+    labels_rows = [[f'<q class="data">{esc(row.label)}</q>' if row.provenance == "third_party" else data_text(row.label),
+                    esc(row.chain), esc(row.provenance.replace("_", " ")), _profile_source(row)]
                    for row in assertions if row.provenance != "inferred"]
     source_rows = ''.join('<tr role="row" data-profile-transfer-row>' + ''.join(
         f'<td role="cell"><span class="cell-label" aria-hidden="true">{label}</span>{value}</td>'
@@ -1237,7 +1238,8 @@ def _entity_rows(categories, store):
         subject = {"text": a.subject, "quoted": True}
         if a.subject in accounts:
             subject["url"] = "../" + accounts[a.subject]
-        cells = [[subject], [{"text": a.chain}], _entity_parts(a.label), [{"text": a.category}]]
+        label = [{"text": a.label, "quoted": True}] if a.provenance == "third_party" else _entity_parts(a.label)
+        cells = [[subject], [{"text": a.chain}], label, [{"text": a.category}]]
         if a.provenance == "inferred":
             inputs = []
             for assertion_id in a.source["inputs"]:
@@ -1345,7 +1347,9 @@ def entity_page(title, categories, store, *, page_number=1, collection_name=None
 
 def account_page(subject, store, accounts, incidents, flows, clusters, events_dir=feed.EVENTS_DIR):
     assertions = [a for a in store.assertions if a.subject == subject and a.superseded_by is None]
-    rows = "".join(f'<tr role="row"><td role="cell"><span class="cell-label" aria-hidden="true">Chain</span>{esc(a.chain)}</td><td role="cell"><span class="cell-label" aria-hidden="true">Label</span>{data_text(a.label)}</td><td role="cell"><span class="cell-label" aria-hidden="true">Category</span>{esc(a.category)}</td>'
+    rows = "".join(f'<tr role="row"><td role="cell"><span class="cell-label" aria-hidden="true">Chain</span>{esc(a.chain)}</td><td role="cell"><span class="cell-label" aria-hidden="true">Label</span>'
+                   + (f'<q class="data">{esc(a.label)}</q>' if a.provenance == "third_party" else data_text(a.label))
+                   + f'</td><td role="cell"><span class="cell-label" aria-hidden="true">Category</span>{esc(a.category)}</td>'
                    f'<td role="cell"><span class="cell-label" aria-hidden="true">Provenance</span>{esc(a.provenance)}</td><td role="cell"><span class="cell-label" aria-hidden="true">Note</span>{data_text(a.note)}</td><td role="cell" class="mono"><span class="cell-label" aria-hidden="true">Source</span><q class="data">'
                    f'{esc(json.dumps(a.source, ensure_ascii=False, sort_keys=True))}</q></td></tr>'
                    for a in assertions if a.provenance != "inferred")
