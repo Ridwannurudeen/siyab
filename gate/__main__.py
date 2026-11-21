@@ -343,11 +343,10 @@ def main(argv=None):
               "each pay call is judged again on recorded testnet reads"),
     )
     model_demo.add_argument("--record", type=int, metavar="N",
-                            help="send N new trials (key path in ANTHROPIC_API_KEY_FILE or NEARAI_API_KEY_FILE), "
-                                 "capped at 30 trials and $5 for anthropic or $0.50 for nearai")
+                            help="send N verified NEAR AI trials with NEARAI_API_KEY_FILE and SIYAB_NEARAI_LIVE=1; "
+                                 "capped at 30 trials and $0.50")
     model_demo.add_argument("--provider", choices=("anthropic", "nearai"), default="anthropic")
-    model_demo.set_defaults(handler=lambda args: injected_model.main(args.record, provider=args.provider)
-                            if args.provider != "anthropic" else injected_model.main(args.record))
+    model_demo.set_defaults(handler=lambda args: injected_model.main(args.record, provider=args.provider))
 
     show = commands.add_parser("demo", help="four verdicts over recorded testnet data, or the same four live")
     mode = show.add_mutually_exclusive_group(required=True)

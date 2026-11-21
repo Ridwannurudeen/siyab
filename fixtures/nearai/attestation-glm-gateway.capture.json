@@ -1,0 +1,13 @@
+{
+  "source_url": "https://cloud-api.near.ai/v1/attestation/report?nonce=6021537171bc35536bad13f606ec663c1a3d0ad13112d95fb2376b3d3c753f38&signing_algo=ed25519&include_tls_fingerprint=true",
+  "nonce": "6021537171bc35536bad13f606ec663c1a3d0ad13112d95fb2376b3d3c753f38",
+  "model": "z-ai/glm-5.3-flash",
+  "signing_algo": "ed25519",
+  "recorded_at": "2026-11-21T15:20:05.229337+00:00",
+  "status": 200,
+  "sha256": "763e691f1e0f91c69aa5655f5bc0173b9a324d1f1e897f0aebcaae8193be3afe",
+  "transport_sha256": "4eb8768f94fab7e3134ffc7a209df1fcca49d5d2077efe39efeb0c63e5be41c9",
+  "peer_spki": "73862c254372091cc6895b900111503860694f8916ebf0c63b18d245ba8ba5ad",
+  "paid_completions": 0,
+  "storage": "JSON escaped to ASCII; decoded report values unchanged"
+}

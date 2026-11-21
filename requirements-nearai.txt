@@ -1,0 +1,2 @@
+nearai-inference-sdk==0.3.0
+dcap-qvl==0.7.1

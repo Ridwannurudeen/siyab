@@ -1,0 +1,86 @@
+{
+  "collected_on": "2026-11-21",
+  "paid_completions": 0,
+  "files": [
+    {
+      "file": "attestation-deepseek-gateway.capture.json",
+      "sha256": "26f4a1e8e5455a1d2d812d997bb4ef115e990a44b41ec2531292c817a335c7e2",
+      "source_url": "https://cloud-api.near.ai/v1/attestation/report?nonce=f51112f5a8df24bfa70366b4f74ea685e0721e1e2d9e368f2f14beebdbfef04d&signing_algo=ed25519&include_tls_fingerprint=true"
+    },
+    {
+      "file": "attestation-deepseek-gateway.json",
+      "sha256": "8a3e7e505e52e7ff0e5fab410c586f70f80fbd6bfe57dff9a989be736b817c69",
+      "source_url": "https://cloud-api.near.ai/v1/attestation/report?nonce=f51112f5a8df24bfa70366b4f74ea685e0721e1e2d9e368f2f14beebdbfef04d&signing_algo=ed25519&include_tls_fingerprint=true"
+    },
+    {
+      "file": "attestation-deepseek.capture.json",
+      "sha256": "6247c0bb8fb717b77045681481aa57b5e5342117ce7f1ec45c4e17e98273508c",
+      "source_url": "https://cloud-api.near.ai/v1/attestation/report?nonce=f51112f5a8df24bfa70366b4f74ea685e0721e1e2d9e368f2f14beebdbfef04d&model=deepseek-ai%2FDeepSeek-V4.1-Flash-1017&provider=near&signing_algo=ed25519&include_tls_fingerprint=false"
+    },
+    {
+      "file": "attestation-deepseek.json",
+      "sha256": "c0d9ddb73742df6b82fc44bf9aefa3077ab7e270241fdf17084b6a4454fd273b",
+      "source_url": "https://cloud-api.near.ai/v1/attestation/report?nonce=f51112f5a8df24bfa70366b4f74ea685e0721e1e2d9e368f2f14beebdbfef04d&model=deepseek-ai%2FDeepSeek-V4.1-Flash-1017&provider=near&signing_algo=ed25519&include_tls_fingerprint=false"
+    },
+    {
+      "file": "attestation-glm-gateway.capture.json",
+      "sha256": "5882cc310ce556feac5a0fe86c83f53288d282add66baf55a3f3f3cfe88f15bb",
+      "source_url": "https://cloud-api.near.ai/v1/attestation/report?nonce=6021537171bc35536bad13f606ec663c1a3d0ad13112d95fb2376b3d3c753f38&signing_algo=ed25519&include_tls_fingerprint=true"
+    },
+    {
+      "file": "attestation-glm-gateway.json",
+      "sha256": "763e691f1e0f91c69aa5655f5bc0173b9a324d1f1e897f0aebcaae8193be3afe",
+      "source_url": "https://cloud-api.near.ai/v1/attestation/report?nonce=6021537171bc35536bad13f606ec663c1a3d0ad13112d95fb2376b3d3c753f38&signing_algo=ed25519&include_tls_fingerprint=true"
+    },
+    {
+      "file": "attestation-glm.capture.json",
+      "sha256": "b74e6c8a8eba84f432a3d7b63f0c6353347e6e97e1844d7a78ee6e82799f570b",
+      "source_url": "https://cloud-api.near.ai/v1/attestation/report?nonce=6021537171bc35536bad13f606ec663c1a3d0ad13112d95fb2376b3d3c753f38&model=z-ai%2Fglm-5.3-flash&provider=near&signing_algo=ed25519&include_tls_fingerprint=false"
+    },
+    {
+      "file": "attestation-glm.json",
+      "sha256": "71f1a5aae7a64e8e2568a2c8212d1dcd452fadc6dfa9bbc230f1d7c2ac750671",
+      "source_url": "https://cloud-api.near.ai/v1/attestation/report?nonce=6021537171bc35536bad13f606ec663c1a3d0ad13112d95fb2376b3d3c753f38&model=z-ai%2Fglm-5.3-flash&provider=near&signing_algo=ed25519&include_tls_fingerprint=false"
+    },
+    {
+      "file": "crosscheck-results.json",
+      "sha256": "da2af09a2728b6df964023c654107056b6a4d161939ec84fcdcbab42a875a3b0",
+      "source_url": "https://github.com/intel/confidential-computing.tee.dcap/releases/tag/DCAP_1.27.1"
+    },
+    {
+      "file": "crosscheck-verifier.json",
+      "sha256": "8db9ecd0852a503b509c6136d1f634387d8d91ad7dd354120712b57756ac2753",
+      "source_url": "https://github.com/intel/confidential-computing.tee.dcap/releases/tag/DCAP_1.27.1"
+    },
+    {
+      "file": "intel-collateral-70a06d070000.json",
+      "sha256": "217fd2b2db8f713d8016e0a2c045a298c76e61074c89da2989a00e78a570f9d6",
+      "source_url": "https://api.trustedservices.intel.com"
+    },
+    {
+      "file": "intel-collateral-90c06f000000.json",
+      "sha256": "d450c8f5ef700d0e4d409a79094eff8774e5118b7879fad46d2704b6db1b14df",
+      "source_url": "https://api.trustedservices.intel.com"
+    },
+    {
+      "file": "models.json",
+      "sha256": "cc4c13031a1ffa1978c6157d730184c6c4e9a5f9fa1927a45a520a740eeed45c",
+      "source_url": "https://cloud-api.near.ai/v1/models"
+    },
+    {
+      "file": "nras-deepseek-0.json",
+      "sha256": "e621b36e0b5176139ac73a11a6711acf37a25184b92a941d56f221e67687bc14",
+      "source_url": "https://nras.attestation.nvidia.com/v3/attest/gpu"
+    },
+    {
+      "file": "nvidia-jwks.json",
+      "sha256": "d555b42052a8279baae6bf3ad97af4f498d42265d3dccff09e3ef70189985fb1",
+      "source_url": "https://nras.attestation.nvidia.com/.well-known/jwks.json"
+    },
+    {
+      "file": "quote-results.json",
+      "sha256": "cfbe4924e4b631df7694a6557045d48d621e6c9af1374a627dff9011e77ccd25",
+      "source_url": "https://pypi.org/pypi/dcap-qvl/0.7.1/json"
+    }
+  ]
+}

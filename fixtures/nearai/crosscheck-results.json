@@ -1,0 +1,390 @@
+{
+  "verification_time_unix": 1795274641,
+  "time_source": "quote-results.json checked_at_unix",
+  "original_results_sha256": "cfbe4924e4b631df7694a6557045d48d621e6c9af1374a627dff9011e77ccd25",
+  "dcap_qvl": "0.7.1",
+  "intel_qvl": {
+    "release": "DCAP_1.27.1",
+    "package_version": "1.27.101.1-noble1",
+    "library_file": "libsgx_dcap_quoteverify.so.1.13.103.0",
+    "library_sha256": "74b8e876bdc20c59aab3be28dcca16db78f2a81110073c29ac6009b89bbb8042",
+    "mode": "Untrusted software QVL; p_qve_report_info is null, no SGX QvE used",
+    "root": "Intel production root public key compiled into the released QVL"
+  },
+  "source_sha256": {
+    "attestation-deepseek.json": "c0d9ddb73742df6b82fc44bf9aefa3077ab7e270241fdf17084b6a4454fd273b",
+    "intel-collateral-70a06d070000.json": "217fd2b2db8f713d8016e0a2c045a298c76e61074c89da2989a00e78a570f9d6",
+    "intel-collateral-90c06f000000.json": "d450c8f5ef700d0e4d409a79094eff8774e5118b7879fad46d2704b6db1b14df",
+    "attestation-glm.json": "71f1a5aae7a64e8e2568a2c8212d1dcd452fadc6dfa9bbc230f1d7c2ac750671"
+  },
+  "results": [
+    {
+      "capture": "deepseek",
+      "candidate": null,
+      "kind": "gateway",
+      "quote_sha256": "89472962033815690a80e79f02fb510ace3418ff41a49396a808575a0d211b9a",
+      "fmspc": "70a06d070000",
+      "embedded_pck_leaf_sha256": "b52ea9b9175e51e6093abe07dc17169bb07d628ed373e60059a4694c9254de9d",
+      "saved_pck_leaf_sha256": "b52ea9b9175e51e6093abe07dc17169bb07d628ed373e60059a4694c9254de9d",
+      "saved_chain_matches_quote": true,
+      "dcap_original_collateral": {
+        "tcb_status": "UpToDate",
+        "advisory_ids": []
+      },
+      "dcap_quote_embedded_chain": {
+        "tcb_status": "UpToDate",
+        "advisory_ids": []
+      },
+      "intel_qvl": {
+        "api_code": 0,
+        "quote_result": 0,
+        "collateral_expiration_status": 0,
+        "accepted": true
+      }
+    },
+    {
+      "capture": "deepseek",
+      "candidate": 0,
+      "kind": "model",
+      "quote_sha256": "37d2114f84a43e95412683b041cc0301cac3ea0dc96bba9a1f46a23641054476",
+      "fmspc": "90c06f000000",
+      "embedded_pck_leaf_sha256": "873fdc0ca12c7142e4623fc0b025446ace769ce70d6f87e911deec839967b421",
+      "saved_pck_leaf_sha256": "873fdc0ca12c7142e4623fc0b025446ace769ce70d6f87e911deec839967b421",
+      "saved_chain_matches_quote": true,
+      "dcap_original_collateral": {
+        "tcb_status": "UpToDate",
+        "advisory_ids": []
+      },
+      "dcap_quote_embedded_chain": {
+        "tcb_status": "UpToDate",
+        "advisory_ids": []
+      },
+      "intel_qvl": {
+        "api_code": 0,
+        "quote_result": 0,
+        "collateral_expiration_status": 0,
+        "accepted": true
+      }
+    },
+    {
+      "capture": "deepseek",
+      "candidate": 0,
+      "kind": "manager",
+      "quote_sha256": "b7ffff0a67fe597406f85517341afc67ea3e06a65b6015ea3cfe3b397a69fc9c",
+      "fmspc": "90c06f000000",
+      "embedded_pck_leaf_sha256": "873fdc0ca12c7142e4623fc0b025446ace769ce70d6f87e911deec839967b421",
+      "saved_pck_leaf_sha256": "873fdc0ca12c7142e4623fc0b025446ace769ce70d6f87e911deec839967b421",
+      "saved_chain_matches_quote": true,
+      "dcap_original_collateral": {
+        "tcb_status": "UpToDate",
+        "advisory_ids": []
+      },
+      "dcap_quote_embedded_chain": {
+        "tcb_status": "UpToDate",
+        "advisory_ids": []
+      },
+      "intel_qvl": {
+        "api_code": 0,
+        "quote_result": 0,
+        "collateral_expiration_status": 0,
+        "accepted": true
+      }
+    },
+    {
+      "capture": "deepseek",
+      "candidate": 1,
+      "kind": "model",
+      "quote_sha256": "21c865dc3c7caf63fd5722eaa3dad3ca77d1ee0db03eea2b07cd6ed759ee895e",
+      "fmspc": "90c06f000000",
+      "embedded_pck_leaf_sha256": "9de57ae33ebf8760ca24aa35eefbbf8872e50eb45e5351c4e1c131f6622507c2",
+      "saved_pck_leaf_sha256": "873fdc0ca12c7142e4623fc0b025446ace769ce70d6f87e911deec839967b421",
+      "saved_chain_matches_quote": false,
+      "dcap_original_collateral": {
+        "error": "Verification failed: Signature is invalid for qe_report in quote"
+      },
+      "dcap_quote_embedded_chain": {
+        "tcb_status": "UpToDate",
+        "advisory_ids": []
+      },
+      "intel_qvl": {
+        "api_code": 0,
+        "quote_result": 0,
+        "collateral_expiration_status": 0,
+        "accepted": true
+      }
+    },
+    {
+      "capture": "deepseek",
+      "candidate": 1,
+      "kind": "manager",
+      "quote_sha256": "ee3902702b00498fa750f8ada173f894d9311acc49db57205bcae7eb20a0a837",
+      "fmspc": "90c06f000000",
+      "embedded_pck_leaf_sha256": "9de57ae33ebf8760ca24aa35eefbbf8872e50eb45e5351c4e1c131f6622507c2",
+      "saved_pck_leaf_sha256": "873fdc0ca12c7142e4623fc0b025446ace769ce70d6f87e911deec839967b421",
+      "saved_chain_matches_quote": false,
+      "dcap_original_collateral": {
+        "error": "Verification failed: Signature is invalid for qe_report in quote"
+      },
+      "dcap_quote_embedded_chain": {
+        "tcb_status": "UpToDate",
+        "advisory_ids": []
+      },
+      "intel_qvl": {
+        "api_code": 0,
+        "quote_result": 0,
+        "collateral_expiration_status": 0,
+        "accepted": true
+      }
+    },
+    {
+      "capture": "glm",
+      "candidate": null,
+      "kind": "gateway",
+      "quote_sha256": "72dd0565fa41c393978d24e742b08dfd9ee4e33b4a199d1071457d1b8e3e27e9",
+      "fmspc": "70a06d070000",
+      "embedded_pck_leaf_sha256": "b52ea9b9175e51e6093abe07dc17169bb07d628ed373e60059a4694c9254de9d",
+      "saved_pck_leaf_sha256": "b52ea9b9175e51e6093abe07dc17169bb07d628ed373e60059a4694c9254de9d",
+      "saved_chain_matches_quote": true,
+      "dcap_original_collateral": {
+        "tcb_status": "UpToDate",
+        "advisory_ids": []
+      },
+      "dcap_quote_embedded_chain": {
+        "tcb_status": "UpToDate",
+        "advisory_ids": []
+      },
+      "intel_qvl": {
+        "api_code": 0,
+        "quote_result": 0,
+        "collateral_expiration_status": 0,
+        "accepted": true
+      }
+    },
+    {
+      "capture": "glm",
+      "candidate": 0,
+      "kind": "model",
+      "quote_sha256": "5d0e76c9a986b43739b7cb4348baef54295750422a644498f5107b607ae8977b",
+      "fmspc": "90c06f000000",
+      "embedded_pck_leaf_sha256": "4f4cbee8f48eec37eb3da5ce9669d2bc980529cd06f6756d62643fd792a4d79d",
+      "saved_pck_leaf_sha256": "873fdc0ca12c7142e4623fc0b025446ace769ce70d6f87e911deec839967b421",
+      "saved_chain_matches_quote": false,
+      "dcap_original_collateral": {
+        "error": "Verification failed: Signature is invalid for qe_report in quote"
+      },
+      "dcap_quote_embedded_chain": {
+        "tcb_status": "UpToDate",
+        "advisory_ids": []
+      },
+      "intel_qvl": {
+        "api_code": 0,
+        "quote_result": 0,
+        "collateral_expiration_status": 0,
+        "accepted": true
+      }
+    },
+    {
+      "capture": "glm",
+      "candidate": 0,
+      "kind": "manager",
+      "quote_sha256": "9f27719664a66408ad24ba3fe893c9a40f75c938cb722e2e48d1116a33827b77",
+      "fmspc": "90c06f000000",
+      "embedded_pck_leaf_sha256": "4f4cbee8f48eec37eb3da5ce9669d2bc980529cd06f6756d62643fd792a4d79d",
+      "saved_pck_leaf_sha256": "873fdc0ca12c7142e4623fc0b025446ace769ce70d6f87e911deec839967b421",
+      "saved_chain_matches_quote": false,
+      "dcap_original_collateral": {
+        "error": "Verification failed: Signature is invalid for qe_report in quote"
+      },
+      "dcap_quote_embedded_chain": {
+        "tcb_status": "UpToDate",
+        "advisory_ids": []
+      },
+      "intel_qvl": {
+        "api_code": 0,
+        "quote_result": 0,
+        "collateral_expiration_status": 0,
+        "accepted": true
+      }
+    },
+    {
+      "capture": "glm",
+      "candidate": 1,
+      "kind": "model",
+      "quote_sha256": "048b762b9a7487881b5ef66669a642a263c20ee97b6636c9646c5e4211a56992",
+      "fmspc": "90c06f000000",
+      "embedded_pck_leaf_sha256": "1faaf94b1a44042a35646da9ba97674593d9e17453669a3b4c30424a43f35d9b",
+      "saved_pck_leaf_sha256": "873fdc0ca12c7142e4623fc0b025446ace769ce70d6f87e911deec839967b421",
+      "saved_chain_matches_quote": false,
+      "dcap_original_collateral": {
+        "error": "Verification failed: Signature is invalid for qe_report in quote"
+      },
+      "dcap_quote_embedded_chain": {
+        "tcb_status": "UpToDate",
+        "advisory_ids": []
+      },
+      "intel_qvl": {
+        "api_code": 0,
+        "quote_result": 0,
+        "collateral_expiration_status": 0,
+        "accepted": true
+      }
+    },
+    {
+      "capture": "glm",
+      "candidate": 1,
+      "kind": "manager",
+      "quote_sha256": "15316e41c02eef9e1fe4b1c2094f04de29278ce56ffd9fd0484a58d158050689",
+      "fmspc": "90c06f000000",
+      "embedded_pck_leaf_sha256": "1faaf94b1a44042a35646da9ba97674593d9e17453669a3b4c30424a43f35d9b",
+      "saved_pck_leaf_sha256": "873fdc0ca12c7142e4623fc0b025446ace769ce70d6f87e911deec839967b421",
+      "saved_chain_matches_quote": false,
+      "dcap_original_collateral": {
+        "error": "Verification failed: Signature is invalid for qe_report in quote"
+      },
+      "dcap_quote_embedded_chain": {
+        "tcb_status": "UpToDate",
+        "advisory_ids": []
+      },
+      "intel_qvl": {
+        "api_code": 0,
+        "quote_result": 0,
+        "collateral_expiration_status": 0,
+        "accepted": true
+      }
+    },
+    {
+      "capture": "glm",
+      "candidate": 2,
+      "kind": "model",
+      "quote_sha256": "f5b5ee04ebadc415aa4df3473d8dbda52d57682355fa9d3f2a7fb2fe5c43dd9e",
+      "fmspc": "90c06f000000",
+      "embedded_pck_leaf_sha256": "dc9dddecbd005179551ba646bd796c4c3dbd2318c3664aada69573cc2d7391b2",
+      "saved_pck_leaf_sha256": "873fdc0ca12c7142e4623fc0b025446ace769ce70d6f87e911deec839967b421",
+      "saved_chain_matches_quote": false,
+      "dcap_original_collateral": {
+        "error": "Verification failed: Signature is invalid for qe_report in quote"
+      },
+      "dcap_quote_embedded_chain": {
+        "tcb_status": "UpToDate",
+        "advisory_ids": []
+      },
+      "intel_qvl": {
+        "api_code": 0,
+        "quote_result": 0,
+        "collateral_expiration_status": 0,
+        "accepted": true
+      }
+    },
+    {
+      "capture": "glm",
+      "candidate": 2,
+      "kind": "manager",
+      "quote_sha256": "e7affc238b87e214e4ee2db454078d0d4fd290ca7b4d99742e6e0e7678571791",
+      "fmspc": "90c06f000000",
+      "embedded_pck_leaf_sha256": "dc9dddecbd005179551ba646bd796c4c3dbd2318c3664aada69573cc2d7391b2",
+      "saved_pck_leaf_sha256": "873fdc0ca12c7142e4623fc0b025446ace769ce70d6f87e911deec839967b421",
+      "saved_chain_matches_quote": false,
+      "dcap_original_collateral": {
+        "error": "Verification failed: Signature is invalid for qe_report in quote"
+      },
+      "dcap_quote_embedded_chain": {
+        "tcb_status": "UpToDate",
+        "advisory_ids": []
+      },
+      "intel_qvl": {
+        "api_code": 0,
+        "quote_result": 0,
+        "collateral_expiration_status": 0,
+        "accepted": true
+      }
+    },
+    {
+      "capture": "glm",
+      "candidate": 3,
+      "kind": "model",
+      "quote_sha256": "d09d93634dbea5a80821e78a225aee1d309bc05218160ffb7ba6dc4d73988402",
+      "fmspc": "90c06f000000",
+      "embedded_pck_leaf_sha256": "4f4cbee8f48eec37eb3da5ce9669d2bc980529cd06f6756d62643fd792a4d79d",
+      "saved_pck_leaf_sha256": "873fdc0ca12c7142e4623fc0b025446ace769ce70d6f87e911deec839967b421",
+      "saved_chain_matches_quote": false,
+      "dcap_original_collateral": {
+        "error": "Verification failed: Signature is invalid for qe_report in quote"
+      },
+      "dcap_quote_embedded_chain": {
+        "tcb_status": "UpToDate",
+        "advisory_ids": []
+      },
+      "intel_qvl": {
+        "api_code": 0,
+        "quote_result": 0,
+        "collateral_expiration_status": 0,
+        "accepted": true
+      }
+    },
+    {
+      "capture": "glm",
+      "candidate": 3,
+      "kind": "manager",
+      "quote_sha256": "30d56d9972b1e71a54080ddb0597785ca3e9ccb77abe2eda3e149f2299955f9d",
+      "fmspc": "90c06f000000",
+      "embedded_pck_leaf_sha256": "4f4cbee8f48eec37eb3da5ce9669d2bc980529cd06f6756d62643fd792a4d79d",
+      "saved_pck_leaf_sha256": "873fdc0ca12c7142e4623fc0b025446ace769ce70d6f87e911deec839967b421",
+      "saved_chain_matches_quote": false,
+      "dcap_original_collateral": {
+        "error": "Verification failed: Signature is invalid for qe_report in quote"
+      },
+      "dcap_quote_embedded_chain": {
+        "tcb_status": "UpToDate",
+        "advisory_ids": []
+      },
+      "intel_qvl": {
+        "api_code": 0,
+        "quote_result": 0,
+        "collateral_expiration_status": 0,
+        "accepted": true
+      }
+    }
+  ],
+  "negative_controls": [
+    {
+      "case": "td_report_bit_changed",
+      "verification_time_unix": 1795274641,
+      "dcap_quote_embedded_chain": {
+        "error": "Verification failed: ISV enclave report signature is invalid"
+      },
+      "intel_qvl": {
+        "api_code": 57448,
+        "quote_result": 40966,
+        "collateral_expiration_status": 1,
+        "accepted": false
+      }
+    },
+    {
+      "case": "qe_report_signature_bit_changed",
+      "verification_time_unix": 1795274641,
+      "dcap_quote_embedded_chain": {
+        "error": "Verification failed: Signature is invalid for qe_report in quote"
+      },
+      "intel_qvl": {
+        "api_code": 57375,
+        "quote_result": 40966,
+        "collateral_expiration_status": 1,
+        "accepted": false
+      }
+    },
+    {
+      "case": "expired_collateral",
+      "verification_time_unix": 2145916800,
+      "dcap_quote_embedded_chain": {
+        "error": "Verification failed: CrlExpired { time: UnixTime(2145916800), next_update: UnixTime(1803647040) }"
+      },
+      "intel_qvl": {
+        "api_code": 0,
+        "quote_result": 0,
+        "collateral_expiration_status": 1,
+        "accepted": false
+      }
+    }
+  ],
+  "accepted_cpu_quotes": 14
+}

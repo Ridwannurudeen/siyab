@@ -1,0 +1,13 @@
+{
+  "source_url": "https://cloud-api.near.ai/v1/attestation/report?nonce=f51112f5a8df24bfa70366b4f74ea685e0721e1e2d9e368f2f14beebdbfef04d&model=deepseek-ai%2FDeepSeek-V4.1-Flash-1017&provider=near&signing_algo=ed25519&include_tls_fingerprint=false",
+  "nonce": "f51112f5a8df24bfa70366b4f74ea685e0721e1e2d9e368f2f14beebdbfef04d",
+  "model": "deepseek-ai/DeepSeek-V4.1-Flash-1017",
+  "signing_algo": "ed25519",
+  "recorded_at": "2026-11-21T15:20:03.626643+00:00",
+  "status": 200,
+  "sha256": "c0d9ddb73742df6b82fc44bf9aefa3077ab7e270241fdf17084b6a4454fd273b",
+  "transport_sha256": "1f125bb0f48c81b739d642c3db0b6fe8b289ab1b62a5f798da99c32b30f916fa",
+  "peer_spki": "73862c254372091cc6895b900111503860694f8916ebf0c63b18d245ba8ba5ad",
+  "paid_completions": 0,
+  "storage": "JSON escaped to ASCII; decoded report values unchanged"
+}

@@ -28,6 +28,13 @@ class WordRuleTest(unittest.TestCase):
     def test_quoted_source_data_in_docs_is_rejected_too(self):
         self.assertTrue(self.hygiene.check_text("docs/LABEL-RECORD.md", f'symbol "{self.word.upper()}"'))
 
+    def test_only_whole_stdlib_names_carrying_the_word_are_exempt(self):
+        for name in ("run_coroutine_thread", "call_soon_thread"):
+            with self.subTest(name=name):
+                self.assertFalse(self.hygiene.check_text("gate/nearai.py", f"asyncio.{name}{self.word}(job, loop)"))
+                self.assertTrue(self.hygiene.check_text("gate/nearai.py", f"asyncio.{name}{self.word}(job) is {self.word}"))
+                self.assertTrue(self.hygiene.check_text("gate/nearai.py", f"my_{name}{self.word}()"))
+
     def test_data_paths_and_the_script_itself_are_outside_the_rule(self):
         line = f"the account is {self.word}"
         for path in ("intel/labels.jsonl", "intel/seeds/raw/x.json", "fixtures/rpc/x.json", "tests/test_x.py",

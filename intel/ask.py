@@ -15,7 +15,9 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
-from gate import rules
+from gate import nearai, rules
+from gate.nearai import (AttestationError, ProviderBadRequest, ProviderConnection,
+                         ProviderRateLimited, ProviderStatus, ProviderTimeout, SDKUnavailable)
 
 ROOT = Path(__file__).resolve().parent.parent
 DATABASE_NAME = "ask.sqlite3"
@@ -37,10 +39,14 @@ MAX_STATEMENTS = 6
 MAX_GAPS = 3
 MAX_LABELS = 10
 KEY_FILE_MAX_BYTES = 512
+DEFAULT_MODEL = "claude-haiku-5-5"
+NEARAI_DEFAULT_MODEL = nearai.DEFAULT_MODEL
+NEARAI_PRICES = nearai.PRICES
 API_BASE_URL = "https://api.anthropic.com"
-PRICES = {"claude-haiku-5-5": (100_000, 500_000),
-          "claude-sonnet-5-5": (2_000_000, 10_000_000),
-          "claude-opus-5-5": (4_000_000, 20_000_000)}
+ANTHROPIC_PRICES = {"claude-haiku-5-5": (100_000, 500_000),
+                    "claude-sonnet-5-5": (2_000_000, 10_000_000),
+                    "claude-opus-5-5": (4_000_000, 20_000_000)}
+PRICES = {**ANTHROPIC_PRICES, **nearai.PRICES}
 QUESTIONS = {
     "why_verdict": "Why did the checks reach this outcome?",
     "what_unknown": "What is unknown, and why?",
@@ -141,20 +147,30 @@ def projection_bytes(projection):
     return json.dumps(projection, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
 
 
-def cache_key(model, effort, question_id, projection):
+def cache_key(model, effort, question_id, projection, provider="anthropic"):
     body = {"ask_version": ASK_VERSION, "prompt_version": PROMPT_VERSION, "schema_version": SCHEMA_VERSION,
             "model": model, "effort": effort,
             "question_id": question_id, "projection": projection}
+    if provider != "anthropic":
+        body["provider"] = provider
     return hashlib.sha256(projection_bytes(body)).hexdigest()
 
 
 def build_request(model, effort, projection, question_text):
     text = projection_bytes(projection).decode("utf-8").replace("<", "\\u003c").replace(">", "\\u003e")
+    if model not in nearai.PRICES:
+        return {"model": model, "max_tokens": MAX_TOKENS,
+                "system": [{"type": "text", "text": SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}],
+                "messages": [{"role": "user", "content": "<evidence>\n" + text + "\n</evidence>\n"
+                              "<question>\n" + question_text + "\n</question>"}],
+                "output_config": {"effort": effort, "format": {"type": "json_schema", "schema": SCHEMA}}}
     return {"model": model, "max_tokens": MAX_TOKENS,
-            "system": [{"type": "text", "text": SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}],
-            "messages": [{"role": "user", "content": "<evidence>\n" + text + "\n</evidence>\n"
+            "messages": [{"role": "system", "content": SYSTEM_PROMPT},
+                         {"role": "user", "content": "<evidence>\n" + text + "\n</evidence>\n"
                           "<question>\n" + question_text + "\n</question>"}],
-            "output_config": {"effort": effort, "format": {"type": "json_schema", "schema": SCHEMA}}}
+            "reasoning_effort": effort,
+            "response_format": {"type": "json_schema", "json_schema": {
+                "name": "evidence_selection", "strict": True, "schema": SCHEMA}}}
 
 
 def _unique_object(pairs):
@@ -229,33 +245,9 @@ def render_answer(selection, projection):
             "not_in_evidence": [TEMPLATES["gap." + code] for code in selection["gaps"]]}
 
 
-class ProviderRateLimited(Exception):
-    pass
-
-
-class ProviderStatus(Exception):
-    def __init__(self, status):
-        super().__init__()
-        self.status = status
-
-
-class ProviderTimeout(Exception):
-    pass
-
-
-class ProviderConnection(Exception):
-    pass
-
-
-class ProviderBadRequest(Exception):
-    pass
-
-
-class SDKUnavailable(Exception):
-    pass
-
-
-def sdk_client(api_key):
+def sdk_client(api_key, provider="anthropic"):
+    if provider == "nearai":
+        return nearai.Client(api_key)
     try:
         import anthropic
     except ImportError:
@@ -361,7 +353,8 @@ def usage_cost(usage, model):
     price_in, price_out = PRICES[model]
     input_tokens, output, creation, read = (usage.get(name, 0) or 0 for name in (
         "input_tokens", "output_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"))
-    numerator = (4 * input_tokens + 5 * creation + 4 * read) * price_in + 4 * output * price_out
+    numerator = ((4 * input_tokens + (5 if model in ANTHROPIC_PRICES else 4) * creation + 4 * read) * price_in
+                 + 4 * output * price_out)
     return input_tokens + creation + read + output, (numerator + 4_000_000 - 1) // 4_000_000
 
 
@@ -373,7 +366,7 @@ def reservation_bound(params):
 
 class Ledger:
     def __init__(self, path, daily_cap=3000000, user_tokens=100000, team_tokens=300000,
-                 model="claude-haiku-5-5"):
+                 model=DEFAULT_MODEL):
         self.path = Path(path)
         self.daily_cap = daily_cap
         self.user_tokens = user_tokens
@@ -412,6 +405,14 @@ class Ledger:
                 delta = micro - reservation.micro if counter.startswith("spend_micro") else tokens - reservation.tokens
                 connection.execute("UPDATE counters SET value=MAX(0,value+?) WHERE counter=? AND day=?",
                                    (delta, counter, reservation.day))
+
+    def release(self, reservation):
+        with _transaction(self.path) as connection:
+            for counter in (*reservation.counters, "calls"):
+                amount = (1 if counter == "calls" else reservation.micro
+                          if counter.startswith("spend_micro") else reservation.tokens)
+                connection.execute("UPDATE counters SET value=MAX(0,value-?) WHERE counter=? AND day=?",
+                                   (amount, counter, reservation.day))
 
 
 class AnswerCache:
@@ -472,7 +473,8 @@ class AskService:
         self.monotonic = monotonic
         self._slots = threading.BoundedSemaphore(MAX_IN_FLIGHT)
         self.configuration_reason = None
-        self.model = os.environ.get("SIYAB_ASK_MODEL") or "claude-haiku-5-5"
+        self.provider = os.environ.get("SIYAB_ASK_PROVIDER") or "anthropic"
+        self.model = os.environ.get("SIYAB_ASK_MODEL") or (nearai.DEFAULT_MODEL if self.provider == "nearai" else DEFAULT_MODEL)
         self.effort = os.environ.get("SIYAB_ASK_EFFORT") or "low"
         flag = os.environ.get("SIYAB_ASK") or ""
         settings = {"SIYAB_ASK_DAILY_CAP_MICRO": (3000000, 0, 3000000),
@@ -490,7 +492,9 @@ class AskService:
                 values[name] = value
             except ValueError:
                 invalid = invalid or name
-        if self.model not in PRICES:
+        if self.provider not in ("anthropic", "nearai"):
+            invalid = invalid or "SIYAB_ASK_PROVIDER"
+        if self.model not in (nearai.PRICES if self.provider == "nearai" else ANTHROPIC_PRICES):
             invalid = invalid or "SIYAB_ASK_MODEL"
         if self.effort not in ("low", "medium", "high"):
             invalid = invalid or "SIYAB_ASK_EFFORT"
@@ -540,7 +544,7 @@ class AskService:
             if question_id == "free_text" and ("<" in question or ">" in question or any(
                     pattern.search(question) for _, pattern in rules.INJECTION_PATTERNS)):
                 return 200, unavailable(question_id, question, "question_refused", verdict, projection), response_headers
-            key = cache_key(self.model, self.effort, question_id, projection)
+            key = cache_key(self.model, self.effort, question_id, projection, self.provider)
             if question_id in QUESTIONS:
                 cached = self.cache.get(key, self.clock())
                 if cached is not None:
@@ -558,13 +562,19 @@ class AskService:
                         body.update(status="explained", reason=None, message=None, model=self.model, cached=True,
                                     generated_at=cached["generated_at"])
                         return 200, body, response_headers
-            api_key = _read_key()
+            api_key = _read_key("NEARAI_API_KEY_FILE" if self.provider == "nearai" else "ANTHROPIC_API_KEY_FILE")
             if api_key is None:
                 return 200, unavailable(question_id, question, "key_unavailable", verdict, projection), response_headers
             try:
-                client = self.client_factory(api_key)
+                client = (sdk_client(api_key, self.provider) if self.client_factory is sdk_client
+                          else self.client_factory(api_key))
+                if self.provider == "nearai":
+                    client.preflight(self.model)
             except SDKUnavailable:
                 return 200, unavailable(question_id, question, "sdk_unavailable", verdict, projection), response_headers
+            except AttestationError as error:
+                reason = "disabled" if str(error) == "live_disabled" else "attestation_failed"
+                return 200, unavailable(question_id, question, reason, verdict, projection), response_headers
             now = self.monotonic()
             deadline = min(now + MODEL_DEADLINE_S, arrival + TOTAL_DEADLINE_S)
             params = build_request(self.model, self.effort, projection, question)
@@ -578,13 +588,22 @@ class AskService:
             reservation = self.ledger.reserve(user_id, team_id, reserved, tokens, micro, self.clock)
             remaining = deadline - self.monotonic()
             if remaining < MIN_ATTEMPT_S:
-                self.ledger.settle(reservation, {"input_tokens": 0, "output_tokens": 0,
-                                                "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0})
+                self.ledger.release(reservation)
                 reason = "timeout"
                 return 200, unavailable(question_id, question, reason, verdict, projection), response_headers
             try:
                 output = client.create(params, timeout=remaining)
+            except SDKUnavailable:
+                self.ledger.release(reservation)
+                return 200, unavailable(question_id, question, "sdk_unavailable", verdict, projection), response_headers
+            except AttestationError as error:
+                if not getattr(error, "completion_started", True):
+                    self.ledger.release(reservation)
+                reason = "disabled" if str(error) == "live_disabled" else "attestation_failed"
+                return 200, unavailable(question_id, question, reason, verdict, projection), response_headers
             except (ProviderRateLimited, ProviderStatus, ProviderTimeout, ProviderConnection, ProviderBadRequest) as error:
+                if not getattr(error, "completion_started", True):
+                    self.ledger.release(reservation)
                 status = error.status if isinstance(error, ProviderStatus) else {
                     ProviderRateLimited: 429, ProviderBadRequest: 400}.get(type(error), 0)
                 print(f"ask: provider_error status={status}", file=sys.stderr)
