@@ -1,0 +1,74 @@
+{
+ "action": "sign",
+ "checks": [
+  {
+   "detail": "intents.near exists",
+   "name": "receiver_exists",
+   "status": "pass"
+  },
+  {
+   "detail": "no denylist or incident label on intents.near or usdt.tether-token.near",
+   "name": "label_denylist",
+   "status": "pass"
+  },
+  {
+   "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+   "name": "issuer_blacklist",
+   "status": "pass"
+  },
+  {
+   "detail": "usdt.tether-token.near is a catalog_token in the label store",
+   "name": "token_in_catalog",
+   "status": "pass"
+  },
+  {
+   "detail": "symbol \"USDt\", 6 decimals",
+   "name": "ft_metadata_sane",
+   "status": "pass"
+  },
+  {
+   "detail": "intents.near is registered on usdt.tether-token.near",
+   "name": "storage_registered",
+   "status": "pass"
+  },
+  {
+   "detail": "no memo",
+   "name": "memo_injection",
+   "status": "pass"
+  },
+  {
+   "detail": "oldest access key nonce 149367527965235 from free.rpc.fastnear.com: existed by block 149367528 (2025-06-02T10:38:14Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
+   "name": "account_age",
+   "status": "pass"
+  },
+  {
+   "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
+   "name": "dust_funded",
+   "status": "pass"
+  },
+  {
+   "detail": "intents.near is itself a labelled reference account (assertion 522c8a621dbd41266cdf8a2d5020f4b27a608037e06ec4d3a50d2d9bb0681402, a4620b716e67ab13490ba33b67297ca168d93d4461c229e30dfa8a36b5396ebc, 17ef934e0652d8aa8cd4795e1b1f1f7259124fc1422601906c0272e5f9d71062, c55b108c502a3834f1acf605aed7284991956078fe345a72d5025a54e6b5c4a2)",
+   "name": "lookalike",
+   "status": "pass"
+  },
+  {
+   "detail": "contract code with contract_source_metadata",
+   "name": "code_without_metadata",
+   "status": "pass"
+  }
+ ],
+ "evidence": "{\"checks\":[{\"detail\":\"intents.near exists\",\"id\":\"receiver_exists\",\"source\":{\"fetched_at\":\"2026-11-21T14:21:25Z\",\"provider\":\"free.rpc.fastnear.com\",\"request_sha256\":\"aeca5be441be45abec5d698a9b5c3dd2a8b8090db3a2abc222c3e6b6463ccdd0\"},\"status\":\"pass\"},{\"detail\":\"no denylist or incident label on intents.near or usdt.tether-token.near\",\"id\":\"label_denylist\",\"source\":{\"fetched_at\":null,\"provider\":\"label store\",\"request_sha256\":\"1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8\"},\"status\":\"pass\"},{\"detail\":\"usdt.tether-token.near get_blacklist_status answers \\\"Allowable\\\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false\",\"id\":\"issuer_blacklist\",\"source\":{\"fetched_at\":\"2026-11-21T14:21:25Z\",\"provider\":\"free.rpc.fastnear.com\",\"request_sha256\":\"f56978676c2af89808d8412342e22ea6811aace65fced0a3438d3ac2d02c4f4b\"},\"status\":\"pass\"},{\"detail\":\"usdt.tether-token.near is a catalog_token in the label store\",\"id\":\"token_in_catalog\",\"source\":{\"fetched_at\":null,\"provider\":\"label store\",\"request_sha256\":\"1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8\"},\"status\":\"pass\"},{\"detail\":\"symbol \\\"USDt\\\", 6 decimals\",\"id\":\"ft_metadata_sane\",\"source\":{\"fetched_at\":\"2026-11-21T14:21:25Z\",\"provider\":\"free.rpc.fastnear.com\",\"request_sha256\":\"46696d4d0864fa19cd22eb6c766a3007fa4c174d33ea7e5e084da0cb1ff00d44\"},\"status\":\"pass\"},{\"detail\":\"intents.near is registered on usdt.tether-token.near\",\"id\":\"storage_registered\",\"source\":{\"fetched_at\":\"2026-11-21T14:21:26Z\",\"provider\":\"free.rpc.fastnear.com\",\"request_sha256\":\"a9da645a64ffad372d96400a8ea02a962b3b1cfad3102f3db85bff4a0bf9a60a\"},\"status\":\"pass\"},{\"detail\":\"no memo\",\"id\":\"memo_injection\",\"source\":{\"fetched_at\":null,\"provider\":\"local patterns\",\"request_sha256\":null},\"status\":\"pass\"},{\"detail\":\"oldest access key nonce 149367527965235 from free.rpc.fastnear.com: existed by block 149367528 (2025-06-02T10:38:14Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old\",\"id\":\"account_age\",\"source\":{\"fetched_at\":\"2026-11-21T14:21:26Z\",\"provider\":\"archival-rpc.mainnet.fastnear.com\",\"request_sha256\":\"66fe533bffa1cbd2fe2edbf059e208a764b948ec7366cd0f5698f7b15436cfca\"},\"status\":\"pass\"},{\"detail\":\"creation deposit not read: a deposit is a signal only with lookalike or account_age\",\"id\":\"dust_funded\",\"source\":{\"fetched_at\":null,\"provider\":\"nearblocks\",\"request_sha256\":null},\"status\":\"pass\"},{\"detail\":\"intents.near is itself a labelled reference account (assertion 522c8a621dbd41266cdf8a2d5020f4b27a608037e06ec4d3a50d2d9bb0681402, a4620b716e67ab13490ba33b67297ca168d93d4461c229e30dfa8a36b5396ebc, 17ef934e0652d8aa8cd4795e1b1f1f7259124fc1422601906c0272e5f9d71062, c55b108c502a3834f1acf605aed7284991956078fe345a72d5025a54e6b5c4a2)\",\"id\":\"lookalike\",\"source\":{\"fetched_at\":null,\"provider\":\"allowlist and label store\",\"request_sha256\":\"1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8\"},\"status\":\"pass\"},{\"detail\":\"contract code with contract_source_metadata\",\"id\":\"code_without_metadata\",\"source\":{\"fetched_at\":\"2026-11-21T14:21:26Z\",\"provider\":\"free.rpc.fastnear.com\",\"request_sha256\":\"2ac1817c825961725d072dc0658ff59c66c85a1520d76901c350e7e8c4c2d6d8\"},\"status\":\"pass\"}],\"expires_ms\":null,\"issued_ms\":null,\"labels\":[\"522c8a621dbd41266cdf8a2d5020f4b27a608037e06ec4d3a50d2d9bb0681402\",\"a4620b716e67ab13490ba33b67297ca168d93d4461c229e30dfa8a36b5396ebc\",\"17ef934e0652d8aa8cd4795e1b1f1f7259124fc1422601906c0272e5f9d71062\",\"c55b108c502a3834f1acf605aed7284991956078fe345a72d5025a54e6b5c4a2\",\"05a99dbeaf1654a5443a740eaed02f7427af8920d8ae8775a0b413f9b228ddd0\",\"97f2a60884f6a510c96a84234f347b5320551514c1c8c737cb0d82695358e97a\",\"3fe616f618f8f7f4e5ec8a555428d8f043a46fc11d80884f20f747f856a3b7bf\",\"daf36d8026d8cf7e838fa75d0c7dfc4a9a1c91730595c335ea228a4b09c1c0ea\",\"b11faf70636bf377b8ebe69a8fb41573d477652cb8ac7a5e0f55ea61fb754c52\",\"1e54dbbaa28c1bc97b890ad48c01413f54849b999b0160263eaf31d0b7e79032\"],\"latency_ms\":1836,\"observed\":{\"block_height\":225566372,\"timestamp_ms\":1795270884843},\"reasons\":[\"Every check ran and none found a signal.\",\"Not on the owner's allowlist.\"],\"subject\":{\"amount\":\"1000000\",\"kind\":\"ft\",\"memo_sha256\":null,\"network\":\"mainnet\",\"receiver\":\"intents.near\",\"token\":\"usdt.tether-token.near\"},\"verdict\":\"ALLOW\",\"verdict_id\":null,\"version\":\"1\"}",
+ "evidence_hash": "429b1f46dfa0bc256c5f69d7309b5b1cdb17351b77b79e9f2495e8a7a56f93ac",
+ "freshness": {
+  "block_height": 225566372,
+  "timestamp_ms": 1795270884843
+ },
+ "latency_ms": 1836,
+ "outcome": "ALLOW",
+ "reasons": [
+  "Every check ran and none found a signal.",
+  "Not on the owner's allowlist."
+ ],
+ "signing": "never",
+ "verdict": null
+}

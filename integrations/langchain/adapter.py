@@ -2,12 +2,26 @@
 
 import hashlib
 import json
+import re
 import urllib.error
 import urllib.parse
 import urllib.request
 
 DEFAULT_BASE_URL = "https://siyab.xyz"
 DEFAULT_TIMEOUT_S = 10
+ACCOUNT_ID = re.compile(r"^[a-z0-9][a-z0-9._-]{0,62}[a-z0-9]$")
+
+
+class PaymentRefused(RuntimeError):
+    """The check refused the payment. Send nothing."""
+
+    decision = "deny"
+
+
+class ConfirmationRequired(RuntimeError):
+    """A person must decide, or the confirmation was refused."""
+
+    decision = "ask"
 
 
 def _sha256(text):
@@ -15,6 +29,10 @@ def _sha256(text):
 
 
 def _evidence(answer):
+    """The evidence document, only when the answer's hash matches it.
+
+    The hash is unsigned, so this shows internal consistency, not authenticity.
+    """
     if not isinstance(answer, dict):
         return None
     evidence = answer.get("evidence")
@@ -30,64 +48,72 @@ def _evidence(answer):
     return document if isinstance(document, dict) else None
 
 
-def _reasons(answer):
-    reasons = answer.get("reasons")
-    if not isinstance(reasons, list):
+def _strings(value):
+    if not isinstance(value, list):
         return []
-    return [reason for reason in reasons if isinstance(reason, str) and reason]
+    return [item for item in value if isinstance(item, str) and item]
 
 
-def _bound(answer, subject_check, label):
-    document = _evidence(answer)
-    if document is None:
-        return "The check answer could not be verified."
-    subject = document.get("subject")
-    if not isinstance(subject, dict) or not subject_check(subject):
-        return "The check answer is for a different " + label + "."
-    expected = "UNKNOWN" if answer.get("outcome") == "ASK" else answer.get("outcome")
-    if document.get("verdict") != expected:
-        return "The check answer does not match its evidence."
-    return None
+def _checks(document):
+    checks = document.get("checks") if isinstance(document, dict) else None
+    return checks if isinstance(checks, list) else []
+
+
+def _answer(answer):
+    """Validation and the part of an answer that is safe to read without evidence."""
+    if not isinstance(answer, dict):
+        return None, "The check did not return an answer."
+    outcome = answer.get("outcome")
+    if not isinstance(outcome, str):
+        return None, "The check answer has no outcome."
+    outcome = outcome.strip().upper()
+    if outcome == "UNKNOWN":
+        outcome = "ASK"
+    if outcome not in ("ALLOW", "DENY", "ASK"):
+        return None, "The check answer has an unknown outcome."
+    return outcome, None
 
 
 def _decide(answer, subject_check, label):
-    if not isinstance(answer, dict):
-        return {"decision": "ask", "reasons": ["The check did not return an answer."]}
-    mismatch = _bound(answer, subject_check, label)
-    if mismatch:
-        return {"decision": "ask", "reasons": [mismatch]}
+    outcome, problem = _answer(answer)
+    if problem:
+        return {"decision": "ask", "reasons": [problem]}
 
-    reasons = _reasons(answer)
-    evidence_hash = answer.get("evidence_hash")
-    outcome = answer.get("outcome")
+    reasons = _strings(answer.get("reasons"))
     if outcome == "DENY":
-        return {"decision": "deny",
-                "reasons": reasons or ["The check found a refusal signal."],
-                "evidence_hash": evidence_hash}
-    if outcome != "ALLOW":
-        return {"decision": "ask",
-                "reasons": reasons or ["The check did not clear this account."],
-                "evidence_hash": evidence_hash}
+        # A denial blocks a payment, so it is honoured before any binding check.
+        document = _evidence(answer)
+        shown = _strings(document.get("reasons")) if document else []
+        return {"decision": "deny", "reasons": shown or reasons or ["The check refused this transfer."]}
 
-    checks = answer.get("checks")
-    if (not isinstance(checks, list) or not checks
-            or any(not isinstance(check, dict) or check.get("status") != "pass" for check in checks)):
-        return {"decision": "ask", "reasons": ["The check answer is incomplete."],
-                "evidence_hash": evidence_hash}
+    document = _evidence(answer)
+    if document is None:
+        return {"decision": "ask", "reasons": ["The check answer could not be read."]}
+    subject = document.get("subject")
+    if not isinstance(subject, dict) or not subject_check(subject):
+        return {"decision": "ask", "reasons": ["The check answer is for a different " + label + "."]}
+    expected = "UNKNOWN" if outcome == "ASK" else outcome
+    if document.get("verdict") != expected:
+        return {"decision": "ask", "reasons": ["The check answer does not match its evidence."]}
+
+    shown = _strings(document.get("reasons")) or reasons
+    if outcome == "ASK":
+        return {"decision": "ask", "reasons": shown or ["The check did not clear this transfer."]}
+
+    checks = _checks(document)
+    if not checks or any(not isinstance(check, dict) or check.get("status") != "pass" for check in checks):
+        return {"decision": "ask", "reasons": ["The check answer is incomplete."]}
     if answer.get("signing") != "never" or answer.get("verdict") is not None:
-        return {"decision": "ask", "reasons": ["The check answer was not produced by the unsigned route."],
-                "evidence_hash": evidence_hash}
+        return {"decision": "ask", "reasons": ["The check answer did not come from the unsigned route."]}
     if answer.get("action") != "sign":
-        return {"decision": "ask",
-                "reasons": reasons or ["The check requires a decision before sending."],
-                "evidence_hash": evidence_hash}
-    return {"decision": "allow", "reasons": reasons, "evidence_hash": evidence_hash}
+        return {"decision": "ask", "reasons": shown or ["The check needs a decision before sending."]}
+    return {"decision": "allow", "reasons": shown}
 
 
 def decide_account_check(answer, receiver):
     """Map a GET /live/account-check/<account> answer for one account."""
-    if not isinstance(receiver, str) or not receiver:
-        return {"decision": "ask", "reasons": ["The receiver account is missing."]}
+    if not isinstance(receiver, str) or not ACCOUNT_ID.match(receiver or ""):
+        return {"decision": "ask", "reasons": ["The receiver account is not a valid account id."]}
 
     def subject_check(subject):
         return subject.get("kind") == "account" and subject.get("account") == receiver
@@ -97,35 +123,51 @@ def decide_account_check(answer, receiver):
 
 def decide_payment(answer, receiver, amount, token="near"):
     """Map a GET /live/verdict answer for one transfer."""
-    if not isinstance(receiver, str) or not receiver:
-        return {"decision": "ask", "reasons": ["The receiver account is missing."]}
-    if not isinstance(amount, str) or not amount.isascii() or not amount.isdigit():
-        return {"decision": "ask", "reasons": ["The amount must be a decimal string in base units."]}
+    if not isinstance(receiver, str) or not ACCOUNT_ID.match(receiver or ""):
+        return {"decision": "ask", "reasons": ["The receiver account is not a valid account id."]}
+    if not isinstance(amount, str) or not amount.isascii() or not amount.isdigit() or int(amount) <= 0:
+        return {"decision": "ask", "reasons": ["The amount must be a positive decimal string in base units."]}
+    if token != "near" and (not isinstance(token, str) or not ACCOUNT_ID.match(token or "")):
+        return {"decision": "ask", "reasons": ["The token must be near or a valid account id."]}
+    kind = "near" if token == "near" else "ft"
     judged_token = None if token == "near" else token
 
     def subject_check(subject):
-        return (subject.get("kind") == "near" and subject.get("receiver") == receiver
+        return (subject.get("kind") == kind and subject.get("receiver") == receiver
                 and subject.get("amount") == amount and subject.get("token") == judged_token)
 
     return _decide(answer, subject_check, "transfer")
 
 
-def preflight(base_url=DEFAULT_BASE_URL, receiver=None, amount=None, token="near",
+def _reject(message):
+    return {"decision": "ask", "reasons": [message]}
+
+
+def preflight(*, receiver, amount=None, token="near", base_url=DEFAULT_BASE_URL,
               opener=urllib.request.urlopen, timeout=DEFAULT_TIMEOUT_S):
-    """Call the hosted check and return one decision. Network failures become ask."""
+    """Call the hosted check and return one decision. Every failure becomes ask."""
+    if not isinstance(receiver, str) or not ACCOUNT_ID.match(receiver or ""):
+        return _reject("The receiver account is not a valid account id.")
+    if amount is not None and (not isinstance(amount, str) or not amount.isascii()
+                              or not amount.isdigit() or int(amount) <= 0):
+        return _reject("The amount must be a positive decimal string in base units.")
+    if token != "near" and (not isinstance(token, str) or not ACCOUNT_ID.match(token or "")):
+        return _reject("The token must be near or a valid account id.")
+
     base = base_url.rstrip("/")
+    if amount is None:
+        url = base + "/live/account-check/" + urllib.parse.quote(receiver, safe="")
+    else:
+        url = base + "/live/verdict?" + urllib.parse.urlencode(
+            {"receiver": receiver, "amount": amount, "token": token})
     try:
-        if amount is None:
-            url = base + "/live/account-check/" + urllib.parse.quote(receiver or "", safe="")
-        else:
-            query = urllib.parse.urlencode({"receiver": receiver, "amount": amount, "token": token})
-            url = base + "/live/verdict?" + query
         with opener(url, timeout=timeout) as response:
-            answer = json.loads(response.read().decode("utf-8"))
+            raw = response.read()
+        answer = json.loads(raw.decode("utf-8"))
     except urllib.error.HTTPError as error:
-        return {"decision": "ask", "reasons": ["The check is unavailable (HTTP " + str(error.code) + ")."]}
-    except (urllib.error.URLError, TimeoutError, OSError, ValueError):
-        return {"decision": "ask", "reasons": ["The check could not be reached."]}
+        return _reject("The check is unavailable (HTTP " + str(error.code) + ").")
+    except Exception:
+        return _reject("The check could not be reached.")
     if amount is None:
         return decide_account_check(answer, receiver)
     return decide_payment(answer, receiver, amount, token)
@@ -143,6 +185,27 @@ def tool_result(decision):
             " This is advice, not permission to pay; only a signed verdict authorises a Gate payment.")
 
 
+def guard_payment(*, send, receiver, amount, token="near", confirm=None, **options):
+    """Run the check, then call send() only when it is safe to do so.
+
+    A deny raises PaymentRefused. An ask raises ConfirmationRequired unless
+    confirm is a callable that returns true for this decision.
+    """
+    decision = preflight(receiver=receiver, amount=amount, token=token, **options)
+    if decision["decision"] == "deny":
+        raise PaymentRefused(tool_result(decision))
+    if decision["decision"] == "ask":
+        approved = False
+        if callable(confirm):
+            try:
+                approved = confirm(decision) is True
+            except Exception:
+                approved = False
+        if not approved:
+            raise ConfirmationRequired(tool_result(decision))
+    return send()
+
+
 def as_tool(base_url=DEFAULT_BASE_URL, timeout=DEFAULT_TIMEOUT_S):
     """A LangChain StructuredTool, when langchain-core is installed."""
     try:
@@ -153,7 +216,7 @@ def as_tool(base_url=DEFAULT_BASE_URL, timeout=DEFAULT_TIMEOUT_S):
     @tool
     def siyab_check_payment(receiver: str, amount: str, token: str = "near") -> str:
         """Check a NEAR payment receiver and amount with Siyab before sending funds."""
-        return tool_result(preflight(base_url=base_url, receiver=receiver, amount=amount,
-                                     token=token, timeout=timeout))
+        return tool_result(preflight(receiver=receiver, amount=amount, token=token,
+                                     base_url=base_url, timeout=timeout))
 
     return siyab_check_payment
