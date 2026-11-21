@@ -517,6 +517,114 @@ class TierTwoTest(RulesCase):
                          "oldest listed key created 40 d ago")
 
 
+class NearblocksV3RulesTest(RulesCase):
+    def setUp(self):
+        super().setUp()
+        self.fx.account("stranger.testnet")
+
+    def keys(self, *created_ns):
+        keys = [{"public_key": PUBLIC_KEY, "permission_kind": "FULL_ACCESS", "permission": None,
+                 "action_timestamp": str(ns), "mpc": False,
+                 "created": {"transaction_hash": "CreationTx", "block": {"block_hash": BLOCK_HASH,
+                              "block_height": "100", "block_timestamp": str(ns)}}, "deleted": None}
+                for ns in created_ns]
+        self.fx.write(f"{NEARBLOCKS_URL}/v3/accounts/stranger.testnet/keys", "GET", None,
+                      {"data": keys, "meta": {"next_page": "another-page", "prev_page": None}})
+
+    def transaction(self, receiver="stranger.testnet", actions=None, deposit="500000000000000000000000"):
+        if actions is None:
+            actions = [{"action": "CREATE_ACCOUNT", "method": None, "args": None, "rlp_hash": None}]
+        transaction = {"transaction_hash": "CreationTx", "receiver_account_id": receiver,
+                       "block": {"block_hash": BLOCK_HASH, "block_height": "100",
+                                 "block_timestamp": str(NOW_MS * 10**6 - 2 * DAY_NS)},
+                       "actions": actions, "actions_agg": {"deposit": deposit, "gas_attached": "0"},
+                       "outcomes": {"status": True, "status_key": "SuccessValue"}, "index_in_chunk": 0}
+        self.fx.write(f"{NEARBLOCKS_URL}/v3/txns/CreationTx", "GET", None, {"data": transaction})
+
+    def test_v3_creation_and_digit_string_deposit_are_judged(self):
+        self.keys(NOW_MS * 10**6 - 2 * DAY_NS)
+        self.transaction(deposit="10000000000000000000000")
+        with mock.patch.object(self.nearblocks, "get", wraps=self.nearblocks.get) as reads:
+            judgement = self.judge(request("stranger.testnet", kind="near", memo=None))
+        self.assertEqual(reads.call_args_list, [mock.call("/v3/accounts/stranger.testnet/keys"),
+                                                mock.call("/v3/txns/CreationTx")])
+        self.assertEqual(self.status(judgement, "account_age"), "signal")
+        self.assertEqual(self.detail(judgement, "dust_funded"), "created by a 0.01 NEAR deposit, below 0.1 NEAR")
+        self.assertEqual(judgement.verdict, "DENY")
+
+    def test_v3_parent_function_call_args_prove_a_young_creation(self):
+        self.keys(NOW_MS * 10**6 - 2 * DAY_NS)
+        self.transaction(receiver="testnet", actions=[{
+            "action": "FUNCTION_CALL", "method": "create_account", "rlp_hash": None,
+            "args": {"args_json": {"new_account_id": "stranger.testnet", "new_public_key": PUBLIC_KEY},
+                     "args_base64": "", "gas": "30000000000000", "deposit": "500000000000000000000000",
+                     "method_name": "create_account"}}])
+        judgement = self.judge(request("stranger.testnet", kind="near", memo=None))
+        self.assertEqual(self.status(judgement, "account_age"), "signal")
+        self.assertEqual(self.status(judgement, "dust_funded"), "pass")
+        self.assertEqual(judgement.verdict, "DENY")
+
+    def test_v3_full_key_page_remains_unknown_without_reading_the_next_page(self):
+        for age_ns in (2 * DAY_NS, 30 * DAY_NS):
+            with self.subTest(age_ns=age_ns):
+                self.keys(*[NOW_MS * 10**6 - age_ns] * 25)
+                with mock.patch.object(self.nearblocks, "get", wraps=self.nearblocks.get) as reads:
+                    judgement = self.judge(request("stranger.testnet", kind="near", memo=None))
+                reads.assert_called_once_with("/v3/accounts/stranger.testnet/keys")
+                self.assertEqual(self.status(judgement, "account_age"), "unknown")
+                self.assertEqual(self.detail(judgement, "account_age"),
+                                 "NearBlocks lists 25 keys, a full page that may leave out older ones")
+                self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
+                self.assertEqual(judgement.verdict, "UNKNOWN")
+
+    def test_v3_null_key_data_remains_unknown(self):
+        self.fx.write(f"{NEARBLOCKS_URL}/v3/accounts/stranger.testnet/keys", "GET", None,
+                      {"data": None, "meta": {"next_page": None, "prev_page": None}})
+        judgement = self.judge(request("stranger.testnet", kind="near", memo=None))
+        self.assertEqual(self.detail(judgement, "account_age"), "no key of stranger.testnet carries a creation time")
+        self.assertEqual(judgement.verdict, "UNKNOWN")
+
+    def test_malformed_v3_keys_read_unknown_without_crashing(self):
+        for body in (None, [], {}, {"data": {}}, {"data": [None]}, {"data": [{"created": []}]},
+                     {"data": [{"public_key": PUBLIC_KEY, "permission_kind": "FULL_ACCESS", "deleted": None,
+                                "created": {"transaction_hash": "CreationTx", "block": []}}]}):
+            with self.subTest(body=body):
+                self.fx.write(f"{NEARBLOCKS_URL}/v3/accounts/stranger.testnet/keys", "GET", None, body)
+                judgement = self.judge(request("stranger.testnet", kind="near", memo=None))
+                self.assertEqual(self.status(judgement, "account_age"), "unknown")
+                self.assertIn("could not read the account keys: MalformedResponse", self.detail(judgement, "account_age"))
+                self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
+                self.assertEqual(judgement.verdict, "UNKNOWN")
+
+    def test_malformed_v3_creation_transactions_read_unknown_without_crashing(self):
+        self.keys(NOW_MS * 10**6 - 2 * DAY_NS)
+        for body in (None, [], {}, {"data": []}, {"data": "CreationTx"},
+                     {"data": {"block": [], "actions": []}},
+                     {"data": {"block": {"block_height": "100"}, "actions": [None]}}):
+            with self.subTest(body=body):
+                self.fx.write(f"{NEARBLOCKS_URL}/v3/txns/CreationTx", "GET", None, body)
+                judgement = self.judge(request("stranger.testnet", kind="near", memo=None))
+                self.assertEqual(self.status(judgement, "account_age"), "unknown")
+                self.assertIn("could not read its transaction: MalformedResponse", self.detail(judgement, "account_age"))
+                self.assertEqual(self.status(judgement, "dust_funded"), "unknown")
+                self.assertEqual(judgement.verdict, "UNKNOWN")
+
+    def test_get_only_nearblocks_stand_ins_remain_unknown(self):
+        from gate import incident_replay
+        from intel import live
+
+        for nearblocks in (live._NoNearBlocks(), incident_replay._NoNearBlocks()):
+            with self.subTest(nearblocks=type(nearblocks)):
+                self.nearblocks = nearblocks
+                with mock.patch.object(nearblocks, "get", wraps=nearblocks.get) as reads:
+                    judgement = self.judge(request("stranger.testnet", kind="near", memo=None))
+                reads.assert_called_once_with("/v3/accounts/stranger.testnet/keys")
+                self.assertEqual(self.status(judgement, "account_age"), "unknown")
+                self.assertEqual(judgement.verdict, "UNKNOWN")
+                self.assertEqual(next(c["source"] for c in judgement.checks if c["id"] == "account_age"),
+                                 nearblocks.last_source)
+
+
 class NonceAgeTest(RulesCase):
     """account_age from the oldest access key nonce, with NearBlocks as a fallback when archival age is unknown."""
 
@@ -608,7 +716,9 @@ class NonceAgeTest(RulesCase):
         self.fx.account_missing_at("stranger.testnet", STATE_HEIGHT)
         with mock.patch.object(self.nearblocks, "get", wraps=self.nearblocks.get) as nearblocks_get:
             judgement = self.judge(request("stranger.testnet"), archival=self.archival)
-        self.assertEqual(nearblocks_get.call_args_list, [mock.call("/v1/account/stranger.testnet/keys"),
+        self.assertEqual(nearblocks_get.call_args_list, [mock.call("/v3/accounts/stranger.testnet/keys"),
+                                                         mock.call("/v1/account/stranger.testnet/keys"),
+                                                         mock.call("/v3/txns/CreationTx"),
                                                          mock.call("/v1/txns/CreationTx")])
         self.assertEqual(self.status(judgement, "account_age"), "signal")
         self.assertEqual(self.detail(judgement, "account_age"),
@@ -1074,7 +1184,9 @@ class NonceAgeTest(RulesCase):
               mock.patch.object(self.archival, "block_at", wraps=self.archival.block_at) as block_at):
             judgement = self.judge(request("stranger.testnet"), archival=self.archival)
         self.assertEqual(nearblocks_get.call_args_list, [
+            mock.call("/v3/accounts/stranger.testnet/keys"),
             mock.call("/v1/account/stranger.testnet/keys"),
+            mock.call("/v3/txns/CreationTx"),
             mock.call("/v1/txns/CreationTx"),
         ])
         self.assertEqual(block_at.call_args_list, [mock.call(KEY_HEIGHT)])

@@ -30,6 +30,8 @@ from gate.rpc import (
     RpcError,
     TransportError,
     check_request_deadline,
+    nearblocks_keys,
+    nearblocks_txn,
     request_deadline,
 )
 from intel import reports
@@ -836,7 +838,7 @@ def _tier2(request, policy, store, account, account_source, rpc, nearblocks, now
                 archival_detail = age_check["detail"]
         if archival is None or account is None or archival_detail is not None:
             try:
-                keys = nearblocks.get(f"/v1/account/{receiver}/keys")
+                keys, _, _ = nearblocks_keys(nearblocks, receiver)
                 creations = _key_creations(keys, now_ms)
                 dated = [item for item in creations if item[0] is not None]
                 if not dated:
@@ -864,7 +866,7 @@ def _tier2(request, policy, store, account, account_source, rpc, nearblocks, now
                         try:
                             if creation_hash is None:
                                 raise MalformedResponse("the key creation names no transaction")
-                            creation = nearblocks.get(f"/v1/txns/{creation_hash}")
+                            creation, _, _ = nearblocks_txn(nearblocks, creation_hash)
                         except UNAVAILABLE as error:
                             creation_hash = None
                             age_check = evidence.check("account_age", "unknown", f"{oldest}; could not read its "
@@ -911,7 +913,7 @@ def _tier2(request, policy, store, account, account_source, rpc, nearblocks, now
             # On the pass branch the oldest listed key's transaction gives the creation deposit only if it
             # created the account; the signal branch has already shown that for creation.
             if creation is None:
-                creation = nearblocks.get(f"/v1/txns/{creation_hash}")
+                creation, _, _ = nearblocks_txn(nearblocks, creation_hash)
                 if not _creates(creation, receiver, creation_hash):
                     raise MalformedResponse(f"transaction {creation_hash} of the oldest listed key does not show "
                                             f"{receiver} being created")

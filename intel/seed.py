@@ -478,23 +478,28 @@ def _rhea_reads(client, nearblocks, report):
         if role not in ("collector", "worker"):
             continue
         try:
-            keys = nearblocks.get(f"/v1/account/{subject}/keys")
-            created = sorted((int(k["created"]["block_timestamp"]), k["created"]["transaction_hash"])
+            keys, _, keys_method = rpc.nearblocks_keys(nearblocks, subject)
+            created = sorted(((int(k["created"]["block_timestamp"]), k["created"]["transaction_hash"])
                              for k in keys.get("keys", [])
-                             if isinstance(k.get("created"), dict) and k["created"].get("block_timestamp"))
-            if not created:
+                             if isinstance(k.get("created"), dict) and k["created"].get("block_timestamp")),
+                             key=lambda pair: (pair[0], pair[1] or ""))
+            if not created or not isinstance(created[0][1], str):
                 continue
             transaction_hash = created[0][1]
-            txn = nearblocks.get(f"/v1/txns/{transaction_hash}")["txns"][0]
-        except (rpc.FixtureMiss, rpc.HttpError, rpc.RateLimited, rpc.TransportError, KeyError, IndexError):
+            response, raw, txn_method = rpc.nearblocks_txn(nearblocks, transaction_hash)
+            txn = response["txns"][0]
+        except (rpc.FixtureMiss, rpc.HttpError, rpc.RateLimited, rpc.TransportError,
+                rpc.MalformedResponse, KeyError, IndexError):
             continue
         block = int(txn["block"]["block_height"])
         deposit = Decimal(str(txn["actions_agg"]["deposit"]))
         near = format((deposit / rules.YOCTO_PER_NEAR).normalize(), "f")
         label = f"created at block {block} by transaction {transaction_hash} with a deposit of {near} NEAR"
-        facts.append((subject, label, nearblocks.url, "GET /v1/account/{account_id}/keys and /v1/txns/{transaction_hash}",
+        method = f"{keys_method} and {txn_method.removeprefix('GET ')}"
+        result = raw["data"] if txn_method == "GET /v3/txns/{transaction_hash}" else txn
+        facts.append((subject, label, nearblocks.url, method,
                       {"account_id": subject, "transaction_hash": transaction_hash}, block,
-                      nearblocks.last_source["fetched_at"], _result_sha256(txn), "created"))
+                      nearblocks.last_source["fetched_at"], _result_sha256(result), "created"))
     return facts
 
 
@@ -747,12 +752,14 @@ def _sweat_hot_reads(client, nearblocks, token, transaction_hash):
         result = error.error
     facts.append((label, client.url, "contract_source_metadata", {}, block, client.last_source["fetched_at"],
                   _result_sha256(result)))
-    txn = nearblocks.get(f"/v1/txns/{transaction_hash}")["txns"][0]
+    response, raw, method = rpc.nearblocks_txn(nearblocks, transaction_hash)
+    txn = response["txns"][0]
+    result = raw["data"] if method == "GET /v3/txns/{transaction_hash}" else txn
     actions = ", ".join(_quoted(action["action"]) for action in txn["actions"])
     facts.append(((f"transaction {transaction_hash} at block {txn['block']['block_height']}, signer "
                   f"{_quoted(txn['signer_account_id'])}, receiver {_quoted(txn['receiver_account_id'])}, actions "
-                  f"{actions}"), nearblocks.url, "GET /v1/txns/{transaction_hash}", {"transaction_hash": transaction_hash},
-                  int(txn["block"]["block_height"]), nearblocks.last_source["fetched_at"], _result_sha256(txn)))
+                  f"{actions}"), nearblocks.url, method, {"transaction_hash": transaction_hash},
+                  int(txn["block"]["block_height"]), nearblocks.last_source["fetched_at"], _result_sha256(result)))
     return facts
 
 
@@ -909,7 +916,8 @@ def skyward(mode=None, raw_dir=RAW_DIR, client=None, nearblocks=None):
                          provenance="onchain", observed_at=client.last_source["fetched_at"],
                          source={"rpc": client.url, "method": "view_account", "args": {"account_id": account},
                                  "block": block}, note=SKYWARD_ONCHAIN_NOTE))
-    txns = nearblocks.get(f"/v1/txns/{transaction_hash}")["txns"]
+    response, _, method = rpc.nearblocks_txn(nearblocks, transaction_hash)
+    txns = response["txns"]
     if len(txns) != 1:
         raise SeedError(f"the transaction lookup for the Skyward report returned {len(txns)} transactions, not one")
     txn = txns[0]
@@ -925,7 +933,7 @@ def skyward(mode=None, raw_dir=RAW_DIR, client=None, nearblocks=None):
         label=(f"signer of transaction {transaction_hash} at block {txn['block']['block_height']}, receiver "
                f"{_quoted(txn['receiver_account_id'])}, methods called {methods}"),
         category="incident", provenance="onchain", observed_at=nearblocks.last_source["fetched_at"],
-        source={"rpc": nearblocks.url, "method": "GET /v1/txns/{transaction_hash}",
+        source={"rpc": nearblocks.url, "method": method,
                 "args": {"transaction_hash": transaction_hash}, "block": int(txn["block"]["block_height"])},
         note=SKYWARD_TX_NOTE))
     return rows
@@ -947,7 +955,8 @@ def fake_wallet(mode=None, raw_dir=RAW_DIR, nearblocks=None):
     if account + " this is that wallet" not in _paragraph_text(posts[5]):
         raise SeedError("the two fake wallet reports name different collection accounts")
     nearblocks = nearblocks or rpc.Client(rpc.NEARBLOCKS_URL, _mode(mode), kind="http")
-    txns = nearblocks.get(f"/v1/txns/{transaction_hash}")["txns"]
+    response, _, method = rpc.nearblocks_txn(nearblocks, transaction_hash)
+    txns = response["txns"]
     if len(txns) != 1:
         raise SeedError("the fake wallet transfer lookup must return exactly one transaction")
     txn = txns[0]
@@ -965,7 +974,7 @@ def fake_wallet(mode=None, raw_dir=RAW_DIR, nearblocks=None):
             make_row(label=(f"receiver of the reported transfer {transaction_hash} from {_quoted(victim)} "
                             f"at block {txn['block']['block_height']}"),
                      provenance="onchain", observed_at=nearblocks.last_source["fetched_at"],
-                     source={"rpc": nearblocks.url, "method": "GET /v1/txns/{transaction_hash}",
+                     source={"rpc": nearblocks.url, "method": method,
                              "args": {"transaction_hash": transaction_hash},
                              "block": int(txn["block"]["block_height"])}, **common)]
     replacement = dict(rows[0], label="reported collection account in the NEAR Wallet impersonation report")
@@ -1014,7 +1023,8 @@ def kangaroo(mode=None, raw_dir=RAW_DIR, nearblocks=None):
     if not matches:
         raise SeedError("no successful matching Kangaroo batch in the bounded account page")
     transaction_hash = matches[0]["transaction_hash"]
-    txns = nearblocks.get(f"/v1/txns/{transaction_hash}")["txns"]
+    response, _, method = rpc.nearblocks_txn(nearblocks, transaction_hash)
+    txns = response["txns"]
     if len(txns) != 1:
         raise SeedError("the Kangaroo batch lookup must return exactly one transaction")
     txn = txns[0]
@@ -1032,7 +1042,7 @@ def kangaroo(mode=None, raw_dir=RAW_DIR, nearblocks=None):
             make_row(label=(f"signer of matching batch {transaction_hash} at block {txn['block']['block_height']}, "
                             f"receiver {_quoted(receiver)}, methods called " + ", ".join(_quoted(m) for m in methods)),
                      provenance="onchain", observed_at=nearblocks.last_source["fetched_at"],
-                     source={"rpc": nearblocks.url, "method": "GET /v1/txns/{transaction_hash}",
+                     source={"rpc": nearblocks.url, "method": method,
                              "args": {"transaction_hash": transaction_hash},
                              "block": int(txn["block"]["block_height"])}, **common)]
 
@@ -1059,7 +1069,8 @@ def telegram_scam(mode=None, raw_dir=RAW_DIR, nearblocks=None):
     if not matches:
         raise SeedError("no successful direct transfer from the reported sending account in the bounded page")
     transaction_hash = matches[0]["transaction_hash"]
-    txns = nearblocks.get(f"/v1/txns/{transaction_hash}")["txns"]
+    response, _, method = rpc.nearblocks_txn(nearblocks, transaction_hash)
+    txns = response["txns"]
     if len(txns) != 1:
         raise SeedError("the Telegram collection transfer lookup must return exactly one transaction")
     txn = txns[0]
@@ -1077,7 +1088,7 @@ def telegram_scam(mode=None, raw_dir=RAW_DIR, nearblocks=None):
             make_row(label=(f"receiver of the reported direct transfer {transaction_hash} from {_quoted(victim)} "
                             f"at block {txn['block']['block_height']}"),
                      provenance="onchain", observed_at=nearblocks.last_source["fetched_at"],
-                     source={"rpc": nearblocks.url, "method": "GET /v1/txns/{transaction_hash}",
+                     source={"rpc": nearblocks.url, "method": method,
                              "args": {"transaction_hash": transaction_hash},
                              "block": int(txn["block"]["block_height"])}, **common)]
 
