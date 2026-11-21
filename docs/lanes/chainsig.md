@@ -243,7 +243,7 @@ to that same reviewed transaction and authorization.
 The predecessor seen by MPC is the Gate contract when it makes the cross-call,
 not the agent or human who originally called the Gate. `sign` computes the
 tweak from that actual predecessor and `request.path`; it accepts no caller
-override (`api/sign.rs:62-67` and `api/common.rs:67-78` at the pinned commit)
+override (api/sign.rs lines 62-67 and api/common.rs lines 67-78 at the pinned commit)
 [16, 21]. MPC identifies the calling account, not the Gate method that created
 the promise, and it does not evaluate Siyab policy. Use a distinct approved path
 per target chain/network to avoid exposing the same signing identity across
@@ -301,11 +301,11 @@ The deposit, gas and payload figures have separate sources at pinned commit
 
 | Figure | Exact source or recorded view |
 | --- | --- |
-| Minimum deposit 1 yoctoNEAR | `crates/near-mpc-contract-interface/src/deposits.rs:4` sets `SIGN`; `crates/contract/src/api/sign.rs:35-40` uses it. `crates/contract/src/api/common.rs:131-151` enforces the minimum and refunds excess to the predecessor [16, 21]. |
-| Minimum sign receipt gas 15 Tgas | The two recorded `config({})` views at mainnet block 225570535 and testnet block 278690713 return `sign_call_gas_attachment_requirement_tera_gas: 15`. Their block hashes are in the table above and in each raw reply. `crates/contract/src/config.rs:13-14,60-61` defines the default and configurable field; `crates/contract/src/api/common.rs:56-65` enforces the configured minimum [21, 33]. |
-| ECDSA payload exactly 32 bytes | `crates/near-mpc-crypto-types/src/primitives.rs:63-65,89-98` defines and checks the fixed size [23]. |
-| ECDSA payload integer from zero inclusive to group order `n` exclusive | `crates/contract/src/api/sign.rs:45-50` uses `Scalar::from_repr`. The pinned workspace selects `k256` 0.13.4 in `Cargo.toml:166`; that version's `arithmetic/scalar.rs:328-335` decodes big endian and checks below the order [16, 34, 35]. |
-| EdDSA payload zero through 1232 bytes | `crates/near-mpc-crypto-types/src/primitives.rs:67-68,99-106` defines and checks the inclusive maximum [23]. Empty messages do not constitute a valid Solana transfer [20]. |
+| Minimum deposit 1 yoctoNEAR | crates/near-mpc-contract-interface/src/deposits.rs lines 4 sets `SIGN`; crates/contract/src/api/sign.rs lines 35-40 uses it. crates/contract/src/api/common.rs lines 131-151 enforces the minimum and refunds excess to the predecessor [16, 21]. |
+| Minimum sign receipt gas 15 Tgas | The two recorded `config({})` views at mainnet block 225570535 and testnet block 278690713 return `sign_call_gas_attachment_requirement_tera_gas: 15`. Their block hashes are in the table above and in each raw reply. crates/contract/src/config.rs lines 13-14,60-61 defines the default and configurable field; crates/contract/src/api/common.rs lines 56-65 enforces the configured minimum [21, 33]. |
+| ECDSA payload exactly 32 bytes | crates/near-mpc-crypto-types/src/primitives.rs lines 63-65,89-98 defines and checks the fixed size [23]. |
+| ECDSA payload integer from zero inclusive to group order `n` exclusive | crates/contract/src/api/sign.rs lines 45-50 uses `Scalar::from_repr`. The pinned workspace selects `k256` 0.13.4 in Cargo.toml lines 166; that version's arithmetic/scalar.rs lines 328-335 decodes big endian and checks below the order [16, 34, 35]. |
+| EdDSA payload zero through 1232 bytes | crates/near-mpc-crypto-types/src/primitives.rs lines 67-68,99-106 defines and checks the inclusive maximum [23]. Empty messages do not constitute a valid Solana transfer [20]. |
 
 A Gate cross-call would attach the deposit from the Gate balance; an agent
 function-call key does not need permission to attach funds itself. The gas
