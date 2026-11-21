@@ -1,0 +1,94 @@
+{
+  "checked_at_unix": 1795274641,
+  "dcap_qvl": "0.7.1",
+  "results": [
+    {
+      "capture": "deepseek",
+      "candidate": null,
+      "kind": "gateway",
+      "tcb_status": "UpToDate",
+      "advisory_ids": []
+    },
+    {
+      "capture": "deepseek",
+      "candidate": 0,
+      "kind": "model",
+      "tcb_status": "UpToDate",
+      "advisory_ids": []
+    },
+    {
+      "capture": "deepseek",
+      "candidate": 0,
+      "kind": "manager",
+      "tcb_status": "UpToDate",
+      "advisory_ids": []
+    },
+    {
+      "capture": "deepseek",
+      "candidate": 1,
+      "kind": "model",
+      "error": "Verification failed: Signature is invalid for qe_report in quote"
+    },
+    {
+      "capture": "deepseek",
+      "candidate": 1,
+      "kind": "manager",
+      "error": "Verification failed: Signature is invalid for qe_report in quote"
+    },
+    {
+      "capture": "glm",
+      "candidate": null,
+      "kind": "gateway",
+      "tcb_status": "UpToDate",
+      "advisory_ids": []
+    },
+    {
+      "capture": "glm",
+      "candidate": 0,
+      "kind": "model",
+      "error": "Verification failed: Signature is invalid for qe_report in quote"
+    },
+    {
+      "capture": "glm",
+      "candidate": 0,
+      "kind": "manager",
+      "error": "Verification failed: Signature is invalid for qe_report in quote"
+    },
+    {
+      "capture": "glm",
+      "candidate": 1,
+      "kind": "model",
+      "error": "Verification failed: Signature is invalid for qe_report in quote"
+    },
+    {
+      "capture": "glm",
+      "candidate": 1,
+      "kind": "manager",
+      "error": "Verification failed: Signature is invalid for qe_report in quote"
+    },
+    {
+      "capture": "glm",
+      "candidate": 2,
+      "kind": "model",
+      "error": "Verification failed: Signature is invalid for qe_report in quote"
+    },
+    {
+      "capture": "glm",
+      "candidate": 2,
+      "kind": "manager",
+      "error": "Verification failed: Signature is invalid for qe_report in quote"
+    },
+    {
+      "capture": "glm",
+      "candidate": 3,
+      "kind": "model",
+      "error": "Verification failed: Signature is invalid for qe_report in quote"
+    },
+    {
+      "capture": "glm",
+      "candidate": 3,
+      "kind": "manager",
+      "error": "Verification failed: Signature is invalid for qe_report in quote"
+    }
+  ]
+}

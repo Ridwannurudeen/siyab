@@ -45,6 +45,8 @@ RPC_FIXTURES = ("fixtures/rpc/", "fixtures/demo/", "fixtures/scan/", "fixtures/c
 # Siyab's own text never uses this word. Third party strings that carry it (a token symbol)
 # live only in data: seeds, raw snapshots, fixtures and the label store.
 AUTHORED_WORD = re.compile(r"safe", re.IGNORECASE)
+# Python standard library names that carry the word; only these whole identifiers are exempt.
+STDLIB_NAMES = re.compile(r"\b(?:run_coroutine_threadsafe|call_soon_threadsafe)\b")
 # Root and seed documents Siyab writes itself; the word rule covers them like gate/ and docs/.
 AUTHORED_FILES = ("README.md", "AGENTS.md", "intel/seeds/README.md")
 KEY_FORMS = (
@@ -151,7 +153,7 @@ def check_text(path, text):
                 hits.append((number, f"forbidden phrase {match.group(0)!r}"))
         if hex128_rule and HEX128.search(line):
             hits.append((number, "128 hex string in a recorded network fixture"))
-        if word_rule and AUTHORED_WORD.search(line):
+        if word_rule and AUTHORED_WORD.search(STDLIB_NAMES.sub("", line)):
             hits.append((number, "a word Siyab never uses in its own text"))
     return hits
 

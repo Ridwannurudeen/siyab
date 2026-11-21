@@ -1,0 +1,56 @@
+{
+  "intel_qvl": {
+    "release": "DCAP_1.27.1",
+    "package_version": "1.27.101.1-noble1",
+    "library_file": "libsgx_dcap_quoteverify.so.1.13.103.0",
+    "library_sha256": "74b8e876bdc20c59aab3be28dcca16db78f2a81110073c29ac6009b89bbb8042",
+    "mode": "Untrusted software QVL; p_qve_report_info is null, no SGX QvE used",
+    "root": "Intel production root public key compiled into the released QVL"
+  },
+  "packages": [
+    {
+      "name": "libsgx-dcap-quote-verify",
+      "version": "1.27.101.1-noble1",
+      "sha256": "40352ecdd40af04b78d46e47808a48223bf745771a2ed313a83b1f191fb2625c",
+      "url": "https://download.01.org/intel-sgx/sgx_repo/ubuntu/pool/main/libs/libsgx-dcap-quote-verify/libsgx-dcap-quote-verify_1.27.101.1-noble1_amd64.deb"
+    },
+    {
+      "name": "libsgx-dcap-quote-verify-dev",
+      "version": "1.27.101.1-noble1",
+      "sha256": "43335a2b8d92439a424679b5cd10985373830b0cba994b0a8523b7fff7c178d4",
+      "url": "https://download.01.org/intel-sgx/sgx_repo/ubuntu/pool/main/devel/libsgx-dcap-quote-verify-dev/libsgx-dcap-quote-verify-dev_1.27.101.1-noble1_amd64.deb"
+    },
+    {
+      "name": "libsgx-headers",
+      "version": "2.30.101.1-noble1",
+      "sha256": "ea872a960af64c5f890822dbdadb2ce08df61856bc040f588349f45dbde32a82",
+      "url": "https://download.01.org/intel-sgx/sgx_repo/ubuntu/pool/main/devel/libsgx-headers/libsgx-headers_2.30.101.1-noble1_amd64.deb"
+    }
+  ],
+  "intel_repository": {
+    "url": "https://download.01.org/intel-sgx/sgx_repo/ubuntu/",
+    "index_url": "https://download.01.org/intel-sgx/sgx_repo/ubuntu/dists/noble/main/binary-amd64/Packages",
+    "index_sha256": "fa69b4bdf36a0ecb83f1d34b8016350c350546c621fa5ad6f8115819b8cb1c95",
+    "inrelease_url": "https://download.01.org/intel-sgx/sgx_repo/ubuntu/dists/noble/InRelease",
+    "inrelease_sha256": "0af26b1208ccf04c8e6fa27f8267a4b25872cc6d689f36b6c0a7b8b4b4a4e159",
+    "public_key_url": "https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key",
+    "public_key_sha256": "92f96f84281031d889deb81060c44325f0481aee621ae47a15ae1df4431b4a23",
+    "signature_result": "gpgv exit 0, Good signature from CN=Intel(R) Software Development Products; RSA key E5C7F0FA1C6C6C3C",
+    "trust_basis": "Public key fetched from official Intel HTTPS repository; signed index SHA256 covers Packages, Packages SHA256 covers each downloaded deb"
+  },
+  "dcap_qvl": {
+    "version": "0.7.1",
+    "wheel_file": "dcap_qvl-0.7.1-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+    "wheel_sha256": "0411ae71234f95d779e424a0e21e93f52098e9b95f09f18ea200d495a4c9138e",
+    "metadata_url": "https://pypi.org/pypi/dcap-qvl/0.7.1/json"
+  },
+  "sources": [
+    "https://github.com/intel/confidential-computing.tee.dcap/releases/tag/DCAP_1.27.1",
+    "https://github.com/intel/confidential-computing.tee.dcap/blob/DCAP_1.27.1/QuoteVerification/dcap_quoteverify/inc/sgx_dcap_quoteverify.h",
+    "https://github.com/intel/confidential-computing.tee.dcap/blob/DCAP_1.27.1/ae/QvE/qve/qve.cpp",
+    "https://github.com/Phala-Network/dcap-qvl/blob/v0.7.1/src/verify.rs",
+    "https://github.com/Phala-Network/dcap-qvl/blob/v0.7.1/src/collateral.rs",
+    "https://github.com/Phala-Network/dcap-qvl/blob/v0.7.1/src/python.rs",
+    "https://github.com/nearai/inference-sdk/blob/main/py/src/nearai_inference_sdk/utils/intel.py"
+  ]
+}
