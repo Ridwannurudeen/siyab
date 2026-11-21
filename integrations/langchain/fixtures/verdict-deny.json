@@ -1,0 +1,60 @@
+{
+ "action": "refuse",
+ "checks": [
+  {
+   "detail": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 exists",
+   "name": "receiver_exists",
+   "status": "pass"
+  },
+  {
+   "detail": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \"named in the rekt.news Rhea Finance report as the collector account, which the report also prints as the attacker NEAR wallet\" (assertion 664db39d7af57209306fd948412fe59353389d94aba4aafc6c3b2779f1767ee2); 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \"created at block 194074444 by transaction 8ogy5xrbQG78Kw5Eo52iJnfNZQZzeh2iLMWeWXV1Wyuu with a deposit of 0.0000000000000000000001 NEAR\" (assertion 6ac99683a4192b79113c521dfde4a5e45ad506d353609438e48e48104f7010ad); 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the denylist label \"The issuer of usdt.tether-token.near blacklists 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 as of block 222839362\" (assertion c8805cbe989d08c8ad15e77a1bac1bf0ebef5e1c8e00e5163c244b423f69db65)",
+   "name": "label_denylist",
+   "status": "signal"
+  },
+  {
+   "detail": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 is banned by the issuer of usdt.tether-token.near: get_blacklist_status answers \"Banned\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+   "name": "issuer_blacklist",
+   "status": "signal"
+  },
+  {
+   "detail": "no memo",
+   "name": "memo_injection",
+   "status": "pass"
+  },
+  {
+   "detail": "oldest access key nonce 194074444001234 from free.rpc.fastnear.com: existed by block 194074445 (2026-04-15T06:53:05Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
+   "name": "account_age",
+   "status": "pass"
+  },
+  {
+   "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
+   "name": "dust_funded",
+   "status": "pass"
+  },
+  {
+   "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+   "name": "lookalike",
+   "status": "pass"
+  },
+  {
+   "detail": "no contract code",
+   "name": "code_without_metadata",
+   "status": "pass"
+  }
+ ],
+ "evidence": "{\"checks\":[{\"detail\":\"31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 exists\",\"id\":\"receiver_exists\",\"source\":{\"fetched_at\":\"2026-11-21T12:20:56Z\",\"provider\":\"free.rpc.fastnear.com\",\"request_sha256\":\"5da33fbeb9bad6cdab4d005c2ef329eace9c681dcd3f65f78b825adfa29fca7b\"},\"status\":\"pass\"},{\"detail\":\"31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \\\"named in the rekt.news Rhea Finance report as the collector account, which the report also prints as the attacker NEAR wallet\\\" (assertion 664db39d7af57209306fd948412fe59353389d94aba4aafc6c3b2779f1767ee2); 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \\\"created at block 194074444 by transaction 8ogy5xrbQG78Kw5Eo52iJnfNZQZzeh2iLMWeWXV1Wyuu with a deposit of 0.0000000000000000000001 NEAR\\\" (assertion 6ac99683a4192b79113c521dfde4a5e45ad506d353609438e48e48104f7010ad); 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the denylist label \\\"The issuer of usdt.tether-token.near blacklists 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 as of block 222839362\\\" (assertion c8805cbe989d08c8ad15e77a1bac1bf0ebef5e1c8e00e5163c244b423f69db65)\",\"id\":\"label_denylist\",\"source\":{\"fetched_at\":null,\"provider\":\"label store\",\"request_sha256\":\"1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8\"},\"status\":\"signal\"},{\"detail\":\"31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 is banned by the issuer of usdt.tether-token.near: get_blacklist_status answers \\\"Banned\\\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false\",\"id\":\"issuer_blacklist\",\"source\":{\"fetched_at\":\"2026-11-21T12:20:56Z\",\"provider\":\"free.rpc.fastnear.com\",\"request_sha256\":\"187d98c4177f2dfcdf9c3be8da6761975945ee19920d0d3b5cd69ec2e83428c1\"},\"status\":\"signal\"},{\"detail\":\"no memo\",\"id\":\"memo_injection\",\"source\":{\"fetched_at\":null,\"provider\":\"local patterns\",\"request_sha256\":null},\"status\":\"pass\"},{\"detail\":\"oldest access key nonce 194074444001234 from free.rpc.fastnear.com: existed by block 194074445 (2026-04-15T06:53:05Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old\",\"id\":\"account_age\",\"source\":{\"fetched_at\":\"2026-11-21T12:20:56Z\",\"provider\":\"archival-rpc.mainnet.fastnear.com\",\"request_sha256\":\"1fbf024d9eb574120f0dbf6d73d9d40353128a9c6f56ec31ef1c4e67c8fd24c8\"},\"status\":\"pass\"},{\"detail\":\"creation deposit not read: a deposit is a signal only with lookalike or account_age\",\"id\":\"dust_funded\",\"source\":{\"fetched_at\":null,\"provider\":\"nearblocks\",\"request_sha256\":null},\"status\":\"pass\"},{\"detail\":\"no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation\",\"id\":\"lookalike\",\"source\":{\"fetched_at\":null,\"provider\":\"allowlist and label store\",\"request_sha256\":\"1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8\"},\"status\":\"pass\"},{\"detail\":\"no contract code\",\"id\":\"code_without_metadata\",\"source\":{\"fetched_at\":\"2026-11-21T12:20:56Z\",\"provider\":\"free.rpc.fastnear.com\",\"request_sha256\":\"5da33fbeb9bad6cdab4d005c2ef329eace9c681dcd3f65f78b825adfa29fca7b\"},\"status\":\"pass\"}],\"expires_ms\":null,\"issued_ms\":null,\"labels\":[\"664db39d7af57209306fd948412fe59353389d94aba4aafc6c3b2779f1767ee2\",\"6ac99683a4192b79113c521dfde4a5e45ad506d353609438e48e48104f7010ad\",\"4b3bce012335efb930e7daca3fa4e091dcca9b5daeb37814572daa0c83a40ae0\",\"af3bcf1511cd5a18fc6be2cc353b687590cf64479e2b933ab28926de62dceb63\",\"c8805cbe989d08c8ad15e77a1bac1bf0ebef5e1c8e00e5163c244b423f69db65\",\"c794d20fed2f545b922709369540808faacaa0d63eb81797ee1e4c238ac65041\"],\"latency_ms\":688,\"observed\":{\"block_height\":225553805,\"timestamp_ms\":1795263656208},\"reasons\":[\"Not on the owner's allowlist.\",\"31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \\\"named in the rekt.news Rhea Finance report as the collector account, which the report also prints as the attacker NEAR wallet\\\" (assertion 664db39d7af57209306fd948412fe59353389d94aba4aafc6c3b2779f1767ee2); 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \\\"created at block 194074444 by transaction 8ogy5xrbQG78Kw5Eo52iJnfNZQZzeh2iLMWeWXV1Wyuu with a deposit of 0.0000000000000000000001 NEAR\\\" (assertion 6ac99683a4192b79113c521dfde4a5e45ad506d353609438e48e48104f7010ad); 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the denylist label \\\"The issuer of usdt.tether-token.near blacklists 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 as of block 222839362\\\" (assertion c8805cbe989d08c8ad15e77a1bac1bf0ebef5e1c8e00e5163c244b423f69db65).\",\"31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 is banned by a token issuer (31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 is banned by the issuer of usdt.tether-token.near: get_blacklist_status answers \\\"Banned\\\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false).\"],\"subject\":{\"amount\":\"1000000000000000000000000\",\"kind\":\"near\",\"memo_sha256\":null,\"network\":\"mainnet\",\"receiver\":\"31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540\",\"token\":null},\"verdict\":\"DENY\",\"verdict_id\":null,\"version\":\"1\"}",
+ "evidence_hash": "6c068585d59e61488af46b2aebc86b7344ced4c4ff68e1aa7c0aeb4773af23ef",
+ "freshness": {
+  "block_height": 225553805,
+  "timestamp_ms": 1795263656208
+ },
+ "latency_ms": 688,
+ "outcome": "DENY",
+ "reasons": [
+  "Not on the owner's allowlist.",
+  "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \"named in the rekt.news Rhea Finance report as the collector account, which the report also prints as the attacker NEAR wallet\" (assertion 664db39d7af57209306fd948412fe59353389d94aba4aafc6c3b2779f1767ee2); 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the incident label \"created at block 194074444 by transaction 8ogy5xrbQG78Kw5Eo52iJnfNZQZzeh2iLMWeWXV1Wyuu with a deposit of 0.0000000000000000000001 NEAR\" (assertion 6ac99683a4192b79113c521dfde4a5e45ad506d353609438e48e48104f7010ad); 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 carries the denylist label \"The issuer of usdt.tether-token.near blacklists 31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 as of block 222839362\" (assertion c8805cbe989d08c8ad15e77a1bac1bf0ebef5e1c8e00e5163c244b423f69db65).",
+  "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 is banned by a token issuer (31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540 is banned by the issuer of usdt.tether-token.near: get_blacklist_status answers \"Banned\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false)."
+ ],
+ "signing": "never",
+ "verdict": null
+}
