@@ -231,10 +231,11 @@ def choose(store, transfers_client, exclude=frozenset()):
     return subjects, sources, len(excluded)
 
 
-def _judge(entry, store, client, nearblocks, now_ms, archival, reports_account=None):
+def _judge(entry, store, client, nearblocks, now_ms, archival, reports_account=None, *, rules_version=1):
     judgement = rules.judge(entry["request"], {"allowlist": [], "caps": []}, store, client, nearblocks,
                             now_ms=now_ms, injection_scanner=None, archival=archival,
-                            issuers=rules.issuers_for("mainnet"), reports_account=reports_account)
+                            issuers=rules.issuers_for("mainnet"), reports_account=reports_account,
+                            rules_version=rules_version)
     return {"subject": entry["subject"], "as": entry["as"], "request": entry["request"],
             "verdict": judgement.verdict, "checks": judgement.checks, "reasons": judgement.reasons,
             "labels": judgement.labels, "observed": judgement.observed}
@@ -278,11 +279,11 @@ def top_judged_block(archival, judged_at_ms, discover=False):
     return block
 
 
-def _pinned_judgement(entry, store, archival, nearblocks, block, now_ms, reports_account):
+def _pinned_judgement(entry, store, archival, nearblocks, block, now_ms, reports_account, *, rules_version=1):
     """entry judged with every chain read pinned to the judged block (gate/asof.py), or None when the receiver
     is not read as existing there or its account_age is still unknown, so that the first judgement stands."""
     pinned = AsOf(archival, block["height"])
-    result = _judge(entry, store, pinned, nearblocks, now_ms, pinned, reports_account)
+    result = _judge(entry, store, pinned, nearblocks, now_ms, pinned, reports_account, rules_version=rules_version)
     statuses = {check["id"]: check["status"] for check in result["checks"]}
     if statuses["receiver_exists"] != "pass" or statuses["account_age"] == "unknown":
         return None
@@ -335,7 +336,8 @@ def record_receivers(store, previous, exclude, clock=time.time, reports_account=
             "subjects": subjects}
 
 
-def judge_receivers(document, store, directory=RECEIVERS_DIR, reports_account=None, pin_unknown_age=False):
+def judge_receivers(document, store, directory=RECEIVERS_DIR, reports_account=None, pin_unknown_age=False,
+                    *, rules_version=1):
     """Judge every subject of the set in replay and write its judgement file; returns the judgements. With
     pin_unknown_age, once the judged block is recorded (top_judged_block), a subject whose account_age is
     unknown is judged again at that block, and _pinned_judgement decides whether that judgement replaces it."""
@@ -345,13 +347,45 @@ def judge_receivers(document, store, directory=RECEIVERS_DIR, reports_account=No
     block = top_judged_block(archival, document["judged_at_ms"]) if pin_unknown_age else None
     results = []
     for entry in document["subjects"]:
-        result = _judge(entry, store, client, nearblocks, document["judged_at_ms"], archival, reports_account)
+        result = _judge(entry, store, client, nearblocks, document["judged_at_ms"], archival, reports_account,
+                        rules_version=rules_version)
         if block is not None and _age_unknown(result):
             result = _pinned_judgement(entry, store, archival, nearblocks, block, document["judged_at_ms"],
-                                       reports_account) or result
+                                       reports_account, rules_version=rules_version) or result
         _write_json(Path(directory) / "judgements" / f"{entry['subject']}.json", result)
         results.append(result)
     return results
+
+
+def _replay_receivers(args):
+    destination = args.out.expanduser().resolve()
+    if destination == ROOT or ROOT in destination.parents or destination.exists():
+        print("stopped: use a new output directory outside the source repository", file=sys.stderr)
+        return 2
+    set_path = TOP_RECEIVERS_PATH if args.set == "top" else RECEIVERS_DIR / "set.json"
+    baseline = TOP_RECEIVERS_DIR if args.set == "top" else RECEIVERS_DIR
+    try:
+        document = json.loads(set_path.read_text(encoding="utf-8"))
+        destination.mkdir(parents=True, exist_ok=False)
+        rules_version = args.rules_version
+        results = judge_receivers(document, labels.load(), destination, pin_unknown_age=args.set == "top",
+                                  rules_version=rules_version)
+        transitions = {}
+        for result in results:
+            recorded = json.loads((baseline / "judgements" / f"{result['subject']}.json").read_text(encoding="utf-8"))
+            if recorded["verdict"] != result["verdict"]:
+                transition = f"{recorded['verdict']} to {result['verdict']}"
+                transitions[transition] = transitions.get(transition, 0) + 1
+        summary = {"set": args.set, "rules_version": args.rules_version, "judged": len(results),
+                   "verdicts": {verdict: sum(result["verdict"] == verdict for result in results)
+                                for verdict in ("ALLOW", "DENY", "UNKNOWN")},
+                   "changed_verdicts": sum(transitions.values()), "transitions": transitions}
+        _write_json(destination / "summary.json", summary)
+    except (rpc.FixtureMiss, rpc.RpcError, rpc.HttpError, rpc.TransportError, OSError, ValueError) as error:
+        print(f"stopped: {error}", file=sys.stderr)
+        return 1
+    print(json.dumps(summary, sort_keys=True))
+    return 0
 
 
 def cohort_line(document, results):
@@ -441,7 +475,7 @@ def record_top_receiver_judgements(document, store, reports_account=None):
 
 
 def top_receivers_coverage_line(document, results):
-    """Count outcomes and each unknown check across the separate top receiver judgement set."""
+    """Count outcomes and each UNKNOWN cause across the separate top receiver judgement set."""
     expected = len(document["subjects"])
     verdicts = [result["verdict"] for result in results]
     causes = {}
@@ -449,6 +483,8 @@ def top_receivers_coverage_line(document, results):
         if result["verdict"] != "UNKNOWN":
             continue
         found = [check["id"] for check in result["checks"] if check["status"] == "unknown"]
+        if any(check["id"] == "account_age" and check["status"] == "signal" for check in result["checks"]):
+            found.append("young_receiver_confirmation")
         for cause in found or ["unspecified"]:
             causes[cause] = causes.get(cause, 0) + 1
     cause_text = ", ".join(f"{cause} {count}" for cause, count in sorted(causes.items())) or "none"
@@ -893,6 +929,11 @@ def main(argv=None):
     top_judge = commands.add_parser("judge-top-receivers", help="judge the separate top receiver set")
     top_judge.add_argument("--record", action="store_true", help="record missing RPC reads before replay")
     top_judge.set_defaults(handler=_judge_top_receivers)
+    replay = commands.add_parser("replay-receivers", help="judge a recorded receiver set offline into a new directory")
+    replay.add_argument("--set", choices=("ordinary", "top"), required=True)
+    replay.add_argument("--rules-version", type=int, choices=rules.RULES_VERSIONS, default=1)
+    replay.add_argument("--out", type=Path, required=True, help="a new directory outside the source repository")
+    replay.set_defaults(handler=_replay_receivers)
     feeding = commands.add_parser("feed", help="six signals: code_hash_matches_incident, fresh_dust_funded_pays_labelled, watch_account_key_added, labelled_account_large_transfer, deploy_on_labelled_contract, full_access_key_then_outflow")
     feeding.add_argument("--from", dest="start", type=int, help="the first height (default: after the state)")
     feeding.add_argument("--blocks", type=int, help="how many recorded heights to walk")

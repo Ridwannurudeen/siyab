@@ -6,23 +6,23 @@ This file is the consumer contract of the verdict interface: what `gate.verdict.
 
 ## The verdict response
 
-`gate.verdict.request` (`gate/verdict.py:62`) judges one transfer and returns a dict with exactly these keys, in this order (`gate/verdict.py:137-149`). Every adapter (the CLI `python -m gate verdict`, the MCP tool `check_near_payment`, the HTTP endpoint, the pay wrapper) starts from this dict.
+`gate.verdict.request` (`gate/verdict.py:62`) judges one transfer and returns a dict with exactly these keys, in this order (`gate/verdict.py:140-152`). Every adapter (the CLI `python -m gate verdict`, the MCP tool `check_near_payment`, the HTTP endpoint, the pay wrapper) starts from this dict.
 
 ### Fields
 
 | Field | Type | Meaning | Code |
 |---|---|---|---|
-| `outcome` | string | `ALLOW`, `DENY` or `UNKNOWN`, the verdict of `gate.rules.judge` | `gate/verdict.py:138`, `gate/rules.py:1089` |
-| `action` | string | `sign`, `ask` or `refuse`: what the caller does with the outcome (see Outcome and action) | `gate/verdict.py:139`, `gate/verdict.py:105-106` |
-| `ask` | list of strings | the reasons a human must decide before anything is signed or sent; empty for DENY | `gate/verdict.py:140`, `gate/verdict.py:21-59` |
-| `verdict` | object or null | the Verdict object the Gate's `request_transfer` takes: `literal`, `issued_ms`, `expires_ms`, `verdict_id`, `evidence_hash`, `key_id`, `signature`; null unless the outcome is ALLOW and the action is in the caller's `sign_actions` | `gate/verdict.py:141`, `gate/verdict.py:107-112`, `gate/verdict.py:123-136` |
-| `request` | object | the TransferRequest judged: `kind`, `token_id`, `receiver_id`, `amount` (the canonical decimal string), `memo` (string or null) | `gate/verdict.py:142`, `gate/verdict.py:97-99` |
-| `checks` | list of objects | one object per check that ran, `{id, status, detail, source}`, in the order the rules ran them (see Checks) | `gate/verdict.py:143`, `gate/evidence.py:43` |
-| `reasons` | list of strings | the reasons for the outcome | `gate/verdict.py:144`, `gate/rules.py:1013-1047` |
-| `evidence_hash` | string | the sha256 hex of the canonical bytes of the evidence document, which is also its file name | `gate/verdict.py:145`, `gate/verdict.py:120-121` |
-| `evidence_path` | string | where the evidence document was written, `<evidence_dir>/<evidence_hash>.json` | `gate/verdict.py:146`, `gate/evidence.py:93-100` |
-| `latency_ms` | integer | whole milliseconds from just before the rules run until immediately after the conditional `verdict_id` assignment, following the action and signing decision. An id is drawn only for ALLOW when its action is in `sign_actions`; DENY, UNKNOWN and unsigned ALLOW get no id. The interval excludes request validation before it and evidence-document construction, evidence write and signature afterward. | `gate/verdict.py:147`, `gate/verdict.py:100-113` |
-| `message` | string or null | the canonical message the signature covers (`docs/VERDICT-RECORD.md`), or null when `verdict` is null | `gate/verdict.py:148`, `gate/verdict.py:123-127` |
+| `outcome` | string | `ALLOW`, `DENY` or `UNKNOWN`, the verdict of `gate.rules.judge` | `gate/verdict.py:141`, `gate/rules.py:1093` |
+| `action` | string | `sign`, `ask` or `refuse`: what the caller does with the outcome (see Outcome and action) | `gate/verdict.py:142`, `gate/verdict.py:108-109` |
+| `ask` | list of strings | the reasons a human must decide before anything is signed or sent; empty for DENY | `gate/verdict.py:143`, `gate/verdict.py:21-59` |
+| `verdict` | object or null | the Verdict object the Gate's `request_transfer` takes: `literal`, `issued_ms`, `expires_ms`, `verdict_id`, `evidence_hash`, `key_id`, `signature`; null unless the outcome is ALLOW and the action is in the caller's `sign_actions` | `gate/verdict.py:144`, `gate/verdict.py:110-115`, `gate/verdict.py:126-139` |
+| `request` | object | the TransferRequest judged: `kind`, `token_id`, `receiver_id`, `amount` (the canonical decimal string), `memo` (string or null) | `gate/verdict.py:145`, `gate/verdict.py:97-99` |
+| `checks` | list of objects | one object per check that ran, `{id, status, detail, source}`, in the order the rules ran them (see Checks) | `gate/verdict.py:146`, `gate/evidence.py:43` |
+| `reasons` | list of strings | the reasons for the outcome | `gate/verdict.py:147`, `gate/rules.py:1013-1050` |
+| `evidence_hash` | string | the sha256 hex of the canonical bytes of the evidence document, which is also its file name | `gate/verdict.py:148`, `gate/verdict.py:123-124` |
+| `evidence_path` | string | where the evidence document was written, `<evidence_dir>/<evidence_hash>.json` | `gate/verdict.py:149`, `gate/evidence.py:93-100` |
+| `latency_ms` | integer | whole milliseconds from just before the rules run until immediately after the conditional `verdict_id` assignment, following the action and signing decision. An id is drawn only for ALLOW when its action is in `sign_actions`; DENY, UNKNOWN and unsigned ALLOW get no id. The interval excludes request validation before it and evidence-document construction, evidence write and signature afterward. | `gate/verdict.py:150`, `gate/verdict.py:100-116` |
+| `message` | string or null | the canonical message the signature covers (`docs/VERDICT-RECORD.md`), or null when `verdict` is null | `gate/verdict.py:151`, `gate/verdict.py:126-130` |
 
 The adapters change the dict in two places only. The HTTP endpoint drops `evidence_path`, sets `verdict` and `message` to null and adds `signing` (`gate/http.py:163-164`). The MCP tool adds `gate`, `signer`, `agent_pk` and `policy_source` (`mcp/server.py:230`).
 
@@ -30,7 +30,7 @@ The adapters change the dict in two places only. The HTTP endpoint drops `eviden
 
 Each check is `{"id", "status", "detail", "source"}` (`gate/evidence.py:43-47`). `status` is `pass`, `signal` or `unknown` (`gate/evidence.py:27`); `evidence.check` raises on any other value, and there is no `not_run` status: a check that did not run is absent from `checks`. `detail` is text for a human. `source` is `{"provider", "request_sha256", "fetched_at"}` (`docs/VERDICT-RECORD.md`): the RPC or HTTP host with the replay key of the request and its fetch time, or for a local read a local provider name (`label store`, `local patterns`, `allowlist and label store`, or `nearblocks` when no request was made) with `fetched_at` null (`gate/rules.py:133-138`).
 
-Tiers (`gate/rules.py:1066-1087`): tier 1 runs for every receiver; tier 2 runs only for a receiver that is not on the agent's `allowlist` in the policy (`TIER2_CHECKS`, `gate/rules.py:48`). Kind `near` runs no token check; kind `ft` adds the three token checks and also looks the token up in the label store (`gate/rules.py:449-454`, `gate/rules.py:463-483`).
+Tiers (`gate/rules.py:1070-1091`): tier 1 runs for every receiver; tier 2 runs only for a receiver that is not on the agent's `allowlist` in the policy (`TIER2_CHECKS`, `gate/rules.py:48`). Kind `near` runs no token check; kind `ft` adds the three token checks and also looks the token up in the label store (`gate/rules.py:449-454`, `gate/rules.py:463-483`).
 
 ### Check table
 
@@ -63,17 +63,17 @@ Line numbers without a file are `gate/rules.py`. The test compares the table's c
 
 ### Outcome and action
 
-`outcome` comes from the statuses alone (`gate/rules.py:1088-1089`): DENY when any check is `signal`, else UNKNOWN when any check is `unknown`, else ALLOW. A signal wins over a check that could not run.
+`outcome` depends on the selected rules version (`gate/rules.py:1092-1095`). Versions 1 and 2 return DENY when any check is `signal`, else UNKNOWN when any check is `unknown`, else ALLOW. Version 3 runs the version 1 checks and returns UNKNOWN when `account_age` is the only check with status `signal`, whether or not another check is `unknown`; the owner must confirm the receiver before paying. Any other signal still gives DENY, including when age also signals. `gate.verdict.request` defaults to version 1; a caller selects version 3 explicitly with `rules_version=3` (`gate/verdict.py:62-64`).
 
-`action` comes from `outcome` and `ask` (`gate/verdict.py:104-106`):
+`action` comes from `outcome` and `ask` (`gate/verdict.py:104-109`):
 
 | `outcome` | `ask` | `action` |
 |---|---|---|
 | `DENY` | always empty (`gate/verdict.py:29-30`) | `refuse` |
-| `UNKNOWN` | each check that could not run, as `<id> could not run: <detail>`, then any Gate policy refusal below (`gate/verdict.py:39-41`) | `ask` |
+| `UNKNOWN` | each check that could not run, as `<id> could not run: <detail>`, then any Gate policy refusal below (`gate/verdict.py:39-41`); for a version 3 age-only signal, the receiver-confirmation reason is prepended (`gate/verdict.py:105-107`) | `ask` |
 | `ALLOW` | a Gate policy refusal the verdict service can see: the Gate is paused, the agent is disabled, the receiver is on the Gate denylist, or the receiver is off the allowlist with no unknown payee caps, no cap for the asset, or an amount over that cap's per call limit (`gate/verdict.py:33-59`) | `ask` when `ask` is not empty, else `sign` |
 
-`sign_actions` decides only which actions are signed, never the action itself (`gate/verdict.py:62-64`, `gate/verdict.py:104-106`): the default `("sign",)` signs an ALLOW whose action is `sign`; ordinary pay leaves that default in place (`gate/agent.py:208-225`, `gate/agent.py:287-362`), and the HTTP endpoint passes `()` (`gate/http.py:160`). DENY and UNKNOWN are never signed. The Gate itself still checks the window part of every cap, the caps of an allowlisted payee, and the verdict signature, expiry and replay (`contracts/gate/src/lib.rs:194-210,227-237`; `contracts/gate/src/verdict.rs:66-95`).
+`sign_actions` decides only which actions are signed, never the action itself (`gate/verdict.py:62-64`, `gate/verdict.py:104-109`): the default `("sign",)` signs an ALLOW whose action is `sign`; ordinary pay leaves that default in place (`gate/agent.py:208-225`, `gate/agent.py:287-366`), and the HTTP endpoint passes `()` (`gate/http.py:160`). DENY and UNKNOWN are never signed. The Gate itself still checks the window part of every cap, the caps of an allowlisted payee, and the verdict signature, expiry and replay (`contracts/gate/src/lib.rs:194-210,227-237`; `contracts/gate/src/verdict.rs:66-95`).
 
 Adapters translate `action` into their host's vocabulary (pay or not, a tool result, an HTTP body) and never decide again: `mcp/server.py:227`, `gate/http.py:163-164` and `gate/agent.py:312` read `result["action"]` as it came back.
 
@@ -280,7 +280,7 @@ The verdict, scan, account check, token check and Intents routes read mainnet. A
 
 The account and token check routes answer 404 unless `SIYAB_CHECKS=1`. Their answers keep the payment answer's ten fields, with `outcome` `ALLOW`, `DENY` or `ASK`, `verdict` null and `signing` `never`. For both `/live/account-check/<account>` and `/live/token-check/<token>`, an answer with `"signing": "never"` and `"verdict": null` keeps `"action": "sign"` on ALLOW. The action field is advice only and never permission to pay; only a signed Gate verdict authorises payment. A token check uses the fixed mainnet RPC endpoint even when `NEAR_MAINNET_RPC_URL` overrides other live reads. The health response's `checks` boolean reflects the flag. Transaction checks are available only through the local protocol interface.
 
-A receiver judgement can be ALLOW while its live account check reads ASK, because `contract_control` runs in `check_account` and not in `rules.judge` (`gate/account_check.py:180-225`, `gate/account_check.py:240-253`, `gate/rules.py:1050-1092`).
+A receiver judgement can be ALLOW while its live account check reads ASK, because `contract_control` runs in `check_account` and not in `rules.judge` (`gate/account_check.py:180-225`, `gate/account_check.py:240-256`, `gate/rules.py:1053-1099`).
 
 The verdict and Intents responses have these fields: `outcome`, `action`, `reasons`, `checks`, `evidence_hash`, `freshness`, `verdict`, `signing`, and `latency_ms`. Only `/live/verdict` also returns `evidence`: the exact canonical evidence bytes decoded as a UTF-8 string, whose SHA-256 equals `evidence_hash`. Cached answers retain that same string. `/live/intents` has no new field. The displayed payment check answer can be downloaded and checked offline with `python -m gate verify-receipt <file>`; [section 5 of the verification guide](VERIFY.md#5-check-an-unsigned-check-receipt) gives a committed sample and the limits of this consistency check. `UNKNOWN` maps to `ASK`; checks use `{name, status, detail}`. `freshness` is the existing observed block and timestamp object, or the timestamp object for an Intents quote. `verdict` is always null and `signing` is always `never`; an ALLOW action still says `sign`, which describes the judgement action only (`intel/live.py:LiveAPI._verdict_shape`).
 

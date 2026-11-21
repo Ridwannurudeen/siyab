@@ -1,8 +1,9 @@
 """Tiered receiver rules: ALLOW, DENY or UNKNOWN for one NEAR transfer, every check recorded.
 
 ALLOW means every check ran and none found a scam signal; DENY means a check found a signal (a
-signal wins over a check that could not run); UNKNOWN means a check could not run. ALLOW is the
-absence of a known scam signal, not proof of identity.
+signal wins over a check that could not run); UNKNOWN means a check could not run. Version 3 also
+returns UNKNOWN when account_age is the only signal, asking the owner to confirm the receiver.
+ALLOW is the absence of a known scam signal, not proof of identity.
 
 Tier 1, every receiver: receiver_exists, label_denylist, issuer_blacklist (when the caller gives
 the issuer table of intel/issuers.json, which it does for a mainnet Gate), community_report (only when
@@ -41,9 +42,8 @@ MIN_AGE_DAYS = 7
 AGE_READS_S = 18
 # Twenty boundary block reads, including initial probes, plus a preceding nonce block read.
 AGE_BLOCK_READS = 21
-# Rule sets judge can run: 1, the default, is the one every committed judgement was judged with; 2 adds the
-# checks of gate/freshness.py.
-RULES_VERSIONS = (1, 2)
+# Versions: 1 uses the original checks; 2 adds freshness; 3 asks when only account_age signals.
+RULES_VERSIONS = (1, 2, 3)
 # The checks judge runs only for a receiver off the agent's allowlist; an owner's set_allowlist call skips them.
 TIER2_CHECKS = ("account_age", "dust_funded", "lookalike", "code_without_metadata")
 # The tier 2 check rules version 2 adds. It stays out of TIER2_CHECKS, the version 1 set the incident replay
@@ -1010,13 +1010,16 @@ _SIGNAL_REASONS = {
 }
 
 
-def _reasons(verdict, checks, facts, request, tier2, reports_account, report_id):
+def _reasons(verdict, checks, facts, request, tier2, reports_account, report_id, min_age_days, rules_version):
     receiver, token = request["receiver_id"], request["token_id"]
     if verdict == "ALLOW":
         reasons = ["Every check ran and none found a signal."]
         return reasons + (["Not on the owner's allowlist."] if tier2 else [])
     if verdict == "UNKNOWN":
         reasons = []
+        if any(check["id"] == "account_age" and check["status"] == "signal" for check in checks):
+            reasons.append(f"{receiver} is younger than {min_age_days} days; no other signal was found "
+                           "among the checks that ran. The owner should confirm the receiver before paying.")
         for check in checks:
             if check["status"] != "unknown":
                 continue
@@ -1027,7 +1030,7 @@ def _reasons(verdict, checks, facts, request, tier2, reports_account, report_id)
                 reasons.append(reason)
             else:
                 reasons.append(f"{check['id']} could not run: {check['detail']}.")
-        return reasons
+        return reasons + (["Not on the owner's allowlist."] if tier2 and rules_version == 3 else [])
     signals = {c["id"]: c for c in checks if c["status"] == "signal"}
     reasons = []
     if "lookalike" in signals:
@@ -1057,8 +1060,9 @@ def judge(request, policy, store, rpc, nearblocks, *, now_ms, injection_scanner,
     empty list adds no check. reports_account is the reports contract account or None to omit its
     check. rules_version is one of RULES_VERSIONS; 2 adds label_stale after label_denylist and, for tier 2,
     code_changed_recently (gate/freshness.py), and drops code_without_metadata for a receiver on a global
-    contract, whose empty code hash that check reads as no contract code. A receiver that is not a valid account
-    id, or another rules_version, raises a ValueError (canon.CanonError for the id) before any request."""
+    contract, whose empty code hash that check reads as no contract code. Version 3 runs the version 1 checks
+    and returns UNKNOWN when account_age is the only signal. A receiver that is not a valid account id, or
+    another rules_version, raises a ValueError (canon.CanonError for the id) before any request."""
     canon.account_id(request["receiver_id"], "receiver_id")
     if type(rules_version) is not int or rules_version not in RULES_VERSIONS:
         raise ValueError(f"rules_version must be one of {RULES_VERSIONS}, not {rules_version!r}")
@@ -1087,6 +1091,9 @@ def judge(request, policy, store, rpc, nearblocks, *, now_ms, injection_scanner,
         labels += [assertion_id for assertion_id in matched if assertion_id not in labels]
     statuses = {check["status"] for check in checks}
     verdict = "DENY" if "signal" in statuses else "UNKNOWN" if "unknown" in statuses else "ALLOW"
+    if rules_version == 3 and {check["id"] for check in checks if check["status"] == "signal"} == {"account_age"}:
+        verdict = "UNKNOWN"
     return Judgement(verdict=verdict, checks=checks,
-                     reasons=_reasons(verdict, checks, facts, request, tier2, reports_account, report_id),
+                     reasons=_reasons(verdict, checks, facts, request, tier2, reports_account, report_id,
+                                      min_age_days, rules_version),
                      labels=labels, observed={"block_height": block_height, "timestamp_ms": now_ms})

@@ -17,6 +17,32 @@ from scripts import scorecard
 
 
 class ScorecardTest(unittest.TestCase):
+    def test_unknown_causes_count_young_confirmation_without_reclassifying_unavailable_age(self):
+        documents = [
+            {"subject": "young.near", "verdict": "UNKNOWN",
+             "checks": [{"id": "account_age", "status": "signal"}]},
+            {"subject": "young-unresolved.near", "verdict": "UNKNOWN", "checks": [
+                {"id": "account_age", "status": "signal"}, {"id": "dust_funded", "status": "unknown"}]},
+            {"subject": "age-unavailable.near", "verdict": "UNKNOWN",
+             "checks": [{"id": "account_age", "status": "unknown"}]},
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            judgements = root / scorecard.JUDGEMENTS
+            judgements.mkdir(parents=True)
+            (root / scorecard.RECEIVER_SET).write_text(json.dumps({
+                "subjects": [{"subject": document["subject"]} for document in documents],
+            }), encoding="utf-8")
+            for document in documents:
+                (judgements / (document["subject"] + ".json")).write_text(json.dumps(document), encoding="utf-8")
+            measured, not_measured = scorecard.receiver_rows(root)
+        self.assertEqual(not_measured, [])
+        self.assertEqual({name: value for name, value, _ in measured if name.startswith("UNKNOWN cause:")}, {
+            "UNKNOWN cause: account_age": "1 / 3 UNKNOWN judgements; causes can overlap",
+            "UNKNOWN cause: dust_funded": "1 / 3 UNKNOWN judgements; causes can overlap",
+            "UNKNOWN cause: young_receiver_confirmation": "2 / 3 UNKNOWN judgements; causes can overlap",
+        })
+
     def test_label_metrics_count_only_current_assertions_as_hostile(self):
         rows = {name: value for name, value, _ in scorecard.label_rows(ROOT)}
         self.assertEqual(rows["Label assertions"], "3,295 / 3,295 committed assertion rows")

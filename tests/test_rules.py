@@ -2587,6 +2587,12 @@ class RulesVersionTwoCase(RulesCase):
 
 
 class RulesVersionTest(RulesVersionTwoCase):
+    def judge_version(self, version, receiver="stranger.testnet", *, min_age_days=rules.MIN_AGE_DAYS,
+                      archival=None):
+        return rules.judge(request(receiver, kind="near", memo=None), self.POLICY, self.store, self.rpc,
+                           self.nearblocks, now_ms=NOW_MS, injection_scanner=None, archival=archival,
+                           min_age_days=min_age_days, rules_version=version)
+
     def test_version_1_is_the_default_and_emits_neither_new_check(self):
         self.locked()
         self.old_account("pool.testnet", code_hash=self.OTHER_CODE_HASH)
@@ -2602,8 +2608,134 @@ class RulesVersionTest(RulesVersionTwoCase):
         self.assertEqual(default.verdict, "ALLOW")
         self.assertLessEqual({"code_changed_recently", "label_stale"}, {c["id"] for c in self.judge2().checks})
 
+    def test_version_3_young_alone_is_unknown_with_the_age_signal_unchanged(self):
+        self.stranger("stranger.testnet", age_ns=2 * DAY_NS)
+        first = self.judge_version(1)
+        second = self.judge_version(2)
+        default = self.judge(request("stranger.testnet", kind="near", memo=None), self.POLICY)
+        third = self.judge_version(3)
+
+        self.assertEqual(rules.RULES_VERSIONS, (1, 2, 3))
+        self.assertEqual(default, first)
+        self.assertEqual(first.verdict, "DENY")
+        self.assertEqual(first.reasons, ["Created 2 d ago.", "Not on the owner's allowlist."])
+        self.assertEqual((second.verdict, second.reasons), (first.verdict, first.reasons))
+        self.assertEqual([c for c in second.checks if c["id"] != "code_changed_recently"], first.checks)
+        self.assertEqual(third.checks, first.checks)
+        self.assertEqual(self.check(third, "account_age")["status"], "signal")
+        self.assertEqual(self.check(third, "account_age")["detail"], "created 2 d ago, younger than 7 days")
+        self.assertEqual({c["id"] for c in third.checks if c["status"] == "signal"}, {"account_age"})
+        self.assertEqual(third.verdict, "UNKNOWN")
+        self.assertEqual(third.reasons, ["stranger.testnet is younger than 7 days; no other signal was found "
+                                         "among the checks that ran. The owner should confirm the receiver "
+                                         "before paying.", "Not on the owner's allowlist."])
+
+    def test_version_3_young_with_another_signal_stays_deny(self):
+        for signal, receiver, deposit, code_hash in (
+                ("dust_funded", "stranger.testnet", 1e22, rpc.EMPTY_CODE_HASH),
+                ("lookalike", "vend0r.testnet", 5e23, rpc.EMPTY_CODE_HASH),
+                ("code_without_metadata", "stranger.testnet", 5e23, CODE_HASH),
+                ("label_denylist", "stranger.testnet", 5e23, rpc.EMPTY_CODE_HASH)):
+            with self.subTest(signal=signal):
+                self.store = (Store(onchain("a" * 64, receiver, "drainer", category="denylist"))
+                              if signal == "label_denylist" else Store())
+                self.stranger(receiver, age_ns=2 * DAY_NS, deposit=deposit, code_hash=code_hash)
+                if signal == "code_without_metadata":
+                    self.fx.method_missing(receiver, "contract_source_metadata", {})
+                first = self.judge_version(1, receiver)
+                for version in (2, 3):
+                    with self.subTest(version=version):
+                        judgement = self.judge_version(version, receiver)
+                        self.assertEqual(judgement.verdict, "DENY")
+                        self.assertEqual({c["id"] for c in judgement.checks if c["status"] == "signal"},
+                                         {"account_age", signal})
+                        self.assertEqual(judgement.reasons, first.reasons)
+                        if version == 3:
+                            self.assertEqual(judgement.checks, first.checks)
+
+    def test_version_3_young_with_an_unknown_check_keeps_both_reasons(self):
+        self.stranger("stranger.testnet", age_ns=2 * DAY_NS, code_hash=CODE_HASH)
+        first = self.judge_version(1)
+        second = self.judge_version(2)
+        third = self.judge_version(3)
+
+        self.assertEqual((first.verdict, second.verdict), ("DENY", "DENY"))
+        self.assertEqual(third.checks, first.checks)
+        self.assertEqual(self.check(third, "account_age")["status"], "signal")
+        self.assertEqual(self.check(third, "code_without_metadata")["status"], "unknown")
+        self.assertEqual(third.verdict, "UNKNOWN")
+        self.assertEqual(third.reasons, ["stranger.testnet is younger than 7 days; no other signal was found "
+                                         "among the checks that ran. The owner should confirm the receiver "
+                                         "before paying.",
+                                         "code_without_metadata could not run: could not read "
+                                         "contract_source_metadata: no recorded response for the request.",
+                                         "Not on the owner's allowlist."])
+
+    def test_version_3_young_reason_uses_the_selected_age_threshold(self):
+        self.stranger("stranger.testnet", age_ns=2 * DAY_NS)
+        judgement = self.judge_version(3, min_age_days=3)
+
+        self.assertEqual(judgement.verdict, "UNKNOWN")
+        self.assertEqual(self.check(judgement, "account_age")["detail"], "created 2 d ago, younger than 3 days")
+        self.assertEqual(judgement.reasons, ["stranger.testnet is younger than 3 days; no other signal was found "
+                                             "among the checks that ran. The owner should confirm the receiver "
+                                             "before paying.", "Not on the owner's allowlist."])
+
+    def test_version_3_young_with_unread_deposit_names_only_the_checks_that_ran(self):
+        self.stranger("stranger.testnet", age_ns=2 * DAY_NS, deposit="NaN")
+        judgement = self.judge_version(3)
+        self.assertEqual(judgement.verdict, "UNKNOWN")
+        self.assertEqual(self.check(judgement, "dust_funded")["status"], "unknown")
+        self.assertIn("no other signal was found among the checks that ran.", judgement.reasons[0])
+        self.assertTrue(judgement.reasons[1].startswith("dust_funded could not run:"))
+        self.assertEqual(judgement.reasons[-1], "Not on the owner's allowlist.")
+
+    def test_version_3_unknown_without_young_keeps_the_allowlist_reason(self):
+        self.stranger("stranger.testnet", code_hash=CODE_HASH)
+        first = self.judge_version(1)
+        third = self.judge_version(3)
+        self.assertEqual((first.verdict, third.verdict), ("UNKNOWN", "UNKNOWN"))
+        self.assertEqual(third.checks, first.checks)
+        self.assertFalse(any(check["status"] == "signal" for check in third.checks))
+        self.assertEqual(third.reasons, first.reasons + ["Not on the owner's allowlist."])
+
+    def test_version_3_at_the_age_cutoff_still_allows(self):
+        self.stranger("stranger.testnet", age_ns=7 * DAY_NS)
+        first = self.judge_version(1)
+        third = self.judge_version(3)
+
+        self.assertEqual(third, first)
+        self.assertEqual(self.check(third, "account_age")["status"], "pass")
+        self.assertEqual(third.verdict, "ALLOW")
+
+    def test_version_3_uses_version_1_checks_without_freshness(self):
+        self.locked()
+        self.old_account("pool.testnet", code_hash=self.OTHER_CODE_HASH)
+        self.store = Store(onchain("a" * 64, "pool.testnet", "account exists with no contract code",
+                                   category="infrastructure"))
+        first = self.judge_version(1, "pool.testnet", archival=self.archival)
+        second = self.judge_version(2, "pool.testnet", archival=self.archival)
+        third = self.judge_version(3, "pool.testnet", archival=self.archival)
+
+        self.assertEqual(third, first)
+        self.assertFalse({"code_changed_recently", "label_stale"} & {c["id"] for c in third.checks})
+        self.assertLessEqual({"code_changed_recently", "label_stale"}, {c["id"] for c in second.checks})
+
+    def test_version_3_keeps_the_version_1_metadata_check_for_global_contracts(self):
+        for live in ({"global_hash": self.GLOBAL_HASH}, {"global_account": "publisher.testnet"}):
+            with self.subTest(live=live):
+                self.locked(code_hash=rpc.EMPTY_CODE_HASH, **live)
+                self.old_account("pool.testnet", code_hash=rpc.EMPTY_CODE_HASH, global_hash=self.GLOBAL_HASH)
+                first = self.judge_version(1, "pool.testnet", archival=self.archival)
+                second = self.judge_version(2, "pool.testnet", archival=self.archival)
+                third = self.judge_version(3, "pool.testnet", archival=self.archival)
+
+                self.assertEqual(third, first)
+                self.assertEqual(self.check(third, "code_without_metadata")["detail"], "no contract code")
+                self.assertIsNone(self.check(second, "code_without_metadata"))
+
     def test_an_unknown_rules_version_is_refused_before_any_read(self):
-        for version in (0, 3, "2", True, None):
+        for version in (0, 4, "2", True, None):
             store, client, nearblocks, archival = mock.Mock(), mock.Mock(), mock.Mock(), mock.Mock()
             with self.subTest(version=version), self.assertRaises(ValueError):
                 rules.judge(request("pool.testnet", kind="near", memo=None), self.POLICY, store, client,

@@ -628,6 +628,45 @@ class VerifyReceiptTest(unittest.TestCase):
                     document["observed"], document["latency_ms"]))
                 self.check(self.answer, 0)
 
+    def test_live_reduction_matches_base_except_unknown_with_only_account_age_signal(self):
+        signal_sets = ((), ("account_age",), ("label_denylist",), ("account_age", "lookalike"))
+        base_outcomes = (("ALLOW", ("ALLOW", "DENY", "DENY", "DENY")),
+                         ("DENY", ("DENY", "DENY", "DENY", "DENY")),
+                         ("UNKNOWN", ("ASK", "DENY", "DENY", "DENY")),
+                         ("unrecognized", ("ASK", "DENY", "DENY", "DENY")))
+        actions = {"ALLOW": "sign", "DENY": "refuse", "ASK": "ask"}
+        for verdict, outcomes in base_outcomes:
+            for signals, base_outcome in zip(signal_sets, outcomes):
+                for status in ("pass", "unknown"):
+                    with self.subTest(verdict=verdict, signals=signals, other_status=status):
+                        checks = [{"id": "receiver_exists", "status": status, "detail": "Account read."}]
+                        checks += [{"id": name, "status": "signal", "detail": "Signal found."}
+                                   for name in signals]
+                        expected = base_outcome
+                        if verdict == "UNKNOWN" and signals == ("account_age",):
+                            expected = "ASK"
+                        elif expected == "ALLOW" and status == "unknown":
+                            expected = "ASK"
+                        reduced = live.LiveAPI._verdict_shape(verdict, checks, [], "", {}, 0)
+                        self.assertEqual((reduced["outcome"], reduced["action"]),
+                                         (expected, actions[expected]))
+
+    def test_unknown_with_label_denylist_signal_cannot_verify_as_ask(self):
+        document = json.loads(self.answer["evidence"])
+        document["verdict"] = "UNKNOWN"
+        document["checks"] = [evidence.check("label_denylist", "signal", "Receiver has a deny label.",
+                                              rules._local("labels"))]
+        self.replace_evidence(document)
+        self.answer.update(live.LiveAPI._verdict_shape(
+            document["verdict"], document["checks"], document["reasons"], self.answer["evidence_hash"],
+            document["observed"], document["latency_ms"]))
+        self.answer.update(outcome="ASK", action="ask")
+        self.path.write_text(json.dumps(self.answer), encoding="utf-8", newline="\n")
+        with self.assertRaisesRegex(verify.VerifyError, "answer outcome does not match the evidence"):
+            verify.verify_receipt(self.path)
+        self.answer.update(outcome="DENY", action="refuse")
+        self.check(self.answer, 0)
+
     def test_receipt_claiming_a_signature_is_refused(self):
         for field, value in (("verdict", {"signature": "claimed"}), ("signing", "signed")):
             with self.subTest(field=field):

@@ -18,13 +18,13 @@ A document is a JSON object with exactly these 11 keys (`gate/evidence.py:50-67`
 | `labels` | array of strings | the ids of the label assertions the rules consulted (`label-assertion-v1.md`) |
 | `verdict` | string | `ALLOW`, `DENY` or `UNKNOWN` |
 | `reasons` | array of strings | the reasons for the verdict, in Siyab's words |
-| `observed` | object | `{"block_height": integer or null, "timestamp_ms": integer or null}`: the chain state the checks read (`gate/rules.py:1092`) |
+| `observed` | object | `{"block_height": integer or null, "timestamp_ms": integer or null}`: the chain state the checks read (`gate/rules.py:1099`) |
 | `issued_ms` | integer or null | milliseconds since the Unix epoch |
 | `expires_ms` | integer or null | milliseconds since the Unix epoch |
 | `verdict_id` | string or null | 32 lowercase hex |
-| `latency_ms` | integer or null | the time the judgement took, measured with a monotonic clock (`gate/verdict.py:110`) |
+| `latency_ms` | integer or null | the time the judgement took, measured with a monotonic clock (`gate/verdict.py:113`) |
 
-`issued_ms`, `expires_ms` and `verdict_id` are set only when the outcome is ALLOW and the service signs it; they are null on DENY, on UNKNOWN and on an ALLOW the service passes to a human instead of signing (`gate/verdict.py:106-109`). A document with these three set is the document of a signed verdict, and the same three values are in the signed message.
+`issued_ms`, `expires_ms` and `verdict_id` are set only when the outcome is ALLOW and the service signs it; they are null on DENY, on UNKNOWN and on an ALLOW the service passes to a human instead of signing (`gate/verdict.py:109-112`). A document with these three set is the document of a signed verdict, and the same three values are in the signed message.
 
 ### The subject block (kinds `near` and `ft`)
 
@@ -57,7 +57,7 @@ An EVM leg preflight (`gate/intents.py:580-587`) writes a document whose `subjec
 
 In `source`, `provider` names where the answer came from (an RPC host, `label store`, `local patterns`, `local rules`, or a committed fixture path); `request_sha256` is the 64 hex key of the recorded request (`gate/rpc.py:244-247`), the sha256 of the label store file, or for `ofac_sanctioned` the sha256 of the named fixture's JSON bytes. It is null for a local rule; `fetched_at` is the UTC time `YYYY-MM-DDTHH:MM:SSZ` the response was fetched, or null when nothing was fetched (`gate/rpc.py:1135,1146,1180-1181`, `gate/rules.py:133-138`). The OFAC check detail and match reason carry the source XML hash recorded inside that fixture.
 
-How check statuses become a verdict: any `signal` gives DENY; otherwise any `unknown` gives UNKNOWN; otherwise ALLOW (`gate/rules.py:1088-1089`, `gate/intents.py:578`).
+How check statuses become a verdict: versions 1 and 2 give DENY for any `signal`, otherwise UNKNOWN for any `unknown`, otherwise ALLOW. Version 3 runs the version 1 checks and gives UNKNOWN when `account_age` is the only signal, requiring receiver confirmation even if all other checks passed (`gate/rules.py:1092-1095`). The intents variant retains the any-signal DENY rule (`gate/intents.py:578`).
 
 ## Canonical serialization
 
@@ -96,4 +96,4 @@ The escaping and key order rules are also pinned byte for byte by `tests/test_ev
 ## Source of truth
 
 - `gate/evidence.py:30` `subject`; `:43` `check`; `:50` `document`; `:81` `canonical_bytes`; `:88` `evidence_hash`; `:93` `write`; `:103` `check_file`.
-- `gate/verdict.py:107-112` when the issue time, expiry and verdict id are set; `gate/intents.py:580-587` the intents variant.
+- `gate/verdict.py:110-115` when the issue time, expiry and verdict id are set; `gate/intents.py:580-587` the intents variant.

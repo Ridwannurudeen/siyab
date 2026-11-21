@@ -5,10 +5,10 @@ The format of a Siyab verdict: the canonical message the verifier signs, the sig
 ## Verdicts
 
 - ALLOW: every check ran and none found a scam signal.
-- DENY: a check found a signal. A signal wins over a check that could not run.
-- UNKNOWN: a required check could not run and none found a signal, or an accepted social report requires a human decision for a payee off the allowlist, with reason text "community reports need a human decision". An unreadable community report summary, including a failed `subject_summary` read, yields UNKNOWN with reason text "community reports could not be checked"; its check detail records why the summary could not be read. The `pending` field is a count only and does not affect the verdict.
+- DENY: a check found a signal. A signal wins over a check that could not run, except for the version 3 age-only case below.
+- UNKNOWN: in rules version 3, `account_age` is the only signal and the owner must confirm the receiver before paying, even if every other check passed (`gate/rules.py:1092-1095`); otherwise a required check could not run and none found a signal, or an accepted social report requires a human decision for a payee off the allowlist, with reason text "community reports need a human decision". An unreadable community report summary, including a failed `subject_summary` read, yields UNKNOWN with reason text "community reports could not be checked"; its check detail records why the summary could not be read. The `pending` field is a count only and does not affect the verdict.
 
-Only ALLOW is signed. DENY and UNKNOWN carry no signature and no verdict id, so a refused verdict and an unreachable service look the same to the contract: no signature, no transfer. An ALLOW is signed only when its action is `sign`; an ALLOW the Gate would refuse on the visible policy checks gets the action `ask`, is passed to a human, and carries no signature, issue time, expiry or verdict id either (`gate/verdict.py:103-109,119-133`). ALLOW is the absence of a known scam signal, not proof of identity.
+Only ALLOW is signed. DENY and UNKNOWN carry no signature and no verdict id, so a refused verdict and an unreachable service look the same to the contract: no signature, no transfer. An ALLOW is signed only when its action is `sign`; an ALLOW the Gate would refuse on the visible policy checks gets the action `ask`, is passed to a human, and carries no signature, issue time, expiry or verdict id either (`gate/verdict.py:103-112,122-136`). ALLOW is the absence of a known scam signal, not proof of identity.
 
 ## The canonical message
 
@@ -56,7 +56,7 @@ The Gate's verdict check (`verify` in `contracts/gate/src/verdict.rs:53`) refuse
 
 ## Verdict id and replay
 
-`verdict_id` is 16 random bytes in lowercase hex, drawn for each signed ALLOW (`gate/verdict.py:106-109`). A Gate records every verdict id it accepts, with its expiry, and refuses a second use as `verdict_used`. The signature already binds the agent key, so the verdict id alone is the replay key. A used verdict stays used when the transfer then fails; the agent needs a fresh ALLOW.
+`verdict_id` is 16 random bytes in lowercase hex, drawn for each signed ALLOW (`gate/verdict.py:109-112`). A Gate records every verdict id it accepts, with its expiry, and refuses a second use as `verdict_used`. The signature already binds the agent key, so the verdict id alone is the replay key. A used verdict stays used when the transfer then fails; the agent needs a fresh ALLOW.
 
 Each accepted verdict is also appended to an expiry queue in its own `uq` storage namespace. The queue stores a head index, a tail index and entries in insertion order, outside the root contract state. At the start of `request_transfer`, the Gate removes at most four expired entries from the queue head. It removes the matching `used_verdicts` row only when the row's stored expiry equals the queue entry's expiry; a stale queue entry cannot remove a newer use of the same id. A live head entry stops that call's pruning. Pruning preserves replay protection only because `verify` refuses `expires_ms <= now_ms` (`verdict.rs:66`) before `request_transfer` checks the used id. The pruning predicate must remain based on expiry, never age. The queue arrived in Gate source version 0.2.0; testnet runs 0.2.2 since 9 Nov (`res/BUILD-gate.md`). The 0.1.0 build had neither the queue nor `prune_used`.
 
@@ -79,7 +79,7 @@ A verdict's evidence is a JSON document (`gate/evidence.py`):
 | `verdict` | `ALLOW`, `DENY` or `UNKNOWN` |
 | `reasons` | the reasons for the verdict |
 | `observed` | `{block_height, timestamp_ms}` of the chain state the checks read |
-| `issued_ms`, `expires_ms`, `verdict_id` | set only when an ALLOW is signed; null for DENY, UNKNOWN and an ALLOW passed to a human (`gate/verdict.py:106` to `:109`) |
+| `issued_ms`, `expires_ms`, `verdict_id` | set only when an ALLOW is signed; null for DENY, UNKNOWN and an ALLOW passed to a human (`gate/verdict.py:109` to `:112`) |
 | `latency_ms` | the time the verdict took: the time the checks took; the evidence write and the signature are outside it |
 
 The EVM leg writes a separate shape of evidence document, the intents variant (`gate/intents.py:580`): its `subject` is `{kind: "intents", origin_asset, destination_asset, amount, recipient, recipient_type, quote_request, quote}`, where `quote_request` is the 1Click quote request body the leg sent and `quote` is the dry quote's `{correlation_id, timestamp, amount_out, min_amount_out}` or null, it has a twelfth top level key, `kind`, set to `intents`, and it is never signed, so `issued_ms`, `expires_ms`, `verdict_id`, `latency_ms` and `observed.block_height` are null and `labels` is empty. `docs/spec/evidence-v1.md` defines it. It is not a payment verdict: no message is built from it and the registry refuses to record it (`gate/registry.py:49-51`).
