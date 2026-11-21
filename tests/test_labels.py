@@ -42,6 +42,15 @@ def no_network(*args, **kwargs):
     raise AssertionError("the test opened the network")
 
 
+def nearblocks_recording(response, page=None):
+    client = mock.Mock(spec=rpc.Client)
+    client.mode = "replay"
+    client.reuse_existing = False
+    client.get.side_effect = ([page] if page is not None else []) + [
+        rpc.FixtureMiss("missing-v3", rpc.NEARBLOCKS_URL + "/v3/txns/missing", "GET", None), response]
+    return client
+
+
 class CommittedStoreTest(unittest.TestCase):
     def setUp(self):
         self.store = labels.load()
@@ -538,26 +547,151 @@ class SeedTest(unittest.TestCase):
         self.assertTrue(all(r["source"]["block"] > 0 for r in rows[1:]))
 
     def test_skyward_refuses_a_transaction_another_account_signed(self):
-        nearblocks = mock.MagicMock()
-        nearblocks.get.return_value = {"txns": [{"signer_account_id": "other.near", "receiver_account_id": "x",
-                                                 "actions": [], "block": {"block_height": 1}}]}
+        nearblocks = nearblocks_recording({"txns": [{"signer_account_id": "other.near", "receiver_account_id": "x",
+                                                      "actions": [], "block": {"block_height": 1}}]})
         with mock.patch("urllib.request.urlopen", side_effect=no_network), self.assertRaises(seed.SeedError):
             seed.skyward("replay", nearblocks=nearblocks)
 
     def test_skyward_refuses_a_transaction_lookup_that_returns_nothing(self):
-        nearblocks = mock.MagicMock()
-        nearblocks.get.return_value = {"txns": []}
+        nearblocks = nearblocks_recording({"txns": []})
         with mock.patch("urllib.request.urlopen", side_effect=no_network), self.assertRaises(seed.SeedError):
             seed.skyward("replay", nearblocks=nearblocks)
 
     def test_skyward_refuses_a_transaction_that_calls_no_method(self):
         account, _, _ = seed.skyward_report(next(RAW_DIR.glob("rekt-skyward-*.html")).read_bytes())
-        nearblocks = mock.MagicMock()
-        nearblocks.get.return_value = {"txns": [{"signer_account_id": account, "receiver_account_id": "x",
-                                                 "actions": [{"action": "TRANSFER"}],
-                                                 "block": {"block_height": 1}}]}
+        nearblocks = nearblocks_recording({"txns": [{"signer_account_id": account, "receiver_account_id": "x",
+                                                      "actions": [{"action": "TRANSFER"}],
+                                                      "block": {"block_height": 1}}]})
         with mock.patch("urllib.request.urlopen", side_effect=no_network), self.assertRaises(seed.SeedError):
             seed.skyward("replay", nearblocks=nearblocks)
+
+
+class NearBlocksV3SeedTest(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.fixtures_dir = Path(tmp.name)
+        self.nearblocks = rpc.Client(rpc.NEARBLOCKS_URL, "replay", kind="http", fixtures_dir=self.fixtures_dir)
+        self.client = mock.Mock()
+        self.client.url = rpc.MAINNET_RPC_URL
+        self.client.last_block_height = 20
+        self.client.last_source = {"fetched_at": "2026-11-21T00:00:00Z"}
+        self.client.view_account.return_value = {"code_hash": rpc.EMPTY_CODE_HASH}
+        self.client.call_function.return_value = {}
+
+    def write_response(self, path, response, fetched_at="2026-11-21T00:00:00Z"):
+        url = rpc.NEARBLOCKS_URL + path
+        key = rpc.fixture_key(url, "GET", None)
+        fixture = {"request": {"method": "GET", "params": None}, "response": response,
+                   "url": url, "fetched_at": fetched_at}
+        (self.fixtures_dir / f"{key}.json").write_text(json.dumps(fixture), encoding="utf-8")
+
+    def test_rhea_skips_malformed_creation_reads_and_continues_with_the_next_account(self):
+        report = {"code_hash": ("reported", "reported hash"),
+                  "accounts": [("collector", "broken.near", "near", "reported account"),
+                               ("worker", "valid.near", "near", "reported account")]}
+        key = {"public_key": "ed25519:public", "permission_kind": "FULL_ACCESS",
+               "created": {"transaction_hash": "creation", "block": {"block_timestamp": "100"}},
+               "deleted": {}}
+        self.write_response("/v3/accounts/valid.near/keys", {"data": [key]})
+        self.write_response("/v3/txns/creation", {"data": {
+            "block": {"block_height": "10"}, "actions": [], "actions_agg": {"deposit": "1"}}})
+        for endpoint in ("keys", "transaction"):
+            with self.subTest(endpoint=endpoint):
+                self.write_response("/v3/accounts/broken.near/keys", {"data": [
+                    dict(key, created={"transaction_hash": "broken", "block": {"block_timestamp": "100"}})
+                ]} if endpoint == "transaction" else {"data": [{}]})
+                self.write_response("/v3/txns/broken", {"data": {"block": {"block_height": "invalid"}}})
+                with mock.patch("urllib.request.urlopen", side_effect=no_network):
+                    facts = seed._rhea_reads(self.client, self.nearblocks, report)
+                self.assertEqual([(fact[0], fact[-1]) for fact in facts],
+                                 [("broken.near", "view"), ("valid.near", "view"), ("valid.near", "created")])
+
+    def test_required_seed_transactions_propagate_malformed_responses(self):
+        for create_rows in (seed.sweat_hot, seed.skyward, seed.fake_wallet, seed.kangaroo, seed.telegram_scam):
+            with self.subTest(seed=create_rows.__name__), \
+                    mock.patch("urllib.request.urlopen", side_effect=no_network), \
+                    mock.patch("intel.seed.rpc.nearblocks_txn", side_effect=rpc.MalformedResponse("malformed")), \
+                    self.assertRaises(rpc.MalformedResponse):
+                create_rows("replay")
+
+    def test_required_seed_pages_propagate_malformed_responses(self):
+        nearblocks = mock.Mock(spec=rpc.Client)
+        nearblocks.get.side_effect = rpc.MalformedResponse("malformed")
+        for create_rows in (seed.kangaroo, seed.telegram_scam):
+            with self.subTest(seed=create_rows.__name__), \
+                    mock.patch("urllib.request.urlopen", side_effect=no_network), \
+                    self.assertRaises(rpc.MalformedResponse):
+                create_rows("replay", nearblocks=nearblocks)
+
+    def test_rhea_creation_hashes_the_raw_v3_data_and_names_both_endpoints(self):
+        report = {"code_hash": ("reported", "reported hash"),
+                  "accounts": [("collector", "example.near", "near", "reported account")]}
+        txn = {"transaction_hash": "creation", "signer_account_id": "factory.near",
+               "receiver_account_id": "example.near", "block": {"block_height": "10", "block_hash": "hash"},
+               "actions_agg": {"deposit": "1000000000000000000000000", "gas_attached": "0"},
+               "actions": [{"action": "CREATE_ACCOUNT", "method": None, "args": None, "rlp_hash": None}],
+               "outcomes": {"status": True, "status_key": "SUCCESS_VALUE"}}
+        self.write_response("/v3/accounts/example.near/keys", {"data": [{
+            "public_key": "ed25519:public", "permission_kind": "FULL_ACCESS",
+            "created": {"transaction_hash": "creation", "block": {"block_timestamp": "100"}},
+            "deleted": {},
+        }], "meta": {"next_page": None, "prev_page": None}})
+        self.write_response("/v3/txns/creation", {"data": txn})
+        with mock.patch("urllib.request.urlopen", side_effect=no_network):
+            facts = seed._rhea_reads(self.client, self.nearblocks, report)
+        [created] = [fact for fact in facts if fact[-1] == "created"]
+        self.assertEqual(created[3], "GET /v3/accounts/{account_id}/keys and /v3/txns/{transaction_hash}")
+        self.assertEqual(created[7], seed._result_sha256(txn))
+        self.assertIn("created at block 10", created[1])
+        self.assertIn("with a deposit of 1 NEAR", created[1])
+
+    def test_hot_patch_hashes_the_raw_v3_data(self):
+        txn = {"transaction_hash": "patch", "signer_account_id": "issuer.near",
+               "receiver_account_id": "game.hot.tg", "block": {"block_height": "10", "block_hash": "hash"},
+               "actions": [{"action": "FUNCTION_CALL", "method": "patch", "rlp_hash": "raw-action",
+                            "args": {"args_json": {"version": 2}, "args_base64": "e30=",
+                                     "gas": "30000000000000", "deposit": "0", "method_name": "patch"}}],
+               "index_in_chunk": 0}
+        self.write_response("/v3/txns/patch", {"data": txn})
+        with mock.patch("urllib.request.urlopen", side_effect=no_network):
+            facts = seed._sweat_hot_reads(self.client, self.nearblocks, "game.hot.tg", "patch")
+            converted, _, _ = rpc.nearblocks_txn(self.nearblocks, "patch")
+        self.assertEqual(facts[-1][2], "GET /v3/txns/{transaction_hash}")
+        self.assertEqual(facts[-1][-1], seed._result_sha256(txn))
+        self.assertNotEqual(facts[-1][-1], seed._result_sha256(converted["txns"][0]))
+
+    def test_v3_incident_seeds_keep_the_recorded_labels_and_cite_the_endpoint(self):
+        legacy = rpc.Client(rpc.NEARBLOCKS_URL, "replay", kind="http")
+        for path in legacy.fixtures_dir.glob("*.json"):
+            fixture = json.loads(path.read_bytes())
+            if fixture["url"].startswith(rpc.NEARBLOCKS_URL + "/v3/accounts/"):
+                (self.fixtures_dir / path.name).write_bytes(path.read_bytes())
+        with mock.patch("urllib.request.urlopen", side_effect=no_network):
+            for create_rows in (seed.skyward, seed.fake_wallet, seed.kangaroo, seed.telegram_scam):
+                with self.subTest(seed=create_rows.__name__):
+                    expected = create_rows("replay")
+                    [transaction_hash] = {row["source"]["args"]["transaction_hash"] for row in expected
+                                          if row["source"].get("method") == "GET /v1/txns/{transaction_hash}"}
+                    txn = legacy.get(f"/v1/txns/{transaction_hash}")["txns"][0]
+                    txn["block"] = dict(txn["block"], block_height=str(txn["block"]["block_height"]))
+                    for action in txn["actions"]:
+                        action["rlp_hash"] = None
+                        action["args"] = ({"args_json": json.loads(action["args"])}
+                                          if action["action"] == "FUNCTION_CALL" and action["args"] else
+                                          {"deposit": "1"} if action["action"] == "TRANSFER" else None)
+                    self.write_response(f"/v3/txns/{transaction_hash}", {"data": txn},
+                                        legacy.last_source["fetched_at"])
+                    actual = create_rows("replay", nearblocks=self.nearblocks)
+                    self.assertEqual(len(actual), len(expected))
+                    for before, after in zip(expected, actual):
+                        source = dict(before["source"])
+                        if source.get("method") == "GET /v1/txns/{transaction_hash}":
+                            source["method"] = "GET /v3/txns/{transaction_hash}"
+                        fields = set(before) - {"id", "superseded_by", "source"}
+                        self.assertEqual({key: after[key] for key in fields}, {key: before[key] for key in fields})
+                        self.assertEqual(after["source"], source)
+                        labels.validate(after)
 
 
 class FakeWalletSeedTest(unittest.TestCase):
@@ -602,14 +736,12 @@ class FakeWalletSeedTest(unittest.TestCase):
                              ("actions", []), ("block", {"block_height": 0})):
             response = json.loads(json.dumps(self.response))
             response["txns"][0][field] = value
-            nearblocks = mock.Mock()
-            nearblocks.get.return_value = response
+            nearblocks = nearblocks_recording(response)
             with self.subTest(field=field), mock.patch("urllib.request.urlopen", side_effect=no_network), \
                     self.assertRaises(seed.SeedError):
                 seed.fake_wallet("replay", nearblocks=nearblocks)
         for txns in ([], self.response["txns"] * 2):
-            nearblocks = mock.Mock()
-            nearblocks.get.return_value = {"txns": txns}
+            nearblocks = nearblocks_recording({"txns": txns})
             with self.subTest(count=len(txns)), mock.patch("urllib.request.urlopen", side_effect=no_network), \
                     self.assertRaises(seed.SeedError):
                 seed.fake_wallet("replay", nearblocks=nearblocks)
@@ -668,8 +800,7 @@ class KangarooSeedTest(unittest.TestCase):
                              ("outcomes", {"status": False}), ("block", {"block_height": 0})):
             response = json.loads(json.dumps(self.response))
             response["txns"][0][field] = value
-            nearblocks = mock.Mock()
-            nearblocks.get.side_effect = [{"data": self.response["txns"]}, response]
+            nearblocks = nearblocks_recording(response, page={"data": self.response["txns"]})
             with self.subTest(field=field), mock.patch("urllib.request.urlopen", side_effect=no_network), \
                     self.assertRaises(seed.SeedError):
                 seed.kangaroo("replay", nearblocks=nearblocks)
@@ -708,8 +839,7 @@ class TelegramScamSeedTest(unittest.TestCase):
                              ("actions", []), ("block", {"block_height": 0})):
             response = json.loads(json.dumps(self.response))
             response["txns"][0][field] = value
-            nearblocks = mock.Mock()
-            nearblocks.get.side_effect = [{"data": self.response["txns"]}, response]
+            nearblocks = nearblocks_recording(response, page={"data": self.response["txns"]})
             with self.subTest(field=field), mock.patch("urllib.request.urlopen", side_effect=no_network), \
                     self.assertRaises(seed.SeedError):
                 seed.telegram_scam("replay", nearblocks=nearblocks)

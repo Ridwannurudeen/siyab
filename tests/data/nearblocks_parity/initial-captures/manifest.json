@@ -1,0 +1,1411 @@
+{
+  "revision": "0e113268c8a3224153f468d28e368033b7c039b8",
+  "interval_seconds": 11,
+  "timing_note": "Initial wall-time-only capture sequence. Exact eleven-second wire spacing was not recorded. Primary captures were repeated with direct monotonic timing.",
+  "recordings": [
+    {
+      "fixture": "fixtures/cluster/09fbc46fa532bd04171c64d326fe9d84181bd399860447accde603420e79e48e.json",
+      "fixture_sha256": "854804f67b65a811f2a4a5d7b03b107a235eb2be31809946a8e0e6c6c95b624b",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/9c0df321dd5d9fc1138a09f405f523333fffe74de2ee10932ff756e27ae930ee/keys"
+    },
+    {
+      "fixture": "fixtures/cluster/11035415a29164c92c2823f5ff9c70f2d5131920adef9b4bb881a783ea28322a.json",
+      "fixture_sha256": "1201b68353c2b0e7433e0d6b42c262d213f3887fed932649c13875ee6cd7f158",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473/keys"
+    },
+    {
+      "fixture": "fixtures/cluster/1272fdb9af23590fc7582969381fe15e16247535397474dc604781dee1a95525.json",
+      "fixture_sha256": "d76dc193d40f34fb2bfed39c74bfc11a72f49085e155c44058b0058179b4328c",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/7EWXTEPaVM2iFgthFBgMPA4hT1VeDAQGFy7vfcEYpEcM"
+    },
+    {
+      "fixture": "fixtures/cluster/14afd1aad1e778816b6676b21d29974753a31a9b2cf862a2fda075bb26b6bace.json",
+      "fixture_sha256": "790f091ade3100d55090666f2029c1c78f6f26dc9497037f646d70c2bdd14f10",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616/keys"
+    },
+    {
+      "fixture": "fixtures/cluster/1a1559e3272b49973019c065f982de8ed03a6754698d3aa0e9ea06f4ec01838d.json",
+      "fixture_sha256": "2fa99e8d0a16dff8c4fa6327470a40c1c4880462b838f78c5c6d2af61ce26561",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03/keys"
+    },
+    {
+      "fixture": "fixtures/cluster/1f3828a62c9d08a5b8d7be41f7758bb9da723dbfc47c4580e01bcd5162389dc1.json",
+      "fixture_sha256": "bfdd633303b5b641ccb3a417ddb7651f454bdb14cb912502bf90c5208610c089",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/8LU8TZjjw87By1mcWvarrjTESgGy2aTKvNmDADNSsa3t"
+    },
+    {
+      "fixture": "fixtures/cluster/2b5079e484532d33356249c8340f0a4386f9bb043fc24bc0fe9e8914d67d1747.json",
+      "fixture_sha256": "9286c4c50c38c9ab279729b6bf04412f732f47d0ec65b41fa86dee5b42d0fe63",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/Hir7h12pCaeTmuz4PAwSo2552muP6syrQLY31dg3xJxN"
+    },
+    {
+      "fixture": "fixtures/cluster/360204f1ff183860c112d4467f9d70acbb28d1a3cf64cb803c01628ee8188a86.json",
+      "fixture_sha256": "a7fec9d4045679ad257ddb9e35ad719f4f468a77bfcd1866edda5e9b6a135bea",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2/keys"
+    },
+    {
+      "fixture": "fixtures/cluster/3fc55eb1e46747d6c1cfaad9f7b6459b859f972364e138c25ad6098bee90eefa.json",
+      "fixture_sha256": "d57bbae6516a15f1af4b3534d65acc2369ecfc4dfaa7ad5b4009c5cee1bb3734",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040/keys"
+    },
+    {
+      "fixture": "fixtures/cluster/449c377b5d7ab95d1d4fa70d535a861685bf4bcbd06d2db15c3f6782a46fb9cf.json",
+      "fixture_sha256": "28b5c86f0aac90360f80185cf2b7dba328634c5b50c4250fae3d6ceaee15004f",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/c122aad2a188ed3abec0517f99c4dd03591d19e6bfcf7f015424351fbdd71163/keys"
+    },
+    {
+      "fixture": "fixtures/cluster/4d346dba6590a4d68bfe980b1380d38d4d8886002418d2ea11a5c62932ad5d79.json",
+      "fixture_sha256": "b3a78d866d6422a0594d2fefac408b22ed54cb6a73b1864e5f13f4fea41fb94a",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/80f357d92e67f0ea53f299bb16d3af363ba0ef66e0211091edc2181cd323a705/keys"
+    },
+    {
+      "fixture": "fixtures/cluster/516eef037d0239bcdb1e8b62accb80a3a2f393a0fba138ef4dfe3a41cc393844.json",
+      "fixture_sha256": "7f85e8f867a5209e6374a03c34f7509f258cc1aa9719c71b019a6217a1ee48a7",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5/keys"
+    },
+    {
+      "fixture": "fixtures/cluster/61f9c16b7f8568bf74a74272d1ce56bbf56ab73c11410c5ba776b6011b0acffe.json",
+      "fixture_sha256": "9e9767ad22b41a12804a1d9b5b773cb27dfd01b9cd4e54649a2e57a0ee0d277c",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540/keys"
+    },
+    {
+      "fixture": "fixtures/cluster/85c878629200db0a15a1440f14a0f5dff969174584de53a5e15f356bbc024bbf.json",
+      "fixture_sha256": "47bcb581daa0d449e9ab61834aa709850e91c5c0ceaf80651b194886939da251",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/rhea000462.multica.near/keys"
+    },
+    {
+      "fixture": "fixtures/cluster/86fb01fb99cc6d7497907f200b993f00e69209d4a5872d1e947f69f80de5e493.json",
+      "fixture_sha256": "8695c34afd79e00fc961a1e189fd967c0cb6b9327e0d8548ff6fced03c6e31c8",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/4wrLZQmMcxNGe7hEpzc91UHJT8r6AE4W1SvT2gZirb9"
+    },
+    {
+      "fixture": "fixtures/cluster/8cb0836d77be9f8fa3c8ba2965922f4828ddfb041a1deeed08ef7208c5262a60.json",
+      "fixture_sha256": "e8c4a1589684f6db00a4731daa475c28ea37ccb4a61ddb871093a400e88eb8d2",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/8nXEeB5k4nDEEVpob1iqY8ANS3NhHKYRkMVtiGtxhAae"
+    },
+    {
+      "fixture": "fixtures/cluster/9762d188be02aa2378bce0dd9648b733c8e765d5af338609cf82c4c9dd23dc54.json",
+      "fixture_sha256": "d12ef923f40cd492592632ce575bfd579024e2bca3c7a5d6c4980d94c12e02aa",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/42v2LFuETVnEkRisFbz7ND2dG9bg87aEJ7QpYKCDUUfB"
+    },
+    {
+      "fixture": "fixtures/cluster/d48b9753a2eda6c78ad6921556faa9336dd511acc9766192d8d710aa20f12cb2.json",
+      "fixture_sha256": "9b82880b25d467ed6db00a95b37852901d210bb2682e19b37451760777ff0db5",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/rhea000453.multica.near/keys"
+    },
+    {
+      "fixture": "fixtures/cluster/e143c599cc60171ebcdef1856768099af13d92baaf3e1fe5efa7d045647a0a04.json",
+      "fixture_sha256": "a17305a40d343e249cc44203aed1747875a0c99b914f7e391f61bb028f1c8223",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/CXVsn1nNZ9Rv4c7X5Hg1FEtcRZSAG5QwmhyyfsgahWj7"
+    },
+    {
+      "fixture": "fixtures/cluster/e61a0bcd3f254ecc147ddd6ba3e5c53bba3d2e416270778fd6a3e9f6008d23e6.json",
+      "fixture_sha256": "9b1b45fa9847d98369a4abad86d5833fac4ec177d8021d105e60cff34cbce929",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/3DQC3vrDXZVcEba2CahChNRtCwAnELhHugpPpFNWPLjS"
+    },
+    {
+      "fixture": "fixtures/cluster/ed391585057b8d257f938777051ed51567327763d9370966055c61e55cc1933f.json",
+      "fixture_sha256": "0ced529542a8eead6343e1a97fa2b56ee409529c9c1ee49b560bb5cfd2065ec7",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/7d06ad005e03aa875875481fb6a2bd1acf9e722100ab8747e4e97801ba340640/keys"
+    },
+    {
+      "fixture": "fixtures/cluster/f085d43938c60db52f8ab50df62a581d1417d5ee53f4bd3f7fb83f72d83fc61d.json",
+      "fixture_sha256": "33d74306ad44f2b8a7030d7dd26cc79a7673b98abc0a8adaecb5dccb89c18c48",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/BUkhCry3v7WihKw35sNy7nKzf6CVUf9AdyM37CTXru4R"
+    },
+    {
+      "fixture": "fixtures/cluster/f57fb17cf127244a4689f46e59082dc77e3260190c53fbe1e2a1d7e742da5384.json",
+      "fixture_sha256": "7ec0f8f4f0a396e86ea6ae5293939c3a5ad94803613573068b7d5ffc6bddc3ed",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/6qGHdvBReYxLadApqT3MN1vMB2JTrFDPaPPgYRAJeC2m"
+    },
+    {
+      "fixture": "fixtures/cluster/fe27dbb70c10994dabba4ef165fcb2e61b5e913683ffc7fedf17987737a67462.json",
+      "fixture_sha256": "73c7bd48d48a4dc689a75a7d194a10be11fab2ffe445e3697cf02cfab274d5b3",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/rhea000505.multica.near/keys"
+    },
+    {
+      "fixture": "fixtures/cluster/ff47c14b9de293d3fb98eb222a93475a0fac42bc17c76c7cd056a2de5e55a87c.json",
+      "fixture_sha256": "c24b9f7c4ff3c6b65f7374df736460aefa5d76a84b8683321bc48f2e43339db8",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/8ogy5xrbQG78Kw5Eo52iJnfNZQZzeh2iLMWeWXV1Wyuu"
+    },
+    {
+      "fixture": "fixtures/demo/0f644f90630bd31a4b281f7bec44f80b338a7e2377b4426ff8d43924ab936275.json",
+      "fixture_sha256": "59ba1904dccfd41bd945aae2cd0769db8d14b61628a2bbb42d22235bd2b05180",
+      "kind": "keys",
+      "url": "https://api-testnet.nearblocks.io/v1/account/kestrelridge-sh0p.testnet/keys"
+    },
+    {
+      "fixture": "fixtures/demo/7b7771918346cc88f00b900ac3493a53f8540cb9f3d72ce2f498d696fce02384.json",
+      "fixture_sha256": "fa9bf7fcf0b8dfee7f691d98f0174e80f1c249f6a0bd834719b1e40f43bdf7f0",
+      "kind": "keys",
+      "url": "https://api-testnet.nearblocks.io/v1/account/lindenvale.testnet/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/0819c08bc0197eeac0ec355880f6369661f51f4ef87aa984609b0be839c94dc2.json",
+      "fixture_sha256": "ed98f54236fcb5c04e6d538e33225ee7213dcf9c0e8cc0a7ddab6774dac9dd0b",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/svrn_bitwise.poolv1.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/09ad9882f2b449732cb87034ce26238801975804f4a461df5fe5434f28dea50e.json",
+      "fixture_sha256": "7e28e46ead92b4e538b4033f57dec37605858f325ddc2ffc34f3d4af17890f6f",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/encrypteth.nearlytrade.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/0cd9bcba353f0fe740d8cae22c92a2da024270ca99dfd7808118e079fc450b3e.json",
+      "fixture_sha256": "80aac9b72009be24863858f68eb9eac57a2536172b4a9a14e9fa476da35f5707",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/94dRRtAJABoUKCcBLypM4gEq8ZQv8K4AVcN34heFJj74"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/0daca492d11803c20d6bd23164dc482b89419136740511990fe20ad00f5188a4.json",
+      "fixture_sha256": "e1b71c1e9a1de7bf5aac5728902305f33db20a2d5c294e8792f0b9b50ef5e6e2",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/funnysite1561.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/101bcb7781c5c3f89bd0ccbaa4a8bcc7779254de6de1f7e2b225bd8c22c69153.json",
+      "fixture_sha256": "3c0a20c13fd02361e2013e4edbea01770fd5e752bf4ea3a1c225f41e16ae1e71",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/3YwqChtjMqAdutTBajpmRvMb5r2hvLeMQXYssMcNkUo7"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/11035415a29164c92c2823f5ff9c70f2d5131920adef9b4bb881a783ea28322a.json",
+      "fixture_sha256": "235c04c26b435caeb166e0f9f5dbff889a6bf42ab5496f1835ba7478c1821d00",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/12492d056d09d47d6fadd3efbbd504315b2659fa2745301f225a5c708689abe6.json",
+      "fixture_sha256": "a0aec8c150ad848749ce7b8cbe2593c968cdfa1d308f879f993dee6edb3262af",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/codame.sputnik-dao.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/1272fdb9af23590fc7582969381fe15e16247535397474dc604781dee1a95525.json",
+      "fixture_sha256": "63b3eebd1a5bab6db4c85a08a86ac983a451fd0996f77595975758c6558130ad",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/7EWXTEPaVM2iFgthFBgMPA4hT1VeDAQGFy7vfcEYpEcM"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/14afd1aad1e778816b6676b21d29974753a31a9b2cf862a2fda075bb26b6bace.json",
+      "fixture_sha256": "b4068c5a4e300afd1c1da17e6afa4aa21400458267abfa92c9ece02ffec28453",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/14fc2e03cd2466c75d404350e769ba3f91d193d95ab5d8019da7cc727370c971.json",
+      "fixture_sha256": "5d1e3dd9197fff6a12078b46e5319634f085779e2088a5807aef4cfdaf6221ef",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/und.v2-launchpad.justhoot.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/1622fed5d144dae56c6d4262f3405cac64beecf14b0480377ca8fb681b5a225f.json",
+      "fixture_sha256": "8d330d0ea5ef538d6c299a523374c3336df8e07e43db777654976f5d343b0179",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/BYzCpqm21SbzWFPCfab4EtjXSMpkjyno8KD9v8mFt19j"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/1a1559e3272b49973019c065f982de8ed03a6754698d3aa0e9ea06f4ec01838d.json",
+      "fixture_sha256": "5089cd7d66416e1673f1baab074325d4fa7c522b0f392cbb0496735941c94646",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/1da30092a4d245a764d5c060e7c0280ec459e99b5fd5612bcc179e388d6f23ab.json",
+      "fixture_sha256": "1622b4a5bb316f281ace3c0ac90ea03330c69fea29fe91c1f1a5cc337b982918",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/HYwASbkE6fxXvexVxYkArw6KrwvBzG9x8evXUBeZypoq"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/1f3828a62c9d08a5b8d7be41f7758bb9da723dbfc47c4580e01bcd5162389dc1.json",
+      "fixture_sha256": "d7fc29ea641d1ed20e1f3893afd70a7a3dbfa9debb36819823df1ae9875126ac",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/8LU8TZjjw87By1mcWvarrjTESgGy2aTKvNmDADNSsa3t"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/226b22375a60c8b45d6bc623acac32d3a2ce4cb5fa6cd96d672d0c54ef3cdbd2.json",
+      "fixture_sha256": "c7dea4ded151e1125fd92e1ea039e7ea682d05df81a214df2617c93f012702c5",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/allnodes.poolv1.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/228846f32a3f5bfc5731f31acff948c811bb07a1908031d51bc29e035290d7ec.json",
+      "fixture_sha256": "89f585aa2ff1a077b0a041686312ad321ecf5ede3e83a516a6aa0f47fb2bba12",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/Cm9qR9cEXXHUer7sjPr2zYERie2pYkQBebt6W8CMEQ1a"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/245efd6df4edf830764373918f038211b248bda1cbf531d86ba399323dafdde9.json",
+      "fixture_sha256": "65caec466e7bc78865b00fcf00599b3d2ad3b0952a4bfbd27c7bc83acf08988a",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/figment.poolv1.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/253ecd7d0118aef78635f2faab299e229d4693cb490f11a31dec79a351e4f32d.json",
+      "fixture_sha256": "d484c2e5261553fdb3f5cc210c561a3e528fb43ad9448a5666e5d3146d50574e",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/2YAUQagkYDWTV663ZUqLVEMHWiySsuSJ4LmF2NrJhv5b"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/27a39b5fe08c215212a638fd28d61176d2ce081587296d51ebebdc5608a26da7.json",
+      "fixture_sha256": "5878ae987e04de6589d71c93bfb83c74a1dc37bf8d5858f5973a4d1d208cfdb2",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/maximum-viable-potential.sputnik-dao.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/2b2c8bbd8a47a5707ea60054bcafc09db3245f501f9694b8e7b5d904a1a2c1fa.json",
+      "fixture_sha256": "ab633c4ed5a3954958fbf2b95b87d9648b05f0825201b49341de42aed3184033",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/musas101-hot.tg/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/2fe7bc0450ac3e0b94b033287f5c864bca596eff9f6858870f0b0af24b131e37.json",
+      "fixture_sha256": "af8d9add7569e88136e96557b6dc6515572044174ba87e0056bbe3ddbbfe6567",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/J28KLyuTAGRAtgNWurPZkzyBSaMKLWFBsJoKUPjeweXx"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/31e888adc3a11fbbbd2b122b4d654e1a140b7886ac2d20b15e5f2d2fc9afa361.json",
+      "fixture_sha256": "8b0d5d5897dbb75354c22795f0009ab07d94d91b6cfa66fe88a6d4f35abbe8ff",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/FM258t5SYPtsdYaMMYQzLRDQ6nFWKWahC9ergy2wLdzK"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/326440c898d79b7ceb5f54c3998c9ef7c68c648a2b080753f0133d5f0749da1d.json",
+      "fixture_sha256": "818c907d6d99b95ea7eb53f36d6c3cbd4fda8c8bafbf214e1ba2075e62c0aed3",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/staked.poolv1.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/34e3c3fe17477690299fa8fb6dca571dee14a8742cd2a9698aeae716e02ad333.json",
+      "fixture_sha256": "8ebcddef780bdc48dd84faa319fe94cdee7e42306cdc30e7c261ca39a2aa4f8d",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/6v9gMKRiFFrtcesftbJXWdxqyFwGCp6ucnwhTJ18Eaty"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/360204f1ff183860c112d4467f9d70acbb28d1a3cf64cb803c01628ee8188a86.json",
+      "fixture_sha256": "d46f50d46b39649d77c6ae3b387147f1390d06c544935f6370862a43449b1128",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/3719d1b6d46b23134a377a59ed57fb8d3611c85cb846cc75b80d48f81b140143.json",
+      "fixture_sha256": "f70126e1333179ea50c9ef28986d60789e5c38c8ae8a243d6e73fb4d448b452a",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/KEMXzkG3V2HqT5M9i4hZNVbeeNiDD4Y4j7SzMYKu8mE"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/3bc1800e9cad4969626779aa5e3476390bf1bcc85131b8dc885bad81cafb8a73.json",
+      "fixture_sha256": "fd5a9f4f2129e3e1b4516c206719e2a8b2e2c9c3de1465c39e6c10ecac016cf9",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/tx-bench.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/3eebd5888582e47398cb5d54a87ed055304ec5271b23441ef6f89f3baddc062c.json",
+      "fixture_sha256": "c0e8d938b06caa62b4784f88d8109ee28c66fd6d049dc996adf6b342fdfaea92",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/bitwise_2.poolv1.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/3fc55eb1e46747d6c1cfaad9f7b6459b859f972364e138c25ad6098bee90eefa.json",
+      "fixture_sha256": "15be3b19d4784c6b2f558cdbb999cdfce52b6c15d2c9603fb2219011b4a29dc0",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/45cd5da4432d1d13058e7aeb0f375d664f6111f5393154db315364870dacff62.json",
+      "fixture_sha256": "728cda61d6724be1da0a6f0d713e7594d5461f033bc8d30b68a7d4ea9c83a094",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/AjntPtGo7VAkcqX9u2EvieB4kkW7JpWAVao7VTPMf36S"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/46914f2bfbc7e2c1a1de66da24574f882c317bdab22d58e2de13dc7bb2e416dc.json",
+      "fixture_sha256": "6fa6e87650742907ba9c9db2ad19d7b425722f381d42b4f6c1b589cc98c23b13",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/HddMPPr3tN7c3bBAqCm1fkUkfMfQeNvjzwiqibyszShi"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/470cbb15323b0d4f99940dbd4f65523aca762ae73ef8bea55e6d9ac1de3ce6e7.json",
+      "fixture_sha256": "0edb85c6216aa617f3fb47a4cfd4a3dab98c1223b349223d473a128a1f4e6a32",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/pulse.sputnik-dao.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/49ea75ebf8c85ba34489094b9ada8f406f82161329e5a789f938e0c9edb7ea4b.json",
+      "fixture_sha256": "38a3ac08a249e28e10a15e71ff10d1a2701987eaefc6227d3e6c399f4cf119d2",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/CHQQmqNqTKcAvG4o8gpKYbMYCrQcY6DXLt5X3NFntsU6"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/4ad639ff3fa5af1337f1710bba6c77bc0e9a9d118b54ef384ebc00253d70c2cf.json",
+      "fixture_sha256": "3ba74d14ff1dac07c3757abc33b4a72fe84dfdaea8982602357f4f9b43f80cce",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/cnear-1.poolv1.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/4fb7f0645fc8be2674cc25f23e395e097f6867a9050ea7266a7a701fcd2757b9.json",
+      "fixture_sha256": "332d67d8e6648026761430992674b3bb0f10d1191f7c5c7d02e6e3cc6fd0cda5",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/oyster.v2-launchpad.justhoot.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/516eef037d0239bcdb1e8b62accb80a3a2f393a0fba138ef4dfe3a41cc393844.json",
+      "fixture_sha256": "1803a759970a20fb5237d5f6757803e38816c7d3ac2bae94ada88ac9c1283653",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/72633832db9d039b97906320169a8411bc2fa0f78303a4ecb1d35de71af621c5/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/5500f6fe531816e8124130e510eb1d43e4a2c2f183950efb7d877e8ad4fb15a5.json",
+      "fixture_sha256": "9754268328b6d5351f19caa92b20402012595333853a77defa9b59f77749d810",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/hfq.sputnik-dao.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/56cc94f872094b70d36b433a50e46ce5c27557c569f4442e805b4878e88f2935.json",
+      "fixture_sha256": "986a878ae8ca9d488e21161958af083511da77b3f5ffca1f898e4c1557df539a",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/nihilism_fulltime.sputnik-dao.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/5a835d1a3d999872995ea777246e4dbeeb2c51da426e8eb58035dacac9f976eb.json",
+      "fixture_sha256": "c1f0676d1b80a6519104e7e6246159704f0cd14976eb686c8ce8682ee3048131",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/grid.deltatrade.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/5dec9a6e95071208df6449f021b583aafa703496203fed65a96112ab467e15e7.json",
+      "fixture_sha256": "358695dde9f688a361a3e47fefbe8bcfeb6f696eb19e3bf24a59820d1dd9754f",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/JEDT2YbsV7yeG95KEcS2yBKieo1rpgoB327G8ZAtQFph"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/5f1ad6458f9493c6fb235d0b77c94d0c18bac4636377ea8ee788c62df850b15c.json",
+      "fixture_sha256": "cea5eb0d91bac81cdb8a6c648e1940a015d0b4d0540c4dc80125b395cc362639",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/peter.sputnik-dao.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/5ff35dbece94e48bd4bb42c01be10fe662fcd8e63423872dafe9e9e9a7d93c49.json",
+      "fixture_sha256": "c36ca268a11d4f19049bbe4a069ad85bb38dab7a86198b6240f323c6f66d38ab",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/6079956527.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/606284bd19c28224c0929a288cd4fe4a161f197ad9ca508a36c7d304b3fb8e26.json",
+      "fixture_sha256": "614b3f1b46454665a510fa037d9ed14e0a0bf23bc035291a76c483610b200e60",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/mmt-arb.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/60ce0eddbaf116b3170bd65725bb356d20ec3e4a1dd058973e5dfb1f197776dc.json",
+      "fixture_sha256": "b4e625b86445257b850248abbadb7eb2eeb69a90f5fa1e07c653edca55926a58",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/flymoon.sputnik-dao.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/61f9c16b7f8568bf74a74272d1ce56bbf56ab73c11410c5ba776b6011b0acffe.json",
+      "fixture_sha256": "8df5834e572eb3d72dc1251680e223dfcd144f6ef65ef3e1f48690dfccc9e471",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/62c29a548084edf8e5c6f20801daf9d01628b3d8204f8ebab863135dc8044944.json",
+      "fixture_sha256": "e8e682cbe3e9a14ef769ac93dbaeb864e8a8dcc579bf23a151b55ade5124c597",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/H5F8NVNPAyaqgLoPfBqcYPm6TnEdnVL33aVxYuFvesGH"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/63d13f07afe032f3c6dfc9c2447cb17f26857f8331341ffa6b3f88a8a4976fef.json",
+      "fixture_sha256": "c980d23c334642b754471700be3ce312f9463a9e6beb4e21950a30b03bab0dcc",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/9QFjqRwTazMK9uoZQbCxaVDo1ai9yKteC6h1BWe82U2Z"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/657c4845e82b92107209708622a1f8de3ae1afa87514183caf3d66e640a5422e.json",
+      "fixture_sha256": "00b5f695d325c6b91b3cd681e962ef46917504aa82e1d12585c89bb6b8a85e16",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/intents.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/66011372a3747cd5ed66e7c3c93d9b0b6592e60d007fb6f320215dc65af45e67.json",
+      "fixture_sha256": "f2106cb98f61e3d0d722e00ec0a704f94fb4d331f691fbdabc8df287495c54f4",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/dclv2.ref-labs.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/66c58b9683f784d06cb13ae1df313b8efb0ef2186822fc6a29d412341d55895c.json",
+      "fixture_sha256": "1e13a7b43abdfb4b3c4e6a43417d127041e339c4b1f5b014602e06a1e96ba2ff",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/2RHt36NfVswB1PiBVcQZ1Bi1pztKjoXPwMTYsrWGtoPW"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/685fb92f46d61a60d6239b113754c227990036879752496defda0cca6ed5d10b.json",
+      "fixture_sha256": "22e84eb4092a262d4fb310916a94b727f0c0259c0c48a9a4e7ca993bf5541c1c",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/nftbuzz.sputnik-dao.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/6d3ceac080ca365548967c0b65de62cd764580e49d445b0dd3de523e2d056a22.json",
+      "fixture_sha256": "864fa98437af79f38c13ef6c11050cf45b05e6d3ba9b230c6dc94db32d89c767",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/blackvirtualmap.sputnik-dao.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/6eaa1210aabcb4c141d4eb1bf35240afd8a8f5e32a0ead4f3930747388a85431.json",
+      "fixture_sha256": "f588bf0afeb0d8bd998be6a2816ef57dee86d6ccd5fba551582ab8686c582009",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/3881nLKrTxq2mDaqZgzxr66AHXGEEGuKUyQsQpSM9eyd"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/6f989fac76138d09622bc350737efdcebdb693b3b3dd2ede148231fc21c89cc8.json",
+      "fixture_sha256": "da54a6d478c32b4178a55bc7274b9aef25ca76ad101efb6addce1c88789ce995",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/2y7oUAur5wJRr3ywPb1jDLbvVX9Avoo24drYtgYJCtmk"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/7680e29b758e68472562f40480e030bf75db88ec52736fab9fd06f78c2f5eff1.json",
+      "fixture_sha256": "ff62809563c278f553db1a07d837ac36fd7c2aa6b75bb822779e6c9e1cb1183f",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/nearvana.poolv1.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/806b99c3914e2f73f573626cd1b5c49ec86d42243f2b666699674fbc9d7e136c.json",
+      "fixture_sha256": "2baa7e11990f78fb2a14e8b80ff7441daf46f139531a18c7bf3fbb7ece443e19",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/pc89YMwMm7pta8Kdo8V3CZJC7BKEvK8UzXMAzM7FHqg"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/820c63c779fdc4fcfe0e612a509db209ff20b8cbdde9fc11aade2d94b8e27861.json",
+      "fixture_sha256": "17298c973f98023ed586b65e1288accd69a6e381fe0bdf0b73a2c7555535abc6",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/epic.poolv1.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/85ac043da3af065849d36e7df59b4037a50cdf4f8f30a7f2c6cd9ee78f28061e.json",
+      "fixture_sha256": "cc03bb7c08cfdf029b9c4a3a088cf746f81e7339bdd2121e9c7f57a1e99212c6",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/nearweek.sputnik-dao.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/86fb01fb99cc6d7497907f200b993f00e69209d4a5872d1e947f69f80de5e493.json",
+      "fixture_sha256": "bf86d1f4c8988158e7f98f52ce277b94c19bf563c7e46ffb8a6fa3eb7a0125c7",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/4wrLZQmMcxNGe7hEpzc91UHJT8r6AE4W1SvT2gZirb9"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/879300b9589de02bc0622471fa34b0df0b6e7349a37e448a8dcfbe8a1b22bbd5.json",
+      "fixture_sha256": "0a64a5f193b2f0dc87159e0499050dce76bc70de5afa2313b6f0682fc088451e",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/noa.v2-launchpad.justhoot.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/8cb0836d77be9f8fa3c8ba2965922f4828ddfb041a1deeed08ef7208c5262a60.json",
+      "fixture_sha256": "47b70b54be35de0feaa0efd0b01ccb1456573be185a18b69fd95587724416e88",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/8nXEeB5k4nDEEVpob1iqY8ANS3NhHKYRkMVtiGtxhAae"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/8d6dce149eee813acca202043f8eb6d707fb26c699fcb5cbd28dce9cb46b3708.json",
+      "fixture_sha256": "7f949bdd8fc88adf480c0f3ebdb00bf547f9fda0a8cf16b33d6ca29e63e93f38",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/yaway.sputnik-dao.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/8f99f2ab54de9337c435cfb076a48761721f3ad1cb483ecf1c6425e200a6b38b.json",
+      "fixture_sha256": "de6a28404c5bbf5020b09c58715026e3dc95295d54d794956352cf39118f9c39",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/3brJ3UW4KEzevPrLTeviA6pXS4wvruzxKmKLdmnqUA8P"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/8fde79cb248482137dad952e70c1506a5428a13f3c8e31415788085f203e0cdd.json",
+      "fixture_sha256": "7ff0f9716ed309914954b2e2c190e66d9626c5a54e608b9d6267b2bd1713aca7",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/nft.sputnik-dao.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/9303b8b93116ba78b59a9e8ff334517e0655784f8fe71ea1f93dba50004f6933.json",
+      "fixture_sha256": "336588f20c627f2a60aedfbd4135ae776182392ef9a0796e6e5638a3845b3864",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/BkBK5hJ5Ua3yp6uJgBVqdMXDwvbqguZfWkqzkgwpfBBq"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/955010313f5cfb490bc919093865b2d568a006f99522aad11758775a5315dc01.json",
+      "fixture_sha256": "ec4074b501ca872b52d68c768c88a986759760ff90e9a60e63b9ce6f2c773093",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/5dbg2WBcJLfK7y9LPjPoEwToXfeyVo7cz9Z1mi8PT5RC"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/95ae5a24c8aaa99775b8b58bc54a6a0d6cb764285f13f9cfba493d8f23e9c699.json",
+      "fixture_sha256": "854f734a5bb70bf3c4acd15d02f74fbd441ab3f3a9d1f468dcb6fde09e1b457b",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/user.intear.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/9946620a4d16d462e7a21346a38094f5f1074aae248110813d064523cdfbba22.json",
+      "fixture_sha256": "e92637b6dfd517183da1ff6ab5bf6d557a74150dcc1ff7ac9b95f41ff208ee09",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/66ZqRXybaL7zdyY8uUfbU7D2YspvDBptiqGRKfi6xnu3"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/9a612685afb616f10209af5c6935e068c315f7dcd8448eed0b12609046107c67.json",
+      "fixture_sha256": "13af1bb677c182db5280da6b854163a0d3a45aa1ba217cf1ccbcd380e648b7b9",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/AqzDPXU5edmnt3EB8NEtvzaoSEGtfWnsxbZWsab57pGc"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/9d10d5a7700097f9cd01736b5dac1b308929441151f795ad58a0c8a8a497d908.json",
+      "fixture_sha256": "942d162e6e1c44943bb737f9b4ba20fb4e3039f0eef39b7ba8184eb4bb83811f",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/hak.sputnik-dao.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/9e68adb1b5be8facddeffdd6d7a92a074192ccff0305e4254b93ffb7d3c03de7.json",
+      "fixture_sha256": "1caaa09ca0db1a71f1a860f11a0d190c8c6fd1ff9342b24036561482cd9e4f7a",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/cnear-2.poolv1.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/a0696328dde4a124c298d15d6e1116104a53fc5c9095666ddbf3a78a7bbc4e68.json",
+      "fixture_sha256": "e1dd129dd34e515c6cc48d18e2baf0645686c855a677e4d326ea7b031141fdb8",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/betman.nearlytrade.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/a23c137540b0f5907396f1e4550b17dd87220c415d12e6caeb552d3f29408917.json",
+      "fixture_sha256": "6cc40694545c5a565ecbabd4a113e4518cb215b20935a1d96cf97d83c9fdff84",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/cnear-3.poolv1.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/a7259ee4729dabc426cb19b93016b84084e727b9b5e71242f700b52fdde89ce2.json",
+      "fixture_sha256": "065d47f1b5b4dc307b3926842e5b10696fbca6ce7b0718a40f012fb8c7708d08",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/kiln-1.poolv1.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/a80993c11c6283c67461fab68f6eed749280ba6cac6a0e722af61dda4dabceef.json",
+      "fixture_sha256": "a2609c9bb4563e139cd4da3bf94852c7f71b6d6decded471919ce63e279cf77a",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/nearaddict.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/a87bf4689d3a383672ef5ab68b70e597a4c811101458fb1d52cd03ff92bb7b74.json",
+      "fixture_sha256": "a2a2e75d4c57dce65259f5659e33144e5ebdd5714cf5a8ee472ae2e81478625a",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/marmaj.sputnik-dao.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/ac8ee856349c7106fe53b8840877e35865d0674826ceee7eb3573019b9857130.json",
+      "fixture_sha256": "48146f74fe7f73ffd9da2a6a3482aebc9206a2896659aa8f5648fa05fe8bed6f",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/GDdbiNFCikV51hMKGUyCkCKGqgfKuqd4Kh9nhf1s8gHE"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/adbd24c6d387e8dbeaffb0844aba5dfdfef9ab5d9e2aecb85f75fddbcb42b169.json",
+      "fixture_sha256": "6b619e9624403954af79872a0cec95973f98a0e09b3d6a8ba4d4ce42f724a374",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/sharpicon3186.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/ae1befc68fdaea942138473707465750cb7464b1678cc1afdb4d72bc400627c7.json",
+      "fixture_sha256": "942a9b584805034580fefdfef707f31a14ca77825a04d672558f2855bfe183ed",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/jascha.sputnik-dao.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/ae46338842247ac418848d2f7f8c2f4d2aa363d04f4964100b1b62de7e14f462.json",
+      "fixture_sha256": "d4af06b2f7190f6abc839221276eca1b31c47bbe6bd4d978d4d519d83b95b87b",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/7RtVAhMw1MC6MB7xbiywytrCN82oQf7DEK7bhHFKRtud"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/b31e522a4e439359004f4d377091a5bc8fba861029551402b596b8905c08d9c8.json",
+      "fixture_sha256": "3dd1f83182aa8ed557efb62aa49ce5d360c223e947fa3b0ab4788108af6fc2a2",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/svrn-luganodes.pool.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/b3df4d899feddf34fb2d7e7ac731a88cf222ca8520eb3f37649089b97f1bbfe0.json",
+      "fixture_sha256": "098b33752b6dec08a3fa94c4d41aac626d17e2ec0fde2da2288cd6bb3b70c768",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/D69V7KpjFStNJ3j23JHNmuwq2hcSDy7f2f8bY7YSR3FK"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/b5bccdccf184d7a1e4c0987ec6086b780921132f61262df4d717fcb3b4345548.json",
+      "fixture_sha256": "aaeab16b53749e70c1bbb6c1a583d392947df1257e976ed74f665fbfa6f4aa5b",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/catalygraphy.sputnik-dao.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/b861ee599444475f6f27c4a111d4d50391514d6346f846fd934bd66415a59eec.json",
+      "fixture_sha256": "d9e5b25c1ec5682e430db26ce7c714df24f8449f462743d8926a737e944dfa6a",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/abra.sputnik-dao.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/b9b5a28b636997377db44c5f6b87290214b5411d11ca15d302f0b1edbdea0def.json",
+      "fixture_sha256": "4937107c892a7d64533c664b91f633057e2044369e48ab796935e9824d0eda08",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/77uLgevr7ENkFkGqM1jekXSdu9vhZMGLA1bC1woDbTqW"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/bb6a5787ab6f5e8a0e2ec7f661dee267e9b33e9ddf1691ed9191916aa5616728.json",
+      "fixture_sha256": "6c56a0ba879c2ef38cf293487f38c136ad8dec35b10b1bf80b0cf0e0085b4d24",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/dragonfly.poolv1.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/be8d08b011b164068b0be157e1c0f5ddb48e31a96b36eff9e5862076672082df.json",
+      "fixture_sha256": "5efa4241753016d4fe92765072f74fb48576667acbddb835c099b50d476c5990",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/9ycvVoVxKoSJ9qQwjuDQ1wEw4nKnWzxNTnS9JcjwThza"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/c2dcf1f2f635ab1190e1dfcb7c0f6505e4d73f4d6973a5a7ff171abd0cf3e5cb.json",
+      "fixture_sha256": "6062d590819142eb517b11b393044228e0f4a6aa5bc940b27d3c5848b6385acd",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/hype.sputnik-dao.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/c489449d1d5168ec8656389c1a0a0f1277d522b5056f4d1348c68194ba19dcd3.json",
+      "fixture_sha256": "dac8da72fb4d7347a011ae3812aad3d7a6a96933e86acc8af060d5aadfb5b043",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/astro-stakers.poolv1.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/c63eb319899b185dc4ce1d28ba77515f33969a830e64b9c1d8be098f7f7538d2.json",
+      "fixture_sha256": "79737804651c54c33222ce73439e9593442ee595c6e3c9939eaa7f81f0b6291e",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/BmG2CaFa1Vn8LsYaWwmLpeUsg3fttXAwbgDSEvRG99Pc"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/c67119bce69258e4a73d7df0d2fd45546125c3075e18f14cf6fd8d771c1a36cf.json",
+      "fixture_sha256": "0dacaa78dea1029328585fb3a3de1be63e2f3cba6d35c3eada01dfe006ee89bd",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/binancenode1.poolv1.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/cb5ebe4c269a64c9f85c070e38dd520f6bad4460bd91a448e928c3e6f9be0914.json",
+      "fixture_sha256": "0c7b73c7e2c2a71aed418c038632baa260c8c1edaea04fba277b35aa8e55072d",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/sumerian.poolv1.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/cbc56d8537150dc4d858aa3e99815c26a0ff60da2d79ea5e017f0068f1851a77.json",
+      "fixture_sha256": "a394eb8eabf6ebb98db512ac828e3f14432656a5547a6af2bf619952d8c2f535",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/via-trading.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/cbe9bc36837b2f2cd1ffe6200e40e244d4957ff8199e6310e97dc93c5bbce988.json",
+      "fixture_sha256": "3174c2174e9d7494629eb3ceded6d76202e7fd4bfe91b5f5613ede27c321736d",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/localmakermart.sputnik-dao.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/cce744ff6d342eab1cdab181b282e5908770e4bcbd6440900909e92664f809d8.json",
+      "fixture_sha256": "f169752cc92c7d5222568cc42bc891d450f61a9b4a04ffccc0cdb5702daf46a8",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/metapool01.pool.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/ced72a2b914271cb0a1ddd44102538c594b4399a5cfd4427e9a3579dcf43e01c.json",
+      "fixture_sha256": "7d053d7101815601dc32295bb14419cb35561f696521a80b548bba5c0afdedbf",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/9Rp2NCAHbm7sy4a5zGYhBJjsxQBwxbfzGrjXeMuSSFuf"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/cefbd33994287f393216fe23fc21432953d444391bb5a4ca71fadaf6117211ae.json",
+      "fixture_sha256": "67ed5ac514ace06993f883cf5320d1c6ab7e91c9fb3edfd537a84f73376ea11a",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/6stkh4Fx87c9L7Z9QUas3XSVYMWsJQKoWMmHqF3eyjzh"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/cf5ef54724b77a122a85dd6433405133c3eb297a7e9100d2a5eb72018a69ec67.json",
+      "fixture_sha256": "724c8b89458309af7ef3b0211a80be0e987800827706262bdbcd627aef67ef4c",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/mochi.sputnik-dao.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/d007e0666b9ba2dd7595378ae9724e7e4e76d195616604c19e3553337ecce548.json",
+      "fixture_sha256": "b12375b07e7415dd72f9f91c04fe334b225aab99d27f53b0f5881b10ba7aae93",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/weirdglove364.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/d35e17d4560b2e390632af7da94764aea513d692a238f238e6913fbf4cca55d2.json",
+      "fixture_sha256": "293ff63e35e3687f725bc2cfc39b5df6e6be838626853339b975c028cde1d31f",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/alexchad.v2-launchpad.justhoot.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/d58970813d5d211ae21c9cb49b567ebe82257a35109a4c113955eee693bd1627.json",
+      "fixture_sha256": "b256a834d1710841196c51622a8ba4d5032f00576c884cec50366e453f94c1f0",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/aggregatedex.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/d697bdbe5ec4d8a648ccc731241a202d4f3a214c66afc075842f704254544e1f.json",
+      "fixture_sha256": "77e32147a92e7f65f775354baf0f02d33eb9ca78113ba7c8e755ff709ae12abe",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/liver.pool.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/d8600d8ecc1343771be9ac5e1174687f2767b4eb3e63e89571226d7a8fb50312.json",
+      "fixture_sha256": "230579f6ffe0a52948240254c2c20ee90fdeef154dad8a6a3322b27b2dad8f34",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/svrn-ai.poolv1.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/d9451ef08dc2555c6e115ddc215ae90ef646d3dc58e5a5d51a2d9504142c3ba8.json",
+      "fixture_sha256": "8abbdc87217fe4b5380b31192e211ab53b8eb06251381ae043ec6c2eb1c3f34a",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/AtwJq2HLvPtoVr92WN2P43weCt2LtnZ5KZwjBUeaAERS"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/dbbb8f339b48fface77209c081fb4fca69f2cfb24d98a557d8059dff99be6fee.json",
+      "fixture_sha256": "95bcb8b586df3deeb6fc2dba0b99e8774b0c9294731b649fa92e30ac093a0ffe",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/4ZVxZf4xHwaSWK3amCBH91RnpEKHHSqCxHR7AwGNqeLE"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/de9ef638e6212150c3717fa71e08e6d126293b40bcc9f0a16f217f84ddede9ef.json",
+      "fixture_sha256": "e0c160b3d485278c2b86a9d6bb50c333f3e10d34f0dbee180eac470692593cfd",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/devco.sputnik-dao.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/df422b4139a98a9d805e5583c692bc0a06c6228bcb97d026d22f6e48b8e16f94.json",
+      "fixture_sha256": "0241138b5d0e3acfa23d1633ad341ebb38b3fae87be72d81c93b3a8399306bbb",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/ref-finance.sputnik-dao.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/e04f9a1983c0c163e9b8e753b0f684f148a2e3c7335be8a3e3b42d24dbb0e82d.json",
+      "fixture_sha256": "17f8fb791d064a5ca8fb4abe8001d097e4571fbabe7c3077decc217d83cedc3d",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/stake1.poolv1.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/e143c599cc60171ebcdef1856768099af13d92baaf3e1fe5efa7d045647a0a04.json",
+      "fixture_sha256": "942b1265c2faa78a05bc311bb3e7da8ceb3b8a2aca8be3282a111edefd6e7639",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/CXVsn1nNZ9Rv4c7X5Hg1FEtcRZSAG5QwmhyyfsgahWj7"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/e210be229919bcd7a2318087a2d5c2a1be4bbbbfe6d6145b62408248ebc7ad41.json",
+      "fixture_sha256": "7e88b3d64bfddcc568a17612693667380a5bcf975c19ea31dd7a61254929dbff",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/famjam.sputnik-dao.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/e22f312e6eb9ffca10c2e65e130f7530c3448276082aad38b6d5dcc009ffee22.json",
+      "fixture_sha256": "d0ac5058b1ce23387229cd58f4031b9c51fc559d934b8001579e7a52bbeace61",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/genesis.sputnik-dao.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/e3f3c0169c6c314b631a270452cc89aae4563f8e55ba43023fd9a74a12e39e9b.json",
+      "fixture_sha256": "797ec92e4c26deb64d9f275a96893e15c5fd6f7bceeb3d238a307fc7241da8b2",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/robinhoot-2.v2-launchpad.justhoot.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/e475989396917da75c31150a42f7b804d59e9f0231f86f46471272fe8ebd9eb2.json",
+      "fixture_sha256": "d15fe861945beb98ae213b5f2b5b05928506a3b5b3ea421f8048f3024b510f9a",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/ledgerbyfigment.poolv1.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/e82a74356fca3c3d470629aa3bf6971fa16d8a61628c551706b11472dcadc743.json",
+      "fixture_sha256": "b4cf95610d4a507e8ccf249d0872acffcbfb9181268c3529b2e9df91ab45342c",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/p2p-org.poolv1.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/e9ca6d1fafedd63547545ab1c0e291aeadbc487b9ddf23afba7bdeeec8087a0a.json",
+      "fixture_sha256": "bfe70b2fd6b792b9e762c152333bbdb904d056c0a7f95e8d4b0691ef5dd93a2a",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/bridge-mng.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/ee16c008dc1e0e77bfb17758e3d1092e5db563d5cc02c9c82d0695b2647ec20e.json",
+      "fixture_sha256": "7b7b271cce8856da67371a778d210294dd64322069456477db500e05ade6d291",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/BP8YUo8aWn3RpLGPLrhLGfnmiXMrCbWaMbCstzvZsYev"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/efc54855b2c80e360d7eeae98cba197d0bf5509cfbab6ab9b58e78fc418be972.json",
+      "fixture_sha256": "a0b718af68eb0bb8cf9778a937f99be2c018867d9990036a7163b698d752f331",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/bitwise_1.poolv1.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/f085d43938c60db52f8ab50df62a581d1417d5ee53f4bd3f7fb83f72d83fc61d.json",
+      "fixture_sha256": "da43bc28086402d9d5627ef71d9cee58b9421c55ddc387a3daf620a591495cba",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/BUkhCry3v7WihKw35sNy7nKzf6CVUf9AdyM37CTXru4R"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/f10698a40eacaeac4eb937ca245ef2dded0cc2061da4a8166fc9b3ce7c71bf51.json",
+      "fixture_sha256": "763c77e85aaa9543ae33c5291c449fcd8ae2a73c7212ce4303306cad5edf0479",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/imeme.nearlytrade.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/f1186d0a3ea816b14e0a5b3ae66e6b1b41a3830e7779fedf921e7bbe0958db28.json",
+      "fixture_sha256": "33cae037f92c22ce70ec541d58d840910d7fa74d295545d5331973f4b84eb7ef",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/DpfiwQc5frSMk3SPKxCCHey6podZapYWUhH6HzVcnuHx"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/f158614679d9ad19b98901b38d9ce74aa6a1fd9168f97fca47e163b8e54bc7fa.json",
+      "fixture_sha256": "c60e4ce2f9165b9a3b55784331a68c40b6b0b5616e97c798a1161723b6b73b8d",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/kindessgrocerycoop.sputnik-dao.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/f1c9d8fadf7a7e6092a05ef818afc2f9c034cf7386903128a7a97ba092d7e155.json",
+      "fixture_sha256": "fec3a3a10e98bc083bd3be053222b45dd7a194c2c7b9360b521c0d013bcb5cc8",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/2AMrXM82xo8NkTt4DvVuTq9Hi5hX4t4GQXq4SPJkYPdJ"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/f8802bf9d7282674d9cdd6f2595768b4e62fc22ad408209d2194cdde18618c6f.json",
+      "fixture_sha256": "1a68d72ab8993bef5f565bec204a8a24eb75884afb79fffc1d64f8fe18d00e9e",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/8UCGnmNKyo9xswmzTyVttxbbPxgw12iiNTHZsrHJZ1D6"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/fece881013a763dc4343183bb5c70883c942b13e201dd399b0001849c1f60c6c.json",
+      "fixture_sha256": "5318a922766777e06d7f92657758ef7e7a09c30d8c4aea8e08289c3cf9f3203c",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/zavodil.poolv1.near/keys"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/ff47c14b9de293d3fb98eb222a93475a0fac42bc17c76c7cd056a2de5e55a87c.json",
+      "fixture_sha256": "0b53bc03e2baa6e834f9a6f13741366d71196e93b19d54ff01d6b5f1e7c77b61",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/8ogy5xrbQG78Kw5Eo52iJnfNZQZzeh2iLMWeWXV1Wyuu"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/ffbff89194f54b5bbc3b28d5d8c522c2904bc5673ffe886f15b8fe733e242e65.json",
+      "fixture_sha256": "a00a7ba095e3bc98f7078cddad1cfd311b1ce4a2a3d026f5f5091759bec6a22e",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/svrn.pool.near/keys"
+    },
+    {
+      "fixture": "fixtures/rpc/11035415a29164c92c2823f5ff9c70f2d5131920adef9b4bb881a783ea28322a.json",
+      "fixture_sha256": "235c04c26b435caeb166e0f9f5dbff889a6bf42ab5496f1835ba7478c1821d00",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/d39fd6da5eda882fe5f6716212552356cde2613054c670ffd6b49b3b25aef473/keys"
+    },
+    {
+      "fixture": "fixtures/rpc/1272fdb9af23590fc7582969381fe15e16247535397474dc604781dee1a95525.json",
+      "fixture_sha256": "63b3eebd1a5bab6db4c85a08a86ac983a451fd0996f77595975758c6558130ad",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/7EWXTEPaVM2iFgthFBgMPA4hT1VeDAQGFy7vfcEYpEcM"
+    },
+    {
+      "fixture": "fixtures/rpc/14afd1aad1e778816b6676b21d29974753a31a9b2cf862a2fda075bb26b6bace.json",
+      "fixture_sha256": "b4068c5a4e300afd1c1da17e6afa4aa21400458267abfa92c9ece02ffec28453",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/9053223460198e5e1e54dc15c18295ff0e98dca41ecd6c3872da1ff634d99616/keys"
+    },
+    {
+      "fixture": "fixtures/rpc/1a1559e3272b49973019c065f982de8ed03a6754698d3aa0e9ea06f4ec01838d.json",
+      "fixture_sha256": "5089cd7d66416e1673f1baab074325d4fa7c522b0f392cbb0496735941c94646",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/d4e8e706f5a59610d85924af858f0562031930d14eb7add9a433edea50cf0b03/keys"
+    },
+    {
+      "fixture": "fixtures/rpc/1f3828a62c9d08a5b8d7be41f7758bb9da723dbfc47c4580e01bcd5162389dc1.json",
+      "fixture_sha256": "d7fc29ea641d1ed20e1f3893afd70a7a3dbfa9debb36819823df1ae9875126ac",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/8LU8TZjjw87By1mcWvarrjTESgGy2aTKvNmDADNSsa3t"
+    },
+    {
+      "fixture": "fixtures/rpc/23d74c4b2fa0d4a3466ac2c7768d49222f3d6d2ff79d8a240413bd687c2129da.json",
+      "fixture_sha256": "784d4e19805e9edb9ace81b5918c20372e10e2e1f34d182237987963f6cf855b",
+      "kind": "account_txns_v3",
+      "url": "https://api.nearblocks.io/v3/accounts/9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180/txns"
+    },
+    {
+      "fixture": "fixtures/rpc/28be5ab9ace75f8cd5c55be8d1f6051b38ce6f192f970ca685621a9d8845e2bf.json",
+      "fixture_sha256": "d2ff3f41651adb256a6a28a80392ff2ed9dfc26848680ec79842a614a28a5ec4",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/EBE8wkaFvJR6pzvLY68dVt1hBXti7PMMfkZA7zFW1eqT"
+    },
+    {
+      "fixture": "fixtures/rpc/318d7297f7bd1f3de074c75c2d6b9f63d676754bd1313dc7cdb99c36560e511f.json",
+      "fixture_sha256": "fa8b76927a03ac0b844f691c3590026a35824867aed9f19709e51989e488822d",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/9XMv7qZJwyNEyHutjR6dsuDv8qJNwCwhh6PFLDZTzgYV"
+    },
+    {
+      "fixture": "fixtures/rpc/360204f1ff183860c112d4467f9d70acbb28d1a3cf64cb803c01628ee8188a86.json",
+      "fixture_sha256": "d46f50d46b39649d77c6ae3b387147f1390d06c544935f6370862a43449b1128",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/839810a1aef8ed1adb03e795b2a9785d783d4e2f415ab80c8b6fb30483e160f2/keys"
+    },
+    {
+      "fixture": "fixtures/rpc/3fc55eb1e46747d6c1cfaad9f7b6459b859f972364e138c25ad6098bee90eefa.json",
+      "fixture_sha256": "15be3b19d4784c6b2f558cdbb999cdfce52b6c15d2c9603fb2219011b4a29dc0",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/5a7695e3626aeae7c0d340b6e58f813c71455d1be490eeb44e90bd9682343040/keys"
+    },
+    {
+      "fixture": "fixtures/rpc/4326735797f3db588a9a4ff32fd94fc65596751e930811e09b2c996f75e7c5be.json",
+      "fixture_sha256": "234ce665eed3539efd203e50070cad3a0fd1926a2675eae39099af5830d45ad9",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/connectors.outlayer.near/keys"
+    },
+    {
+      "fixture": "fixtures/rpc/5f497c94cc6fa3f98623c6082d172f6699e040727f62ddb573bae9024a4372ac.json",
+      "fixture_sha256": "d5238734dbac9a7c2948a52fe2e99a43d2e78207a47d6794a286bb80cd0b335d",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/M7aGQyaqq3Pmzvxsh4VM31wgvYe5J7nQDGgyxM2UrwD"
+    },
+    {
+      "fixture": "fixtures/rpc/61f9c16b7f8568bf74a74272d1ce56bbf56ab73c11410c5ba776b6011b0acffe.json",
+      "fixture_sha256": "8df5834e572eb3d72dc1251680e223dfcd144f6ef65ef3e1f48690dfccc9e471",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540/keys"
+    },
+    {
+      "fixture": "fixtures/rpc/72e1e5f05b976c4f584426ea13a5d3c7f08c9cb36e9c8c63a41fdf97bbf81ab2.json",
+      "fixture_sha256": "d645431f1d8950f8166bc9a0033b9d0636d299364bf03c5ca0e0ac249f1af3a7",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/74WVb6WAGnCuJ9dZX7hoYytLwnVHZdswKvh8wnrTBoWJ"
+    },
+    {
+      "fixture": "fixtures/rpc/86fb01fb99cc6d7497907f200b993f00e69209d4a5872d1e947f69f80de5e493.json",
+      "fixture_sha256": "bf86d1f4c8988158e7f98f52ce277b94c19bf563c7e46ffb8a6fa3eb7a0125c7",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/4wrLZQmMcxNGe7hEpzc91UHJT8r6AE4W1SvT2gZirb9"
+    },
+    {
+      "fixture": "fixtures/rpc/9768067ad0ab91a076ab2c5ab2f1dace8cc871624ee5913c3cb67ac1c29a685c.json",
+      "fixture_sha256": "d386993f704b1fa0b7e5209c20661253c368e9aa49e4cef2564237f69def1bb4",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/92Gq7zehKPwSSnpoZ7LGGtSmgmBb4wP2XNDVJqUZRGqz"
+    },
+    {
+      "fixture": "fixtures/rpc/a751a6ee3151fdd55cde05c43a68650f4a6afacb6d2a0d38c9047f8e70bf6c09.json",
+      "fixture_sha256": "4161a17e29986a3c653188d0e6d33b0a501b93433bc7090caeb50e915bfc1bb5",
+      "kind": "account_txns_v3",
+      "url": "https://api.nearblocks.io/v3/accounts/087184b14c3cad5de72090c4a48816d46e53f39454df13b957e14350793b18e7/txns"
+    },
+    {
+      "fixture": "fixtures/rpc/e143c599cc60171ebcdef1856768099af13d92baaf3e1fe5efa7d045647a0a04.json",
+      "fixture_sha256": "942b1265c2faa78a05bc311bb3e7da8ceb3b8a2aca8be3282a111edefd6e7639",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/CXVsn1nNZ9Rv4c7X5Hg1FEtcRZSAG5QwmhyyfsgahWj7"
+    },
+    {
+      "fixture": "fixtures/rpc/e35c4170d2054a2d117bb55f34093ca8eda3c7e6514b03c6649adb2ffced0000.json",
+      "fixture_sha256": "9128702ddf340f8053b1f3de10e718c4ffaa180cd301366076cbc67d1adcba15",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/9otnkZJonXGKiDFJmTJBg7AcZhydRC6TWUprvvbt5qFk"
+    },
+    {
+      "fixture": "fixtures/rpc/f085d43938c60db52f8ab50df62a581d1417d5ee53f4bd3f7fb83f72d83fc61d.json",
+      "fixture_sha256": "da43bc28086402d9d5627ef71d9cee58b9421c55ddc387a3daf620a591495cba",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/BUkhCry3v7WihKw35sNy7nKzf6CVUf9AdyM37CTXru4R"
+    },
+    {
+      "fixture": "fixtures/rpc/f78ebe5bc25c987b558232d237886affefa98ff8c3970973722ffdd9746f3523.json",
+      "fixture_sha256": "5425a082a5b5f8dbc398d17785f0e0bc6ba42b5fe9e356a801d8a270abe7c4e1",
+      "kind": "keys",
+      "url": "https://api-testnet.nearblocks.io/v1/account/31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540/keys"
+    },
+    {
+      "fixture": "fixtures/rpc/ff47c14b9de293d3fb98eb222a93475a0fac42bc17c76c7cd056a2de5e55a87c.json",
+      "fixture_sha256": "0b53bc03e2baa6e834f9a6f13741366d71196e93b19d54ff01d6b5f1e7c77b61",
+      "kind": "txn",
+      "url": "https://api.nearblocks.io/v1/txns/8ogy5xrbQG78Kw5Eo52iJnfNZQZzeh2iLMWeWXV1Wyuu"
+    }
+  ],
+  "captures": [
+    {
+      "fixture": "fixtures/rpc/4326735797f3db588a9a4ff32fd94fc65596751e930811e09b2c996f75e7c5be.json",
+      "fixture_sha256": "234ce665eed3539efd203e50070cad3a0fd1926a2675eae39099af5830d45ad9",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/connectors.outlayer.near/keys",
+      "id": "keys-00-v3",
+      "version": "v3",
+      "request_url": "https://api.nearblocks.io/v3/accounts/connectors.outlayer.near/keys",
+      "requested_at": "2026-11-21T12:09:47.635445+00:00",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8"
+      },
+      "completed_at": "2026-11-21T12:09:48.977079+00:00",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "8922377008a51b28aa21d922ceda0ef5558afc0014c73cd8542a43263269f89d",
+        "fetched_at": "2026-11-21T12:09:48Z"
+      },
+      "response_file": "keys-00-v3.json",
+      "response_sha256": "f56bc5508e1a6bc3e740b743c7b5a97f615a2314fbceec19edbe1106e7b44b00"
+    },
+    {
+      "fixture": "fixtures/rpc/4326735797f3db588a9a4ff32fd94fc65596751e930811e09b2c996f75e7c5be.json",
+      "fixture_sha256": "234ce665eed3539efd203e50070cad3a0fd1926a2675eae39099af5830d45ad9",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/connectors.outlayer.near/keys",
+      "id": "keys-00-v1",
+      "version": "v1",
+      "request_url": "https://api.nearblocks.io/v1/account/connectors.outlayer.near/keys",
+      "requested_at": "2026-11-21T12:09:58.636680+00:00",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8"
+      },
+      "completed_at": "2026-11-21T12:09:59.518337+00:00",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "4326735797f3db588a9a4ff32fd94fc65596751e930811e09b2c996f75e7c5be",
+        "fetched_at": "2026-11-21T12:09:59Z"
+      },
+      "response_file": "keys-00-v1.json",
+      "response_sha256": "74f696c396f596d69875ba989c1762fb5b96dd57afd9f7e0aa0082e1fe0cca00"
+    },
+    {
+      "fixture": "fixtures/cluster/61f9c16b7f8568bf74a74272d1ce56bbf56ab73c11410c5ba776b6011b0acffe.json",
+      "fixture_sha256": "9e9767ad22b41a12804a1d9b5b773cb27dfd01b9cd4e54649a2e57a0ee0d277c",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540/keys",
+      "id": "keys-01-v3",
+      "version": "v3",
+      "request_url": "https://api.nearblocks.io/v3/accounts/31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540/keys",
+      "requested_at": "2026-11-21T12:10:09.645932+00:00",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8"
+      },
+      "completed_at": "2026-11-21T12:10:10.818382+00:00",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "fce27e0f397283c83f37b0d0445dac1accc52ebdabbb5b492c39b3102f932f99",
+        "fetched_at": "2026-11-21T12:10:10Z"
+      },
+      "response_file": "keys-01-v3.json",
+      "response_sha256": "e26caeae5f693605ac6762777e838dc899874a74d6aa1b613845cc75a0699461"
+    },
+    {
+      "fixture": "fixtures/cluster/61f9c16b7f8568bf74a74272d1ce56bbf56ab73c11410c5ba776b6011b0acffe.json",
+      "fixture_sha256": "9e9767ad22b41a12804a1d9b5b773cb27dfd01b9cd4e54649a2e57a0ee0d277c",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540/keys",
+      "id": "keys-01-v1",
+      "version": "v1",
+      "request_url": "https://api.nearblocks.io/v1/account/31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540/keys",
+      "requested_at": "2026-11-21T12:10:20.634860+00:00",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8"
+      },
+      "completed_at": "2026-11-21T12:10:21.517528+00:00",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "61f9c16b7f8568bf74a74272d1ce56bbf56ab73c11410c5ba776b6011b0acffe",
+        "fetched_at": "2026-11-21T12:10:21Z"
+      },
+      "response_file": "keys-01-v1.json",
+      "response_sha256": "b80b4cb15c28aa004e105b52b66451553563df1cd7949ff22745833f6073b74a"
+    },
+    {
+      "fixture": "fixtures/cluster/d48b9753a2eda6c78ad6921556faa9336dd511acc9766192d8d710aa20f12cb2.json",
+      "fixture_sha256": "9b82880b25d467ed6db00a95b37852901d210bb2682e19b37451760777ff0db5",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/rhea000453.multica.near/keys",
+      "id": "keys-02-v3",
+      "version": "v3",
+      "request_url": "https://api.nearblocks.io/v3/accounts/rhea000453.multica.near/keys",
+      "requested_at": "2026-11-21T12:10:31.645276+00:00",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8"
+      },
+      "completed_at": "2026-11-21T12:10:32.940384+00:00",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "1b2c34440ac2b17d7785f3e6fb8e1a87b61ef81a7077c1be47770736fcf455e5",
+        "fetched_at": "2026-11-21T12:10:32Z"
+      },
+      "response_file": "keys-02-v3.json",
+      "response_sha256": "8fe32e407a1038ee38753b70e5374b3a46d6ae9d5f16cd5b73c53abaca8f5ed0"
+    },
+    {
+      "fixture": "fixtures/cluster/d48b9753a2eda6c78ad6921556faa9336dd511acc9766192d8d710aa20f12cb2.json",
+      "fixture_sha256": "9b82880b25d467ed6db00a95b37852901d210bb2682e19b37451760777ff0db5",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/rhea000453.multica.near/keys",
+      "id": "keys-02-v1",
+      "version": "v1",
+      "request_url": "https://api.nearblocks.io/v1/account/rhea000453.multica.near/keys",
+      "requested_at": "2026-11-21T12:10:42.645734+00:00",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8"
+      },
+      "completed_at": "2026-11-21T12:10:43.774982+00:00",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "d48b9753a2eda6c78ad6921556faa9336dd511acc9766192d8d710aa20f12cb2",
+        "fetched_at": "2026-11-21T12:10:43Z"
+      },
+      "response_file": "keys-02-v1.json",
+      "response_sha256": "9638d11914735d0072002dd4d67c734a94ee7a0cd845e6dcbc984ee7581860a7"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/657c4845e82b92107209708622a1f8de3ae1afa87514183caf3d66e640a5422e.json",
+      "fixture_sha256": "00b5f695d325c6b91b3cd681e962ef46917504aa82e1d12585c89bb6b8a85e16",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/intents.near/keys",
+      "id": "keys-03-v3",
+      "version": "v3",
+      "request_url": "https://api.nearblocks.io/v3/accounts/intents.near/keys",
+      "requested_at": "2026-11-21T12:10:53.638531+00:00",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8"
+      },
+      "completed_at": "2026-11-21T12:10:55.559070+00:00",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "ea84080c57a84cb79ea4e01b0ff20982e3240a7935d5bf39ec93e45851a0c4dc",
+        "fetched_at": "2026-11-21T12:10:55Z"
+      },
+      "response_file": "keys-03-v3.json",
+      "response_sha256": "2e834fb84a06fb58ff0711e8f7ee9abdcdd9bef3bc8b2cd6e76ee9b9a94d095d"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/657c4845e82b92107209708622a1f8de3ae1afa87514183caf3d66e640a5422e.json",
+      "fixture_sha256": "00b5f695d325c6b91b3cd681e962ef46917504aa82e1d12585c89bb6b8a85e16",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/intents.near/keys",
+      "id": "keys-03-v1",
+      "version": "v1",
+      "request_url": "https://api.nearblocks.io/v1/account/intents.near/keys",
+      "requested_at": "2026-11-21T12:11:04.640993+00:00",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8"
+      },
+      "completed_at": "2026-11-21T12:11:05.810443+00:00",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "657c4845e82b92107209708622a1f8de3ae1afa87514183caf3d66e640a5422e",
+        "fetched_at": "2026-11-21T12:11:05Z"
+      },
+      "response_file": "keys-03-v1.json",
+      "response_sha256": "c29fe6926208f06235a595592fcc3c0ad4a694cd813c18a501ca241d02f083bd"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/5a835d1a3d999872995ea777246e4dbeeb2c51da426e8eb58035dacac9f976eb.json",
+      "fixture_sha256": "c1f0676d1b80a6519104e7e6246159704f0cd14976eb686c8ce8682ee3048131",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/grid.deltatrade.near/keys",
+      "id": "keys-04-v3",
+      "version": "v3",
+      "request_url": "https://api.nearblocks.io/v3/accounts/grid.deltatrade.near/keys",
+      "requested_at": "2026-11-21T12:11:15.641049+00:00",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8"
+      },
+      "completed_at": "2026-11-21T12:11:17.645344+00:00",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "ba1dfa3ba6189269ca22683516dd9ad75b1a30c26a5cca043c71daae2fbd9eab",
+        "fetched_at": "2026-11-21T12:11:17Z"
+      },
+      "response_file": "keys-04-v3.json",
+      "response_sha256": "6056c70ad24b5117d1bd63e78b782dcde579a5c3f392e91d81d4ba71eca4313f"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/5a835d1a3d999872995ea777246e4dbeeb2c51da426e8eb58035dacac9f976eb.json",
+      "fixture_sha256": "c1f0676d1b80a6519104e7e6246159704f0cd14976eb686c8ce8682ee3048131",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/grid.deltatrade.near/keys",
+      "id": "keys-04-v1",
+      "version": "v1",
+      "request_url": "https://api.nearblocks.io/v1/account/grid.deltatrade.near/keys",
+      "requested_at": "2026-11-21T12:11:26.637066+00:00",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8"
+      },
+      "completed_at": "2026-11-21T12:11:27.760593+00:00",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "5a835d1a3d999872995ea777246e4dbeeb2c51da426e8eb58035dacac9f976eb",
+        "fetched_at": "2026-11-21T12:11:27Z"
+      },
+      "response_file": "keys-04-v1.json",
+      "response_sha256": "98c04b0471232d5a04309e83a9a45281bd53f61ae3dfeccd810638c25beb2d4a"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/95ae5a24c8aaa99775b8b58bc54a6a0d6cb764285f13f9cfba493d8f23e9c699.json",
+      "fixture_sha256": "854f734a5bb70bf3c4acd15d02f74fbd441ab3f3a9d1f468dcb6fde09e1b457b",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/user.intear.near/keys",
+      "id": "keys-05-v3",
+      "version": "v3",
+      "request_url": "https://api.nearblocks.io/v3/accounts/user.intear.near/keys",
+      "requested_at": "2026-11-21T12:11:37.639073+00:00",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8"
+      },
+      "completed_at": "2026-11-21T12:11:38.880013+00:00",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "6087487eaee09d580c4889531f9b92ce3b5d2c2a0f680c5961ef0b1c5dec03c2",
+        "fetched_at": "2026-11-21T12:11:38Z"
+      },
+      "response_file": "keys-05-v3.json",
+      "response_sha256": "9823be458bd57b79d9c10d36e7125d5f28a0aa5a7601312fb2f78a8b71d095e5"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/95ae5a24c8aaa99775b8b58bc54a6a0d6cb764285f13f9cfba493d8f23e9c699.json",
+      "fixture_sha256": "854f734a5bb70bf3c4acd15d02f74fbd441ab3f3a9d1f468dcb6fde09e1b457b",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/user.intear.near/keys",
+      "id": "keys-05-v1",
+      "version": "v1",
+      "request_url": "https://api.nearblocks.io/v1/account/user.intear.near/keys",
+      "requested_at": "2026-11-21T12:11:48.633779+00:00",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8"
+      },
+      "completed_at": "2026-11-21T12:11:49.771886+00:00",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "95ae5a24c8aaa99775b8b58bc54a6a0d6cb764285f13f9cfba493d8f23e9c699",
+        "fetched_at": "2026-11-21T12:11:49Z"
+      },
+      "response_file": "keys-05-v1.json",
+      "response_sha256": "2de7d63b0d58b7a463d541b3f6a6c63b5ef770904c3fcce278f1a47484ce15c3"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/606284bd19c28224c0929a288cd4fe4a161f197ad9ca508a36c7d304b3fb8e26.json",
+      "fixture_sha256": "614b3f1b46454665a510fa037d9ed14e0a0bf23bc035291a76c483610b200e60",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/mmt-arb.near/keys",
+      "id": "keys-06-v3",
+      "version": "v3",
+      "request_url": "https://api.nearblocks.io/v3/accounts/mmt-arb.near/keys",
+      "requested_at": "2026-11-21T12:11:59.634216+00:00",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8"
+      },
+      "completed_at": "2026-11-21T12:12:01.577372+00:00",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "9b2500e7a533e4b71cf2968fc6aa8b6909807638f37d9715157a35918eeaec09",
+        "fetched_at": "2026-11-21T12:12:01Z"
+      },
+      "response_file": "keys-06-v3.json",
+      "response_sha256": "62d30ceac02b208222464045ce39d3ecead1d1493b45592e692a88d554e21248"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/606284bd19c28224c0929a288cd4fe4a161f197ad9ca508a36c7d304b3fb8e26.json",
+      "fixture_sha256": "614b3f1b46454665a510fa037d9ed14e0a0bf23bc035291a76c483610b200e60",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/mmt-arb.near/keys",
+      "id": "keys-06-v1",
+      "version": "v1",
+      "request_url": "https://api.nearblocks.io/v1/account/mmt-arb.near/keys",
+      "requested_at": "2026-11-21T12:12:10.632057+00:00",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8"
+      },
+      "completed_at": "2026-11-21T12:12:11.913131+00:00",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "606284bd19c28224c0929a288cd4fe4a161f197ad9ca508a36c7d304b3fb8e26",
+        "fetched_at": "2026-11-21T12:12:11Z"
+      },
+      "response_file": "keys-06-v1.json",
+      "response_sha256": "c8dcd8174cf74b820b3bbd89b6828e292a30f0a7c7cc69dcde3b3dadb64aff55"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/d58970813d5d211ae21c9cb49b567ebe82257a35109a4c113955eee693bd1627.json",
+      "fixture_sha256": "b256a834d1710841196c51622a8ba4d5032f00576c884cec50366e453f94c1f0",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/aggregatedex.near/keys",
+      "id": "keys-07-v3",
+      "version": "v3",
+      "request_url": "https://api.nearblocks.io/v3/accounts/aggregatedex.near/keys",
+      "requested_at": "2026-11-21T12:12:21.635315+00:00",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8"
+      },
+      "completed_at": "2026-11-21T12:12:24.197572+00:00",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "6b2f217b57bf41264c62f6ab7f736aaabd3cbdd24dd1958de6f7385df47ad182",
+        "fetched_at": "2026-11-21T12:12:24Z"
+      },
+      "response_file": "keys-07-v3.json",
+      "response_sha256": "8dd678b227babb1181ddbc90b4f99612149c3a7e0810c59b7b8fe55b4207dfc7"
+    },
+    {
+      "fixture": "fixtures/receivers/rpc/d58970813d5d211ae21c9cb49b567ebe82257a35109a4c113955eee693bd1627.json",
+      "fixture_sha256": "b256a834d1710841196c51622a8ba4d5032f00576c884cec50366e453f94c1f0",
+      "kind": "keys",
+      "url": "https://api.nearblocks.io/v1/account/aggregatedex.near/keys",
+      "id": "keys-07-v1",
+      "version": "v1",
+      "request_url": "https://api.nearblocks.io/v1/account/aggregatedex.near/keys",
+      "requested_at": "2026-11-21T12:12:32.641871+00:00",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8"
+      },
+      "completed_at": "2026-11-21T12:12:33.773508+00:00",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "d58970813d5d211ae21c9cb49b567ebe82257a35109a4c113955eee693bd1627",
+        "fetched_at": "2026-11-21T12:12:33Z"
+      },
+      "response_file": "keys-07-v1.json",
+      "response_sha256": "bbe468496e8b340a7629b738999f2a79f05950c0ee49ffb947e8bb1b0b934904"
+    }
+  ]
+}

@@ -179,7 +179,7 @@ def _fact_id(fact):
 def _creation_facts(seeds, nearblocks):
     facts, fetched = [], []
     for seed in seeds:
-        response = nearblocks.get(f"/v1/account/{seed}/keys")
+        response, _, _ = rpc.nearblocks_keys(nearblocks, seed)
         fetched.append(nearblocks.last_source["fetched_at"])
         keys = response.get("keys", []) if isinstance(response, dict) else []
         creations = [key["created"] for key in keys if isinstance(key, dict)
@@ -190,7 +190,7 @@ def _creation_facts(seeds, nearblocks):
             continue
         creation = min(creations, key=lambda row: int(row["block_timestamp"]))
         transaction_hash = creation["transaction_hash"]
-        transaction_response = nearblocks.get(f"/v1/txns/{transaction_hash}")
+        transaction_response, _, method = rpc.nearblocks_txn(nearblocks, transaction_hash)
         fetched.append(nearblocks.last_source["fetched_at"])
         transactions = transaction_response.get("txns", []) if isinstance(transaction_response, dict) else []
         if not transactions or not isinstance(transactions[0].get("signer_account_id"), str):
@@ -202,7 +202,7 @@ def _creation_facts(seeds, nearblocks):
             continue
         excluded = _excluded_funder(funder, FUNDER_EXCLUSIONS)
         fact = {"kind": "created_by_funder", "subject": seed, "value": funder, "provenance": "onchain",
-                "source": {"provider": "api.nearblocks.io", "method": "GET /v1/txns/{transaction_hash}",
+                "source": {"provider": "api.nearblocks.io", "method": method,
                            "args": {"transaction_hash": transaction_hash}, "block": block},
                 "confidence": 1.0, "excluded": excluded}
         if excluded:

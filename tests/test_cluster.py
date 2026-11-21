@@ -56,6 +56,7 @@ class FakeRPC:
 
 class FakeHTTP:
     url = "https://api.nearblocks.io"
+    mode = "replay"
 
     def __init__(self, responses=None):
         self.responses = responses or {}
@@ -64,6 +65,8 @@ class FakeHTTP:
 
     def get(self, path):
         self.calls.append(("GET", path))
+        if path.startswith("/v3/") and ("GET", path) not in self.responses:
+            raise rpc.FixtureMiss("missing", self.url + path, "GET", None)
         return self.responses.get(("GET", path), {})
 
     def post(self, path, body):
@@ -190,6 +193,25 @@ class ClusterTest(unittest.TestCase):
         })
         facts, _ = cluster._creation_facts(["alpha.near"], client)
         self.assertEqual(facts[0]["value"], "first-funder.near")
+
+    def test_v3_creation_facts_keep_the_integer_height_and_the_endpoint_method(self):
+        client = FakeHTTP({
+            ("GET", "/v3/accounts/alpha.near/keys"): {"data": [{
+                "public_key": "ed25519:public", "permission_kind": "FULL_ACCESS",
+                "created": {"transaction_hash": "creation", "block": {"block_timestamp": "100"}},
+                "deleted": {},
+            }], "meta": {"next_page": None, "prev_page": None}},
+            ("GET", "/v3/txns/creation"): {"data": {"signer_account_id": "factory.near",
+                                                         "block": {"block_height": "10"}, "actions": []}},
+        })
+        facts, _ = cluster._creation_facts(["alpha.near"], client)
+        self.assertEqual(len(facts), 1)
+        self.assertEqual(facts[0]["value"], "factory.near")
+        self.assertEqual(facts[0]["source"], {"provider": "api.nearblocks.io",
+                                             "method": "GET /v3/txns/{transaction_hash}",
+                                             "args": {"transaction_hash": "creation"}, "block": 10})
+        self.assertEqual(client.calls, [("GET", "/v3/accounts/alpha.near/keys"),
+                                        ("GET", "/v3/txns/creation")])
 
     def test_depositors_are_counted_never_listed(self):
         transfers = FakeHTTP({("POST", "/v0/transfers"): {"transfers": [

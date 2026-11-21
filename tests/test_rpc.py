@@ -10,6 +10,7 @@ import unittest
 import urllib.error
 from datetime import UTC, datetime
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 from gate import intents, rpc, rules
@@ -96,6 +97,252 @@ class ReplayTest(unittest.TestCase):
             self.assertEqual(caught.exception.key, INTENTS_VIEW_KEY)
             self.assertEqual(client.last_source["fetched_at"], None)
             self.assertEqual(os.listdir(tmp), [])
+
+
+class NearBlocksTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        patcher = mock.patch.object(rpc, "_fetch", side_effect=no_network)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.url = "https://nearblocks.example"
+        self.keys_path = "/v3/accounts/a.near/keys"
+        self.txn_path = "/v3/txns/CreationTx"
+        self.event = {"block": {"block_hash": "BlockHash", "block_height": "7",
+                                "block_timestamp": "1790000000000000000"},
+                      "transaction_hash": "CreationTx"}
+        self.key = {"public_key": "ed25519:PublicKey", "permission_kind": "FULL_ACCESS",
+                    "permission": {}, "action_timestamp": "1790000000000000000", "mpc": False,
+                    "created": self.event, "deleted": None}
+        self.txn = {"transaction_hash": "CreationTx", "signer_account_id": "near",
+                    "receiver_account_id": "a.near", "block_timestamp": "1790000000000000000",
+                    "block": {"block_hash": "BlockHash", "block_height": "7",
+                              "block_timestamp": "1790000000000000000"},
+                    "actions_agg": {"deposit": "100000000000000000000000", "gas_attached": "0"},
+                    "outcomes": {"status": True, "status_key": "SUCCESS_VALUE"}, "index_in_chunk": 0,
+                    "actions": [{"action": "TRANSFER", "method": None,
+                                 "args": {"deposit": "100000000000000000000000"}, "rlp_hash": None}]}
+
+    def client(self, mode="replay", *, reuse_existing=False):
+        return rpc.Client(self.url, mode, kind="http", fixtures_dir=self.tmp.name,
+                          clock=lambda: T0 + 365 * DAY, reuse_existing=reuse_existing)
+
+    def write(self, path, response):
+        fixture = {"request": {"method": "GET", "params": None}, "response": response,
+                   "url": self.url + path, "fetched_at": rpc._timestamp(T0)}
+        target = Path(self.tmp.name) / (rpc.fixture_key(fixture["url"], "GET", None) + ".json")
+        target.write_text(json.dumps(fixture), encoding="utf-8")
+        return target
+
+    def test_keys_flatten_creation_and_deletion_without_changing_raw(self):
+        raw = {"data": [self.key, {**self.key, "created": None, "deleted": self.event}],
+               "meta": {"next_page": "cursor", "prev_page": None}}
+        client = SimpleNamespace(get=mock.Mock(return_value=raw), last_source={})
+        body, returned_raw, method = rpc.nearblocks_keys(client, "a.near")
+        event = {"transaction_hash": "CreationTx", "block_timestamp": "1790000000000000000"}
+        self.assertEqual(body, {"keys": [
+            {"public_key": "ed25519:PublicKey", "permission_kind": "FULL_ACCESS",
+             "created": event, "deleted": None},
+            {"public_key": "ed25519:PublicKey", "permission_kind": "FULL_ACCESS",
+             "created": None, "deleted": event}]})
+        self.assertIs(returned_raw, raw)
+        self.assertEqual(raw["data"][0], self.key)
+        self.assertEqual(method, "GET /v3/accounts/{account_id}/keys")
+        client.get.assert_called_once_with(self.keys_path)
+
+    def test_transaction_converts_height_transfer_and_keeps_other_fields(self):
+        raw = {"data": self.txn}
+        client = SimpleNamespace(get=mock.Mock(return_value=raw), last_source={})
+        body, returned_raw, method = rpc.nearblocks_txn(client, "CreationTx")
+        expected = {**self.txn, "block": {"block_height": 7},
+                    "actions": [{"action": "TRANSFER", "method": None, "args": None}]}
+        self.assertEqual(body, {"txns": [expected]})
+        self.assertIs(returned_raw, raw)
+        self.assertEqual(raw["data"]["block"]["block_height"], "7")
+        self.assertIn("rlp_hash", raw["data"]["actions"][0])
+        self.assertEqual(method, "GET /v3/txns/{transaction_hash}")
+        client.get.assert_called_once_with(self.txn_path)
+
+    def test_function_call_serializes_only_dictionary_args_json(self):
+        decoded = {"new_account_id": "a.near", "name": "\u00e9"}
+        for value in (decoded, None, [], "text", 1):
+            with self.subTest(args_json=value):
+                action = {"action": "FUNCTION_CALL", "method": "create_account", "rlp_hash": "extra",
+                          "args": {"args_json": value, "args_base64": "e30=", "gas": "1", "deposit": "0",
+                                   "method_name": "create_account"}}
+                raw = {"data": {**self.txn, "actions": [action]}}
+                client = SimpleNamespace(get=mock.Mock(return_value=raw), last_source={})
+                body, returned_raw, _ = rpc.nearblocks_txn(client, "CreationTx")
+                self.assertEqual(body["txns"][0]["actions"], [{"action": "FUNCTION_CALL",
+                    "method": "create_account", "args": json.dumps(decoded) if value is decoded else None}])
+                self.assertIs(returned_raw, raw)
+
+    def test_null_data_and_empty_keys(self):
+        for helper, identifier, field, data in ((rpc.nearblocks_keys, "a.near", "keys", None),
+                                                (rpc.nearblocks_keys, "a.near", "keys", []),
+                                                (rpc.nearblocks_txn, "CreationTx", "txns", None)):
+            with self.subTest(field=field, data=data):
+                raw = {"data": data}
+                body, returned_raw, _ = helper(SimpleNamespace(get=lambda path: raw), identifier)
+                self.assertEqual(body, {field: []})
+                self.assertIs(returned_raw, raw)
+
+    def test_empty_key_events_match_the_live_v3_shape(self):
+        raw = {"data": [{**self.key, "created": {}, "deleted": {}}]}
+        body, _, _ = rpc.nearblocks_keys(SimpleNamespace(get=lambda path: raw), "a.near")
+        self.assertEqual(body["keys"][0]["created"], None)
+        self.assertEqual(body["keys"][0]["deleted"], {"transaction_hash": None, "block_timestamp": None})
+
+    def test_v3_recording_wins_over_v1_in_replay_and_reuse(self):
+        for helper, identifier, path, legacy, raw in (
+                (rpc.nearblocks_keys, "a.near", self.keys_path, "/v1/account/a.near/keys", {"data": [self.key]}),
+                (rpc.nearblocks_txn, "CreationTx", self.txn_path, "/v1/txns/CreationTx", {"data": self.txn})):
+            self.write(path, raw)
+            self.write(legacy, {"old": True})
+            for mode, reuse in (("replay", False), ("record", True)):
+                with self.subTest(path=path, mode=mode):
+                    client = self.client(mode, reuse_existing=reuse)
+                    with mock.patch.object(client, "get", wraps=client.get) as get:
+                        _, returned_raw, method = helper(client, identifier)
+                    self.assertEqual(returned_raw, raw)
+                    self.assertIn("/v3/", method)
+                    get.assert_called_once_with(path)
+                    self.assertEqual(client.last_source["request_sha256"], rpc.fixture_key(self.url + path, "GET", None))
+
+    def test_v1_fallback_reuses_old_recordings_and_source_exactly(self):
+        for helper, identifier, path, legacy, raw in (
+                (rpc.nearblocks_keys, "a.near", self.keys_path, "/v1/account/a.near/keys", {"keys": []}),
+                (rpc.nearblocks_txn, "CreationTx", self.txn_path, "/v1/txns/CreationTx", {"txns": []})):
+            target = self.write(legacy, raw)
+            original = target.read_bytes()
+            old = self.client()
+            old.get(legacy)
+            for mode, reuse in (("replay", False), ("replay", True), ("record", True)):
+                with self.subTest(path=path, mode=mode, reuse=reuse):
+                    client = self.client(mode, reuse_existing=reuse)
+                    with mock.patch.object(client, "get", wraps=client.get) as get:
+                        body, returned_raw, method = helper(client, identifier)
+                    self.assertEqual((body, returned_raw), (raw, raw))
+                    self.assertEqual(method, "GET " + ("/v1/account/{account_id}/keys" if "keys" in raw
+                                                       else "/v1/txns/{transaction_hash}"))
+                    self.assertEqual(client.last_source, old.last_source)
+                    if mode == "replay":
+                        self.assertEqual(get.call_args_list, [mock.call(path), mock.call(legacy)])
+                    self.assertEqual(target.read_bytes(), original)
+                    self.assertFalse((target.parent / (rpc.fixture_key(self.url + path, "GET", None) + ".json")).exists())
+
+    def test_both_replay_misses_keep_the_v1_miss_source(self):
+        for helper, identifier, legacy in ((rpc.nearblocks_keys, "a.near", "/v1/account/a.near/keys"),
+                                            (rpc.nearblocks_txn, "CreationTx", "/v1/txns/CreationTx")):
+            with self.subTest(legacy=legacy):
+                old, client = self.client(), self.client()
+                with self.assertRaises(rpc.FixtureMiss) as old_error:
+                    old.get(legacy)
+                with self.assertRaises(rpc.FixtureMiss) as error:
+                    helper(client, identifier)
+                self.assertEqual(client.last_source, old.last_source)
+                self.assertEqual(error.exception.key, old_error.exception.key)
+
+    def test_missing_recordings_fetch_only_v3_and_record_raw(self):
+        for helper, identifier, path, raw in ((rpc.nearblocks_keys, "a.near", self.keys_path, {"data": [self.key]}),
+                                             (rpc.nearblocks_txn, "CreationTx", self.txn_path, {"data": self.txn})):
+            for mode, reuse in (("off", False), ("off", True), ("record", False), ("record", True)):
+                with self.subTest(path=path, mode=mode, reuse=reuse), tempfile.TemporaryDirectory() as directory:
+                    client = rpc.Client(self.url, mode, kind="http", fixtures_dir=directory, reuse_existing=reuse)
+                    with mock.patch.object(rpc, "_fetch", return_value=raw) as fetched:
+                        _, returned_raw, method = helper(client, identifier)
+                    self.assertIs(returned_raw, raw)
+                    self.assertIn("/v3/", method)
+                    self.assertEqual(fetched.call_count, 1)
+                    self.assertEqual(fetched.call_args.args[0], self.url + path)
+                    files = list(Path(directory).iterdir())
+                    if mode == "off":
+                        self.assertEqual(files, [])
+                    else:
+                        self.assertEqual(json.loads(files[0].read_text(encoding="utf-8"))["response"], raw)
+
+    def test_record_without_reuse_and_off_never_read_v1(self):
+        self.write("/v1/account/a.near/keys", {"keys": ["old"]})
+        for mode, reuse in (("record", False), ("off", False), ("off", True)):
+            with self.subTest(mode=mode, reuse=reuse):
+                client = self.client(mode, reuse_existing=reuse)
+                with mock.patch.object(rpc, "_fetch", return_value={"data": []}) as fetched:
+                    body, _, method = rpc.nearblocks_keys(client, "a.near")
+                self.assertEqual(body, {"keys": []})
+                self.assertEqual(method, "GET /v3/accounts/{account_id}/keys")
+                fetched.assert_called_once()
+
+    def test_fixture_miss_outside_replay_never_fetches_v1(self):
+        for helper, identifier, path in ((rpc.nearblocks_keys, "a.near", self.keys_path),
+                                         (rpc.nearblocks_txn, "CreationTx", self.txn_path)):
+            for mode in ("record", "off"):
+                for reuse in (False, True):
+                    with self.subTest(path=path, mode=mode, reuse=reuse):
+                        client = self.client(mode, reuse_existing=reuse)
+                        missing = rpc.FixtureMiss(rpc.fixture_key(self.url + path, "GET", None),
+                                                  self.url + path, "GET", None)
+                        with mock.patch.object(rpc, "_fetch", side_effect=missing) as fetched:
+                            with self.assertRaises(rpc.FixtureMiss) as caught:
+                                helper(client, identifier)
+                        self.assertIs(caught.exception, missing)
+                        fetched.assert_called_once_with(self.url + path, None, {}, ())
+
+    def test_malformed_v3_keys_raise_malformed_response(self):
+        cases = [None, [], {}, {"data": {}}, {"data": [None]}, {"data": [{}]}]
+        for field in ("created", "deleted"):
+            for value in (True, [], {"transaction_hash": "CreationTx", "block": None},
+                          {**self.event, "block": {}},
+                          {**self.event, "block": {"block_timestamp": True}},
+                          {**self.event, "block": {"block_timestamp": "\u0661"}}):
+                cases.append({"data": [{**self.key, field: value}]})
+        for raw in cases:
+            with self.subTest(raw=raw), self.assertRaises(rpc.MalformedResponse):
+                rpc.nearblocks_keys(SimpleNamespace(get=lambda path: raw), "a.near")
+
+    def test_malformed_v3_transactions_raise_malformed_response(self):
+        cases = [None, [], {}, {"data": []}, {"data": True}, {"data": {}}]
+        for field, values in (("block", (None, [], {}, {"block_height": "bad"}, {"block_height": True})),
+                              ("actions", (None, {}, [None], [{}], [{"action": []}]))):
+            cases.extend({"data": {**self.txn, field: value}} for value in values)
+        for raw in cases:
+            with self.subTest(raw=raw), self.assertRaises(rpc.MalformedResponse):
+                rpc.nearblocks_txn(SimpleNamespace(get=lambda path: raw), "CreationTx")
+
+    def test_malformed_v3_does_not_fall_back_to_a_v1_recording(self):
+        self.write(self.keys_path, {"data": {}})
+        self.write("/v1/account/a.near/keys", {"keys": []})
+        with self.assertRaises(rpc.MalformedResponse):
+            rpc.nearblocks_keys(self.client(), "a.near")
+
+    def test_all_committed_v1_recordings_keep_their_response_and_source(self):
+        count = 0
+        for path in sorted((ROOT / "fixtures").rglob("*.json")):
+            fixture = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(fixture, dict) or not isinstance(fixture.get("url"), str):
+                continue
+            url = fixture["url"]
+            if "/v1/account/" in url and url.endswith("/keys"):
+                base, identifier = url.split("/v1/account/")
+                identifier = identifier.removesuffix("/keys")
+                helper = rpc.nearblocks_keys
+            elif "/v1/txns/" in url:
+                base, identifier = url.split("/v1/txns/")
+                helper = rpc.nearblocks_txn
+            else:
+                continue
+            count += 1
+            with self.subTest(path=path.relative_to(ROOT)):
+                original = path.read_bytes()
+                old = rpc.Client(base, "replay", kind="http", fixtures_dir=path.parent)
+                expected = old.get(url)
+                client = rpc.Client(base, "replay", kind="http", fixtures_dir=path.parent)
+                body, raw, method = helper(client, identifier)
+                self.assertEqual((body, raw, client.last_source), (expected, expected, old.last_source))
+                self.assertIn("/v1/", method)
+                self.assertEqual(path.read_bytes(), original)
+        # The parity inventory has 175: 173 v1 recordings plus 2 /v3/accounts/.../txns recordings.
+        self.assertEqual(count, 173)
 
 
 class KeyTest(unittest.TestCase):

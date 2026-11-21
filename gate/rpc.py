@@ -279,6 +279,77 @@ def _decimal(value):
     return type(value) is str and re.fullmatch(r"[0-9]+", value) is not None
 
 
+def _nearblocks_get(client, path, legacy):
+    mode = getattr(client, "mode", None)
+    reuse = getattr(client, "reuse_existing", False)
+    if mode == "record" and reuse:
+        directory = getattr(client, "fixtures_dir", None)
+        url = getattr(client, "url", "")
+        if directory is not None:
+            for candidate in (path, legacy):
+                key = fixture_key(url + candidate, "GET", None)
+                if (Path(directory) / f"{key}.json").exists():
+                    return client.get(candidate), candidate == legacy
+    try:
+        return client.get(path), False
+    except FixtureMiss:
+        if mode != "replay":
+            raise
+    return client.get(legacy), True
+
+
+def nearblocks_keys(client, account_id):
+    """One default page of keys as (v1 body, untouched body, endpoint template)."""
+    raw, legacy = _nearblocks_get(client, f"/v3/accounts/{account_id}/keys", f"/v1/account/{account_id}/keys")
+    if legacy:
+        return raw, raw, "GET /v1/account/{account_id}/keys"
+    event = (type(None), lambda value: type(value) is dict and not value,
+             {"transaction_hash": (True, (type(None), str)),
+              "block": (True, {"block_timestamp": (True, _decimal)})})
+    _validate_schema(raw, {"data": (True, (type(None), [
+        {"public_key": (True, str), "permission_kind": (True, str),
+         "created": (True, event), "deleted": (True, event)}]))})
+    keys = []
+    for key in raw["data"] or []:
+        result = {field: key[field] for field in ("public_key", "permission_kind")}
+        for field in ("created", "deleted"):
+            info = key[field]
+            result[field] = (None if info is None or field == "created" and not info else
+                             {"transaction_hash": info.get("transaction_hash"),
+                              "block_timestamp": info["block"]["block_timestamp"] if info else None})
+        keys.append(result)
+    return {"keys": keys}, raw, "GET /v3/accounts/{account_id}/keys"
+
+
+def nearblocks_txn(client, transaction_hash):
+    """A transaction as (v1 body, untouched body, endpoint template)."""
+    raw, legacy = _nearblocks_get(client, f"/v3/txns/{transaction_hash}", f"/v1/txns/{transaction_hash}")
+    if legacy:
+        return raw, raw, "GET /v1/txns/{transaction_hash}"
+    _validate_schema(raw, {"data": (True, (type(None), {
+        "block": (True, {"block_height": (True, (_uint, _decimal))}),
+        "actions": (True, [{"action": (True, str), "method": (False, (type(None), str)),
+                            "args": (False, (type(None), dict))}])}))})
+    transactions = []
+    if raw["data"] is not None:
+        transaction = dict(raw["data"])
+        height = transaction["block"]["block_height"]
+        try:
+            transaction["block"] = {"block_height": int(height)}
+            actions = []
+            for action in transaction["actions"]:
+                args = action.get("args")
+                decoded = args.get("args_json") if isinstance(args, dict) else None
+                actions.append({"action": action["action"], "method": action.get("method"),
+                                "args": json.dumps(decoded) if action["action"] == "FUNCTION_CALL"
+                                and isinstance(decoded, dict) else None})
+        except (ValueError, TypeError, RecursionError) as error:
+            raise MalformedResponse("the NearBlocks transaction cannot be converted") from error
+        transaction["actions"] = actions
+        transactions.append(transaction)
+    return {"txns": transactions}, raw, "GET /v3/txns/{transaction_hash}"
+
+
 def _uint64(value):
     return _uint(value) and value < 2**64
 

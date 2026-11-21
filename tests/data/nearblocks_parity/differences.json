@@ -1,0 +1,1956 @@
+{
+  "date": "2026-11-21",
+  "primary_requests": 89,
+  "archived_initial_requests": 16,
+  "transaction_comparisons": 69,
+  "transaction_strict_matches": 67,
+  "transaction_precision_differences": [
+    {
+      "capture": "txn-59-v3",
+      "transaction_hash": "EBE8wkaFvJR6pzvLY68dVt1hBXti7PMMfkZA7zFW1eqT",
+      "v1": "121076455956140050000000000",
+      "v3": "121076455956140052029494512",
+      "delta_yoctonear": "2029494512"
+    },
+    {
+      "capture": "txn-62-v3",
+      "transaction_hash": "74WVb6WAGnCuJ9dZX7hoYytLwnVHZdswKvh8wnrTBoWJ",
+      "v1": "59453923452133320000000000",
+      "v3": "59453923452133320795572005",
+      "delta_yoctonear": "795572005"
+    }
+  ],
+  "keys_comparisons": 20,
+  "keys_strict_matches": 2,
+  "keys_field_differences_by_category": {
+    "creation_or_deletion_history": 24,
+    "full_page_tied_membership": 4,
+    "historical_listed_key_change": 32,
+    "timestamp_precision": 217
+  },
+  "keys_samples": [
+    {
+      "account_id": "via-trading.near",
+      "recorded_v1_keys": 2,
+      "current_v1_keys": 22,
+      "current_v3_keys": 22,
+      "recorded-v1_field_differences": 24,
+      "current-v1_field_differences": 23
+    },
+    {
+      "account_id": "codame.sputnik-dao.near",
+      "recorded_v1_keys": 1,
+      "current_v1_keys": 1,
+      "current_v3_keys": 1,
+      "recorded-v1_field_differences": 2,
+      "current-v1_field_differences": 2
+    },
+    {
+      "account_id": "connectors.outlayer.near",
+      "recorded_v1_keys": 1,
+      "current_v1_keys": 1,
+      "current_v3_keys": 1,
+      "recorded-v1_field_differences": 2,
+      "current-v1_field_differences": 2
+    },
+    {
+      "account_id": "31ac7a2705a0686ff427b1a52d3ffd1fcfaa4b1f3cb3e83a0f767494e724a540",
+      "recorded_v1_keys": 1,
+      "current_v1_keys": 1,
+      "current_v3_keys": 1,
+      "recorded-v1_field_differences": 2,
+      "current-v1_field_differences": 2
+    },
+    {
+      "account_id": "rhea000453.multica.near",
+      "recorded_v1_keys": 0,
+      "current_v1_keys": 0,
+      "current_v3_keys": 0,
+      "recorded-v1_field_differences": 0,
+      "current-v1_field_differences": 0
+    },
+    {
+      "account_id": "intents.near",
+      "recorded_v1_keys": 11,
+      "current_v1_keys": 11,
+      "current_v3_keys": 11,
+      "recorded-v1_field_differences": 23,
+      "current-v1_field_differences": 23
+    },
+    {
+      "account_id": "grid.deltatrade.near",
+      "recorded_v1_keys": 7,
+      "current_v1_keys": 9,
+      "current_v3_keys": 9,
+      "recorded-v1_field_differences": 17,
+      "current-v1_field_differences": 18
+    },
+    {
+      "account_id": "user.intear.near",
+      "recorded_v1_keys": 25,
+      "current_v1_keys": 25,
+      "current_v3_keys": 25,
+      "recorded-v1_field_differences": 27,
+      "current-v1_field_differences": 27
+    },
+    {
+      "account_id": "mmt-arb.near",
+      "recorded_v1_keys": 5,
+      "current_v1_keys": 12,
+      "current_v3_keys": 12,
+      "recorded-v1_field_differences": 14,
+      "current-v1_field_differences": 13
+    },
+    {
+      "account_id": "aggregatedex.near",
+      "recorded_v1_keys": 14,
+      "current_v1_keys": 14,
+      "current_v3_keys": 14,
+      "recorded-v1_field_differences": 28,
+      "current-v1_field_differences": 28
+    }
+  ],
+  "notes": [
+    "All 217 timestamp precision differences retain the same event transaction hash and differ by at most 175 ns. Exact values are retained below, including the oldest creation selected in page order. Creation timestamps roughly 195 to 209 days apart belong to the different key-history category.",
+    "Three intents.near public keys have v1 creation events from November 2024 and deletion events from January 2025, while v3 lists later creation events from May or June 2025 without those earlier deletions.",
+    "The user.intear.near full pages have one different key, with tied creation timestamps and the same creation transaction. The existing full-page unknown rule remains required.",
+    "The grid.deltatrade.near, mmt-arb.near and via-trading.near recorded key counts differ from both current APIs. Current v1 and v3 counts agree.",
+    "The two transaction deposit differences are immutable v1 floating-point precision loss. The v3 integers remain exact; no rounding is applied to them."
+  ],
+  "transaction_differences": {
+    "txn-59-v3": [
+      {
+        "path": "txns[0].deposit",
+        "v1": "121076455956140050000000000",
+        "v3": "121076455956140052029494512"
+      }
+    ],
+    "txn-62-v3": [
+      {
+        "path": "txns[0].deposit",
+        "v1": "59453923452133320000000000",
+        "v3": "59453923452133320795572005"
+      }
+    ]
+  },
+  "differences": {
+    "keys-08-v3-recorded-v1": [
+      {
+        "path": "key_count",
+        "v1": 2,
+        "v3": 22
+      },
+      {
+        "path": "keys.ed25519:2FXUUwF7qUw7zHwtnWcwdCcg5ktUUNBuwTdhXB5Js3vr",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FULL_ACCESS",
+            "created": {
+              "block_timestamp": "1794472056085511695",
+              "transaction_hash": "GrmxQo1y6HL9ETL7dLNL4YSzsvvaVvwpsQ93y7AmMALY"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:2dJ7cYHK8m2WXMS3MbwvPhYq3PnyV2ajnCskqjGc2gfy",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FULL_ACCESS",
+            "created": {
+              "block_timestamp": "1794472056085511695",
+              "transaction_hash": "GrmxQo1y6HL9ETL7dLNL4YSzsvvaVvwpsQ93y7AmMALY"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:2idqWDwzDhyJEJBJkNaN3k3E8wvyiLtUyTwyfbR1MxKH",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FULL_ACCESS",
+            "created": {
+              "block_timestamp": "1794472056085511695",
+              "transaction_hash": "GrmxQo1y6HL9ETL7dLNL4YSzsvvaVvwpsQ93y7AmMALY"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:3KKvsXuHxPh8K82bmknR7UkztRibYN1b8B28nhGcfjqS",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FULL_ACCESS",
+            "created": {
+              "block_timestamp": "1794472056085511695",
+              "transaction_hash": "GrmxQo1y6HL9ETL7dLNL4YSzsvvaVvwpsQ93y7AmMALY"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:3byQxKwZxmbAzK1gtaquihEDNk8xhHzHNiLgU6S3KCjc",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FULL_ACCESS",
+            "created": {
+              "block_timestamp": "1794472056085511695",
+              "transaction_hash": "GrmxQo1y6HL9ETL7dLNL4YSzsvvaVvwpsQ93y7AmMALY"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:3i5DTjjkP5fZzh4QuUXwpd6AgbFiFtPeaFu3ULsaA4dy",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FULL_ACCESS",
+            "created": {
+              "block_timestamp": "1794472056085511695",
+              "transaction_hash": "GrmxQo1y6HL9ETL7dLNL4YSzsvvaVvwpsQ93y7AmMALY"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:4Rcu1XgSGHMYNwVWnCRB8JQ5uKjVwZtdr8TiCUDFXHez",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FULL_ACCESS",
+            "created": {
+              "block_timestamp": "1794472056085511695",
+              "transaction_hash": "GrmxQo1y6HL9ETL7dLNL4YSzsvvaVvwpsQ93y7AmMALY"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:4jVac874u1EVkttt5ae8cSX5nGF2tFsmZBsg4WAm3f2s[0].created.block_timestamp",
+        "v1": "1790502532466887200",
+        "v3": "1790502532466887154"
+      },
+      {
+        "path": "keys.ed25519:4oFdiD1Fztv8dyaH8U7KZezxos6po5fY1SWoYa7iXxy3",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FULL_ACCESS",
+            "created": {
+              "block_timestamp": "1794472056085511695",
+              "transaction_hash": "GrmxQo1y6HL9ETL7dLNL4YSzsvvaVvwpsQ93y7AmMALY"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:52zKAsiNwHxqY14MfxEJMhi8Qt2EVJwemcJgF8a9wEqg",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FULL_ACCESS",
+            "created": {
+              "block_timestamp": "1794472056085511695",
+              "transaction_hash": "GrmxQo1y6HL9ETL7dLNL4YSzsvvaVvwpsQ93y7AmMALY"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:7aBcqteTdJFTKfSpguNNvP412e3GPAQ5vtvHFA251bUo",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FULL_ACCESS",
+            "created": {
+              "block_timestamp": "1794472056085511695",
+              "transaction_hash": "GrmxQo1y6HL9ETL7dLNL4YSzsvvaVvwpsQ93y7AmMALY"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:7fB5cCXxq2XrsqD7WG1QcM1fAhzvW7z6F8b7y2vGdEhi",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FULL_ACCESS",
+            "created": {
+              "block_timestamp": "1794472056085511695",
+              "transaction_hash": "GrmxQo1y6HL9ETL7dLNL4YSzsvvaVvwpsQ93y7AmMALY"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:8RPuYmZh9oFVqZ2T132Pu6q9KypEB1fpPUKmszaSWQWe",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FULL_ACCESS",
+            "created": {
+              "block_timestamp": "1794472056085511695",
+              "transaction_hash": "GrmxQo1y6HL9ETL7dLNL4YSzsvvaVvwpsQ93y7AmMALY"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:9DQKAg5QZjNAmuTbX3uhCVWs9xLT6whsLxee94iBQ6Ag",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FULL_ACCESS",
+            "created": {
+              "block_timestamp": "1794472056085511695",
+              "transaction_hash": "GrmxQo1y6HL9ETL7dLNL4YSzsvvaVvwpsQ93y7AmMALY"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:AL2p5YiUq1tSMsPAPpf6Sh7KvJ6ecRx7doxkjtaLchU4",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FULL_ACCESS",
+            "created": {
+              "block_timestamp": "1794472056085511695",
+              "transaction_hash": "GrmxQo1y6HL9ETL7dLNL4YSzsvvaVvwpsQ93y7AmMALY"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:AiQqEuKPXfcfaW2YEECdWWPthdxFT481quQwDk4QSvKg",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FULL_ACCESS",
+            "created": {
+              "block_timestamp": "1794472056085511695",
+              "transaction_hash": "GrmxQo1y6HL9ETL7dLNL4YSzsvvaVvwpsQ93y7AmMALY"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:B21i2wp1r3eGpswp2pe342ngC3sDEwt82hHoGR82ttec",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FULL_ACCESS",
+            "created": {
+              "block_timestamp": "1794472056085511695",
+              "transaction_hash": "GrmxQo1y6HL9ETL7dLNL4YSzsvvaVvwpsQ93y7AmMALY"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:E9kYBwUJjfAPpdRLvEL9a4ACWnUcUDJvG9vvRKwX3GTX",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FULL_ACCESS",
+            "created": {
+              "block_timestamp": "1794472056085511695",
+              "transaction_hash": "GrmxQo1y6HL9ETL7dLNL4YSzsvvaVvwpsQ93y7AmMALY"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:He9YZoXyQUm8PFXwRrU74TyGAzKzBnfAj2WbmdSAnc6g",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FULL_ACCESS",
+            "created": {
+              "block_timestamp": "1794472056085511695",
+              "transaction_hash": "GrmxQo1y6HL9ETL7dLNL4YSzsvvaVvwpsQ93y7AmMALY"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:HqfYvcyyoGQUcPmGDE7vgMEma5KXbyvmU3Tq8qFTXMFd[0].created.block_timestamp",
+        "v1": "1790502547290761500",
+        "v3": "1790502547290761545"
+      },
+      {
+        "path": "keys.ed25519:Nxcy61UHRaGj94TcgYe7DsizfvDycfoNrufqM46YbKt",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FULL_ACCESS",
+            "created": {
+              "block_timestamp": "1794472056085511695",
+              "transaction_hash": "GrmxQo1y6HL9ETL7dLNL4YSzsvvaVvwpsQ93y7AmMALY"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:zG61KcBPWidtYE6xUnteoyQrC7Z3ghy4k9zHS7kAY59",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FULL_ACCESS",
+            "created": {
+              "block_timestamp": "1794472056085511695",
+              "transaction_hash": "GrmxQo1y6HL9ETL7dLNL4YSzsvvaVvwpsQ93y7AmMALY"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "oldest_creation.block_timestamp",
+        "v1": "1790502532466887200",
+        "v3": "1790502532466887154"
+      }
+    ],
+    "keys-08-v3-current-v1": [
+      {
+        "path": "keys.ed25519:2FXUUwF7qUw7zHwtnWcwdCcg5ktUUNBuwTdhXB5Js3vr[0].created.block_timestamp",
+        "v1": "1794472056085511700",
+        "v3": "1794472056085511695"
+      },
+      {
+        "path": "keys.ed25519:2dJ7cYHK8m2WXMS3MbwvPhYq3PnyV2ajnCskqjGc2gfy[0].created.block_timestamp",
+        "v1": "1794472056085511700",
+        "v3": "1794472056085511695"
+      },
+      {
+        "path": "keys.ed25519:2idqWDwzDhyJEJBJkNaN3k3E8wvyiLtUyTwyfbR1MxKH[0].created.block_timestamp",
+        "v1": "1794472056085511700",
+        "v3": "1794472056085511695"
+      },
+      {
+        "path": "keys.ed25519:3KKvsXuHxPh8K82bmknR7UkztRibYN1b8B28nhGcfjqS[0].created.block_timestamp",
+        "v1": "1794472056085511700",
+        "v3": "1794472056085511695"
+      },
+      {
+        "path": "keys.ed25519:3byQxKwZxmbAzK1gtaquihEDNk8xhHzHNiLgU6S3KCjc[0].created.block_timestamp",
+        "v1": "1794472056085511700",
+        "v3": "1794472056085511695"
+      },
+      {
+        "path": "keys.ed25519:3i5DTjjkP5fZzh4QuUXwpd6AgbFiFtPeaFu3ULsaA4dy[0].created.block_timestamp",
+        "v1": "1794472056085511700",
+        "v3": "1794472056085511695"
+      },
+      {
+        "path": "keys.ed25519:4Rcu1XgSGHMYNwVWnCRB8JQ5uKjVwZtdr8TiCUDFXHez[0].created.block_timestamp",
+        "v1": "1794472056085511700",
+        "v3": "1794472056085511695"
+      },
+      {
+        "path": "keys.ed25519:4jVac874u1EVkttt5ae8cSX5nGF2tFsmZBsg4WAm3f2s[0].created.block_timestamp",
+        "v1": "1790502532466887200",
+        "v3": "1790502532466887154"
+      },
+      {
+        "path": "keys.ed25519:4oFdiD1Fztv8dyaH8U7KZezxos6po5fY1SWoYa7iXxy3[0].created.block_timestamp",
+        "v1": "1794472056085511700",
+        "v3": "1794472056085511695"
+      },
+      {
+        "path": "keys.ed25519:52zKAsiNwHxqY14MfxEJMhi8Qt2EVJwemcJgF8a9wEqg[0].created.block_timestamp",
+        "v1": "1794472056085511700",
+        "v3": "1794472056085511695"
+      },
+      {
+        "path": "keys.ed25519:7aBcqteTdJFTKfSpguNNvP412e3GPAQ5vtvHFA251bUo[0].created.block_timestamp",
+        "v1": "1794472056085511700",
+        "v3": "1794472056085511695"
+      },
+      {
+        "path": "keys.ed25519:7fB5cCXxq2XrsqD7WG1QcM1fAhzvW7z6F8b7y2vGdEhi[0].created.block_timestamp",
+        "v1": "1794472056085511700",
+        "v3": "1794472056085511695"
+      },
+      {
+        "path": "keys.ed25519:8RPuYmZh9oFVqZ2T132Pu6q9KypEB1fpPUKmszaSWQWe[0].created.block_timestamp",
+        "v1": "1794472056085511700",
+        "v3": "1794472056085511695"
+      },
+      {
+        "path": "keys.ed25519:9DQKAg5QZjNAmuTbX3uhCVWs9xLT6whsLxee94iBQ6Ag[0].created.block_timestamp",
+        "v1": "1794472056085511700",
+        "v3": "1794472056085511695"
+      },
+      {
+        "path": "keys.ed25519:AL2p5YiUq1tSMsPAPpf6Sh7KvJ6ecRx7doxkjtaLchU4[0].created.block_timestamp",
+        "v1": "1794472056085511700",
+        "v3": "1794472056085511695"
+      },
+      {
+        "path": "keys.ed25519:AiQqEuKPXfcfaW2YEECdWWPthdxFT481quQwDk4QSvKg[0].created.block_timestamp",
+        "v1": "1794472056085511700",
+        "v3": "1794472056085511695"
+      },
+      {
+        "path": "keys.ed25519:B21i2wp1r3eGpswp2pe342ngC3sDEwt82hHoGR82ttec[0].created.block_timestamp",
+        "v1": "1794472056085511700",
+        "v3": "1794472056085511695"
+      },
+      {
+        "path": "keys.ed25519:E9kYBwUJjfAPpdRLvEL9a4ACWnUcUDJvG9vvRKwX3GTX[0].created.block_timestamp",
+        "v1": "1794472056085511700",
+        "v3": "1794472056085511695"
+      },
+      {
+        "path": "keys.ed25519:He9YZoXyQUm8PFXwRrU74TyGAzKzBnfAj2WbmdSAnc6g[0].created.block_timestamp",
+        "v1": "1794472056085511700",
+        "v3": "1794472056085511695"
+      },
+      {
+        "path": "keys.ed25519:HqfYvcyyoGQUcPmGDE7vgMEma5KXbyvmU3Tq8qFTXMFd[0].created.block_timestamp",
+        "v1": "1790502547290761500",
+        "v3": "1790502547290761545"
+      },
+      {
+        "path": "keys.ed25519:Nxcy61UHRaGj94TcgYe7DsizfvDycfoNrufqM46YbKt[0].created.block_timestamp",
+        "v1": "1794472056085511700",
+        "v3": "1794472056085511695"
+      },
+      {
+        "path": "keys.ed25519:zG61KcBPWidtYE6xUnteoyQrC7Z3ghy4k9zHS7kAY59[0].created.block_timestamp",
+        "v1": "1794472056085511700",
+        "v3": "1794472056085511695"
+      },
+      {
+        "path": "oldest_creation.block_timestamp",
+        "v1": "1790502532466887200",
+        "v3": "1790502532466887154"
+      }
+    ],
+    "keys-09-v3-recorded-v1": [
+      {
+        "path": "keys.ed25519:2gtDEwdLuUBawzFLAnCS9gUso3Ph76bRzMpVrtb66f3J[0].created.block_timestamp",
+        "v1": "1622745281923986400",
+        "v3": "1622745281923986384"
+      },
+      {
+        "path": "oldest_creation.block_timestamp",
+        "v1": "1622745281923986400",
+        "v3": "1622745281923986384"
+      }
+    ],
+    "keys-09-v3-current-v1": [
+      {
+        "path": "keys.ed25519:2gtDEwdLuUBawzFLAnCS9gUso3Ph76bRzMpVrtb66f3J[0].created.block_timestamp",
+        "v1": "1622745281923986400",
+        "v3": "1622745281923986384"
+      },
+      {
+        "path": "oldest_creation.block_timestamp",
+        "v1": "1622745281923986400",
+        "v3": "1622745281923986384"
+      }
+    ],
+    "keys-00-v3-recorded-v1": [
+      {
+        "path": "keys.ed25519:EN9Ae5zxonuigYrEVVUYHT8JRCPCmhbgnGUxBCCzBxX9[0].created.block_timestamp",
+        "v1": "1789900457478387500",
+        "v3": "1789900457478387471"
+      },
+      {
+        "path": "oldest_creation.block_timestamp",
+        "v1": "1789900457478387500",
+        "v3": "1789900457478387471"
+      }
+    ],
+    "keys-00-v3-current-v1": [
+      {
+        "path": "keys.ed25519:EN9Ae5zxonuigYrEVVUYHT8JRCPCmhbgnGUxBCCzBxX9[0].created.block_timestamp",
+        "v1": "1789900457478387500",
+        "v3": "1789900457478387471"
+      },
+      {
+        "path": "oldest_creation.block_timestamp",
+        "v1": "1789900457478387500",
+        "v3": "1789900457478387471"
+      }
+    ],
+    "keys-01-v3-recorded-v1": [
+      {
+        "path": "keys.ed25519:4LuWyjCVFnJYHqdasMBGr9bY2P4n7BFJDs3xWnvEUC8w[0].created.block_timestamp",
+        "v1": "1776235984442705700",
+        "v3": "1776235984442705657"
+      },
+      {
+        "path": "oldest_creation.block_timestamp",
+        "v1": "1776235984442705700",
+        "v3": "1776235984442705657"
+      }
+    ],
+    "keys-01-v3-current-v1": [
+      {
+        "path": "keys.ed25519:4LuWyjCVFnJYHqdasMBGr9bY2P4n7BFJDs3xWnvEUC8w[0].created.block_timestamp",
+        "v1": "1776235984442705700",
+        "v3": "1776235984442705657"
+      },
+      {
+        "path": "oldest_creation.block_timestamp",
+        "v1": "1776235984442705700",
+        "v3": "1776235984442705657"
+      }
+    ],
+    "keys-03-v3-recorded-v1": [
+      {
+        "path": "keys.ed25519:2nwukzu9FrAYbrrBRyHH7XNaJpQcYCoVqZAPeSXEbQJF[0].created.block_timestamp",
+        "v1": "1750463041459842000",
+        "v3": "1750463041459842071"
+      },
+      {
+        "path": "keys.ed25519:3HWkUBGDLyJJRi2azQWZ5sWXvnxcR6zqjk55CZMnC5zm[0].created.block_timestamp",
+        "v1": "1730495327460329700",
+        "v3": "1730495327460329831"
+      },
+      {
+        "path": "keys.ed25519:3HWkUBGDLyJJRi2azQWZ5sWXvnxcR6zqjk55CZMnC5zm[0].deleted.block_timestamp",
+        "v1": "1730904559350560800",
+        "v3": "1730904559350560782"
+      },
+      {
+        "path": "keys.ed25519:4vq3dbhcG3A1fJufpgMZwa1UKQcnWf3aprFFp916J82Z[0].created.block_timestamp",
+        "v1": "1750463041459842000",
+        "v3": "1750463041459842071"
+      },
+      {
+        "path": "keys.ed25519:5feHBLeyMBf7mppZR1kHv3Hk43kG7b69pM1JKEfWPjdC[0].created.block_timestamp",
+        "v1": "1730819417124133600",
+        "v3": "1747666860030509853"
+      },
+      {
+        "path": "keys.ed25519:5feHBLeyMBf7mppZR1kHv3Hk43kG7b69pM1JKEfWPjdC[0].created.transaction_hash",
+        "v1": "5RvUU9CwW7St4XmCvdVfiBiQmUzcMAYrWkoPBpfr8DDo",
+        "v3": "3ZLo2tr7XsYe5mDCTV4eRVoKXhCeCQLVtsnc4r8759MU"
+      },
+      {
+        "path": "keys.ed25519:5feHBLeyMBf7mppZR1kHv3Hk43kG7b69pM1JKEfWPjdC[0].deleted.block_timestamp",
+        "v1": "1737542930593650200",
+        "v3": null
+      },
+      {
+        "path": "keys.ed25519:5feHBLeyMBf7mppZR1kHv3Hk43kG7b69pM1JKEfWPjdC[0].deleted.transaction_hash",
+        "v1": "5wSioa1EjTdx66MQtXYCvJwYv4ANucdm3DKJfh4dHaNp",
+        "v3": null
+      },
+      {
+        "path": "keys.ed25519:8KwHMd5ruFvFqcBCAq1k7k5aqpdLoGMfbUeQKjbaMdSb[0].created.block_timestamp",
+        "v1": "1730819417124133600",
+        "v3": "1747666860030509853"
+      },
+      {
+        "path": "keys.ed25519:8KwHMd5ruFvFqcBCAq1k7k5aqpdLoGMfbUeQKjbaMdSb[0].created.transaction_hash",
+        "v1": "5RvUU9CwW7St4XmCvdVfiBiQmUzcMAYrWkoPBpfr8DDo",
+        "v3": "3ZLo2tr7XsYe5mDCTV4eRVoKXhCeCQLVtsnc4r8759MU"
+      },
+      {
+        "path": "keys.ed25519:8KwHMd5ruFvFqcBCAq1k7k5aqpdLoGMfbUeQKjbaMdSb[0].deleted.block_timestamp",
+        "v1": "1737542930593650200",
+        "v3": null
+      },
+      {
+        "path": "keys.ed25519:8KwHMd5ruFvFqcBCAq1k7k5aqpdLoGMfbUeQKjbaMdSb[0].deleted.transaction_hash",
+        "v1": "5wSioa1EjTdx66MQtXYCvJwYv4ANucdm3DKJfh4dHaNp",
+        "v3": null
+      },
+      {
+        "path": "keys.ed25519:Anpgu2DvnC3E4yULEyN5eX64KPpgpKTHomgWcm6ArZyr[0].created.block_timestamp",
+        "v1": "1771594289172534800",
+        "v3": "1771594289172534736"
+      },
+      {
+        "path": "keys.ed25519:BXa2Evq6XGAr3TiXfQisyv9PYp4Gpzm14AbLuw8h6G77[0].created.block_timestamp",
+        "v1": "1730819417124133600",
+        "v3": "1748860692242096143"
+      },
+      {
+        "path": "keys.ed25519:BXa2Evq6XGAr3TiXfQisyv9PYp4Gpzm14AbLuw8h6G77[0].created.transaction_hash",
+        "v1": "5RvUU9CwW7St4XmCvdVfiBiQmUzcMAYrWkoPBpfr8DDo",
+        "v3": "BGXb8ByJJ49YV7v7ZWNyhbSTve3UybBBXfmeNmowGTx9"
+      },
+      {
+        "path": "keys.ed25519:BXa2Evq6XGAr3TiXfQisyv9PYp4Gpzm14AbLuw8h6G77[0].deleted.block_timestamp",
+        "v1": "1737542930593650200",
+        "v3": null
+      },
+      {
+        "path": "keys.ed25519:BXa2Evq6XGAr3TiXfQisyv9PYp4Gpzm14AbLuw8h6G77[0].deleted.transaction_hash",
+        "v1": "5wSioa1EjTdx66MQtXYCvJwYv4ANucdm3DKJfh4dHaNp",
+        "v3": null
+      },
+      {
+        "path": "keys.ed25519:C5xuDoXBtNwes8Tz6BqNHHeFmTRSYg2Ao9PhBpHZj7v7[0].created.block_timestamp",
+        "v1": "1750446090162213600",
+        "v3": "1750446090162213573"
+      },
+      {
+        "path": "keys.ed25519:C5xuDoXBtNwes8Tz6BqNHHeFmTRSYg2Ao9PhBpHZj7v7[0].deleted.block_timestamp",
+        "v1": "1750446125041518300",
+        "v3": "1750446125041518380"
+      },
+      {
+        "path": "keys.ed25519:CTjF3Xm8s7Gob9qLPMbh3sAq8scdoEpibrDFFCMAVwcQ[0].created.block_timestamp",
+        "v1": "1750463041459842000",
+        "v3": "1750463041459842071"
+      },
+      {
+        "path": "keys.ed25519:FKPYRP9c93qVKPexkDAsHhqmgwmrS4H5uMiuqGXhY2y3[0].created.block_timestamp",
+        "v1": "1750463041459842000",
+        "v3": "1750463041459842071"
+      },
+      {
+        "path": "keys.ed25519:oxEocH88sCavwDRXqoMtryK2Qm9Af72jxMsvsQGHQJx[0].created.block_timestamp",
+        "v1": "1750463041459842000",
+        "v3": "1750463041459842071"
+      },
+      {
+        "path": "oldest_creation.block_timestamp",
+        "v1": "1730495327460329700",
+        "v3": "1730495327460329831"
+      }
+    ],
+    "keys-03-v3-current-v1": [
+      {
+        "path": "keys.ed25519:2nwukzu9FrAYbrrBRyHH7XNaJpQcYCoVqZAPeSXEbQJF[0].created.block_timestamp",
+        "v1": "1750463041459842000",
+        "v3": "1750463041459842071"
+      },
+      {
+        "path": "keys.ed25519:3HWkUBGDLyJJRi2azQWZ5sWXvnxcR6zqjk55CZMnC5zm[0].created.block_timestamp",
+        "v1": "1730495327460329700",
+        "v3": "1730495327460329831"
+      },
+      {
+        "path": "keys.ed25519:3HWkUBGDLyJJRi2azQWZ5sWXvnxcR6zqjk55CZMnC5zm[0].deleted.block_timestamp",
+        "v1": "1730904559350560800",
+        "v3": "1730904559350560782"
+      },
+      {
+        "path": "keys.ed25519:4vq3dbhcG3A1fJufpgMZwa1UKQcnWf3aprFFp916J82Z[0].created.block_timestamp",
+        "v1": "1750463041459842000",
+        "v3": "1750463041459842071"
+      },
+      {
+        "path": "keys.ed25519:5feHBLeyMBf7mppZR1kHv3Hk43kG7b69pM1JKEfWPjdC[0].created.block_timestamp",
+        "v1": "1730819417124133600",
+        "v3": "1747666860030509853"
+      },
+      {
+        "path": "keys.ed25519:5feHBLeyMBf7mppZR1kHv3Hk43kG7b69pM1JKEfWPjdC[0].created.transaction_hash",
+        "v1": "5RvUU9CwW7St4XmCvdVfiBiQmUzcMAYrWkoPBpfr8DDo",
+        "v3": "3ZLo2tr7XsYe5mDCTV4eRVoKXhCeCQLVtsnc4r8759MU"
+      },
+      {
+        "path": "keys.ed25519:5feHBLeyMBf7mppZR1kHv3Hk43kG7b69pM1JKEfWPjdC[0].deleted.block_timestamp",
+        "v1": "1737542930593650200",
+        "v3": null
+      },
+      {
+        "path": "keys.ed25519:5feHBLeyMBf7mppZR1kHv3Hk43kG7b69pM1JKEfWPjdC[0].deleted.transaction_hash",
+        "v1": "5wSioa1EjTdx66MQtXYCvJwYv4ANucdm3DKJfh4dHaNp",
+        "v3": null
+      },
+      {
+        "path": "keys.ed25519:8KwHMd5ruFvFqcBCAq1k7k5aqpdLoGMfbUeQKjbaMdSb[0].created.block_timestamp",
+        "v1": "1730819417124133600",
+        "v3": "1747666860030509853"
+      },
+      {
+        "path": "keys.ed25519:8KwHMd5ruFvFqcBCAq1k7k5aqpdLoGMfbUeQKjbaMdSb[0].created.transaction_hash",
+        "v1": "5RvUU9CwW7St4XmCvdVfiBiQmUzcMAYrWkoPBpfr8DDo",
+        "v3": "3ZLo2tr7XsYe5mDCTV4eRVoKXhCeCQLVtsnc4r8759MU"
+      },
+      {
+        "path": "keys.ed25519:8KwHMd5ruFvFqcBCAq1k7k5aqpdLoGMfbUeQKjbaMdSb[0].deleted.block_timestamp",
+        "v1": "1737542930593650200",
+        "v3": null
+      },
+      {
+        "path": "keys.ed25519:8KwHMd5ruFvFqcBCAq1k7k5aqpdLoGMfbUeQKjbaMdSb[0].deleted.transaction_hash",
+        "v1": "5wSioa1EjTdx66MQtXYCvJwYv4ANucdm3DKJfh4dHaNp",
+        "v3": null
+      },
+      {
+        "path": "keys.ed25519:Anpgu2DvnC3E4yULEyN5eX64KPpgpKTHomgWcm6ArZyr[0].created.block_timestamp",
+        "v1": "1771594289172534800",
+        "v3": "1771594289172534736"
+      },
+      {
+        "path": "keys.ed25519:BXa2Evq6XGAr3TiXfQisyv9PYp4Gpzm14AbLuw8h6G77[0].created.block_timestamp",
+        "v1": "1730819417124133600",
+        "v3": "1748860692242096143"
+      },
+      {
+        "path": "keys.ed25519:BXa2Evq6XGAr3TiXfQisyv9PYp4Gpzm14AbLuw8h6G77[0].created.transaction_hash",
+        "v1": "5RvUU9CwW7St4XmCvdVfiBiQmUzcMAYrWkoPBpfr8DDo",
+        "v3": "BGXb8ByJJ49YV7v7ZWNyhbSTve3UybBBXfmeNmowGTx9"
+      },
+      {
+        "path": "keys.ed25519:BXa2Evq6XGAr3TiXfQisyv9PYp4Gpzm14AbLuw8h6G77[0].deleted.block_timestamp",
+        "v1": "1737542930593650200",
+        "v3": null
+      },
+      {
+        "path": "keys.ed25519:BXa2Evq6XGAr3TiXfQisyv9PYp4Gpzm14AbLuw8h6G77[0].deleted.transaction_hash",
+        "v1": "5wSioa1EjTdx66MQtXYCvJwYv4ANucdm3DKJfh4dHaNp",
+        "v3": null
+      },
+      {
+        "path": "keys.ed25519:C5xuDoXBtNwes8Tz6BqNHHeFmTRSYg2Ao9PhBpHZj7v7[0].created.block_timestamp",
+        "v1": "1750446090162213600",
+        "v3": "1750446090162213573"
+      },
+      {
+        "path": "keys.ed25519:C5xuDoXBtNwes8Tz6BqNHHeFmTRSYg2Ao9PhBpHZj7v7[0].deleted.block_timestamp",
+        "v1": "1750446125041518300",
+        "v3": "1750446125041518380"
+      },
+      {
+        "path": "keys.ed25519:CTjF3Xm8s7Gob9qLPMbh3sAq8scdoEpibrDFFCMAVwcQ[0].created.block_timestamp",
+        "v1": "1750463041459842000",
+        "v3": "1750463041459842071"
+      },
+      {
+        "path": "keys.ed25519:FKPYRP9c93qVKPexkDAsHhqmgwmrS4H5uMiuqGXhY2y3[0].created.block_timestamp",
+        "v1": "1750463041459842000",
+        "v3": "1750463041459842071"
+      },
+      {
+        "path": "keys.ed25519:oxEocH88sCavwDRXqoMtryK2Qm9Af72jxMsvsQGHQJx[0].created.block_timestamp",
+        "v1": "1750463041459842000",
+        "v3": "1750463041459842071"
+      },
+      {
+        "path": "oldest_creation.block_timestamp",
+        "v1": "1730495327460329700",
+        "v3": "1730495327460329831"
+      }
+    ],
+    "keys-04-v3-recorded-v1": [
+      {
+        "path": "key_count",
+        "v1": 7,
+        "v3": 9
+      },
+      {
+        "path": "keys.ed25519:2q2PBjfs5ywyko8k5MqmDPvSsRfvgMKvncgBmGzGrWKU[0].created.block_timestamp",
+        "v1": "1733380371565293300",
+        "v3": "1733380371565293427"
+      },
+      {
+        "path": "keys.ed25519:2q2PBjfs5ywyko8k5MqmDPvSsRfvgMKvncgBmGzGrWKU[0].deleted.block_timestamp",
+        "v1": "1733380601737485000",
+        "v3": "1733380601737484936"
+      },
+      {
+        "path": "keys.ed25519:2vhEjU9oKD28fjGEkPkmnEsiCSJEQgVdkvBnNM7L5V12",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FULL_ACCESS",
+            "created": {
+              "block_timestamp": "1793613952367977614",
+              "transaction_hash": "9fapq9moVjZ3aJzpaZa2t2NPCA4E3qutounXFzxbsVgw"
+            },
+            "deleted": {
+              "block_timestamp": "1793614138845643561",
+              "transaction_hash": "6n7HYmsaTcnYdeKpoWbPKYfP9SLqXLUEHxWV1ZF4Knbp"
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:3TSvVvABQXkFYh9s6vPBUrfiF3HTMZCSzzoRETBLoVzh[0].created.block_timestamp",
+        "v1": "1713950361269521400",
+        "v3": "1713950361269521410"
+      },
+      {
+        "path": "keys.ed25519:A7YfvSgLrJ2p6jTnDQzZVxv81wrfv7r4eVhkh2cVWpv2[0].created.block_timestamp",
+        "v1": "1713951122617423600",
+        "v3": "1713951122617423699"
+      },
+      {
+        "path": "keys.ed25519:A7YfvSgLrJ2p6jTnDQzZVxv81wrfv7r4eVhkh2cVWpv2[0].deleted.block_timestamp",
+        "v1": "1713951198770638800",
+        "v3": "1713951198770638757"
+      },
+      {
+        "path": "keys.ed25519:BVJG57zvgk1rgT83z9mivFqvmyVM6fg4hodH7z3hAKHt[0].created.block_timestamp",
+        "v1": "1713957120018492400",
+        "v3": "1713957120018492337"
+      },
+      {
+        "path": "keys.ed25519:BVJG57zvgk1rgT83z9mivFqvmyVM6fg4hodH7z3hAKHt[0].deleted.block_timestamp",
+        "v1": "1714285885575903500",
+        "v3": "1714285885575903387"
+      },
+      {
+        "path": "keys.ed25519:EzWiapnRjaCNZmxAmPgDmyLFQX86bkLUsw7wnBUnYkKP",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FULL_ACCESS",
+            "created": {
+              "block_timestamp": "1793332912600897679",
+              "transaction_hash": "84PCbSRcV8VsAe6NEMD8s48rSQ2vV6X1zy7qDnvgedVK"
+            },
+            "deleted": {
+              "block_timestamp": "1793333158070760445",
+              "transaction_hash": "61aeYv8ReKxRJeHEonNHkXLenmdLcMSYmiT4C21QVW8q"
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:GcANFtwjuEsfCjN6A1Gz2VNfZU4ran5yeNWmjAbiM9DM[0].created.block_timestamp",
+        "v1": "1713950761250097000",
+        "v3": "1713950761250096861"
+      },
+      {
+        "path": "keys.ed25519:GcANFtwjuEsfCjN6A1Gz2VNfZU4ran5yeNWmjAbiM9DM[0].deleted.block_timestamp",
+        "v1": "1713950970126422000",
+        "v3": "1713950970126421918"
+      },
+      {
+        "path": "keys.ed25519:HohrXko5myK9uZWBbxH8WMgH78PbxQCoR77ajda4pifr[0].created.block_timestamp",
+        "v1": "1792929535566591000",
+        "v3": "1792929535566591002"
+      },
+      {
+        "path": "keys.ed25519:HohrXko5myK9uZWBbxH8WMgH78PbxQCoR77ajda4pifr[0].deleted.block_timestamp",
+        "v1": "1792929685856009200",
+        "v3": "1792929685856009107"
+      },
+      {
+        "path": "keys.ed25519:f2JwSwHfqjsGZw7kCQHHT1WVo17nk1L2DuVGXs5ev3V[0].created.block_timestamp",
+        "v1": "1713950667156651800",
+        "v3": "1713950667156651821"
+      },
+      {
+        "path": "keys.ed25519:f2JwSwHfqjsGZw7kCQHHT1WVo17nk1L2DuVGXs5ev3V[0].deleted.block_timestamp",
+        "v1": "1714379022304079000",
+        "v3": "1714379022304079042"
+      },
+      {
+        "path": "oldest_creation.block_timestamp",
+        "v1": "1713950361269521400",
+        "v3": "1713950361269521410"
+      }
+    ],
+    "keys-04-v3-current-v1": [
+      {
+        "path": "keys.ed25519:2q2PBjfs5ywyko8k5MqmDPvSsRfvgMKvncgBmGzGrWKU[0].created.block_timestamp",
+        "v1": "1733380371565293300",
+        "v3": "1733380371565293427"
+      },
+      {
+        "path": "keys.ed25519:2q2PBjfs5ywyko8k5MqmDPvSsRfvgMKvncgBmGzGrWKU[0].deleted.block_timestamp",
+        "v1": "1733380601737485000",
+        "v3": "1733380601737484936"
+      },
+      {
+        "path": "keys.ed25519:2vhEjU9oKD28fjGEkPkmnEsiCSJEQgVdkvBnNM7L5V12[0].created.block_timestamp",
+        "v1": "1793613952367977700",
+        "v3": "1793613952367977614"
+      },
+      {
+        "path": "keys.ed25519:2vhEjU9oKD28fjGEkPkmnEsiCSJEQgVdkvBnNM7L5V12[0].deleted.block_timestamp",
+        "v1": "1793614138845643500",
+        "v3": "1793614138845643561"
+      },
+      {
+        "path": "keys.ed25519:3TSvVvABQXkFYh9s6vPBUrfiF3HTMZCSzzoRETBLoVzh[0].created.block_timestamp",
+        "v1": "1713950361269521400",
+        "v3": "1713950361269521410"
+      },
+      {
+        "path": "keys.ed25519:A7YfvSgLrJ2p6jTnDQzZVxv81wrfv7r4eVhkh2cVWpv2[0].created.block_timestamp",
+        "v1": "1713951122617423600",
+        "v3": "1713951122617423699"
+      },
+      {
+        "path": "keys.ed25519:A7YfvSgLrJ2p6jTnDQzZVxv81wrfv7r4eVhkh2cVWpv2[0].deleted.block_timestamp",
+        "v1": "1713951198770638800",
+        "v3": "1713951198770638757"
+      },
+      {
+        "path": "keys.ed25519:BVJG57zvgk1rgT83z9mivFqvmyVM6fg4hodH7z3hAKHt[0].created.block_timestamp",
+        "v1": "1713957120018492400",
+        "v3": "1713957120018492337"
+      },
+      {
+        "path": "keys.ed25519:BVJG57zvgk1rgT83z9mivFqvmyVM6fg4hodH7z3hAKHt[0].deleted.block_timestamp",
+        "v1": "1714285885575903500",
+        "v3": "1714285885575903387"
+      },
+      {
+        "path": "keys.ed25519:EzWiapnRjaCNZmxAmPgDmyLFQX86bkLUsw7wnBUnYkKP[0].created.block_timestamp",
+        "v1": "1793332912600897800",
+        "v3": "1793332912600897679"
+      },
+      {
+        "path": "keys.ed25519:EzWiapnRjaCNZmxAmPgDmyLFQX86bkLUsw7wnBUnYkKP[0].deleted.block_timestamp",
+        "v1": "1793333158070760400",
+        "v3": "1793333158070760445"
+      },
+      {
+        "path": "keys.ed25519:GcANFtwjuEsfCjN6A1Gz2VNfZU4ran5yeNWmjAbiM9DM[0].created.block_timestamp",
+        "v1": "1713950761250097000",
+        "v3": "1713950761250096861"
+      },
+      {
+        "path": "keys.ed25519:GcANFtwjuEsfCjN6A1Gz2VNfZU4ran5yeNWmjAbiM9DM[0].deleted.block_timestamp",
+        "v1": "1713950970126422000",
+        "v3": "1713950970126421918"
+      },
+      {
+        "path": "keys.ed25519:HohrXko5myK9uZWBbxH8WMgH78PbxQCoR77ajda4pifr[0].created.block_timestamp",
+        "v1": "1792929535566591000",
+        "v3": "1792929535566591002"
+      },
+      {
+        "path": "keys.ed25519:HohrXko5myK9uZWBbxH8WMgH78PbxQCoR77ajda4pifr[0].deleted.block_timestamp",
+        "v1": "1792929685856009200",
+        "v3": "1792929685856009107"
+      },
+      {
+        "path": "keys.ed25519:f2JwSwHfqjsGZw7kCQHHT1WVo17nk1L2DuVGXs5ev3V[0].created.block_timestamp",
+        "v1": "1713950667156651800",
+        "v3": "1713950667156651821"
+      },
+      {
+        "path": "keys.ed25519:f2JwSwHfqjsGZw7kCQHHT1WVo17nk1L2DuVGXs5ev3V[0].deleted.block_timestamp",
+        "v1": "1714379022304079000",
+        "v3": "1714379022304079042"
+      },
+      {
+        "path": "oldest_creation.block_timestamp",
+        "v1": "1713950361269521400",
+        "v3": "1713950361269521410"
+      }
+    ],
+    "keys-05-v3-recorded-v1": [
+      {
+        "path": "keys.ed25519:2PvRJuhUvjqJWgWezg3w8rfwcUA85u9HFYUCESom7QLW[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:3B65T7r6NM4xPbKbfnK9ncshMmjW1sHA1ChuGqgnvjZG[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:3dg1Ty7CpbwPWDw4PNxhFeaBaERgEnEoGQxVjBvnDU42[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:6NzvumonVLGxso8BbFwPsEty6aWyF9rS3MfoDFi5by7b",
+        "v1": [
+          {
+            "permission_kind": "FULL_ACCESS",
+            "created": {
+              "block_timestamp": "1764955201593179400",
+              "transaction_hash": "6stkh4Fx87c9L7Z9QUas3XSVYMWsJQKoWMmHqF3eyjzh"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ],
+        "v3": null
+      },
+      {
+        "path": "keys.ed25519:7cDXfjdLxXoMESuPVLdW2d4Ht4jRJq7QYzKVbCUZuKB3[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:7djKryKMBjqu8i1T1p5HerniSKFbuKzgCNbH8hDZScpo[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:8ASrX18jzkNFsZr1oXsfWhC2CtccMBTRpdsdKUWrt6FX[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:AcKApJaoheeWJNaxdmZjfg2FYU9Yxc8ASR3SYd1vKhie[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:B8Hu6jiy5Zkh9JyeSAihGapWoUf8jAC8SKGhk6G91Qiq[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:Bgzn9YB8CBX9uTXKUc9FFEaatMJ5FLSKCeacQyHZcR4i",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FULL_ACCESS",
+            "created": {
+              "block_timestamp": "1764955201593179317",
+              "transaction_hash": "6stkh4Fx87c9L7Z9QUas3XSVYMWsJQKoWMmHqF3eyjzh"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:BiKMbmjG7Lwrt5zQQkWMSqo99nhF65rdhMZD7hBxDUCV[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:But8FJvTp4cHedFw344tbFKJ4s6vJziw3CivfkmmzSqi[0].created.block_timestamp",
+        "v1": "1764955201593179400",
+        "v3": "1764955201593179317"
+      },
+      {
+        "path": "keys.ed25519:C9jzPDaa5kPbittywQRMXjDYawJkbVXuKwXKQbmfCvYF[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:CaBUc5jeLWS9YJ5V1iJ5xMe9yjGzqDvwM8BmAh3wpQu3[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:CbVwufVQDqGAUrssQxLcSxz2bfFUmimvXA7JndeHMWVD[0].created.block_timestamp",
+        "v1": "1764955201593179400",
+        "v3": "1764955201593179317"
+      },
+      {
+        "path": "keys.ed25519:DPr8rn2Gv5SXLi87qZHi6HCLpkkbMqHCydTdokGjW5zm[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:DnfFSYjPx5vAHb7khj5UaX3yweviU5PcW81KN8N325Mz[0].created.block_timestamp",
+        "v1": "1764955201593179400",
+        "v3": "1764955201593179317"
+      },
+      {
+        "path": "keys.ed25519:DteysixGH54gqTDp2ekCkmXbLK4EJoE9xzLhNJ5W8c5z[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:DuyJYxWGg3boyPu7eemYPxWStcgM4v1coSXLTHW2y3AX[0].created.block_timestamp",
+        "v1": "1764955201593179400",
+        "v3": "1764955201593179317"
+      },
+      {
+        "path": "keys.ed25519:EAMZEY7M6biSS4LLiy1pHMBJFDTJvQ6BDN2U91Gn8Gdx[0].created.block_timestamp",
+        "v1": "1764955201593179400",
+        "v3": "1764955201593179317"
+      },
+      {
+        "path": "keys.ed25519:EtXHgciY3GniEJVmBrsRLP5SkBF28jfLP59zzoNsXqFA[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:F9QRyFBj7ZSBCKHSMQSujhty76wmD1rSfqhy9k65P3zC[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:HnCd8r7zoip79VwA5SVX4Fnu8x3HNwHNKeWkZzBygiPA[0].created.block_timestamp",
+        "v1": "1764955201593179400",
+        "v3": "1764955201593179317"
+      },
+      {
+        "path": "keys.ed25519:J2uS3CrB4uQC3pGE1qkmCB7BUR3JRRQaKT6qGb3vJyvb[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:J8cuYgKDdZNQbthRKm1AtwinDuxXgzcnKNkijNEqbzN3[0].created.block_timestamp",
+        "v1": "1764955201593179400",
+        "v3": "1764955201593179317"
+      },
+      {
+        "path": "keys.ed25519:S7SYxa55bbjbNrnT9exLsYe29JvjfmZTePRQB3BSrqG[0].created.block_timestamp",
+        "v1": "1764955201593179400",
+        "v3": "1764955201593179317"
+      },
+      {
+        "path": "oldest_creation.block_timestamp",
+        "v1": "1764955201593179400",
+        "v3": "1764955201593179317"
+      }
+    ],
+    "keys-05-v3-current-v1": [
+      {
+        "path": "keys.ed25519:2PvRJuhUvjqJWgWezg3w8rfwcUA85u9HFYUCESom7QLW[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:3B65T7r6NM4xPbKbfnK9ncshMmjW1sHA1ChuGqgnvjZG[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:3dg1Ty7CpbwPWDw4PNxhFeaBaERgEnEoGQxVjBvnDU42[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:6NzvumonVLGxso8BbFwPsEty6aWyF9rS3MfoDFi5by7b",
+        "v1": [
+          {
+            "permission_kind": "FULL_ACCESS",
+            "created": {
+              "block_timestamp": "1764955201593179400",
+              "transaction_hash": "6stkh4Fx87c9L7Z9QUas3XSVYMWsJQKoWMmHqF3eyjzh"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ],
+        "v3": null
+      },
+      {
+        "path": "keys.ed25519:7cDXfjdLxXoMESuPVLdW2d4Ht4jRJq7QYzKVbCUZuKB3[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:7djKryKMBjqu8i1T1p5HerniSKFbuKzgCNbH8hDZScpo[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:8ASrX18jzkNFsZr1oXsfWhC2CtccMBTRpdsdKUWrt6FX[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:AcKApJaoheeWJNaxdmZjfg2FYU9Yxc8ASR3SYd1vKhie[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:B8Hu6jiy5Zkh9JyeSAihGapWoUf8jAC8SKGhk6G91Qiq[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:Bgzn9YB8CBX9uTXKUc9FFEaatMJ5FLSKCeacQyHZcR4i",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FULL_ACCESS",
+            "created": {
+              "block_timestamp": "1764955201593179317",
+              "transaction_hash": "6stkh4Fx87c9L7Z9QUas3XSVYMWsJQKoWMmHqF3eyjzh"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:BiKMbmjG7Lwrt5zQQkWMSqo99nhF65rdhMZD7hBxDUCV[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:But8FJvTp4cHedFw344tbFKJ4s6vJziw3CivfkmmzSqi[0].created.block_timestamp",
+        "v1": "1764955201593179400",
+        "v3": "1764955201593179317"
+      },
+      {
+        "path": "keys.ed25519:C9jzPDaa5kPbittywQRMXjDYawJkbVXuKwXKQbmfCvYF[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:CaBUc5jeLWS9YJ5V1iJ5xMe9yjGzqDvwM8BmAh3wpQu3[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:CbVwufVQDqGAUrssQxLcSxz2bfFUmimvXA7JndeHMWVD[0].created.block_timestamp",
+        "v1": "1764955201593179400",
+        "v3": "1764955201593179317"
+      },
+      {
+        "path": "keys.ed25519:DPr8rn2Gv5SXLi87qZHi6HCLpkkbMqHCydTdokGjW5zm[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:DnfFSYjPx5vAHb7khj5UaX3yweviU5PcW81KN8N325Mz[0].created.block_timestamp",
+        "v1": "1764955201593179400",
+        "v3": "1764955201593179317"
+      },
+      {
+        "path": "keys.ed25519:DteysixGH54gqTDp2ekCkmXbLK4EJoE9xzLhNJ5W8c5z[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:DuyJYxWGg3boyPu7eemYPxWStcgM4v1coSXLTHW2y3AX[0].created.block_timestamp",
+        "v1": "1764955201593179400",
+        "v3": "1764955201593179317"
+      },
+      {
+        "path": "keys.ed25519:EAMZEY7M6biSS4LLiy1pHMBJFDTJvQ6BDN2U91Gn8Gdx[0].created.block_timestamp",
+        "v1": "1764955201593179400",
+        "v3": "1764955201593179317"
+      },
+      {
+        "path": "keys.ed25519:EtXHgciY3GniEJVmBrsRLP5SkBF28jfLP59zzoNsXqFA[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:F9QRyFBj7ZSBCKHSMQSujhty76wmD1rSfqhy9k65P3zC[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:HnCd8r7zoip79VwA5SVX4Fnu8x3HNwHNKeWkZzBygiPA[0].created.block_timestamp",
+        "v1": "1764955201593179400",
+        "v3": "1764955201593179317"
+      },
+      {
+        "path": "keys.ed25519:J2uS3CrB4uQC3pGE1qkmCB7BUR3JRRQaKT6qGb3vJyvb[0].created.block_timestamp",
+        "v1": "1764955259124316700",
+        "v3": "1764955259124316584"
+      },
+      {
+        "path": "keys.ed25519:J8cuYgKDdZNQbthRKm1AtwinDuxXgzcnKNkijNEqbzN3[0].created.block_timestamp",
+        "v1": "1764955201593179400",
+        "v3": "1764955201593179317"
+      },
+      {
+        "path": "keys.ed25519:S7SYxa55bbjbNrnT9exLsYe29JvjfmZTePRQB3BSrqG[0].created.block_timestamp",
+        "v1": "1764955201593179400",
+        "v3": "1764955201593179317"
+      },
+      {
+        "path": "oldest_creation.block_timestamp",
+        "v1": "1764955201593179400",
+        "v3": "1764955201593179317"
+      }
+    ],
+    "keys-06-v3-recorded-v1": [
+      {
+        "path": "key_count",
+        "v1": 5,
+        "v3": 12
+      },
+      {
+        "path": "keys.ed25519:29vjQ7yAgR8uCtxkTRke7iWqS9y9M27X5Wg854n1SRHZ",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FUNCTION_CALL",
+            "created": {
+              "block_timestamp": "1793386874544168746",
+              "transaction_hash": "9V1VSDRzJXo96oxaxaE7xGdw9JmMk3wP2YgauHdLbP8T"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:2vMnCvhZpYY14W4TmVzXZ8cW7ciHvrFeYXmQrczJKZcp",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FUNCTION_CALL",
+            "created": {
+              "block_timestamp": "1793386884304260175",
+              "transaction_hash": "FZCeiz62bn4iisDQZgiDCMDc3zp3vdf6C6U5WFdM8DHP"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:4UNwrL4Aak48v7CFPo7cicc1hLWvg3a4kg3YSbRxskPN",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FUNCTION_CALL",
+            "created": {
+              "block_timestamp": "1793386921696890903",
+              "transaction_hash": "NbTRmDTFd82nJLa1fhiiXmGo53YPX8Hez6Guwtoo9Ek"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:59FaUAn32N663pg8d6AuCymt6FcANKfvE7WDx6ZT5MRx[0].created.block_timestamp",
+        "v1": "1793279287083477500",
+        "v3": "1793279287083477392"
+      },
+      {
+        "path": "keys.ed25519:5iTZKveG7myR2cWipRZhSGycxofRHo6Ky6TLMfmrwoC[0].created.block_timestamp",
+        "v1": "1793262248764134400",
+        "v3": "1793262248764134458"
+      },
+      {
+        "path": "keys.ed25519:673m3jrtdd11tXYHHnSZ4RxERwUEZRbcYJKyRNkf6B57[0].created.block_timestamp",
+        "v1": "1791188470968601300",
+        "v3": "1791188470968601295"
+      },
+      {
+        "path": "keys.ed25519:7kp2iws9z1YSGHquUyf1sCZFajFNmyfTVPnWQ71apKyN",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FUNCTION_CALL",
+            "created": {
+              "block_timestamp": "1793386848516008459",
+              "transaction_hash": "EVYVkJsuJAVV2k1x8BXwGyra8FRvSBjxzfBspCyABX29"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:7nXeQu1L73ct6xRB3shbQ9MBjCNM2PzupKajPr5RREwL",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FUNCTION_CALL",
+            "created": {
+              "block_timestamp": "1793386912283216754",
+              "transaction_hash": "DQJwzKvdEp1DqnJCsJkxQc7DZF9vrZnLk9XxcCZiAKNJ"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:9sDw3xzTykEtgoZPwg19oFfcEft19oaaAs3e7A9dWfo9",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FUNCTION_CALL",
+            "created": {
+              "block_timestamp": "1793386893789000292",
+              "transaction_hash": "NuxUrRrrhT5x2yG4JCeDiKTrH5hmWsYXajV4yRMEJNi"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "keys.ed25519:DArJjbzhwVe44qdbZBdffuPwDfdhEnGg1ddqKdvvjzKf[0].created.block_timestamp",
+        "v1": "1791189200713488600",
+        "v3": "1791189200713488751"
+      },
+      {
+        "path": "keys.ed25519:DJzWFLAyVeVK8jYfbXQPRx6VJsZ7ZByjsyWk2wT7TPdu[0].created.block_timestamp",
+        "v1": "1793279298706638800",
+        "v3": "1793279298706638796"
+      },
+      {
+        "path": "keys.ed25519:ZFEWidfTWA6gTCRU4t3zLory4LNjC1nR8cyddNvG9WK",
+        "v1": null,
+        "v3": [
+          {
+            "permission_kind": "FUNCTION_CALL",
+            "created": {
+              "block_timestamp": "1793386902905454082",
+              "transaction_hash": "5w2RL7s8w2PKifLcMmDm2w9prcDr2sB3XoXYnMbyqspq"
+            },
+            "deleted": {
+              "block_timestamp": null,
+              "transaction_hash": null
+            }
+          }
+        ]
+      },
+      {
+        "path": "oldest_creation.block_timestamp",
+        "v1": "1791188470968601300",
+        "v3": "1791188470968601295"
+      }
+    ],
+    "keys-06-v3-current-v1": [
+      {
+        "path": "keys.ed25519:29vjQ7yAgR8uCtxkTRke7iWqS9y9M27X5Wg854n1SRHZ[0].created.block_timestamp",
+        "v1": "1793386874544168700",
+        "v3": "1793386874544168746"
+      },
+      {
+        "path": "keys.ed25519:2vMnCvhZpYY14W4TmVzXZ8cW7ciHvrFeYXmQrczJKZcp[0].created.block_timestamp",
+        "v1": "1793386884304260000",
+        "v3": "1793386884304260175"
+      },
+      {
+        "path": "keys.ed25519:4UNwrL4Aak48v7CFPo7cicc1hLWvg3a4kg3YSbRxskPN[0].created.block_timestamp",
+        "v1": "1793386921696891000",
+        "v3": "1793386921696890903"
+      },
+      {
+        "path": "keys.ed25519:59FaUAn32N663pg8d6AuCymt6FcANKfvE7WDx6ZT5MRx[0].created.block_timestamp",
+        "v1": "1793279287083477500",
+        "v3": "1793279287083477392"
+      },
+      {
+        "path": "keys.ed25519:5iTZKveG7myR2cWipRZhSGycxofRHo6Ky6TLMfmrwoC[0].created.block_timestamp",
+        "v1": "1793262248764134400",
+        "v3": "1793262248764134458"
+      },
+      {
+        "path": "keys.ed25519:673m3jrtdd11tXYHHnSZ4RxERwUEZRbcYJKyRNkf6B57[0].created.block_timestamp",
+        "v1": "1791188470968601300",
+        "v3": "1791188470968601295"
+      },
+      {
+        "path": "keys.ed25519:7kp2iws9z1YSGHquUyf1sCZFajFNmyfTVPnWQ71apKyN[0].created.block_timestamp",
+        "v1": "1793386848516008400",
+        "v3": "1793386848516008459"
+      },
+      {
+        "path": "keys.ed25519:7nXeQu1L73ct6xRB3shbQ9MBjCNM2PzupKajPr5RREwL[0].created.block_timestamp",
+        "v1": "1793386912283216600",
+        "v3": "1793386912283216754"
+      },
+      {
+        "path": "keys.ed25519:9sDw3xzTykEtgoZPwg19oFfcEft19oaaAs3e7A9dWfo9[0].created.block_timestamp",
+        "v1": "1793386893789000200",
+        "v3": "1793386893789000292"
+      },
+      {
+        "path": "keys.ed25519:DArJjbzhwVe44qdbZBdffuPwDfdhEnGg1ddqKdvvjzKf[0].created.block_timestamp",
+        "v1": "1791189200713488600",
+        "v3": "1791189200713488751"
+      },
+      {
+        "path": "keys.ed25519:DJzWFLAyVeVK8jYfbXQPRx6VJsZ7ZByjsyWk2wT7TPdu[0].created.block_timestamp",
+        "v1": "1793279298706638800",
+        "v3": "1793279298706638796"
+      },
+      {
+        "path": "keys.ed25519:ZFEWidfTWA6gTCRU4t3zLory4LNjC1nR8cyddNvG9WK[0].created.block_timestamp",
+        "v1": "1793386902905454000",
+        "v3": "1793386902905454082"
+      },
+      {
+        "path": "oldest_creation.block_timestamp",
+        "v1": "1791188470968601300",
+        "v3": "1791188470968601295"
+      }
+    ],
+    "keys-07-v3-recorded-v1": [
+      {
+        "path": "keys.ed25519:3L4KxQLu6s7gc7eCb4edjCNk7CDQyoLw2WNij15fpumU[0].created.block_timestamp",
+        "v1": "1778143268848912400",
+        "v3": "1778143268848912468"
+      },
+      {
+        "path": "keys.ed25519:3L4KxQLu6s7gc7eCb4edjCNk7CDQyoLw2WNij15fpumU[0].deleted.block_timestamp",
+        "v1": "1778143546252664600",
+        "v3": "1778143546252664606"
+      },
+      {
+        "path": "keys.ed25519:42nGaq1KJ6dp9BzBnsEG7AgXwZ2hNZW7MYg6HEWL54HB[0].created.block_timestamp",
+        "v1": "1786346221876189000",
+        "v3": "1786346221876188936"
+      },
+      {
+        "path": "keys.ed25519:42nGaq1KJ6dp9BzBnsEG7AgXwZ2hNZW7MYg6HEWL54HB[0].deleted.block_timestamp",
+        "v1": "1786354129047605000",
+        "v3": "1786354129047605014"
+      },
+      {
+        "path": "keys.ed25519:4xcW1J4oJNh5AD4ukzzVvpPZMKsMiQb9W5k5zdUVCWBb[0].created.block_timestamp",
+        "v1": "1768310835566847200",
+        "v3": "1768310835566847266"
+      },
+      {
+        "path": "keys.ed25519:5G6vZRSqf581eDUfti3ieZaJBjaqzGKZaoiYtSTTtX2N[0].created.block_timestamp",
+        "v1": "1768418953209345500",
+        "v3": "1768418953209345437"
+      },
+      {
+        "path": "keys.ed25519:5G6vZRSqf581eDUfti3ieZaJBjaqzGKZaoiYtSTTtX2N[0].deleted.block_timestamp",
+        "v1": "1768419121539193000",
+        "v3": "1768419121539193068"
+      },
+      {
+        "path": "keys.ed25519:5xYfn6wBMpSUZvoJrY3uo9L3U4c7uL6Mh5LMkdHiz3LQ[0].created.block_timestamp",
+        "v1": "1769006970068613000",
+        "v3": "1769006970068613069"
+      },
+      {
+        "path": "keys.ed25519:5xYfn6wBMpSUZvoJrY3uo9L3U4c7uL6Mh5LMkdHiz3LQ[0].deleted.block_timestamp",
+        "v1": "1769007121038569700",
+        "v3": "1769007121038569795"
+      },
+      {
+        "path": "keys.ed25519:7PMbwUosvzz4nQw9H2FRwF83Z5HnGHWgCKS7XM2unjak[0].created.block_timestamp",
+        "v1": "1773410640431379700",
+        "v3": "1773410640431379602"
+      },
+      {
+        "path": "keys.ed25519:7PMbwUosvzz4nQw9H2FRwF83Z5HnGHWgCKS7XM2unjak[0].deleted.block_timestamp",
+        "v1": "1773410999794252800",
+        "v3": "1773410999794252777"
+      },
+      {
+        "path": "keys.ed25519:8ih89SaGom4JQSG4WWMkGLXreo8QqMiFLiMTF4s2B2dR[0].created.block_timestamp",
+        "v1": "1773393406058825700",
+        "v3": "1773393406058825658"
+      },
+      {
+        "path": "keys.ed25519:8ih89SaGom4JQSG4WWMkGLXreo8QqMiFLiMTF4s2B2dR[0].deleted.block_timestamp",
+        "v1": "1773394151892776000",
+        "v3": "1773394151892775871"
+      },
+      {
+        "path": "keys.ed25519:CfJr3BShTjQChDsyRRPuHA9hCHjpK7BaETUwauw85zKB[0].created.block_timestamp",
+        "v1": "1767843746303799800",
+        "v3": "1767843746303799899"
+      },
+      {
+        "path": "keys.ed25519:CfJr3BShTjQChDsyRRPuHA9hCHjpK7BaETUwauw85zKB[0].deleted.block_timestamp",
+        "v1": "1768310852651819800",
+        "v3": "1768310852651819699"
+      },
+      {
+        "path": "keys.ed25519:ERsGBRtpfFxFobA4A1354rQBjdGrwnkqptBuhNkuV2h8[0].created.block_timestamp",
+        "v1": "1767843964024841000",
+        "v3": "1767843964024840930"
+      },
+      {
+        "path": "keys.ed25519:ERsGBRtpfFxFobA4A1354rQBjdGrwnkqptBuhNkuV2h8[0].deleted.block_timestamp",
+        "v1": "1768310886477228000",
+        "v3": "1768310886477228138"
+      },
+      {
+        "path": "keys.ed25519:EZ7DhkLH9wSPf5A9KHgU1c6s5keyhLibN5yyyu7Ugkzh[0].created.block_timestamp",
+        "v1": "1773394182910388200",
+        "v3": "1773394182910388117"
+      },
+      {
+        "path": "keys.ed25519:EZ7DhkLH9wSPf5A9KHgU1c6s5keyhLibN5yyyu7Ugkzh[0].deleted.block_timestamp",
+        "v1": "1773395299495753500",
+        "v3": "1773395299495753540"
+      },
+      {
+        "path": "keys.ed25519:EtWN91miJdB8xxAUG3mwZ4UrESB7h1PxXr8FhWzz2XwV[0].created.block_timestamp",
+        "v1": "1768992163119624200",
+        "v3": "1768992163119624273"
+      },
+      {
+        "path": "keys.ed25519:EtWN91miJdB8xxAUG3mwZ4UrESB7h1PxXr8FhWzz2XwV[0].deleted.block_timestamp",
+        "v1": "1768992665985410600",
+        "v3": "1768992665985410653"
+      },
+      {
+        "path": "keys.ed25519:FZUGxpXQVWeEnSuASFerLW2JtieB6dwh1Ga5eEFCArU[0].created.block_timestamp",
+        "v1": "1778068409871601000",
+        "v3": "1778068409871600854"
+      },
+      {
+        "path": "keys.ed25519:FZUGxpXQVWeEnSuASFerLW2JtieB6dwh1Ga5eEFCArU[0].deleted.block_timestamp",
+        "v1": "1778068744272287700",
+        "v3": "1778068744272287807"
+      },
+      {
+        "path": "keys.ed25519:GwfXyawyhbShEDtfv5JPjvSKTEmAi2CzqwK7n7DA2cQH[0].created.block_timestamp",
+        "v1": "1767843739265229300",
+        "v3": "1767843739265229253"
+      },
+      {
+        "path": "keys.ed25519:GwfXyawyhbShEDtfv5JPjvSKTEmAi2CzqwK7n7DA2cQH[0].deleted.block_timestamp",
+        "v1": "1768310864512600800",
+        "v3": "1768310864512600905"
+      },
+      {
+        "path": "keys.ed25519:GxpcPLsxHP7JgA3ZVmpTEBmeyj9Dei6DrqdSZrV7g7s9[0].created.block_timestamp",
+        "v1": "1773418095051053000",
+        "v3": "1773418095051052929"
+      },
+      {
+        "path": "keys.ed25519:GxpcPLsxHP7JgA3ZVmpTEBmeyj9Dei6DrqdSZrV7g7s9[0].deleted.block_timestamp",
+        "v1": "1773418348844635400",
+        "v3": "1773418348844635323"
+      },
+      {
+        "path": "oldest_creation.block_timestamp",
+        "v1": "1767843739265229300",
+        "v3": "1767843739265229253"
+      }
+    ],
+    "keys-07-v3-current-v1": [
+      {
+        "path": "keys.ed25519:3L4KxQLu6s7gc7eCb4edjCNk7CDQyoLw2WNij15fpumU[0].created.block_timestamp",
+        "v1": "1778143268848912400",
+        "v3": "1778143268848912468"
+      },
+      {
+        "path": "keys.ed25519:3L4KxQLu6s7gc7eCb4edjCNk7CDQyoLw2WNij15fpumU[0].deleted.block_timestamp",
+        "v1": "1778143546252664600",
+        "v3": "1778143546252664606"
+      },
+      {
+        "path": "keys.ed25519:42nGaq1KJ6dp9BzBnsEG7AgXwZ2hNZW7MYg6HEWL54HB[0].created.block_timestamp",
+        "v1": "1786346221876189000",
+        "v3": "1786346221876188936"
+      },
+      {
+        "path": "keys.ed25519:42nGaq1KJ6dp9BzBnsEG7AgXwZ2hNZW7MYg6HEWL54HB[0].deleted.block_timestamp",
+        "v1": "1786354129047605000",
+        "v3": "1786354129047605014"
+      },
+      {
+        "path": "keys.ed25519:4xcW1J4oJNh5AD4ukzzVvpPZMKsMiQb9W5k5zdUVCWBb[0].created.block_timestamp",
+        "v1": "1768310835566847200",
+        "v3": "1768310835566847266"
+      },
+      {
+        "path": "keys.ed25519:5G6vZRSqf581eDUfti3ieZaJBjaqzGKZaoiYtSTTtX2N[0].created.block_timestamp",
+        "v1": "1768418953209345500",
+        "v3": "1768418953209345437"
+      },
+      {
+        "path": "keys.ed25519:5G6vZRSqf581eDUfti3ieZaJBjaqzGKZaoiYtSTTtX2N[0].deleted.block_timestamp",
+        "v1": "1768419121539193000",
+        "v3": "1768419121539193068"
+      },
+      {
+        "path": "keys.ed25519:5xYfn6wBMpSUZvoJrY3uo9L3U4c7uL6Mh5LMkdHiz3LQ[0].created.block_timestamp",
+        "v1": "1769006970068613000",
+        "v3": "1769006970068613069"
+      },
+      {
+        "path": "keys.ed25519:5xYfn6wBMpSUZvoJrY3uo9L3U4c7uL6Mh5LMkdHiz3LQ[0].deleted.block_timestamp",
+        "v1": "1769007121038569700",
+        "v3": "1769007121038569795"
+      },
+      {
+        "path": "keys.ed25519:7PMbwUosvzz4nQw9H2FRwF83Z5HnGHWgCKS7XM2unjak[0].created.block_timestamp",
+        "v1": "1773410640431379700",
+        "v3": "1773410640431379602"
+      },
+      {
+        "path": "keys.ed25519:7PMbwUosvzz4nQw9H2FRwF83Z5HnGHWgCKS7XM2unjak[0].deleted.block_timestamp",
+        "v1": "1773410999794252800",
+        "v3": "1773410999794252777"
+      },
+      {
+        "path": "keys.ed25519:8ih89SaGom4JQSG4WWMkGLXreo8QqMiFLiMTF4s2B2dR[0].created.block_timestamp",
+        "v1": "1773393406058825700",
+        "v3": "1773393406058825658"
+      },
+      {
+        "path": "keys.ed25519:8ih89SaGom4JQSG4WWMkGLXreo8QqMiFLiMTF4s2B2dR[0].deleted.block_timestamp",
+        "v1": "1773394151892776000",
+        "v3": "1773394151892775871"
+      },
+      {
+        "path": "keys.ed25519:CfJr3BShTjQChDsyRRPuHA9hCHjpK7BaETUwauw85zKB[0].created.block_timestamp",
+        "v1": "1767843746303799800",
+        "v3": "1767843746303799899"
+      },
+      {
+        "path": "keys.ed25519:CfJr3BShTjQChDsyRRPuHA9hCHjpK7BaETUwauw85zKB[0].deleted.block_timestamp",
+        "v1": "1768310852651819800",
+        "v3": "1768310852651819699"
+      },
+      {
+        "path": "keys.ed25519:ERsGBRtpfFxFobA4A1354rQBjdGrwnkqptBuhNkuV2h8[0].created.block_timestamp",
+        "v1": "1767843964024841000",
+        "v3": "1767843964024840930"
+      },
+      {
+        "path": "keys.ed25519:ERsGBRtpfFxFobA4A1354rQBjdGrwnkqptBuhNkuV2h8[0].deleted.block_timestamp",
+        "v1": "1768310886477228000",
+        "v3": "1768310886477228138"
+      },
+      {
+        "path": "keys.ed25519:EZ7DhkLH9wSPf5A9KHgU1c6s5keyhLibN5yyyu7Ugkzh[0].created.block_timestamp",
+        "v1": "1773394182910388200",
+        "v3": "1773394182910388117"
+      },
+      {
+        "path": "keys.ed25519:EZ7DhkLH9wSPf5A9KHgU1c6s5keyhLibN5yyyu7Ugkzh[0].deleted.block_timestamp",
+        "v1": "1773395299495753500",
+        "v3": "1773395299495753540"
+      },
+      {
+        "path": "keys.ed25519:EtWN91miJdB8xxAUG3mwZ4UrESB7h1PxXr8FhWzz2XwV[0].created.block_timestamp",
+        "v1": "1768992163119624200",
+        "v3": "1768992163119624273"
+      },
+      {
+        "path": "keys.ed25519:EtWN91miJdB8xxAUG3mwZ4UrESB7h1PxXr8FhWzz2XwV[0].deleted.block_timestamp",
+        "v1": "1768992665985410600",
+        "v3": "1768992665985410653"
+      },
+      {
+        "path": "keys.ed25519:FZUGxpXQVWeEnSuASFerLW2JtieB6dwh1Ga5eEFCArU[0].created.block_timestamp",
+        "v1": "1778068409871601000",
+        "v3": "1778068409871600854"
+      },
+      {
+        "path": "keys.ed25519:FZUGxpXQVWeEnSuASFerLW2JtieB6dwh1Ga5eEFCArU[0].deleted.block_timestamp",
+        "v1": "1778068744272287700",
+        "v3": "1778068744272287807"
+      },
+      {
+        "path": "keys.ed25519:GwfXyawyhbShEDtfv5JPjvSKTEmAi2CzqwK7n7DA2cQH[0].created.block_timestamp",
+        "v1": "1767843739265229300",
+        "v3": "1767843739265229253"
+      },
+      {
+        "path": "keys.ed25519:GwfXyawyhbShEDtfv5JPjvSKTEmAi2CzqwK7n7DA2cQH[0].deleted.block_timestamp",
+        "v1": "1768310864512600800",
+        "v3": "1768310864512600905"
+      },
+      {
+        "path": "keys.ed25519:GxpcPLsxHP7JgA3ZVmpTEBmeyj9Dei6DrqdSZrV7g7s9[0].created.block_timestamp",
+        "v1": "1773418095051053000",
+        "v3": "1773418095051052929"
+      },
+      {
+        "path": "keys.ed25519:GxpcPLsxHP7JgA3ZVmpTEBmeyj9Dei6DrqdSZrV7g7s9[0].deleted.block_timestamp",
+        "v1": "1773418348844635400",
+        "v3": "1773418348844635323"
+      },
+      {
+        "path": "oldest_creation.block_timestamp",
+        "v1": "1767843739265229300",
+        "v3": "1767843739265229253"
+      }
+    ]
+  },
+  "timestamp_precision_max_delta_ns": 175
+}
