@@ -1,0 +1,63 @@
+{
+ "action": "ask",
+ "checks": [
+  {
+   "detail": "hello.near exists",
+   "name": "receiver_exists",
+   "status": "pass"
+  },
+  {
+   "detail": "no denylist or incident label on hello.near",
+   "name": "label_denylist",
+   "status": "pass"
+  },
+  {
+   "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+   "name": "issuer_blacklist",
+   "status": "pass"
+  },
+  {
+   "detail": "oldest access key nonce 3 from free.rpc.fastnear.com predates block height nonces, at least 7 d old",
+   "name": "account_age",
+   "status": "pass"
+  },
+  {
+   "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
+   "name": "dust_funded",
+   "status": "pass"
+  },
+  {
+   "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+   "name": "lookalike",
+   "status": "pass"
+  },
+  {
+   "detail": "contract code without contract_source_metadata; not a signal on its own",
+   "name": "code_without_metadata",
+   "status": "pass"
+  },
+  {
+   "detail": "1 full access key; whoever holds one can replace the code",
+   "name": "contract_control",
+   "status": "unknown"
+  },
+  {
+   "detail": "code hash 55E7imniT2uuYrECn17qJAk9fLcwQW4ftNSwmCJL5Di matches no code hash reported by an incident page",
+   "name": "incident_code",
+   "status": "pass"
+  }
+ ],
+ "evidence": "{\"checks\":[{\"detail\":\"hello.near exists\",\"id\":\"receiver_exists\",\"source\":{\"fetched_at\":\"2026-11-21T12:20:24Z\",\"provider\":\"free.rpc.fastnear.com\",\"request_sha256\":\"d6a261beca3ed60cc8fc95638c4f33f5e1cd7c35f45335eccff85b3cdb914ff1\"},\"status\":\"pass\"},{\"detail\":\"no denylist or incident label on hello.near\",\"id\":\"label_denylist\",\"source\":{\"fetched_at\":null,\"provider\":\"label store\",\"request_sha256\":\"1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8\"},\"status\":\"pass\"},{\"detail\":\"usdt.tether-token.near get_blacklist_status answers \\\"Allowable\\\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false\",\"id\":\"issuer_blacklist\",\"source\":{\"fetched_at\":\"2026-11-21T12:20:25Z\",\"provider\":\"free.rpc.fastnear.com\",\"request_sha256\":\"a0b4d6e479e3e9689cd2e2651ffb2c6608e6c451c75075604d5c678aabe32c05\"},\"status\":\"pass\"},{\"detail\":\"oldest access key nonce 3 from free.rpc.fastnear.com predates block height nonces, at least 7 d old\",\"id\":\"account_age\",\"source\":{\"fetched_at\":\"2026-11-21T12:20:25Z\",\"provider\":\"free.rpc.fastnear.com\",\"request_sha256\":\"09d0f1427c783f2f507289c82b311702df6f2f85360b7814ef3b7a1bce1fa914\"},\"status\":\"pass\"},{\"detail\":\"creation deposit not read: a deposit is a signal only with lookalike or account_age\",\"id\":\"dust_funded\",\"source\":{\"fetched_at\":null,\"provider\":\"nearblocks\",\"request_sha256\":null},\"status\":\"pass\"},{\"detail\":\"no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation\",\"id\":\"lookalike\",\"source\":{\"fetched_at\":null,\"provider\":\"allowlist and label store\",\"request_sha256\":\"1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8\"},\"status\":\"pass\"},{\"detail\":\"contract code without contract_source_metadata; not a signal on its own\",\"id\":\"code_without_metadata\",\"source\":{\"fetched_at\":\"2026-11-21T12:20:25Z\",\"provider\":\"free.rpc.fastnear.com\",\"request_sha256\":\"b3522461cab5dab2d851befac7cac70853e866477cef144ddb5e3fa72a544726\"},\"status\":\"pass\"},{\"detail\":\"1 full access key; whoever holds one can replace the code\",\"id\":\"contract_control\",\"source\":{\"fetched_at\":\"2026-11-21T12:20:25Z\",\"provider\":\"free.rpc.fastnear.com\",\"request_sha256\":\"09d0f1427c783f2f507289c82b311702df6f2f85360b7814ef3b7a1bce1fa914\"},\"status\":\"unknown\"},{\"detail\":\"code hash 55E7imniT2uuYrECn17qJAk9fLcwQW4ftNSwmCJL5Di matches no code hash reported by an incident page\",\"id\":\"incident_code\",\"source\":{\"fetched_at\":\"2026-11-21T12:20:24Z\",\"provider\":\"free.rpc.fastnear.com\",\"request_sha256\":\"d6a261beca3ed60cc8fc95638c4f33f5e1cd7c35f45335eccff85b3cdb914ff1\"},\"status\":\"pass\"}],\"expires_ms\":null,\"issued_ms\":null,\"labels\":[],\"latency_ms\":955,\"observed\":{\"block_height\":225553749,\"timestamp_ms\":1795263624891},\"reasons\":[\"1 full access key; whoever holds one can replace the code\"],\"subject\":{\"account\":\"hello.near\",\"kind\":\"account\",\"network\":\"mainnet\"},\"verdict\":\"UNKNOWN\",\"verdict_id\":null,\"version\":\"1\"}",
+ "evidence_hash": "63064f51143287c907b8c181df6616a90ce088081725dd5e6d72b8616ad249e0",
+ "freshness": {
+  "block_height": 225553749,
+  "timestamp_ms": 1795263624891
+ },
+ "latency_ms": 955,
+ "outcome": "ASK",
+ "reasons": [
+  "1 full access key; whoever holds one can replace the code"
+ ],
+ "signing": "never",
+ "verdict": null
+}
