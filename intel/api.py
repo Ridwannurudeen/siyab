@@ -83,6 +83,12 @@ WORKSPACE_BODY_TIMEOUT_S = 5
 FOLLOWER_STOPPED_AFTER_S = 1600
 JSON_TYPE = "application/json; charset=utf-8"
 _HEX64 = re.compile(r"[0-9a-f]{64}")
+_PUBLIC_CORS_PATH = re.compile(
+    r"/live/(?:verdict|intents|health|reports(?:/recent)?|entity-directory|ask"
+    r"|(?:scan|account-check|token-check)/[^/]+"
+    r"|accounts/[^/]+/(?:identity|history|enrichment|portfolio-history)"
+    r"|(?:account-data|portfolio-data)/[0-9a-f]{64}\.json)"
+)
 
 
 def _read_json(path):
@@ -396,6 +402,23 @@ def make_server(host, port, site=None, store=None, live_routes=None, workspace_r
         def do_HEAD(self):
             self.do_GET()
 
+        def do_OPTIONS(self):
+            path = urllib.parse.urlsplit(self.path).path
+            methods = self.headers.get_all("Access-Control-Request-Method", [])
+            requested_headers = [value.strip().lower()
+                                 for header in self.headers.get_all("Access-Control-Request-Headers", [])
+                                 for value in header.split(",")]
+            if (not self.headers.get("Origin") or methods not in (["GET"], ["HEAD"], ["OPTIONS"])
+                    or any(value not in ("", "content-type") for value in requested_headers)
+                    or _PUBLIC_CORS_PATH.fullmatch(path) is None):
+                self._send(403, JSON_TYPE, b'{"error": "cors_forbidden", "message": "Cross-origin access is limited to public reads with optional Content-Type."}\n')
+                return
+            headers = {"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+                       "Access-Control-Max-Age": "600"}
+            if "content-type" in requested_headers:
+                headers["Access-Control-Allow-Headers"] = "Content-Type"
+            self._send(204, JSON_TYPE, b"", headers)
+
         def do_POST(self):
             if not self._workspace_request():
                 self.send_error(501, "Unsupported method")
@@ -453,11 +476,14 @@ def make_server(host, port, site=None, store=None, live_routes=None, workspace_r
 
         def _send(self, status, content_type, data, headers=None, *, cache_control="no-store"):
             extra = dict(headers or {})
+            if self.command in ("GET", "HEAD") and _PUBLIC_CORS_PATH.fullmatch(urllib.parse.urlsplit(self.path).path):
+                extra.update({"Access-Control-Allow-Origin": "*", "Access-Control-Expose-Headers": "Retry-After"})
             content_type = extra.pop("Content-Type", content_type)
             cache_control = extra.pop("Cache-Control", cache_control)
             self.send_response(status)
-            self.send_header("Content-Type", content_type)
-            self.send_header("Content-Length", str(len(data)))
+            if status != 204:
+                self.send_header("Content-Type", content_type)
+                self.send_header("Content-Length", str(len(data)))
             self.send_header("Cache-Control", cache_control)
             for name, value in extra.items():
                 self.send_header(name, value)
