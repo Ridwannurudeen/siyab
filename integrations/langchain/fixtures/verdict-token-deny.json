@@ -1,0 +1,74 @@
+{
+ "action": "refuse",
+ "checks": [
+  {
+   "detail": "hello.near exists",
+   "name": "receiver_exists",
+   "status": "pass"
+  },
+  {
+   "detail": "no denylist or incident label on hello.near or usdt.tether-token.near",
+   "name": "label_denylist",
+   "status": "pass"
+  },
+  {
+   "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+   "name": "issuer_blacklist",
+   "status": "pass"
+  },
+  {
+   "detail": "usdt.tether-token.near is a catalog_token in the label store",
+   "name": "token_in_catalog",
+   "status": "pass"
+  },
+  {
+   "detail": "symbol \"USDt\", 6 decimals",
+   "name": "ft_metadata_sane",
+   "status": "pass"
+  },
+  {
+   "detail": "receiver_not_registered: hello.near is not registered on usdt.tether-token.near",
+   "name": "storage_registered",
+   "status": "signal"
+  },
+  {
+   "detail": "no memo",
+   "name": "memo_injection",
+   "status": "pass"
+  },
+  {
+   "detail": "oldest access key nonce 3 from free.rpc.fastnear.com predates block height nonces, at least 7 d old",
+   "name": "account_age",
+   "status": "pass"
+  },
+  {
+   "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
+   "name": "dust_funded",
+   "status": "pass"
+  },
+  {
+   "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+   "name": "lookalike",
+   "status": "pass"
+  },
+  {
+   "detail": "contract code without contract_source_metadata; not a signal on its own",
+   "name": "code_without_metadata",
+   "status": "pass"
+  }
+ ],
+ "evidence": "{\"checks\":[{\"detail\":\"hello.near exists\",\"id\":\"receiver_exists\",\"source\":{\"fetched_at\":\"2026-11-21T14:21:27Z\",\"provider\":\"free.rpc.fastnear.com\",\"request_sha256\":\"d6a261beca3ed60cc8fc95638c4f33f5e1cd7c35f45335eccff85b3cdb914ff1\"},\"status\":\"pass\"},{\"detail\":\"no denylist or incident label on hello.near or usdt.tether-token.near\",\"id\":\"label_denylist\",\"source\":{\"fetched_at\":null,\"provider\":\"label store\",\"request_sha256\":\"1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8\"},\"status\":\"pass\"},{\"detail\":\"usdt.tether-token.near get_blacklist_status answers \\\"Allowable\\\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false\",\"id\":\"issuer_blacklist\",\"source\":{\"fetched_at\":\"2026-11-21T14:21:27Z\",\"provider\":\"free.rpc.fastnear.com\",\"request_sha256\":\"a0b4d6e479e3e9689cd2e2651ffb2c6608e6c451c75075604d5c678aabe32c05\"},\"status\":\"pass\"},{\"detail\":\"usdt.tether-token.near is a catalog_token in the label store\",\"id\":\"token_in_catalog\",\"source\":{\"fetched_at\":null,\"provider\":\"label store\",\"request_sha256\":\"1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8\"},\"status\":\"pass\"},{\"detail\":\"symbol \\\"USDt\\\", 6 decimals\",\"id\":\"ft_metadata_sane\",\"source\":{\"fetched_at\":\"2026-11-21T14:21:27Z\",\"provider\":\"free.rpc.fastnear.com\",\"request_sha256\":\"46696d4d0864fa19cd22eb6c766a3007fa4c174d33ea7e5e084da0cb1ff00d44\"},\"status\":\"pass\"},{\"detail\":\"receiver_not_registered: hello.near is not registered on usdt.tether-token.near\",\"id\":\"storage_registered\",\"source\":{\"fetched_at\":\"2026-11-21T14:21:27Z\",\"provider\":\"free.rpc.fastnear.com\",\"request_sha256\":\"37f24c297389e39c7e2fb1317298cbf5aabdb94c59d1d314f5ae74d5b33486da\"},\"status\":\"signal\"},{\"detail\":\"no memo\",\"id\":\"memo_injection\",\"source\":{\"fetched_at\":null,\"provider\":\"local patterns\",\"request_sha256\":null},\"status\":\"pass\"},{\"detail\":\"oldest access key nonce 3 from free.rpc.fastnear.com predates block height nonces, at least 7 d old\",\"id\":\"account_age\",\"source\":{\"fetched_at\":\"2026-11-21T14:21:27Z\",\"provider\":\"free.rpc.fastnear.com\",\"request_sha256\":\"09d0f1427c783f2f507289c82b311702df6f2f85360b7814ef3b7a1bce1fa914\"},\"status\":\"pass\"},{\"detail\":\"creation deposit not read: a deposit is a signal only with lookalike or account_age\",\"id\":\"dust_funded\",\"source\":{\"fetched_at\":null,\"provider\":\"nearblocks\",\"request_sha256\":null},\"status\":\"pass\"},{\"detail\":\"no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation\",\"id\":\"lookalike\",\"source\":{\"fetched_at\":null,\"provider\":\"allowlist and label store\",\"request_sha256\":\"1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8\"},\"status\":\"pass\"},{\"detail\":\"contract code without contract_source_metadata; not a signal on its own\",\"id\":\"code_without_metadata\",\"source\":{\"fetched_at\":\"2026-11-21T14:21:28Z\",\"provider\":\"free.rpc.fastnear.com\",\"request_sha256\":\"b3522461cab5dab2d851befac7cac70853e866477cef144ddb5e3fa72a544726\"},\"status\":\"pass\"}],\"expires_ms\":null,\"issued_ms\":null,\"labels\":[\"05a99dbeaf1654a5443a740eaed02f7427af8920d8ae8775a0b413f9b228ddd0\",\"97f2a60884f6a510c96a84234f347b5320551514c1c8c737cb0d82695358e97a\",\"3fe616f618f8f7f4e5ec8a555428d8f043a46fc11d80884f20f747f856a3b7bf\",\"daf36d8026d8cf7e838fa75d0c7dfc4a9a1c91730595c335ea228a4b09c1c0ea\",\"b11faf70636bf377b8ebe69a8fb41573d477652cb8ac7a5e0f55ea61fb754c52\",\"1e54dbbaa28c1bc97b890ad48c01413f54849b999b0160263eaf31d0b7e79032\"],\"latency_ms\":1271,\"observed\":{\"block_height\":225566375,\"timestamp_ms\":1795270886830},\"reasons\":[\"Not on the owner's allowlist.\",\"Not registered on the token.\"],\"subject\":{\"amount\":\"1000000\",\"kind\":\"ft\",\"memo_sha256\":null,\"network\":\"mainnet\",\"receiver\":\"hello.near\",\"token\":\"usdt.tether-token.near\"},\"verdict\":\"DENY\",\"verdict_id\":null,\"version\":\"1\"}",
+ "evidence_hash": "17680d8dc385d3176403074c6af961312d5ef7db5db614c82b7941d6d6761e85",
+ "freshness": {
+  "block_height": 225566375,
+  "timestamp_ms": 1795270886830
+ },
+ "latency_ms": 1271,
+ "outcome": "DENY",
+ "reasons": [
+  "Not on the owner's allowlist.",
+  "Not registered on the token."
+ ],
+ "signing": "never",
+ "verdict": null
+}
