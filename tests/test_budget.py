@@ -75,6 +75,19 @@ class BudgetCase(unittest.TestCase):
 
 
 class BudgetWindowTest(BudgetCase):
+    def test_near_sign_in_has_independent_keyed_and_keyless_caps(self):
+        self.seed("keyed:anonymous:fastnear_rpc", budget.MINUTE_S, 120)
+        self.assertTrue(budget.reserve("fastnear_rpc", "near_auth", keyed=True, now=T0))
+        self.assertEqual(self.count("keyed:anonymous:fastnear_rpc", budget.MINUTE_S), 120)
+        self.assertEqual(self.count("keyed:near_auth:fastnear_rpc", budget.MINUTE_S), 1)
+        for keyed in (True, False):
+            mode = "keyed" if keyed else "keyless"
+            with self.subTest(keyed=keyed):
+                self.seed(f"{mode}:near_auth:fastnear_rpc", budget.MINUTE_S, 30)
+                self.assertRefused("fastnear_rpc", "near_auth", keyed, T0 + 1, 59)
+                self.assertEqual(self.count(f"{mode}:near_auth:fastnear_rpc", budget.MINUTE_S), 30)
+                self.assertEqual(budget.reserve("fastnear_rpc", "near_auth", keyed=keyed, now=T0 + 60), keyed)
+
     def test_the_anonymous_minute_ceiling_refuses_at_its_limit_counts_nothing_and_reopens_next_minute(self):
         for _ in range(120):
             self.assertTrue(budget.reserve("fastnear_rpc", "anonymous", keyed=True, now=T0))

@@ -45,7 +45,7 @@ KEY_FAILURE_STATUSES = (403, 429)
 # Retry-After for a call refused because the database could not be read.
 REFUSAL_RETRY_S = 60
 # backfill is the public backfill route: its calls count toward the anonymous budget as well as its own.
-CALLER_CLASSES = ("anonymous", "backfill", "team", "watch", "investigation", "feed", "operator", "recording")
+CALLER_CLASSES = ("anonymous", "backfill", "near_auth", "team", "watch", "investigation", "feed", "operator", "recording")
 PARENT_CLASSES = {"backfill": "anonymous"}
 # Keyed calls a caller class may make: provider class, or "*" for every provider class together, to
 # (per UTC day, per hour, per minute), None leaving that window open. A provider class a table leaves out gets
@@ -54,6 +54,7 @@ KEYED_LIMITS = {
     "anonymous": {"fastnear_rpc": (2500, 420, 120), "fastnear_index": (2200, 370, 90),
                   "fastnear_archival": (800, 130, 45)},
     "backfill": {"fastnear_index": (500, None, None)},
+    "near_auth": {"fastnear_rpc": (500, 100, 30)},
     "team": {"*": (1500, 250, None)},
     "watch": {"*": (3000, 125, None)},
     "investigation": {"*": (1500, 250, None)},
@@ -63,6 +64,7 @@ KEYED_LIMITS = {
 }
 # Keyless FastNEAR calls spend no credit; these politeness ceilings are shared by every caller class.
 KEYLESS_LIMITS = {"fastnear_rpc": (20000, 2000, None), "fastnear_archival": (3000, 300, None)}
+KEYLESS_CALLER_LIMITS = {"near_auth": {"fastnear_rpc": (500, 100, 30)}}
 PROVIDER_HOSTS = {
     "free.rpc.fastnear.com": "fastnear_rpc",
     "rpc.mainnet.fastnear.com": "fastnear_rpc",
@@ -146,6 +148,8 @@ def _counters(provider, caller, keyed):
                   if owner in KEYED_LIMITS]
     else:
         tables = [("keyless:*", KEYLESS_LIMITS)] if provider in KEYLESS_LIMITS else []
+        if caller in KEYLESS_CALLER_LIMITS:
+            tables.append((f"keyless:{caller}", KEYLESS_CALLER_LIMITS[caller]))
     for prefix, table in tables:
         share = "*" if "*" in table else provider
         for span, limit in zip(SPANS, table.get(share, (0, 0, 0))):

@@ -1,0 +1,33 @@
+<details id="near-workspace" class="cloud-workspace" open>
+  <summary>Encrypted workspace</summary>
+  <div id="near-shell">
+    <p>Your NEAR wallet unlocks an encrypted copy of your investigations, notes and watchlist. Signing in does not upload browser work.</p>
+    <p id="near-status" role="status" aria-live="polite">Reading your wallet session…</p>
+    <form id="near-sign-in" class="cloud-form">
+      <label for="near-account">NEAR account<input id="near-account" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="64" required placeholder="account.near"></label>
+      <button id="near-login" type="submit">Sign in with NEAR</button>
+    </form>
+    <div id="near-controls" hidden>
+      <p id="near-identity" class="mono"></p>
+      <div class="workspace-actions">
+        <button id="near-unlock" type="button">Unlock with wallet</button>
+        <button id="near-save" type="button" disabled>Save encrypted copy</button>
+        <button id="near-restore" type="button" disabled>Merge into this browser</button>
+        <button id="near-lock" type="button" disabled>Lock encryption key</button>
+        <button id="near-logout" type="button">Sign out of NEAR</button>
+      </div>
+      <details class="cloud-portability">
+        <summary>Reset encrypted copy</summary>
+        <p id="near-reset-warning">This permanently deletes your account's encrypted copy on this Siyab origin. The encrypted data is lost. Export any work you can still open first. Browser saves and shared teams are unchanged. Sign out and sign in with NEAR again if your sign-in is five minutes old.</p>
+        <form id="near-reset-form" class="cloud-form" aria-describedby="near-reset-warning">
+          <label for="near-reset-confirmation">Type DELETE followed by your NEAR account<input id="near-reset-confirmation" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="71" required placeholder="DELETE account.near"></label>
+          <button id="near-reset" type="submit">Delete encrypted copy</button>
+        </form>
+      </details>
+    </div>
+    <p>Use Sender's NEP-413 signing interface. ETH-implicit (0x) accounts cannot sign in. The wallet must sign the same unlock message twice identically. Only approve this unlock message from this Siyab origin. Keep the same signing key on every device and export a local backup before changing keys.</p>
+    <p>The server sees your account, signing public key, IP address, ciphertext size, revision numbers and read and save timing. Browser saves stay on this device until you choose Save encrypted copy. Private watch matching runs while this browser is open.</p>
+    <noscript><p>JavaScript and browser cryptography are needed to sign in with NEAR and encrypt a workspace. Browser controls and shared workspaces remain below.</p></noscript>
+  </div>
+</details>
+<p class="source-line">Shared workspaces below store readable data for team collaboration, background monitoring and Telegram delivery. They use a separate sign-in. An encrypted workspace never joins or imports into a team automatically.</p>

@@ -2051,7 +2051,8 @@ def _cloud_workspace_panel():
 def workspace_page():
     body = ('<div class="workspace-page-head page-head"><div><h1>Workspace</h1></div>'
             '<a class="button primary" href="/explore.html">Start investigation</a></div>'
-            + _cloud_workspace_panel() +
+            + (ROOT / "intel/ui/near-workspace-panel.html").read_text(encoding="utf-8") +
+            _cloud_workspace_panel() +
             (ROOT / "intel/ui/investigation-jobs-panel.html").read_text(encoding="utf-8") +
             (ROOT / "intel/ui/delivery-panel.html").read_text(encoding="utf-8") +
             '<section id="browser-workspace"><h2>In this browser</h2><p>Saved in this browser. Export a backup to move your work between devices.</p>'
@@ -2073,6 +2074,8 @@ def workspace_page():
             '<label>Import workspace JSON<input id="import-workspace" type="file" accept="application/json,.json"></label>'
             '<button id="reset-workspace" type="button">Reset local workspace</button></div></section>'
             '<noscript><p>JavaScript is needed to save investigations, export tables and manage browser alerts. Recorded accounts and evidence remain available through the navigation.</p></noscript></section>')
+    body += _script_tag((ROOT / "intel/ui/workspace-vault.js").read_text(encoding="utf-8"))
+    body += _script_tag((ROOT / "intel/ui/near-workspace.js").read_text(encoding="utf-8"))
     body += _script_tag((ROOT / "intel/ui/investigation-jobs.js").read_text(encoding="utf-8"))
     body += _script_tag((ROOT / "intel/ui/delivery.js").read_text(encoding="utf-8"))
     return page("Workspace", body)
@@ -2131,7 +2134,7 @@ def render(out_dir, store=None, incidents_dir=INCIDENTS_DIR, flows_dir=trace.FLO
         path.write_text(encoded, encoding="utf-8", newline="\n")
     script_paths = []
     (out / "assets").mkdir(exist_ok=True)
-    for name in ("landing.js", "index.js", "number-format.js", "graphs.js", "workspace.js", "investigate.js", "cloud-workspace.js", "enrichment.js", "portfolio.js", "investigation-jobs.js", "delivery.js"):
+    for name in ("landing.js", "index.js", "number-format.js", "graphs.js", "workspace.js", "investigate.js", "cloud-workspace.js", "enrichment.js", "portfolio.js", "workspace-vault.js", "near-workspace.js", "investigation-jobs.js", "delivery.js"):
         script = (ROOT / "intel/ui" / name).read_text(encoding="utf-8")
         script_path, _ = _script_asset(script)
         (out / script_path.lstrip("/")).write_text(script, encoding="utf-8", newline="\n")

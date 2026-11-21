@@ -30,6 +30,8 @@ IDENTIFIER = re.compile(r"[A-Za-z0-9_-]{1,64}")
 class WorkspaceAPI:
     def __init__(self, store, *, origin="https://siyab.xyz", secure_cookie=True,
                  clock=time.monotonic, monitor_status=None, investigation_jobs=None, delivery=None, history_store=None):
+        from intel.private_workspace import PrivateWorkspace
+
         parsed = urllib.parse.urlsplit(origin)
         if (parsed.scheme not in ("http", "https") or not parsed.netloc or parsed.path
                 or parsed.query or parsed.fragment or parsed.username is not None
@@ -51,6 +53,7 @@ class WorkspaceAPI:
         self.investigation_jobs = investigation_jobs
         self.delivery = delivery
         self.history_store = history_store
+        self.private = PrivateWorkspace(store, origin, secure_cookie=secure_cookie)
         self._rates = OrderedDict()
         self._lock = threading.Lock()
 
@@ -89,8 +92,8 @@ class WorkspaceAPI:
                 content_types = headers.get_all("Content-Type", [])
                 if len(content_types) != 1 or content_types[0].split(";", 1)[0].strip().lower() != "application/json":
                     raise WorkspaceError(415, "json_required", "Send an application/json request.")
-                if len(body) > MAX_BODY_BYTES:
-                    raise WorkspaceError(413, "body_too_large", "Workspace request exceeds 32 KiB.")
+                if len(body) > self.body_limit(parsed.path, headers):
+                    raise WorkspaceError(413, "body_too_large", "Workspace request exceeds its body limit.")
                 try:
                     values = json.loads(body.decode("utf-8"), object_pairs_hook=self._unique_object)
                 except (UnicodeError, ValueError, RecursionError):
@@ -99,6 +102,13 @@ class WorkspaceAPI:
                     raise WorkspaceError(400, "invalid_json", "Send a JSON object.")
             else:
                 values = None
+            if parts[:1] == ["near"]:
+                self._query(parsed.query, set())
+                if method == "POST" and parts[1:] in (["challenge"], ["verify"]):
+                    allowed, start = self._allowed(("near-auth", parts[1], client), 5, 60)
+                    if not allowed:
+                        return self._limited(60, start)
+                return self.private.handle(parts[1:], method, values, headers, address=address)
             if parts[:1] == ["auth"] and method == "POST":
                 return self._auth(parts, values, client, headers)
             token = self._token(headers)
@@ -425,6 +435,19 @@ class WorkspaceAPI:
     def _limited(self, seconds, start):
         seconds = max(1, math.ceil(start + seconds - self.clock()))
         return 429, {"error": "rate_limited", "message": "Too many workspace requests. Try again later."}, {"Retry-After": str(seconds)}
+
+    def body_limit(self, path, headers):
+        from intel.private_workspace import VAULT_BODY_BYTES
+
+        if urllib.parse.urlsplit(path).path == PREFIX + "/near/vault":
+            try:
+                token = self.private._token(headers)
+                if token is not None:
+                    self.private._session(token)
+                    return VAULT_BODY_BYTES
+            except (WorkspaceError, sqlite3.Error, OSError):
+                return MAX_BODY_BYTES
+        return MAX_BODY_BYTES
 
     @staticmethod
     def _fields(values, expected):
