@@ -1,0 +1,33 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "call_function",
+      "account_id": "v1.signer",
+      "method_name": "version",
+      "args_base64": "e30=",
+      "block_id": 225570535
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "7vsbUvtYtcbph4BRDrpR7tRzssToSnw67AauSJFwyuDD",
+      "block_height": 225570535,
+      "logs": [],
+      "result": [
+        34,
+        51,
+        46,
+        49,
+        57,
+        46,
+        48,
+        34
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://rpc.mainnet.near.org",
+  "fetched_at": "2026-11-21T15:36:26Z"
+}
