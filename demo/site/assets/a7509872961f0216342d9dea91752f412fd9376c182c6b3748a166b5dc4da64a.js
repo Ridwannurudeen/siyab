@@ -354,6 +354,26 @@
     graphExports.clear();
   });
   window.addEventListener("pageshow", event => { if (event.persisted) startMonitor(); });
+  window.SiyabBrowserWorkspace = {
+    snapshot() {
+      if (!storageAvailable) throw new Error("Browser storage is unreadable. Export a local backup before saving an encrypted copy.");
+      return JSON.parse(JSON.stringify(state));
+    },
+    merge(data) {
+      if (!valid(data)) throw new Error("The decrypted copy is not a valid Siyab workspace.");
+      if (!storageAvailable) throw new Error("Browser storage is unavailable. Export a local backup before merging.");
+      const cases = [...state.cases, ...data.cases.filter(item => !state.cases.some(previous => previous.id === item.id))];
+      const watchlist = [...new Set([...state.watchlist, ...data.watchlist])];
+      if (cases.length > 50 || watchlist.length > 100) throw new Error("This merge exceeds the 50-investigation or 100-account limit. Export a local backup first.");
+      const merged = {version: 1, cases: cases.map(item => ({id: item.id, title: item.title, notes: item.notes,
+        url: localPath(item.url), created_at: item.created_at})), watchlist, alerts: state.alerts, notifications: state.notifications};
+      try { localStorage.setItem(key, JSON.stringify(merged)); }
+      catch (error) { throw new Error("Browser storage could not save the merged copy. The previous browser workspace was preserved."); }
+      state = merged;
+      render(); startMonitor();
+      message("Encrypted workspace merged. Existing notes and monitoring preference were preserved.");
+    }
+  };
   render(); if (storageProblem) message(""); startMonitor();
   document.addEventListener("siyab:account-selected", render);
 })();
