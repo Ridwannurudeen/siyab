@@ -1,0 +1,47 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "data": {
+      "actions": [
+        {
+          "action": "DELETE_KEY",
+          "method": null,
+          "args": {
+            "public_key": "ed25519:Ht1Wd4CwixgnyEbnGxA93VkeUDuTY6tfXnMWwg8fnEop"
+          },
+          "rlp_hash": null
+        }
+      ],
+      "actions_agg": {
+        "deposit": "0",
+        "gas_attached": "0"
+      },
+      "block": {
+        "block_hash": "BkhiGaz9q3uwa8tUfSddPt9Qh7wVAX8hXmqH3PqfSxbQ",
+        "block_height": "40858545",
+        "block_timestamp": "1624542750855738077"
+      },
+      "block_timestamp": "1624542750855738077",
+      "index_in_chunk": 1,
+      "outcomes": {
+        "status": true,
+        "status_key": "SUCCESS_VALUE"
+      },
+      "outcomes_agg": {
+        "gas_used": "406012250000",
+        "transaction_fee": "40601225000000000000"
+      },
+      "receipt_conversion_gas_burnt": "203006125000",
+      "receipt_conversion_tokens_burnt": "20300612500000000000",
+      "receiver_account_id": "wrap.near",
+      "shard_id": 0,
+      "signer_account_id": "wrap.near",
+      "transaction_hash": "DUzJv1DVj3tyEgewoKK8ihHaq72SrJ38xMYeMeGoyFNh"
+    }
+  },
+  "url": "https://api.nearblocks.io/v3/txns/DUzJv1DVj3tyEgewoKK8ihHaq72SrJ38xMYeMeGoyFNh",
+  "fetched_at": "2026-11-21T20:34:45Z"
+}

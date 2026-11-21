@@ -8,3 +8,4 @@ fixtures/nearai/intel-collateral-70a06d070000.json -text
 fixtures/nearai/intel-collateral-90c06f000000.json -text
 fixtures/nearai/models.json -text
 fixtures/nearai/quote-results.json -text
+fixtures/oneclick/** -text

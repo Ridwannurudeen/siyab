@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "call_function",
+      "account_id": "wrap.near",
+      "method_name": "storage_balance_of",
+      "args_base64": "eyJhY2NvdW50X2lkIjoiY2VhYjg0YjVhMTFiMGViNDBjYTljNDcyZGE4NTA5ZWI4YTk2MDRkYTNhOTQ4MGM5NjIwNjI1ZjM3ZGQxOTA5NiJ9",
+      "finality": "final"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "Gsurg842qfk3eWWKzRP6BvLf2gtrbb4HyqDubVFt7zcK",
+      "block_height": 225580381,
+      "logs": [],
+      "result": [
+        110,
+        117,
+        108,
+        108
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-21T16:34:53Z"
+}

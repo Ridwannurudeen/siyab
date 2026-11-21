@@ -1,0 +1,93 @@
+{
+  "source": "https://1click.chaindefuser.com/v0/status?depositAddress=bc1qh24lnnls8fpp90vttch8zwdkeetvvkdfnt3rry",
+  "fetched_at": "2026-11-21T15:04:28Z",
+  "http_status": 200,
+  "request": {
+    "method": "GET",
+    "url": "https://1click.chaindefuser.com/v0/status?depositAddress=bc1qh24lnnls8fpp90vttch8zwdkeetvvkdfnt3rry"
+  },
+  "response": {
+    "status": "REFUNDED",
+    "updatedAt": "2026-09-30T16:36:25.000Z",
+    "correlationId": "8257bf64-cc29-4224-b814-399e436c82d2",
+    "swapDetails": {
+      "depositedAmount": "499999010",
+      "depositedAmountUsd": "319614.367162299983",
+      "depositedAmountFormatted": "4.9999901",
+      "intentHashes": [
+        "Fyj4nAGzM41JShqDYh1ugz79zKmGBsctpSVHX1Dd7DNJ"
+      ],
+      "nearTxHashes": [
+        "BWhwrs5X6edkNnnjTc3Ap43FfgxQofUzMwR3RXxVqU4K",
+        "Gy5pnrs2UTQ4EtKDswGnxX9NtoxXCprTEETKeaMddUpM",
+        "Fp5nbFaUiqqHjGQUD168zbQsM4EVE82Woe4pMXhyQ4Tq"
+      ],
+      "amountIn": null,
+      "amountInFormatted": null,
+      "amountInUsd": null,
+      "amountOut": null,
+      "amountOutFormatted": null,
+      "amountOutUsd": null,
+      "slippage": null,
+      "refundedAmount": "500011178",
+      "refundedAmountFormatted": "5.00011178",
+      "refundedAmountUsd": "421589.424842479988",
+      "refundReason": null,
+      "refundFee": "3400",
+      "withdrawFee": "138683",
+      "originChainTxHashes": [
+        {
+          "hash": "94ec9c26e896ebd9b03e74054452ea0db3c19fafe0c57bc68c3e0e9c3385fd66",
+          "explorerUrl": ""
+        },
+        {
+          "hash": "3785476b34acf5f614e08e58526ab40754ce5e3751ddf8505a70f59d38154d19",
+          "explorerUrl": ""
+        }
+      ],
+      "destinationChainTxHashes": []
+    },
+    "quoteResponse": {
+      "timestamp": "2026-08-10T22:20:13.569Z",
+      "signature": "omitted: 1Click quote signature is not committed because its form triggers the hygiene hook",
+      "quoteRequest": {
+        "dry": false,
+        "swapType": "FLEX_INPUT",
+        "depositMode": "SIMPLE",
+        "slippageTolerance": 100,
+        "originAsset": "nep141:btc.omft.near",
+        "depositType": "ORIGIN_CHAIN",
+        "destinationAsset": "nep141:sol.omft.near",
+        "amount": "499999119",
+        "refundTo": "bc1q8qgs8ws7tl8gryg779vxy5ezdt0hmp83j4w86g",
+        "refundType": "ORIGIN_CHAIN",
+        "recipient": "2WJ98iXf8DwBzhQeL6zsXq9Tze8VjN6zNUijHAdrPCrJ",
+        "recipientType": "DESTINATION_CHAIN",
+        "deadline": "2026-08-11T00:20:13.000Z",
+        "appFees": [],
+        "virtualChainRecipient": null,
+        "virtualChainRefundRecipient": null,
+        "referral": null,
+        "confidentiality": "public"
+      },
+      "quote": {
+        "amountIn": "499999119",
+        "amountInFormatted": "4.99999119",
+        "amountInUsd": "319999.436160000041",
+        "minAmountIn": "494999127",
+        "amountOut": "4189053502779",
+        "amountOutFormatted": "4189.053502779",
+        "amountOutUsd": "319541.001191982126",
+        "minAmountOut": "4147162967751",
+        "timeWhenInactive": "2026-08-14T00:20:13.000Z",
+        "depositAddress": "bc1qh24lnnls8fpp90vttch8zwdkeetvvkdfnt3rry",
+        "deadline": "2026-08-14T00:20:13.000Z",
+        "timeEstimate": 802,
+        "refundFee": "3400",
+        "withdrawFee": "138683"
+      }
+    }
+  },
+  "provenance": "https://bitcointalk.org/index.php?topic=5591188.msg67042325",
+  "note": "Actual public status response. The provider reports this status; no chain verification was performed. Only the quote signature value was omitted."
+}

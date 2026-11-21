@@ -1,0 +1,15 @@
+{
+  "source": "https://eips.ethereum.org/EIPS/eip-20",
+  "encoding_source": "https://docs.soliditylang.org/en/latest/abi-spec.html#events",
+  "verification": {
+    "rpc": "https://ethereum-rpc.publicnode.com",
+    "method": "web3_sha3",
+    "input_utf8": "Transfer(address,address,uint256)",
+    "fetched_at": "2026-11-21T15:11:38Z",
+    "params": [
+      "0x5472616e7366657228616464726573732c616464726573732c75696e7432353629"
+    ],
+    "result": "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+  },
+  "topic": "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+}

@@ -33,12 +33,13 @@ false there, compares the quote request that created it with the judged one, req
 quote's depositAddress to be exactly the supplied address and the status answer's status to be one
 of DEPOSIT_STATUSES (_status_binding); the status deadline, the real quote's own deadline and
 timestamp, the judged deadline and the quote age are then judged at one clock reading taken after
-that read. An old timestamp, its age taken at the same clock as the deadline, reads UNKNOWN. No
-recorded source lists the 1Click status values, so DEPOSIT_STATUSES is empty and a supplied deposit
-address makes deposit_address_status unknown whatever its status. A 1Click, GoPlus or firewall
+that read. An old timestamp, its age taken at the same clock as the deadline, reads UNKNOWN. The
+legacy binder does not authenticate a real quote's economics, so DEPOSIT_STATUSES is empty and a supplied
+deposit address makes deposit_address_status unknown whatever its status. gate.oneclick handles
+authenticated allocation and settlement using the recorded status catalog. A 1Click, GoPlus or firewall
 answer with a lone surrogate (text with no UTF-8 form) makes its check unknown (_encodable); a caller's
 request with one is refused before any request, a deposit address before the status request. The
-quote's signature is not checked: no 1Click verifying key is recorded here.
+quote's signature is checked only when the caller supplies quote_verifier.
 """
 
 import hashlib
@@ -143,9 +144,8 @@ REFUND_FIELDS = ("refundTo", "refundType")
 STATUS_DEFAULTS = {"depositMode": "SIMPLE", "insured": False, "confidentiality": "public"}
 STATUS_ABSENT = ("virtualChainRecipient", "virtualChainRefundRecipient", "customRecipientMsg", "rebates")
 STATUS_INFORMATIONAL = ("dry", "connectedWallets", "sessionId", "referral", "quoteWaitingTimeMs")
-# The 1Click status values from which a deposit address still waits for a deposit. The recorded
-# documentation covers the quote endpoint only: no recorded source lists the values of the status
-# answer's status, so none is accepted and deposit_address_status is never pass.
+# The legacy binder does not authenticate a real quote's economics, so it accepts no status.
+# gate.oneclick uses the recorded catalog and checks the complete signed allocation instead.
 DEPOSIT_STATUSES = ()
 # The one app fee a dry echo may carry beyond the named ones: the fee 1Click added by itself to the
 # recorded dry echo of a request that named no app fee, kept as data in fixtures/oneclick/service-fee.json
@@ -493,12 +493,15 @@ def _request_shape(amount, refund_type):
 
 def judge_quote(origin_asset, destination_asset, amount, recipient, recipient_type="DESTINATION_CHAIN", *,
                 mode=None, fixtures_root=FIXTURES_ROOT, firewall_url=None, clock=time.time,
-                deadline=RECORDED_DEADLINE, refund_to=REFUND_TO, refund_type=REFUND_TYPE, app_fees=None):
+                deadline=RECORDED_DEADLINE, refund_to=REFUND_TO, refund_type=REFUND_TYPE, app_fees=None,
+                quote_verifier=None, clock_skew_ms=0):
     """The EVM leg verdict for one quote: {verdict, checks, reasons, quote, document, evidence_hash}.
     Unsigned on every outcome. firewall_url is SHIELDBOT_API_URL or None. refund_to, refund_type and
-    app_fees ([{recipient, fee}], sent only when named) go into the judged request. The quote age and
+    app_fees ([{recipient, fee}], sent only when named) go into the judged request. An optional
+    quote_verifier must accept the raw response before it can pass. The quote age and
     the deadline are judged at clock, read once after the last external read and recorded as
-    observed: an age over MAX_QUOTE_AGE_MS or a deadline that is not after it reads UNKNOWN. A
+    observed: an age over MAX_QUOTE_AGE_MS or a deadline that is not after it reads UNKNOWN.
+    clock_skew_ms optionally permits up to 5000 ms at each quote age boundary, with zero by default. A
     recipient that is not 0x and 40 hex characters, a deadline that is not a complete date-time with
     an explicit zone, an amount or refund_type _request_shape refuses, a malformed refund account or
     app fee, any other field of the request _request_schema refuses, or a request holding a lone
@@ -532,6 +535,8 @@ def judge_quote(origin_asset, destination_asset, amount, recipient, recipient_ty
                              client=quote_client, dry=True, deadline=deadline, refund_to=refund_to,
                              refund_type=refund_type, app_fees=app_fees)
         _encodable(response, "1Click dry quote answer")
+        if quote_verifier is not None and not quote_verifier(response):
+            raise rpc.MalformedResponse("the 1Click dry quote signature did not verify")
         check, quote, binding = _quote_check(response, asked, chain, dict(quote_client.last_source))
         checks.append(check)
     except UNAVAILABLE as error:
@@ -572,7 +577,8 @@ def judge_quote(origin_asset, destination_asset, amount, recipient, recipient_ty
     # The quote age and the deadline are judged after the last external read, at the clock the document
     # records, in their places after quote_dry.
     now = clock()
-    checks[1:1] = [_quote_age_check(None if binding is None else binding["timestamp"], quote_source, lambda: now),
+    checks[1:1] = [_quote_age_check(None if binding is None else binding["timestamp"], quote_source, lambda: now,
+                                  clock_skew_ms=clock_skew_ms),
                    _deadline_check(deadline, lambda: now)]
     statuses = {check["status"] for check in checks}
     verdict = "DENY" if "signal" in statuses else "UNKNOWN" if "unknown" in statuses else "ALLOW"
@@ -589,7 +595,7 @@ def judge_quote(origin_asset, destination_asset, amount, recipient, recipient_ty
             "evidence_hash": evidence.evidence_hash(document)}
 
 
-def verify_binding(answer, quote_request, *, clock=time.time):
+def verify_binding(answer, quote_request, *, clock=time.time, clock_skew_ms=0):
     """Raise ValueError unless answer, a judge_quote result or the check_intents_quote answer, is intact
     and judged the request quote_request makes: its evidence hash recomputes from its document, its
     verdict is the document's, its subject records the judged quote_request (a document from before
@@ -601,7 +607,8 @@ def verify_binding(answer, quote_request, *, clock=time.time):
     no higher, any other judged field equal, and nothing _unjudged names, and then _request_schema. dry
     is not compared: a later real quote is not dry. An ALLOW is refused when _expired names a bound it
     fails at one reading of clock: its judged deadline not after it, or its quote older than
-    MAX_QUOTE_AGE_MS. An intact UNKNOWN or DENY answer that passes these checks is not refused, whatever
+    MAX_QUOTE_AGE_MS, allowing the optional clock_skew_ms at each age boundary. An intact UNKNOWN or
+    DENY answer that passes these checks is not refused, whatever
     the clock: its verdict says it is no pass. A supplied deposit address is checked separately by
     bind_deposit_address. The answer is unsigned, so this refuses an edited or reused answer, not one
     forged whole with its hash recomputed."""
@@ -638,13 +645,13 @@ def verify_binding(answer, quote_request, *, clock=time.time):
     _request_binding(judged_request, quote_request, "quote_request", deadline=True)
     _request_schema(quote_request)
     if answer.get("verdict") == "ALLOW":
-        expired = _expired(judged_request, subject.get("quote"), clock())
+        expired = _expired(judged_request, subject.get("quote"), clock(), clock_skew_ms=clock_skew_ms)
         if expired:
             raise ValueError(f"{expired}: an ALLOW ends at its quote deadline and when its quote is older than "
                              f"{MAX_QUOTE_AGE_MS} ms")
 
 
-def _expired(judged, quote, now):
+def _expired(judged, quote, now, *, clock_skew_ms=0):
     """The detail of the first time bound an answer fails at now, one clock reading in seconds: the
     judged deadline not after now (_deadline_check), then the timestamp of quote, the document's
     {correlation_id, timestamp, ...}, missing, invalid or more than MAX_QUOTE_AGE_MS old at now
@@ -652,7 +659,7 @@ def _expired(judged, quote, now):
     timestamp = quote.get("timestamp") if isinstance(quote, dict) else None
     local = {"provider": "local rules", "request_sha256": None, "fetched_at": None}
     for check in (_deadline_check(judged.get("deadline"), lambda: now),
-                  _quote_age_check(timestamp, local, lambda: now)):
+                  _quote_age_check(timestamp, local, lambda: now, clock_skew_ms=clock_skew_ms)):
         if check["status"] != "pass":
             return check["detail"]
     return None
@@ -935,7 +942,9 @@ def _deadline_check(deadline, clock):
 
 MAX_QUOTE_AGE_MS = 300000
 # The 1Click timestamp is already recorded in evidence; keep its age within the Gate's default expiry.
-def _quote_age_check(timestamp, source, clock):
+def _quote_age_check(timestamp, source, clock, *, clock_skew_ms=0):
+    if type(clock_skew_ms) is not int or not 0 <= clock_skew_ms <= 5000:
+        raise ValueError("clock skew must be from 0 to 5000 ms")
     if not isinstance(timestamp, str):
         return evidence.check("quote_age", "unknown", "quote age is unknown because timestamp is missing", source)
     quoted_at = _instant(timestamp)
@@ -943,13 +952,15 @@ def _quote_age_check(timestamp, source, clock):
         return evidence.check("quote_age", "unknown", "quote age is unknown because timestamp is invalid", source)
     # The bounds compare the exact age; the detail rounds it away from the bound it fails.
     age = (datetime.fromtimestamp(clock(), UTC) - quoted_at) / timedelta(milliseconds=1)
-    if age < 0:
+    if age < -clock_skew_ms:
         return evidence.check("quote_age", "unknown", f"quote age is {math.floor(age)} ms because timestamp is in "
                               "the future", source)
-    if age > MAX_QUOTE_AGE_MS:
-        return evidence.check("quote_age", "unknown", f"quote age is {math.ceil(age)} ms, over {MAX_QUOTE_AGE_MS} ms",
+    maximum = MAX_QUOTE_AGE_MS + clock_skew_ms
+    if age > maximum:
+        return evidence.check("quote_age", "unknown", f"quote age is {math.ceil(age)} ms, over {maximum} ms",
                               source)
-    return evidence.check("quote_age", "pass", f"quote age is {math.floor(age)} ms, within {MAX_QUOTE_AGE_MS} ms",
+    skew = f", allowing {clock_skew_ms} ms clock skew" if clock_skew_ms else ""
+    return evidence.check("quote_age", "pass", f"quote age is {math.floor(age)} ms, within {maximum} ms{skew}",
                           source)
 
 

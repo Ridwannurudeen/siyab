@@ -1,0 +1,166 @@
+{
+  "url": "https://1click.chaindefuser.com/v0/status",
+  "request": {
+    "method": "GET",
+    "params": {
+      "depositAddress": "14d081ab4490ec14434a3240c33e071048b954ac22345278158c45aa3a438324"
+    }
+  },
+  "fetched_at": "2026-11-21T16:34:21Z",
+  "response": {
+    "status": "SUCCESS",
+    "updatedAt": "2026-07-01T13:04:42.808Z",
+    "correlationId": "46848c6d-8203-4cbc-9b1d-7e8f6e91f511",
+    "swapDetails": {
+      "depositedAmount": "100000000000000000000000",
+      "depositedAmountUsd": "0.1340",
+      "depositedAmountFormatted": "0.1",
+      "intentHashes": [
+        "FBxetQKwnQbD2JHfdxKKX44GR29AFbYokabaXS19CQSC"
+      ],
+      "nearTxHashes": [
+        "5EVPr3vkAoLMcAiuSq3qLWWZsRjPeXpaugnqerLBh52y",
+        "FDLLrpWgAGMF6S2tMozrKTUy2nhdBfSAEeUvrpvcwdK3"
+      ],
+      "amountIn": "100000000000000000000000",
+      "amountInFormatted": "0.1",
+      "amountInUsd": "0.1340",
+      "amountOut": "133142",
+      "amountOutFormatted": "0.133142",
+      "amountOutUsd": "0.1331",
+      "slippage": -19,
+      "refundedAmount": "0",
+      "refundedAmountFormatted": "0",
+      "refundedAmountUsd": "0",
+      "refundReason": null,
+      "refundFee": "0",
+      "withdrawFee": null,
+      "originChainTxHashes": [
+        {
+          "hash": "9CLCjpPN2tY6UE7HNd5e5eABLedzVrvXTvLUGJDwXgEq",
+          "explorerUrl": ""
+        }
+      ],
+      "destinationChainTxHashes": [
+        {
+          "hash": "FDLLrpWgAGMF6S2tMozrKTUy2nhdBfSAEeUvrpvcwdK3",
+          "explorerUrl": ""
+        }
+      ]
+    },
+    "quoteResponse": {
+      "timestamp": "2026-03-19T19:36:39.320Z",
+      "quoteRequest": {
+        "dry": false,
+        "swapType": "EXACT_INPUT",
+        "depositMode": "SIMPLE",
+        "slippageTolerance": 50,
+        "originAsset": "nep141:wrap.near",
+        "depositType": "ORIGIN_CHAIN",
+        "destinationAsset": "nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+        "amount": "100000000000000000000000",
+        "refundTo": "lesik_o.sputnik-dao.near",
+        "refundType": "ORIGIN_CHAIN",
+        "recipient": "lesik_o.sputnik-dao.near",
+        "recipientType": "INTENTS",
+        "deadline": "2026-03-20T19:36:38.824Z",
+        "appFees": [
+          {
+            "recipient": "028bacb7821fa83a3c79ed96a544d000b07ba845acbe547069689c40fc6c5e4f",
+            "fee": 35
+          },
+          {
+            "recipient": "testing-astradao.sputnik-dao.near",
+            "fee": 35
+          }
+        ],
+        "virtualChainRecipient": null,
+        "virtualChainRefundRecipient": null,
+        "referral": "trezu",
+        "confidentiality": "public"
+      },
+      "quote": {
+        "amountIn": "100000000000000000000000",
+        "amountInFormatted": "0.1",
+        "amountInUsd": "0.1350",
+        "minAmountIn": "100000000000000000000000",
+        "amountOut": "132894",
+        "amountOutFormatted": "0.132894",
+        "amountOutUsd": "0.1329",
+        "minAmountOut": "132229",
+        "timeWhenInactive": "2026-03-20T19:36:42.439Z",
+        "depositAddress": "14d081ab4490ec14434a3240c33e071048b954ac22345278158c45aa3a438324",
+        "deadline": "2026-03-20T19:36:42.439Z",
+        "timeEstimate": 20,
+        "refundFee": "0",
+        "withdrawFee": null
+      }
+    }
+  },
+  "signature_bytes": [
+    77,
+    50,
+    184,
+    9,
+    197,
+    242,
+    160,
+    91,
+    46,
+    170,
+    203,
+    29,
+    0,
+    44,
+    124,
+    215,
+    66,
+    199,
+    102,
+    185,
+    86,
+    6,
+    110,
+    189,
+    215,
+    87,
+    61,
+    231,
+    78,
+    249,
+    22,
+    93,
+    145,
+    54,
+    247,
+    202,
+    250,
+    241,
+    205,
+    114,
+    226,
+    41,
+    175,
+    118,
+    4,
+    207,
+    247,
+    21,
+    78,
+    78,
+    191,
+    219,
+    249,
+    137,
+    96,
+    27,
+    169,
+    171,
+    226,
+    91,
+    248,
+    9,
+    132,
+    13
+  ]
+}

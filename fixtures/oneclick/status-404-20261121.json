@@ -1,0 +1,19 @@
+{
+  "source": "https://1click.chaindefuser.com/v0/status",
+  "fetched_at": "2026-11-21T15:02:13Z",
+  "http_status": 404,
+  "request": {
+    "method": "GET",
+    "params": {
+      "depositAddress": "siyab-unissued-probe-20261121.near"
+    }
+  },
+  "response": {
+    "message": "Deposit address siyab-unissued-probe-20261121.near not found",
+    "error": "Not Found",
+    "statusCode": 404,
+    "timestamp": "2026-11-21T15:02:11.721Z",
+    "path": "/v0/status?depositAddress=siyab-unissued-probe-20261121.near"
+  },
+  "note": "Actual 404 response for the specified unknown deposit address."
+}
