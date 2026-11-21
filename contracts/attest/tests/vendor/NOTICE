@@ -1,0 +1,19 @@
+NEAR TEE verifier spike artifacts
+
+Source: https://github.com/near/mpc/tree/3.18.0
+License: MIT. Copyright (c) 2025 NEAR One Limited.
+The complete upstream license is in upstream/LICENSE.
+
+tee-verifier-mainnet.wasm is the unmodified deployed code fetched by read-only
+view_code from tee-verifier-2026-11-11.near. Its public RPC capture and expected
+SHA256 are in fixtures/attest/deployment.json at the repository root.
+
+The files named tee-verifier-TEST-ONLY are local builds of the upstream verifier
+with block-clock disabled and a compile-time recording timestamp. They must
+never be deployed to a public network or treated as the deployed mainnet code.
+builds.json records their provenance and the build commands.
+
+upstream/ holds byte-for-byte public test assets and their individual source
+URLs and hashes. The original upstream collateral is expired at present time.
+The pinned clock builds exist solely for durable offline replay in a local
+near-workspaces sandbox.

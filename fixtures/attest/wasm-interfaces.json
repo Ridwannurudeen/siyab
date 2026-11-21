@@ -1,0 +1,119 @@
+{
+  "source": "https://webassembly.github.io/spec/core/binary/modules.html#export-section",
+  "method_abi_source": "https://github.com/near/mpc/blob/3.18.0/crates/tee-verifier/src/lib.rs",
+  "records": [
+    {
+      "file": "tee-verifier-mainnet.wasm",
+      "sha256": "6ea1adad0c56d211626427e3ac1963e0410c535d600c04231ade885cb6e30210",
+      "exports": [
+        {
+          "name": "memory",
+          "kind": 2,
+          "index": 0
+        },
+        {
+          "name": "__contract_abi",
+          "kind": 0,
+          "index": 47
+        },
+        {
+          "name": "__getrandom_custom",
+          "kind": 0,
+          "index": 48
+        },
+        {
+          "name": "contract_source_metadata",
+          "kind": 0,
+          "index": 49
+        },
+        {
+          "name": "verify_quote",
+          "kind": 0,
+          "index": 50
+        },
+        {
+          "name": "verify_quote_with_collateral_dates",
+          "kind": 0,
+          "index": 51
+        },
+        {
+          "name": "ring_core_0_17_14__bn_mul_mont",
+          "kind": 0,
+          "index": 826
+        }
+      ]
+    },
+    {
+      "file": "tee-verifier-TEST-ONLY-mpc.wasm",
+      "sha256": "756185bb56ffad919d121177ee84e07460414badd1d9781bf2d0f096048adcdb",
+      "exports": [
+        {
+          "name": "memory",
+          "kind": 2,
+          "index": 0
+        },
+        {
+          "name": "__getrandom_custom",
+          "kind": 0,
+          "index": 67
+        },
+        {
+          "name": "contract_source_metadata",
+          "kind": 0,
+          "index": 68
+        },
+        {
+          "name": "verify_quote",
+          "kind": 0,
+          "index": 69
+        },
+        {
+          "name": "verify_quote_with_collateral_dates",
+          "kind": 0,
+          "index": 70
+        },
+        {
+          "name": "ring_core_0_17_14__bn_mul_mont",
+          "kind": 0,
+          "index": 1678
+        }
+      ]
+    },
+    {
+      "file": "tee-verifier-TEST-ONLY-nearai.wasm",
+      "sha256": "bc303e8e8a5043e7fdc43c605b956769a43e24ec8a1b72c45f72c170ec5208fa",
+      "exports": [
+        {
+          "name": "memory",
+          "kind": 2,
+          "index": 0
+        },
+        {
+          "name": "__getrandom_custom",
+          "kind": 0,
+          "index": 67
+        },
+        {
+          "name": "contract_source_metadata",
+          "kind": 0,
+          "index": 68
+        },
+        {
+          "name": "verify_quote",
+          "kind": 0,
+          "index": 69
+        },
+        {
+          "name": "verify_quote_with_collateral_dates",
+          "kind": 0,
+          "index": 70
+        },
+        {
+          "name": "ring_core_0_17_14__bn_mul_mont",
+          "kind": 0,
+          "index": 1678
+        }
+      ]
+    }
+  ]
+}

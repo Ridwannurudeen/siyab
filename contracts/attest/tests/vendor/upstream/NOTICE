@@ -1,0 +1,20 @@
+NEAR MPC test fixtures
+
+Copied byte for byte from near/mpc tag 3.18.0.
+Source: https://github.com/near/mpc/tree/3.18.0/crates/test-utils/assets
+MIT license. Copyright (c) 2025 NEAR One Limited. See LICENSE.
+
+These recorded quotes and their collateral are test data. The valid test
+timestamp is 1786622400 Unix seconds. The earliest expiration date is
+1789171031 Unix seconds. The collateral is expired at current block time.
+
+The verifier test uses public_data.json tee_participant_info.Dstack.collateral
+with trailing NUL characters removed from string fields. collateral.json is
+the contract DTO hex representation. quote.json is a JSON byte array.
+
+Fixture timestamp and conversion source:
+https://github.com/near/mpc/blob/3.18.0/crates/test-utils/src/attestation.rs
+Collateral dates and expected UpToDate result:
+https://github.com/near/mpc/blob/3.18.0/crates/tee-verifier/tests/verify_quote.rs
+
+manifest.json records every copied file URL, size and SHA256.

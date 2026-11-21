@@ -1,0 +1,848 @@
+{
+  "recorded_at_utc": "2026-11-21T21:07:09.036371+00:00",
+  "network": "isolated near-workspaces sandbox only",
+  "near_workspaces": "0.23.0",
+  "test_counts": {
+    "rust_unit": 5,
+    "rust_sandbox": 4,
+    "passed": 9,
+    "failed": 0,
+    "skipped": 0
+  },
+  "events": [
+    {
+      "args_sha256": "c2bedb707f0902cecf7355ea9681624856f986ed064376b23fbcb1fbb6af3480",
+      "contract": "dev-20261121210651-40988816445764.test.near",
+      "name": "dated-mainnet-deepseek-gateway-null",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210651-40988816445764.test.near",
+          "gas": 125070453363762,
+          "logs": []
+        }
+      ],
+      "total_gas": 125421572480734
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795271817,
+      "name": "dated-mainnet-deepseek-gateway-null",
+      "ppid": "8842b080fea8308f8f45531fd81f45b9",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "cbec8bcdbf8d9383a53a4068d5aed2344a456afecc5d408f4803fbc783f04e2d",
+      "contract": "dev-20261121210651-40988816445764.test.near",
+      "name": "dated-mainnet-deepseek-model-0",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210651-40988816445764.test.near",
+          "gas": 125365786853206,
+          "logs": []
+        }
+      ],
+      "total_gas": 125719752314160
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795272198,
+      "name": "dated-mainnet-deepseek-model-0",
+      "ppid": "9345831e85d60e2d563ea825e6e5efd2",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "cc4ad62762c7b91fc544bb4ee90c0ac45324a3e41f1e3b37ca90f0b79ab09e83",
+      "contract": "dev-20261121210651-40988816445764.test.near",
+      "name": "dated-mainnet-deepseek-manager-0",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210651-40988816445764.test.near",
+          "gas": 125365961277478,
+          "logs": []
+        }
+      ],
+      "total_gas": 125719926738432
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795272198,
+      "name": "dated-mainnet-deepseek-manager-0",
+      "ppid": "9345831e85d60e2d563ea825e6e5efd2",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "70abbe5049de2a79de9cb5ae0a30a2ebbac3f23cba2aceb17d5e9e21847ffc98",
+      "contract": "dev-20261121210651-40988816445764.test.near",
+      "name": "dated-mainnet-deepseek-model-1",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210651-40988816445764.test.near",
+          "gas": 125364851379634,
+          "logs": []
+        }
+      ],
+      "total_gas": 125718816840588
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795272198,
+      "name": "dated-mainnet-deepseek-model-1",
+      "ppid": "c9823bdff81c3275aa3beff9bb59ea8a",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "fb65c2f3ef317d861a5cd9daa500b979fef3eb8f1dee6211c8129884e518e8ad",
+      "contract": "dev-20261121210651-40988816445764.test.near",
+      "name": "dated-mainnet-deepseek-manager-1",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210651-40988816445764.test.near",
+          "gas": 125365025803906,
+          "logs": []
+        }
+      ],
+      "total_gas": 125718991264860
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795272198,
+      "name": "dated-mainnet-deepseek-manager-1",
+      "ppid": "c9823bdff81c3275aa3beff9bb59ea8a",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "7fd3321937e519ef3a7b92a3dae15f5218fbe8b6a6bf6787cad47aeab4a9268f",
+      "contract": "dev-20261121210651-40988816445764.test.near",
+      "name": "dated-mainnet-glm-gateway-null",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210651-40988816445764.test.near",
+          "gas": 125070104515218,
+          "logs": []
+        }
+      ],
+      "total_gas": 125421223632190
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795271817,
+      "name": "dated-mainnet-glm-gateway-null",
+      "ppid": "8842b080fea8308f8f45531fd81f45b9",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "9fcd82e7c6d0923784ae8ac95fe460b7350d65b6c3f495287c247bf4d2edc225",
+      "contract": "dev-20261121210651-40988816445764.test.near",
+      "name": "dated-mainnet-glm-model-0",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210651-40988816445764.test.near",
+          "gas": 125366003724962,
+          "logs": []
+        }
+      ],
+      "total_gas": 125719978129652
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795272198,
+      "name": "dated-mainnet-glm-model-0",
+      "ppid": "3862c5dc173740184f444d797d2d3bdb",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "56de37948e0afcc06c012b2c3ea184273312753bbfcaaf8d3bc3392f6a5f42c2",
+      "contract": "dev-20261121210651-40988816445764.test.near",
+      "name": "dated-mainnet-glm-manager-0",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210651-40988816445764.test.near",
+          "gas": 125366178149234,
+          "logs": []
+        }
+      ],
+      "total_gas": 125720152553924
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795272198,
+      "name": "dated-mainnet-glm-manager-0",
+      "ppid": "3862c5dc173740184f444d797d2d3bdb",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "169877522d475847f97bc66d2a5eb1a595e5c5e125dcd5bcccd6a2113f0062f3",
+      "contract": "dev-20261121210651-40988816445764.test.near",
+      "name": "dated-mainnet-glm-model-1",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210651-40988816445764.test.near",
+          "gas": 125365229847394,
+          "logs": []
+        }
+      ],
+      "total_gas": 125719195308348
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795272198,
+      "name": "dated-mainnet-glm-model-1",
+      "ppid": "a61a2825cb526daeff86d9353440d64d",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "630c2a1564a8417da351bd622ffee39bc0087538687a1e2826200e0e6ff9ef63",
+      "contract": "dev-20261121210651-40988816445764.test.near",
+      "name": "dated-mainnet-glm-manager-1",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210651-40988816445764.test.near",
+          "gas": 125365578695938,
+          "logs": []
+        }
+      ],
+      "total_gas": 125719544156892
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795272198,
+      "name": "dated-mainnet-glm-manager-1",
+      "ppid": "a61a2825cb526daeff86d9353440d64d",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "74e26bc88650015800c19ad8d3b3ff8ec8911686b990ef9c119f6c0546c39e95",
+      "contract": "dev-20261121210651-40988816445764.test.near",
+      "name": "dated-mainnet-glm-model-2",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210651-40988816445764.test.near",
+          "gas": 125366911224830,
+          "logs": []
+        }
+      ],
+      "total_gas": 125720885629520
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795272198,
+      "name": "dated-mainnet-glm-model-2",
+      "ppid": "a6f0afdf34bf1e35c1d81e6a33471dec",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "04f7a318e1e630be5e5e543ff6c3cd2d0b1f26185fd142fbecdba62f996e3e48",
+      "contract": "dev-20261121210651-40988816445764.test.near",
+      "name": "dated-mainnet-glm-manager-2",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210651-40988816445764.test.near",
+          "gas": 125366736800558,
+          "logs": []
+        }
+      ],
+      "total_gas": 125720711205248
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795272198,
+      "name": "dated-mainnet-glm-manager-2",
+      "ppid": "a6f0afdf34bf1e35c1d81e6a33471dec",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "528443c86f5e516bb1433c18d513ad5cebfb30ec3f29185c473d4a3e85ddd9aa",
+      "contract": "dev-20261121210651-40988816445764.test.near",
+      "name": "dated-mainnet-glm-model-3",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210651-40988816445764.test.near",
+          "gas": 125366178149234,
+          "logs": []
+        }
+      ],
+      "total_gas": 125720152553924
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795272198,
+      "name": "dated-mainnet-glm-model-3",
+      "ppid": "3862c5dc173740184f444d797d2d3bdb",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "415bafb9624a126ebf385b521241eef81cdac80f8eb56ea3e6d9cea965a0a72c",
+      "contract": "dev-20261121210651-40988816445764.test.near",
+      "name": "dated-mainnet-glm-manager-3",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210651-40988816445764.test.near",
+          "gas": 125366352573506,
+          "logs": []
+        }
+      ],
+      "total_gas": 125720326978196
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795272198,
+      "name": "dated-mainnet-glm-manager-3",
+      "ppid": "3862c5dc173740184f444d797d2d3bdb",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "369e98092037b00515663961a6c60574aef6b23624d91d0972d7d16ecd20171c",
+      "contract": "dev-20261121210651-40988816445764.test.near",
+      "name": "dated-mainnet-deepseek-separate-gateway",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210651-40988816445764.test.near",
+          "gas": 125070104515218,
+          "logs": []
+        }
+      ],
+      "total_gas": 125421223632190
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795271817,
+      "name": "dated-mainnet-deepseek-separate-gateway",
+      "ppid": "8842b080fea8308f8f45531fd81f45b9",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "a9b65cfe1ac669d92b56d4616f20a346c74d25344d57dac4294e6ea1655aab9d",
+      "contract": "dev-20261121210651-40988816445764.test.near",
+      "name": "dated-mainnet-glm-separate-gateway",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210651-40988816445764.test.near",
+          "gas": 125070453363762,
+          "logs": []
+        }
+      ],
+      "total_gas": 125421572480734
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795271817,
+      "name": "dated-mainnet-glm-separate-gateway",
+      "ppid": "8842b080fea8308f8f45531fd81f45b9",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "07ee7e88095ba9f139fc06f6b31d10aa859219dfcf5313c261b5943924144b06",
+      "contract": "dev-20261121210651-40988816445764.test.near",
+      "name": "dated-mainnet-flipped",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210651-40988816445764.test.near",
+          "gas": 123108746479539,
+          "logs": []
+        }
+      ],
+      "total_gas": 123459865596511
+    },
+    {
+      "error": "dcap verification failed: ISV enclave report signature is invalid",
+      "name": "dated-mainnet-flipped",
+      "result": "Rejected"
+    },
+    {
+      "args_sha256": "c2bedb707f0902cecf7355ea9681624856f986ed064376b23fbcb1fbb6af3480",
+      "contract": "dev-20261121210659-79982032069179.test.near",
+      "name": "deepseek-gateway-null",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210659-79982032069179.test.near",
+          "gas": 124307290425104,
+          "logs": []
+        }
+      ],
+      "total_gas": 124658409542076
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795271817,
+      "name": "deepseek-gateway-null",
+      "ppid": "8842b080fea8308f8f45531fd81f45b9",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "cbec8bcdbf8d9383a53a4068d5aed2344a456afecc5d408f4803fbc783f04e2d",
+      "contract": "dev-20261121210659-79982032069179.test.near",
+      "name": "deepseek-model-0",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210659-79982032069179.test.near",
+          "gas": 124625972084316,
+          "logs": []
+        }
+      ],
+      "total_gas": 124979937545270
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795272198,
+      "name": "deepseek-model-0",
+      "ppid": "9345831e85d60e2d563ea825e6e5efd2",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "cc4ad62762c7b91fc544bb4ee90c0ac45324a3e41f1e3b37ca90f0b79ab09e83",
+      "contract": "dev-20261121210659-79982032069179.test.near",
+      "name": "deepseek-manager-0",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210659-79982032069179.test.near",
+          "gas": 124626159672684,
+          "logs": []
+        }
+      ],
+      "total_gas": 124980125133638
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795272198,
+      "name": "deepseek-manager-0",
+      "ppid": "9345831e85d60e2d563ea825e6e5efd2",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "70abbe5049de2a79de9cb5ae0a30a2ebbac3f23cba2aceb17d5e9e21847ffc98",
+      "contract": "dev-20261121210659-79982032069179.test.near",
+      "name": "deepseek-model-1",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210659-79982032069179.test.near",
+          "gas": 124625002877748,
+          "logs": []
+        }
+      ],
+      "total_gas": 124978968338702
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795272198,
+      "name": "deepseek-model-1",
+      "ppid": "c9823bdff81c3275aa3beff9bb59ea8a",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "fb65c2f3ef317d861a5cd9daa500b979fef3eb8f1dee6211c8129884e518e8ad",
+      "contract": "dev-20261121210659-79982032069179.test.near",
+      "name": "deepseek-manager-1",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210659-79982032069179.test.near",
+          "gas": 124625190466116,
+          "logs": []
+        }
+      ],
+      "total_gas": 124979155927070
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795272198,
+      "name": "deepseek-manager-1",
+      "ppid": "c9823bdff81c3275aa3beff9bb59ea8a",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "7fd3321937e519ef3a7b92a3dae15f5218fbe8b6a6bf6787cad47aeab4a9268f",
+      "contract": "dev-20261121210659-79982032069179.test.near",
+      "name": "glm-gateway-null",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210659-79982032069179.test.near",
+          "gas": 124306915248368,
+          "logs": []
+        }
+      ],
+      "total_gas": 124658034365340
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795271817,
+      "name": "glm-gateway-null",
+      "ppid": "8842b080fea8308f8f45531fd81f45b9",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "9fcd82e7c6d0923784ae8ac95fe460b7350d65b6c3f495287c247bf4d2edc225",
+      "contract": "dev-20261121210659-79982032069179.test.near",
+      "name": "glm-model-0",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210659-79982032069179.test.near",
+          "gas": 124626213638752,
+          "logs": []
+        }
+      ],
+      "total_gas": 124980188043442
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795272198,
+      "name": "glm-model-0",
+      "ppid": "3862c5dc173740184f444d797d2d3bdb",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "56de37948e0afcc06c012b2c3ea184273312753bbfcaaf8d3bc3392f6a5f42c2",
+      "contract": "dev-20261121210659-79982032069179.test.near",
+      "name": "glm-manager-0",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210659-79982032069179.test.near",
+          "gas": 124626401227120,
+          "logs": []
+        }
+      ],
+      "total_gas": 124980375631810
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795272198,
+      "name": "glm-manager-0",
+      "ppid": "3862c5dc173740184f444d797d2d3bdb",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "169877522d475847f97bc66d2a5eb1a595e5c5e125dcd5bcccd6a2113f0062f3",
+      "contract": "dev-20261121210659-79982032069179.test.near",
+      "name": "glm-model-1",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210659-79982032069179.test.near",
+          "gas": 124625382991020,
+          "logs": []
+        }
+      ],
+      "total_gas": 124979348451974
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795272198,
+      "name": "glm-model-1",
+      "ppid": "a61a2825cb526daeff86d9353440d64d",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "630c2a1564a8417da351bd622ffee39bc0087538687a1e2826200e0e6ff9ef63",
+      "contract": "dev-20261121210659-79982032069179.test.near",
+      "name": "glm-manager-1",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210659-79982032069179.test.near",
+          "gas": 124625758167756,
+          "logs": []
+        }
+      ],
+      "total_gas": 124979723628710
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795272198,
+      "name": "glm-manager-1",
+      "ppid": "a61a2825cb526daeff86d9353440d64d",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "74e26bc88650015800c19ad8d3b3ff8ec8911686b990ef9c119f6c0546c39e95",
+      "contract": "dev-20261121210659-79982032069179.test.near",
+      "name": "glm-model-2",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210659-79982032069179.test.near",
+          "gas": 124627161453664,
+          "logs": []
+        }
+      ],
+      "total_gas": 124981135858354
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795272198,
+      "name": "glm-model-2",
+      "ppid": "a6f0afdf34bf1e35c1d81e6a33471dec",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "04f7a318e1e630be5e5e543ff6c3cd2d0b1f26185fd142fbecdba62f996e3e48",
+      "contract": "dev-20261121210659-79982032069179.test.near",
+      "name": "glm-manager-2",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210659-79982032069179.test.near",
+          "gas": 124626973865296,
+          "logs": []
+        }
+      ],
+      "total_gas": 124980948269986
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795272198,
+      "name": "glm-manager-2",
+      "ppid": "a6f0afdf34bf1e35c1d81e6a33471dec",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "528443c86f5e516bb1433c18d513ad5cebfb30ec3f29185c473d4a3e85ddd9aa",
+      "contract": "dev-20261121210659-79982032069179.test.near",
+      "name": "glm-model-3",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210659-79982032069179.test.near",
+          "gas": 124626401227120,
+          "logs": []
+        }
+      ],
+      "total_gas": 124980375631810
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795272198,
+      "name": "glm-model-3",
+      "ppid": "3862c5dc173740184f444d797d2d3bdb",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "415bafb9624a126ebf385b521241eef81cdac80f8eb56ea3e6d9cea965a0a72c",
+      "contract": "dev-20261121210659-79982032069179.test.near",
+      "name": "glm-manager-3",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210659-79982032069179.test.near",
+          "gas": 124626588815488,
+          "logs": []
+        }
+      ],
+      "total_gas": 124980563220178
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795272198,
+      "name": "glm-manager-3",
+      "ppid": "3862c5dc173740184f444d797d2d3bdb",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "369e98092037b00515663961a6c60574aef6b23624d91d0972d7d16ecd20171c",
+      "contract": "dev-20261121210659-79982032069179.test.near",
+      "name": "deepseek-separate-gateway",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210659-79982032069179.test.near",
+          "gas": 124306915248368,
+          "logs": []
+        }
+      ],
+      "total_gas": 124658034365340
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795271817,
+      "name": "deepseek-separate-gateway",
+      "ppid": "8842b080fea8308f8f45531fd81f45b9",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "a9b65cfe1ac669d92b56d4616f20a346c74d25344d57dac4294e6ea1655aab9d",
+      "contract": "dev-20261121210659-79982032069179.test.near",
+      "name": "glm-separate-gateway",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210659-79982032069179.test.near",
+          "gas": 124307290425104,
+          "logs": []
+        }
+      ],
+      "total_gas": 124658409542076
+    },
+    {
+      "earliest_expiration_date": 1797862926,
+      "latest_issue_date": 1795271817,
+      "name": "glm-separate-gateway",
+      "ppid": "8842b080fea8308f8f45531fd81f45b9",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "af7f88f5ae2f25ea61d7f0024d3e61f8b6b59a8ab381e6fc32db3208e2c265cb",
+      "contract": "dev-20261121210659-79982032069179.test.near",
+      "name": "nearai-flipped",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210659-79982032069179.test.near",
+          "gas": 122550977458185,
+          "logs": []
+        }
+      ],
+      "total_gas": 122904942919139
+    },
+    {
+      "error": "dcap verification failed: ISV enclave report signature is invalid",
+      "name": "nearai-flipped",
+      "result": "Rejected"
+    },
+    {
+      "args_sha256": "f238563c158aabef629e5a4c0bde8a36ae0b9484d15bc452d60e407625814ba0",
+      "contract": "dev-20261121210659-79982032069179.test.near",
+      "name": "nearai-wrong-pck-chain",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210659-79982032069179.test.near",
+          "gas": 109679885649613,
+          "logs": []
+        }
+      ],
+      "total_gas": 110042083819555
+    },
+    {
+      "error": "dcap verification failed: Signature is invalid for qe_report in quote",
+      "name": "nearai-wrong-pck-chain",
+      "result": "Rejected"
+    },
+    {
+      "args_sha256": "e7ef9c27b4ddecc5d2b5c85563c5fa5faef63aa8b4d64474b9972de8657f9c09",
+      "contract": "dev-20261121210706-78504342989369.test.near",
+      "name": "upstream-good",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210706-78504342989369.test.near",
+          "gas": 124655934083040,
+          "logs": []
+        }
+      ],
+      "total_gas": 125018130017048
+    },
+    {
+      "earliest_expiration_date": 1789171031,
+      "latest_issue_date": 1786617938,
+      "name": "upstream-good",
+      "ppid": "d208dfb1002346ae1bb4ef2a3c055292",
+      "result": "Verified",
+      "status": "UpToDate"
+    },
+    {
+      "args_sha256": "8405a0d95243207ac7a6016972ea24e2553ee37d60e8884a023a3b881704f528",
+      "contract": "dev-20261121210706-78504342989369.test.near",
+      "name": "upstream-flipped",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210706-78504342989369.test.near",
+          "gas": 122583462849561,
+          "logs": []
+        }
+      ],
+      "total_gas": 122945658783569
+    },
+    {
+      "error": "dcap verification failed: ISV enclave report signature is invalid",
+      "name": "upstream-flipped",
+      "result": "Rejected"
+    },
+    {
+      "args_sha256": "e7ef9c27b4ddecc5d2b5c85563c5fa5faef63aa8b4d64474b9972de8657f9c09",
+      "contract": "dev-20261121210707-40427350367372.test.near",
+      "name": "replay-good",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210707-40427350367372.test.near",
+          "gas": 5930846178872,
+          "logs": []
+        },
+        {
+          "executor_id": "dev-20261121210706-78504342989369.test.near",
+          "gas": 124700063176720,
+          "logs": []
+        },
+        {
+          "executor_id": "dev-20261121210707-40427350367372.test.near",
+          "gas": 223182562500,
+          "logs": []
+        },
+        {
+          "executor_id": "dev-20261121210707-40427350367372.test.near",
+          "gas": 1987846853290,
+          "logs": [
+            "ATTEST_REPLAY_CALLBACK"
+          ]
+        },
+        {
+          "executor_id": "dev-20261121210707-40427350367372.test.near",
+          "gas": 223182562500,
+          "logs": []
+        }
+      ],
+      "total_gas": 133460791435804
+    },
+    {
+      "args_sha256": "e7ef9c27b4ddecc5d2b5c85563c5fa5faef63aa8b4d64474b9972de8657f9c09",
+      "contract": "dev-20261121210707-40427350367372.test.near",
+      "name": "replay-corrupt",
+      "receipts": [
+        {
+          "executor_id": "dev-20261121210707-40427350367372.test.near",
+          "gas": 5930846178872,
+          "logs": []
+        },
+        {
+          "executor_id": "dev-20261121210706-78504342989369.test.near",
+          "gas": 124700063176720,
+          "logs": []
+        },
+        {
+          "executor_id": "dev-20261121210707-40427350367372.test.near",
+          "gas": 223182562500,
+          "logs": []
+        },
+        {
+          "executor_id": "dev-20261121210707-40427350367372.test.near",
+          "gas": 1568989734619,
+          "logs": []
+        },
+        {
+          "executor_id": "dev-20261121210707-40427350367372.test.near",
+          "gas": 223182562500,
+          "logs": []
+        }
+      ],
+      "total_gas": 133041934317133
+    }
+  ],
+  "clock_source": "Local test log modification time in UTC"
+}

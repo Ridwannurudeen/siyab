@@ -1,0 +1,1639 @@
+{
+  "format": "siyab-attest-vectors",
+  "version": 1,
+  "synthetic": true,
+  "note": "Synthetic format and predicate vectors only. Registration quotes, collateral, signatures and domain 7 do not assert accepted evidence or a deployed signing domain.",
+  "report_data": [
+    {
+      "name": "zero-aux-mainnet",
+      "input": {
+        "registry_account_id": "attest.siyab.near",
+        "public_key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "issued_at_ms": 1795219200000,
+        "aux": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "preimage_hex": "73697961622d6174746573742d7631006174746573742e73697961622e6e65617200000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f000001a1fb671800",
+      "report_data_hex": "fed3369a5ec5f94a07db2bcd4de6a59f778adebc23987a5cc86d929f60c71e3d0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "name": "tls-aux-testnet",
+      "input": {
+        "registry_account_id": "attest.siyab.testnet",
+        "public_key": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "issued_at_ms": 1795219200001,
+        "aux": "0dd3dca8f4ec804f765a2d0be09f833597f2ee3c3560637536ac18f2913e3310"
+      },
+      "preimage_hex": "73697961622d6174746573742d7631006174746573742e73697961622e746573746e657400ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000001a1fb671801",
+      "report_data_hex": "409d6152b8b97eace482d4a6dddc3b01c6e3f96c938f4c7c47fb7db2e12d8cbd0dd3dca8f4ec804f765a2d0be09f833597f2ee3c3560637536ac18f2913e3310"
+    },
+    {
+      "name": "maximum-u64-clock",
+      "input": {
+        "registry_account_id": "aa",
+        "public_key": "0000000000000000000000000000000000000000000000000000000000000000",
+        "issued_at_ms": 18446744073709551615,
+        "aux": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "preimage_hex": "73697961622d6174746573742d7631006161000000000000000000000000000000000000000000000000000000000000000000ffffffffffffffff",
+      "report_data_hex": "409760b925a40c40865debc8d4b0f4cb69596534f4f7d3da1cc2fb69b4ffce690000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "zero-measurement",
+      "input": {
+        "mrtd": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "rtmr0": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "rtmr1": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "rtmr2": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "key_provider_digest": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "compose_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "preimage_hex": "73697961622d6d6561737572656d656e742d76310000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "measurement_id": "682530ca0f908c1911376740c4c66a0309564f9fe75b4af98dcfb33698ccb09d"
+    },
+    {
+      "name": "ordered-measurement",
+      "input": {
+        "mrtd": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f",
+        "rtmr0": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f30",
+        "rtmr1": "02030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f3031",
+        "rtmr2": "030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132",
+        "key_provider_digest": "0405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f30313233",
+        "compose_hash": "05060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2021222324"
+      },
+      "preimage_hex": "73697961622d6d6561737572656d656e742d7631000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f3002030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f3031030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f3031320405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f3031323305060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2021222324",
+      "measurement_id": "b9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f2"
+    }
+  ],
+  "scopes": [
+    {
+      "name": "one-platform",
+      "input": {
+        "measurement_id": "b9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f2",
+        "platforms": [
+          "00000000000000000000000000000000"
+        ]
+      },
+      "scope_id": "d866b01eea036a2e0a26385db8f9bd53253db4cce71bf9ce96310bd9d4365b23",
+      "vote_path": "vote/d866b01eea036a2e0a26385db8f9bd53253db4cce71bf9ce96310bd9d4365b23"
+    },
+    {
+      "name": "three-platforms",
+      "input": {
+        "measurement_id": "b9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f2",
+        "platforms": [
+          "00000000000000000000000000000000",
+          "11111111111111111111111111111111",
+          "ffffffffffffffffffffffffffffffff"
+        ]
+      },
+      "scope_id": "ab4810f9df9519348692912eec9616449b1f5761c2e639d8cf296e18fa1ea7f4",
+      "vote_path": "vote/ab4810f9df9519348692912eec9616449b1f5761c2e639d8cf296e18fa1ea7f4"
+    },
+    {
+      "name": "eight-platforms",
+      "input": {
+        "measurement_id": "b9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f2",
+        "platforms": [
+          "00000000000000000000000000000000",
+          "01010101010101010101010101010101",
+          "02020202020202020202020202020202",
+          "03030303030303030303030303030303",
+          "04040404040404040404040404040404",
+          "05050505050505050505050505050505",
+          "06060606060606060606060606060606",
+          "07070707070707070707070707070707"
+        ]
+      },
+      "scope_id": "0d2e5eb20bac15e7ccb693510c614c45c37e215f2a2911c789e3367618047064",
+      "vote_path": "vote/0d2e5eb20bac15e7ccb693510c614c45c37e215f2a2911c789e3367618047064"
+    }
+  ],
+  "votes": [
+    {
+      "name": "approve-mainnet",
+      "input": {
+        "registry_account_id": "attest.siyab.near",
+        "public_key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "measurement_id": "b9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f2",
+        "platforms": [
+          "00000000000000000000000000000000",
+          "11111111111111111111111111111111",
+          "ffffffffffffffffffffffffffffffff"
+        ],
+        "verb": "approve",
+        "approval_id": "00000000-0000-0000-0000-000000000001",
+        "wallet_pubkey": "ed25519:11111111111111111111111111111111",
+        "request_hash": "2c6c48d5f38cb6fc1422969642f1246fc9cff361583b47fdf48cac912d2bce0a",
+        "recipient": "outlayer.near",
+        "nonce": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+        "evidence_hash": "d72871bf19c9f6624dee6ceee564ca101133072e7c0b85ea2c7b40f9f8b535fb",
+        "expires_ms": 1795219500000
+      },
+      "intent_preimage_hex": "73697961622d766f74652d76317c110000006174746573742e73697961622e6e656172000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1fb9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f2030000000000000000000000000000000000000011111111111111111111111111111111ffffffffffffffffffffffffffffffff07000000617070726f76652400000030303030303030302d303030302d303030302d303030302d30303030303030303030303128000000656432353531393a31313131313131313131313131313131313131313131313131313131313131312c6c48d5f38cb6fc1422969642f1246fc9cff361583b47fdf48cac912d2bce0a0d0000006f75746c617965722e6e656172000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1fd72871bf19c9f6624dee6ceee564ca101133072e7c0b85ea2c7b40f9f8b535fbe0ab6bfba1010000",
+      "intent_digest": "a86f9b379b9e0833f1ebc3b39e0f724a12565e942b09ed28a29504cb869b8497",
+      "nep413_message": "approve:00000000-0000-0000-0000-000000000001:ed25519:11111111111111111111111111111111:2c6c48d5f38cb6fc1422969642f1246fc9cff361583b47fdf48cac912d2bce0a",
+      "nep413_preimage_hex": "9d01008096000000617070726f76653a30303030303030302d303030302d303030302d303030302d3030303030303030303030313a656432353531393a31313131313131313131313131313131313131313131313131313131313131313a32633663343864356633386362366663313432323936393634326631323436666339636666333631353833623437666466343863616339313264326263653061000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0d0000006f75746c617965722e6e65617200",
+      "nep413_digest": "50dcdbff379814b6211d6fc74eacbfb1ab2da07ef7181cc5d8903c6eeb650d2d"
+    },
+    {
+      "name": "reject-testnet-opaque-wallet",
+      "input": {
+        "registry_account_id": "attest.siyab.testnet",
+        "public_key": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "measurement_id": "b9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f2",
+        "platforms": [
+          "00000000000000000000000000000000"
+        ],
+        "verb": "reject",
+        "approval_id": "a5b6c7d8-9012-3456-7890-abcdef012345",
+        "wallet_pubkey": "wallet:key-format-is-opaque",
+        "request_hash": "2c6c48d5f38cb6fc1422969642f1246fc9cff361583b47fdf48cac912d2bce0a",
+        "recipient": "outlayer.testnet",
+        "nonce": "Hx4dHBsaGRgXFhUUExIREA8ODQwLCgkIBwYFBAMCAQA=",
+        "evidence_hash": "d72871bf19c9f6624dee6ceee564ca101133072e7c0b85ea2c7b40f9f8b535fb",
+        "expires_ms": 1795219200001
+      },
+      "intent_preimage_hex": "73697961622d766f74652d76317c140000006174746573742e73697961622e746573746e6574ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffb9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f201000000000000000000000000000000000000000600000072656a6563742400000061356236633764382d393031322d333435362d373839302d6162636465663031323334351b00000077616c6c65743a6b65792d666f726d61742d69732d6f70617175652c6c48d5f38cb6fc1422969642f1246fc9cff361583b47fdf48cac912d2bce0a100000006f75746c617965722e746573746e65741f1e1d1c1b1a191817161514131211100f0e0d0c0b0a09080706050403020100d72871bf19c9f6624dee6ceee564ca101133072e7c0b85ea2c7b40f9f8b535fb011867fba1010000",
+      "intent_digest": "2fe11aa449cb7e45cd7e16cd6cfdd4d76d07477f34a68df0016be20520e6e13c",
+      "nep413_message": "reject:a5b6c7d8-9012-3456-7890-abcdef012345:wallet:key-format-is-opaque:2c6c48d5f38cb6fc1422969642f1246fc9cff361583b47fdf48cac912d2bce0a",
+      "nep413_preimage_hex": "9d0100808800000072656a6563743a61356236633764382d393031322d333435362d373839302d6162636465663031323334353a77616c6c65743a6b65792d666f726d61742d69732d6f70617175653a326336633438643566333863623666633134323239363936343266313234366663396366663336313538336234376664663438636163393132643262636530611f1e1d1c1b1a191817161514131211100f0e0d0c0b0a09080706050403020100100000006f75746c617965722e746573746e657400",
+      "nep413_digest": "7c11c773ab6db1b032611f1ec297f79c6b2e48e1a9b489b6bbcb576a298e26c8"
+    },
+    {
+      "name": "maximum-u64-eight-platforms",
+      "input": {
+        "registry_account_id": "attest.siyab.near",
+        "public_key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "measurement_id": "b9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f2",
+        "platforms": [
+          "00000000000000000000000000000000",
+          "01010101010101010101010101010101",
+          "02020202020202020202020202020202",
+          "03030303030303030303030303030303",
+          "04040404040404040404040404040404",
+          "05050505050505050505050505050505",
+          "06060606060606060606060606060606",
+          "07070707070707070707070707070707"
+        ],
+        "verb": "approve",
+        "approval_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "wallet_pubkey": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+        "request_hash": "2c6c48d5f38cb6fc1422969642f1246fc9cff361583b47fdf48cac912d2bce0a",
+        "recipient": "outlayer.near",
+        "nonce": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+        "evidence_hash": "d72871bf19c9f6624dee6ceee564ca101133072e7c0b85ea2c7b40f9f8b535fb",
+        "expires_ms": 18446744073709551615
+      },
+      "intent_preimage_hex": "73697961622d766f74652d76317c110000006174746573742e73697961622e6e656172000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1fb9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f208000000000000000000000000000000000000000101010101010101010101010101010102020202020202020202020202020202030303030303030303030303030303030404040404040404040404040404040405050505050505050505050505050505060606060606060606060606060606060707070707070707070707070707070707000000617070726f76652400000066666666666666662d666666662d666666662d666666662d66666666666666666666666600010000777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777772c6c48d5f38cb6fc1422969642f1246fc9cff361583b47fdf48cac912d2bce0a0d0000006f75746c617965722e6e656172000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1fd72871bf19c9f6624dee6ceee564ca101133072e7c0b85ea2c7b40f9f8b535fbffffffffffffffff",
+      "intent_digest": "f0764735f964835aa1307a823f83f3ce0213336c5394bf41622ab921d6649126",
+      "nep413_message": "approve:ffffffff-ffff-ffff-ffff-ffffffffffff:wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww:2c6c48d5f38cb6fc1422969642f1246fc9cff361583b47fdf48cac912d2bce0a",
+      "nep413_preimage_hex": "9d0100806e010000617070726f76653a66666666666666662d666666662d666666662d666666662d6666666666666666666666663a777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777773a32633663343864356633386362366663313432323936393634326631323436666339636666333631353833623437666466343863616339313264326263653061000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0d0000006f75746c617965722e6e65617200",
+      "nep413_digest": "53aaf8f5c9f594f391d906279fe088ce581feced01a91574b5694798150c5d65"
+    }
+  ],
+  "attested_keys": [
+    {
+      "name": "attested-key-with-advisory",
+      "max_lease_ms": 86400000,
+      "view": {
+        "public_key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "measurement_id": "b9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f2",
+        "measurement": {
+          "mrtd": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f",
+          "rtmr0": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f30",
+          "rtmr1": "02030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f3031",
+          "rtmr2": "030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132",
+          "key_provider_digest": "0405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f30313233",
+          "compose_hash": "05060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2021222324"
+        },
+        "ppid": "11111111111111111111111111111111",
+        "aux": "0000000000000000000000000000000000000000000000000000000000000000",
+        "tcb_status": "UpToDate",
+        "advisory_ids": [
+          "INTEL-DOC-10000"
+        ],
+        "issued_at_ms": 1795219200000,
+        "registered_ms": 1795219201000,
+        "expires_ms": 1795305600000,
+        "collateral_expires_ms": 1797811200000
+      }
+    }
+  ],
+  "td_attributes": [
+    {
+      "name": "sept-ve-disable-only",
+      "td_attributes": "0000001000000000",
+      "accepted": true
+    },
+    {
+      "name": "toggle-bit-0",
+      "td_attributes": "0100001000000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-1",
+      "td_attributes": "0200001000000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-2",
+      "td_attributes": "0400001000000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-3",
+      "td_attributes": "0800001000000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-4",
+      "td_attributes": "1000001000000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-5",
+      "td_attributes": "2000001000000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-6",
+      "td_attributes": "4000001000000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-7",
+      "td_attributes": "8000001000000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-8",
+      "td_attributes": "0001001000000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-9",
+      "td_attributes": "0002001000000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-10",
+      "td_attributes": "0004001000000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-11",
+      "td_attributes": "0008001000000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-12",
+      "td_attributes": "0010001000000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-13",
+      "td_attributes": "0020001000000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-14",
+      "td_attributes": "0040001000000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-15",
+      "td_attributes": "0080001000000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-16",
+      "td_attributes": "0000011000000000",
+      "accepted": true
+    },
+    {
+      "name": "toggle-bit-17",
+      "td_attributes": "0000021000000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-18",
+      "td_attributes": "0000041000000000",
+      "accepted": true
+    },
+    {
+      "name": "toggle-bit-19",
+      "td_attributes": "0000081000000000",
+      "accepted": true
+    },
+    {
+      "name": "toggle-bit-20",
+      "td_attributes": "0000101000000000",
+      "accepted": true
+    },
+    {
+      "name": "toggle-bit-21",
+      "td_attributes": "0000201000000000",
+      "accepted": true
+    },
+    {
+      "name": "toggle-bit-22",
+      "td_attributes": "0000401000000000",
+      "accepted": true
+    },
+    {
+      "name": "toggle-bit-23",
+      "td_attributes": "0000801000000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-24",
+      "td_attributes": "0000001100000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-25",
+      "td_attributes": "0000001200000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-26",
+      "td_attributes": "0000001400000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-27",
+      "td_attributes": "0000001800000000",
+      "accepted": true
+    },
+    {
+      "name": "toggle-bit-28",
+      "td_attributes": "0000000000000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-29",
+      "td_attributes": "0000003000000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-30",
+      "td_attributes": "0000005000000000",
+      "accepted": true
+    },
+    {
+      "name": "toggle-bit-31",
+      "td_attributes": "0000009000000000",
+      "accepted": true
+    },
+    {
+      "name": "toggle-bit-32",
+      "td_attributes": "0000001001000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-33",
+      "td_attributes": "0000001002000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-34",
+      "td_attributes": "0000001004000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-35",
+      "td_attributes": "0000001008000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-36",
+      "td_attributes": "0000001010000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-37",
+      "td_attributes": "0000001020000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-38",
+      "td_attributes": "0000001040000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-39",
+      "td_attributes": "0000001080000000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-40",
+      "td_attributes": "0000001000010000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-41",
+      "td_attributes": "0000001000020000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-42",
+      "td_attributes": "0000001000040000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-43",
+      "td_attributes": "0000001000080000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-44",
+      "td_attributes": "0000001000100000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-45",
+      "td_attributes": "0000001000200000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-46",
+      "td_attributes": "0000001000400000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-47",
+      "td_attributes": "0000001000800000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-48",
+      "td_attributes": "0000001000000100",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-49",
+      "td_attributes": "0000001000000200",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-50",
+      "td_attributes": "0000001000000400",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-51",
+      "td_attributes": "0000001000000800",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-52",
+      "td_attributes": "0000001000001000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-53",
+      "td_attributes": "0000001000002000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-54",
+      "td_attributes": "0000001000004000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-55",
+      "td_attributes": "0000001000008000",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-56",
+      "td_attributes": "0000001000000001",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-57",
+      "td_attributes": "0000001000000002",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-58",
+      "td_attributes": "0000001000000004",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-59",
+      "td_attributes": "0000001000000008",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-60",
+      "td_attributes": "0000001000000010",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-61",
+      "td_attributes": "0000001000000020",
+      "accepted": false
+    },
+    {
+      "name": "toggle-bit-62",
+      "td_attributes": "0000001000000040",
+      "accepted": true
+    },
+    {
+      "name": "toggle-bit-63",
+      "td_attributes": "0000001000000080",
+      "accepted": true
+    },
+    {
+      "name": "all-permitted-bits",
+      "td_attributes": "00007dd8000000c0",
+      "accepted": true
+    }
+  ],
+  "key_issue_times": [
+    {
+      "name": "lower-edge-inclusive",
+      "max_lease_ms": 86400000,
+      "times": {
+        "issued_at_ms": 1795212001000,
+        "registered_ms": 1795219201000,
+        "expires_ms": 1795298401000,
+        "collateral_expires_ms": 1797811200000
+      },
+      "accepted": true
+    },
+    {
+      "name": "upper-edge-inclusive",
+      "max_lease_ms": 86400000,
+      "times": {
+        "issued_at_ms": 1795219201000,
+        "registered_ms": 1795219201000,
+        "expires_ms": 1795305601000,
+        "collateral_expires_ms": 1797811200000
+      },
+      "accepted": true
+    },
+    {
+      "name": "one-ms-before-lower-edge",
+      "max_lease_ms": 86400000,
+      "times": {
+        "issued_at_ms": 1795212000999,
+        "registered_ms": 1795219201000,
+        "expires_ms": 1795298400999,
+        "collateral_expires_ms": 1797811200000
+      },
+      "accepted": false
+    },
+    {
+      "name": "one-ms-after-upper-edge",
+      "max_lease_ms": 86400000,
+      "times": {
+        "issued_at_ms": 1795219201001,
+        "registered_ms": 1795219201000,
+        "expires_ms": 1795305601001,
+        "collateral_expires_ms": 1797811200000
+      },
+      "accepted": false
+    },
+    {
+      "name": "ten-days-future",
+      "max_lease_ms": 86400000,
+      "times": {
+        "issued_at_ms": 1796083201000,
+        "registered_ms": 1795219201000,
+        "expires_ms": 1796169601000,
+        "collateral_expires_ms": 1797811200000
+      },
+      "accepted": false
+    },
+    {
+      "name": "epoch-origin",
+      "max_lease_ms": 10,
+      "times": {
+        "issued_at_ms": 0,
+        "registered_ms": 0,
+        "expires_ms": 10,
+        "collateral_expires_ms": 100
+      },
+      "accepted": true
+    },
+    {
+      "name": "lower-edge-before-epoch",
+      "max_lease_ms": 86400000,
+      "times": {
+        "issued_at_ms": 0,
+        "registered_ms": 7199999,
+        "expires_ms": 86400000,
+        "collateral_expires_ms": 86400000
+      },
+      "accepted": true
+    },
+    {
+      "name": "u64-last-live-ms",
+      "max_lease_ms": 1,
+      "times": {
+        "issued_at_ms": 18446744073709551614,
+        "registered_ms": 18446744073709551614,
+        "expires_ms": 18446744073709551615,
+        "collateral_expires_ms": 18446744073709551615
+      },
+      "accepted": true
+    },
+    {
+      "name": "u64-lease-overflow",
+      "max_lease_ms": 2,
+      "times": {
+        "issued_at_ms": 18446744073709551614,
+        "registered_ms": 18446744073709551614,
+        "expires_ms": 18446744073709551615,
+        "collateral_expires_ms": 18446744073709551615
+      },
+      "accepted": false
+    }
+  ],
+  "get_key_args": [
+    {
+      "name": "raw-ed25519-hex",
+      "method": "get_key",
+      "public_key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "arguments_json_hex": "7b227075626c69635f6b6579223a2230303031303230333034303530363037303830393061306230633064306530663130313131323133313431353136313731383139316131623163316431653166227d"
+    }
+  ],
+  "registration_args": [
+    {
+      "name": "embedded-pck-chain",
+      "method": "register_key",
+      "arguments": {
+        "public_key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "issued_at_ms": 1795219200000,
+        "aux": "0000000000000000000000000000000000000000000000000000000000000000",
+        "verification_args": "04000000000102ff060000006973737565720200000000ff02000000018003000000746362020000007b7d020000000203020000007165020000007b7d02000000040500",
+        "app_compose": "{\"name\":\"siyab café\",\"services\":{}}\n",
+        "event_log": [
+          {
+            "imr": 3,
+            "event_type": 134217729,
+            "digest": "9a0ed402b3fce9d1b2587cd5bb7ed6d25dfbd6888df7a3e7a8b21aee28fa6708ddf6ad4d001d68cbc0b51355a963e60a",
+            "event": "compose-hash",
+            "event_payload": "8970477fedd9577cc065d7529b5b317d5e3055522648f8d233fc1fcb549e5c1d"
+          },
+          {
+            "imr": 3,
+            "event_type": 134217729,
+            "digest": "976d73181506f51efd62f5c8f0076676f336fb71fdbe39f4a8c21e7b207110e15e5aac77c89fcf50f99043fd88ef9bee",
+            "event": "key-provider",
+            "event_payload": "00ff"
+          }
+        ]
+      },
+      "verification_input": {
+        "quote_hex": "000102ff",
+        "collateral": {
+          "pck_crl_issuer_chain": "issuer",
+          "root_ca_crl": [
+            0,
+            255
+          ],
+          "pck_crl": [
+            1,
+            128
+          ],
+          "tcb_info_issuer_chain": "tcb",
+          "tcb_info": "{}",
+          "tcb_info_signature": [
+            2,
+            3
+          ],
+          "qe_identity_issuer_chain": "qe",
+          "qe_identity": "{}",
+          "qe_identity_signature": [
+            4,
+            5
+          ],
+          "pck_certificate_chain": null
+        }
+      }
+    },
+    {
+      "name": "supplied-pck-chain",
+      "method": "register_key",
+      "arguments": {
+        "public_key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "issued_at_ms": 1795219200000,
+        "aux": "0000000000000000000000000000000000000000000000000000000000000000",
+        "verification_args": "04000000000102ff060000006973737565720200000000ff02000000018003000000746362020000007b7d020000000203020000007165020000007b7d020000000405010300000070636b",
+        "app_compose": "{\"name\":\"siyab café\",\"services\":{}}\n",
+        "event_log": [
+          {
+            "imr": 3,
+            "event_type": 134217729,
+            "digest": "9a0ed402b3fce9d1b2587cd5bb7ed6d25dfbd6888df7a3e7a8b21aee28fa6708ddf6ad4d001d68cbc0b51355a963e60a",
+            "event": "compose-hash",
+            "event_payload": "8970477fedd9577cc065d7529b5b317d5e3055522648f8d233fc1fcb549e5c1d"
+          },
+          {
+            "imr": 3,
+            "event_type": 134217729,
+            "digest": "976d73181506f51efd62f5c8f0076676f336fb71fdbe39f4a8c21e7b207110e15e5aac77c89fcf50f99043fd88ef9bee",
+            "event": "key-provider",
+            "event_payload": "00ff"
+          }
+        ]
+      },
+      "verification_input": {
+        "quote_hex": "000102ff",
+        "collateral": {
+          "pck_crl_issuer_chain": "issuer",
+          "root_ca_crl": [
+            0,
+            255
+          ],
+          "pck_crl": [
+            1,
+            128
+          ],
+          "tcb_info_issuer_chain": "tcb",
+          "tcb_info": "{}",
+          "tcb_info_signature": [
+            2,
+            3
+          ],
+          "qe_identity_issuer_chain": "qe",
+          "qe_identity": "{}",
+          "qe_identity_signature": [
+            4,
+            5
+          ],
+          "pck_certificate_chain": "pck"
+        }
+      }
+    }
+  ],
+  "vote_submission_args": [
+    {
+      "name": "approve-mainnet",
+      "method": "submit_vote",
+      "arguments": {
+        "intent": {
+          "registry_account_id": "attest.siyab.near",
+          "public_key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+          "measurement_id": "b9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f2",
+          "platforms": [
+            "00000000000000000000000000000000",
+            "11111111111111111111111111111111",
+            "ffffffffffffffffffffffffffffffff"
+          ],
+          "verb": "approve",
+          "approval_id": "00000000-0000-0000-0000-000000000001",
+          "wallet_pubkey": "ed25519:11111111111111111111111111111111",
+          "request_hash": "2c6c48d5f38cb6fc1422969642f1246fc9cff361583b47fdf48cac912d2bce0a",
+          "recipient": "outlayer.near",
+          "nonce": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+          "evidence_hash": "d72871bf19c9f6624dee6ceee564ca101133072e7c0b85ea2c7b40f9f8b535fb",
+          "expires_ms": 1795219500000
+        },
+        "signature": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"
+      }
+    },
+    {
+      "name": "reject-testnet-opaque-wallet",
+      "method": "submit_vote",
+      "arguments": {
+        "intent": {
+          "registry_account_id": "attest.siyab.testnet",
+          "public_key": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "measurement_id": "b9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f2",
+          "platforms": [
+            "00000000000000000000000000000000"
+          ],
+          "verb": "reject",
+          "approval_id": "a5b6c7d8-9012-3456-7890-abcdef012345",
+          "wallet_pubkey": "wallet:key-format-is-opaque",
+          "request_hash": "2c6c48d5f38cb6fc1422969642f1246fc9cff361583b47fdf48cac912d2bce0a",
+          "recipient": "outlayer.testnet",
+          "nonce": "Hx4dHBsaGRgXFhUUExIREA8ODQwLCgkIBwYFBAMCAQA=",
+          "evidence_hash": "d72871bf19c9f6624dee6ceee564ca101133072e7c0b85ea2c7b40f9f8b535fb",
+          "expires_ms": 1795219200001
+        },
+        "signature": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"
+      }
+    },
+    {
+      "name": "maximum-u64-eight-platforms",
+      "method": "submit_vote",
+      "arguments": {
+        "intent": {
+          "registry_account_id": "attest.siyab.near",
+          "public_key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+          "measurement_id": "b9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f2",
+          "platforms": [
+            "00000000000000000000000000000000",
+            "01010101010101010101010101010101",
+            "02020202020202020202020202020202",
+            "03030303030303030303030303030303",
+            "04040404040404040404040404040404",
+            "05050505050505050505050505050505",
+            "06060606060606060606060606060606",
+            "07070707070707070707070707070707"
+          ],
+          "verb": "approve",
+          "approval_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+          "wallet_pubkey": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+          "request_hash": "2c6c48d5f38cb6fc1422969642f1246fc9cff361583b47fdf48cac912d2bce0a",
+          "recipient": "outlayer.near",
+          "nonce": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+          "evidence_hash": "d72871bf19c9f6624dee6ceee564ca101133072e7c0b85ea2c7b40f9f8b535fb",
+          "expires_ms": 18446744073709551615
+        },
+        "signature": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"
+      }
+    }
+  ],
+  "signing_requests": [
+    {
+      "name": "approve-mainnet",
+      "method": "sign",
+      "predecessor": "attest.siyab.near",
+      "ed25519_domain_id": 7,
+      "arguments": {
+        "request": {
+          "path": "vote/ab4810f9df9519348692912eec9616449b1f5761c2e639d8cf296e18fa1ea7f4",
+          "payload_v2": {
+            "Eddsa": "50dcdbff379814b6211d6fc74eacbfb1ab2da07ef7181cc5d8903c6eeb650d2d"
+          },
+          "domain_id": 7
+        }
+      },
+      "path_utf8_hex": "766f74652f61623438313066396466393531393334383639323931326565633936313634343962316635373631633265363339643863663239366531386661316561376634"
+    },
+    {
+      "name": "reject-testnet-opaque-wallet",
+      "method": "sign",
+      "predecessor": "attest.siyab.testnet",
+      "ed25519_domain_id": 7,
+      "arguments": {
+        "request": {
+          "path": "vote/d866b01eea036a2e0a26385db8f9bd53253db4cce71bf9ce96310bd9d4365b23",
+          "payload_v2": {
+            "Eddsa": "7c11c773ab6db1b032611f1ec297f79c6b2e48e1a9b489b6bbcb576a298e26c8"
+          },
+          "domain_id": 7
+        }
+      },
+      "path_utf8_hex": "766f74652f64383636623031656561303336613265306132363338356462386639626435333235336462346363653731626639636539363331306264396434333635623233"
+    },
+    {
+      "name": "maximum-u64-eight-platforms",
+      "method": "sign",
+      "predecessor": "attest.siyab.near",
+      "ed25519_domain_id": 7,
+      "arguments": {
+        "request": {
+          "path": "vote/0d2e5eb20bac15e7ccb693510c614c45c37e215f2a2911c789e3367618047064",
+          "payload_v2": {
+            "Eddsa": "53aaf8f5c9f594f391d906279fe088ce581feced01a91574b5694798150c5d65"
+          },
+          "domain_id": 7
+        }
+      },
+      "path_utf8_hex": "766f74652f30643265356562323062616331356537636362363933353130633631346334356333376532313566326132393131633738396533333637363138303437303634"
+    }
+  ],
+  "registration_clock": [
+    {
+      "name": "epoch",
+      "block_timestamp_ns": 0,
+      "registered_ms": 0
+    },
+    {
+      "name": "below-one-ms",
+      "block_timestamp_ns": 999999,
+      "registered_ms": 0
+    },
+    {
+      "name": "one-ms",
+      "block_timestamp_ns": 1000000,
+      "registered_ms": 1
+    },
+    {
+      "name": "above-one-ms",
+      "block_timestamp_ns": 1000001,
+      "registered_ms": 1
+    },
+    {
+      "name": "fractional-live-ms",
+      "block_timestamp_ns": 1795219201999999999,
+      "registered_ms": 1795219201999
+    },
+    {
+      "name": "exact-live-ms",
+      "block_timestamp_ns": 1795219202000000000,
+      "registered_ms": 1795219202000
+    },
+    {
+      "name": "maximum-ns",
+      "block_timestamp_ns": 18446744073709551615,
+      "registered_ms": 18446744073709
+    }
+  ],
+  "vote_expiry": [
+    {
+      "name": "one-ms-before-intent-expiry",
+      "input": {
+        "now_ms": 1795219200000,
+        "registered_ms": 1795219199000,
+        "key_expires_ms": 1795219210000,
+        "intent_expires_ms": 1795219200001
+      },
+      "accepted": true
+    },
+    {
+      "name": "at-intent-expiry",
+      "input": {
+        "now_ms": 1795219200000,
+        "registered_ms": 1795219199000,
+        "key_expires_ms": 1795219210000,
+        "intent_expires_ms": 1795219200000
+      },
+      "accepted": false
+    },
+    {
+      "name": "after-intent-expiry",
+      "input": {
+        "now_ms": 1795219200000,
+        "registered_ms": 1795219199000,
+        "key_expires_ms": 1795219210000,
+        "intent_expires_ms": 1795219199999
+      },
+      "accepted": false
+    },
+    {
+      "name": "intent-at-key-expiry",
+      "input": {
+        "now_ms": 1795219200000,
+        "registered_ms": 1795219199000,
+        "key_expires_ms": 1795219210000,
+        "intent_expires_ms": 1795219210000
+      },
+      "accepted": true
+    },
+    {
+      "name": "intent-after-key-expiry",
+      "input": {
+        "now_ms": 1795219200000,
+        "registered_ms": 1795219199000,
+        "key_expires_ms": 1795219210000,
+        "intent_expires_ms": 1795219210001
+      },
+      "accepted": false
+    },
+    {
+      "name": "at-key-expiry",
+      "input": {
+        "now_ms": 1795219200000,
+        "registered_ms": 1795219199000,
+        "key_expires_ms": 1795219200000,
+        "intent_expires_ms": 1795219200001
+      },
+      "accepted": false
+    },
+    {
+      "name": "key-not-yet-registered",
+      "input": {
+        "now_ms": 1795219200000,
+        "registered_ms": 1795219200001,
+        "key_expires_ms": 1795219210000,
+        "intent_expires_ms": 1795219201000
+      },
+      "accepted": false
+    }
+  ],
+  "registry_config": [
+    {
+      "name": "immutable-config",
+      "new_arguments": {
+        "verifier_account_id": "verifier.near",
+        "signer_account_id": "v1.signer.near",
+        "ed25519_domain_id": 7,
+        "max_lease_ms": 86400000,
+        "vote_recipients": [
+          "outlayer.near"
+        ]
+      },
+      "get_config_arguments": {},
+      "get_config_result": {
+        "verifier_account_id": "verifier.near",
+        "signer_account_id": "v1.signer.near",
+        "ed25519_domain_id": 7,
+        "max_lease_ms": 86400000,
+        "vote_recipients": [
+          "outlayer.near"
+        ]
+      }
+    }
+  ],
+  "reregistration": [
+    {
+      "name": "newer-quote",
+      "candidate_changes": {
+        "issued_at_ms": 1795219200001,
+        "expires_ms": 1795305600001
+      },
+      "accepted": true
+    },
+    {
+      "name": "equal-quote",
+      "candidate_changes": {
+        "issued_at_ms": 1795219200000,
+        "expires_ms": 1795305600000
+      },
+      "accepted": false
+    },
+    {
+      "name": "older-quote-inside-two-hours",
+      "candidate_changes": {
+        "issued_at_ms": 1795219199999,
+        "expires_ms": 1795305599999
+      },
+      "accepted": false
+    },
+    {
+      "name": "measurement-mutation",
+      "candidate_changes": {
+        "issued_at_ms": 1795219200001,
+        "expires_ms": 1795305600001,
+        "measurement_id": "682530ca0f908c1911376740c4c66a0309564f9fe75b4af98dcfb33698ccb09d",
+        "measurement": {
+          "mrtd": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+          "rtmr0": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+          "rtmr1": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+          "rtmr2": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+          "key_provider_digest": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+          "compose_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      "accepted": false
+    },
+    {
+      "name": "ppid-mutation",
+      "candidate_changes": {
+        "issued_at_ms": 1795219200001,
+        "expires_ms": 1795305600001,
+        "ppid": "abababababababababababababababab"
+      },
+      "accepted": false
+    },
+    {
+      "name": "aux-mutation",
+      "candidate_changes": {
+        "issued_at_ms": 1795219200001,
+        "expires_ms": 1795305600001,
+        "aux": "abababababababababababababababababababababababababababababababab"
+      },
+      "accepted": false
+    }
+  ],
+  "quote_td_attributes": [
+    {
+      "name": "v4-sept-accepted",
+      "quote_prefix_hex": "0400000081000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000",
+      "accepted": true
+    },
+    {
+      "name": "v4-debug-refused",
+      "quote_prefix_hex": "0400000081000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100001000000000",
+      "accepted": false
+    },
+    {
+      "name": "v5-sept-accepted",
+      "quote_prefix_hex": "0500000081000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200480200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000",
+      "accepted": true
+    },
+    {
+      "name": "v5-debug-refused",
+      "quote_prefix_hex": "0500000081000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200480200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100001000000000",
+      "accepted": false
+    },
+    {
+      "name": "v5-old-offset-debug-decoy",
+      "quote_prefix_hex": "0500000081000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200480200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000001000000000",
+      "accepted": true
+    },
+    {
+      "name": "v5-wrong-body-type",
+      "quote_prefix_hex": "0500000081000000000000000000000000000000000000000000000000000000000000000000000000000000000000000300480200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000",
+      "accepted": false
+    }
+  ],
+  "vote_policy": [
+    {
+      "name": "allow-first",
+      "intent": {
+        "registry_account_id": "attest.siyab.near",
+        "public_key": "29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a",
+        "measurement_id": "b9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f2",
+        "platforms": [
+          "00000000000000000000000000000000",
+          "11111111111111111111111111111111",
+          "ffffffffffffffffffffffffffffffff"
+        ],
+        "verb": "approve",
+        "approval_id": "00000000-0000-0000-0000-000000000001",
+        "wallet_pubkey": "ed25519:11111111111111111111111111111111",
+        "request_hash": "2c6c48d5f38cb6fc1422969642f1246fc9cff361583b47fdf48cac912d2bce0a",
+        "recipient": "outlayer.near",
+        "nonce": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+        "evidence_hash": "d72871bf19c9f6624dee6ceee564ca101133072e7c0b85ea2c7b40f9f8b535fb",
+        "expires_ms": 1795219500000
+      },
+      "signature": "1200a8e09111e3ba1d099283d1ce6fcbb5db2a659af1908b98997ae2fa422d570252721a256ed08b3b81668bf7e7647c767faf0886c17d65857599ae72c85e01",
+      "previous_verbs": [],
+      "now_ms": 1795219201000,
+      "accepted": true,
+      "error": null,
+      "scope_id": "ab4810f9df9519348692912eec9616449b1f5761c2e639d8cf296e18fa1ea7f4"
+    },
+    {
+      "name": "allow-same-verb-retry",
+      "intent": {
+        "registry_account_id": "attest.siyab.near",
+        "public_key": "29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a",
+        "measurement_id": "b9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f2",
+        "platforms": [
+          "00000000000000000000000000000000",
+          "11111111111111111111111111111111",
+          "ffffffffffffffffffffffffffffffff"
+        ],
+        "verb": "approve",
+        "approval_id": "00000000-0000-0000-0000-000000000001",
+        "wallet_pubkey": "ed25519:11111111111111111111111111111111",
+        "request_hash": "2c6c48d5f38cb6fc1422969642f1246fc9cff361583b47fdf48cac912d2bce0a",
+        "recipient": "outlayer.near",
+        "nonce": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+        "evidence_hash": "d72871bf19c9f6624dee6ceee564ca101133072e7c0b85ea2c7b40f9f8b535fb",
+        "expires_ms": 1795219500000
+      },
+      "signature": "1200a8e09111e3ba1d099283d1ce6fcbb5db2a659af1908b98997ae2fa422d570252721a256ed08b3b81668bf7e7647c767faf0886c17d65857599ae72c85e01",
+      "previous_verbs": [
+        "approve"
+      ],
+      "now_ms": 1795219201000,
+      "accepted": true,
+      "error": null,
+      "scope_id": "ab4810f9df9519348692912eec9616449b1f5761c2e639d8cf296e18fa1ea7f4"
+    },
+    {
+      "name": "refuse-opposite-inflight",
+      "intent": {
+        "registry_account_id": "attest.siyab.near",
+        "public_key": "29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a",
+        "measurement_id": "b9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f2",
+        "platforms": [
+          "00000000000000000000000000000000",
+          "11111111111111111111111111111111",
+          "ffffffffffffffffffffffffffffffff"
+        ],
+        "verb": "approve",
+        "approval_id": "00000000-0000-0000-0000-000000000001",
+        "wallet_pubkey": "ed25519:11111111111111111111111111111111",
+        "request_hash": "2c6c48d5f38cb6fc1422969642f1246fc9cff361583b47fdf48cac912d2bce0a",
+        "recipient": "outlayer.near",
+        "nonce": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+        "evidence_hash": "d72871bf19c9f6624dee6ceee564ca101133072e7c0b85ea2c7b40f9f8b535fb",
+        "expires_ms": 1795219500000
+      },
+      "signature": "1200a8e09111e3ba1d099283d1ce6fcbb5db2a659af1908b98997ae2fa422d570252721a256ed08b3b81668bf7e7647c767faf0886c17d65857599ae72c85e01",
+      "previous_verbs": [
+        "reject"
+      ],
+      "now_ms": 1795219201000,
+      "accepted": false,
+      "error": "opposite verb",
+      "scope_id": "ab4810f9df9519348692912eec9616449b1f5761c2e639d8cf296e18fa1ea7f4"
+    },
+    {
+      "name": "refuse-recipient",
+      "intent": {
+        "registry_account_id": "attest.siyab.near",
+        "public_key": "29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a",
+        "measurement_id": "b9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f2",
+        "platforms": [
+          "00000000000000000000000000000000",
+          "11111111111111111111111111111111",
+          "ffffffffffffffffffffffffffffffff"
+        ],
+        "verb": "approve",
+        "approval_id": "00000000-0000-0000-0000-000000000001",
+        "wallet_pubkey": "ed25519:11111111111111111111111111111111",
+        "request_hash": "2c6c48d5f38cb6fc1422969642f1246fc9cff361583b47fdf48cac912d2bce0a",
+        "recipient": "other.near",
+        "nonce": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+        "evidence_hash": "d72871bf19c9f6624dee6ceee564ca101133072e7c0b85ea2c7b40f9f8b535fb",
+        "expires_ms": 1795219500000
+      },
+      "signature": "c1a4097f6ad96e6c883fdcfa0a38d326cef38b9741cb1ec87c5531fecb9218021a8370a183611a5d83f4ece5abc7a745cde895f635c9d93428b6c40def73dd02",
+      "previous_verbs": [],
+      "now_ms": 1795219201000,
+      "accepted": false,
+      "error": "recipient",
+      "scope_id": "ab4810f9df9519348692912eec9616449b1f5761c2e639d8cf296e18fa1ea7f4"
+    },
+    {
+      "name": "refuse-expired",
+      "intent": {
+        "registry_account_id": "attest.siyab.near",
+        "public_key": "29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a",
+        "measurement_id": "b9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f2",
+        "platforms": [
+          "00000000000000000000000000000000",
+          "11111111111111111111111111111111",
+          "ffffffffffffffffffffffffffffffff"
+        ],
+        "verb": "approve",
+        "approval_id": "00000000-0000-0000-0000-000000000001",
+        "wallet_pubkey": "ed25519:11111111111111111111111111111111",
+        "request_hash": "2c6c48d5f38cb6fc1422969642f1246fc9cff361583b47fdf48cac912d2bce0a",
+        "recipient": "outlayer.near",
+        "nonce": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+        "evidence_hash": "d72871bf19c9f6624dee6ceee564ca101133072e7c0b85ea2c7b40f9f8b535fb",
+        "expires_ms": 1795219201000
+      },
+      "signature": "53f422f69ba43039274c60e9822def5fd609b51fa2d0149cda47743415c4ce9dce3ff1454f573c865a8c716eb5e87c5b446de0ab478f4aa2a9a41cfa588c000a",
+      "previous_verbs": [],
+      "now_ms": 1795219201000,
+      "accepted": false,
+      "error": "live interval",
+      "scope_id": "ab4810f9df9519348692912eec9616449b1f5761c2e639d8cf296e18fa1ea7f4"
+    }
+  ],
+  "call_wire": [
+    {
+      "name": "register-key-success",
+      "method": "register_key",
+      "deposit_yocto": "10000000000000000000000",
+      "gas_tgas": 300,
+      "callee_gas_tgas": 200,
+      "callback_gas_tgas": 60,
+      "result": {
+        "public_key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "measurement_id": "b9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f2",
+        "measurement": {
+          "mrtd": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f",
+          "rtmr0": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f30",
+          "rtmr1": "02030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f3031",
+          "rtmr2": "030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132",
+          "key_provider_digest": "0405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f30313233",
+          "compose_hash": "05060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2021222324"
+        },
+        "ppid": "11111111111111111111111111111111",
+        "aux": "0000000000000000000000000000000000000000000000000000000000000000",
+        "tcb_status": "UpToDate",
+        "advisory_ids": [
+          "INTEL-DOC-10000"
+        ],
+        "issued_at_ms": 1795219200000,
+        "registered_ms": 1795219201000,
+        "expires_ms": 1795305600000,
+        "collateral_expires_ms": 1797811200000
+      }
+    },
+    {
+      "name": "submit-vote-success",
+      "method": "submit_vote",
+      "deposit_yocto": "10000000000000000000000",
+      "gas_tgas": 300,
+      "callee_gas_tgas": 200,
+      "callback_gas_tgas": 60,
+      "result": {
+        "vote_path": "vote/ab4810f9df9519348692912eec9616449b1f5761c2e639d8cf296e18fa1ea7f4",
+        "nep413_digest": "50dcdbff379814b6211d6fc74eacbfb1ab2da07ef7181cc5d8903c6eeb650d2d",
+        "signature": "abababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab"
+      }
+    },
+    {
+      "name": "register-refusal",
+      "method": "register_key",
+      "deposit_yocto": "10000000000000000000000",
+      "gas_tgas": 300,
+      "callee_gas_tgas": 200,
+      "callback_gas_tgas": 60,
+      "result": null
+    },
+    {
+      "name": "vote-refusal",
+      "method": "submit_vote",
+      "deposit_yocto": "10000000000000000000000",
+      "gas_tgas": 300,
+      "callee_gas_tgas": 200,
+      "callback_gas_tgas": 60,
+      "result": null
+    }
+  ],
+  "vote_reservations": [
+    {
+      "name": "same-scope-rotated-key-cannot-reject",
+      "same_scope": true,
+      "now_ms": 1795219201000,
+      "steps": [
+        {
+          "intent": {
+            "registry_account_id": "attest.siyab.near",
+            "public_key": "29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a",
+            "measurement_id": "b9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f2",
+            "platforms": [
+              "00000000000000000000000000000000",
+              "11111111111111111111111111111111",
+              "ffffffffffffffffffffffffffffffff"
+            ],
+            "verb": "approve",
+            "approval_id": "00000000-0000-0000-0000-000000000001",
+            "wallet_pubkey": "ed25519:11111111111111111111111111111111",
+            "request_hash": "2c6c48d5f38cb6fc1422969642f1246fc9cff361583b47fdf48cac912d2bce0a",
+            "recipient": "outlayer.near",
+            "nonce": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+            "evidence_hash": "d72871bf19c9f6624dee6ceee564ca101133072e7c0b85ea2c7b40f9f8b535fb",
+            "expires_ms": 1795219500000
+          },
+          "signature": "1200a8e09111e3ba1d099283d1ce6fcbb5db2a659af1908b98997ae2fa422d570252721a256ed08b3b81668bf7e7647c767faf0886c17d65857599ae72c85e01",
+          "key_changes": {
+            "public_key": "29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a"
+          },
+          "scope_id": "ab4810f9df9519348692912eec9616449b1f5761c2e639d8cf296e18fa1ea7f4",
+          "accepted": true
+        },
+        {
+          "intent": {
+            "registry_account_id": "attest.siyab.near",
+            "public_key": "22afe0737aa7dc6e806869b255ca8387a25680441ea5833d349b824701f863ab",
+            "measurement_id": "b9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f2",
+            "platforms": [
+              "00000000000000000000000000000000",
+              "11111111111111111111111111111111",
+              "ffffffffffffffffffffffffffffffff"
+            ],
+            "verb": "reject",
+            "approval_id": "00000000-0000-0000-0000-000000000001",
+            "wallet_pubkey": "ed25519:11111111111111111111111111111111",
+            "request_hash": "2c6c48d5f38cb6fc1422969642f1246fc9cff361583b47fdf48cac912d2bce0a",
+            "recipient": "outlayer.near",
+            "nonce": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+            "evidence_hash": "d72871bf19c9f6624dee6ceee564ca101133072e7c0b85ea2c7b40f9f8b535fb",
+            "expires_ms": 1795219500000
+          },
+          "signature": "d68f1b0372a05ab84d390b064a35fac43e8d3abc62dcc0b95fc4a5f27d50fa74c54e69a27b1c02f330e595f1c4649447f88c704009984b07c7c22736b27c5104",
+          "key_changes": {
+            "public_key": "22afe0737aa7dc6e806869b255ca8387a25680441ea5833d349b824701f863ab"
+          },
+          "scope_id": "ab4810f9df9519348692912eec9616449b1f5761c2e639d8cf296e18fa1ea7f4",
+          "accepted": false
+        }
+      ]
+    },
+    {
+      "name": "same-scope-rotated-key-may-retry",
+      "same_scope": true,
+      "now_ms": 1795219201000,
+      "steps": [
+        {
+          "intent": {
+            "registry_account_id": "attest.siyab.near",
+            "public_key": "29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a",
+            "measurement_id": "b9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f2",
+            "platforms": [
+              "00000000000000000000000000000000",
+              "11111111111111111111111111111111",
+              "ffffffffffffffffffffffffffffffff"
+            ],
+            "verb": "approve",
+            "approval_id": "00000000-0000-0000-0000-000000000001",
+            "wallet_pubkey": "ed25519:11111111111111111111111111111111",
+            "request_hash": "2c6c48d5f38cb6fc1422969642f1246fc9cff361583b47fdf48cac912d2bce0a",
+            "recipient": "outlayer.near",
+            "nonce": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+            "evidence_hash": "d72871bf19c9f6624dee6ceee564ca101133072e7c0b85ea2c7b40f9f8b535fb",
+            "expires_ms": 1795219500000
+          },
+          "signature": "1200a8e09111e3ba1d099283d1ce6fcbb5db2a659af1908b98997ae2fa422d570252721a256ed08b3b81668bf7e7647c767faf0886c17d65857599ae72c85e01",
+          "key_changes": {
+            "public_key": "29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a"
+          },
+          "scope_id": "ab4810f9df9519348692912eec9616449b1f5761c2e639d8cf296e18fa1ea7f4",
+          "accepted": true
+        },
+        {
+          "intent": {
+            "registry_account_id": "attest.siyab.near",
+            "public_key": "22afe0737aa7dc6e806869b255ca8387a25680441ea5833d349b824701f863ab",
+            "measurement_id": "b9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f2",
+            "platforms": [
+              "00000000000000000000000000000000",
+              "11111111111111111111111111111111",
+              "ffffffffffffffffffffffffffffffff"
+            ],
+            "verb": "approve",
+            "approval_id": "00000000-0000-0000-0000-000000000001",
+            "wallet_pubkey": "ed25519:11111111111111111111111111111111",
+            "request_hash": "2c6c48d5f38cb6fc1422969642f1246fc9cff361583b47fdf48cac912d2bce0a",
+            "recipient": "outlayer.near",
+            "nonce": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+            "evidence_hash": "d72871bf19c9f6624dee6ceee564ca101133072e7c0b85ea2c7b40f9f8b535fb",
+            "expires_ms": 1795219500000
+          },
+          "signature": "ba92be255e0d11fdf2347b6db29e2902bdeda2c6fe7c2dd1f4f38eb84b660b7c4c40131971f4e77fa8c73110f46db4ba1ff68902874a5fdfe81087712cc47607",
+          "key_changes": {
+            "public_key": "22afe0737aa7dc6e806869b255ca8387a25680441ea5833d349b824701f863ab"
+          },
+          "scope_id": "ab4810f9df9519348692912eec9616449b1f5761c2e639d8cf296e18fa1ea7f4",
+          "accepted": true
+        }
+      ]
+    },
+    {
+      "name": "same-scope-rotated-key-cannot-approve",
+      "same_scope": true,
+      "now_ms": 1795219201000,
+      "steps": [
+        {
+          "intent": {
+            "registry_account_id": "attest.siyab.near",
+            "public_key": "29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a",
+            "measurement_id": "b9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f2",
+            "platforms": [
+              "00000000000000000000000000000000",
+              "11111111111111111111111111111111",
+              "ffffffffffffffffffffffffffffffff"
+            ],
+            "verb": "reject",
+            "approval_id": "00000000-0000-0000-0000-000000000001",
+            "wallet_pubkey": "ed25519:11111111111111111111111111111111",
+            "request_hash": "2c6c48d5f38cb6fc1422969642f1246fc9cff361583b47fdf48cac912d2bce0a",
+            "recipient": "outlayer.near",
+            "nonce": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+            "evidence_hash": "d72871bf19c9f6624dee6ceee564ca101133072e7c0b85ea2c7b40f9f8b535fb",
+            "expires_ms": 1795219500000
+          },
+          "signature": "6e4b7e6d2eaff5cbf2381202327ff5a1ba2308b42892d7b34e07697e75c9d178f5f6ae1f7e8980439f2ac4b205fb84daee20433b5766947efe442e4b2705a405",
+          "key_changes": {
+            "public_key": "29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a"
+          },
+          "scope_id": "ab4810f9df9519348692912eec9616449b1f5761c2e639d8cf296e18fa1ea7f4",
+          "accepted": true
+        },
+        {
+          "intent": {
+            "registry_account_id": "attest.siyab.near",
+            "public_key": "22afe0737aa7dc6e806869b255ca8387a25680441ea5833d349b824701f863ab",
+            "measurement_id": "b9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f2",
+            "platforms": [
+              "00000000000000000000000000000000",
+              "11111111111111111111111111111111",
+              "ffffffffffffffffffffffffffffffff"
+            ],
+            "verb": "approve",
+            "approval_id": "00000000-0000-0000-0000-000000000001",
+            "wallet_pubkey": "ed25519:11111111111111111111111111111111",
+            "request_hash": "2c6c48d5f38cb6fc1422969642f1246fc9cff361583b47fdf48cac912d2bce0a",
+            "recipient": "outlayer.near",
+            "nonce": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+            "evidence_hash": "d72871bf19c9f6624dee6ceee564ca101133072e7c0b85ea2c7b40f9f8b535fb",
+            "expires_ms": 1795219500000
+          },
+          "signature": "ba92be255e0d11fdf2347b6db29e2902bdeda2c6fe7c2dd1f4f38eb84b660b7c4c40131971f4e77fa8c73110f46db4ba1ff68902874a5fdfe81087712cc47607",
+          "key_changes": {
+            "public_key": "22afe0737aa7dc6e806869b255ca8387a25680441ea5833d349b824701f863ab"
+          },
+          "scope_id": "ab4810f9df9519348692912eec9616449b1f5761c2e639d8cf296e18fa1ea7f4",
+          "accepted": false
+        }
+      ]
+    },
+    {
+      "name": "hostile-measurement-first-cannot-block-siyab-reject",
+      "same_scope": false,
+      "now_ms": 1795219201000,
+      "steps": [
+        {
+          "intent": {
+            "registry_account_id": "attest.siyab.near",
+            "public_key": "22afe0737aa7dc6e806869b255ca8387a25680441ea5833d349b824701f863ab",
+            "measurement_id": "b4405ed3c6c9cf472c3e79fb8b643e8d9f976d84c6adb1d33aa8e43f49be050d",
+            "platforms": [
+              "00000000000000000000000000000000",
+              "11111111111111111111111111111111",
+              "ffffffffffffffffffffffffffffffff"
+            ],
+            "verb": "approve",
+            "approval_id": "00000000-0000-0000-0000-000000000001",
+            "wallet_pubkey": "ed25519:11111111111111111111111111111111",
+            "request_hash": "2c6c48d5f38cb6fc1422969642f1246fc9cff361583b47fdf48cac912d2bce0a",
+            "recipient": "outlayer.near",
+            "nonce": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+            "evidence_hash": "d72871bf19c9f6624dee6ceee564ca101133072e7c0b85ea2c7b40f9f8b535fb",
+            "expires_ms": 1795219500000
+          },
+          "signature": "65282ef89e578bdbad07d8e077a8f1f2000f0a0805d2df04401d3a0189c49b2c0cfdf8cd69ea0bbec00d25c4c4a768b3492cff5a6191741e58bc943a5aedaf01",
+          "key_changes": {
+            "public_key": "22afe0737aa7dc6e806869b255ca8387a25680441ea5833d349b824701f863ab",
+            "measurement": {
+              "mrtd": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f",
+              "rtmr0": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f30",
+              "rtmr1": "02030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f3031",
+              "rtmr2": "030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132",
+              "key_provider_digest": "0405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f30313233",
+              "compose_hash": "abababababababababababababababababababababababababababababababab"
+            },
+            "measurement_id": "b4405ed3c6c9cf472c3e79fb8b643e8d9f976d84c6adb1d33aa8e43f49be050d"
+          },
+          "scope_id": "ef22e0d9567463dd08957c7281fc3a4927c5fe47edf3752201809626be0d4748",
+          "accepted": true
+        },
+        {
+          "intent": {
+            "registry_account_id": "attest.siyab.near",
+            "public_key": "29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a",
+            "measurement_id": "b9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f2",
+            "platforms": [
+              "00000000000000000000000000000000",
+              "11111111111111111111111111111111",
+              "ffffffffffffffffffffffffffffffff"
+            ],
+            "verb": "reject",
+            "approval_id": "00000000-0000-0000-0000-000000000001",
+            "wallet_pubkey": "ed25519:11111111111111111111111111111111",
+            "request_hash": "2c6c48d5f38cb6fc1422969642f1246fc9cff361583b47fdf48cac912d2bce0a",
+            "recipient": "outlayer.near",
+            "nonce": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+            "evidence_hash": "d72871bf19c9f6624dee6ceee564ca101133072e7c0b85ea2c7b40f9f8b535fb",
+            "expires_ms": 1795219500000
+          },
+          "signature": "6e4b7e6d2eaff5cbf2381202327ff5a1ba2308b42892d7b34e07697e75c9d178f5f6ae1f7e8980439f2ac4b205fb84daee20433b5766947efe442e4b2705a405",
+          "key_changes": {
+            "public_key": "29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a"
+          },
+          "scope_id": "ab4810f9df9519348692912eec9616449b1f5761c2e639d8cf296e18fa1ea7f4",
+          "accepted": true
+        }
+      ]
+    },
+    {
+      "name": "hostile-platform-set-first-cannot-block-siyab-reject",
+      "same_scope": false,
+      "now_ms": 1795219201000,
+      "steps": [
+        {
+          "intent": {
+            "registry_account_id": "attest.siyab.near",
+            "public_key": "22afe0737aa7dc6e806869b255ca8387a25680441ea5833d349b824701f863ab",
+            "measurement_id": "b9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f2",
+            "platforms": [
+              "11111111111111111111111111111111"
+            ],
+            "verb": "approve",
+            "approval_id": "00000000-0000-0000-0000-000000000001",
+            "wallet_pubkey": "ed25519:11111111111111111111111111111111",
+            "request_hash": "2c6c48d5f38cb6fc1422969642f1246fc9cff361583b47fdf48cac912d2bce0a",
+            "recipient": "outlayer.near",
+            "nonce": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+            "evidence_hash": "d72871bf19c9f6624dee6ceee564ca101133072e7c0b85ea2c7b40f9f8b535fb",
+            "expires_ms": 1795219500000
+          },
+          "signature": "9ab375403791006f5cfe88188ef683499dfcd23d4a30bdd1bb992385fb12414edcd20ac6bab07d5afaf7322fc137f0a512543df3341bbdad3f594d68751aed02",
+          "key_changes": {
+            "public_key": "22afe0737aa7dc6e806869b255ca8387a25680441ea5833d349b824701f863ab"
+          },
+          "scope_id": "349464b04725bba86eaa2cd4070f32201fa28e4718b9fc245749ffc363b0bbb1",
+          "accepted": true
+        },
+        {
+          "intent": {
+            "registry_account_id": "attest.siyab.near",
+            "public_key": "29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a",
+            "measurement_id": "b9c8d984ceec825c35f7465486eccd33a6219e95df8f18c7cb727ff96f3217f2",
+            "platforms": [
+              "00000000000000000000000000000000",
+              "11111111111111111111111111111111",
+              "ffffffffffffffffffffffffffffffff"
+            ],
+            "verb": "reject",
+            "approval_id": "00000000-0000-0000-0000-000000000001",
+            "wallet_pubkey": "ed25519:11111111111111111111111111111111",
+            "request_hash": "2c6c48d5f38cb6fc1422969642f1246fc9cff361583b47fdf48cac912d2bce0a",
+            "recipient": "outlayer.near",
+            "nonce": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+            "evidence_hash": "d72871bf19c9f6624dee6ceee564ca101133072e7c0b85ea2c7b40f9f8b535fb",
+            "expires_ms": 1795219500000
+          },
+          "signature": "6e4b7e6d2eaff5cbf2381202327ff5a1ba2308b42892d7b34e07697e75c9d178f5f6ae1f7e8980439f2ac4b205fb84daee20433b5766947efe442e4b2705a405",
+          "key_changes": {
+            "public_key": "29eb5de06459cf8d0146155c2c683e978633ddc8f1f7c1dd926f497bc0f1878a"
+          },
+          "scope_id": "ab4810f9df9519348692912eec9616449b1f5761c2e639d8cf296e18fa1ea7f4",
+          "accepted": true
+        }
+      ]
+    }
+  ]
+}
