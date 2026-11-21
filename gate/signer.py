@@ -2,8 +2,8 @@
 
 TestSigner signs with the TEST verifier key derived from a published seed (pure Python), for
 tests, the vectors and offline runs. NaClSigner signs with a live key read from a near-cli style
-key file (a public_key and a secret_key, each written as ed25519:<base58>, the secret holding
-the 32 byte seed followed by the 32 byte public key) through PyNaCl. PurePythonLiveSigner signs a
+key file (a public_key and a private_key or legacy secret_key, each written as ed25519:<base58>,
+the secret holding the 32 byte seed followed by the 32 byte public key) through PyNaCl. PurePythonLiveSigner signs a
 live key with the pure Python code and refuses to start unless GATE_ALLOW_PURE_PYTHON_SIGNER=1.
 """
 
@@ -27,16 +27,25 @@ def _key_id(key_id):
 
 
 def _read_key_file(path):
-    """(seed32, public32) from a near-cli style key file; the halves must agree."""
+    """(seed32, public32) from private_key or legacy secret_key; both fields must agree if present."""
     try:
         document = json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, ValueError) as error:
         raise SignerError(f"{path}: cannot read a key file") from error
     try:
-        secret = base58.decode_key(document["secret_key"])
-        public = base58.decode_key(document["public_key"])
+        if not isinstance(document, dict):
+            raise ValueError("key file must be an object")
+        if ("private_key" in document and "secret_key" in document
+                and document["private_key"] != document["secret_key"]):
+            raise ValueError("private_key and secret_key disagree")
+        secret_text = document["private_key"] if "private_key" in document else document["secret_key"]
+        public_text = document["public_key"]
+        if not isinstance(secret_text, str) or not isinstance(public_text, str):
+            raise ValueError("key fields must be strings")
+        secret = base58.decode_key(secret_text)
+        public = base58.decode_key(public_text)
     except (KeyError, TypeError, ValueError) as error:
-        raise SignerError(f"{path}: not a key file with ed25519 public_key and secret_key") from error
+        raise SignerError(f"{path}: not a key file with ed25519 public_key and private_key or secret_key") from error
     if len(secret) != 64 or len(public) != 32 or secret[32:] != public:
         raise SignerError(f"{path}: the secret key does not hold the 32 byte seed and this public key")
     if ed25519.public_from_seed(secret[:32]) != public:

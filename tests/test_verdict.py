@@ -384,6 +384,37 @@ class SignerTest(unittest.TestCase):
         for digest in self.digests:
             self.assertEqual(live.sign(digest), test.sign(digest))
 
+    def test_near_cli_private_key_field_is_accepted(self):
+        document = json.loads(self.key_file.read_text(encoding="utf-8"))
+        document["private_key"] = document.pop("secret_key")
+        self.key_file.write_text(json.dumps(document), encoding="utf-8")
+        seed, public = signer._read_key_file(self.key_file)
+        self.assertEqual(seed, ed25519.TEST_VERIFIER_SEED)
+        self.assertEqual(public, ed25519.public_from_seed(seed))
+
+    def test_matching_private_and_secret_key_fields_are_accepted(self):
+        document = json.loads(self.key_file.read_text(encoding="utf-8"))
+        document["private_key"] = document["secret_key"]
+        self.key_file.write_text(json.dumps(document), encoding="utf-8")
+        self.assertEqual(signer._read_key_file(self.key_file)[0], ed25519.TEST_VERIFIER_SEED)
+
+    def test_conflicting_private_and_secret_key_fields_are_refused(self):
+        document = json.loads(self.key_file.read_text(encoding="utf-8"))
+        seed = ed25519.TEST_AGENT_SEED
+        document["private_key"] = base58.encode_key(seed + ed25519.public_from_seed(seed))
+        self.key_file.write_text(json.dumps(document), encoding="utf-8")
+        with self.assertRaises(signer.SignerError):
+            signer._read_key_file(self.key_file)
+
+    def test_malformed_key_documents_raise_signer_error(self):
+        valid = json.loads(self.key_file.read_text(encoding="utf-8"))
+        documents = [None, [], 1, "key", {**valid, "secret_key": None}, {**valid, "public_key": 1}]
+        for index, document in enumerate(documents):
+            with self.subTest(index=index):
+                self.key_file.write_text(json.dumps(document), encoding="utf-8")
+                with self.assertRaises(signer.SignerError):
+                    signer._read_key_file(self.key_file)
+
     def test_pure_python_live_signer_refuses_without_the_variable(self):
         for value in (None, "0", "true", "yes"):
             environment = {} if value is None else {"GATE_ALLOW_PURE_PYTHON_SIGNER": value}

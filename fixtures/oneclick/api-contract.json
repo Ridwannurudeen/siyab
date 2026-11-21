@@ -1,0 +1,844 @@
+{
+  "source": "https://1click.chaindefuser.com/docs/v0/openapi.yaml",
+  "fetched_at": "2026-11-21T16:39:05Z",
+  "source_sha256": "840bfbb2c651ea0ea0baf12b1741eca4cd9ee6d055f11c93ccad876d57ca28f2",
+  "openapi_version": "3.0.0",
+  "service_version": "0.1.10",
+  "extraction": "Selected path operations and component schemas from the live OpenAPI document, with description, example, and examples fields omitted. References remain as published.",
+  "paths": {
+    "/v0/quote": {
+      "post": {
+        "operationId": "getQuote",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuoteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResponse"
+                }
+              }
+            }
+          },
+          "401": {}
+        },
+        "security": [
+          {
+            "X-API-Key": []
+          },
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Request a swap quote",
+        "tags": [
+          "OneClick"
+        ]
+      }
+    },
+    "/v0/status": {
+      "get": {
+        "operationId": "getExecutionStatus",
+        "parameters": [
+          {
+            "name": "depositAddress",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "depositMemo",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetExecutionStatusResponse"
+                }
+              }
+            }
+          },
+          "401": {},
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "X-API-Key": []
+          },
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Check swap execution status",
+        "tags": [
+          "OneClick"
+        ]
+      }
+    },
+    "/v0/deposit/submit": {
+      "post": {
+        "operationId": "submitDepositTx",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitDepositTxRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmitDepositTxResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestResponse"
+                }
+              }
+            }
+          },
+          "401": {}
+        },
+        "security": [
+          {
+            "X-API-Key": []
+          },
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Submit deposit transaction hash",
+        "tags": [
+          "OneClick"
+        ]
+      }
+    },
+    "/v0/tokens": {
+      "get": {
+        "operationId": "getTokens",
+        "parameters": [
+          {
+            "name": "ondoTokens",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TokenResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get supported tokens",
+        "tags": [
+          "OneClick"
+        ]
+      }
+    }
+  },
+  "schemas": {
+    "QuoteRequest": {
+      "type": "object",
+      "properties": {
+        "dry": {
+          "type": "boolean"
+        },
+        "depositMode": {
+          "type": "string",
+          "enum": [
+            "SIMPLE",
+            "MEMO"
+          ],
+          "default": "SIMPLE"
+        },
+        "swapType": {
+          "type": "string",
+          "enum": [
+            "EXACT_INPUT",
+            "EXACT_OUTPUT",
+            "FLEX_INPUT",
+            "ANY_INPUT"
+          ]
+        },
+        "slippageTolerance": {
+          "type": "number"
+        },
+        "originAsset": {
+          "type": "string"
+        },
+        "depositType": {
+          "type": "string",
+          "enum": [
+            "ORIGIN_CHAIN",
+            "INTENTS",
+            "CONFIDENTIAL_INTENTS"
+          ]
+        },
+        "destinationAsset": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "string"
+        },
+        "refundTo": {
+          "type": "string"
+        },
+        "refundType": {
+          "type": "string",
+          "enum": [
+            "ORIGIN_CHAIN",
+            "INTENTS",
+            "CONFIDENTIAL_INTENTS"
+          ]
+        },
+        "recipient": {
+          "type": "string"
+        },
+        "connectedWallets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sessionId": {
+          "type": "string"
+        },
+        "virtualChainRecipient": {
+          "type": "string"
+        },
+        "virtualChainRefundRecipient": {
+          "type": "string"
+        },
+        "customRecipientMsg": {
+          "type": "string"
+        },
+        "recipientType": {
+          "type": "string",
+          "enum": [
+            "DESTINATION_CHAIN",
+            "INTENTS",
+            "CONFIDENTIAL_INTENTS"
+          ]
+        },
+        "deadline": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "confidentiality": {
+          "type": "string",
+          "enum": [
+            "public",
+            "basic",
+            "advanced"
+          ],
+          "default": "public"
+        },
+        "referral": {
+          "type": "string"
+        },
+        "rebates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/Rebate"
+          }
+        },
+        "quoteWaitingTimeMs": {
+          "type": "number",
+          "default": 0
+        },
+        "appFees": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/AppFee"
+          }
+        },
+        "insured": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "dry",
+        "swapType",
+        "slippageTolerance",
+        "originAsset",
+        "depositType",
+        "destinationAsset",
+        "amount",
+        "refundTo",
+        "refundType",
+        "recipient",
+        "recipientType",
+        "deadline"
+      ]
+    },
+    "Quote": {
+      "type": "object",
+      "properties": {
+        "depositAddress": {
+          "type": "string"
+        },
+        "depositMemo": {
+          "type": "string"
+        },
+        "chainDepositAddresses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/ChainDepositAddress"
+          }
+        },
+        "amountIn": {
+          "type": "string"
+        },
+        "amountInFormatted": {
+          "type": "string"
+        },
+        "amountInUsd": {
+          "type": "string"
+        },
+        "minAmountIn": {
+          "type": "string"
+        },
+        "amountOut": {
+          "type": "string"
+        },
+        "amountOutFormatted": {
+          "type": "string"
+        },
+        "amountOutUsd": {
+          "type": "string"
+        },
+        "minAmountOut": {
+          "type": "string"
+        },
+        "deadline": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "timeWhenInactive": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "timeEstimate": {
+          "type": "number"
+        },
+        "virtualChainRecipient": {
+          "type": "string"
+        },
+        "virtualChainRefundRecipient": {
+          "type": "string"
+        },
+        "customRecipientMsg": {
+          "type": "string"
+        },
+        "refundFee": {
+          "type": "string"
+        },
+        "withdrawFee": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "amountIn",
+        "amountInFormatted",
+        "amountInUsd",
+        "minAmountIn",
+        "amountOut",
+        "amountOutFormatted",
+        "amountOutUsd",
+        "minAmountOut",
+        "timeEstimate"
+      ]
+    },
+    "QuoteResponse": {
+      "type": "object",
+      "properties": {
+        "correlationId": {
+          "type": "string"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "signature": {
+          "type": "string"
+        },
+        "quoteRequest": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/QuoteRequest"
+            }
+          ]
+        },
+        "quote": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/Quote"
+            }
+          ]
+        }
+      },
+      "required": [
+        "correlationId",
+        "timestamp",
+        "signature",
+        "quoteRequest",
+        "quote"
+      ]
+    },
+    "SwapDetails": {
+      "type": "object",
+      "properties": {
+        "intentHashes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nearTxHashes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "amountIn": {
+          "type": "string"
+        },
+        "amountInFormatted": {
+          "type": "string"
+        },
+        "amountInUsd": {
+          "type": "string"
+        },
+        "amountOut": {
+          "type": "string"
+        },
+        "amountOutFormatted": {
+          "type": "string"
+        },
+        "amountOutUsd": {
+          "type": "string"
+        },
+        "slippage": {
+          "type": "number"
+        },
+        "originChainTxHashes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/TransactionDetails"
+          }
+        },
+        "destinationChainTxHashes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/TransactionDetails"
+          }
+        },
+        "refundedAmount": {
+          "type": "string"
+        },
+        "refundedAmountFormatted": {
+          "type": "string"
+        },
+        "refundedAmountUsd": {
+          "type": "string"
+        },
+        "refundReason": {
+          "type": "string"
+        },
+        "depositedAmount": {
+          "type": "string"
+        },
+        "depositedAmountFormatted": {
+          "type": "string"
+        },
+        "depositedAmountUsd": {
+          "type": "string"
+        },
+        "withdrawFee": {
+          "type": "string"
+        },
+        "referral": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "intentHashes",
+        "nearTxHashes",
+        "originChainTxHashes",
+        "destinationChainTxHashes"
+      ]
+    },
+    "TransactionDetails": {
+      "type": "object",
+      "properties": {
+        "hash": {
+          "type": "string"
+        },
+        "explorerUrl": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "hash",
+        "explorerUrl"
+      ]
+    },
+    "SubmitDepositTxRequest": {
+      "type": "object",
+      "properties": {
+        "txHash": {
+          "type": "string"
+        },
+        "depositAddress": {
+          "type": "string"
+        },
+        "nearSenderAccount": {
+          "type": "string"
+        },
+        "memo": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "txHash",
+        "depositAddress"
+      ]
+    },
+    "SubmitDepositTxResponse": {
+      "type": "object",
+      "properties": {
+        "correlationId": {
+          "type": "string"
+        },
+        "quoteResponse": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/QuoteResponse"
+            }
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "KNOWN_DEPOSIT_TX",
+            "PENDING_DEPOSIT",
+            "INCOMPLETE_DEPOSIT",
+            "PROCESSING",
+            "SUCCESS",
+            "REFUNDED",
+            "FAILED"
+          ]
+        },
+        "updatedAt": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "swapDetails": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/SwapDetails"
+            }
+          ]
+        }
+      },
+      "required": [
+        "correlationId",
+        "quoteResponse",
+        "status",
+        "updatedAt",
+        "swapDetails"
+      ]
+    },
+    "GetExecutionStatusResponse": {
+      "type": "object",
+      "properties": {
+        "correlationId": {
+          "type": "string"
+        },
+        "quoteResponse": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/QuoteResponse"
+            }
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "KNOWN_DEPOSIT_TX",
+            "PENDING_DEPOSIT",
+            "INCOMPLETE_DEPOSIT",
+            "PROCESSING",
+            "SUCCESS",
+            "REFUNDED",
+            "FAILED"
+          ]
+        },
+        "updatedAt": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "swapDetails": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/SwapDetails"
+            }
+          ]
+        }
+      },
+      "required": [
+        "correlationId",
+        "quoteResponse",
+        "status",
+        "updatedAt",
+        "swapDetails"
+      ]
+    },
+    "AppFee": {
+      "type": "object",
+      "properties": {
+        "recipient": {
+          "type": "string"
+        },
+        "fee": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "recipient",
+        "fee"
+      ]
+    },
+    "Rebate": {
+      "type": "object",
+      "properties": {
+        "recipient": {
+          "type": "string"
+        },
+        "share": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "recipient",
+        "share"
+      ]
+    },
+    "ChainDepositAddress": {
+      "type": "object",
+      "properties": {
+        "blockchain": {
+          "type": "string",
+          "enum": [
+            "near",
+            "eth",
+            "base",
+            "arb",
+            "btc",
+            "sol",
+            "ton",
+            "dash",
+            "doge",
+            "xrp",
+            "zec",
+            "gnosis",
+            "bera",
+            "bsc",
+            "pol",
+            "tron",
+            "sui",
+            "movement",
+            "op",
+            "avax",
+            "stellar",
+            "aptos",
+            "cardano",
+            "ltc",
+            "xlayer",
+            "monad",
+            "bch",
+            "adi",
+            "plasma",
+            "scroll",
+            "starknet",
+            "aleo",
+            "hypercore",
+            "fogo",
+            "hood",
+            "hlevm",
+            "qtc",
+            "miden",
+            "prl"
+          ]
+        },
+        "address": {
+          "type": "string"
+        },
+        "memo": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "blockchain",
+        "address"
+      ]
+    },
+    "TokenResponse": {
+      "type": "object",
+      "properties": {
+        "assetId": {
+          "type": "string"
+        },
+        "decimals": {
+          "type": "number"
+        },
+        "blockchain": {
+          "type": "string",
+          "enum": [
+            "near",
+            "eth",
+            "base",
+            "arb",
+            "btc",
+            "sol",
+            "ton",
+            "dash",
+            "doge",
+            "xrp",
+            "zec",
+            "gnosis",
+            "bera",
+            "bsc",
+            "pol",
+            "tron",
+            "sui",
+            "movement",
+            "op",
+            "avax",
+            "stellar",
+            "aptos",
+            "cardano",
+            "ltc",
+            "xlayer",
+            "monad",
+            "bch",
+            "adi",
+            "plasma",
+            "scroll",
+            "starknet",
+            "aleo",
+            "hypercore",
+            "fogo",
+            "hood",
+            "hlevm",
+            "qtc",
+            "miden",
+            "prl"
+          ]
+        },
+        "symbol": {
+          "type": "string"
+        },
+        "price": {
+          "type": "number"
+        },
+        "priceUpdatedAt": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "contractAddress": {
+          "type": "string"
+        },
+        "coingeckoId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "assetId",
+        "decimals",
+        "blockchain",
+        "symbol",
+        "price",
+        "priceUpdatedAt"
+      ]
+    }
+  },
+  "security_schemes": {
+    "X-API-Key": {
+      "type": "apiKey",
+      "in": "header",
+      "name": "X-API-Key"
+    },
+    "JWT-auth": {
+      "scheme": "bearer",
+      "bearerFormat": "JWT",
+      "type": "http"
+    },
+    "User-Session": {
+      "scheme": "bearer",
+      "bearerFormat": "JWT",
+      "type": "http"
+    }
+  }
+}
