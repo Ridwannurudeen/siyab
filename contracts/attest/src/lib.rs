@@ -1,58 +1,16 @@
+mod registry;
+pub mod replay;
+mod types;
+
+pub use registry::AttestRegistry;
+pub use types::{
+    AttestedKeyView, MeasurementView, RegisterContext, RegistryConfig, ReplayEvent, VoteIntent,
+};
+
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct MeasurementView {
-    pub mrtd: String,
-    pub rtmr0: String,
-    pub rtmr1: String,
-    pub rtmr2: String,
-    pub key_provider_digest: String,
-    pub compose_hash: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct AttestedKeyView {
-    pub public_key: String,
-    pub measurement_id: String,
-    pub measurement: MeasurementView,
-    pub ppid: String,
-    pub aux: String,
-    pub tcb_status: String,
-    pub advisory_ids: Vec<String>,
-    pub issued_at_ms: u64,
-    pub registered_ms: u64,
-    pub expires_ms: u64,
-    pub collateral_expires_ms: u64,
-}
-
-#[derive(Debug, Clone, borsh::BorshSerialize)]
-pub struct VoteIntent {
-    pub registry_account_id: String,
-    pub public_key: [u8; 32],
-    pub measurement_id: [u8; 32],
-    pub platforms: Vec<[u8; 16]>,
-    pub verb: String,
-    pub approval_id: String,
-    pub wallet_pubkey: String,
-    pub request_hash: [u8; 32],
-    pub recipient: String,
-    pub nonce: [u8; 32],
-    pub evidence_hash: [u8; 32],
-    pub expires_ms: u64,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct RegistryConfig {
-    pub verifier_account_id: String,
-    pub signer_account_id: String,
-    pub ed25519_domain_id: u64,
-    pub max_lease_ms: u64,
-    pub vote_recipients: Vec<String>,
-}
+pub(crate) const KEYS_PREFIX: &[u8] = b"ak:";
 
 pub type VoteReservations = BTreeMap<([u8; 32], String, String, [u8; 32]), String>;
 
