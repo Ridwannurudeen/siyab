@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "tortugatide.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "zgeQxDg5zF8c3kGgvjX6ofADhnXYcMWrAhGPZZcbLXU",
+      "block_height": 225687214,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 121856960000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:87t2Wm1fLyg2LYq5Ti6MzuozdKzSEysthDsf1gDbNASQ"
+        },
+        {
+          "access_key": {
+            "nonce": 121857008023134,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:ARgZiU2iez6QiVxcLo2NzPruDodYMF8bjPStbMih7Z4b"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:38:12Z"
+}

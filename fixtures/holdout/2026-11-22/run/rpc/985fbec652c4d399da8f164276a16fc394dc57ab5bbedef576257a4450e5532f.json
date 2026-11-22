@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "chimtrangmocoi.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "EEBgEdabWqd2eimAdU2zkweDgRQCrG3hqZ5iEt3khciJ",
+      "block_height": 225687343,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 124265926021200,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:72EvmeQgkXiWzVcuJEwuERfkZJ6iX9QXtrqtfdq83TKs"
+        },
+        {
+          "access_key": {
+            "nonce": 124265915000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:7Y3bG2trwzptksB2Lq2vjtCmB3vPVxAyjrjuNn3X2tpp"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:39:24Z"
+}

@@ -1,0 +1,69 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "19b5ee6a1586bc18144e0718d93e1cb05b8c752e15b73ee4200d5ee4e88ac3b1"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "4XgHqNFMy9KfMzTxEu43cytyaFxzKw563XWBZMPb5LWH",
+      "block_height": 225687220,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 63575202000002,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:2jN6RF6oGqtWEKJyiQYkXH3uXNKgSG9YgQJKU1vHckM6"
+        },
+        {
+          "access_key": {
+            "nonce": 63575610000019,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Bk5QzZceZieAbHj2zqMY6kuKbg4cBEPEiDkZevJv7EY5"
+        },
+        {
+          "access_key": {
+            "nonce": 63576056000007,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:GF8Je9H4FtdkY8AUe8PsBLm2BeWzCjzTDjtaqEpa5SPG"
+        },
+        {
+          "access_key": {
+            "nonce": 63575642000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "v1.jumbo_exchange.near"
+              }
+            }
+          },
+          "public_key": "ed25519:GPdK7GybDqR8Xbq2j1w6mx64bMN6N8TW9b1XAQ4tkVr9"
+        },
+        {
+          "access_key": {
+            "nonce": 64409500000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "v2.ref-farming.near"
+              }
+            }
+          },
+          "public_key": "ed25519:J4BxvPgiEjLdBeSfzyoMy9d7VJUzynCfqg8cxR45XPR8"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:38:16Z"
+}

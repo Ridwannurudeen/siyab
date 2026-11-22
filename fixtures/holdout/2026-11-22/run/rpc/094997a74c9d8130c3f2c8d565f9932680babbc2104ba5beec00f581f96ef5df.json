@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "pyreneespeak.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "9NXs6TMgiPE9G1QPjxAP4QwmqJk3bugU2wPwdwEXEA7k",
+      "block_height": 225687053,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 123161905021495,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4w8SLxGTpgJuBtxjYjLRQwK9UtV48GZy9s8zsMAZQoV3"
+        },
+        {
+          "access_key": {
+            "nonce": 123161891000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:DMBwnmW3ZoFo2tCtLarBoLV2ztRAKAWFzZSaN5EWmL5E"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:36:38Z"
+}

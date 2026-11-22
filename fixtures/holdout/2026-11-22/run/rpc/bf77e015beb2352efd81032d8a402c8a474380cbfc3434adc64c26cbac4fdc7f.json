@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "azoresaura.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "9xPzBUiwoD5e4MXNdPwShXZtM4m978iX2trJwKyE9rLZ",
+      "block_height": 225687048,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 121857454023485,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4uZJY9R5VJWfSzxyrRhcni6uDuqQVtHLVaC3pBBQwGh2"
+        },
+        {
+          "access_key": {
+            "nonce": 121857354000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9hpDfbnxA5aosTk15QRrB1vVZKfH2gPdVpJwsvm2Epzr"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:36:34Z"
+}

@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "phangngapearl.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "4szvS1aqz4jEkbMzUPvJEkw47LuRNBn24egwr2Ltqmsu",
+      "block_height": 225687084,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 121857115023045,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:2GLH1yWkMN2q14jfRTZBUn3UoBg7uQM1UsUuGN1hVwgw"
+        },
+        {
+          "access_key": {
+            "nonce": 121857074000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:E2yAEENmTnFBHuKZ4fW7a5Zsk8uVtGrk8FQRtDw6y29E"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:36:56Z"
+}

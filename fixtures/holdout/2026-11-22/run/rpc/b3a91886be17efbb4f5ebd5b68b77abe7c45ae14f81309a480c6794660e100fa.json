@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "makenamirage.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "12nnSXkhg3JdqpVR4czJxQLFFEz5uCrboTDJQLQ2nKtG",
+      "block_height": 225687815,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 121867727000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:CTDkBUJGLTtqQqLLgak3s87ejCoCMkovqYoxzV8xvKaD"
+        },
+        {
+          "access_key": {
+            "nonce": 121867761023450,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:F3q8CHAh6ndTZmpmBsBgWNSTrGHjxffghaa3aYnHcToH"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:43:49Z"
+}

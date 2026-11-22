@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "tianshantreasure.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "dqNpYEdzbqpfZAxxgRhyE5zASSn6PSRyJ5xxBx8sS6d",
+      "block_height": 225687546,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 124619755019900,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:7XWfTZpfRZ1vFbzxzchswHvkSB6FV9wpG5U1jk4G467X"
+        },
+        {
+          "access_key": {
+            "nonce": 124619704000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:GHFs2q2T9YAV5X8CjTDS5TdrwgecKbYgTYZs3EwMBzuJ"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:41:18Z"
+}

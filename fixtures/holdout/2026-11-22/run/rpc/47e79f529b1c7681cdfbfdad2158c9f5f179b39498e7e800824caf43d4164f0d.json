@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "wallet1_latency.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "5cNEy1jF8FEJmbd5EmZ4qcjrKGvbLEUfcNgCTzwvmDcn",
+      "block_height": 225687412,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 116005938091791,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:xernWmUGgAHrKStHrgcGnjYzLLBorQXDVTTmPDrbhmt"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:40:03Z"
+}

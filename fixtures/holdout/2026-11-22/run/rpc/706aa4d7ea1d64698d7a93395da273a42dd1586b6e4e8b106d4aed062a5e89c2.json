@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "huascaranheights.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "2B9zXgYL6ersYm8qKxWTTjqd3KteKzMgv2y8v2rTRjXE",
+      "block_height": 225687065,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 124621690020270,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:BSwh7osWs5RTidMvczwbLRFKQY72vzXGbwEgc8wx2BJF"
+        },
+        {
+          "access_key": {
+            "nonce": 124621668000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:HwRhDfoRd69K7ZPtSAPQg9Go9qmy4EnmtjtRu7mkXSHB"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:36:45Z"
+}

@@ -1,0 +1,82 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "soctrangnguyen.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "3DGPCtUZUkxfLNKuc6GK71E62WGYDoDww9gcscvA4Zdh",
+      "block_height": 225687369,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 40056739000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:3Z1eK6LYj8zBapc8PQo6kupgNDKDqLKMAehfso2HZWQY"
+        },
+        {
+          "access_key": {
+            "nonce": 40056745000015,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:3fYXFcGZtfwUSQbuYuRzLPXUER7Hz7My2WMvFz2UnJWA"
+        },
+        {
+          "access_key": {
+            "nonce": 114645828034440,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6CVDLPY22osXGm9dFWoBxGhBxDhFXhT82h2LXkgMQ4qn"
+        },
+        {
+          "access_key": {
+            "nonce": 46687622000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "skyward.near"
+              }
+            }
+          },
+          "public_key": "ed25519:7cTdzn2oEjgzPD42gK8briWaLNsN9qze7SimkUhe5PMp"
+        },
+        {
+          "access_key": {
+            "nonce": 40056807000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "learnclub.near"
+              }
+            }
+          },
+          "public_key": "ed25519:9tVV8wtVcmqrq2ws8a16dwW1CJekcFQfYbX6xEWVpGPZ"
+        },
+        {
+          "access_key": {
+            "nonce": 51151224000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "farm-nearcon.cheddar.near"
+              }
+            }
+          },
+          "public_key": "ed25519:DQyZyDdppVRxN86kjCQ6EZJZqitPy2P7o1jVtnCYHBMo"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:39:39Z"
+}

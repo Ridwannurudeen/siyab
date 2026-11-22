@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "roundshirt9942.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "HEDiy6kdKnSFSCxRrrYRLBcQp59YPpNiNuBxWGMKYQfP",
+      "block_height": 225687686,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 130647355098517,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:2Lr53AyL8WdUqHPapDfDHHxm2qVsRGZNrUj53CgdBA3s"
+        },
+        {
+          "access_key": {
+            "nonce": 168659910094454,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:DcGBcbrk26NExoKcAGUgrS4T13Ga7P5dkVtib46rjucH"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:42:37Z"
+}

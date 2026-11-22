@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "criptomem.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "41wzYTkuGbKoJ5j6dRGnS5cWpxkSYxfXRxscv7mjbNFw",
+      "block_height": 225687112,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 111884113013604,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:BfL6dcUrtdKTvbCF5GJLuuQ31LErknKVjCE4ksw7yvmL"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:37:13Z"
+}

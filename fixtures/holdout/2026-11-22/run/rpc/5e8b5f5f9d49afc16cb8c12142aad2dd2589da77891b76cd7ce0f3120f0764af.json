@@ -1,0 +1,43 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "lacymayert125.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "62mMdBSYEmyS39StHCbaxAjhHzpvJdKj4f4fGGBLWcEw",
+      "block_height": 225687129,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 54376349000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6FNdeKYqUsgNMbDJC9RHHFzNZzdeJ7kNJ1ZtuuytKusc"
+        },
+        {
+          "access_key": {
+            "nonce": 54376355000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6yzR76xJ525Qh7eZvgdEYqMeFFHxLC2N1VeNGB5wP8wD"
+        },
+        {
+          "access_key": {
+            "nonce": 114799880033750,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:F8JPCLqkULbo8G43S5TfBF9ZbVui2ZQ3CnGpXTXH5v2J"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:37:23Z"
+}

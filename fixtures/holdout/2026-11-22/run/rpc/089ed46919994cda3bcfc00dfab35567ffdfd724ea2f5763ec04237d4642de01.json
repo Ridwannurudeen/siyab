@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "tatrastreasure.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "4uazFfUh4Jny4FeBeCV8pr9nK2xTijxZzHJsuBHgRgT2",
+      "block_height": 225687617,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 123268473021875,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:3myLB9fVtCoqrCkn5m6d8bhWv68UKj3hMP24AFW29Fdi"
+        },
+        {
+          "access_key": {
+            "nonce": 123268418000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4VCqsukVu81Tnuf36y7T1nYGkhhySFjvq6bKHXCwrGUF"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:41:58Z"
+}

@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "appalachianaura.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "3VgXb8MfVYRYzms98oXEke36L11gGtoWbCYFsszEJsbd",
+      "block_height": 225687797,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 123236555000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:5aTvoMKSPcoUPaQmNGmhEHVJSq9VtycB2RHLX7rdUWzV"
+        },
+        {
+          "access_key": {
+            "nonce": 123236618022305,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9HM7yq5wCmSZh9hYo5bZzbiE6g6sN3eGAzPNkYYRZFeb"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:43:38Z"
+}

@@ -608,11 +608,15 @@ class ExamplesTest(unittest.TestCase):
         top_unknown = [path for path in top_judgements
                        if json.loads(path.read_text(encoding="utf-8"))["verdict"] == "UNKNOWN"]
         self.assertTrue(top_unknown)
-        self.assertEqual(unknown, [path.relative_to(ROOT).as_posix() for path in top_unknown])
+        holdout_judgements = sorted((ROOT / "fixtures" / "holdout").glob("*/run/judgements/*.json"))
+        holdout_unknown = [path for path in holdout_judgements
+                           if json.loads(path.read_text(encoding="utf-8"))["verdict"] == "UNKNOWN"]
+        self.assertEqual(unknown, sorted(path.relative_to(ROOT).as_posix() for path in top_unknown + holdout_unknown))
         self.assertTrue(sorted((ROOT / "fixtures" / "receivers" / "judgements").glob("*.json")))
         self.assertIn("The committed UNKNOWN verdicts are exactly the top receiver judgements whose verdict is "
-                      "UNKNOWN, under `fixtures/receivers/top/judgements/`; they reflect incomplete data for real "
-                      "mainnet receivers.", "\n".join(section(self.text, "### UNKNOWN")))
+                      "UNKNOWN, under `fixtures/receivers/top/judgements/`, and the holdout judgements whose verdict "
+                      "is UNKNOWN, under `fixtures/holdout/<date>/run/judgements/`; they reflect incomplete data for "
+                      "real mainnet receivers.", "\n".join(section(self.text, "### UNKNOWN")))
 
     def test_each_example_is_its_fixture_and_the_fixture_records_its_outcome(self):
         self.assertEqual(example_problems(self.text, ROOT), {})

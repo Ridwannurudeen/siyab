@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "lanikai.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "bpFibZQ3Gu6qoqmKGVBZVswyJTkCosRcz7rX1o7ujQ2",
+      "block_height": 225687417,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 121524529000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:G5V8QaZZ4QhfhVvfJ21iZqpDsH8ZyhQPZBuzh6J5vjqP"
+        },
+        {
+          "access_key": {
+            "nonce": 121524542033585,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:G7MWFPuarFoV5XS6PuXc1bw15aXjHKzQS5UCmzDV1hqr"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:40:06Z"
+}

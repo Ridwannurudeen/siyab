@@ -1,0 +1,50 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "buduptodia.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "66YteHhHNGcYsRCJNTjertiHBLrPjYyDNRGUGRM1jVnf",
+      "block_height": 225687566,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 224666863000155,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:2Txw7fBKKdpXECGUhBSQaDKyiVyyP3Xn941nnFSGy2UK"
+        },
+        {
+          "access_key": {
+            "nonce": 224666905000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9hEeBWucEaBWNrKwDarts9i6XZDeCLMQhoKpnDxudCCG"
+        },
+        {
+          "access_key": {
+            "nonce": 224531555000974,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:D2LgiMbBYgd2WdUcgN9bgH8UDYNykkRvrjqvTc9XEzWs"
+        },
+        {
+          "access_key": {
+            "nonce": 224666734000155,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:G47CAeqenuPVmBPHE4X7JG2mZTYD7fmFHxnwkYZVpt2m"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:41:29Z"
+}

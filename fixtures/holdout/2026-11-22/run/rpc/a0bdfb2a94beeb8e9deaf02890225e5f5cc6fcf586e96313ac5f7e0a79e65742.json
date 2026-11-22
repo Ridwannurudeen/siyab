@@ -1,0 +1,210 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "sparkuss.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "FCUPey9bWxEpMDsy3cp9CugnKbTrkDagyx9kQhfGLj5s",
+      "block_height": 225687474,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 43293315000003,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:wrSKiUGjNuQVzwao3fEfdPGbiVXrgttsbtXbQx4ucqU"
+        },
+        {
+          "access_key": {
+            "nonce": 43293347000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:21vx9RvZ6NU9T6UseFsFW65xXb4C21Qd6ZkewngKvit9"
+        },
+        {
+          "access_key": {
+            "nonce": 43293196000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:2CuABR5k76pfZ8MicRYR2WsHQ8D7ggAEL1NBwESyEfRD"
+        },
+        {
+          "access_key": {
+            "nonce": 43293422000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:2ZcBFEN9sN2Hq7akCNVA6wTL4EJAXY2HjekDFCo4PcFC"
+        },
+        {
+          "access_key": {
+            "nonce": 86712552000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "marketplace.marbledao.near"
+              }
+            }
+          },
+          "public_key": "ed25519:2oA5srG7JQzcWv9pbKFvP4xfnQg546TBeD8Ff5Y4S871"
+        },
+        {
+          "access_key": {
+            "nonce": 86712739000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "dex.marbledex.near"
+              }
+            }
+          },
+          "public_key": "ed25519:3DZKNMZvJT1FtZaZJU5q5soQiJaRtzfHqtnh4qTq16N9"
+        },
+        {
+          "access_key": {
+            "nonce": 43294817000002,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "246923775256089500000000",
+                "method_names": [],
+                "receiver_id": "berryclub.ek.near"
+              }
+            }
+          },
+          "public_key": "ed25519:5UDm87LHakwYM8vfkR1bZiX7W3B8JdvGYi5iRTavZCdw"
+        },
+        {
+          "access_key": {
+            "nonce": 107096957000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "dex.marbledex.near"
+              }
+            }
+          },
+          "public_key": "ed25519:62perdSKqitYoPEzwgJT2Qrsi5BGRoXJPZ4i6BUBviBK"
+        },
+        {
+          "access_key": {
+            "nonce": 106008171000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "dex.marbledex.near"
+              }
+            }
+          },
+          "public_key": "ed25519:9BqNTrTjz2UTiZ1mLZsqnq3AQo3LAoC7RBuVcKGeeRrH"
+        },
+        {
+          "access_key": {
+            "nonce": 97791780000003,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9zHo6Fni3YYFpPNW5hAVn6jrcHTAsUXiASmncvijqyCg"
+        },
+        {
+          "access_key": {
+            "nonce": 43293070000059,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:AVtu8SEuDxwnAcBijHr9yJUKxEbuSTpTSGNWXhEe5swa"
+        },
+        {
+          "access_key": {
+            "nonce": 43293484000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:AXq38shTLF83ieiofZ7HD3kJKHWD6umS9z2wzmEPAQRT"
+        },
+        {
+          "access_key": {
+            "nonce": 43293041020841,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:AqaoAiXodVwtzb1aZ9aLs1zcRLZRt3BKBnTgt2VhKHSb"
+        },
+        {
+          "access_key": {
+            "nonce": 107095779000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "marketplace.marbledao.near"
+              }
+            }
+          },
+          "public_key": "ed25519:AtiHwVofskrxjnh9ih69QGEXaGTDdY9oFe26zB2DG1t5"
+        },
+        {
+          "access_key": {
+            "nonce": 107095752000010,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:C83JdtDENF2r3srRDacsHU7qohpruYn6dk8BZFFQrfoe"
+        },
+        {
+          "access_key": {
+            "nonce": 97791790000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "marketplace.marbledao.near"
+              }
+            }
+          },
+          "public_key": "ed25519:CiV2drkdgaCfatmgtSdzBY6WydTm1P8Ts2hkRSPCM22F"
+        },
+        {
+          "access_key": {
+            "nonce": 43293152000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:EUD194inCfXMx5ET1yuUeu6q1odiRb6gK2U839kGZqV4"
+        },
+        {
+          "access_key": {
+            "nonce": 43295457000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Eb763t64gMxbRhMC5dGRrhpZRQFQvvPuEyBpdukJ6iLL"
+        },
+        {
+          "access_key": {
+            "nonce": 43293254000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:H4HKB3TCsj2mM4mXrAakVeiJxKWTGK7YRetYaiervbwk"
+        },
+        {
+          "access_key": {
+            "nonce": 92168887000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "marketplace.marbledao.near"
+              }
+            }
+          },
+          "public_key": "ed25519:J6uqqoVQuDdXK8Y2aFERfHoPUBVAd9MQ9tShPJCtyjy4"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:40:37Z"
+}

@@ -1,0 +1,49 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "mpc-lgns.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "9zW7yvV2TfgmChDv56NLui8dhzMbcUCknULPddgTHNxx",
+      "block_height": 225687372,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 138466856000007,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:iVEzwnQsRbErmJaX1usWEjhi49sq97zMfXFHVhmF5er"
+        },
+        {
+          "access_key": {
+            "nonce": 220043735000013,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:69iDnQdYxQnKfQu8XJadNX3ST5acVwe4eYt2688NRq5J"
+        },
+        {
+          "access_key": {
+            "nonce": 225687203000001,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:AAayND6WH7QRdEwKpsQQ2K8e17bW3nYrPHgTRGy3pFsr"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:39:41Z"
+}

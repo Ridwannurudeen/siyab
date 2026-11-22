@@ -1,0 +1,49 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "fionasmith0618.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "7iaB5fk1f9VY1oYkRiuWMoPHuSh2Xs6K8b5xDGxgvHp9",
+      "block_height": 225687614,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 51153344000007,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:2vyoeiF3aHo6J3dqXYd16QErYuMvHMKHve5v4bRoDM9E"
+        },
+        {
+          "access_key": {
+            "nonce": 114663990032150,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:5AeqQz4t9WvrcEQ24Zq6QC3DJxjxVVfzUsktebzpyHYr"
+        },
+        {
+          "access_key": {
+            "nonce": 51153417000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "farm-nearcon.cheddar.near"
+              }
+            }
+          },
+          "public_key": "ed25519:EQn3qZgNq4DTW5L48pariNuTa8TKvCjArzsiWYVFhgYJ"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:41:57Z"
+}

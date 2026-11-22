@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "marsisoland.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "DPAp9dFUfvMxf3v1BmvPccfCGJBd5RLGLGNV5fxtQkbz",
+      "block_height": 225686961,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 191029254001578,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4AZsN6ySxy7gNZAtu51NVgTonae22jSyaABgNsRn4eSE"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:35:44Z"
+}

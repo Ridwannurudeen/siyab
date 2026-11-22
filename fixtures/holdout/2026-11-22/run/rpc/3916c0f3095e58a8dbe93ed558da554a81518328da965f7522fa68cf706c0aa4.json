@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "denalidawn.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "8J2xNneabB3Ze6HSbbTFFRJPdtSFsX83caxQRQ67VWkE",
+      "block_height": 225687154,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 123110226020855,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6qomFU6fMqUbd6QwT8vBt3cnQVt3TyTJ7pv1ebZtDvJt"
+        },
+        {
+          "access_key": {
+            "nonce": 123110215000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:DDAVBfUpockMhvoJcbUwnPT25DgTVosoxBYw6jYuotSi"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:37:39Z"
+}

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "brunnel.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "Nw9cf6TvEatLKCUJ156yjps9RvkesGDMEbkoAVefiCH",
+      "block_height": 225687357,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 112445833002482,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:7k8DRaLnWKwQkx2eGLNafaQtr9cYbTMzYyPwn2v6M5Lq"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:39:32Z"
+}

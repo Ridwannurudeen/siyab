@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "tuyennet.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "7rXMMG4kXFmoqp8qYmZ3rMi1bDW2dsbDYz3koHwg4VYr",
+      "block_height": 225687443,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 159600112006380,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:DKTHvV74FPUM8RhHC2bhdPVWP6oTqPKw7TPtRcjMn3RB"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:40:20Z"
+}

@@ -1,0 +1,43 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "baclieu29194.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "3BY67Km9xaqA6qH2Pi9jtywLkGEmVF8ByK7HF7JVvTkR",
+      "block_height": 225687519,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 114463314033120,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:3ACB3SQ1mZmrpxmSexomwb3j2stLwNRqsbV3ArzcqRfV"
+        },
+        {
+          "access_key": {
+            "nonce": 62688557000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4EA5g9QdJXVu5BBZXTyjDuvsVcf9S8ob6vY6LDX4wXww"
+        },
+        {
+          "access_key": {
+            "nonce": 62688551000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:F9bBo5UV1hGs3Eowfr5CEgQZVdci2nbnk9Hj6xMFJjGo"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:41:02Z"
+}

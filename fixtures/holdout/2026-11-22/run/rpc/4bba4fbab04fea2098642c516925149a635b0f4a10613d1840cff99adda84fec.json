@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "dew-rneardefi-accountant-2.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "6etjXiHwVKxsfLyJa5qsa9QwFE4agukadaK7DC4MFp8N",
+      "block_height": 225686949,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 198111873138574,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4bRBs2gzXXaB4E4MMxr7SQ4dMeNCQiVyMv21VYhbmE1U"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:35:37Z"
+}

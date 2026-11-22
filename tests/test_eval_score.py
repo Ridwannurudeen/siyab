@@ -152,6 +152,42 @@ class HoldoutLoaderTest(unittest.TestCase):
 
 
 class VerdictLoaderTest(unittest.TestCase):
+    def test_unscoreable_answers_never_count_as_a_decision(self):
+        for decision in ("ALLOW", "DENY", "ASK", "UNKNOWN", None):
+            with self.subTest(decision=decision):
+                with tempfile.TemporaryDirectory() as directory:
+                    path = Path(directory) / "synthetic.near.json"
+                    path.write_text(json.dumps({"outcome": decision, "scoreable": False}), encoding="utf-8")
+                    answers, errors, duplicates = score.load_verdicts(directory)
+                self.assertEqual(errors, [])
+                self.assertEqual(duplicates, [])
+                self.assertEqual(answers, {"synthetic.near": "NOT_JUDGED"})
+                report = score.score([row("synthetic.near", "bad")], answers)
+                self.assertEqual(report["counts"]["judged"], 0)
+                self.assertEqual(report["not_judged_accounts"], ["synthetic.near"])
+                self.assertEqual(report["matrix"]["bad"], {"DENY": 0, "ALLOW": 0, "ASK": 0, "NOT_JUDGED": 1})
+
+    def test_explicit_scoreable_answers_keep_their_decision(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "synthetic.near.json"
+            path.write_text(json.dumps({"outcome": "DENY", "scoreable": True}), encoding="utf-8")
+            answers, errors, duplicates = score.load_verdicts(directory)
+        self.assertEqual(errors, [])
+        self.assertEqual(duplicates, [])
+        self.assertEqual(answers, {"synthetic.near": "DENY"})
+
+    def test_rejects_nonboolean_scoreability(self):
+        for value in (None, 0, 1, "false", "true", [], {}):
+            with self.subTest(value=value):
+                with tempfile.TemporaryDirectory() as directory:
+                    path = Path(directory) / "synthetic.near.json"
+                    path.write_text(json.dumps({"outcome": "ALLOW", "scoreable": value}), encoding="utf-8")
+                    answers, errors, duplicates = score.load_verdicts(directory)
+                self.assertEqual(answers, {})
+                self.assertEqual(duplicates, [])
+                self.assertEqual(len(errors), 1)
+                self.assertIn("scoreable must be a boolean", errors[0])
+
     def test_reads_both_shapes_and_the_file_name(self):
         with tempfile.TemporaryDirectory() as directory:
             folder = Path(directory)
@@ -427,6 +463,22 @@ class CommandLineTest(unittest.TestCase):
         self.assertIn("precision (DENY vs bad): 1.000", result.stdout)
         self.assertIn("holdout sha256: " + hashlib.sha256(self.holdout.read_bytes()).hexdigest(), result.stdout)
         self.assertIn("rules commit: ", result.stdout)
+
+    def test_unscoreable_answer_is_reported_as_not_judged(self):
+        (self.verdicts / "bad.near.json").write_text('{"outcome":"DENY","scoreable":false}', encoding="utf-8")
+        result = self.run_score("--json")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        report = json.loads(result.stdout)
+        self.assertEqual(report["counts"]["judged"], 1)
+        self.assertEqual(report["not_judged_accounts"], ["bad.near"])
+        self.assertEqual(report["recall"], 0.0)
+
+    def test_invalid_scoreability_refuses_to_print_partial_scores(self):
+        (self.verdicts / "bad.near.json").write_text('{"outcome":"DENY","scoreable":0}', encoding="utf-8")
+        result = self.run_score("--json")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("scoreable must be a boolean", result.stderr)
+        self.assertEqual(result.stdout, "")
 
     def test_json_includes_exact_file_hash_commit_and_missing_and_outside_rows(self):
         self.holdout.write_bytes((json.dumps(row("bad.near", "bad")) + "\r\n\r\n"

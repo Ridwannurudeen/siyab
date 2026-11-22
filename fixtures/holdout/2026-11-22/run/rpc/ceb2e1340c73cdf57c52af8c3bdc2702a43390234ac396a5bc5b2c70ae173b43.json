@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "teepin.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "8TvdX5TauHWv89zvYJQ8WV5sdyk4zNMNH9uYLHMit37y",
+      "block_height": 225687158,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 225233096000003,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:B45sRX442F78GgJ5QUtWgSxzDU9YYx3Fweyuk11ZpYPK"
+        },
+        {
+          "access_key": {
+            "nonce": 225233105000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:BRGDNNsSZpJrMxgo1iig8ShnWt3MPhuTonJDmu19Z4bT"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:37:40Z"
+}

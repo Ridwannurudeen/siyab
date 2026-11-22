@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "barvwin.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "6xQUyj68fdEtBBM3AYh4m2kGpPS8w5Tsnr5KR3AN8jWc",
+      "block_height": 225686972,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 224691830000681,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:AYzx25rRRzEmv9ZJrrGwAqcLEQ8EUsEhhddL656Pj1AU"
+        },
+        {
+          "access_key": {
+            "nonce": 224691841000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:EK4qnasLHCVLa9Cv91qpe8zH3mCbH5s1y63NsAt5KZ2y"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:35:51Z"
+}

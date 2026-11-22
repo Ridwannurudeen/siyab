@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "hardward9831.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "Akd7bDTiwC11GYYAko1Ai5pqDJ8azL14m2wnwxh677H",
+      "block_height": 225686914,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 224478377000024,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6N4WAa9aQ6qcMJSHDfZ15SdV9h6JnZV95PPCE8cWBTUe"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:35:17Z"
+}

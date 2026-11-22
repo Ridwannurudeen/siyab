@@ -1,0 +1,111 @@
+{
+  "subject": "05bbaa5983c5c95b401395ba7a219d3ddb67afb32f4d383a05aafb289f466802",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "05bbaa5983c5c95b401395ba7a219d3ddb67afb32f4d383a05aafb289f466802",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "DENY",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "signal",
+      "detail": "receiver_missing: 05bbaa5983c5c95b401395ba7a219d3ddb67afb32f4d383a05aafb289f466802 does not exist",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "1a81cb1bf53c67ee2aa1a9e8bf822ee734e0e4c76bfb86a6867f6501493b237f",
+        "fetched_at": "2026-11-22T09:42:45Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "signal",
+      "detail": "05bbaa5983c5c95b401395ba7a219d3ddb67afb32f4d383a05aafb289f466802 carries the denylist label \"The issuer of usdt.tether-token.near blacklists 05bbaa5983c5c95b401395ba7a219d3ddb67afb32f4d383a05aafb289f466802 as of block 222857414\" (assertion 87b1408b6909ea1c404db9a26153b1290583212c0441f572dffd4293e9d28e1b)",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "issuer_blacklist",
+      "status": "signal",
+      "detail": "05bbaa5983c5c95b401395ba7a219d3ddb67afb32f4d383a05aafb289f466802 is banned by the issuer of usdt.tether-token.near: get_blacklist_status answers \"Banned\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "3f615a926bc5299e56adb924a297bcab3ab5ab64782de52eb516c450ce5dee8b",
+        "fetched_at": "2026-11-22T09:42:46Z"
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "unknown",
+      "detail": "could not read the account keys: no recorded response for the request",
+      "source": {
+        "provider": "api.nearblocks.io",
+        "request_sha256": "158975ba8f7f8eff74c2192b75d359432ba07617e113a862bc203cf81fb29a6c",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "unknown",
+      "detail": "the creation transaction is not known",
+      "source": {
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "unknown",
+      "detail": "the receiver account could not be read",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "1a81cb1bf53c67ee2aa1a9e8bf822ee734e0e4c76bfb86a6867f6501493b237f",
+        "fetched_at": "2026-11-22T09:42:45Z"
+      }
+    }
+  ],
+  "reasons": [
+    "Not on the owner's allowlist.",
+    "05bbaa5983c5c95b401395ba7a219d3ddb67afb32f4d383a05aafb289f466802 does not exist.",
+    "05bbaa5983c5c95b401395ba7a219d3ddb67afb32f4d383a05aafb289f466802 carries the denylist label \"The issuer of usdt.tether-token.near blacklists 05bbaa5983c5c95b401395ba7a219d3ddb67afb32f4d383a05aafb289f466802 as of block 222857414\" (assertion 87b1408b6909ea1c404db9a26153b1290583212c0441f572dffd4293e9d28e1b).",
+    "05bbaa5983c5c95b401395ba7a219d3ddb67afb32f4d383a05aafb289f466802 is banned by a token issuer (05bbaa5983c5c95b401395ba7a219d3ddb67afb32f4d383a05aafb289f466802 is banned by the issuer of usdt.tether-token.near: get_blacklist_status answers \"Banned\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false)."
+  ],
+  "labels": [
+    "ae637f359029833efd9475c12351fa0c4ab519750ef828bd76c584e953d13152",
+    "ee393fbc2d0fea15fdfa1e266e321f78ab58dcb34f5266fe9c54545987b57c8f",
+    "577582a36beb90697d0a8547a173db60c8255748b5457bec881aa3de085921a2",
+    "87b1408b6909ea1c404db9a26153b1290583212c0441f572dffd4293e9d28e1b"
+  ],
+  "observed": {
+    "block_height": null,
+    "timestamp_ms": 1795340103342
+  },
+  "rules_version": 3
+}

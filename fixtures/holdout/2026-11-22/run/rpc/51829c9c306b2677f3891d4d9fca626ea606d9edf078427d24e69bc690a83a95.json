@@ -1,0 +1,42 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "20fb0bc977ab482c70e10797741e82448969f708006e2deadc2d3203c43aa8d4"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "rLNFpeBn8ykzk5Tq8fFUcyxw6Ubi5MBydfEbfgSAUap",
+      "block_height": 225687872,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 70765740000027,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:3Dk5DdoquuE3L3UKiKUWGTnrDM41DoW1ncfGen216Xij"
+        },
+        {
+          "access_key": {
+            "nonce": 71849059000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "boostfarm.ref-labs.near"
+              }
+            }
+          },
+          "public_key": "ed25519:7sUU39RKCmW1yBRux4oYZWDJXgct88vbiDDRmsYsPA8L"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:44:22Z"
+}

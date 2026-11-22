@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "serenityshores.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "2jjapXGsxYKfoNT2WdFmDT8PEWSkhamgbCwgLcTksPir",
+      "block_height": 225687607,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 121637481000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:2AUyd8H1UmWHWaW8tEV7jeeKW8ogzT5b7KbKymFhuab6"
+        },
+        {
+          "access_key": {
+            "nonce": 121637540022475,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:57fQDyAqoFsLGxA3J9USCCzeuXYmCmqtofn2gQpFf7Wb"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:41:53Z"
+}

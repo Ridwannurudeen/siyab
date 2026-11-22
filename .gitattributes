@@ -9,5 +9,6 @@ fixtures/nearai/intel-collateral-90c06f000000.json -text
 fixtures/nearai/models.json -text
 fixtures/nearai/quote-results.json -text
 fixtures/oneclick/** -text
+fixtures/holdout/** -text
 contracts/attest/tests/vendor/** -text
 fixtures/attest/*.borsh -text

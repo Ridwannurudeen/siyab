@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "kohphi.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "7jLa5UnUxvDXweyXuJXd1PacGexFqRfNCK4YVj1upFPp",
+      "block_height": 225687170,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 121563934034855,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:FWNDx3edMb8CoSjAyf3j9rSXUpXLhzeU8R4i5ugc1ZHE"
+        },
+        {
+          "access_key": {
+            "nonce": 121563824000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:FkXrjtPu4GnTrRQydS9kCFLAqYhARE6GoLtfcnLdQgrT"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:37:47Z"
+}

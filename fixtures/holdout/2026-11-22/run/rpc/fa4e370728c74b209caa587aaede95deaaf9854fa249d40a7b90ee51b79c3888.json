@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "fijicoral.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "2AoL8EvEv74cXCFyMXVmanWzGUY8xoYEmpb5LXkrEDM5",
+      "block_height": 225687310,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 121706544000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:5bFQrif4fjJiapbJYRzi52e6i8yjzBE36Vq4DRcMTkJ1"
+        },
+        {
+          "access_key": {
+            "nonce": 121706557031585,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8SuTttgda3cW2AFDkhAtKVeYePuVYo69MRUWqC9Z4k8M"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:39:07Z"
+}

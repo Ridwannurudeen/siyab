@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "tjballa.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "BKnXtCyM6hKZLcQbrv2UuMsADubaTS2Ca2QJ5yJk2SUa",
+      "block_height": 225686924,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 170506129005130,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:EuYryJvkFeRf9fcGVhhHjFZS79hwr7W6TebNVAEiQHCZ"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:35:23Z"
+}

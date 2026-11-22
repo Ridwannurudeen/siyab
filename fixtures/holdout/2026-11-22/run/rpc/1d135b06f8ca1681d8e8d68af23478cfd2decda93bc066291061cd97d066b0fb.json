@@ -1,0 +1,24 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "call_function",
+      "account_id": "82e4eb5c02bb2e1a91136569b6d95f8362bfc7738bb5134b95625a39d20936d1",
+      "method_name": "contract_source_metadata",
+      "args_base64": "e30=",
+      "finality": "final"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "8VXKmQSQueTFG1d4pE5YhgYE4ADBLmKXK82Sxe6nVhU3",
+      "block_height": 225687651,
+      "error": "wasm execution failed with error: MethodResolveError(MethodNotFound)",
+      "logs": []
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:42:17Z"
+}

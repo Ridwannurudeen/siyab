@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "vinsonvista.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "5bucdbepDpwyv6rZW2iYPk7o4gYxdK8CRn3qan6QU1pP",
+      "block_height": 225687692,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 123728534022295,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6rNhDqqeyB5ZReozxA7yY3Y1Gna9Po2jERyHnnVr2WXY"
+        },
+        {
+          "access_key": {
+            "nonce": 123728521000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6uz8u5T8j5mL1AYrkfFbTqQmezk3TXbW9rYALqcmCZhC"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:42:40Z"
+}

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "felek.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "5jfRBfHsfg7neTUGWXj3mMWwNTDW8emP4z1pQ9TcFeCJ",
+      "block_height": 225686958,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 116263941019260,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8zkxZm1TtZovGb12c3kvoqGVJryUFL55ufzsdjmAyuNE"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:35:42Z"
+}

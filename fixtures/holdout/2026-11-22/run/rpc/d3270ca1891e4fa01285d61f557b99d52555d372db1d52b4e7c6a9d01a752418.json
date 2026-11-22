@@ -1,0 +1,81 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "zorro7.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "2RFjiyM5X6W1jVhwBeBjBmDwTSnywme2EnJyGe1iv3Qy",
+      "block_height": 225687886,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 218563813000013,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6ELkDvrACpM3hJg8wooYa5YkJVBMiZM6EHBJ4tfZqu68"
+        },
+        {
+          "access_key": {
+            "nonce": 218564208032465,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "swap"
+                ],
+                "receiver_id": "v2.ref-finance.near"
+              }
+            }
+          },
+          "public_key": "ed25519:91qdvkqD7RFjLiDfJ9rFaSgWyhDXh11Yv6nEYAzidEaL"
+        },
+        {
+          "access_key": {
+            "nonce": 218564148084457,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "swap"
+                ],
+                "receiver_id": "v2.ref-finance.near"
+              }
+            }
+          },
+          "public_key": "ed25519:EtYEL5rsBMtbeLW8XgmeNXMS5jKurFbDKLeNeQuLuGAy"
+        },
+        {
+          "access_key": {
+            "nonce": 218566457000029,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:GbCBNSfWTo8VcBUNyMwAgNJezXUJqDgGC16DNjjMQuKA"
+        },
+        {
+          "access_key": {
+            "nonce": 218564245013270,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "swap"
+                ],
+                "receiver_id": "v2.ref-finance.near"
+              }
+            }
+          },
+          "public_key": "ed25519:Gsm57tg3nNgCFEDzgeHzJvBc2Bt6cUdXfsW94Mi1AYx9"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:44:30Z"
+}

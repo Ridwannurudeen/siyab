@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "catdoinoisau.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "2RpJZ2efY2MJsuUEoj4pDTageTN5t15JksbkNth6Gzno",
+      "block_height": 225687291,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 123027262000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6ZdFvHDeRsBraQyRtKnCCGV3Zon2pz81ug53rXq6aVN1"
+        },
+        {
+          "access_key": {
+            "nonce": 123027281021105,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9gtwGVhy6GoQibdWeD5RsVT7bZDdCe8Wmq32mQVYW5m5"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:38:56Z"
+}
