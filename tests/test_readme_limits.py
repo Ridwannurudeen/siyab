@@ -223,11 +223,11 @@ class FirstScreenVersionTest(unittest.TestCase):
             text = manifest.read_text(encoding="utf-8")
             current_version = tomllib.loads(text)["package"]["version"]
             manifest.write_text(
-                text.replace(f'version = "{current_version}"', 'version = "0.3.0"', 1),
+                text.replace(f'version = "{current_version}"', 'version = "9.9.9"', 1),
                 encoding="utf-8",
             )
             errors = version_errors(readme, res, contracts)
-        self.assertTrue(any("Cargo.toml says 0.3.0" in error for error in errors), errors)
+        self.assertTrue(any("Cargo.toml says 9.9.9" in error for error in errors), errors)
 
     def test_a_version_outside_the_checked_forms_fails(self):
         readme = README.read_text(encoding="utf-8").replace("Not yet: ", "Not yet: version 9.9.9 waits; ", 1)

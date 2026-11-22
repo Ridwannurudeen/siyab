@@ -10,6 +10,8 @@ Previous deploy, version 0.2.1 from source commit c2d42c02d1942d39fa0fa2651d3d16
 
 The source link embedded by NEP-330 is `https://github.com/Ridwannurudeen/shieldbot-near/tree/57860c96f071fac0f7bb99f242fcae7e6c4430d2`.
 
+Current Gate source is 0.3.0 (not deployed). The source commit, build recipe and artifact in this record remain the reproducible 0.2.2 build deployed on 9 Nov. No 0.3.0 artifact has been promoted.
+
 - cargo-near: 0.22.0.
 - Image: `sourcescan/cargo-near:0.21.1-rust-1.96.0`, digest `sha256:ccb22bb4e677ed022d8b9d1aa1b32f0af52dd0471ef1c32e48dedbf68ee6ee17`.
 - The container compiles with Rust 1.96.0 from the image. `rust-toolchain.toml` pins Rust 1.99.1 for local builds, so a local non reproducible build produces a different hash.
