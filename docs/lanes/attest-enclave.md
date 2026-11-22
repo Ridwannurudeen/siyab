@@ -1,6 +1,6 @@
 # Attestation enclave
 
-22 November 2026. T2 on `feat/attest-enclave`, base `c4899e190`. The frozen interface is `docs/spec/attest-v1.md`. The design's older registration shape is not used. Changes stay uncommitted for the orchestrator's independent review.
+22 November 2026. T2 on `feat/attest-enclave` at `213ed0503`, rebased onto main `6dc9bc89e`. The original T0 base `c4899e190` still supplies the fixed build epoch. The frozen interface is `docs/spec/attest-v1.md`. The design's older registration shape is not used. Changes stay uncommitted for the orchestrator's independent review.
 
 ## Implemented
 
@@ -60,9 +60,11 @@ Installed near-cli was unavailable in both Windows and WSL. The grammar was chec
 
 The recipe and exact local build record are in `enclave/BUILD.md`. `enclave/Dockerfile` pins an amd64 base manifest and hash locked wheels. `scripts/enclave_compose.py` generates the actual app-compose JSON around one service and an immutable image digest, with an empty `allowed_envs` list. There is no sidecar, SSH server or runtime shell. The service has a read-only root, dropped capabilities, no-new-privileges, a disabled core dump and memory backed temporary evidence. Only this container mounts the guest socket. No chain storage is added by T2, so this lane has no prefix table rows for `docs/UPGRADES.md`.
 
-Two final independent uncached builds in separate BuildKit instances produced identical OCI index bytes, manifests, configs and all 12 layers. The pinned tools were Docker 29.1.3, Buildx 0.39.1 and BuildKit 0.35.1, with `SOURCE_DATE_EPOCH=1795304440`, disabled provenance and SBOM, and exporter timestamp rewriting. The final manifest prefix is `87e39107870e` and config prefix is `1a74ac7dd56a`. Full public hashes, all 26 input file hashes and build settings are retained in `enclave/build-record.json`. All 14 blobs per archive matched their descriptors and sizes. The 25 copied input files were also hashed inside the final image and matched the frozen source context. This proves the recorded inputs built identically in this environment; it does not claim equivalence across arbitrary tools or future revisions.
+Two final independent uncached fix round 3 builds in separate BuildKit instances produced identical OCI index bytes, manifests, configs and all 12 layers. The pinned tools were Docker 29.1.3, Buildx 0.39.1 and BuildKit 0.35.1, with `SOURCE_DATE_EPOCH=1795304440`, disabled provenance and SBOM, and exporter timestamp rewriting. The final manifest prefix is `d8e2b00502ec` and config prefix is `c696663d54de`. Full public hashes, all 26 input file hashes and build settings are retained in `enclave/build-record.json`. All 14 blobs per archive matched their descriptors and sizes. The 25 copied input files were also hashed inside the final image and matched the frozen source context. This proves the recorded inputs built identically in this environment; it does not claim equivalence across arbitrary tools or future revisions.
 
-The exact final OCI image passed an offline runtime smoke and the final combined lane test run. Private builders and their cache volumes were removed after verification. The unique local image `siyab-t2f1:final-20261122`, ignored archives under `.codex/t2f1-final-repro` and verified project local Buildx remain available for review and reload. Earlier proof archives and the review image were preserved. The user's Docker configuration and other builders were untouched.
+The exact final OCI image passed an offline runtime smoke. The current test results are recorded under Fix round 3 below. Private builders and their cache volumes were removed after verification. The unique local image `siyab-t2f3:final-20261122`, ignored archives under `.codex/t2f3-repro` and verified project local Buildx remain available for review and reload. Earlier proof archives and the review image were preserved. The user's Docker configuration and other builders were untouched.
+
+The compose generator ran twice with `registry.example/siyab` and that manifest digest. Both outputs were the same 826 UTF-8 bytes with LF endings, retained as `.codex/t2f3-repro/app-compose.json`. Their SHA256 prefix is `79ec85c392ae`; the full image reference and digest are in `enclave/build-record.json`. No image was published. Changing the repository changes those compose bytes. A full deployment measurement still needs actual guest registers and the key provider digest, so this local build does not supply or approve one.
 
 At the checked dstack revision, disabling both key provider flags selects provider `none` and still emits a unique `key-provider` event into RTMR3. Its V1 event format is the default and matches the frozen five fields and replay formula. Temporary guest application keys are separate from the service's fresh signing key and are not used by it. These are boot source facts, not observations of a Phala machine. The exact primary URLs and owner probe remain in the build record document.
 
@@ -135,7 +137,7 @@ python -m enclave.relay --attestation /external/attestation.json \
 
 The registry id is taken from the captured binding and must match the image's reviewed registry. Mainnet requires its own reviewed mainnet image, registry and explicit network selection. Read back the key and its lease after registration, then use T3's Gate synchronization path. Fetch the worker's later cached chain-timed quote through the same authenticated route and relay it before lease expiry. A restart generates a new key and token requiring a new private capture, registration and Gate sync. No paid model call is required by T2.
 
-## Validation
+## Earlier validation
 
 All 113 lane tests passed together under WSL Ubuntu 24.04 and Docker in the exact final image's Python 3.12.10 runtime, with the source mounted read only and external networking disabled. There were zero failures and zero skips. The modules contain 6 build tests, 12 Unix socket tests, 18 label tests, 20 measurement tests, 13 relay tests and 44 signer, service and HTTP tests. Fix round 1 adds 32 tests to the original 81. The shared relevant vectors include all three report bindings, both measurement digests, all 66 TD attribute cases, all six quote-prefix cases and both registration tuple encodings. The 47 reference tests in the compatibility run separately reproduce every frozen vector. Tests also exercise retained upstream and NEAR AI event logs. The measurement CLI is invoked twice on the same input and its bytes match; duplicate JSON members are refused.
 
@@ -214,6 +216,68 @@ docker run --rm --network none --read-only \
 The standard library supports conditional method and class skips before their setup runs. This was checked against the installed Python 3.12.10 source and both official CI version documents: https://docs.python.org/3.11/library/unittest.html#skipping-tests-and-expected-failures and https://docs.python.org/3.12/library/unittest.html#skipping-tests-and-expected-failures. These are the only new external API facts needed for this test change.
 
 The frozen spec, vectors, runtime source, build record and all protected files remain unchanged. The owner has no command or paid action to run for this fix. The full repository suite remains with the orchestrator. Existing live CVM and registration work above remains deferred; this round adds no live step. No commit, push, deployment, PR, remote change, tag mutation, transaction, owner key access or paid model call occurred.
+
+## Fix round 3
+
+The rebase left three stale source pins in `enclave/build-record.json`: `gate/agent.py`, `gate/rules.py` and `gate/verdict.py`. The existing build test reproduced the first mismatch before regeneration. Their current SHA256 prefixes are `3959295f1082`, `8a10d4ccef53` and `fbd6120d04f4`, respectively. All 26 source hashes were regenerated from the current tree, and the independent build tooling verified every blob and descriptor from both new OCI archives before updating the record. No runtime or test source changed.
+
+Both builds used the unchanged Dockerfile, lockfile and fixed epoch. The frozen context hash prefix is `affb13a048bf` and OCI index byte hash prefix is `82e527393d12`. The current manifest, config, compose hash and exact retained artifact paths are in Build and compose above and `enclave/BUILD.md`. The record includes the example repository as `app_compose_image` and its exact generated bytes' hash as `app_compose_sha256`. This manifest is for local review. It does not name a published repository or replace the required real CVM measurement.
+
+The enclave image uses Python 3.12.10, PyNaCl 1.6.2, cffi 2.0.0 and pycparser 3.0. All 113 enclave tests passed with zero skips and no external network. Plain Windows Python 3.12.10 has no PyNaCl or AF_UNIX support: 113 methods were discovered, 64 passed and 49 methods skipped, with zero failures or errors. The raw summary is `OK (skipped=72)`, comprising 40 PyNaCl skips and 32 Unix socket skip records across nine methods. These are the existing optional dependency and platform skips.
+
+| Final check | Rebuilt enclave image with PyNaCl | Windows host without PyNaCl |
+|---|---|---|
+| Six enclave modules | 113 passed, 0 skipped | 113 methods, 64 passed, 49 methods skipped; 72 skip records |
+| `tests/test_spec.py` | 17 passed | 17 passed |
+| `tests/test_citations.py` | 11 passed | 11 passed |
+| Total distinct requested methods | 141 passed, 0 skipped | 141 methods, 92 passed, 49 methods skipped |
+| `python scripts/check_hygiene.py --all` | Run on host | Exit 0 |
+| `python scripts/check_citations.py` | Exit 0 | Exit 0 |
+
+All final runs have zero failures and errors. The initial one test mismatch reproduced before regeneration; all six build tests then passed separately on both platforms before the complete enclave runs. The unchanged runtime smoke verified the baked configuration and all 25 copied image input hashes. The earlier spec index failure does not recur on this rebased tree. The earlier broader compatibility suite was not repeated. The frozen spec, vectors, all protected files and submission tag remain unchanged. Whitespace checks pass.
+
+Host commands use TEMP and TMP at `C:\t\t2f3`. The image uses the short ephemeral `/tmp` for TEMP, TMP and TMPDIR. From the repository root on Windows:
+
+```powershell
+$env:TEMP = 'C:\t\t2f3'
+$env:TMP = 'C:\t\t2f3'
+python -m unittest discover -s tests -p 'test_enclave_*.py' -v
+python -m unittest tests.test_spec tests.test_citations -v
+python scripts/check_hygiene.py --all
+python scripts/check_citations.py
+git diff --check
+```
+
+From the repository root in WSL, as a user with access to the local Docker daemon:
+
+```sh
+docker run --rm --network none --read-only \
+  --tmpfs /tmp:rw,noexec,nosuid,nodev,size=64m,mode=1777 \
+  --cap-drop ALL --security-opt no-new-privileges --ulimit core=0 \
+  --mount "type=bind,src=$PWD,dst=/work,readonly" --workdir /work \
+  --env TEMP=/tmp --env TMP=/tmp --env TMPDIR=/tmp \
+  --entrypoint python siyab-t2f3:final-20261122 -E -s -B \
+  -m unittest discover -s tests -p 'test_enclave_*.py' -v
+docker run --rm --network none --read-only \
+  --tmpfs /tmp:rw,noexec,nosuid,nodev,size=64m,mode=1777 \
+  --cap-drop ALL --security-opt no-new-privileges --ulimit core=0 \
+  --mount "type=bind,src=$PWD,dst=/work,readonly" --workdir /work \
+  --env TEMP=/tmp --env TMP=/tmp --env TMPDIR=/tmp \
+  --entrypoint python siyab-t2f3:final-20261122 -E -s -B \
+  -m unittest tests.test_spec tests.test_citations -v
+```
+
+This round changes only `enclave/build-record.json`, `enclave/BUILD.md` and this report. The owner has no paid action, transaction or command to run for this regeneration. The full suite and independent review remain with the orchestrator. Actual Phala registers, quote acceptance and socket permissions remain unverified because no owner CVM was used; the separately controlled commands in Owner sequence remain the required path before any deployment or registration. No new fixture, prefix table row or `.gitattributes` entry is needed.
+
+The build facts used again this round were checked against these primary sources: the official Buildx v0.39.1 checksums, the Docker container driver's pinned image and dedicated cache behavior, the OCI exporter and its timestamp rewrite option, and BuildKit v0.35.1's fixed epoch behavior. The binary matched the freshly fetched official checksum, both live builder inspections reported v0.35.1, and the local Docker daemon reported 29.1.3. Source URLs:
+
+https://github.com/docker/buildx/releases/download/v0.39.1/checksums.txt
+
+https://docs.docker.com/build/builders/drivers/docker-container/
+
+https://docs.docker.com/build/exporters/oci-docker/
+
+https://github.com/moby/buildkit/blob/v0.35.1/docs/build-repro.md
 
 ## Files
 

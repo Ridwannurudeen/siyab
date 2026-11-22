@@ -62,7 +62,7 @@ PY
 
 Do not substitute a cached build for this comparison. Equal measurement ids from identical measurement inputs establish formula determinism. They do not establish image reproducibility. The lane's actual local build and test results are recorded in `docs/lanes/attest-enclave.md`.
 
-For the current fix round comparison, the same build invocation selected distinct private builders with `--builder siyab-t2f1-final-repro-one-20261122` and `--builder siyab-t2f1-final-repro-two-20261122`, respectively. Each was created with the `docker-container` driver, the BuildKit image digest recorded in `enclave/build-record.json`, `cpu-quota=200000`, `cpu-period=100000` and `restart-policy=no`. Its private `buildkitd.toml` set `[worker.oci]` and `max-parallelism = 2`. The Docker CLI used the blank configuration at `--config .codex/t2f1-final-repro/docker-config` and endpoint `unix:///var/run/docker.sock`. The frozen context, OCI archives and build logs are in `.codex/t2f1-final-repro`. The verified Buildx binary is linked from `.codex/enclave-build-tools`. Do not change or reuse another lane's builder.
+For the current fix round comparison, the same build invocation selected distinct private builders with `--builder siyab-t2f3-repro-one-20261122` and `--builder siyab-t2f3-repro-two-20261122`, respectively. Each was created with the `docker-container` driver, the BuildKit image digest recorded in `enclave/build-record.json`, `cpu-quota=200000`, `cpu-period=100000` and `restart-policy=no`. Its private `buildkitd.toml` set `[worker.oci]` and `max-parallelism = 2`. The Docker CLI used the blank configuration at `--config .codex/t2f3-repro/docker-config` and endpoint `unix:///var/run/docker.sock`. The frozen context, OCI archives and build logs are in `.codex/t2f3-repro`. The verified Buildx binary is linked from `.codex/enclave-build-tools`. Do not change or reuse another lane's builder.
 
 ## Measured manifest
 
@@ -86,23 +86,26 @@ First use an owner approved hello-world CVM to dump `Info` and `GetQuote`, confi
 
 ## Local proof on 22 November 2026
 
-Two final fix round 1 uncached builds completed sequentially in separate BuildKit containers with separate cache volumes. The final production source and Dockerfile were unchanged during both builds. Both consumed the same frozen 26 file USTAR context, fixed build arguments, Buildx v0.39.1 and the digest pinned amd64 BuildKit v0.35.1 image. The previously installed project local Buildx binary was rechecked against its recorded official release SHA256. A new blank project local Docker configuration selected the local Unix Docker daemon. Neither the user's Docker configuration nor any existing builder was changed. Each builder had a two CPU quota and worker parallelism two.
+Two final fix round 3 uncached builds completed sequentially in separate BuildKit containers with separate cache volumes after the rebase onto `6dc9bc89e`. The current production source and Dockerfile were unchanged during both builds. Both consumed the same frozen 26 file USTAR context, fixed build arguments, Buildx v0.39.1 and the digest pinned amd64 BuildKit v0.35.1 image. The previously installed project local Buildx binary was rechecked against a fresh copy of its official release SHA256. A new blank project local Docker configuration selected the local Unix Docker daemon. Neither the user's Docker configuration nor any existing builder was changed. Each builder had a two CPU quota and worker parallelism two.
 
-Both OCI index byte hashes, image manifests, configs and all 12 layer descriptors matched. All 14 blobs in each archive were independently hashed, matched their descriptors and sizes, and accounted for by the index and manifest. Both produced manifest prefix `87e39107870e` and config prefix `1a74ac7dd56a`. All 26 source hashes were checked again after both builds. The full public digests, input file hashes, build settings and tool versions are in `enclave/build-record.json`. The record proves these inputs built identically twice in this local environment. It does not prove another compiler or future source revision produces the same image. The build test checks that its recorded input hashes still match the source tree.
+Both OCI index byte hashes, image manifests, configs and all 12 layer descriptors matched. All 14 blobs in each archive were independently hashed, matched their descriptors and sizes, and accounted for by the index and manifest. Both produced manifest prefix `d8e2b00502ec` and config prefix `c696663d54de`. All 26 source hashes were checked again after both builds. The refreshed source pins include `gate/agent.py`, `gate/rules.py` and `gate/verdict.py`; no source file was edited. The context hash prefix is `affb13a048bf`. The full public digests, input file hashes, build settings and tool versions are in `enclave/build-record.json`. The record proves these inputs built identically twice in this local environment. It does not prove another compiler or future source revision produces the same image. The build test checks that its recorded input hashes still match the source tree.
 
-The exact OCI image loaded into the local Docker daemon as `siyab-t2f1:final-20261122`. An offline runtime smoke checked its uid and gid, baked configuration, dependency imports, missing shell and SSH executables, missing relay and refusal of a testnet registry in a mainnet build. It also verified the final one hour refresh setting and all 25 copied input file hashes inside the image. The six build tests passed on Windows with TEMP and TMP set to `C:\t\t2f1`, and again in this exact image with a read only source mount and ephemeral `/tmp`. The broader lane and compatibility results are recorded separately in `docs/lanes/attest-enclave.md`. The whole source mount is for tests that import repository test helpers. The generated CVM manifest has no such mount.
+The compose generator ran twice with `registry.example/siyab` and that manifest digest. Both outputs were the same 826 UTF-8 bytes with LF endings, retained as `.codex/t2f3-repro/app-compose.json`. Their SHA256 prefix is `79ec85c392ae`; the full image reference and digest are recorded as `app_compose_image` and `app_compose_sha256` in `enclave/build-record.json`. This is a local review manifest using an example repository, not a published image or approved deployment measurement. Selecting another repository changes the compose bytes. A full measurement id still requires the actual guest registers and key provider digest, so none is invented from the image alone.
+
+The exact OCI image loaded into the local Docker daemon as `siyab-t2f3:final-20261122`. An offline runtime smoke checked its uid and gid, baked configuration, dependency imports, missing shell and SSH executables, missing relay and refusal of a testnet registry in a mainnet build. It also verified the final one hour refresh setting and all 25 copied input file hashes inside the image. The six build tests passed on Windows with TEMP and TMP set to `C:\t\t2f3`, and again in this exact image with a read only source mount and ephemeral `/tmp`. The broader lane and compatibility results are recorded separately in `docs/lanes/attest-enclave.md`. The whole source mount is for tests that import repository test helpers. The generated CVM manifest has no such mount.
 
 ```sh
 docker run --rm --network none --read-only \
   --tmpfs /tmp:rw,noexec,nosuid,nodev,size=64m,mode=1777 \
   --cap-drop ALL --security-opt no-new-privileges --ulimit core=0 \
   --mount "type=bind,src=$PWD,dst=/work,readonly" --workdir /work \
-  --entrypoint python siyab-t2f1:final-20261122 -E -s -B -m unittest \
+  --env TEMP=/tmp --env TMP=/tmp --env TMPDIR=/tmp \
+  --entrypoint python siyab-t2f3:final-20261122 -E -s -B -m unittest \
   tests.test_enclave_build tests.test_enclave_dstack tests.test_enclave_labels \
   tests.test_enclave_measure tests.test_enclave_relay tests.test_enclave_service -v
 ```
 
-To reload the recorded image, use `docker load --input .codex/t2f1-final-repro/one.tar` and then tag its returned image id as `siyab-t2f1:final-20261122`. The returned id matches the manifest digest in `enclave/build-record.json`. No build test or runtime smoke started the real guest service or contacted a public provider.
+To reload the recorded image, use `docker load --input .codex/t2f3-repro/one.tar` and then tag its returned image id as `siyab-t2f3:final-20261122`. The returned id matches the manifest digest in `enclave/build-record.json`. No build test or runtime smoke started the real guest service or contacted a public provider.
 
 Both private fix round builders and their cache volumes were removed after verification. The unique local test image remains for the orchestrator's Linux lane and socket tests. The reviewed OCI archives, frozen context, logs and verified project local Buildx binary remain under ignored `.codex` paths for independent inspection and reload. Prior archives, shared base images and existing Docker resources were preserved.
 
@@ -150,6 +153,6 @@ https://docs.docker.com/build/exporters/oci-docker/
 
 https://registry-1.docker.io/v2/moby/buildkit/manifests/v0.35.1
 
-https://github.com/moby/buildkit/blob/v0.20.2/docs/build-repro.md
+https://github.com/moby/buildkit/blob/v0.35.1/docs/build-repro.md
 
 https://docs.docker.com/build/ci/github-actions/reproducible-builds/
