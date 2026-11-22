@@ -5,7 +5,7 @@ fn hex_encode(bytes: &[u8]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
-fn hex_decode(value: &str, expected: usize) -> Result<Vec<u8>, &'static str> {
+pub(crate) fn hex_decode(value: &str, expected: usize) -> Result<Vec<u8>, &'static str> {
     if value.len() != expected * 2
         || !value
             .bytes()
@@ -50,16 +50,7 @@ pub fn canonical_message(
     .into_bytes()
 }
 
-pub fn verify(
-    gate: &AccountId,
-    agent_pk: &[u8; 32],
-    request: &TransferRequest,
-    verdict: &Verdict,
-    current_key: &[u8; 32],
-    previous_key: Option<&([u8; 32], u64)>,
-    now_ms: u64,
-    max_ttl_ms: u64,
-) -> Result<(), &'static str> {
+fn check_fields(verdict: &Verdict, now_ms: u64, max_ttl_ms: u64) -> Result<(), &'static str> {
     if verdict.literal != "ALLOW" {
         return Err("not_allow");
     }
@@ -72,6 +63,34 @@ pub fn verify(
     if verdict.expires_ms.saturating_sub(verdict.issued_ms) > max_ttl_ms {
         return Err("ttl_too_long");
     }
+    Ok(())
+}
+
+fn signed_payload(
+    gate: &AccountId,
+    agent_pk: &[u8; 32],
+    request: &TransferRequest,
+    verdict: &Verdict,
+) -> Result<([u8; 64], [u8; 32]), &'static str> {
+    hex_decode(&verdict.verdict_id, 16)?;
+    hex_decode(&verdict.evidence_hash, 32)?;
+    let signature = hex_decode(&verdict.signature, 64)?;
+    let signature: [u8; 64] = signature.try_into().map_err(|_| "bad_request")?;
+    let message = canonical_message(gate, agent_pk, request, verdict);
+    Ok((signature, env::sha256_array(&message)))
+}
+
+pub fn verify(
+    gate: &AccountId,
+    agent_pk: &[u8; 32],
+    request: &TransferRequest,
+    verdict: &Verdict,
+    current_key: &[u8; 32],
+    previous_key: Option<&([u8; 32], u64)>,
+    now_ms: u64,
+    max_ttl_ms: u64,
+) -> Result<(), &'static str> {
+    check_fields(verdict, now_ms, max_ttl_ms)?;
     let key = match verdict.key_id.as_str() {
         "cur" => current_key,
         "prev" => {
@@ -85,16 +104,35 @@ pub fn verify(
         }
         _ => return Err("bad_key_id"),
     };
-    hex_decode(&verdict.verdict_id, 16)?;
-    hex_decode(&verdict.evidence_hash, 32)?;
-    let signature = hex_decode(&verdict.signature, 64)?;
-    let signature: [u8; 64] = signature.try_into().map_err(|_| "bad_request")?;
-    let message = canonical_message(gate, agent_pk, request, verdict);
-    let digest = env::sha256_array(&message);
+    let (signature, digest) = signed_payload(gate, agent_pk, request, verdict)?;
     if !env::ed25519_verify(&signature, &digest, key) {
         return Err("bad_signature");
     }
     Ok(())
+}
+
+pub fn verify_any(
+    gate: &AccountId,
+    agent_pk: &[u8; 32],
+    request: &TransferRequest,
+    verdict: &Verdict,
+    keys: &[[u8; 32]],
+    now_ms: u64,
+    max_ttl_ms: u64,
+) -> Result<[u8; 32], &'static str> {
+    check_fields(verdict, now_ms, max_ttl_ms)?;
+    if verdict.key_id != "cur" {
+        return Err("bad_key_id");
+    }
+    if keys.is_empty() {
+        return Err("no_attested_verifier");
+    }
+    let (signature, digest) = signed_payload(gate, agent_pk, request, verdict)?;
+    keys.iter()
+        .take(4)
+        .find(|key| env::ed25519_verify(&signature, &digest, key))
+        .copied()
+        .ok_or("bad_signature")
 }
 
 #[cfg(test)]
@@ -304,6 +342,54 @@ mod tests {
                 &gate, &agent_pk, &request, &verdict, &key, None, now_ms, 300_000,
             ),
             Ok(())
+        );
+    }
+
+    #[test]
+    fn attested_signature_tries_one_two_and_four_keys() {
+        let now_ms = 1_700_000_100_000;
+        let (gate, agent_pk, request, verdict, key) = signed_test_case(now_ms);
+        for count in [1, 2, 4] {
+            let mut keys = vec![[0; 32]; count];
+            keys[count - 1] = key;
+            assert_eq!(
+                verify_any(&gate, &agent_pk, &request, &verdict, &keys, now_ms, 300_000),
+                Ok(key)
+            );
+        }
+    }
+
+    #[test]
+    fn attested_signature_refuses_previous_key_id() {
+        let now_ms = 1_700_000_100_000;
+        let (gate, agent_pk, request, mut verdict, key) = signed_test_case(now_ms);
+        verdict.key_id = "prev".to_owned();
+        assert_eq!(
+            verify_any(
+                &gate,
+                &agent_pk,
+                &request,
+                &verdict,
+                &[key],
+                now_ms,
+                300_000
+            ),
+            Err("bad_key_id")
+        );
+    }
+
+    #[test]
+    fn attested_signature_never_tries_a_fifth_key() {
+        let now_ms = 1_700_000_100_000;
+        let (gate, agent_pk, request, verdict, key) = signed_test_case(now_ms);
+        let keys = [[0; 32], [0; 32], [0; 32], [0; 32], key];
+        assert_eq!(
+            verify_any(&gate, &agent_pk, &request, &verdict, &keys, now_ms, 300_000),
+            Err("bad_signature")
+        );
+        assert_eq!(
+            verify_any(&gate, &agent_pk, &request, &verdict, &[], now_ms, 300_000),
+            Err("no_attested_verifier")
         );
     }
 }

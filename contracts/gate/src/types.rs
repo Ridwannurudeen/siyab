@@ -149,3 +149,71 @@ impl From<Agent> for AgentView {
         }
     }
 }
+
+#[near(serializers = [json, borsh])]
+#[serde(deny_unknown_fields)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Measurement {
+    pub mrtd: String,
+    pub rtmr0: String,
+    pub rtmr1: String,
+    pub rtmr2: String,
+    pub key_provider_digest: String,
+    pub compose_hash: String,
+}
+
+#[near(serializers = [json, borsh])]
+#[serde(deny_unknown_fields)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AttestedKeyView {
+    pub public_key: String,
+    pub measurement_id: String,
+    pub measurement: Measurement,
+    pub ppid: String,
+    pub aux: String,
+    pub tcb_status: String,
+    pub advisory_ids: Vec<String>,
+    pub issued_at_ms: u64,
+    pub registered_ms: u64,
+    pub expires_ms: u64,
+    pub collateral_expires_ms: u64,
+}
+
+#[near(serializers = [json])]
+#[serde(deny_unknown_fields)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AttestationRegistryConfig {
+    pub verifier_account_id: AccountId,
+    pub signer_account_id: AccountId,
+    pub ed25519_domain_id: u64,
+    pub max_lease_ms: u64,
+    pub vote_recipients: Vec<AccountId>,
+}
+
+#[near(serializers = [json, borsh])]
+#[derive(Clone)]
+pub struct AttestedMode {
+    pub registry_id: AccountId,
+    pub measurement_timelock_ms: u64,
+}
+
+#[near(serializers = [json, borsh])]
+#[derive(Clone)]
+pub struct ApprovedMeasurement {
+    pub measurement_id: String,
+    pub label: String,
+    pub active_from_ms: u64,
+}
+
+#[near(serializers = [json, borsh])]
+#[derive(Clone)]
+pub struct PlatformChange {
+    pub platforms: Vec<String>,
+    pub active_from_ms: u64,
+}
+
+#[near(serializers = [borsh])]
+pub struct PlatformPolicy {
+    pub platforms: Vec<String>,
+    pub pending: Option<PlatformChange>,
+}

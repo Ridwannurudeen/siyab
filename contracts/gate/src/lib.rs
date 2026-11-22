@@ -1,3 +1,4 @@
+mod attested;
 mod events;
 mod policy;
 mod types;
@@ -13,7 +14,7 @@ use near_sdk::{
     AccountId, CurveType, Gas, NearToken, PanicOnDefault, Promise, PromiseError, PublicKey,
 };
 use types::{Agent, Asset, Pending, TransferRequest, Verdict};
-use verdict::verify;
+use verdict::{verify, verify_any};
 
 // FT receipt burned 1719818926064 gas, twice stays below the 5 Tgas floor.
 const GAS_FT_TRANSFER: Gas = Gas::from_tgas(5);
@@ -26,6 +27,11 @@ const USED_VERDICT_QUEUE_CURSOR_PREFIX: &[u8] = b"uq:c";
 const USED_VERDICT_QUEUE_ENTRY_PREFIX: &[u8] = b"uq:e";
 const CAP_GENERATION_PREFIX: &[u8] = b"cg";
 const PENDING_GENERATION_PREFIX: &[u8] = b"pg";
+const ATTESTED_MODE_PREFIX: &[u8] = b"at:m";
+const ATTESTED_MEASUREMENTS_PREFIX: &[u8] = b"at:s";
+const ATTESTED_KEYS_PREFIX: &[u8] = b"at:k";
+const ATTESTED_PLATFORMS_PREFIX: &[u8] = b"at:p";
+const ATTESTED_DENIED_KEYS_PREFIX: &[u8] = b"at:d";
 const USED_VERDICT_QUEUE_HEAD: u8 = 0;
 const USED_VERDICT_QUEUE_TAIL: u8 = 1;
 const USED_VERDICT_PRUNE_LIMIT: u8 = 4;
@@ -84,7 +90,7 @@ fn prune_expired_used_verdicts(gate: &mut Gate, now_ms: u64) -> u8 {
         }
         let (queued_expires_ms, verdict_id) =
             entries.remove(&head).expect("used verdict queue entry");
-        // Replay protection holds only because verify refuses expires_ms <= now_ms (verdict.rs:66)
+        // Replay protection holds only because verification refuses expires_ms <= now_ms
         // before request_transfer checks used IDs. Keep this predicate on expiry, never age.
         if gate.used_verdicts.get(&verdict_id).copied() == Some(queued_expires_ms) {
             gate.used_verdicts.remove(&verdict_id);
@@ -193,18 +199,38 @@ impl Gate {
         };
         let verdict = verdict.unwrap_or_else(|| env::panic_str("REFUSED:no_verdict"));
         near_sdk::require!(verdict.literal == "ALLOW", "REFUSED:not_allow");
-        if let Err(code) = verify(
-            &env::current_account_id(),
-            &agent_key_bytes(&agent_pk),
-            &request,
-            &verdict,
-            &self.verifier_current,
-            self.verifier_previous.as_ref(),
-            now_ms,
-            self.max_ttl_ms,
-        ) {
-            env::panic_str(&format!("REFUSED:{code}"));
-        }
+        let verifying_key = if attested::mode().is_some() {
+            verify_any(
+                &env::current_account_id(),
+                &agent_key_bytes(&agent_pk),
+                &request,
+                &verdict,
+                &attested::usable_keys(now_ms),
+                now_ms,
+                self.max_ttl_ms,
+            )
+            .unwrap_or_else(|code| env::panic_str(&format!("REFUSED:{code}")))
+        } else {
+            verify(
+                &env::current_account_id(),
+                &agent_key_bytes(&agent_pk),
+                &request,
+                &verdict,
+                &self.verifier_current,
+                self.verifier_previous.as_ref(),
+                now_ms,
+                self.max_ttl_ms,
+            )
+            .unwrap_or_else(|code| env::panic_str(&format!("REFUSED:{code}")));
+            if verdict.key_id == "cur" {
+                self.verifier_current
+            } else {
+                self.verifier_previous
+                    .as_ref()
+                    .expect("verified previous key")
+                    .0
+            }
+        };
         near_sdk::require!(
             !self.used_verdicts.contains_key(&verdict.verdict_id),
             "REFUSED:verdict_used"
@@ -299,7 +325,8 @@ impl Gate {
                 "receiver": request.receiver_id,
                 "amount": request.amount.0.to_string(),
                 "verdict_id": verdict.verdict_id,
-                "evidence_hash": verdict.evidence_hash
+                "evidence_hash": verdict.evidence_hash,
+                "verifier_key": lower_hex(&verifying_key)
             }),
         );
         let transfer = match asset {

@@ -31,6 +31,11 @@ Each storage prefix a contract writes is either initialized in `new` or defined 
 | Gate | `uq:e` | used verdict expiry queue entries, from source version `0.2.0` |
 | Gate | `cg` | agent cap generations, from source version `0.2.1` |
 | Gate | `pg` | pending request cap generations, from source version `0.2.1` |
+| Gate | `at:m` | one `AttestedMode` value containing the pinned registry id and measurement timelock, from 0.3.0 |
+| Gate | `at:s` | one vector of `ApprovedMeasurement` values containing measurement id, label and activation time, from 0.3.0 |
+| Gate | `at:k` | one vector of at most four complete `AttestedKeyView` values, from 0.3.0 |
+| Gate | `at:p` | one `PlatformPolicy` value containing current pins and an optional timelocked replacement, from 0.3.0 |
+| Gate | `at:d` | one vector of permanently denied raw verifier public keys, from 0.3.0 |
 | Registry | `r` | `latest` |
 | Registry | `l` | `labels` |
 | Reports | `r` | `reports` |
