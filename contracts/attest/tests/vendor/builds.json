@@ -1,0 +1,107 @@
+{
+  "test_only": true,
+  "warning": "Pinned-clock verification never establishes freshness. These binaries must never be deployed on a public network.",
+  "repository": "https://github.com/near/mpc",
+  "tag": "3.18.0",
+  "revision": "e691bdb98d68dcf74653da58d043453a6318765f",
+  "license": "MIT",
+  "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+  "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+  "c_compiler": "Ubuntu clang version 18.1.3 (1ubuntu1)",
+  "target": "wasm32-unknown-unknown",
+  "cargo_target_dir": "/home/gudman/target/siyab-attest-t0-upstream",
+  "profile": {
+    "name": "release-contract",
+    "inherits": "release",
+    "lto": "fat",
+    "codegen-units": 1,
+    "strip": true,
+    "panic": "abort",
+    "opt-level": "z"
+  },
+  "default_features": false,
+  "block_clock": false,
+  "dcap_qvl_version": "0.7.0",
+  "near_sdk_version": "5.30.0",
+  "ring_version": "0.17.14",
+  "upstream_lock_sha256": "1d7c40e909286b6d6097621ad2212fb5d4afd408ba16e0f2c2c3d75476e1a108",
+  "minimal_lock_sha256": "14ead88eff77f94bb05df5dc763d8267801422d3e7d31d0c691c8ff301c9adba",
+  "minimal_lock_package_count": 329,
+  "all_minimal_lock_package_identities_match_upstream": true,
+  "workspace_isolation": "The original workspace build started fetching unrelated nearcore tag 2.14.0 during resolution and was stopped. Only tee-verifier, tee-verifier-conversions and tee-verifier-interface were copied into an isolated scratch workspace. All src files are unchanged. Their dev-dependency sections were removed only in scratch. Inherited direct dependency versions were pinned to upstream Cargo.lock. The upstream release-contract profile was retained exactly. The final minimal lock contains only upstream package identities.",
+  "build_command": "CARGO_TARGET_DIR=/home/gudman/target/siyab-attest-t0-upstream CC_wasm32_unknown_unknown=clang-18 TEE_VERIFIER_PINNED_NOW_SECONDS=<pin> cargo +1.99.1 build --locked --offline -p tee-verifier --no-default-features --target wasm32-unknown-unknown --profile release-contract -j 2",
+  "first_build_note": "The first isolated build omitted --locked and --offline to prune the copied full workspace lock and fetch missing crates. Comparing every resulting name, version, source and checksum to the upstream lock found no new or changed package identity. The second build succeeded with --locked --offline.",
+  "sources": [
+    {
+      "path": "crates/tee-verifier/src/lib.rs",
+      "sha256": "2a34d40bab49025bb975865820bd97f44008300dc504a8ff42e59049f556e2f9",
+      "source": "https://github.com/near/mpc/blob/e691bdb98d68dcf74653da58d043453a6318765f/crates/tee-verifier/src/lib.rs"
+    },
+    {
+      "path": "crates/tee-verifier-conversions/src/lib.rs",
+      "sha256": "8ec8a38dca81030adbb06c858542863b38e63a9b65c4f8df305e60cec6628506",
+      "source": "https://github.com/near/mpc/blob/e691bdb98d68dcf74653da58d043453a6318765f/crates/tee-verifier-conversions/src/lib.rs"
+    },
+    {
+      "path": "crates/tee-verifier-interface/src/lib.rs",
+      "sha256": "8eb7c5fc77261a46f4c53387b3b0db7f0070f0f94be05b2b72dc24cc2b6891fa",
+      "source": "https://github.com/near/mpc/blob/e691bdb98d68dcf74653da58d043453a6318765f/crates/tee-verifier-interface/src/lib.rs"
+    }
+  ],
+  "artifacts": [
+    {
+      "file": "tee-verifier-TEST-ONLY-mpc.wasm",
+      "test_only": true,
+      "pinned_now_seconds": 1786622400,
+      "bytes": 499006,
+      "sha256": "756185bb56ffad919d121177ee84e07460414badd1d9781bf2d0f096048adcdb"
+    },
+    {
+      "file": "tee-verifier-TEST-ONLY-nearai.wasm",
+      "test_only": true,
+      "pinned_now_seconds": 1795274641,
+      "bytes": 499006,
+      "sha256": "bc303e8e8a5043e7fdc43c605b956769a43e24ec8a1b72c45f72c170ec5208fa"
+    }
+  ],
+  "recorded_collateral_expiry": {
+    "mpc_earliest_expiration_unix": 1789171031,
+    "mpc_source": "https://github.com/near/mpc/blob/3.18.0/crates/tee-verifier/tests/verify_quote.rs",
+    "nearai_earliest_expiration_unix": 1797862926,
+    "nearai_earliest_expiration_utc": "2026-12-21T14:22:06Z",
+    "nearai_expiration_basis": "Minimum parsed nextUpdate or notAfter across retained CRLs, TCB Info, QE Identity and all quote-embedded certificate chains. This parsing is not a cryptographic verification result.",
+    "nearai_local_files": [
+      "fixtures/nearai/intel-collateral-70a06d070000.json",
+      "fixtures/nearai/intel-collateral-90c06f000000.json"
+    ],
+    "parser": "cryptography 49.0.0"
+  },
+  "upstream_archive": {
+    "url": "https://codeload.github.com/near/mpc/tar.gz/e691bdb98d68dcf74653da58d043453a6318765f",
+    "bytes": 20361027,
+    "sha256": "076b9be951664b561f5af513a6696d9508cd377b44a43eeafa4912d8ef77cd39"
+  },
+  "minimal_workspace_manifest": "TEST-ONLY-Cargo.toml",
+  "minimal_workspace_manifest_sha256": "8053176a1c39fc715d919401508cd144b9013633d73c1651a5b825635a4915b4",
+  "minimal_workspace_lock": "TEST-ONLY-Cargo.lock",
+  "rebuild_script": "contracts/attest/tests/build_vendor.py",
+  "rebuild_note": "The builder verifies the source archive, minimal workspace manifest and lock SHA256 values. It writes the two test-only WASMs only after both built hashes match this record. Compiler or Cargo registry path differences require owner independent review before updating this record. This is not a reproduction of the deployed mainnet release artifact.",
+  "validation": {
+    "locked_offline_rebuilds": 2,
+    "locked_offline_rebuilds_match_retained_bytes": true,
+    "unchanged_source_file_comparisons": 3,
+    "exact_upstream_asset_comparisons": 7,
+    "quote_embedded_certificate_chains_parsed": 14,
+    "builder_successful_runs_with_retained_lock": 2,
+    "builder_guard_tests": 6,
+    "builder_guards": [
+      "external target directory",
+      "source archive digest",
+      "workspace manifest digest",
+      "workspace lock digest",
+      "first artifact mismatch preserves both baselines",
+      "second artifact mismatch preserves both baselines"
+    ]
+  },
+  "rebuild_script_sha256": "85245b96b64f5fc2e692e06838d08a37026f42ad8feebcd43e38905a517fbe61"
+}

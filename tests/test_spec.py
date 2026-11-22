@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SPEC = ROOT / "docs" / "spec"
 FIXTURES = ROOT / "fixtures"
 PAGES = ("label-assertion-v1.md", "evidence-v1.md", "verdict-v1.md", "registry-record-v1.md", "report-v1.md",
-         "snapshot-v1.md")
+         "snapshot-v1.md", "attest-v1.md")
 CITED_PATH = re.compile(r"`(fixtures/[^`\s]*)`")
 VERSION_LINE = re.compile(r"^Version: (\d+)( \(.+\))?$", re.MULTILINE)
 VIEW_KEYS = ["verdict", "evidence_hash", "observed_block", "recorded_ms", "verdict_id"]

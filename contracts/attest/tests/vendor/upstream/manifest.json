@@ -1,0 +1,53 @@
+{
+  "repository": "https://github.com/near/mpc",
+  "tag": "3.18.0",
+  "test_only": true,
+  "verification_time_unix": 1786622400,
+  "verification_time_source": "https://github.com/near/mpc/blob/3.18.0/crates/test-utils/src/attestation.rs",
+  "earliest_expiration_date": 1789171031,
+  "expiration_source": "https://github.com/near/mpc/blob/3.18.0/crates/tee-verifier/tests/verify_quote.rs",
+  "files": [
+    {
+      "file": "quote.json",
+      "bytes": 15705,
+      "sha256": "ef8c64cb3fdf117e1bcc4c7e3a4ab3164210550d399d1eba208ccd7e7442ea04",
+      "source": "https://github.com/near/mpc/blob/3.18.0/crates/test-utils/assets/quote.json"
+    },
+    {
+      "file": "public_data.json",
+      "bytes": 65508,
+      "sha256": "219b01f0f2d03018b3025568865cb4f75d5d6753637ce18eb5accd0dcd489066",
+      "source": "https://github.com/near/mpc/blob/3.18.0/crates/test-utils/assets/public_data.json"
+    },
+    {
+      "file": "collateral.json",
+      "bytes": 24238,
+      "sha256": "d55a2b84499b2794925596fadf3eaac557f006521cd6f6c27b368d1d1d6dbd68",
+      "source": "https://github.com/near/mpc/blob/3.18.0/crates/test-utils/assets/collateral.json"
+    },
+    {
+      "file": "tcb_info.json",
+      "bytes": 10903,
+      "sha256": "bfd44537f299d4b7a1521ae67a2b61bc8a2a5858990cfc5ec3d5c34784d5311f",
+      "source": "https://github.com/near/mpc/blob/3.18.0/crates/test-utils/assets/tcb_info.json"
+    },
+    {
+      "file": "app_compose.json",
+      "bytes": 1643,
+      "sha256": "2911e1f733466216dedb862d6d669e11256ee7a34ce4dbc66c4b807ba7a9c895",
+      "source": "https://github.com/near/mpc/blob/3.18.0/crates/test-utils/assets/app_compose.json"
+    },
+    {
+      "file": "verify_quote_args.borsh",
+      "bytes": 24178,
+      "sha256": "e7ef9c27b4ddecc5d2b5c85563c5fa5faef63aa8b4d64474b9972de8657f9c09",
+      "source": "https://github.com/near/mpc/blob/3.18.0/crates/tee-verifier/tests/fixtures/verify_quote_args.borsh"
+    },
+    {
+      "file": "LICENSE",
+      "bytes": 1074,
+      "sha256": "12d87999a87c1047b4898fc0a9ee2bcea97775e9435bb5265b93d83ac9628aed",
+      "source": "https://github.com/near/mpc/blob/3.18.0/LICENSE"
+    }
+  ]
+}

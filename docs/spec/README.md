@@ -10,6 +10,7 @@ These pages specify the byte formats Siyab writes and reads, so that a party out
 | [registry-record-v1.md](registry-record-v1.md) | the registry's verdict record, label record and their NEP-297 events | 1 (events `1.0.0`) |
 | [report-v1.md](report-v1.md) | a community report, its body hash, its exact deposit, its state changes and moderation refusals, its events and the `subject_summary` view | 1 (events `1.1.0`) |
 | [snapshot-v1.md](snapshot-v1.md) | a label snapshot: the current label assertions a scope selects, with the store's sha256 and a content hash, for offline use, and what a consumer may infer from it | 1 (format `label-snapshot`) |
+| [attest-v1.md](attest-v1.md) | an attested enclave key: TDX report data, measurement id, the registry's key record, and the NEP-413 vote intent | 1 |
 
 ## Versioning
 
@@ -33,6 +34,7 @@ As of this commit, every format listed above is version 1. A change to any byte-
 | [registry-record-v1.md](registry-record-v1.md) | `tests/test_spec.py::RegistryRecordTest.test_sample_allow_verifies`, `tests/test_spec.py::RegistryRecordTest.test_testnet_records_check_against_their_evidence` |
 | [report-v1.md](report-v1.md) | `tests/test_spec.py::ReportTest.test_body_vector_reproduces`, `tests/test_spec.py::ReportTest.test_enumerations_match_the_canonical_json` |
 | [snapshot-v1.md](snapshot-v1.md) | `tests/test_spec.py::SnapshotTest.test_vectors_reproduce`, `tests/test_spec.py::SnapshotTest.test_the_vector_store_copies_store_lines_and_marks_the_rest_synthetic`, `tests/test_spec.py::SnapshotTest.test_worked_example_is_vector_1` |
+| [attest-v1.md](attest-v1.md) | `tests/test_attest_vectors.py` (Python reference) and the unit tests in `contracts/attest/src/lib.rs` (Rust reference), both over `fixtures/attest/vectors.json` |
 
 ## Conformance
 
