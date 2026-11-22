@@ -1,6 +1,8 @@
 # Attestation
 
-Version: 1. Status: T0 interface freeze and synthetic byte vectors. This file does not assert that a Siyab attestation registry or vote signer has been deployed. The verifier spike and dated network observations are in `docs/lanes/attest-t0.md`. This spec supersedes the design's `register` and `sign_vote` signatures with the `register_key` and `submit_vote` interfaces below. It also supersedes the design's `vote_path` view: v1 has no such view method; derive the path by the voice scope formula below or read it from a successful `VoteSignatureView`.
+Version: 1
+
+Status: T0 interface freeze and synthetic byte vectors. This file does not assert that a Siyab attestation registry or vote signer has been deployed. The verifier spike and dated network observations are in `docs/lanes/attest-t0.md`. This spec supersedes the design's `register` and `sign_vote` signatures with the `register_key` and `submit_vote` interfaces below. It also supersedes the design's `vote_path` view: v1 has no such view method; derive the path by the voice scope formula below or read it from a successful `VoteSignatureView`.
 
 ## Encodings
 
