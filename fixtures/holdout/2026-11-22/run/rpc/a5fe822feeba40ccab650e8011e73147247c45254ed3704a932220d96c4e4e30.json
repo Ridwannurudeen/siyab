@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "one-click-stage.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "9JgXCtEesh5GrLPj7m3Vd1zZcZxBJiw2nJBmSJoN5VLN",
+      "block_height": 225687187,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 151527740000744,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:5J5tkaxyPoR3Q9S8LXfo5bWnXK5Z2bctJ4mB9gENh7co"
+        },
+        {
+          "access_key": {
+            "nonce": 151527733000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:EzTnkWNLj89wc7qJS6YW3D5sU3PFRBZ269fe4TYVRcNe"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:37:57Z"
+}

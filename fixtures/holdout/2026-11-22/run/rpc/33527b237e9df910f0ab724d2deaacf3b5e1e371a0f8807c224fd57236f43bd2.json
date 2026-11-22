@@ -1,0 +1,82 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "danang23643.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "J18vFrehmSCfM5wc9FiSsAxJkRcv4DD5UQhB6AYZYRgp",
+      "block_height": 225687707,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 39491761000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:UmT45d3GxYRurJNpfUzETs7iDXpaYcuBWySew7c6Xmj"
+        },
+        {
+          "access_key": {
+            "nonce": 39491772000018,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:7zF4H8fb18vfMtzUUzHnZ1gtBRHPfKgEahSg9FZ7i21A"
+        },
+        {
+          "access_key": {
+            "nonce": 47224334000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "learnclub.near"
+              }
+            }
+          },
+          "public_key": "ed25519:9tVV8wtVcmqrq2ws8a16dwW1CJekcFQfYbX6xEWVpGPZ"
+        },
+        {
+          "access_key": {
+            "nonce": 51152361000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "farm-nearcon.cheddar.near"
+              }
+            }
+          },
+          "public_key": "ed25519:AnCAYXHTSKnF1MVbR8jzGEnSY3qyqZS8e9nbLywPR4jG"
+        },
+        {
+          "access_key": {
+            "nonce": 46707023000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "skyward.near"
+              }
+            }
+          },
+          "public_key": "ed25519:CNjLGxsBno55wqmbgpEH2AMgtXSb2vV5xtvQ1FDF1zrF"
+        },
+        {
+          "access_key": {
+            "nonce": 114494598033220,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:EojQgpq4rqahNU2boEtgjH4CMEThdYwzZMGW4E9FEoa3"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:42:49Z"
+}

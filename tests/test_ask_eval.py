@@ -5,10 +5,13 @@ import json
 import os
 import socket
 import tempfile
+import threading
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest import mock
 
+from intel import __main__ as intel_main
 from scripts import ask_eval
 from tests.test_ask import SERVICE_VALUES, ServiceCase
 
@@ -18,7 +21,7 @@ ROOT = Path(__file__).resolve().parent.parent
 def current_row(index=0):
     sample = ROOT / "fixtures/ask/replay-sample.jsonl"
     row = json.loads(sample.read_text(encoding="utf-8").splitlines()[index])
-    row.update(prompt_version=ask_eval.ask.PROMPT_VERSION, schema_version=ask_eval.ask.SCHEMA_VERSION,
+    row.update(model=ask_eval.ask.NEARAI_DEFAULT_MODEL, prompt_version=ask_eval.ask.PROMPT_VERSION, schema_version=ask_eval.ask.SCHEMA_VERSION,
                text=json.dumps({"answerable": True, "points": [{"item_id": "subject", "aspect": "read"}], "gaps": []}))
     return row
 
@@ -44,6 +47,32 @@ class AskEvalTests(unittest.TestCase):
         items = [i for i in self.items if i["item"].startswith("unknown:")]
         self.assertEqual({i["item"].split(":")[1] for i in items}, {p.stem for p in files})
         self.assertTrue(all(i["projection"]["outcome"] == "ASK" for i in items))
+
+    def test_document_projection_preserves_young_version_three_confirmation(self):
+        source = next(path for path in sorted((ROOT / "fixtures/receivers/top/judgements").glob("*.json"))
+                      if {check["id"] for check in json.loads(path.read_text(encoding="utf-8"))["checks"]
+                          if check["status"] == "signal"} == {"account_age"})
+        ranking = json.loads((ROOT / "fixtures/receivers/top.json").read_text(encoding="utf-8"))
+        ranking["subjects"] = [entry for entry in ranking["subjects"] if entry["subject"] == source.stem]
+        store = ask_eval.labels.load()
+        with tempfile.TemporaryDirectory() as tmp:
+            judgement = intel_main.judge_receivers(ranking, store, tmp, pin_unknown_age=True, rules_version=3)[0]
+            path = Path(tmp) / "judgements" / (judgement["subject"] + ".json")
+            item = ask_eval.from_document(path, "judgement", store)
+        self.assertEqual(judgement["verdict"], "UNKNOWN")
+        self.assertEqual(item["verdict"]["outcome"], "ASK")
+        self.assertEqual(item["projection"]["outcome"], "ASK")
+        age = next(check for check in judgement["checks"] if check["id"] == "account_age")
+        self.assertEqual(age["status"], "signal")
+        self.assertIn({"name": "account_age", "status": "signal", "detail": age["detail"]},
+                      item["verdict"]["checks"])
+        projected_age = next(check for check in item["projection"]["items"] if check["id"] == "check.account_age")
+        self.assertEqual(projected_age["status"], "signal")
+        reason = (f'{judgement["subject"]} is younger than 7 days; no other signal was found '
+                  "among the checks that ran. The owner should confirm the receiver before paying.")
+        self.assertEqual(judgement["reasons"][0], reason)
+        self.assertEqual(item["verdict"]["reasons"][0], reason)
+        self.assertIn({"id": "reason.1", "text": reason}, item["projection"]["items"])
 
     def test_zero_check_evidence_document_answers_evidence_empty(self):
         path = next(p for p in sorted((ROOT / "fixtures/evidence").glob("*.json"))
@@ -255,6 +284,42 @@ class FailureCapTests(ServiceCase):
 
 
 class RecordTests(unittest.TestCase):
+    def test_model_slash_is_sanitized_in_record_filename(self):
+        item = ask_eval.corpus()[0]
+        client = mock.Mock()
+        client.create.return_value = {"text": None, "stop_reason": "refusal", "usage": {
+            "input_tokens": 0, "output_tokens": 0, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0}}
+        args = ask_eval.argparse.Namespace(model=ask_eval.ask.NEARAI_DEFAULT_MODEL, effort="low", runs=1,
+                                          max_usd=1, resume=None, yes=True)
+        with tempfile.TemporaryDirectory() as directory:
+            with (mock.patch.object(ask_eval, "ROOT", Path(directory)),
+                  mock.patch.object(ask_eval, "corpus", return_value=[item]),
+                  mock.patch.object(ask_eval, "_key", return_value="sentinel"),
+                  contextlib.redirect_stdout(io.StringIO())):
+                self.assertEqual(ask_eval.record(args, client_factory=lambda key: client), 1)
+            paths = list((Path(directory) / "fixtures/runs").glob("*.jsonl"))
+            self.assertEqual(len(paths), 1)
+            self.assertIn(args.model.replace("/", "_"), paths[0].name)
+
+    def test_record_attestation_failure_is_not_retried_and_keeps_reservation(self):
+        item = ask_eval.corpus()[0]
+        client = mock.Mock()
+        client.create.side_effect = ask_eval.ask.AttestationError("sentinel")
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "run.jsonl"
+            path.write_text("", encoding="utf-8")
+            args = ask_eval.argparse.Namespace(model=ask_eval.ask.NEARAI_DEFAULT_MODEL, effort="low", runs=1,
+                                              max_usd=1, resume=str(path), yes=True)
+            with (mock.patch.object(ask_eval, "corpus", return_value=[item]),
+                  mock.patch.object(ask_eval, "_key", return_value="sentinel"),
+                  contextlib.redirect_stdout(io.StringIO())):
+                self.assertEqual(ask_eval.record(args, client_factory=lambda key: client), 1)
+            client.create.assert_called_once()
+            row = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(row["reason"], "attestation_failed")
+            self.assertGreater(row["usage"]["reserved_micro"], 0)
+            self.assertIsNone(row["text"])
+
     def test_record_selection_uses_one_call_and_single_reservation(self):
         item = ask_eval.corpus()[0]
         usage = {"input_tokens": 10, "output_tokens": 5,
@@ -265,7 +330,7 @@ class RecordTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "run.jsonl"
             path.write_text("", encoding="utf-8")
-            model = next(iter(ask_eval.ask.PRICES))
+            model = ask_eval.ask.NEARAI_DEFAULT_MODEL
             params = ask_eval.ask.build_request(model, "low", item["projection"], item["question"])
             args = ask_eval.argparse.Namespace(model=model, effort="low", runs=1,
                 max_usd=ask_eval.ask.reservation_bound(params)[1] / 1000000, resume=str(path), yes=True)
@@ -280,7 +345,7 @@ class RecordTests(unittest.TestCase):
 
     def test_resume_rejects_invalid_reservation_before_client(self):
         item = ask_eval.corpus()[0]
-        model = next(iter(ask_eval.ask.PRICES))
+        model = ask_eval.ask.NEARAI_DEFAULT_MODEL
         for reserved in (-10000, True):
             with self.subTest(reserved=reserved), tempfile.TemporaryDirectory() as directory:
                 path = Path(directory) / "run.jsonl"
@@ -337,7 +402,7 @@ class RecordTests(unittest.TestCase):
 
     def test_resume_preserves_actual_charges_until_cap_stop(self):
         item = ask_eval.corpus()[0]
-        model = next(iter(ask_eval.ask.PRICES))
+        model = ask_eval.ask.NEARAI_DEFAULT_MODEL
         client = mock.Mock()
         client.create.return_value = {"text": None, "stop_reason": "end_turn", "usage": {
             "input_tokens": 10000, "output_tokens": 0, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0}}
@@ -345,7 +410,7 @@ class RecordTests(unittest.TestCase):
             path = Path(directory) / "run.jsonl"
             path.write_text("", encoding="utf-8")
             args = ask_eval.argparse.Namespace(model=model, effort="low", runs=1,
-                max_usd=0.003012, resume=str(path), yes=True)
+                max_usd=0.002812, resume=str(path), yes=True)
             with (mock.patch.object(ask_eval, "corpus", return_value=[item]),
                   mock.patch.object(ask_eval, "_bound", return_value=2012),
                   mock.patch.object(ask_eval, "_key", return_value="sentinel"),
@@ -354,7 +419,7 @@ class RecordTests(unittest.TestCase):
                     self.assertEqual(ask_eval.record(args, client_factory=lambda key: client), 1)
             self.assertEqual(client.create.call_count, 2)
             row = json.loads(path.read_text(encoding="utf-8"))
-            self.assertEqual(row["billed_micro"], 2000)
+            self.assertEqual(row["billed_micro"], 1600)
             self.assertEqual(row["usage"]["input_tokens"], 20000)
 
     def test_record_excess_usage_is_withheld_and_keeps_attempt_reservation(self):
@@ -385,9 +450,9 @@ class RecordTests(unittest.TestCase):
 
     def test_record_bound_matches_shared_reservation(self):
         item = ask_eval.corpus()[0]
-        model = next(iter(ask_eval.ask.PRICES))
+        model = ask_eval.ask.NEARAI_DEFAULT_MODEL
         params = ask_eval.ask.build_request(model, "low", item["projection"], item["question"])
-        self.assertEqual(ask_eval._bound(params, ask_eval.ask.PRICES[model]), ask_eval.ask.reservation_bound(params)[1])
+        self.assertEqual(ask_eval._bound(params), ask_eval.ask.reservation_bound(params)[1])
 
     def test_record_withholds_validated_answer_without_answer_usage(self):
         sample = current_row()
@@ -445,7 +510,7 @@ class RecordTests(unittest.TestCase):
                 self.assertEqual(row["billed_micro"], 7 + (slow_save - 1) * ask_eval._cost(usage, ask_eval.ask.PRICES[args.model]))
 
     def test_record_requires_yes_without_key_or_client(self):
-        args = ask_eval.argparse.Namespace(model=next(iter(ask_eval.ask.PRICES)), effort="low", runs=1,
+        args = ask_eval.argparse.Namespace(model=ask_eval.ask.NEARAI_DEFAULT_MODEL, effort="low", runs=1,
                                           max_usd=1, resume=None, yes=False)
         with mock.patch.object(ask_eval, "_key", side_effect=AssertionError("key read")), contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(ask_eval.record(args), 2)
@@ -485,11 +550,11 @@ class RecordTests(unittest.TestCase):
             with self.subTest(usage=usage), tempfile.TemporaryDirectory() as directory:
                 path = Path(directory) / "run.jsonl"
                 path.write_text("", encoding="utf-8")
-                model = next(iter(ask_eval.ask.PRICES))
+                model = ask_eval.ask.NEARAI_DEFAULT_MODEL
                 params = ask_eval.ask.build_request(model, "low", items[0]["projection"], items[0]["question"])
-                reservation = ask_eval._bound(params, ask_eval.ask.PRICES[model])
+                reservation = ask_eval._bound(params)
                 args = ask_eval.argparse.Namespace(model=model, effort="low", runs=1,
-                    max_usd=ask_eval._bound(params, ask_eval.ask.PRICES[model]) / 1000000, resume=str(path), yes=True)
+                    max_usd=ask_eval._bound(params) / 1000000, resume=str(path), yes=True)
                 response = {"text": None, "stop_reason": "refusal"}
                 if usage is not None:
                     response["usage"] = usage
@@ -515,9 +580,9 @@ class RecordTests(unittest.TestCase):
             for completed in (False, True):
                 with self.subTest(usage=usage, completed=completed), tempfile.TemporaryDirectory() as directory:
                     path = Path(directory) / "run.jsonl"
-                    model = next(iter(ask_eval.ask.PRICES))
+                    model = ask_eval.ask.NEARAI_DEFAULT_MODEL
                     params = ask_eval.ask.build_request(model, "low", items[0]["projection"], items[0]["question"])
-                    reservation = ask_eval._bound(params, ask_eval.ask.PRICES[model])
+                    reservation = ask_eval._bound(params)
                     row = {"item": items[0]["item"], "run": 1, "model": model, "effort": "low",
                         "projection_sha256": ask_eval.hashlib.sha256(ask_eval.ask.projection_bytes(items[0]["projection"])).hexdigest(),
                         "text": None, "stop_reason": "refusal" if completed else None}
@@ -525,7 +590,7 @@ class RecordTests(unittest.TestCase):
                         row["usage"] = {**usage, "reserved_micro": 0}
                     path.write_text(json.dumps(row) + "\n", encoding="utf-8")
                     args = ask_eval.argparse.Namespace(model=model, effort="low", runs=1,
-                        max_usd=ask_eval._bound(params, ask_eval.ask.PRICES[model]) / 1000000, resume=str(path), yes=True)
+                        max_usd=ask_eval._bound(params) / 1000000, resume=str(path), yes=True)
                     client = mock.Mock()
                     client.create.return_value = {"text": None, "stop_reason": "refusal", "usage": valid}
                     output = io.StringIO()
@@ -540,9 +605,9 @@ class RecordTests(unittest.TestCase):
 
     def test_record_complete_usage_releases_reservation(self):
         items = ask_eval.corpus()[:2]
-        model = next(iter(ask_eval.ask.PRICES))
+        model = ask_eval.ask.NEARAI_DEFAULT_MODEL
         params = ask_eval.ask.build_request(model, "low", items[0]["projection"], items[0]["question"])
-        reservation = ask_eval._bound(params, ask_eval.ask.PRICES[model])
+        reservation = ask_eval._bound(params)
         client = mock.Mock()
         client.create.return_value = {"text": None, "stop_reason": "refusal", "usage": {
             "input_tokens": 0, "output_tokens": 0, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0}}
@@ -550,7 +615,7 @@ class RecordTests(unittest.TestCase):
             path = Path(directory) / "run.jsonl"
             path.write_text("", encoding="utf-8")
             args = ask_eval.argparse.Namespace(model=model, effort="low", runs=1,
-                max_usd=ask_eval._bound(params, ask_eval.ask.PRICES[model]) / 1000000, resume=str(path), yes=True)
+                max_usd=ask_eval._bound(params) / 1000000, resume=str(path), yes=True)
             with (mock.patch.object(ask_eval, "corpus", return_value=items),
                   mock.patch.object(ask_eval, "_key", return_value="sentinel"),
                   contextlib.redirect_stdout(io.StringIO())):
@@ -564,7 +629,7 @@ class RecordTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "run.jsonl"
             path.write_text("", encoding="utf-8")
-            args = ask_eval.argparse.Namespace(model=next(iter(ask_eval.ask.PRICES)), effort="low", runs=1,
+            args = ask_eval.argparse.Namespace(model=ask_eval.ask.NEARAI_DEFAULT_MODEL, effort="low", runs=1,
                                               max_usd=1, resume=str(path), yes=True)
             client = mock.Mock()
             def interrupt(params, timeout):
@@ -583,7 +648,7 @@ class RecordTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "run.jsonl"
             path.write_text("", encoding="utf-8")
-            args = ask_eval.argparse.Namespace(model=next(iter(ask_eval.ask.PRICES)), effort="low", runs=1,
+            args = ask_eval.argparse.Namespace(model=ask_eval.ask.NEARAI_DEFAULT_MODEL, effort="low", runs=1,
                                               max_usd=1, resume=str(path), yes=True)
             with mock.patch.object(ask_eval, "corpus", return_value=[item]), mock.patch.object(ask_eval, "_key", return_value="sentinel"), contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(ask_eval.record(args, client_factory=lambda key: client), 1)
@@ -596,6 +661,119 @@ class RecordTests(unittest.TestCase):
 
 
 class JudgeTests(unittest.TestCase):
+    def test_judge_refuses_the_answering_model_before_key_or_reservation(self):
+        row = current_row()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "run.jsonl"
+            path.write_text(json.dumps(row) + "\n", encoding="utf-8")
+            args = ask_eval.argparse.Namespace(path=str(path), run=1, yes=True, max_usd=1, model=row["model"])
+            with mock.patch.object(ask_eval, "_key", side_effect=AssertionError("key read")):
+                with self.assertRaisesRegex(ValueError, "judge_model_matches_answer"):
+                    ask_eval.judge(args)
+            self.assertFalse(Path(str(path) + ".judge.jsonl").exists())
+
+    def test_independent_judge_can_finish_after_the_hosted_ask_deadline(self):
+        with tempfile.TemporaryDirectory() as directory:
+            row = current_row()
+            path = Path(directory) / "run.jsonl"
+            path.write_text(json.dumps(row) + "\n", encoding="utf-8")
+            args = ask_eval.argparse.Namespace(path=str(path), run=1, yes=True, max_usd=1)
+            client = mock.Mock()
+            client.create.return_value = {"text": json.dumps({"verdicts": [
+                {"index": 0, "supported": True, "why": "Recorded."}]}), "stop_reason": "end_turn", "usage": {
+                "input_tokens": 10, "output_tokens": 10, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0}}
+            with mock.patch.object(ask_eval, "_key", return_value="sentinel"), contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(ask_eval.judge(args, client_factory=lambda key: client,
+                    clock=mock.Mock(side_effect=[0, ask_eval.ask.MODEL_DEADLINE_S + 1])), 0)
+            params = client.create.call_args.args[0]
+            self.assertNotEqual(params["model"], row["model"])
+            self.assertEqual(client.create.call_args.kwargs["timeout"], 120)
+
+    def test_existing_judge_lock_is_preserved_and_refuses_without_a_key(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "run.jsonl"
+            lock = Path(str(path) + ".judge.lock")
+            lock.write_text("existing invocation", encoding="utf-8")
+            args = ask_eval.argparse.Namespace(path=str(path), run=1, yes=True, max_usd=1)
+            with mock.patch.object(ask_eval, "_key", side_effect=AssertionError("key read")):
+                with self.assertRaisesRegex(ValueError, "judge_busy"):
+                    ask_eval.judge(args)
+            self.assertEqual(lock.read_text(encoding="utf-8"), "existing invocation")
+
+    def test_concurrent_judge_refuses_before_first_reservation_and_provider_call(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "run.jsonl"
+            path.write_text(json.dumps(current_row()) + "\n", encoding="utf-8")
+            args = ask_eval.argparse.Namespace(path=str(path), run=1, yes=True, max_usd=1)
+            entered, release = threading.Event(), threading.Event()
+            client = mock.Mock()
+            client.create.return_value = {"text": json.dumps({"verdicts": [
+                {"index": 0, "supported": True, "why": "Recorded."}]}), "stop_reason": "end_turn", "usage": {
+                "input_tokens": 10, "output_tokens": 10, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0}}
+            calls = []
+            def key():
+                calls.append(True)
+                if len(calls) == 1:
+                    entered.set()
+                    if not release.wait(10):
+                        raise TimeoutError("test release")
+                return "sentinel"
+            with (mock.patch.object(ask_eval, "_key", side_effect=key),
+                  contextlib.redirect_stdout(io.StringIO()), ThreadPoolExecutor(max_workers=1) as pool):
+                first = pool.submit(ask_eval.judge, args, client_factory=lambda value: client)
+                try:
+                    self.assertTrue(entered.wait(10))
+                    self.assertFalse(Path(str(path) + ".judge.jsonl").exists())
+                    with self.assertRaisesRegex(ValueError, "judge_busy"):
+                        ask_eval.judge(args, client_factory=lambda value: client)
+                    client.create.assert_not_called()
+                finally:
+                    release.set()
+                self.assertEqual(first.result(timeout=10), 0)
+            client.create.assert_called_once()
+            self.assertFalse(Path(str(path) + ".judge.lock").exists())
+
+    def test_interrupted_settlement_preserves_pending_reservation_and_resume_cap(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "run.jsonl"
+            path.write_text(json.dumps(current_row()) + "\n", encoding="utf-8")
+            args = ask_eval.argparse.Namespace(path=str(path), run=1, yes=True, max_usd=1)
+            client = mock.Mock()
+            client.create.return_value = {"text": json.dumps({"verdicts": [
+                {"index": 0, "supported": True, "why": "Recorded."}]}), "stop_reason": "end_turn", "usage": {
+                "input_tokens": 10, "output_tokens": 10, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0}}
+            opened = Path.open
+            writes = []
+            @contextlib.contextmanager
+            def interrupt_settlement(destination, mode="r", *values, **options):
+                with opened(destination, mode, *values, **options) as handle:
+                    if "w" not in mode:
+                        yield handle
+                        return
+                    writes.append(destination)
+                    if len(writes) != 2:
+                        yield handle
+                        return
+                    wrapped = mock.Mock(wraps=handle)
+                    def interrupt(text):
+                        handle.write(text[:len(text) // 2])
+                        raise KeyboardInterrupt()
+                    wrapped.write.side_effect = interrupt
+                    yield wrapped
+            with (mock.patch.object(ask_eval, "_key", return_value="sentinel"),
+                  mock.patch.object(Path, "open", interrupt_settlement),
+                  contextlib.redirect_stdout(io.StringIO())):
+                with self.assertRaises(KeyboardInterrupt):
+                    ask_eval.judge(args, client_factory=lambda key: client)
+            client.create.assert_called_once()
+            pending = json.loads(Path(str(path) + ".judge.jsonl").read_text(encoding="utf-8"))
+            self.assertEqual(pending["reason"], "pending")
+            self.assertGreater(pending["cost_micro"], 0)
+            self.assertEqual(list(Path(directory).glob("*.tmp")), [])
+            args.max_usd = pending["cost_micro"] / 1000000
+            with mock.patch.object(ask_eval, "_key", side_effect=AssertionError("key read")), contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(ask_eval.judge(args), 1)
+
     def test_judge_dry_run_and_cap_do_not_read_key(self):
         row = json.dumps(current_row())
         with tempfile.TemporaryDirectory() as directory:
@@ -608,118 +786,100 @@ class JudgeTests(unittest.TestCase):
                     self.assertEqual(ask_eval.judge(args), expected)
                 self.assertIn("reservation bound $", output.getvalue())
 
-    def test_judge_persists_batch_before_poll_and_resumes_with_retries(self):
-        from types import SimpleNamespace
-
+    def test_judge_persists_reservation_before_call_and_resumes_completed_results(self):
         row = json.dumps(current_row())
-        for batch in (None, "existing-batch"):
-            with self.subTest(batch=batch), tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "run.jsonl"
+            path.write_text(row + "\n", encoding="utf-8")
+            args = ask_eval.argparse.Namespace(path=str(path), run=1, yes=True, max_usd=1)
+            client = mock.Mock()
+            def create(params, timeout):
+                recorded = json.loads(Path(str(path) + ".judge.jsonl").read_text())
+                self.assertEqual(recorded["reason"], "pending")
+                self.assertGreater(recorded["cost_micro"], 0)
+                self.assertEqual(params["model"], ask_eval.JUDGE_MODEL)
+                return {"text": json.dumps({"verdicts": [{"index": 0, "supported": True, "why": "Recorded."}]}),
+                        "stop_reason": "end_turn", "usage": {"input_tokens": 10, "output_tokens": 10,
+                        "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0}}
+            client.create.side_effect = create
+            with mock.patch.object(ask_eval, "_key", return_value="sentinel"), contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(ask_eval.judge(args, client_factory=lambda key: client), 0)
+            client.create.assert_called_once()
+            with mock.patch.object(ask_eval, "_key", side_effect=AssertionError("key read")), contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(ask_eval.judge(args), 0)
+
+    def test_judge_attestation_failure_preserves_reservation_and_does_not_retry(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "run.jsonl"
+            path.write_text(json.dumps(current_row()) + "\n", encoding="utf-8")
+            args = ask_eval.argparse.Namespace(path=str(path), run=1, yes=True, max_usd=1)
+            client = mock.Mock()
+            client.create.side_effect = ask_eval.ask.AttestationError("sentinel")
+            with mock.patch.object(ask_eval, "_key", return_value="sentinel"), contextlib.redirect_stdout(io.StringIO()):
+                with self.assertRaises(ask_eval.ask.AttestationError):
+                    ask_eval.judge(args, client_factory=lambda key: client)
+            client.create.assert_called_once()
+            record = json.loads(Path(str(path) + ".judge.jsonl").read_text())
+            self.assertGreater(record["cost_micro"], 0)
+            self.assertIsNotNone(record["reason"])
+            args.max_usd = record["cost_micro"] / 1000000
+            with mock.patch.object(ask_eval, "_key", side_effect=AssertionError("key read")), contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(ask_eval.judge(args), 1)
+
+    def test_judge_rejects_invalid_or_late_results(self):
+        valid = {"input_tokens": 10, "output_tokens": 10, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0}
+        decisions = {"verdicts": [{"index": 0, "supported": True, "why": "Recorded."}]}
+        cases = [({"stop_reason": "end_turn", "text": json.dumps(decisions), "usage": valid}, [0, ask_eval.JUDGE_DEADLINE_S + 1]),
+                 ({"stop_reason": "end_turn", "text": json.dumps(decisions), "usage": None}, [0]),
+                 ({"stop_reason": "refusal", "text": None, "usage": valid}, [0, 0]),
+                 ({"stop_reason": "end_turn", "text": json.dumps({"verdicts": []}), "usage": valid}, [0, 0]),
+                 ({"stop_reason": "end_turn", "text": json.dumps({"verdicts": [{"index": False,
+                   "supported": True, "why": "Recorded."}]}), "usage": valid}, [0, 0])]
+        for response, ticks in cases:
+            with self.subTest(response=response), tempfile.TemporaryDirectory() as directory:
                 path = Path(directory) / "run.jsonl"
-                path.write_text(row + "\n", encoding="utf-8")
-                args = ask_eval.argparse.Namespace(path=str(path), run=1, yes=True, max_usd=1, batch=batch)
+                path.write_text(json.dumps(current_row()) + "\n", encoding="utf-8")
+                args = ask_eval.argparse.Namespace(path=str(path), run=1, yes=True, max_usd=1)
                 client = mock.Mock()
-                client.batches.create.return_value = SimpleNamespace(id="new-batch")
-                identity = batch or "new-batch"
-                output = io.StringIO()
-                calls = []
-                def retrieve(batch_id):
-                    self.assertEqual(batch_id, identity)
-                    self.assertEqual(json.loads(Path(str(path) + ".judge.batch.json").read_text(encoding="utf-8"))["batch_id"], identity)
-                    self.assertIn(identity, output.getvalue())
-                    calls.append(batch_id)
-                    if len(calls) == 1:
-                        raise ask_eval.ask.ProviderStatus(503)
-                    return SimpleNamespace(processing_status="ended")
-                client.batches.retrieve.side_effect = retrieve
-                client.batches.results.return_value = []
-                with mock.patch.object(ask_eval, "_key", return_value="sentinel"), contextlib.redirect_stdout(output):
-                    with self.assertRaisesRegex(ValueError, "judge_incomplete"):
-                        ask_eval.judge(args, client_factory=lambda key: client, sleep=lambda seconds: None)
-                self.assertEqual(len(calls), 2)
-                self.assertEqual(client.batches.create.call_count, int(batch is None))
+                client.create.return_value = response
+                with mock.patch.object(ask_eval, "_key", return_value="sentinel"), contextlib.redirect_stdout(io.StringIO()):
+                    with self.assertRaises(ValueError):
+                        ask_eval.judge(args, client_factory=lambda key: client, clock=mock.Mock(side_effect=ticks))
+                client.create.assert_called_once()
 
-    def test_judge_retries_raw_transient_poll_errors(self):
-        from types import SimpleNamespace
-
-        class ResponseError(Exception):
-            def __init__(self, status_code):
-                self.status_code = status_code
-
-        row = json.dumps(current_row())
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "run.jsonl"
-            path.write_text(row + "\n", encoding="utf-8")
-            args = ask_eval.argparse.Namespace(path=str(path), run=1, yes=True, max_usd=1, batch="existing-batch")
-            client = mock.Mock()
-            client.batches.retrieve.side_effect = [ResponseError(429), ResponseError(503), TimeoutError(),
-                                                    SimpleNamespace(processing_status="ended")]
-            client.batches.results.return_value = []
-            with mock.patch.object(ask_eval, "_key", return_value="sentinel"), contextlib.redirect_stdout(io.StringIO()):
-                with self.assertRaisesRegex(ValueError, "judge_incomplete"):
-                    ask_eval.judge(args, client_factory=lambda key: client, sleep=lambda seconds: None)
-            self.assertEqual(client.batches.retrieve.call_count, 4)
-            client.batches.create.assert_not_called()
-
-    def test_judge_polling_has_deadline_and_does_not_retry_permanent_errors(self):
-        from types import SimpleNamespace
-
-        row = json.dumps(current_row())
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "run.jsonl"
-            path.write_text(row + "\n", encoding="utf-8")
-            args = ask_eval.argparse.Namespace(path=str(path), run=1, yes=True, max_usd=1, batch="existing-batch")
-            client = mock.Mock()
-            client.batches.retrieve.return_value = SimpleNamespace(processing_status="in_progress")
-            with mock.patch.object(ask_eval, "_key", return_value="sentinel"), contextlib.redirect_stdout(io.StringIO()):
-                with self.assertRaisesRegex(ValueError, "judge_timeout"):
-                    ask_eval.judge(args, client_factory=lambda key: client, sleep=lambda seconds: None,
-                                   clock=mock.Mock(side_effect=[0, 0, 3601]))
-                client.batches.retrieve.side_effect = ask_eval.ask.ProviderStatus(400)
-                with self.assertRaises(ask_eval.ask.ProviderStatus):
-                    ask_eval.judge(args, client_factory=lambda key: client, sleep=lambda seconds: None)
-            self.assertEqual(client.batches.retrieve.call_count, 2)
-
-    def test_cli_withholds_batch_exception_text(self):
+    def test_cli_withholds_provider_exception_text(self):
         import runpy
         import sys
-
-        sentinel = "batch-exception-sentinel"
-        row = json.dumps(current_row())
+        sentinel = "provider-exception-sentinel"
         client = mock.Mock()
-        client.batches.create.side_effect = RuntimeError(sentinel)
+        client.create.side_effect = RuntimeError(sentinel)
         stderr = io.StringIO()
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "run.jsonl"
-            path.write_text(row + "\n", encoding="utf-8")
+            path.write_text(json.dumps(current_row()) + "\n", encoding="utf-8")
             with (mock.patch.object(ask_eval.ask, "_read_key", return_value=sentinel),
                   mock.patch.object(ask_eval.ask, "sdk_client", return_value=client),
                   mock.patch.object(sys, "argv", ["ask_eval.py", "judge", str(path), "--max-usd", "1", "--yes"]),
-                  contextlib.redirect_stderr(stderr)):
+                  contextlib.redirect_stderr(stderr), contextlib.redirect_stdout(io.StringIO())):
                 with self.assertRaises(SystemExit) as stopped:
                     runpy.run_path(str(ROOT / "scripts/ask_eval.py"), run_name="__main__")
             self.assertEqual(stopped.exception.code, 1)
         self.assertEqual(stderr.getvalue(), "ask eval unavailable: RuntimeError\n")
-        self.assertNotIn(sentinel, stderr.getvalue())
-        client.batches.create.assert_called_once()
+        client.create.assert_called_once()
 
     def test_unsupported_statement_prints_item_and_statement_text(self):
-        from types import SimpleNamespace
-
         row = current_row()
         item = next(item for item in ask_eval.corpus() if item["item"] == row["item"])
         selection, _ = ask_eval.ask.parse_selection(row["text"], item["projection"], item["question_id"])
         statement = ask_eval.ask.render_answer(selection, item["projection"])["statements"][0]["text"]
-        text = json.dumps({"verdicts": [{"index": 0, "supported": False, "why": "The evidence does not support this statement."}]})
-        result = SimpleNamespace(custom_id="item-0", result=SimpleNamespace(type="succeeded",
-                                 message=SimpleNamespace(content=[SimpleNamespace(type="text", text=text)])))
         client = mock.Mock()
-        client.batches.create.return_value = SimpleNamespace(id="batch")
-        client.batches.retrieve.return_value = SimpleNamespace(processing_status="ended")
-        client.batches.results.return_value = [result]
+        client.create.return_value = {"text": json.dumps({"verdicts": [{"index": 0, "supported": False,
+            "why": "The evidence does not support this statement."}]}), "stop_reason": "end_turn", "usage": {
+            "input_tokens": 10, "output_tokens": 10, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0}}
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "run.jsonl"
             path.write_text(json.dumps(row) + "\n", encoding="utf-8")
-            args = ask_eval.argparse.Namespace(path=str(path), run=1, yes=True, max_usd=1, batch=None)
+            args = ask_eval.argparse.Namespace(path=str(path), run=1, yes=True, max_usd=1)
             output = io.StringIO()
             with mock.patch.object(ask_eval, "_key", return_value="sentinel"), contextlib.redirect_stdout(output):
                 self.assertEqual(ask_eval.judge(args, client_factory=lambda key: client), 1)
@@ -727,24 +887,15 @@ class JudgeTests(unittest.TestCase):
             self.assertIn(statement, output.getvalue())
             self.assertIn("The evidence does not support this statement.", output.getvalue())
 
-    def test_duplicate_result_id_refuses_incomplete_judgement(self):
-        from types import SimpleNamespace
-
-        rows = [json.dumps(current_row(index)) for index in range(2)]
-        text = json.dumps({"verdicts": [{"index": 0, "supported": True, "why": "The check is recorded."}]})
-        result = SimpleNamespace(custom_id="item-0", result=SimpleNamespace(type="succeeded",
-                                 message=SimpleNamespace(content=[SimpleNamespace(type="text", text=text)])))
-        client = mock.Mock()
-        client.batches.create.return_value = SimpleNamespace(id="batch")
-        client.batches.retrieve.return_value = SimpleNamespace(processing_status="ended")
-        client.batches.results.return_value = [result, result]
+    def test_duplicate_saved_result_id_refuses_incomplete_judgement(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "run.jsonl"
-            path.write_text("\n".join(rows) + "\n", encoding="utf-8")
-            args = ask_eval.argparse.Namespace(path=str(path), run=1, yes=True, max_usd=1, batch=None)
-            with mock.patch.object(ask_eval, "_key", return_value="sentinel"), contextlib.redirect_stdout(io.StringIO()):
+            path.write_text(json.dumps(current_row()) + "\n", encoding="utf-8")
+            Path(str(path) + ".judge.jsonl").write_text('{"custom_id":"item-0"}\n' * 2)
+            args = ask_eval.argparse.Namespace(path=str(path), run=1, yes=True, max_usd=1)
+            with mock.patch.object(ask_eval, "_key", side_effect=AssertionError("key read")), contextlib.redirect_stdout(io.StringIO()):
                 with self.assertRaisesRegex(ValueError, "judge_incomplete"):
-                    ask_eval.judge(args, client_factory=lambda key: client)
+                    ask_eval.judge(args)
 
 
 if __name__ == "__main__":

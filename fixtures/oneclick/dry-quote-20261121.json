@@ -1,0 +1,61 @@
+{
+  "source": "https://1click.chaindefuser.com/v0/quote",
+  "fetched_at": "2026-11-21T15:02:15Z",
+  "http_status": 201,
+  "request": {
+    "method": "POST",
+    "body": {
+      "dry": true,
+      "swapType": "EXACT_INPUT",
+      "slippageTolerance": 100,
+      "originAsset": "nep141:wrap.near",
+      "depositType": "ORIGIN_CHAIN",
+      "destinationAsset": "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near",
+      "amount": "100000000000000000000000",
+      "refundTo": "intents.near",
+      "refundType": "ORIGIN_CHAIN",
+      "recipient": "0x1fcdb04d0c5364fbd92c73ca8af9baa72c269107",
+      "recipientType": "DESTINATION_CHAIN",
+      "deadline": "2026-11-21T15:12:13.601Z"
+    },
+    "body_sha256": "801c8177a91aacd683416b5898dcd6b4f21fd22c89fc8ff586995be5fa3659cd"
+  },
+  "response": {
+    "quote": {
+      "amountIn": "100000000000000000000000",
+      "amountInFormatted": "0.1",
+      "amountInUsd": "0.291000000000",
+      "minAmountIn": "100000000000000000000000",
+      "amountOut": "286131",
+      "amountOutFormatted": "0.286131",
+      "amountOutUsd": "0.285949020684",
+      "minAmountOut": "283269",
+      "timeEstimate": 24,
+      "refundFee": "0",
+      "withdrawFee": "2400"
+    },
+    "quoteRequest": {
+      "dry": true,
+      "depositMode": "SIMPLE",
+      "swapType": "EXACT_INPUT",
+      "slippageTolerance": 100,
+      "originAsset": "nep141:wrap.near",
+      "depositType": "ORIGIN_CHAIN",
+      "destinationAsset": "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near",
+      "amount": "100000000000000000000000",
+      "refundTo": "intents.near",
+      "refundType": "ORIGIN_CHAIN",
+      "recipient": "0x1fcdb04d0c5364fbd92c73ca8af9baa72c269107",
+      "recipientType": "DESTINATION_CHAIN",
+      "deadline": "2026-11-21T15:12:13.601Z",
+      "confidentiality": "public",
+      "quoteWaitingTimeMs": 0,
+      "insured": false,
+      "appFees": []
+    },
+    "signature": "omitted: 1Click quote signature is not committed because its form triggers the hygiene hook",
+    "timestamp": "2026-11-21T15:02:13.035Z",
+    "correlationId": "c6196a86-3813-45e3-b25d-98c08db6dac8"
+  },
+  "note": "Actual dry quote response; the signature value was omitted. This is a preview and cannot fund a swap."
+}

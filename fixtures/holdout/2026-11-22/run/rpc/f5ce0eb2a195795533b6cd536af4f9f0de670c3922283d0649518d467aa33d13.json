@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "macarelleta.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "6oQ78hoy8E2K8AAF2ysgaoLB81NPcDFRG6Ty9F4tE6v9",
+      "block_height": 225687714,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 121550406024715,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8y2SLpXA1URMiQucY6TXdPqnmZAiJ2t1ez1DgMKeqzEp"
+        },
+        {
+          "access_key": {
+            "nonce": 121550324000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:EdPDnYJCoMUphP8jyhH7wXbXbzdpJmoTUMgjgRBmk48b"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:42:52Z"
+}

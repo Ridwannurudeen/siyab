@@ -4,3 +4,11 @@
 *.jpg binary
 *.mp4 binary
 intel/seeds/raw/** -text
+fixtures/nearai/intel-collateral-70a06d070000.json -text
+fixtures/nearai/intel-collateral-90c06f000000.json -text
+fixtures/nearai/models.json -text
+fixtures/nearai/quote-results.json -text
+fixtures/oneclick/** -text
+fixtures/holdout/** -text
+contracts/attest/tests/vendor/** -text
+fixtures/attest/*.borsh -text

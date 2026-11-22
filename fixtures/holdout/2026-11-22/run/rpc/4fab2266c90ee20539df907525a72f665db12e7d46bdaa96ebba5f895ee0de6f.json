@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "acatenangoapex.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "4rfcbeFZXEsXDbeJiJZ1xuvaH85bGKaMUAAd9uByaCpW",
+      "block_height": 225687591,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 123553171000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:55a7qotiwhLGQY4qNQVCoaADtv62q1rbV2kj3Ukc1ZDn"
+        },
+        {
+          "access_key": {
+            "nonce": 123553184020785,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:93iqFhyyUWfbTZzBoHDtH4fEZFLUB173E65bGoW4xv3t"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:41:43Z"
+}

@@ -1,0 +1,11 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "data": []
+  },
+  "url": "https://api.nearblocks.io/v3/accounts/f712ec5e4d1b80c8d1a53c2b022a927a738c54115a2814b4e00ba04c4162f588/keys",
+  "fetched_at": "2026-11-22T09:36:53Z"
+}

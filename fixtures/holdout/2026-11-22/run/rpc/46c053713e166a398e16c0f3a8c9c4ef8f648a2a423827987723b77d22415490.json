@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "semenb.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "JgYXKaDvV9do2UgApKMtp1MjoZoAsukQMDDFayi133g",
+      "block_height": 225687522,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 146519087021750,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:CpwaS8KY1gdbEm5EacGubTqkXbqWyfrRefY9iDNca7s9"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:41:04Z"
+}

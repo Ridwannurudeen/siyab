@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "weaknecktie7068.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "B8fJ6gxSvmq11ueyLRHcd8w3NEMwLjXNRKJcd1rdFjAE",
+      "block_height": 225687876,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 224224723005926,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:BvPyy4NGQyNgszwY7RYwbnUCy8bMMiDgYa92v3L9d6rK"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:44:24Z"
+}

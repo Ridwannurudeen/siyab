@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "grampianglow.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "AyD18ZA8NnARjaqyeUSF4zXK9ArKudWMDM2Z4gthis2K",
+      "block_height": 225687340,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 124645354021160,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8oyeLbNo44kF49ZNLEsEujKdbQfN3gvYyb6E6iCwuXoD"
+        },
+        {
+          "access_key": {
+            "nonce": 124644795000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:G8sMzrjFyr96kX19nQFBf5rGALEbKZd3DYU2LYjRH4De"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:39:23Z"
+}

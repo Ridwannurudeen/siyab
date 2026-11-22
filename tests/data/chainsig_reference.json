@@ -1,0 +1,1043 @@
+{
+  "provenance": {
+    "package": "chainsig.js",
+    "version": "1.1.16",
+    "git_commit": "17aec4f932ec5ca49a4a52a167dbb31a2b77710e",
+    "npm_integrity": "sha512-DGMlAc2A1eVGqU66UuwIGILHknssJHHNSBFad4+/W2grob1+SVmUEH/DyGL77fK9SKKyvkMu/uXH8maNOLlYlA==",
+    "bitcoinjs_commit": "91800d465c79e8069db728191beb548528691a4e",
+    "versions": {
+      "chainsig.js": "1.1.16",
+      "bitcoinjs-lib": "6.1.10",
+      "js-sha3": "0.9.3",
+      "bs58": "6.0.0",
+      "viem": "2.58.4",
+      "elliptic": "6.6.1",
+      "@noble/curves": "1.9.7",
+      "@scure/base": "1.2.6",
+      "@solana/web3.js": "1.99.0"
+    },
+    "package_integrities": {
+      "chainsig.js": "sha512-DGMlAc2A1eVGqU66UuwIGILHknssJHHNSBFad4+/W2grob1+SVmUEH/DyGL77fK9SKKyvkMu/uXH8maNOLlYlA==",
+      "bitcoinjs-lib": "sha512-9KpnS5JKVP0j0yfTsBNFIsNA6+JdBDb7VtL35F20I/pJYobosi3TmZFGtu6qxhJCfb0vubJixr5Zv61/lUYETw==",
+      "js-sha3": "sha512-BcJPCQeLg6WjEx3FE591wVAevlli8lxsxm9/FzV4HXkV49TmBH38Yvrpce6fjbADGMKFrBMGTqrVz3qPIZ88Gg==",
+      "bs58": "sha512-PD0wEnEYg6ijszw/u8s+iI3H17cTymlrwkKhDhPZq+Sokl3AU4htyBFTjAeNAlCCmg0f53g6ih3jATyCKftTfw==",
+      "viem": "sha512-zeYi2PliKbmJVbIvudHZrYJLh1XMXci6GBJznQLjhhGPGl9L7Hp/LmelpXhOM9VvlXwnvfW7/2PCgpjnc2j8MQ==",
+      "elliptic": "sha512-RaddvvMatK2LJHqFJ+YA4WysVN5Ita9E35botqIYspQ4TkRAlCicdzKOjlyv/1Za5RyTNn7di//eEV0uTAfe3g==",
+      "@noble/curves": "sha512-gbKGcRUYIjA3/zCCNaWDciTMFI0dCkvou3TL8Zmy5Nc7sJ47a0jtOeZoTaMxkuqRo9cRhjOdZJXegxYE5FN/xw==",
+      "@scure/base": "sha512-g/nm5FgUa//MCj1gV09zTJTaM6KBAHqLN907YVQqf7zC49+DcO4B1so4ZX07Ef10Twr6nuqYEH9GEggFXA4Fmg==",
+      "@solana/web3.js": "sha512-QZYQ2T1z6xWisoyALPq25i/QZTsRlM02BABtAsfaQ1p8wX4SdTfxrKTRue/ZZqrhNVh5oL7T/DUFiTS9DRgxow=="
+    },
+    "node_version": "24.22.3",
+    "npm_version": "11.19.1",
+    "observed_at_utc": "2026-11-21T15:05:41.699967+00:00",
+    "source_urls": [
+      "https://docs.near.org/chain-abstraction/chain-signatures/implementation",
+      "https://raw.githubusercontent.com/NearDeFi/chainsig.js/17aec4f932ec5ca49a4a52a167dbb31a2b77710e/src/utils/cryptography.ts",
+      "https://raw.githubusercontent.com/NearDeFi/chainsig.js/17aec4f932ec5ca49a4a52a167dbb31a2b77710e/src/constants.ts",
+      "https://raw.githubusercontent.com/NearDeFi/chainsig.js/17aec4f932ec5ca49a4a52a167dbb31a2b77710e/src/contracts/ChainSignatureContract.ts",
+      "https://raw.githubusercontent.com/NearDeFi/chainsig.js/17aec4f932ec5ca49a4a52a167dbb31a2b77710e/src/chain-adapters/EVM/EVM.ts",
+      "https://raw.githubusercontent.com/NearDeFi/chainsig.js/17aec4f932ec5ca49a4a52a167dbb31a2b77710e/src/chain-adapters/Bitcoin/Bitcoin.ts",
+      "https://raw.githubusercontent.com/NearDeFi/chainsig.js/17aec4f932ec5ca49a4a52a167dbb31a2b77710e/src/chain-adapters/Bitcoin/utils.ts",
+      "https://raw.githubusercontent.com/NearDeFi/chainsig.js/17aec4f932ec5ca49a4a52a167dbb31a2b77710e/src/chain-adapters/Solana/Solana.ts",
+      "https://raw.githubusercontent.com/NearDeFi/chainsig.js/17aec4f932ec5ca49a4a52a167dbb31a2b77710e/__tests__/contracts/derivation.test.ts",
+      "https://registry.npmjs.org/chainsig.js/1.1.16",
+      "https://raw.githubusercontent.com/bitcoinjs/bitcoinjs-lib/91800d465c79e8069db728191beb548528691a4e/ts_src/payments/p2pkh.ts",
+      "https://raw.githubusercontent.com/bitcoinjs/bitcoinjs-lib/91800d465c79e8069db728191beb548528691a4e/ts_src/payments/p2sh.ts",
+      "https://raw.githubusercontent.com/bitcoinjs/bitcoinjs-lib/91800d465c79e8069db728191beb548528691a4e/ts_src/payments/p2wpkh.ts",
+      "https://raw.githubusercontent.com/emn178/js-sha3/v0.9.3/README.md",
+      "https://www.secg.org/sec2-v2.pdf",
+      "https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki"
+    ],
+    "root_view_method": "public_key",
+    "root_view_args": {
+      "domain_id": "integer"
+    },
+    "state_view_method": "state",
+    "state_view_args": {},
+    "root_pinning": "Read state at finality final, then public_key for domains 0, 1, 4 and 5 at the returned block hash.",
+    "derivation": "Exported chainsig.js utils.cryptography functions derive both child keys from the recorded RPC roots.",
+    "tweak": "js-sha3 sha3_256 with the exact computeTweakHex message from the pinned reference source. The reference helper itself is not exported.",
+    "address_encoders": {
+      "ethereum": "chainsig.js EVM.deriveAddressAndPublicKey",
+      "bitcoin_p2wpkh": "chainsig.js Bitcoin.deriveAddressAndPublicKey cross-checked with bitcoinjs-lib payments.p2wpkh",
+      "bitcoin_p2pkh": "bitcoinjs-lib payments.p2pkh, beyond the chainsig.js transaction adapter",
+      "bitcoin_p2sh_p2wpkh": "bitcoinjs-lib payments.p2sh wrapping payments.p2wpkh, beyond the chainsig.js transaction adapter",
+      "solana": "chainsig.js Solana.deriveAddressAndPublicKey",
+      "taproot": "Not included. The chainsig.js Bitcoin adapter supports P2WPKH and the inspected signing domain uses ECDSA."
+    },
+    "reproduce_install": "npm install --prefix <temporary-prefix> --ignore-scripts --no-audit --no-fund chainsig.js@1.1.16 bitcoinjs-lib@6.1.10 js-sha3@0.9.3 bs58@6.0.0 viem@2.58.4 elliptic@6.6.1 @noble/curves@1.9.7 @scure/base@1.2.6 @solana/web3.js@1.99.0",
+    "reproduce_check": "node tests/data/chainsig_reference.mjs <temporary-prefix> --check",
+    "reproduce_json": "node tests/data/chainsig_reference.mjs <temporary-prefix>",
+    "signing_calls": 0,
+    "derived_view_method": "derived_public_key",
+    "derived_view_args": {
+      "predecessor": "input predecessor",
+      "path": "input path",
+      "domain_id": "integer"
+    },
+    "derived_view_pinning": "Every child public key was read from the signer at the root observation block hash and compared to the reference output."
+  },
+  "root_observations": [
+    {
+      "id": "mainnet",
+      "network": "mainnet",
+      "contract": "v1.signer",
+      "rpc": "https://rpc.mainnet.near.org",
+      "block_height": 225570535,
+      "block_hash": "7vsbUvtYtcbph4BRDrpR7tRzssToSnw67AauSJFwyuDD",
+      "domains": {
+        "domains": [
+          {
+            "id": 0,
+            "protocol": "CaitSith",
+            "reconstruction_threshold": 11,
+            "purpose": "Sign"
+          },
+          {
+            "id": 1,
+            "protocol": "Frost",
+            "reconstruction_threshold": 11,
+            "purpose": "Sign"
+          },
+          {
+            "id": 2,
+            "protocol": "ConfidentialKeyDerivation",
+            "reconstruction_threshold": 11,
+            "purpose": "CKD"
+          },
+          {
+            "id": 3,
+            "protocol": "CaitSith",
+            "reconstruction_threshold": 11,
+            "purpose": "ForeignTx"
+          },
+          {
+            "id": 4,
+            "protocol": "CaitSith",
+            "reconstruction_threshold": 11,
+            "purpose": "Sign"
+          },
+          {
+            "id": 5,
+            "protocol": "Frost",
+            "reconstruction_threshold": 11,
+            "purpose": "Sign"
+          },
+          {
+            "id": 6,
+            "protocol": "ConfidentialKeyDerivation",
+            "reconstruction_threshold": 11,
+            "purpose": "CKD"
+          },
+          {
+            "id": 7,
+            "protocol": "CaitSith",
+            "reconstruction_threshold": 11,
+            "purpose": "ForeignTx"
+          }
+        ],
+        "next_domain_id": 8
+      },
+      "public_keys": {
+        "0": "secp256k1:3tFRbMqmoa6AAALMrEFAYCEoHcqKxeW38YptwowBVBtXK1vo36HDbUWuR6EZmoK4JcH6HDkNMGGqP1ouV7VZUWya",
+        "1": "ed25519:G9hwngxWNKdmqMCmU1Yt6LPhFpayJeKFxyAV1HqMNLtF",
+        "4": "secp256k1:47q96QqEhpbY6R7t3s29w2DKWCV6uKGSPUmaCnppRkrJhD9gjZoHM3qSETbJFhdjiRGHbCpunnGAKDSM78EwGirc",
+        "5": "ed25519:8C65zxCVFG2fXN58cDB71gpUeUPQiihzNjEuBsvDLAh1"
+      }
+    },
+    {
+      "id": "testnet",
+      "network": "testnet",
+      "contract": "v1.signer-prod.testnet",
+      "rpc": "https://rpc.testnet.near.org",
+      "block_height": 278690713,
+      "block_hash": "23cq4rx54Cq1BLw6B7vnLGmdsX4xYaX9uCrbpg4RHtpZ",
+      "domains": {
+        "domains": [
+          {
+            "id": 0,
+            "protocol": "CaitSith",
+            "reconstruction_threshold": 11,
+            "purpose": "Sign"
+          },
+          {
+            "id": 1,
+            "protocol": "Frost",
+            "reconstruction_threshold": 11,
+            "purpose": "Sign"
+          },
+          {
+            "id": 2,
+            "protocol": "ConfidentialKeyDerivation",
+            "reconstruction_threshold": 11,
+            "purpose": "CKD"
+          },
+          {
+            "id": 3,
+            "protocol": "CaitSith",
+            "reconstruction_threshold": 11,
+            "purpose": "ForeignTx"
+          },
+          {
+            "id": 4,
+            "protocol": "CaitSith",
+            "reconstruction_threshold": 11,
+            "purpose": "Sign"
+          },
+          {
+            "id": 5,
+            "protocol": "Frost",
+            "reconstruction_threshold": 11,
+            "purpose": "Sign"
+          },
+          {
+            "id": 6,
+            "protocol": "ConfidentialKeyDerivation",
+            "reconstruction_threshold": 11,
+            "purpose": "CKD"
+          },
+          {
+            "id": 7,
+            "protocol": "CaitSith",
+            "reconstruction_threshold": 11,
+            "purpose": "ForeignTx"
+          }
+        ],
+        "next_domain_id": 8
+      },
+      "public_keys": {
+        "0": "secp256k1:4NfTiv3UsGahebgTaHyD9vF8KYKMBnfd6kh94mK6xv8fGBiJB8TBtFMP5WWXz6B89Ac1fbpzPwAvoyQebemHFwx3",
+        "1": "ed25519:6vSEtQxrQj6txUMh33WC4ERyCWmNMRTdufDWAaDY3Un2",
+        "4": "secp256k1:3XcQcfDKvbyNdkKHpN11vtsjX4dX1ABf4HFyqcxiTUbEgnjRzKtR9Cv43fggtseGVCiSxRSgMG5GGFpXhDHyVtuQ",
+        "5": "ed25519:HapeyU4SFvrQKMa8zijPF8KC9g5J1tcuxx2FXAfEcQDQ"
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "name": "mainnet-ethereum-1",
+      "root_id": "mainnet",
+      "predecessor": "example.near",
+      "path": "ethereum-1",
+      "secp256k1_domain_id": 0,
+      "ed25519_domain_id": 1
+    },
+    {
+      "name": "mainnet-ethereum-2",
+      "root_id": "mainnet",
+      "predecessor": "example.near",
+      "path": "ethereum-2",
+      "secp256k1_domain_id": 0,
+      "ed25519_domain_id": 1
+    },
+    {
+      "name": "mainnet-empty",
+      "root_id": "mainnet",
+      "predecessor": "alice.near",
+      "path": "",
+      "secp256k1_domain_id": 0,
+      "ed25519_domain_id": 1
+    },
+    {
+      "name": "mainnet-unicode",
+      "root_id": "mainnet",
+      "predecessor": "a-b_c.d.near",
+      "path": "\u5ba2\u6237/\u652f\u4ed8,\u20a6/\u20bf/\u25ce/\ud83d\ude80",
+      "secp256k1_domain_id": 0,
+      "ed25519_domain_id": 1
+    },
+    {
+      "name": "mainnet-implicit",
+      "root_id": "mainnet",
+      "predecessor": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "path": "m/44'/60'/0'/0/0",
+      "secp256k1_domain_id": 0,
+      "ed25519_domain_id": 1
+    },
+    {
+      "name": "mainnet-domains-4-5",
+      "root_id": "mainnet",
+      "predecessor": "alice.near",
+      "path": "",
+      "secp256k1_domain_id": 4,
+      "ed25519_domain_id": 5
+    },
+    {
+      "name": "testnet-ethereum-1",
+      "root_id": "testnet",
+      "predecessor": "example.testnet",
+      "path": "ethereum-1",
+      "secp256k1_domain_id": 0,
+      "ed25519_domain_id": 1
+    },
+    {
+      "name": "testnet-ethereum-2",
+      "root_id": "testnet",
+      "predecessor": "example.testnet",
+      "path": "ethereum-2",
+      "secp256k1_domain_id": 0,
+      "ed25519_domain_id": 1
+    },
+    {
+      "name": "testnet-empty",
+      "root_id": "testnet",
+      "predecessor": "alice.testnet",
+      "path": "",
+      "secp256k1_domain_id": 0,
+      "ed25519_domain_id": 1
+    },
+    {
+      "name": "testnet-unicode",
+      "root_id": "testnet",
+      "predecessor": "a-b_c.d.testnet",
+      "path": "\u5ba2\u6237/\u652f\u4ed8,\u20a6/\u20bf/\u25ce/\ud83d\ude80",
+      "secp256k1_domain_id": 0,
+      "ed25519_domain_id": 1
+    },
+    {
+      "name": "testnet-implicit",
+      "root_id": "testnet",
+      "predecessor": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "path": "m/44'/60'/0'/0/0",
+      "secp256k1_domain_id": 0,
+      "ed25519_domain_id": 1
+    },
+    {
+      "name": "testnet-domains-4-5",
+      "root_id": "testnet",
+      "predecessor": "alice.testnet",
+      "path": "",
+      "secp256k1_domain_id": 4,
+      "ed25519_domain_id": 5
+    },
+    {
+      "name": "testnet-captured",
+      "root_id": "testnet",
+      "predecessor": "derivation-test.testnet",
+      "path": "unit-test",
+      "secp256k1_domain_id": 0,
+      "ed25519_domain_id": 1
+    }
+  ],
+  "captured_reference_answers": [
+    {
+      "vector": "testnet-captured",
+      "source_url": "https://raw.githubusercontent.com/NearDeFi/chainsig.js/17aec4f932ec5ca49a4a52a167dbb31a2b77710e/__tests__/contracts/derivation.test.ts",
+      "source_observation_date": "2026-04-30",
+      "secp256k1": "secp256k1:3b3GS4kaAPvzxFUEYKiMvXeuBzttMZosggT3iAAbyZzAfQc1Dn4eLrDshNGGeKZyfSK7xegjPSq553NXHisMLiyA",
+      "ed25519": "ed25519:49KFz8zeqrPcaSKqLCXtY79zW98ZW6Nd7W8vSsC7FdKJ"
+    }
+  ],
+  "vectors": [
+    {
+      "name": "mainnet-ethereum-1",
+      "root_id": "mainnet",
+      "predecessor": "example.near",
+      "path": "ethereum-1",
+      "tweak_hex": "bd53ba866934edeac006270198e66890cf6941f5d3a5285c487f2d82cf566e33",
+      "secp256k1": {
+        "domain_id": 0,
+        "public_key_sec1_hex": "04f981e58fa26199180ea71b627362c7d1a6bebd73f61fedbe2e0acea5c2e75128a327822ee298967e485d787e0e98163b7d385516811f913cb7256182f5a20394",
+        "public_key_naj": "secp256k1:5zL9u9afiFPPrPmnH7rEz2t3szev5eZ7wXCwzYq37GYyCbJq3YNU31N4LTULioaw3chJx674XUncmYKiSCd3AxxT",
+        "public_key_compressed_hex": "02f981e58fa26199180ea71b627362c7d1a6bebd73f61fedbe2e0acea5c2e75128",
+        "hash160_hex": "2cd2708315b8b267e29af7904d7e13c0522fd127",
+        "ethereum": "0xEF4Ea05e5c11057DeCC8E1bd6F5369f2acD91fA5",
+        "bitcoin": {
+          "mainnet": {
+            "p2wpkh": "bc1q9nf8pqc4hzex0c5677gy6lsncpfzl5f8mpcalh",
+            "p2pkh": "155zq2wBAvdYdPKf2iowdkjDiU3Z6QzcVc",
+            "p2sh_p2wpkh": "3DfaNeNbG525eH6tcvNm4XVoct5GWzHGjG"
+          },
+          "testnet": {
+            "p2wpkh": "tb1q9nf8pqc4hzex0c5677gy6lsncpfzl5f838rwyy",
+            "p2pkh": "mjbx8629yx4oQVoGkHnKTfwYaTeG4wFM7d",
+            "p2sh_p2wpkh": "2N5DnSPJcsXXRr4jSJ3zdgUV4qEHSJ4yTJR"
+          },
+          "regtest": {
+            "p2wpkh": "bcrt1q9nf8pqc4hzex0c5677gy6lsncpfzl5f8nw6rnd",
+            "p2pkh": "mjbx8629yx4oQVoGkHnKTfwYaTeG4wFM7d",
+            "p2sh_p2wpkh": "2N5DnSPJcsXXRr4jSJ3zdgUV4qEHSJ4yTJR"
+          }
+        }
+      },
+      "ed25519": {
+        "domain_id": 1,
+        "public_key_naj": "ed25519:GLLMegupbxhukwpfExph4xU2yRRyJJeeHf7kGkEE32mE",
+        "public_key_hex": "e3d339a6d13a9b28c83b23255eb43210fbbf844122290a6f5898e5d8ff65e7a9",
+        "solana": "GLLMegupbxhukwpfExph4xU2yRRyJJeeHf7kGkEE32mE"
+      }
+    },
+    {
+      "name": "mainnet-ethereum-2",
+      "root_id": "mainnet",
+      "predecessor": "example.near",
+      "path": "ethereum-2",
+      "tweak_hex": "731d1b6a060e828c02a0e3750525f0e59e0e91c9a069fc352194b124f0035b3e",
+      "secp256k1": {
+        "domain_id": 0,
+        "public_key_sec1_hex": "04599038b49d32f1f345e4321dca5f3619d96100126ef940f904c1f7cb0ada3ad8f2bb44672ba5b686940230505d0bdaf4764ee7df58a5300691f60eeff095e9fc",
+        "public_key_naj": "secp256k1:2nrmyCLbQwZi2FmMEHNfWBYirAKz5SD8wejABRrEWsjsGEDWopTY2QyoBbaV7UxHWfNnyL7qRcqdrcEgNcbtq8fu",
+        "public_key_compressed_hex": "02599038b49d32f1f345e4321dca5f3619d96100126ef940f904c1f7cb0ada3ad8",
+        "hash160_hex": "c7df647ebec8a1e4c2b5c3e0b706c72a42df0dc9",
+        "ethereum": "0x273EeB4d7651d9296ec5bD9A6cEeBCa219101cb8",
+        "bitcoin": {
+          "mainnet": {
+            "p2wpkh": "bc1qcl0kgl47ezs7fs44c0stwpk89fpd7rwfn7ujke",
+            "p2pkh": "1KDq5mAE59DXZjN3AxH7mhVTMWvR4BGn67",
+            "p2sh_p2wpkh": "3BryhzLyZWmEmLVXX9ufFwH69mdKJ689BL"
+          },
+          "testnet": {
+            "p2wpkh": "tb1qcl0kgl47ezs7fs44c0stwpk89fpd7rwfec8pd2",
+            "p2pkh": "myjnNpFCtAenLqqetXFVbchnDWX7sy1TR4",
+            "p2sh_p2wpkh": "2N3RBmjH1AyGay885CHXXstGMN7qV21fQ3g"
+          },
+          "regtest": {
+            "p2wpkh": "bcrt1qcl0kgl47ezs7fs44c0stwpk89fpd7rwfm37v6r",
+            "p2pkh": "myjnNpFCtAenLqqetXFVbchnDWX7sy1TR4",
+            "p2sh_p2wpkh": "2N3RBmjH1AyGay885CHXXstGMN7qV21fQ3g"
+          }
+        }
+      },
+      "ed25519": {
+        "domain_id": 1,
+        "public_key_naj": "ed25519:E6tqaaJ6CFGXrDrKTsRmt67cbs3UmyPi2S4CZejCaHgu",
+        "public_key_hex": "c2aa726f565b6066c3cebcdbb3b33ec9a4d6f671b43ca19a5a8796b3908302a2",
+        "solana": "E6tqaaJ6CFGXrDrKTsRmt67cbs3UmyPi2S4CZejCaHgu"
+      }
+    },
+    {
+      "name": "mainnet-empty",
+      "root_id": "mainnet",
+      "predecessor": "alice.near",
+      "path": "",
+      "tweak_hex": "2649079b41dfbd977f09f552ace7bc7590e5ee09f8b24fd95eff38d867d56530",
+      "secp256k1": {
+        "domain_id": 0,
+        "public_key_sec1_hex": "045b0cafe5e498e77c8c8efe596160d4c5108176ecb107ed8d084a4597a385722453f542cb25fb87234db13cb981aae1abf98cb5b93ad0d6b270d8c96a87febf5d",
+        "public_key_naj": "secp256k1:2pajUzJzmwZWKNVY8aqCQ6aXbBdVYE93vX7mwT51wVHiLTJAqjHEd8vCCNDqHo8GeUcnfKK216WzR6PVRTVFV4y2",
+        "public_key_compressed_hex": "035b0cafe5e498e77c8c8efe596160d4c5108176ecb107ed8d084a4597a3857224",
+        "hash160_hex": "e2ea22b8c27f6da20f7db8f35cf1fde3422ead03",
+        "ethereum": "0xf313CdF7E8b8c3105A74653b72D8fc195585D2F4",
+        "bitcoin": {
+          "mainnet": {
+            "p2wpkh": "bc1qut4z9wxz0ak6yrmahre4eu0audpzatgrrfs2x6",
+            "p2pkh": "1MgpCPBwnJVDQj46woNCpSFYQXojCLZzJn",
+            "p2sh_p2wpkh": "381goHBj4Hg1Ysp8xwaDJFc4LqYB5niCcX"
+          },
+          "testnet": {
+            "p2wpkh": "tb1qut4z9wxz0ak6yrmahre4eu0audpzatgrf0teaf",
+            "p2pkh": "n2CmVSGvbKvUBqXifNLaeMTsGXQS7Uqmn7",
+            "p2sh_p2wpkh": "2MyZts27kfkBMkfSge5C5vCbKZBkLwX5p8i"
+          },
+          "regtest": {
+            "p2wpkh": "bcrt1qut4z9wxz0ak6yrmahre4eu0audpzatgrtxj52q",
+            "p2pkh": "n2CmVSGvbKvUBqXifNLaeMTsGXQS7Uqmn7",
+            "p2sh_p2wpkh": "2MyZts27kfkBMkfSge5C5vCbKZBkLwX5p8i"
+          }
+        }
+      },
+      "ed25519": {
+        "domain_id": 1,
+        "public_key_naj": "ed25519:5kn5vZUt2rz4E5tM3DUZGvZvnBsVY8DMcxEKwmya3XUK",
+        "public_key_hex": "46a5b33c5eeb0af7b0baafe185df67eec33fd66bacf292e495490555a78e50c8",
+        "solana": "5kn5vZUt2rz4E5tM3DUZGvZvnBsVY8DMcxEKwmya3XUK"
+      }
+    },
+    {
+      "name": "mainnet-unicode",
+      "root_id": "mainnet",
+      "predecessor": "a-b_c.d.near",
+      "path": "\u5ba2\u6237/\u652f\u4ed8,\u20a6/\u20bf/\u25ce/\ud83d\ude80",
+      "tweak_hex": "23f134814af5a3b13fbb10b8c314be3e217f5dc867375a2f62b346a9c6c0c5e2",
+      "secp256k1": {
+        "domain_id": 0,
+        "public_key_sec1_hex": "04591657090dcc55b9c6be7ea6aeb237ff9acf2b0f5268f038c6e1c8453a9e5760d0e5b49276a4c08b1e0aad2cd7f9edd8f04e979ee1180289f189c23e3c483d91",
+        "public_key_naj": "secp256k1:2nJkkD72a3raSJZHq7bMF2396WhjcaQtFCsQFo7cZnTCYXKQx7NTXbnynBAZXzdwrg7Gy7vnYVzVEb8GrxnEty7n",
+        "public_key_compressed_hex": "03591657090dcc55b9c6be7ea6aeb237ff9acf2b0f5268f038c6e1c8453a9e5760",
+        "hash160_hex": "7df9070885fa5bdbba7d034a46cd5047b442e8d5",
+        "ethereum": "0x3faB77200a03c15982988B11df162A9Ad38009C7",
+        "bitcoin": {
+          "mainnet": {
+            "p2wpkh": "bc1q0huswzy9lfdahwnaqd9ydn2sg76y96x4n995yd",
+            "p2pkh": "1CV5niEsVNXMmtSWhxB2FxdvcAxnCjG8iP",
+            "p2sh_p2wpkh": "3PVddaJ3aAHrSwBfuwMAK7a2uscSktQYKT"
+          },
+          "testnet": {
+            "p2wpkh": "tb1q0huswzy9lfdahwnaqd9ydn2sg76y96x4er78l7",
+            "p2pkh": "ms135mKrJPxcYzv8RX9Q5srFUAZV8tuF5K",
+            "p2sh_p2wpkh": "2NF3qhKE5BcoCeipDb4y2w4ZJ8DpcXZPZxp"
+          },
+          "regtest": {
+            "p2wpkh": "bcrt1q0huswzy9lfdahwnaqd9ydn2sg76y96x4m282gh",
+            "p2pkh": "ms135mKrJPxcYzv8RX9Q5srFUAZV8tuF5K",
+            "p2sh_p2wpkh": "2NF3qhKE5BcoCeipDb4y2w4ZJ8DpcXZPZxp"
+          }
+        }
+      },
+      "ed25519": {
+        "domain_id": 1,
+        "public_key_naj": "ed25519:H4JKXixAfRTnLdkQwGt23WtB73GjVgqxZbiyM4BZfQt4",
+        "public_key_hex": "ee935102875d54c7cf064d986ea4c76a4f5ae06cfbf45f2e45d4a3e6d93794bd",
+        "solana": "H4JKXixAfRTnLdkQwGt23WtB73GjVgqxZbiyM4BZfQt4"
+      }
+    },
+    {
+      "name": "mainnet-implicit",
+      "root_id": "mainnet",
+      "predecessor": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "path": "m/44'/60'/0'/0/0",
+      "tweak_hex": "b7f6dd5acbdd4d6ccb23fd79bd092efdc2f5acf2b90d9b93ecc75d923026a49a",
+      "secp256k1": {
+        "domain_id": 0,
+        "public_key_sec1_hex": "04b60ee49e761d1287570dc18139afc266d575d2592dd62de02d08dbe92557df16345dada97ef4f1fb8d89b6a9c970cc61442ba1f0b9d0a0ad9bd194e7f38c89fc",
+        "public_key_naj": "secp256k1:4e7iFifuAT8vr44LJd9JPcvzpzcFHKfySVpjDMYye72kFskGfUnhsSg82PugpEyNEHAyACDsV3k1nvU59rXd6Yxb",
+        "public_key_compressed_hex": "02b60ee49e761d1287570dc18139afc266d575d2592dd62de02d08dbe92557df16",
+        "hash160_hex": "b96bfcbddbfa6cc9059c4093e4eb2b88b0bb63b1",
+        "ethereum": "0x5706fF960863D8087Cb5E153A91af6eC2e750f50",
+        "bitcoin": {
+          "mainnet": {
+            "p2wpkh": "bc1qh94le0wmlfkvjpvugzf7f6et3zctkca3jc08q8",
+            "p2pkh": "1HuRNaQ5WdUTTpUbaErXWR87etxLPrR2tK",
+            "p2sh_p2wpkh": "3FEkbScyckF8XUp869ErZgUn5YJ1YRCtzh"
+          },
+          "testnet": {
+            "p2wpkh": "tb1qh94le0wmlfkvjpvugzf7f6et3zctkca3c755m5",
+            "p2pkh": "mxRNfdV4KeuiEvxDHopuLLLSWtZ3Nn7vCU",
+            "p2sh_p2wpkh": "2N6nxfBZ1ECkUjGSfmGrjBdU3HtWBJQEDB5"
+          },
+          "regtest": {
+            "p2wpkh": "bcrt1qh94le0wmlfkvjpvugzf7f6et3zctkca36hdeva",
+            "p2pkh": "mxRNfdV4KeuiEvxDHopuLLLSWtZ3Nn7vCU",
+            "p2sh_p2wpkh": "2N6nxfBZ1ECkUjGSfmGrjBdU3HtWBJQEDB5"
+          }
+        }
+      },
+      "ed25519": {
+        "domain_id": 1,
+        "public_key_naj": "ed25519:DQ3ZJvaZ1fesrUYPWA9MmRu9P6WViirKgXn3P7PuiRiB",
+        "public_key_hex": "b8337e34cc91e095fb3d7ab54621776c4a3587acbd25ed73addaec779dbb289c",
+        "solana": "DQ3ZJvaZ1fesrUYPWA9MmRu9P6WViirKgXn3P7PuiRiB"
+      }
+    },
+    {
+      "name": "mainnet-domains-4-5",
+      "root_id": "mainnet",
+      "predecessor": "alice.near",
+      "path": "",
+      "tweak_hex": "2649079b41dfbd977f09f552ace7bc7590e5ee09f8b24fd95eff38d867d56530",
+      "secp256k1": {
+        "domain_id": 4,
+        "public_key_sec1_hex": "04d39261dd460711ce5f14a5fd1935d14177999e97416491ba730ff430de9c3a4503f7e226d297d06d74aa424faf1006eaa9d1039ec68444146ef6442ee980e36b",
+        "public_key_naj": "secp256k1:5ELiP3sAqH6HWuoT3SQCKcaBXZRTPPAmfqN12cBMgFjJGVR5QBpzNSw2zUddA1paBPeyn5KnqzzSGyivxcwdgvRp",
+        "public_key_compressed_hex": "03d39261dd460711ce5f14a5fd1935d14177999e97416491ba730ff430de9c3a45",
+        "hash160_hex": "3f0e50e82fe92ea260324c7762f2d8b23bd932a9",
+        "ethereum": "0xa886b21c6DF294D508f5b3F4ED9fb20CEf07CE65",
+        "bitcoin": {
+          "mainnet": {
+            "p2wpkh": "bc1q8u89p6p0ayh2ycpjf3mk9ukckgaajv4f4524m8",
+            "p2pkh": "16kQinKgSGXAXntvEV9q37FfwY1uBV6b4P",
+            "p2sh_p2wpkh": "384EqdBSyvVRMw6E67jWY7WLL2sMUcp9jA"
+          },
+          "testnet": {
+            "p2wpkh": "tb1q8u89p6p0ayh2ycpjf3mk9ukckgaajv4flj3xq5",
+            "p2pkh": "mmGN1qQfFHxRJuNXx48Cs2TzoXccA48FcV",
+            "p2sh_p2wpkh": "2MycSuN7UbNzmZiimmFMPA4VbYP5XNP3QEc"
+          },
+          "regtest": {
+            "p2wpkh": "bcrt1q8u89p6p0ayh2ycpjf3mk9ukckgaajv4famgtha",
+            "p2pkh": "mmGN1qQfFHxRJuNXx48Cs2TzoXccA48FcV",
+            "p2sh_p2wpkh": "2MycSuN7UbNzmZiimmFMPA4VbYP5XNP3QEc"
+          }
+        }
+      },
+      "ed25519": {
+        "domain_id": 5,
+        "public_key_naj": "ed25519:E9ccKmWaJdAnJkcczuTvSRwZunxigNuhckp9qUYaq2T6",
+        "public_key_hex": "c35cd6fb3434cd4e548a13b5aed7837a073d336bb728be1d0c7bf13e52e7fabd",
+        "solana": "E9ccKmWaJdAnJkcczuTvSRwZunxigNuhckp9qUYaq2T6"
+      }
+    },
+    {
+      "name": "testnet-ethereum-1",
+      "root_id": "testnet",
+      "predecessor": "example.testnet",
+      "path": "ethereum-1",
+      "tweak_hex": "3f4dac38ca0d90b7a96e0112cd23bcd2838ebd46a928fcf5e0e9160e23ed34b2",
+      "secp256k1": {
+        "domain_id": 0,
+        "public_key_sec1_hex": "0426b5cd18cfea261f7c82e3ee5035685a14047407c2006e76752413d2cbe7fa45da35bc9abb24291b21d45b8d5a7dc9b93d47db764a4121c2846bb2004d8728dc",
+        "public_key_naj": "secp256k1:mtY14KMe3TZggrVhPwjM1Z68WKTXDMYNwNjyMTGzioKV3qJhFZ4LZ41KCe5RUNCjC3EGjS5wpZdzGJ5JZ1Dhab5",
+        "public_key_compressed_hex": "0226b5cd18cfea261f7c82e3ee5035685a14047407c2006e76752413d2cbe7fa45",
+        "hash160_hex": "a6328f7ee55dca985c84f85d38176d2bcd3787d2",
+        "ethereum": "0xD8ebbAA4f6558cc6b322987194Fd663a976272bD",
+        "bitcoin": {
+          "mainnet": {
+            "p2wpkh": "bc1q5ceg7lh9th9fshyylpwns9md90xn0p7j4fp7lr",
+            "p2pkh": "1G9mjrMyeQ2j8yA8eLCY8FnEtwWmaMQasC",
+            "p2sh_p2wpkh": "3B1mj3mg1fk6oEzLWR9hcQnMbhCNTZaKCo"
+          },
+          "testnet": {
+            "p2wpkh": "tb1q5ceg7lh9th9fshyylpwns9md90xn0p7jl06dys",
+            "p2pkh": "mvfj2uSxTRTyv5dkMuAuxAzZkw7UTY923f",
+            "p2sh_p2wpkh": "2N2Zynnhhd8FT12ctBYmaEMmcp3QYFUKxU6"
+          },
+          "regtest": {
+            "p2wpkh": "bcrt1q5ceg7lh9th9fshyylpwns9md90xn0p7jaxrqne",
+            "p2pkh": "mvfj2uSxTRTyv5dkMuAuxAzZkw7UTY923f",
+            "p2sh_p2wpkh": "2N2Zynnhhd8FT12ctBYmaEMmcp3QYFUKxU6"
+          }
+        }
+      },
+      "ed25519": {
+        "domain_id": 1,
+        "public_key_naj": "ed25519:32F9kLSVCPzygmDyYvhcrXD9Q3c1tW6NNZAkvsazFD5A",
+        "public_key_hex": "1e08f47d50282293c063de4f5def9233c9877af142ac3cb9b5d34d4338c4d101",
+        "solana": "32F9kLSVCPzygmDyYvhcrXD9Q3c1tW6NNZAkvsazFD5A"
+      }
+    },
+    {
+      "name": "testnet-ethereum-2",
+      "root_id": "testnet",
+      "predecessor": "example.testnet",
+      "path": "ethereum-2",
+      "tweak_hex": "8ce8f0314a1cca931602a9efe609f9f63613e70751080a8914e00e4f3169055f",
+      "secp256k1": {
+        "domain_id": 0,
+        "public_key_sec1_hex": "048802e51cda97de4a299677483626ed248728d7e1807a6411439893e891efba44e29c3869f09feb96cf4aa3b2007cc6984492346d20e92f92558de090d6f8976d",
+        "public_key_naj": "secp256k1:3iijPkjXSCVz6yGqfH1gfmexLuJb4CVDRoj9esyjRuk1Jq19DfygRBYZkc3yoWWw4QyeX4yh7XVxYA5cCoTJXPs2",
+        "public_key_compressed_hex": "038802e51cda97de4a299677483626ed248728d7e1807a6411439893e891efba44",
+        "hash160_hex": "c1b9af078084dafbb917e5aa9b39f901f66fda8b",
+        "ethereum": "0x8E63d0bDd9dc053afAad495a62399AA885ea6618",
+        "bitcoin": {
+          "mainnet": {
+            "p2wpkh": "bc1qcxu67puqsnd0hwghuk4fkw0eq8mxlk5t24xu7r",
+            "p2pkh": "1JfKrZ6xxZ2aSeAbzNrjr8CcsR42yWMLHU",
+            "p2sh_p2wpkh": "347TY1ZFgMNh3GiGdRbDrBaCjCK2VFhzb8"
+          },
+          "testnet": {
+            "p2wpkh": "tb1qcxu67puqsnd0hwghuk4fkw0eq8mxlk5tqna09s",
+            "p2pkh": "myBH9cBwmaTqDkeDhwq7g3QwjQejrnTL7h",
+            "p2sh_p2wpkh": "2MuffbkVHHot3F4LpJZD6U8ZTwYXCHmLEL4"
+          },
+          "regtest": {
+            "p2wpkh": "bcrt1qcxu67puqsnd0hwghuk4fkw0eq8mxlk5tz6yzje",
+            "p2pkh": "myBH9cBwmaTqDkeDhwq7g3QwjQejrnTL7h",
+            "p2sh_p2wpkh": "2MuffbkVHHot3F4LpJZD6U8ZTwYXCHmLEL4"
+          }
+        }
+      },
+      "ed25519": {
+        "domain_id": 1,
+        "public_key_naj": "ed25519:2ZP3YqjyqVCnwsP2kH37tgZuwNU77HF7UzfV6MRpVPCB",
+        "public_key_hex": "172732af5721ff46dff7951234d9d9c553be16101f50c3486f2ff1bb27943270",
+        "solana": "2ZP3YqjyqVCnwsP2kH37tgZuwNU77HF7UzfV6MRpVPCB"
+      }
+    },
+    {
+      "name": "testnet-empty",
+      "root_id": "testnet",
+      "predecessor": "alice.testnet",
+      "path": "",
+      "tweak_hex": "d219efdbdcd8e8b2fc8a28ade09612d01f4abfe223f99cb401f0cef3aebee6e7",
+      "secp256k1": {
+        "domain_id": 0,
+        "public_key_sec1_hex": "043937b95047c722a1e445d1b5ca6abfb1ee7ab67c43852fc4d2c3657cf8927a974c92827ab233b9eba31cafb710df19cac3cf24ee3b9a3f286b96eb92514efd08",
+        "public_key_naj": "secp256k1:29MJCtG29G38ALAoJTYgXf4pdRNRzmhrn6wJ7TFvkT52yELe6oJb18wbviC776XMQCiPir6nsJsgjTSjfNxf2xvb",
+        "public_key_compressed_hex": "023937b95047c722a1e445d1b5ca6abfb1ee7ab67c43852fc4d2c3657cf8927a97",
+        "hash160_hex": "43868142bb9502fd61f4d6c6f4a88f472fac7c83",
+        "ethereum": "0x655CFE13CD66d0324067fCC6e322aea5eEcf33Ce",
+        "bitcoin": {
+          "mainnet": {
+            "p2wpkh": "bc1qgwrgzs4mj5p06c056mr0f2y0guh6clyrmpxyzu",
+            "p2pkh": "17A3QRHH7J4VTwJhR4d3jKBxKd7eFER6F5",
+            "p2sh_p2wpkh": "3K9DTH4be3fhf84yHLZYsqjx15GJz5d9rw"
+          },
+          "testnet": {
+            "p2wpkh": "tb1qgwrgzs4mj5p06c056mr0f2y0guh6clyr38ahe0",
+            "p2pkh": "mmfzhUNFvKVkF3nK8dbRZEQHBciM8QBseB",
+            "p2sh_p2wpkh": "2NAhRX1zdFWB3ruhWxUBRVnjDDRUUhc47NC"
+          },
+          "regtest": {
+            "p2wpkh": "bcrt1qgwrgzs4mj5p06c056mr0f2y0guh6clyrnwy6wx",
+            "p2pkh": "mmfzhUNFvKVkF3nK8dbRZEQHBciM8QBseB",
+            "p2sh_p2wpkh": "2NAhRX1zdFWB3ruhWxUBRVnjDDRUUhc47NC"
+          }
+        }
+      },
+      "ed25519": {
+        "domain_id": 1,
+        "public_key_naj": "ed25519:7fU4sFL9gkgE8VBb5hSqpcfZnwnbcGEHtptZxjXqYGjH",
+        "public_key_hex": "6300cbf2d2e829b0d9cc91bf5a0bdd73f75c3ce536a786a082161f33d3409f48",
+        "solana": "7fU4sFL9gkgE8VBb5hSqpcfZnwnbcGEHtptZxjXqYGjH"
+      }
+    },
+    {
+      "name": "testnet-unicode",
+      "root_id": "testnet",
+      "predecessor": "a-b_c.d.testnet",
+      "path": "\u5ba2\u6237/\u652f\u4ed8,\u20a6/\u20bf/\u25ce/\ud83d\ude80",
+      "tweak_hex": "7f8c3c230810e101f6ac9d25ebe0ae9fcd780b2c7263d2dfac59b6b912fc53c0",
+      "secp256k1": {
+        "domain_id": 0,
+        "public_key_sec1_hex": "044454fe384e1629c7df256342ab1b047f0825017ded25bb9ea34eb7f72285e2e8ddfaae645adefa4e12dfa7a41917731319d302701b6cab8bfe9619f93fedab56",
+        "public_key_naj": "secp256k1:2NEpG1YfHvR4fRw4bFd4F6fyhv4BfkYgdaLTXoDQ6RqnX8dUtsAbydbeQwyrjMhNLf7RiPKHcreQHtnP8TY79fm7",
+        "public_key_compressed_hex": "024454fe384e1629c7df256342ab1b047f0825017ded25bb9ea34eb7f72285e2e8",
+        "hash160_hex": "9092f7ba3b9ab8401b95ad0e443501e6c111c6da",
+        "ethereum": "0x9aD8f8173472c525ED00C2fEB52DFCAF5fF7e7C0",
+        "bitcoin": {
+          "mainnet": {
+            "p2wpkh": "bc1qjzf00w3mn2uyqxu4458ygdgpumq3r3k6ev4g0n",
+            "p2pkh": "1EBSN7ot45zurbj79FNJxixN1ua8kKEnia",
+            "p2sh_p2wpkh": "3JTCzPtMafmYGpurSXiBrrHupdyEGjtNpn"
+          },
+          "testnet": {
+            "p2wpkh": "tb1qjzf00w3mn2uyqxu4458ygdgpumq3r3k6n2wm5q",
+            "p2pkh": "mthPfAtrs7SAdiCirpLgneAgsuAqe6gy8v",
+            "p2sh_p2wpkh": "2NA1R48pPC8GtUcYQ7fL4UoHB2zBQ4txaqD"
+          },
+          "regtest": {
+            "p2wpkh": "bcrt1qjzf00w3mn2uyqxu4458ygdgpumq3r3k63rhkrf",
+            "p2pkh": "mthPfAtrs7SAdiCirpLgneAgsuAqe6gy8v",
+            "p2sh_p2wpkh": "2NA1R48pPC8GtUcYQ7fL4UoHB2zBQ4txaqD"
+          }
+        }
+      },
+      "ed25519": {
+        "domain_id": 1,
+        "public_key_naj": "ed25519:GiWmuCqX19YfxMwnzLeG22khodfCrkF299fteJZXvNRU",
+        "public_key_hex": "e981c8652cfebb780cbc6f004d2380bc87ae09d332f13466477c28c341b9ad67",
+        "solana": "GiWmuCqX19YfxMwnzLeG22khodfCrkF299fteJZXvNRU"
+      }
+    },
+    {
+      "name": "testnet-implicit",
+      "root_id": "testnet",
+      "predecessor": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "path": "m/44'/60'/0'/0/0",
+      "tweak_hex": "b7f6dd5acbdd4d6ccb23fd79bd092efdc2f5acf2b90d9b93ecc75d923026a49a",
+      "secp256k1": {
+        "domain_id": 0,
+        "public_key_sec1_hex": "04d241de4dfbfae1d944faf849a815237a8d289198bacea68b289a330d36c9e8559c7e8fc4c5b5d9e6b81acb97111446a7fc949f3cca047c3747d7dba3dcbe75c0",
+        "public_key_naj": "secp256k1:5CpJbo8k545vkXsTjegYfApr2op1Ax6p4D8BZRZEeaJpT5xXm3znG7B4bnAHn8xzoUo34uePq2KCuTFzGwumXfBu",
+        "public_key_compressed_hex": "02d241de4dfbfae1d944faf849a815237a8d289198bacea68b289a330d36c9e855",
+        "hash160_hex": "861c16052829eab137bd86d93970dccdf26eac24",
+        "ethereum": "0x87057B87A2B7B8673A32FfA81a46915cF1d72e51",
+        "bitcoin": {
+          "mainnet": {
+            "p2wpkh": "bc1qscwpvpfg984tzdaasmvnjuxuehexatpy24xa75",
+            "p2pkh": "1DE7CA3RSP6quPoA5TbGF8eQjcp93eV5md",
+            "p2sh_p2wpkh": "3BJvGF51cR6JrVYMs9bdJw9aPFAMThhiMT"
+          },
+          "testnet": {
+            "p2wpkh": "tb1qscwpvpfg984tzdaasmvnjuxuehexatpyqnaw98",
+            "p2pkh": "msk4VD8QFQY6gWGmo2Ze53rjbcQqzRMpJJ",
+            "p2sh_p2wpkh": "2N2s8Kz13Dsbf4HAuYHDVvt8qbbNXJXFkjB"
+          },
+          "regtest": {
+            "p2wpkh": "bcrt1qscwpvpfg984tzdaasmvnjuxuehexatpyz6yrjw",
+            "p2pkh": "msk4VD8QFQY6gWGmo2Ze53rjbcQqzRMpJJ",
+            "p2sh_p2wpkh": "2N2s8Kz13Dsbf4HAuYHDVvt8qbbNXJXFkjB"
+          }
+        }
+      },
+      "ed25519": {
+        "domain_id": 1,
+        "public_key_naj": "ed25519:DEsFu39P9m2GkgeEZkNznkvFM1yzqy3f7a2iDi8atF4Q",
+        "public_key_hex": "b5d99e861638d02e731e7067fc34724b68a38f6a598c660ecb96c7327f2f6a65",
+        "solana": "DEsFu39P9m2GkgeEZkNznkvFM1yzqy3f7a2iDi8atF4Q"
+      }
+    },
+    {
+      "name": "testnet-domains-4-5",
+      "root_id": "testnet",
+      "predecessor": "alice.testnet",
+      "path": "",
+      "tweak_hex": "d219efdbdcd8e8b2fc8a28ade09612d01f4abfe223f99cb401f0cef3aebee6e7",
+      "secp256k1": {
+        "domain_id": 4,
+        "public_key_sec1_hex": "043aa7566dd0c96d3d1de955012b0311b51f00d059dfedafdab4b501b8127ad9b5c04a68e5a0c584ef6e288b99374ec3cc6533b596f1f406b981db8f5e127f2f0a",
+        "public_key_naj": "secp256k1:2B1stBy9E5y5TgvE3smynCZCJqtL7gi75iwyX4Ew6rvwwvpTynhzruZVt9HmZZW321Xen2w9VwtsbyNQbhYBvTTw",
+        "public_key_compressed_hex": "023aa7566dd0c96d3d1de955012b0311b51f00d059dfedafdab4b501b8127ad9b5",
+        "hash160_hex": "9c538e327d295223fe09b94f9e8092441b458ef1",
+        "ethereum": "0xb0F91fACBc19833F4629a1aC85414e397304A45C",
+        "bitcoin": {
+          "mainnet": {
+            "p2wpkh": "bc1qn3fcuvna99fz8lsfh98eaqyjgsd5trh3qtvdc4",
+            "p2pkh": "1FFaWTiFXf8VLrJoy8Gd3roBffp2rR7tLb",
+            "p2sh_p2wpkh": "3Lp48kTukorgVnYPPAKq3Fp1ekdzH2UcTr"
+          },
+          "testnet": {
+            "p2wpkh": "tb1qn3fcuvna99fz8lsfh98eaqyjgsd5trh32dh7rx",
+            "p2pkh": "mumXoWoELgZk7xnRghEzsn1WXfQjjRQYnr",
+            "p2sh_p2wpkh": "2NCNGCVPwNGN2haAw4HwhfCoGs6rA4Nhmmc"
+          },
+          "regtest": {
+            "p2wpkh": "bcrt1qn3fcuvna99fz8lsfh98eaqyjgsd5trh3gywn50",
+            "p2pkh": "mumXoWoELgZk7xnRghEzsn1WXfQjjRQYnr",
+            "p2sh_p2wpkh": "2NCNGCVPwNGN2haAw4HwhfCoGs6rA4Nhmmc"
+          }
+        }
+      },
+      "ed25519": {
+        "domain_id": 5,
+        "public_key_naj": "ed25519:2RDFf2raFazsA8mQfREfRdwQNtW7QCA4jsPSeFv3SBtm",
+        "public_key_hex": "150f7b01fdac5099c7ec526025075ac06be9cba9ee6c403923ea71bbab760a4a",
+        "solana": "2RDFf2raFazsA8mQfREfRdwQNtW7QCA4jsPSeFv3SBtm"
+      }
+    },
+    {
+      "name": "testnet-captured",
+      "root_id": "testnet",
+      "predecessor": "derivation-test.testnet",
+      "path": "unit-test",
+      "tweak_hex": "7a4d7e6dcdef70e890bc9531c1118224d3efcdfe19491d1ac7b2a8ffaccc42c0",
+      "secp256k1": {
+        "domain_id": 0,
+        "public_key_sec1_hex": "04816353e4086e2619542c0212e17dc509a0dc9f11e0979371a3413be4e87c962763918b19f371d97de8f7d0cca3da5ff2f49928a914b2aec5c36585cda219c735",
+        "public_key_naj": "secp256k1:3b3GS4kaAPvzxFUEYKiMvXeuBzttMZosggT3iAAbyZzAfQc1Dn4eLrDshNGGeKZyfSK7xegjPSq553NXHisMLiyA",
+        "public_key_compressed_hex": "03816353e4086e2619542c0212e17dc509a0dc9f11e0979371a3413be4e87c9627",
+        "hash160_hex": "bb22ccd62f075d12aadb7641dd48a76806e7ffd9",
+        "ethereum": "0x0513cb2E7ED8B3c9A2ac54CDcaCa32520b0B7311",
+        "bitcoin": {
+          "mainnet": {
+            "p2wpkh": "bc1qhv3ve430qaw392kmweqa6j98dqrw0l7erk09nd",
+            "p2pkh": "1J4V3q4Vyg4Qho2e8Z29oDtNszxYfEpMvy",
+            "p2sh_p2wpkh": "343qBFgiKMZ29kgfKGMRcRsB2zMYnB5D4Z"
+          },
+          "testnet": {
+            "p2wpkh": "tb1qhv3ve430qaw392kmweqa6j98dqrw0l7efs5kg7",
+            "p2pkh": "mxaSLt9UnhVfUuWFr7zXd96hjzZFfUSRja",
+            "p2sh_p2wpkh": "2Muc3Ezcjvp4NMYKCzPyJENrSFLZiVmvjV5"
+          },
+          "regtest": {
+            "p2wpkh": "bcrt1qhv3ve430qaw392kmweqa6j98dqrw0l7etedmlh",
+            "p2pkh": "mxaSLt9UnhVfUuWFr7zXd96hjzZFfUSRja",
+            "p2sh_p2wpkh": "2Muc3Ezcjvp4NMYKCzPyJENrSFLZiVmvjV5"
+          }
+        }
+      },
+      "ed25519": {
+        "domain_id": 1,
+        "public_key_naj": "ed25519:49KFz8zeqrPcaSKqLCXtY79zW98ZW6Nd7W8vSsC7FdKJ",
+        "public_key_hex": "2eb45a1ff4834cedebf7156455e9b5a761e347a83c315d36cd83c6d69b1455a5",
+        "solana": "49KFz8zeqrPcaSKqLCXtY79zW98ZW6Nd7W8vSsC7FdKJ"
+      }
+    }
+  ],
+  "keccak_vectors": [
+    {
+      "length": 0,
+      "input_hex": "",
+      "digest_hex": "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
+    },
+    {
+      "length": 3,
+      "input_hex": "616263",
+      "digest_hex": "4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45"
+    },
+    {
+      "length": 135,
+      "input_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f80818283848586",
+      "digest_hex": "cbdfd9dee5faad3818d6b06f95a219fd290b0e1706f6a82e5a595b9ce9faca62"
+    },
+    {
+      "length": 136,
+      "input_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f8081828384858687",
+      "digest_hex": "7ce759f1ab7f9ce437719970c26b0a66ff11fe3e38e17df89cf5d29c7d7f807e"
+    },
+    {
+      "length": 137,
+      "input_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788",
+      "digest_hex": "ac73d4fae68b8453f764007c1a20ce95994187861f0c3227a3a8e99a73a3b1db"
+    },
+    {
+      "length": 272,
+      "input_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff000102030405060708090a0b0c0d0e0f",
+      "digest_hex": "fdf2ec49e749960d3c8521a0219af8d03e30e2b3bf19bd16150ee0eaf133d66e"
+    }
+  ],
+  "primitives": {
+    "generator": {
+      "public_key_sec1_hex": "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8",
+      "public_key_compressed_hex": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+      "two_g_compressed_hex": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+      "public_key_naj": "secp256k1:3SB8tA9Kbn7FBtT6GWR6AJk73QceudisHaGThPoLCDgC9tan7d3cwZFiDZtrmhSAf8aTynEdQ3N7KXhMm3nWhekP",
+      "ethereum": "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf",
+      "bitcoin": {
+        "mainnet": {
+          "p2wpkh": "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4",
+          "p2pkh": "1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH",
+          "p2sh_p2wpkh": "3JvL6Ymt8MVWiCNHC7oWU6nLeHNJKLZGLN"
+        },
+        "testnet": {
+          "p2wpkh": "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx",
+          "p2pkh": "mrCDrCybB6J1vRfbwM5hemdJz73FwDBC8r",
+          "p2sh_p2wpkh": "2NAUYAHhujozruyzpsFRP63mbrdaU5wnEpN"
+        },
+        "regtest": {
+          "p2wpkh": "bcrt1qw508d6qejxtdg4y5r3zarvary0c5xw7kygt080",
+          "p2pkh": "mrCDrCybB6J1vRfbwM5hemdJz73FwDBC8r",
+          "p2sh_p2wpkh": "2NAUYAHhujozruyzpsFRP63mbrdaU5wnEpN"
+        }
+      }
+    }
+  },
+  "contract_derived_observations": [
+    {
+      "vector": "mainnet-ethereum-1",
+      "root_id": "mainnet",
+      "args": {
+        "predecessor": "example.near",
+        "path": "ethereum-1"
+      },
+      "public_keys": {
+        "0": "secp256k1:5zL9u9afiFPPrPmnH7rEz2t3szev5eZ7wXCwzYq37GYyCbJq3YNU31N4LTULioaw3chJx674XUncmYKiSCd3AxxT",
+        "1": "ed25519:GLLMegupbxhukwpfExph4xU2yRRyJJeeHf7kGkEE32mE"
+      }
+    },
+    {
+      "vector": "mainnet-ethereum-2",
+      "root_id": "mainnet",
+      "args": {
+        "predecessor": "example.near",
+        "path": "ethereum-2"
+      },
+      "public_keys": {
+        "0": "secp256k1:2nrmyCLbQwZi2FmMEHNfWBYirAKz5SD8wejABRrEWsjsGEDWopTY2QyoBbaV7UxHWfNnyL7qRcqdrcEgNcbtq8fu",
+        "1": "ed25519:E6tqaaJ6CFGXrDrKTsRmt67cbs3UmyPi2S4CZejCaHgu"
+      }
+    },
+    {
+      "vector": "mainnet-empty",
+      "root_id": "mainnet",
+      "args": {
+        "predecessor": "alice.near",
+        "path": ""
+      },
+      "public_keys": {
+        "0": "secp256k1:2pajUzJzmwZWKNVY8aqCQ6aXbBdVYE93vX7mwT51wVHiLTJAqjHEd8vCCNDqHo8GeUcnfKK216WzR6PVRTVFV4y2",
+        "1": "ed25519:5kn5vZUt2rz4E5tM3DUZGvZvnBsVY8DMcxEKwmya3XUK"
+      }
+    },
+    {
+      "vector": "mainnet-unicode",
+      "root_id": "mainnet",
+      "args": {
+        "predecessor": "a-b_c.d.near",
+        "path": "\u5ba2\u6237/\u652f\u4ed8,\u20a6/\u20bf/\u25ce/\ud83d\ude80"
+      },
+      "public_keys": {
+        "0": "secp256k1:2nJkkD72a3raSJZHq7bMF2396WhjcaQtFCsQFo7cZnTCYXKQx7NTXbnynBAZXzdwrg7Gy7vnYVzVEb8GrxnEty7n",
+        "1": "ed25519:H4JKXixAfRTnLdkQwGt23WtB73GjVgqxZbiyM4BZfQt4"
+      }
+    },
+    {
+      "vector": "mainnet-implicit",
+      "root_id": "mainnet",
+      "args": {
+        "predecessor": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "path": "m/44'/60'/0'/0/0"
+      },
+      "public_keys": {
+        "0": "secp256k1:4e7iFifuAT8vr44LJd9JPcvzpzcFHKfySVpjDMYye72kFskGfUnhsSg82PugpEyNEHAyACDsV3k1nvU59rXd6Yxb",
+        "1": "ed25519:DQ3ZJvaZ1fesrUYPWA9MmRu9P6WViirKgXn3P7PuiRiB"
+      }
+    },
+    {
+      "vector": "mainnet-domains-4-5",
+      "root_id": "mainnet",
+      "args": {
+        "predecessor": "alice.near",
+        "path": ""
+      },
+      "public_keys": {
+        "4": "secp256k1:5ELiP3sAqH6HWuoT3SQCKcaBXZRTPPAmfqN12cBMgFjJGVR5QBpzNSw2zUddA1paBPeyn5KnqzzSGyivxcwdgvRp",
+        "5": "ed25519:E9ccKmWaJdAnJkcczuTvSRwZunxigNuhckp9qUYaq2T6"
+      }
+    },
+    {
+      "vector": "testnet-ethereum-1",
+      "root_id": "testnet",
+      "args": {
+        "predecessor": "example.testnet",
+        "path": "ethereum-1"
+      },
+      "public_keys": {
+        "0": "secp256k1:mtY14KMe3TZggrVhPwjM1Z68WKTXDMYNwNjyMTGzioKV3qJhFZ4LZ41KCe5RUNCjC3EGjS5wpZdzGJ5JZ1Dhab5",
+        "1": "ed25519:32F9kLSVCPzygmDyYvhcrXD9Q3c1tW6NNZAkvsazFD5A"
+      }
+    },
+    {
+      "vector": "testnet-ethereum-2",
+      "root_id": "testnet",
+      "args": {
+        "predecessor": "example.testnet",
+        "path": "ethereum-2"
+      },
+      "public_keys": {
+        "0": "secp256k1:3iijPkjXSCVz6yGqfH1gfmexLuJb4CVDRoj9esyjRuk1Jq19DfygRBYZkc3yoWWw4QyeX4yh7XVxYA5cCoTJXPs2",
+        "1": "ed25519:2ZP3YqjyqVCnwsP2kH37tgZuwNU77HF7UzfV6MRpVPCB"
+      }
+    },
+    {
+      "vector": "testnet-empty",
+      "root_id": "testnet",
+      "args": {
+        "predecessor": "alice.testnet",
+        "path": ""
+      },
+      "public_keys": {
+        "0": "secp256k1:29MJCtG29G38ALAoJTYgXf4pdRNRzmhrn6wJ7TFvkT52yELe6oJb18wbviC776XMQCiPir6nsJsgjTSjfNxf2xvb",
+        "1": "ed25519:7fU4sFL9gkgE8VBb5hSqpcfZnwnbcGEHtptZxjXqYGjH"
+      }
+    },
+    {
+      "vector": "testnet-unicode",
+      "root_id": "testnet",
+      "args": {
+        "predecessor": "a-b_c.d.testnet",
+        "path": "\u5ba2\u6237/\u652f\u4ed8,\u20a6/\u20bf/\u25ce/\ud83d\ude80"
+      },
+      "public_keys": {
+        "0": "secp256k1:2NEpG1YfHvR4fRw4bFd4F6fyhv4BfkYgdaLTXoDQ6RqnX8dUtsAbydbeQwyrjMhNLf7RiPKHcreQHtnP8TY79fm7",
+        "1": "ed25519:GiWmuCqX19YfxMwnzLeG22khodfCrkF299fteJZXvNRU"
+      }
+    },
+    {
+      "vector": "testnet-implicit",
+      "root_id": "testnet",
+      "args": {
+        "predecessor": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "path": "m/44'/60'/0'/0/0"
+      },
+      "public_keys": {
+        "0": "secp256k1:5CpJbo8k545vkXsTjegYfApr2op1Ax6p4D8BZRZEeaJpT5xXm3znG7B4bnAHn8xzoUo34uePq2KCuTFzGwumXfBu",
+        "1": "ed25519:DEsFu39P9m2GkgeEZkNznkvFM1yzqy3f7a2iDi8atF4Q"
+      }
+    },
+    {
+      "vector": "testnet-domains-4-5",
+      "root_id": "testnet",
+      "args": {
+        "predecessor": "alice.testnet",
+        "path": ""
+      },
+      "public_keys": {
+        "4": "secp256k1:2B1stBy9E5y5TgvE3smynCZCJqtL7gi75iwyX4Ew6rvwwvpTynhzruZVt9HmZZW321Xen2w9VwtsbyNQbhYBvTTw",
+        "5": "ed25519:2RDFf2raFazsA8mQfREfRdwQNtW7QCA4jsPSeFv3SBtm"
+      }
+    },
+    {
+      "vector": "testnet-captured",
+      "root_id": "testnet",
+      "args": {
+        "predecessor": "derivation-test.testnet",
+        "path": "unit-test"
+      },
+      "public_keys": {
+        "0": "secp256k1:3b3GS4kaAPvzxFUEYKiMvXeuBzttMZosggT3iAAbyZzAfQc1Dn4eLrDshNGGeKZyfSK7xegjPSq553NXHisMLiyA",
+        "1": "ed25519:49KFz8zeqrPcaSKqLCXtY79zW98ZW6Nd7W8vSsC7FdKJ"
+      }
+    }
+  ]
+}

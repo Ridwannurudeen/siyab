@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "flinter.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "4ZtqBBhMk5wAvUA592vf4jm6ui4jid6sd84ZEga18QKB",
+      "block_height": 225687232,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 163447355007620,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4e7DDDyiSDg4qPvAEdLNgMadiTXMZPUynnkiN71i8998"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:38:22Z"
+}

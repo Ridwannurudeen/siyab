@@ -85,7 +85,11 @@ Python variables:
 - `SIYAB_TELEGRAM_CHECKS`: set to `1`, with `SIYAB_CHECKS=1`, to have the delivery worker answer account, token and transaction checks in private Telegram chats; off by default.
 
 - `SIYAB_ASK`: Set to 1 to enable Ask Siyab; off by default.
-- `ANTHROPIC_API_KEY_FILE`: Path outside the repository, never a key value; read at call time.
+- `SIYAB_ASK_PROVIDER`: Ask provider, `anthropic` by default or `nearai` with required attestation and no fallback. Keep Anthropic until every candidate in a complete NEAR AI fleet verifies and its retained signers match responses unambiguously.
+- `ANTHROPIC_API_KEY_FILE`: External key file for the default Anthropic Ask provider, never a key value; read at call time.
+- `NEARAI_API_KEY_FILE`: External key file for the optional NEAR AI provider, never a key value; read at call time.
+- `SIYAB_NEARAI_LIVE`: Set to `1` to permit paid NEAR AI requests after required verification; off by default.
+- `NEARAI_ATTESTATION_POLICY_FILE`: External reviewed JSON policy containing the approved gateway and model boot, configuration and manager-action measurements.
 - `SIYAB_ASK_MODEL`: Ask model id from the priced model table.
 - `SIYAB_ASK_EFFORT`: Ask effort: low by default, medium or high.
 - `SIYAB_ASK_DAILY_CAP_MICRO`: Global Ask micro-dollar cap per UTC day: 0 to 3000000, default 3000000.

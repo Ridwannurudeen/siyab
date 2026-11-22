@@ -1,0 +1,43 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "bigbank101.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "5267mNHtcnVtmRt1nzHPZwsLDg9BNtR8WdTMR9BjvCMR",
+      "block_height": 225687657,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 55389053000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8gfwTc81urCMF8hzvcwEAf3RuyeoHzrd824QjwXXHDzG"
+        },
+        {
+          "access_key": {
+            "nonce": 55389018000002,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:AWFNTg96nSmHdsCLDVLueQk2fwNLqbc9AGuhQUKYE3ob"
+        },
+        {
+          "access_key": {
+            "nonce": 55389224000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:HjL7gHZF1AFVBuMSnhJdufepmR45DBT8iDWNky53k8U9"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:42:21Z"
+}

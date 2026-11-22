@@ -1,0 +1,128 @@
+{
+  "request": {
+    "method": "GET",
+    "params": {
+      "signer": "wrap.near",
+      "receiver": "wrap.near",
+      "limit": 10
+    }
+  },
+  "response": {
+    "data": [
+      {
+        "actions": [
+          {
+            "action": "DELETE_KEY",
+            "method": null
+          }
+        ],
+        "actions_agg": {
+          "deposit": "0"
+        },
+        "block": {
+          "block_hash": "BkhiGaz9q3uwa8tUfSddPt9Qh7wVAX8hXmqH3PqfSxbQ",
+          "block_height": "40858545",
+          "block_timestamp": "1624542750855738077"
+        },
+        "block_timestamp": "1624542750855738077",
+        "index_in_chunk": 1,
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": "40601225000000000000"
+        },
+        "receiver_account_id": "wrap.near",
+        "shard_id": 0,
+        "signer_account_id": "wrap.near",
+        "transaction_hash": "DUzJv1DVj3tyEgewoKK8ihHaq72SrJ38xMYeMeGoyFNh"
+      },
+      {
+        "actions": [
+          {
+            "action": "DEPLOY_CONTRACT",
+            "method": null
+          }
+        ],
+        "actions_agg": {
+          "deposit": "0"
+        },
+        "block": {
+          "block_hash": "E1tLsA3i5sTaJcNCFttTiqCErwVTJCEzBkZLH78HnsMf",
+          "block_height": "35438886",
+          "block_timestamp": "1619090101984073232"
+        },
+        "block_timestamp": "1619090101984073232",
+        "index_in_chunk": 0,
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": "311497637875000000000"
+        },
+        "receiver_account_id": "wrap.near",
+        "shard_id": 0,
+        "signer_account_id": "wrap.near",
+        "transaction_hash": "4xtccqLAv25JU4F9HPRdKAeByGpjzA94GZcXY75cNM4"
+      },
+      {
+        "actions": [
+          {
+            "action": "FUNCTION_CALL",
+            "method": "new"
+          }
+        ],
+        "actions_agg": {
+          "deposit": "0"
+        },
+        "block": {
+          "block_hash": "5be4nGFgUYasGr4pBJdrXna4hRhV99tFsTyA88yacXhi",
+          "block_height": "29998388",
+          "block_timestamp": "1613398649505918213"
+        },
+        "block_timestamp": "1613398649505918213",
+        "index_in_chunk": 0,
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": "557897166635500000000"
+        },
+        "receiver_account_id": "wrap.near",
+        "shard_id": 0,
+        "signer_account_id": "wrap.near",
+        "transaction_hash": "6imMAbk4Dt7zPQWiR3N48DugDanJ5SJz433d31tmBRgd"
+      },
+      {
+        "actions": [
+          {
+            "action": "DEPLOY_CONTRACT",
+            "method": null
+          }
+        ],
+        "actions_agg": {
+          "deposit": "0"
+        },
+        "block": {
+          "block_hash": "31eCCGjVBdPPqeXxEGKhpgzPVvAvDXXiVzWKqs3UK76h",
+          "block_height": "29998148",
+          "block_timestamp": "1613398382075758380"
+        },
+        "block_timestamp": "1613398382075758380",
+        "index_in_chunk": 0,
+        "outcomes": {
+          "status": true
+        },
+        "outcomes_agg": {
+          "transaction_fee": "293993680844200000000"
+        },
+        "receiver_account_id": "wrap.near",
+        "shard_id": 0,
+        "signer_account_id": "wrap.near",
+        "transaction_hash": "GhAWeFhuoDNrpyGN2pCUWt1oy6yTEL8nhfyn2eBQo7Kz"
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v3/accounts/wrap.near/txns",
+  "fetched_at": "2026-11-21T20:34:55Z"
+}

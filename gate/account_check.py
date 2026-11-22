@@ -240,6 +240,9 @@ def check_account(account_id, *, store, rpc, nearblocks, archival, issuers, now_
     checks += extra
     statuses = {check["status"] for check in checks}
     verdict = "DENY" if "signal" in statuses else "UNKNOWN" if "unknown" in statuses else "ALLOW"
+    if (rules_version == 3 and judgement.verdict == "UNKNOWN"
+            and {check["id"] for check in checks if check["status"] == "signal"} == {"account_age"}):
+        verdict = "UNKNOWN"
     status = "signal" if verdict == "DENY" else "unknown"
     if verdict == judgement.verdict:
         reasons = judgement.reasons + [check["detail"] for check in extra if check["status"] == status]

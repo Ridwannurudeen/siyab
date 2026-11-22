@@ -1,0 +1,43 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "velvaprice144.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "B7AzhF7vdjgBCEY2rSFTDqGKDM3DFhPNnHKqZc73YN49",
+      "block_height": 225687099,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 54803792000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:62VGEgNA4ikcx7VFge6dX8HHvyBsgSBaS95ByRtWUtDT"
+        },
+        {
+          "access_key": {
+            "nonce": 114865139029060,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:C1ieQEkNsVgs9wb4JsaLWMhp1G9EGGmCWEURV8eMCdCq"
+        },
+        {
+          "access_key": {
+            "nonce": 54803799000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Hx8WUCnaGYxd8wqBxEDZkYEL6uvgMtLR7JcynEEne7WC"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:37:05Z"
+}

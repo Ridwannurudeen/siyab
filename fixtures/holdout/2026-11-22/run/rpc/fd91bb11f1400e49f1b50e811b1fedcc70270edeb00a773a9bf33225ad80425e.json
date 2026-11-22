@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "volcanovista.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "GD9VTEiLv88KGHaEAQ7yQN4x2MBpPyZ5sHNZnjLvu55G",
+      "block_height": 225687558,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 124560316000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:7kd7Vqfs1jrs1toM8EzJofpbrj2CLkG3pQAhj9Yt4UA3"
+        },
+        {
+          "access_key": {
+            "nonce": 124560341019600,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:CFLV35wUSJ3oPnwjrazc6fd1LmwQUpPv3rnoh6Euanww"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:41:24Z"
+}

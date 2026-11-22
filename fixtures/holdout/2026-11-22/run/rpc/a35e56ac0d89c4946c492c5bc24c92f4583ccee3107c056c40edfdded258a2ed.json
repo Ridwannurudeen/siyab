@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "fees_pideky_escala.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "4XVbrHnDNVkwgQd9wDKnF3GvXZ7mxPqgtQoYkJn8aA6F",
+      "block_height": 225687147,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 225435084000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:24xtLChs4XzJiuicyavDsu5KkcMWCkt328VjBnDyda6T"
+        },
+        {
+          "access_key": {
+            "nonce": 125038504048652,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:97BADxXVXXUsPq6xDGj5YG5hjHroVkNef1AtX8rED3gW"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:37:34Z"
+}

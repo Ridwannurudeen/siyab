@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "kingfahad32.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "ER6CZF4XLv3J9gNRwgVqNc27fBnANPUVgoQcQyUuCiEP",
+      "block_height": 225686945,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 195084878004910,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9C5gKSZxRqvcjn6JqP1Jk7Yrk9DYU41WXpqJBaNMiBXm"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:35:35Z"
+}

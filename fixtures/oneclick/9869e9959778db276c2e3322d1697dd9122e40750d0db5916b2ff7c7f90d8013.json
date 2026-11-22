@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "GET",
+    "params": {
+      "limit": 1
+    }
+  },
+  "response": {
+    "data": [
+      {
+        "author_account_id": "ledgerbyfigment.poolv1.near",
+        "block_hash": "42NRTYakSSMb5y6hc5iVeFjRujGRWqpPjrGv5HHd8EoM",
+        "block_height": "225608394",
+        "block_timestamp": "1795295248855502181",
+        "chunks_agg": {
+          "count": 10,
+          "gas_limit": "10000000000000000",
+          "gas_used": "47744131360258"
+        },
+        "gas_price": "100000000",
+        "transactions_agg": {
+          "count": 4
+        }
+      }
+    ]
+  },
+  "url": "https://api.nearblocks.io/v3/blocks/latest",
+  "fetched_at": "2026-11-21T21:07:33Z"
+}

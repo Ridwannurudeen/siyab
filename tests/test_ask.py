@@ -71,6 +71,12 @@ class ProjectionTests(unittest.TestCase):
         self.assertEqual(ask.cache_key("test", "low", "why_verdict", ask.project(SUBJECT, first, self.store)),
                          ask.cache_key("test", "low", "why_verdict", ask.project(SUBJECT, second, self.store)))
 
+    def test_anthropic_cache_key_matches_origin_main(self):
+        projected = ask.project(SUBJECT, VERDICT, self.store)
+        expected = "79360610acda68e78559b6e5e0c366d08a900c8e17f1167f7fa7deee78cee146"
+        self.assertEqual(ask.cache_key("claude-haiku-5-5", "low", "why_verdict", projected), expected)
+        self.assertEqual(ask.cache_key("claude-haiku-5-5", "low", "why_verdict", projected, "anthropic"), expected)
+
     def test_cache_key_changes_with_a_check_status(self):
         first = ask.project(SUBJECT, VERDICT, self.store)
         second = copy.deepcopy(first)
@@ -403,8 +409,8 @@ class FailClosedTests(ServiceCase):
         self.assertEqual(self.count("calls"), 0)
 
     def test_sdk_unavailable_reserves_nothing(self):
-        with mock.patch.dict("sys.modules", {"anthropic": None}):
-            service = ask.AskService(self.directory.name, self.store, self.read, clock=lambda: self.now)
+        with mock.patch("intel.ask.sdk_client", side_effect=ask.SDKUnavailable):
+            service = ask.AskService(self.directory.name, self.store, self.read, client_factory=ask.sdk_client, clock=lambda: self.now)
             self.unavailable("sdk_unavailable", self.answer(service))
         self.assertEqual(self.count("calls"), 0)
 
@@ -594,7 +600,7 @@ class MalformedOutputTests(ServiceCase):
         with mock.patch.object(service.ledger, "reserve", side_effect=reserve):
             self.unavailable("timeout", self.answer(service))
         self.client.create.assert_not_called()
-        self.assertEqual(self.count("calls"), 1)
+        self.assertEqual(self.count("calls"), 0)
         for counter in ("spend_micro", "tokens:user:user", "tokens:team:team"):
             self.assertEqual(self.count(counter), 0)
 
@@ -713,7 +719,7 @@ class KeyFileTests(ServiceCase):
         self.assertIsNone(READ_KEY())
 
 
-class AdapterTests(unittest.TestCase):
+class AnthropicAdapterTests(unittest.TestCase):
     def setUp(self):
         self.client = mock.Mock()
         self.client.with_options.return_value = self.client
@@ -830,6 +836,174 @@ class AdapterTests(unittest.TestCase):
                     ask.sdk_client("unit-sentinel-value").create({}, 3)
                 self.assertNotIn("unit-sentinel-value", str(caught.exception))
                 self.assertTrue(caught.exception.__suppress_context__)
+
+
+class NearAIAdapterTests(ServiceCase):
+    def setUp(self):
+        super().setUp()
+        os.environ["SIYAB_ASK_PROVIDER"] = "nearai"
+
+    def test_shared_client_is_constructed_lazily(self):
+        with mock.patch("gate.nearai.Client", return_value=self.client) as factory:
+            self.assertIs(ask.sdk_client("unit-sentinel-value", "nearai"), self.client)
+        factory.assert_called_once_with("unit-sentinel-value")
+
+    def test_normalized_shared_response_reaches_fixed_templates(self):
+        with mock.patch("gate.nearai.Client", return_value=self.client):
+            service = ask.AskService(self.directory.name, self.store, self.read)
+            body = self.answer(service)[1]
+        self.assertEqual(body["status"], "explained")
+        self.assertEqual(body["statements"][0]["text"], ask.TEMPLATES["read.unknown"].format(name="account age"))
+        self.client.create.assert_called_once()
+
+    def test_cached_answer_precedes_key_read_and_preflight(self):
+        service = self.service()
+        self.assertEqual(self.answer(service)[1]["status"], "explained")
+        self.key.reset_mock()
+        self.factory.reset_mock()
+        self.client.reset_mock()
+        self.key.return_value = None
+        self.client.preflight.side_effect = ask.AttestationError("live_disabled")
+        body = self.answer(service)[1]
+        self.assertEqual(body["status"], "explained")
+        self.assertTrue(body["cached"])
+        self.key.assert_not_called()
+        self.factory.assert_not_called()
+        self.client.preflight.assert_not_called()
+        self.client.create.assert_not_called()
+        self.assertEqual(self.count("calls"), 1)
+
+    def test_attestation_failure_is_not_retried_or_cached_and_releases_reservation(self):
+        service = self.service()
+        error = ask.AttestationError("unit-sentinel-value")
+        error.completion_started = False
+        self.client.create.side_effect = error
+        body = self.unavailable("attestation_failed", self.answer(service))
+        self.client.create.assert_called_once()
+        self.assertEqual(body["outcome"], SERVICE_VERDICT["outcome"])
+        self.assertEqual(self.count("spend_micro"), 0)
+        self.assertEqual(self.count("tokens:user:user"), 0)
+        self.assertEqual(self.count("calls"), 0)
+        with closing(sqlite3.connect(self.path)) as connection:
+            self.assertEqual(connection.execute("SELECT COUNT(*) FROM answers").fetchone()[0], 0)
+
+    def test_post_completion_attestation_failure_retains_reservation(self):
+        service = self.service()
+        error = ask.AttestationError("response_signature_invalid")
+        self.assertTrue(error.completion_started)
+        self.client.create.side_effect = error
+        self.unavailable("attestation_failed", self.answer(service))
+        self.assertGreater(self.count("spend_micro"), 0)
+        self.assertGreater(self.count("tokens:user:user"), 0)
+        self.assertEqual(self.count("calls"), 1)
+
+    def test_pre_completion_connection_failure_releases_reservation(self):
+        service = self.service()
+        error = ask.ProviderConnection()
+        error.completion_started = False
+        self.client.create.side_effect = error
+        self.unavailable("connection_error", self.answer(service))
+        for counter in ("spend_micro", "tokens:user:user", "tokens:team:team", "calls"):
+            self.assertEqual(self.count(counter), 0)
+
+    def test_broken_runtime_circuit_breaker_releases_every_quota_counter(self):
+        from gate import nearai
+
+        os.environ["SIYAB_NEARAI_LIVE"] = "1"
+        broken = [SimpleNamespace(thread=SimpleNamespace(is_alive=lambda: True)) for _ in range(2)]
+        sdk = mock.Mock()
+        service = ask.AskService(self.directory.name, self.store, self.read, clock=lambda: self.now)
+        with mock.patch.object(nearai, "_sdk", return_value=sdk), mock.patch.object(
+                nearai, "load_policy", return_value=({}, {})), mock.patch.object(
+                nearai, "_runtime", None), mock.patch.object(
+                nearai, "_broken_runtimes", broken), mock.patch.object(
+                nearai, "_Runtime", side_effect=nearai.ProviderTimeout) as runtime, mock.patch.object(
+                service.ledger, "reserve", wraps=service.ledger.reserve) as reserve:
+            response = service.answer(SERVICE_VALUES, user_id="user", team_id="team", reserved=False,
+                                      peer="127.0.0.1", headers={})
+            self.unavailable("timeout", response)
+        reserve.assert_called_once()
+        runtime.assert_not_called()
+        sdk.InferenceClient.assert_not_called()
+        for counter in ("spend_micro", "spend_micro_public", "tokens:user:user", "tokens:team:team", "calls"):
+            self.assertEqual(self.count(counter), 0)
+        with closing(sqlite3.connect(self.path)) as connection:
+            self.assertEqual(connection.execute("SELECT COUNT(*) FROM answers").fetchone()[0], 0)
+
+    def test_shared_error_types_are_the_same_objects(self):
+        from gate import nearai
+        for name in ("ProviderRateLimited", "ProviderStatus", "ProviderTimeout", "ProviderConnection",
+                     "ProviderBadRequest", "SDKUnavailable", "AttestationError"):
+            self.assertIs(getattr(ask, name), getattr(nearai, name))
+
+    def test_lazy_sdk_failure_releases_reservation_and_returns_unavailable(self):
+        service = self.service()
+        self.client.create.side_effect = ask.SDKUnavailable()
+        self.unavailable("sdk_unavailable", self.answer(service))
+        self.client.create.assert_called_once()
+        self.assertEqual(self.count("spend_micro"), 0)
+        self.assertEqual(self.count("calls"), 0)
+
+    def test_nearai_model_and_prices_are_shared(self):
+        from gate import nearai
+        self.assertIs(ask.NEARAI_PRICES, nearai.PRICES)
+        self.assertEqual(self.service().model, nearai.DEFAULT_MODEL)
+        self.assertTrue(all(not model.startswith("claude-") for model in ask.NEARAI_PRICES))
+
+
+class ProviderSelectionTests(ServiceCase):
+    def test_anthropic_remains_the_default(self):
+        service = self.service()
+        self.assertEqual(service.provider, "anthropic")
+        self.assertEqual(service.model, "claude-haiku-5-5")
+        self.assertEqual(self.answer(service)[1]["status"], "explained")
+        self.key.assert_called_once_with("ANTHROPIC_API_KEY_FILE")
+        self.assertIn("output_config", self.client.create.call_args.args[0])
+
+    def test_nearai_is_explicit_and_uses_its_key_and_request(self):
+        os.environ["SIYAB_ASK_PROVIDER"] = "nearai"
+        service = self.service()
+        self.assertEqual(self.answer(service)[1]["status"], "explained")
+        self.client.preflight.assert_called_once_with(service.model)
+        self.key.assert_called_once_with("NEARAI_API_KEY_FILE")
+        self.assertIn("response_format", self.client.create.call_args.args[0])
+
+    def test_nearai_local_failure_does_not_reserve_or_call_anthropic(self):
+        os.environ["SIYAB_ASK_PROVIDER"] = "nearai"
+        for error, reason in ((ask.AttestationError("live_disabled"), "disabled"),
+                              (ask.AttestationError("policy_invalid"), "attestation_failed"),
+                              (ask.SDKUnavailable(), "sdk_unavailable")):
+            with self.subTest(reason=reason):
+                service = self.service()
+                self.client.preflight.side_effect = error
+                with mock.patch.object(service.ledger, "reserve") as reserve:
+                    self.unavailable(reason, self.answer(service))
+                reserve.assert_not_called()
+                self.client.create.assert_not_called()
+        self.assertEqual(self.count("spend_micro"), 0)
+
+    def test_provider_cache_isolation(self):
+        projection = ask.project(SERVICE_SUBJECT, SERVICE_VERDICT, self.store)
+        self.assertNotEqual(ask.cache_key("same", "low", "why_verdict", projection, "anthropic"),
+                            ask.cache_key("same", "low", "why_verdict", projection, "nearai"))
+
+    def test_prices_and_reservation_bounds_follow_the_selected_provider(self):
+        projection = ask.project(SERVICE_SUBJECT, SERVICE_VERDICT, self.store)
+        usage = SERVICE_USAGE | {"cache_creation_input_tokens": 100, "cache_read_input_tokens": 100}
+        for model, expected in ((ask.DEFAULT_MODEL, 43), (ask.NEARAI_DEFAULT_MODEL, 34)):
+            with self.subTest(model=model):
+                self.assertEqual(ask.usage_cost(usage, model), (320, expected))
+                params = ask.build_request(model, "low", projection, "What was read?")
+                tokens, micro = ask.reservation_bound(params)
+                self.assertGreaterEqual(tokens, 320)
+                self.assertGreaterEqual(micro, expected)
+
+    def test_provider_and_model_must_match(self):
+        for settings in ({"SIYAB_ASK_PROVIDER": "invalid"},
+                         {"SIYAB_ASK_PROVIDER": "nearai", "SIYAB_ASK_MODEL": "claude-haiku-5-5"},
+                         {"SIYAB_ASK_MODEL": "z-ai/glm-5.3-flash"}):
+            with self.subTest(settings=settings), mock.patch.dict(os.environ, settings):
+                self.unavailable("misconfigured")
 
 
 class LedgerTests(ServiceCase):

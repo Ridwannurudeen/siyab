@@ -1,0 +1,43 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "fredybailey55.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "7uh3ZZfAW38KEzXNpTeicdNLsA6FcM6jvajLCnqFyTde",
+      "block_height": 225687750,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 54377795000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:aH71i26eYmvBGin4iwzuhFpPriwzUs3tXJ3FLxNhV7K"
+        },
+        {
+          "access_key": {
+            "nonce": 114844724032890,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:5tDi12kKNBDEwk3vzq3Yre9Gafsi3fbqM5jfKT11SFDF"
+        },
+        {
+          "access_key": {
+            "nonce": 54377788000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:81djccU3Y7jpTxJK4Jszv7GgAthWWttK79GYMpKtPjn1"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:43:12Z"
+}

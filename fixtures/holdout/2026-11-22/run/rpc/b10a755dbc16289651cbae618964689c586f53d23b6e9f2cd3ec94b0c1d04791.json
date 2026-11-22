@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "purplerain.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "2pRR3tcxnFZ836BKWsi8ris6JazRk9W8B4M6o6wGpPwJ",
+      "block_height": 225687784,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 123853130000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:2PsCHz6Gn1DgzmADiqkpHsd4V5P6ijGW8Nrweuvfmaz2"
+        },
+        {
+          "access_key": {
+            "nonce": 123853225020190,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:AADedGEobFk4AaeaegW2arqm5ZYCVkvWhaqtHEydWWoB"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:43:31Z"
+}

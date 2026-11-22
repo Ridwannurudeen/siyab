@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "nnubik.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "FiaehkHaKYyUmrq4PziJKhqC1CBPMLWfgixqbhtm3eHr",
+      "block_height": 225687827,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 225283230000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6v41xaoWYVSibAemufAUsVDfDD4esGKPnmUCbEDQPpPR"
+        },
+        {
+          "access_key": {
+            "nonce": 225283210000006,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9cFtURoLieCoCQdx2wx2ZudiqppeiTBD6zbtnggXPiKh"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:43:55Z"
+}

@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "cosmochest.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "9Bp7KUmgggPS7Ugxky4nSYEZPwp35p2Co8xSatMNPznt",
+      "block_height": 225687446,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 120730490000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:3Z2KCd8BbQpZA2d3a7UFr1guN7JJrPsvzL8an7pE282T"
+        },
+        {
+          "access_key": {
+            "nonce": 120730502019940,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:D4bYtLZkkeLmnh9dmCms5iuxBF2JtdM8dJyWCAKZ4w6T"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:40:22Z"
+}

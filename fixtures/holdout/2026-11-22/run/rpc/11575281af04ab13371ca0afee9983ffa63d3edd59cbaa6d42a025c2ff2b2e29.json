@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "theheavy88.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "AdKYPuBz1pj7FVd1tSnv4XX2u5KhSTv8AkEGeWmGTerF",
+      "block_height": 225687301,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 116607539011050,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:AVE28rLWq7FKZqwFteZXGdqWosmFtn7fQTueB2Pjp8EM"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:39:01Z"
+}

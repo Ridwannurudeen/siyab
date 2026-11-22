@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "swissalps.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "Aw2XnRidRi3fDeiqYm4bAutEWznjTr8pCjDc42iP5Xo7",
+      "block_height": 225686902,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 122774978000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:5MH2ub4JKchzAQXwwCEFDSbLUbmf8YTs9dw1BH2A3PzF"
+        },
+        {
+          "access_key": {
+            "nonce": 122774999021920,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:HL6k41D3sM2fcgxVXWcLuqS2aSvtQ5PmUUtB3WL95cmz"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:35:10Z"
+}

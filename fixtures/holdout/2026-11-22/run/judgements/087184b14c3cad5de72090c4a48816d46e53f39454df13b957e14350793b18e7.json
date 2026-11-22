@@ -1,0 +1,107 @@
+{
+  "subject": "087184b14c3cad5de72090c4a48816d46e53f39454df13b957e14350793b18e7",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "087184b14c3cad5de72090c4a48816d46e53f39454df13b957e14350793b18e7",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "DENY",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "pass",
+      "detail": "087184b14c3cad5de72090c4a48816d46e53f39454df13b957e14350793b18e7 exists",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "f20140f0f824bab1ae8c6d736966c24ba5ded6b9fbebeef6c7a50b4a27635f79",
+        "fetched_at": "2026-11-22T09:38:06Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "signal",
+      "detail": "087184b14c3cad5de72090c4a48816d46e53f39454df13b957e14350793b18e7 carries the incident label \"reported direct collection account for a Telegram impersonation theft\" (assertion f1c344d8ad855f130606e811fc72baba9cd5b38c4cc17257aac5607101fcc1c2); 087184b14c3cad5de72090c4a48816d46e53f39454df13b957e14350793b18e7 carries the incident label \"receiver of the reported direct transfer 74WVb6WAGnCuJ9dZX7hoYytLwnVHZdswKvh8wnrTBoWJ from \\\"geminirising.near\\\" at block 66433235\" (assertion a8b4e8b76e815d978ee7459380251759ad710bc1b4585bdbe45044a33be82347)",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "issuer_blacklist",
+      "status": "pass",
+      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "5c5a71bc1a3b26a48ecd482545b431d0bd463ddd754790698c2e9f91ed8aca32",
+        "fetched_at": "2026-11-22T09:38:07Z"
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "pass",
+      "detail": "oldest access key nonce 66433032000001 from free.rpc.fastnear.com: existed by block 66433033 (2022-05-26T21:04:53Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
+      "source": {
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "970c8bcd27d4bab6bf3008ea9d7a3a1ffdf2c41e0fc4407c970ace126aa7a408",
+        "fetched_at": "2026-11-22T09:38:08Z"
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "pass",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
+      "source": {
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "pass",
+      "detail": "no contract code",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "f20140f0f824bab1ae8c6d736966c24ba5ded6b9fbebeef6c7a50b4a27635f79",
+        "fetched_at": "2026-11-22T09:38:06Z"
+      }
+    }
+  ],
+  "reasons": [
+    "Not on the owner's allowlist.",
+    "087184b14c3cad5de72090c4a48816d46e53f39454df13b957e14350793b18e7 carries the incident label \"reported direct collection account for a Telegram impersonation theft\" (assertion f1c344d8ad855f130606e811fc72baba9cd5b38c4cc17257aac5607101fcc1c2); 087184b14c3cad5de72090c4a48816d46e53f39454df13b957e14350793b18e7 carries the incident label \"receiver of the reported direct transfer 74WVb6WAGnCuJ9dZX7hoYytLwnVHZdswKvh8wnrTBoWJ from \\\"geminirising.near\\\" at block 66433235\" (assertion a8b4e8b76e815d978ee7459380251759ad710bc1b4585bdbe45044a33be82347)."
+  ],
+  "labels": [
+    "f1c344d8ad855f130606e811fc72baba9cd5b38c4cc17257aac5607101fcc1c2",
+    "a8b4e8b76e815d978ee7459380251759ad710bc1b4585bdbe45044a33be82347"
+  ],
+  "observed": {
+    "block_height": 225687204,
+    "timestamp_ms": 1795340103342
+  },
+  "rules_version": 3
+}

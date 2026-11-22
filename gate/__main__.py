@@ -18,6 +18,7 @@ from gate import (
     injected,
     injected_model,
     intents,
+    oneclick,
     registry,
     rpc,
     rules,
@@ -175,6 +176,35 @@ def _intents(args):
     print(f"evidence: {result['evidence_hash']}")
     print("Nothing was signed, nothing was deposited.")
     return 0
+
+
+def _oneclick(args):
+    try:
+        if args.command == "intents-resume":
+            result = oneclick.resume(args.report, polls=args.polls)
+        elif args.command == "intents-release":
+            result = oneclick.release(args.sender, args.report)
+        else:
+            result = oneclick.settle(args.sender, args.destination, args.amount, args.recipient,
+                                     min_amount_out=args.min_amount_out, live=args.deposit, key_file=args.key_file,
+                                     out=args.out, polls=args.polls, override_reports=args.override_report,
+                                     firewall_url=os.environ.get("SHIELDBOT_API_URL"))
+    except (*intents.UNAVAILABLE, TypeError, KeyError, AttributeError, RecursionError) as error:
+        print(f"refused: {error}", file=sys.stderr)
+        return 2
+    print(f"verdict: {result['verdict']}; phase: {result['phase']}")
+    print(result["reason"])
+    if result["deposit_hash"]:
+        print(f"original deposit: {result['deposit_hash']}")
+    if "storage_deposit" in result:
+        print(f"storage_deposit: {result['storage_deposit']} yoctoNEAR")
+    report = args.out if args.command == "intents-settle" else args.report
+    if report:
+        print(f"report: {Path(report).as_posix()}")
+    preview = (args.command == "intents-settle" and not args.deposit
+               and result["verdict"] == "ASK" and result["phase"] == "ready")
+    released = args.command == "intents-release" and result.get("registry_released") is True
+    return 0 if result["verdict"] == "ALLOW" or preview or released else 1
 
 
 def _verify(args):
@@ -343,11 +373,10 @@ def main(argv=None):
               "each pay call is judged again on recorded testnet reads"),
     )
     model_demo.add_argument("--record", type=int, metavar="N",
-                            help="send N new trials (key path in ANTHROPIC_API_KEY_FILE or NEARAI_API_KEY_FILE), "
-                                 "capped at 30 trials and $5 for anthropic or $0.50 for nearai")
+                            help="send N verified NEAR AI trials with NEARAI_API_KEY_FILE and SIYAB_NEARAI_LIVE=1; "
+                                 "capped at 30 trials and $0.50")
     model_demo.add_argument("--provider", choices=("anthropic", "nearai"), default="anthropic")
-    model_demo.set_defaults(handler=lambda args: injected_model.main(args.record, provider=args.provider)
-                            if args.provider != "anthropic" else injected_model.main(args.record))
+    model_demo.set_defaults(handler=lambda args: injected_model.main(args.record, provider=args.provider))
 
     show = commands.add_parser("demo", help="four verdicts over recorded testnet data, or the same four live")
     mode = show.add_mutually_exclusive_group(required=True)
@@ -369,6 +398,32 @@ def main(argv=None):
     leg.add_argument("--live", action="store_true",
                      help="fetch a live dry quote and labels instead of replaying fixtures; writes nothing")
     leg.set_defaults(handler=_intents)
+
+    settlement = commands.add_parser("intents-settle", allow_abbrev=False,
+                                     help="check a wNEAR swap and stop before funding; --deposit funds once")
+    settlement.add_argument("--sender", required=True, help="the mainnet NEAR account that holds wNEAR and receives refunds")
+    settlement.add_argument("--destination", required=True, help="the destination EVM asset id from the 1Click catalog")
+    settlement.add_argument("--amount", required=True, help="wNEAR base units, at most 250000000000000000000000")
+    settlement.add_argument("--recipient", required=True, help="the destination EVM recipient")
+    settlement.add_argument("--min-amount-out", required=True, help="the owner's minimum receipt in destination base units")
+    settlement.add_argument("--deposit", action="store_true", help="sign and send one mainnet deposit, including capped receiver registration if needed")
+    settlement.add_argument("--key-file", help="external near-cli Ed25519 FullAccess key file; read only with --deposit")
+    settlement.add_argument("--out", help="new external report file; required with --deposit, never overwrites")
+    settlement.add_argument("--override-report", action="append", metavar="REPORT",
+                            help="explicitly bypass one unresolved report in the account registry or --out directory; repeat to name each")
+    settlement.add_argument("--polls", type=int, default=60, help="status reads, 1 to 120; resume the same report after timeout")
+    settlement.set_defaults(handler=_oneclick)
+
+    settlement_resume = commands.add_parser("intents-resume", help="read and poll an original deposit report; sends nothing")
+    settlement_resume.add_argument("report", help="the external report written by intents-settle")
+    settlement_resume.add_argument("--polls", type=int, default=60, help="status reads, 1 to 120")
+    settlement_resume.set_defaults(handler=_oneclick)
+
+    settlement_release = commands.add_parser("intents-release", allow_abbrev=False,
+                                             help="read proof then release one account registry row; never signs or sends")
+    settlement_release.add_argument("--sender", required=True, help="the mainnet NEAR account that reserved the report")
+    settlement_release.add_argument("--report", required=True, help="the external report to verify before releasing its row")
+    settlement_release.set_defaults(handler=_oneclick)
 
     check = commands.add_parser("verify", help="check a registry record against its evidence file, offline")
     check.add_argument("record", help="a registry record: the latest view or the verdict_recorded event data")

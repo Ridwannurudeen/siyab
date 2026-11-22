@@ -1,0 +1,42 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "multichain-mainnet-aurora.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "FeRkiB1wA1uEMKyGALXEzqs2rzEQsmHPQJE1GEaifUAe",
+      "block_height": 225686919,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 218935815000015,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4dua6zR1Uv5cMjsUU4iLYqEs2GHo8Gfju2v7DuAZaLok"
+        },
+        {
+          "access_key": {
+            "nonce": 225686613000002,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:BwScwquNZHrh566j4YHUdMRixP4D5CsLTa2RWAUf7JNi"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:35:19Z"
+}

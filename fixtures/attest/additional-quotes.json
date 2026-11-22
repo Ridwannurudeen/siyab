@@ -1,0 +1,24 @@
+{
+  "quotes": [
+    {
+      "name": "deepseek-separate-gateway",
+      "file": "attestation-deepseek-gateway.json",
+      "source_url": "https://cloud-api.near.ai/v1/attestation/report?nonce=f51112f5a8df24bfa70366b4f74ea685e0721e1e2d9e368f2f14beebdbfef04d&signing_algo=ed25519&include_tls_fingerprint=true",
+      "recorded_at": "2026-11-21T15:20:01.058768+00:00",
+      "source_sha256": "8a3e7e505e52e7ff0e5fab410c586f70f80fbd6bfe57dff9a989be736b817c69",
+      "quote_sha256": "ac66248441512069cdd03dd9f68e9f48555df32690cdbd5f7d3938b9e697dfaf",
+      "fmspc": "70a06d070000",
+      "fmspc_basis": "Byte-identical embedded PCK certificate chain to the gateway quote in the same model full capture and existing verified FMSPC inventory"
+    },
+    {
+      "name": "glm-separate-gateway",
+      "file": "attestation-glm-gateway.json",
+      "source_url": "https://cloud-api.near.ai/v1/attestation/report?nonce=6021537171bc35536bad13f606ec663c1a3d0ad13112d95fb2376b3d3c753f38&signing_algo=ed25519&include_tls_fingerprint=true",
+      "recorded_at": "2026-11-21T15:20:05.229337+00:00",
+      "source_sha256": "763e691f1e0f91c69aa5655f5bc0173b9a324d1f1e897f0aebcaae8193be3afe",
+      "quote_sha256": "365fa0a338546b07f37d0dca2801f486a2aa726fc6a0fe56b8f40f6d2fc09bc5",
+      "fmspc": "70a06d070000",
+      "fmspc_basis": "Byte-identical embedded PCK certificate chain to the gateway quote in the same model full capture and existing verified FMSPC inventory"
+    }
+  ]
+}

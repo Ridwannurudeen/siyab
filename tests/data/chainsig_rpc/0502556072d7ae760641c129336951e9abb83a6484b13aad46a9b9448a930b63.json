@@ -1,0 +1,22 @@
+{
+  "request": {
+    "method": "block",
+    "params": {
+      "block_id": 278690713
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": "gate",
+    "result": {
+      "header": {
+        "hash": "23cq4rx54Cq1BLw6B7vnLGmdsX4xYaX9uCrbpg4RHtpZ",
+        "height": 278690713,
+        "timestamp": 1795273260803644980,
+        "prev_hash": "DnhBWDsbeiVna1MDGGgUMx2zD48wg4DHLKP1epdcMcQD"
+      }
+    }
+  },
+  "url": "https://rpc.testnet.near.org",
+  "fetched_at": "2026-11-21T15:37:39Z"
+}

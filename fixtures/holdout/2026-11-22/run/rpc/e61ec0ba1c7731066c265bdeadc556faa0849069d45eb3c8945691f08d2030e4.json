@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "zugspitzezest.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "9GdsQQRTTVpPfQwMHp6X2J7GTKQy99btuBZUWbJEEakK",
+      "block_height": 225687762,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 124558624019850,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:FjEm8A2rYgS3XSkwdS7CK8wWxAjK56co8RZR3EpgDKBr"
+        },
+        {
+          "access_key": {
+            "nonce": 124558611000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Hn5Rzuk8AANTJBgdJJvpBFkozhxMmHKSrAkUohBsdZoL"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:43:19Z"
+}

@@ -1,0 +1,107 @@
+{
+  "subject": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "DENY",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "pass",
+      "detail": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180 exists",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "8fc8ad62f20d8dd0d756186009a16425a37aa53aad804fffc8f1bb6449f2f487",
+        "fetched_at": "2026-11-22T09:36:26Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "signal",
+      "detail": "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180 carries the incident label \"named as the attacker account in the Kangaroo Coin Flip post-mortem\" (assertion 338017f207079279ef6ccb2990c671d685b30fd184adb9c068731241c2d43aed); 9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180 carries the incident label \"signer of matching batch 9XMv7qZJwyNEyHutjR6dsuDv8qJNwCwhh6PFLDZTzgYV at block 69616018, receiver \\\"kcfhouse.near\\\", methods called \\\"deposit\\\", \\\"play\\\", \\\"play\\\", \\\"retrieve_credits\\\"\" (assertion 0275ef5095bcd365987336f9858ea126d484c82805ae09807ef3d50db5fd9209)",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "issuer_blacklist",
+      "status": "pass",
+      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "54b3d4e60b621d720cbdede0d6dc78b596dfe5c33a1e255ada17e014e389bfda",
+        "fetched_at": "2026-11-22T09:36:26Z"
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "pass",
+      "detail": "oldest access key nonce 69610196000010 from free.rpc.fastnear.com: existed by block 69610197 (2022-07-11T14:21:34Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
+      "source": {
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "16bc8f7ff9f96783448323ce4a72e1bbdb6e98ab18bfd61b70d37e726f1d7fd9",
+        "fetched_at": "2026-11-22T09:36:27Z"
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "pass",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
+      "source": {
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "pass",
+      "detail": "no contract code",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "8fc8ad62f20d8dd0d756186009a16425a37aa53aad804fffc8f1bb6449f2f487",
+        "fetched_at": "2026-11-22T09:36:26Z"
+      }
+    }
+  ],
+  "reasons": [
+    "Not on the owner's allowlist.",
+    "9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180 carries the incident label \"named as the attacker account in the Kangaroo Coin Flip post-mortem\" (assertion 338017f207079279ef6ccb2990c671d685b30fd184adb9c068731241c2d43aed); 9c2a08cf1d06716bb03c662ed67096ea92cedacf058d50e1dea60ff442cf6180 carries the incident label \"signer of matching batch 9XMv7qZJwyNEyHutjR6dsuDv8qJNwCwhh6PFLDZTzgYV at block 69616018, receiver \\\"kcfhouse.near\\\", methods called \\\"deposit\\\", \\\"play\\\", \\\"play\\\", \\\"retrieve_credits\\\"\" (assertion 0275ef5095bcd365987336f9858ea126d484c82805ae09807ef3d50db5fd9209)."
+  ],
+  "labels": [
+    "338017f207079279ef6ccb2990c671d685b30fd184adb9c068731241c2d43aed",
+    "0275ef5095bcd365987336f9858ea126d484c82805ae09807ef3d50db5fd9209"
+  ],
+  "observed": {
+    "block_height": 225687033,
+    "timestamp_ms": 1795340103342
+  },
+  "rules_version": 3
+}

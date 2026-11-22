@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "ruwenzoririft.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "HYeFtNPcM8vzH9vzgRRG3zUea9AUkVgizbtHBrHRjBgz",
+      "block_height": 225686930,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 123728220000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8hwm4Sm7C9dWasMKPAQWuLWcaoSPTf8kW1ffaKzg1iAt"
+        },
+        {
+          "access_key": {
+            "nonce": 123728233022215,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:FJAVKP2mZf1y1wh4wsRYjewq7BtK1FJBFWgpCVgJmc2j"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:35:26Z"
+}

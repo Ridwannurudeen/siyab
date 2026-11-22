@@ -1,0 +1,30 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "9b193cc8c890ef006f201e2ce0de58a42932f0950e965c2f3fe19b2c9322f20c"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "error": {
+      "name": "HANDLER_ERROR",
+      "cause": {
+        "info": {
+          "block_hash": "5N48N35B4YJWZAy8BVDjqokykgb1HyugWJjdSp7Kqxfv",
+          "block_height": 225687857,
+          "requested_account_id": "9b193cc8c890ef006f201e2ce0de58a42932f0950e965c2f3fe19b2c9322f20c"
+        },
+        "name": "UNKNOWN_ACCOUNT"
+      },
+      "code": -32000,
+      "message": "Server error",
+      "data": "account 9b193cc8c890ef006f201e2ce0de58a42932f0950e965c2f3fe19b2c9322f20c does not exist while viewing"
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:44:13Z"
+}

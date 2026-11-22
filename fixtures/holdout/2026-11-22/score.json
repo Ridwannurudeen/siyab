@@ -1,0 +1,37 @@
+{
+ "confusion": {
+  "false_negative": 25,
+  "false_positive": 0,
+  "true_negative": 218,
+  "true_positive": 9
+ },
+ "counts": {
+  "ask": 6,
+  "bad": 34,
+  "good": 218,
+  "judged": 252,
+  "not_judged": 0,
+  "outside_holdout": 0,
+  "rows": 252
+ },
+ "holdout_sha256": "9997b665fcb6eb1fa31d212a744d279efed1b174ac3776fc5ff6125bc4542fe5",
+ "matrix": {
+  "bad": {
+   "ALLOW": 25,
+   "ASK": 0,
+   "DENY": 9,
+   "NOT_JUDGED": 0
+  },
+  "good": {
+   "ALLOW": 212,
+   "ASK": 6,
+   "DENY": 0,
+   "NOT_JUDGED": 0
+  }
+ },
+ "not_judged_accounts": [],
+ "outside_holdout_accounts": [],
+ "precision": 1.0,
+ "recall": 0.2647058823529412,
+ "rules_commit": "fb77657637cbdd7e8667cfc787ab3cffcc731742"
+}

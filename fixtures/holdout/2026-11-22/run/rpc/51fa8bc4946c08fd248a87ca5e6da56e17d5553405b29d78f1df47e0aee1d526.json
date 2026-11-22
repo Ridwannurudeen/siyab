@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "salsalina.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "F8njyVgK49CWJoTmwc4Y3nH64PVbNSik6NB4XMXFJBSD",
+      "block_height": 225687200,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 121867516000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8eGAGwsCgwb4hBJiq3QnksRz4i3wCLHaR95jbuLY67JV"
+        },
+        {
+          "access_key": {
+            "nonce": 121867585022255,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:GwvXnxd4iAkeEuQ5y9bDh1KEpGz97gdBKwNuPwHY1R47"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:38:04Z"
+}

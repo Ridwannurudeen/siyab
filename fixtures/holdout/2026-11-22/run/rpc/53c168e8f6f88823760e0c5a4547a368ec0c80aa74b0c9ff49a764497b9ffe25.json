@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "celestialwallet.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "FTJZjvTgsqF6Mrtjpvp4Pu8ZY3RpZV74Hh8YKr4WkNRG",
+      "block_height": 225686939,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 120731004000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4UXLucwcoPCYVHUchJHzvNbULRAVRJcYN7v3P6iX3oSF"
+        },
+        {
+          "access_key": {
+            "nonce": 120731037019690,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:95wSsmtMcFz1WbYf9GAYqDYKQwzEKe2ztWBRKe1J3w4T"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:35:31Z"
+}

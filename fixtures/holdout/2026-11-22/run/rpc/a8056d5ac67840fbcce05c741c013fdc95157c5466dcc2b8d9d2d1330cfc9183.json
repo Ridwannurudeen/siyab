@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "montblancmystery.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "DmiXM7QGp3KfK5FyNM4bCDkC3Uwm6kp2ukUsvTFD1hA3",
+      "block_height": 225687350,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 123550182021805,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:BeEoLCxvhwS6zvjyu7Y9AjjSG8PZ1xFmU3mDrAvvxwjy"
+        },
+        {
+          "access_key": {
+            "nonce": 123550168000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:J63RLFqjhK7Zvwuf9E2T9vPpwC8XP586Ra4tFdUBkGRe"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:39:28Z"
+}

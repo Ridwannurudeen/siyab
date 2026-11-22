@@ -1,0 +1,17 @@
+{
+  "upstream_recorded_at_unix": 1786622400,
+  "upstream_earliest_expiration_unix": 1789171031,
+  "nearai_recorded_at_unix": 1795274641,
+  "nearai_earliest_expiration_unix": 1797862926,
+  "nearai_expiration_utc": "2026-12-21T14:22:06Z",
+  "sources": [
+    "https://github.com/near/mpc/blob/3.18.0/crates/test-utils/src/attestation.rs",
+    "https://github.com/near/mpc/blob/3.18.0/crates/tee-verifier/tests/verify_quote.rs",
+    "https://api.trustedservices.intel.com/tdx/certification/v4/qe/identity"
+  ],
+  "recordings": [
+    "fixtures/nearai/crosscheck-results.json",
+    "fixtures/nearai/intel-collateral-70a06d070000.json",
+    "fixtures/nearai/intel-collateral-90c06f000000.json"
+  ]
+}

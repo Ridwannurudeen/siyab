@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "accountant-usdt-meteor-vaults.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "9PZbYuE8D4JrGb9Xn6LX2Gj878uqUrtBz7pDtXxhmrkk",
+      "block_height": 225687626,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 193095106143561,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:3CiLpzz71aveDuwbYpU5J1BnWUxZLUgjWsUDMXhiMu6R"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:42:03Z"
+}

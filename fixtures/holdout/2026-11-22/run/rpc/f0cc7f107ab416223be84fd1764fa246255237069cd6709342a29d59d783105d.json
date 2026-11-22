@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "yaros94.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "2ja67RXzwYfQ3C5pgBDBXna891wNx3gGZZRVBm1hpLTY",
+      "block_height": 225687249,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 121311965015550,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8JBJn8Rh8xLd4hcSe1bGgouMvSsT7UMh74SW4oDTswMH"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:38:32Z"
+}

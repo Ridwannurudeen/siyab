@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "fujiflare.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "3BpMkJQ8zmZGvyGSA43MoZH5kU22qAJ4zGua5vchKi26",
+      "block_height": 225687535,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 125108282017740,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:3zv65n1c5aATNC7cb2WyXEciXsniMkwh8ev2oPA4Yd2R"
+        },
+        {
+          "access_key": {
+            "nonce": 125108247000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:DXBxNBzSdh3138yhA7j6A3BfBV61rVAEok6kc1BjmtuJ"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:41:11Z"
+}

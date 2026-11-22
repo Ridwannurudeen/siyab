@@ -64,8 +64,12 @@ def reply(kind, subject, answer):
         document = json.loads(answer["evidence"])
         sources = dict.fromkeys(check["source"]["provider"] for check in document["checks"])
         block = answer["freshness"].get("block_height")
+        wording = WORDING[answer["outcome"]]
+        if answer["outcome"] == "ASK" and any(check["id"] == "account_age" and check["status"] == "signal"
+                                             for check in document["checks"]):
+            wording = "New account, confirm first"
         cut = len(lines) + 1
-        lines += ["Result: " + WORDING[answer["outcome"]], "Reasons: " + "; ".join(" ".join(reason.split()) for reason in answer["reasons"][:3]),
+        lines += ["Result: " + wording, "Reasons: " + "; ".join(" ".join(reason.split()) for reason in answer["reasons"][:3]),
                   "Sources: " + ", ".join(sources), "Block: " + (str(block) if block is not None else "unknown"),
                   "Evidence: " + answer["evidence_hash"]]
         if kind == "transaction":

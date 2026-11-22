@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "montblancmarvel.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "4kLRme9czvLmDNHrtGjTDpBHiWxwQ1HHJNL8HBVXeyPR",
+      "block_height": 225687883,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 124558331020080,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:31iz5mjYQRsDjz8cQLtBuhqwuvEMHqnLS6q2LT7otp76"
+        },
+        {
+          "access_key": {
+            "nonce": 124558273000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:CgHX3sdjhMHJXvVn8BsXt98WYoPEgu16CBPCBbDEGnQz"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:44:28Z"
+}

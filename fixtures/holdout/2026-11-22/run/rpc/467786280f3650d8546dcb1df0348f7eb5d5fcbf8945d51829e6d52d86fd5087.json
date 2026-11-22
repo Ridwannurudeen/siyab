@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "serdmottor.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "FaWGYXWox2fxUSQ2GmF6paJo3wQKtrGQAJS6QqwPkw3N",
+      "block_height": 225687525,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 220902539001552,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8sTKrBb18V7sZSKx3UbheRVNUPxaYaj4MwgiVheA5QK4"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:41:06Z"
+}

@@ -1,0 +1,105 @@
+{
+  "subject": "barvwin.near",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "barvwin.near",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "UNKNOWN",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "pass",
+      "detail": "barvwin.near exists",
+      "source": {
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "facb2e1b5ce2f49797380045ce3ecfa0ae5518dfa4e446d7b61fd838a0688cbd",
+        "fetched_at": "2026-11-22T09:36:20Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "pass",
+      "detail": "no denylist or incident label on barvwin.near",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "issuer_blacklist",
+      "status": "pass",
+      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+      "source": {
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "4834923fbb42754539ca701d3dc1ceb9b8f9462c7d49b05fd92794003a76bd46",
+        "fetched_at": "2026-11-22T09:36:20Z"
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "signal",
+      "detail": "oldest access key nonce 224691830000681 from archival-rpc.mainnet.fastnear.com: existed by block 224691831 (2026-11-15T16:37:52Z) from archival-rpc.mainnet.fastnear.com, a key block younger than 7 days that does not date the account; block 224647159 (2026-11-15T09:35:03Z) from archival-rpc.mainnet.fastnear.com and block 224647160 (2026-11-15T09:35:03Z) from archival-rpc.mainnet.fastnear.com are adjacent existing blocks around the 7 day cutoff; barvwin.near did not exist at block 224647159, so it was created less than 7 days ago",
+      "source": {
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "ff079e9c824be762906aa4c55af3a30b3b83aa57a61e8f4d636027088d9be3df",
+        "fetched_at": "2026-11-22T09:36:26Z"
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "unknown",
+      "detail": "the creation transaction is not known",
+      "source": {
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "pass",
+      "detail": "no contract code",
+      "source": {
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "facb2e1b5ce2f49797380045ce3ecfa0ae5518dfa4e446d7b61fd838a0688cbd",
+        "fetched_at": "2026-11-22T09:36:20Z"
+      }
+    }
+  ],
+  "reasons": [
+    "barvwin.near is younger than 7 days; no other signal was found among the checks that ran. The owner should confirm the receiver before paying.",
+    "dust_funded could not run: the creation transaction is not known.",
+    "Not on the owner's allowlist."
+  ],
+  "labels": [],
+  "observed": {
+    "block_height": 225686896,
+    "timestamp_ms": 1795340103342
+  },
+  "rules_version": 3
+}

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "mahmoud7777.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "7uDeXeXpGxS5mpckZmBmaVNpnJkNg6LjG3TaWvULg89c",
+      "block_height": 225687124,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 219844920002203,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:BZidihiXbLPU4hgEhhvSGd3SxbdJHNcpLroKexW1S2M7"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:37:20Z"
+}

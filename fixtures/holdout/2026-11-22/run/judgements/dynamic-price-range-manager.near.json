@@ -1,0 +1,105 @@
+{
+  "subject": "dynamic-price-range-manager.near",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "dynamic-price-range-manager.near",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "UNKNOWN",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "pass",
+      "detail": "dynamic-price-range-manager.near exists",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "2161e49e20747d2d80d99c7adef369ec8c55e35500da8592ea785fc16d6e811a",
+        "fetched_at": "2026-11-22T09:40:41Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "pass",
+      "detail": "no denylist or incident label on dynamic-price-range-manager.near",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "issuer_blacklist",
+      "status": "pass",
+      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "2b843c411c6b163247c9400983b8600775ae3b71b7e07ce072c3df2bc4cef46b",
+        "fetched_at": "2026-11-22T09:40:41Z"
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "signal",
+      "detail": "oldest access key nonce 224901029000002 from free.rpc.fastnear.com: existed by block 224901030 (2026-11-17T02:19:24Z) from archival-rpc.mainnet.fastnear.com, a key block younger than 7 days that does not date the account; block 224647756 (2026-11-15T09:40:37Z) from archival-rpc.mainnet.fastnear.com and block 224647757 (2026-11-15T09:40:38Z) from archival-rpc.mainnet.fastnear.com are adjacent existing blocks around the 7 day cutoff; dynamic-price-range-manager.near did not exist at block 224647756, so it was created less than 7 days ago",
+      "source": {
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "bb62fe2d38ee4a9d30be1b8f9438173a03cc4e5df49992cdba9de9a21fa9cad0",
+        "fetched_at": "2026-11-22T09:40:48Z"
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "unknown",
+      "detail": "the creation transaction is not known",
+      "source": {
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "pass",
+      "detail": "no contract code",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "2161e49e20747d2d80d99c7adef369ec8c55e35500da8592ea785fc16d6e811a",
+        "fetched_at": "2026-11-22T09:40:41Z"
+      }
+    }
+  ],
+  "reasons": [
+    "dynamic-price-range-manager.near is younger than 7 days; no other signal was found among the checks that ran. The owner should confirm the receiver before paying.",
+    "dust_funded could not run: the creation transaction is not known.",
+    "Not on the owner's allowlist."
+  ],
+  "labels": [],
+  "observed": {
+    "block_height": 225687480,
+    "timestamp_ms": 1795340103342
+  },
+  "rules_version": 3
+}

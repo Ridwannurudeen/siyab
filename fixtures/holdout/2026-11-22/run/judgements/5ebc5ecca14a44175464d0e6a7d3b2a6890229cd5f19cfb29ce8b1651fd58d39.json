@@ -1,0 +1,108 @@
+{
+  "subject": "5ebc5ecca14a44175464d0e6a7d3b2a6890229cd5f19cfb29ce8b1651fd58d39",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "5ebc5ecca14a44175464d0e6a7d3b2a6890229cd5f19cfb29ce8b1651fd58d39",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "DENY",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "pass",
+      "detail": "5ebc5ecca14a44175464d0e6a7d3b2a6890229cd5f19cfb29ce8b1651fd58d39 exists",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "ff8e3b8cb50298d89159f13666594e976d9eecf44d69ea3fafd7c11088c697ac",
+        "fetched_at": "2026-11-22T09:40:48Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "signal",
+      "detail": "5ebc5ecca14a44175464d0e6a7d3b2a6890229cd5f19cfb29ce8b1651fd58d39 carries the incident label \"named in the rekt.news Skyward Finance report as the one account whose address it prints, together with the one transaction it links\" (assertion d88a6107aef6770ec3bbce22811af24eee9693496dd7dce25d0443333fbccd49); 5ebc5ecca14a44175464d0e6a7d3b2a6890229cd5f19cfb29ce8b1651fd58d39 carries the incident label \"account exists with no contract code\" (assertion e5d485adc1664864a9cc5b8bb28dcc32fab39bad3d55647ee878dbadeff9a92d); 5ebc5ecca14a44175464d0e6a7d3b2a6890229cd5f19cfb29ce8b1651fd58d39 carries the incident label \"signer of transaction 92Gq7zehKPwSSnpoZ7LGGtSmgmBb4wP2XNDVJqUZRGqz at block 77507447, receiver \\\"skyward.near\\\", methods called \\\"redeem_skyward\\\"\" (assertion 82d8ea4be3219c70b2324890bc3c952e941bd102b78bb9e8c64b8b8416199d9a)",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "issuer_blacklist",
+      "status": "pass",
+      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "2a6362cc2738a030ec9438e1bf2fab3735f373eea14af5393ba2607bae0d4683",
+        "fetched_at": "2026-11-22T09:40:49Z"
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "pass",
+      "detail": "oldest access key nonce 77498888000026 from free.rpc.fastnear.com: existed by block 77498889 (2022-11-01T14:11:49Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
+      "source": {
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "3579ea04d2d3befba87fb32906bd3c9094b6b1d5706ef2c3dfa12399ff2ec743",
+        "fetched_at": "2026-11-22T09:40:50Z"
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "pass",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
+      "source": {
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "pass",
+      "detail": "no contract code",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "ff8e3b8cb50298d89159f13666594e976d9eecf44d69ea3fafd7c11088c697ac",
+        "fetched_at": "2026-11-22T09:40:48Z"
+      }
+    }
+  ],
+  "reasons": [
+    "Not on the owner's allowlist.",
+    "5ebc5ecca14a44175464d0e6a7d3b2a6890229cd5f19cfb29ce8b1651fd58d39 carries the incident label \"named in the rekt.news Skyward Finance report as the one account whose address it prints, together with the one transaction it links\" (assertion d88a6107aef6770ec3bbce22811af24eee9693496dd7dce25d0443333fbccd49); 5ebc5ecca14a44175464d0e6a7d3b2a6890229cd5f19cfb29ce8b1651fd58d39 carries the incident label \"account exists with no contract code\" (assertion e5d485adc1664864a9cc5b8bb28dcc32fab39bad3d55647ee878dbadeff9a92d); 5ebc5ecca14a44175464d0e6a7d3b2a6890229cd5f19cfb29ce8b1651fd58d39 carries the incident label \"signer of transaction 92Gq7zehKPwSSnpoZ7LGGtSmgmBb4wP2XNDVJqUZRGqz at block 77507447, receiver \\\"skyward.near\\\", methods called \\\"redeem_skyward\\\"\" (assertion 82d8ea4be3219c70b2324890bc3c952e941bd102b78bb9e8c64b8b8416199d9a)."
+  ],
+  "labels": [
+    "d88a6107aef6770ec3bbce22811af24eee9693496dd7dce25d0443333fbccd49",
+    "e5d485adc1664864a9cc5b8bb28dcc32fab39bad3d55647ee878dbadeff9a92d",
+    "82d8ea4be3219c70b2324890bc3c952e941bd102b78bb9e8c64b8b8416199d9a"
+  ],
+  "observed": {
+    "block_height": 225687494,
+    "timestamp_ms": 1795340103342
+  },
+  "rules_version": 3
+}

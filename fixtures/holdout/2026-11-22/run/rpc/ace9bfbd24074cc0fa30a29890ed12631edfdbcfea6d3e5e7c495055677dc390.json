@@ -1,0 +1,31 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "abel1.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "error": {
+      "name": "HANDLER_ERROR",
+      "cause": {
+        "info": {
+          "block_hash": "8tubARgV99bz6xqu1qd9d1BkN3wQb2vaV6RMWhrMUnqp",
+          "block_height": 225687365,
+          "limit": 100,
+          "requested_account_id": "abel1.near"
+        },
+        "name": "TOO_MANY_ACCESS_KEYS"
+      },
+      "code": -32000,
+      "message": "Server error",
+      "data": "Account abel1.near has more than 100 access keys; use a paginated view_access_key_list request"
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:39:36Z"
+}

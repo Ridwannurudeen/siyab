@@ -320,7 +320,11 @@ def pay(agent, request, verdict_file=None, out=print, reports_account=None):
             count = len(unknown_checks)
             unit = "check" if count == 1 else "checks"
             out(f"not sent: the verdict is {outcome}, and the Gate pays only on a signed ALLOW")
-            out(f"ask a human: {count} {unit} could not run: {', '.join(unknown_checks)}")
+            if any(check["id"] == "account_age" and check["status"] == "signal" for check in result["checks"]):
+                for reason in result["ask"]:
+                    out(f"ask a human: {reason}")
+            else:
+                out(f"ask a human: {count} {unit} could not run: {', '.join(unknown_checks)}")
             _print_owner_step(agent, request, policy, result, out)
         out("nothing is sent until then")
         hashed = isinstance(evidence_hash, str) and bool(_HEX64.fullmatch(evidence_hash))

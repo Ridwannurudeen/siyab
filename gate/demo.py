@@ -83,7 +83,10 @@ def _run(title, receiver, note, clients, policy, store, evidence_dir, clock, out
         out("  " + " ".join(["DENIED."] + result["reasons"]))
     else:
         failed = [c["id"] for c in result["checks"] if c["status"] == "unknown"]
-        out(f"  UNKNOWN, not signed: {', '.join(failed)} could not run")
+        if any(check["id"] == "account_age" and check["status"] == "signal" for check in result["checks"]):
+            out("  UNKNOWN, not signed: " + " ".join(result["ask"]))
+        else:
+            out(f"  UNKNOWN, not signed: {', '.join(failed)} could not run")
     out(f"  evidence sha256: {result['evidence_hash']}")
     out(f"  latency: {result['latency_ms']} ms")
     out("")

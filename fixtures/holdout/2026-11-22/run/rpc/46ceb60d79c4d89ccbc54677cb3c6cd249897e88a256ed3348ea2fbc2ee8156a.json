@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "rombab308.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "Gj2mXyPRWiQneTMqzxPzT4xZC9CxKwngVXr4vjGBzcXq",
+      "block_height": 225687514,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 210195366005050,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:HjcNWTp6fWHgiScE1EpXvNnsXhqssmtRczLm9tGndj8N"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:40:59Z"
+}

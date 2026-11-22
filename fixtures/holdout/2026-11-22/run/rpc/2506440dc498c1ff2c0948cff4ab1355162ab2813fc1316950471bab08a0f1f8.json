@@ -1,0 +1,43 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "olengrady2134.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "3S8TFCQkZ1tYDqnP4qVwfKevTbEp2Dt3fwMyTCFQmsES",
+      "block_height": 225687104,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 114800383034170,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4o8avBHGffRBVw9nJefLtTT1nSU7VUKqo16rE9H19HM8"
+        },
+        {
+          "access_key": {
+            "nonce": 54376462000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8sGkxth8qhi7674x1TuEEEohToYUtGsVgp3Lt1uX18pZ"
+        },
+        {
+          "access_key": {
+            "nonce": 54376472000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:HUyNStKu8vpxMmaJ4QFNwABEXRcyX4ud7QX8DsVd1icu"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:37:08Z"
+}

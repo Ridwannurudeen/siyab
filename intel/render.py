@@ -301,6 +301,8 @@ def _top_receivers_summary(judgements_dir, ranking_path=TOP_RECEIVERS_RANKING_PA
     for document in documents:
         if document["verdict"] == "UNKNOWN":
             unknown_causes.update(check["id"] for check in document["checks"] if check["status"] == "unknown")
+            if any(check["id"] == "account_age" and check["status"] == "signal" for check in document["checks"]):
+                unknown_causes["young_receiver_confirmation"] += 1
         elif document["verdict"] == "DENY":
             signals = tuple(sorted(check["id"] for check in document["checks"] if check["status"] == "signal"))
             deny_groups[signals] += 1
@@ -857,7 +859,7 @@ def top_receivers_page(judgements_dir=TOP_RECEIVERS_JUDGEMENTS_DIR, ranking_path
     rule = ranking.get("rule", "")
     order = re.search(r"Receivers are ordered by ([^.]+)\.", rule)
     rule_text = f"Receivers are ordered by {order.group(1)}." if order else "Ranking rule is not available."
-    causes = "".join(f"<li>{esc(cause)}: {count}</li>"
+    causes = "".join(f"<li>{esc('New account, confirm first' if cause == 'young_receiver_confirmation' else cause)}: {count}</li>"
                       for cause, count in sorted(summary["unknown_causes"].items())) or "<li>None recorded.</li>"
     other_deny = (f'<p>Other DENY signal groups: {summary["deny_other"]}.</p>' if summary["deny_other"] else "")
     combined_deny = ("<p>The single DENY came from the lookalike and code-without-metadata signals together; it is the verdict an agent's 1 NEAR payment would get, not a finding about the account.</p>"

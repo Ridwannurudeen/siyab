@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "paradisesands.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "9xXTcBJzVp1MEKacV5v4y1p6jSJBpfXDHQmSbGZHQAYk",
+      "block_height": 225687334,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 121637286035415,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Db2P2FRMW6nisE2AgE7D8PpY7HVLb8NcY4k6Y8zT31fa"
+        },
+        {
+          "access_key": {
+            "nonce": 121637200000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:GUigUQ8crQUjy8bgnXonfHKrkNZhcKbKWjcmX8F61d2X"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:39:19Z"
+}

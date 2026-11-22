@@ -1,0 +1,22 @@
+{
+  "request": {
+    "method": "block",
+    "params": {
+      "block_id": 225570535
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": "gate",
+    "result": {
+      "header": {
+        "hash": "7vsbUvtYtcbph4BRDrpR7tRzssToSnw67AauSJFwyuDD",
+        "height": 225570535,
+        "timestamp": 1795273261140129129,
+        "prev_hash": "3T6LzwgvJ49KC546YNkFsFPcDF5LGKUVLNXVtTQENsvS"
+      }
+    }
+  },
+  "url": "https://rpc.mainnet.near.org",
+  "fetched_at": "2026-11-21T15:36:18Z"
+}

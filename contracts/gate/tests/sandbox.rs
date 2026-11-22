@@ -94,6 +94,20 @@ async fn fresh_request(
     let request_number = FRESH_REQUEST_COUNTER.fetch_add(1, Ordering::Relaxed);
     request["verdict_id"] = json!(format!("{}{:016x}", &verdict_id[..16], request_number));
 
+    let verifier_seed: [u8; 32] = Sha256::digest(b"gate test verifier v1").into();
+    sign_request(
+        gate_id,
+        &mut request,
+        &SigningKey::from_bytes(&verifier_seed),
+    );
+    request
+}
+
+fn sign_request(
+    gate_id: &near_workspaces::types::AccountId,
+    request: &mut Value,
+    verifier: &SigningKey,
+) {
     let token_id = request["token_id"].as_str().unwrap_or("-");
     let memo = request["memo"]
         .as_str()
@@ -108,21 +122,18 @@ async fn fresh_request(
         request["receiver_id"].as_str().unwrap(),
         request["amount"].as_str().unwrap(),
         memo,
-        issued_ms,
-        expires_ms,
+        request["issued_ms"].as_u64().unwrap(),
+        request["expires_ms"].as_u64().unwrap(),
         request["verdict_id"].as_str().unwrap(),
         request["evidence_sha256"].as_str().unwrap(),
         request["key_id"].as_str().unwrap(),
         request["literal"].as_str().unwrap(),
     );
-    let verifier_seed: [u8; 32] = Sha256::digest(b"gate test verifier v1").into();
-    let verifier = SigningKey::from_bytes(&verifier_seed);
     request["signature_hex"] = json!(hex_encode(
         &verifier
             .sign(&Sha256::digest(message.as_bytes()))
             .to_bytes()
     ));
-    request
 }
 
 async fn balance(account: &Account, token: &near_workspaces::types::AccountId) -> u128 {
@@ -283,6 +294,14 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         .unwrap()
         .into_result()
         .unwrap();
+
+    let previous_version: String = gate
+        .view(gate.id(), "version")
+        .await
+        .unwrap()
+        .json()
+        .unwrap();
+    assert!(matches!(previous_version.as_str(), "0.2.1" | "0.2.2"));
 
     let (public_key, secret_key) = agent_keys();
     let token_id = token.id().to_string();
@@ -576,6 +595,13 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         .unwrap()
         .into_result()
         .unwrap();
+    let rollback_version: String = gate
+        .view(gate.id(), "version")
+        .await
+        .unwrap()
+        .json()
+        .unwrap();
+    assert_eq!(rollback_version, previous_version);
     let rollback_policy: Value = gate
         .view(gate.id(), "get_policy")
         .await
@@ -893,4 +919,735 @@ async fn sandbox_transfer_policy_and_protocol_boundary() {
         .unwrap_err();
     assert!(format!("{paused_error:?}").contains("REFUSED:paused"));
     let _ = stranger;
+}
+
+struct Gate022Sandbox {
+    worker: near_workspaces::Worker<near_workspaces::network::Sandbox>,
+    owner: Account,
+    gate: Account,
+    vendor: Account,
+    agent: Account,
+    agent_public_key: PublicKey,
+    previous_wasm: Vec<u8>,
+    candidate_wasm: Vec<u8>,
+}
+
+impl Gate022Sandbox {
+    async fn new() -> Self {
+        let worker = near_workspaces::sandbox().await.unwrap();
+        let root = worker.root_account().unwrap();
+        let mut accounts = Vec::new();
+        for name in ["owner", "gate", "vendor"] {
+            accounts.push(
+                root.create_subaccount(name)
+                    .initial_balance(NearToken::from_near(20))
+                    .transact()
+                    .await
+                    .unwrap()
+                    .into_result()
+                    .unwrap(),
+            );
+        }
+        let vendor = accounts.pop().unwrap();
+        let gate = accounts.pop().unwrap();
+        let owner = accounts.pop().unwrap();
+        let repository = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let previous_wasm = ["res/previous/gate.wasm", "res/gate.wasm"]
+            .into_iter()
+            .find_map(|relative_path| {
+                let wasm = fs::read(repository.join(relative_path)).unwrap();
+                let digest = Sha256::digest(&wasm);
+                if base58_encode(&digest) != "5EmM2UQRYcvaNvJX6jfcgtNS7Mm8ZPjZhwK1J8bMXrcu" {
+                    return None;
+                }
+                assert_eq!(
+                    fs::read_to_string(repository.join(format!("{relative_path}.sha256")))
+                        .unwrap()
+                        .trim(),
+                    format!("{}  {relative_path}", hex_encode(&digest))
+                );
+                Some(wasm)
+            })
+            .expect("hash-pinned Gate 0.2.2 artifact in res or res/previous");
+        let candidate_wasm = match std::env::var_os("GATE_CANDIDATE_WASM") {
+            Some(path) => fs::read(path).unwrap(),
+            None => near_workspaces::compile_project(env!("CARGO_MANIFEST_DIR"))
+                .await
+                .unwrap(),
+        };
+        gate.deploy(&previous_wasm)
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap();
+        let verifier =
+            fs::read_to_string(repository.join("fixtures/keys/test-verifier.pub")).unwrap();
+        gate.call(gate.id(), "new")
+            .args_json(json!({
+                "owner_id": owner.id(),
+                "verifier_key": verifier.lines().next().unwrap(),
+                "max_ttl_ms": 300_000
+            }))
+            .transact()
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap();
+        let version: String = gate
+            .view(gate.id(), "version")
+            .await
+            .unwrap()
+            .json()
+            .unwrap();
+        assert_eq!(version, "0.2.2");
+        let (agent_public_key, agent_secret_key) = agent_keys();
+        owner
+            .call(gate.id(), "register_agent")
+            .args_json(json!({
+                "public_key": agent_public_key.to_string(),
+                "label": "attested sandbox agent",
+                "caps": [{
+                    "asset": "Near",
+                    "per_call": "1000000000000000000000000",
+                    "window_cap": "10000000000000000000000000",
+                    "window_ms": 86_400_000,
+                    "window_start_ms": 0,
+                    "spent": "0"
+                }],
+                "unknown_caps": [],
+                "allowance_yocto": "1000000000000000000000000"
+            }))
+            .deposit(NearToken::from_yoctonear(1))
+            .transact()
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap();
+        owner
+            .call(gate.id(), "set_allowlist")
+            .args_json(json!({
+                "agent_pk": agent_public_key.to_string(),
+                "accounts": [vendor.id()]
+            }))
+            .deposit(NearToken::from_yoctonear(1))
+            .transact()
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap();
+        let agent = Account::from_secret_key(gate.id().clone(), agent_secret_key, &worker);
+        Self {
+            worker,
+            owner,
+            gate,
+            vendor,
+            agent,
+            agent_public_key,
+            previous_wasm,
+            candidate_wasm,
+        }
+    }
+
+    async fn policy_and_agent(&self) -> (Value, Value) {
+        (
+            self.gate
+                .view(self.gate.id(), "get_policy")
+                .await
+                .unwrap()
+                .json()
+                .unwrap(),
+            self.gate
+                .view(self.gate.id(), "get_agent")
+                .args_json(json!({"public_key": self.agent_public_key.to_string()}))
+                .await
+                .unwrap()
+                .json()
+                .unwrap(),
+        )
+    }
+
+    async fn request(&self, signer: Option<&SigningKey>) -> Value {
+        let mut request = vector("02-near-happy-sandbox");
+        request["amount"] = json!("1");
+        let mut request = fresh_request(&self.worker, self.gate.id(), request, 300_000).await;
+        if let Some(signer) = signer {
+            sign_request(self.gate.id(), &mut request, signer);
+        }
+        request
+    }
+
+    async fn assert_completed(&self, request: &Value, attested_key: Option<&str>) {
+        let before = self
+            .vendor
+            .view_account()
+            .await
+            .unwrap()
+            .balance
+            .as_yoctonear();
+        let result = self
+            .agent
+            .call(self.gate.id(), "request_transfer")
+            .args_json(transfer_args(request))
+            .gas(Gas::from_tgas(100))
+            .transact()
+            .await
+            .unwrap();
+        result.clone().into_result().unwrap();
+        assert!(result
+            .logs()
+            .iter()
+            .any(|line| line.contains("transfer_completed")));
+        if let Some(public_key) = attested_key {
+            assert!(result.logs().iter().any(|line| {
+                line.contains("transfer_scheduled")
+                    && line.contains(&format!("\"verifier_key\":\"{public_key}\""))
+            }));
+        }
+        assert_eq!(
+            self.vendor
+                .view_account()
+                .await
+                .unwrap()
+                .balance
+                .as_yoctonear(),
+            before + request["amount"].as_str().unwrap().parse::<u128>().unwrap()
+        );
+        let used: bool = self
+            .gate
+            .view(self.gate.id(), "is_verdict_used")
+            .args_json(json!({"verdict_id": request["verdict_id"]}))
+            .await
+            .unwrap()
+            .json()
+            .unwrap();
+        assert!(used);
+    }
+
+    async fn assert_refused(&self, request: &Value, reason: &str) {
+        let before = self.policy_and_agent().await;
+        let balance = self.vendor.view_account().await.unwrap().balance;
+        let result = self
+            .agent
+            .call(self.gate.id(), "request_transfer")
+            .args_json(transfer_args(request))
+            .gas(Gas::from_tgas(100))
+            .transact()
+            .await
+            .unwrap();
+        let error = result.clone().into_result().unwrap_err();
+        assert!(format!("{error:?}").contains(reason), "{error:?}");
+        assert!(!result
+            .logs()
+            .iter()
+            .any(|line| line.contains("transfer_scheduled")));
+        assert_eq!(self.policy_and_agent().await, before);
+        assert_eq!(self.vendor.view_account().await.unwrap().balance, balance);
+        let used: bool = self
+            .gate
+            .view(self.gate.id(), "is_verdict_used")
+            .args_json(json!({"verdict_id": request["verdict_id"]}))
+            .await
+            .unwrap()
+            .json()
+            .unwrap();
+        assert!(!used);
+    }
+
+    async fn attestation(&self) -> Value {
+        self.gate
+            .view(self.gate.id(), "get_attestation")
+            .await
+            .unwrap()
+            .json()
+            .unwrap()
+    }
+
+    async fn deploy_mock(&self) -> Account {
+        let registry = self
+            .worker
+            .root_account()
+            .unwrap()
+            .create_subaccount("registry")
+            .initial_balance(NearToken::from_near(20))
+            .transact()
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap();
+        let mock_path = format!("{}/../test-attest-mock", env!("CARGO_MANIFEST_DIR"));
+        let wasm = near_workspaces::compile_project(&mock_path).await.unwrap();
+        registry.deploy(&wasm).await.unwrap().into_result().unwrap();
+        let config = attest_vectors()["registry_config"][0]["new_arguments"].clone();
+        registry
+            .call(registry.id(), "new")
+            .args_json(config.clone())
+            .transact()
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap();
+        let actual: Value = registry
+            .view(registry.id(), "get_config")
+            .args_json(json!({}))
+            .await
+            .unwrap()
+            .json()
+            .unwrap();
+        assert_eq!(actual, config);
+        registry
+    }
+
+    async fn enable(&self, registry: &Account) {
+        self.owner
+            .call(self.gate.id(), "enable_attested_mode")
+            .args_json(json!({
+                "registry_id": registry.id(),
+                "measurement_id": attest_vectors()["measurements"][1]["measurement_id"],
+                "measurement_timelock_ms": 86_400_000,
+                "platforms": ["11".repeat(16)]
+            }))
+            .deposit(NearToken::from_yoctonear(1))
+            .transact()
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap();
+    }
+
+    async fn record(&self, key: &SigningKey, measurement: usize) -> Value {
+        let now_ms = self.worker.view_block().await.unwrap().timestamp() / 1_000_000;
+        let vectors = attest_vectors();
+        let mut record = vectors["attested_keys"][0]["view"].clone();
+        record["public_key"] = json!(hex_encode(&key.verifying_key().to_bytes()));
+        record["measurement"] = vectors["measurements"][measurement]["input"].clone();
+        record["measurement_id"] = vectors["measurements"][measurement]["measurement_id"].clone();
+        record["issued_at_ms"] = json!(now_ms);
+        record["registered_ms"] = json!(now_ms);
+        record["expires_ms"] = json!(now_ms + 86_400_000);
+        record["collateral_expires_ms"] = json!(now_ms + 172_800_000);
+        record
+    }
+
+    async fn sync(&self, registry: &Account, key: &SigningKey, record: Option<Value>) -> bool {
+        let public_key = hex_encode(&key.verifying_key().to_bytes());
+        registry
+            .call(registry.id(), "set_key")
+            .args_json(json!({"public_key": public_key, "record": record}))
+            .transact()
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap();
+        registry
+            .call(self.gate.id(), "sync_verifier")
+            .args_json(json!({"public_key": public_key}))
+            .gas(Gas::from_tgas(100))
+            .transact()
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap()
+            .json()
+            .unwrap()
+    }
+}
+
+fn attest_vectors() -> Value {
+    let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../fixtures/attest/vectors.json");
+    serde_json::from_slice(&fs::read(path).unwrap()).unwrap()
+}
+
+fn enclave_signer(name: &str) -> SigningKey {
+    let seed: [u8; 32] = Sha256::digest(format!("gate sandbox enclave {name}").as_bytes()).into();
+    SigningKey::from_bytes(&seed)
+}
+
+#[tokio::test]
+async fn sandbox_gate_022_legacy_round_trip() {
+    let sandbox = Gate022Sandbox::new().await;
+    let first = sandbox.request(None).await;
+    sandbox.assert_completed(&first, None).await;
+    let original = sandbox.policy_and_agent().await;
+    sandbox
+        .gate
+        .deploy(&sandbox.candidate_wasm)
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap();
+    assert_eq!(sandbox.policy_and_agent().await, original);
+    assert_eq!(sandbox.attestation().await["enabled"], false);
+    let version: String = sandbox
+        .gate
+        .view(sandbox.gate.id(), "version")
+        .await
+        .unwrap()
+        .json()
+        .unwrap();
+    assert_eq!(version, "0.3.0");
+    let used: bool = sandbox
+        .gate
+        .view(sandbox.gate.id(), "is_verdict_used")
+        .args_json(json!({"verdict_id": first["verdict_id"]}))
+        .await
+        .unwrap()
+        .json()
+        .unwrap();
+    assert!(used);
+    sandbox
+        .assert_completed(&sandbox.request(None).await, None)
+        .await;
+    let upgraded = sandbox.policy_and_agent().await;
+    sandbox
+        .gate
+        .deploy(&sandbox.previous_wasm)
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap();
+    assert_eq!(sandbox.policy_and_agent().await, upgraded);
+    sandbox
+        .assert_completed(&sandbox.request(None).await, None)
+        .await;
+    sandbox
+        .gate
+        .deploy(&sandbox.candidate_wasm)
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap();
+    assert_eq!(sandbox.attestation().await["enabled"], false);
+}
+
+#[tokio::test]
+async fn sandbox_gate_022_attested_round_trip_burns_legacy_verifiers() {
+    let sandbox = Gate022Sandbox::new().await;
+    sandbox
+        .assert_completed(&sandbox.request(None).await, None)
+        .await;
+    let verifier_seed: [u8; 32] = Sha256::digest(b"gate test verifier v1").into();
+    let current = PublicKey::try_from_parts(
+        KeyType::ED25519,
+        &SigningKey::from_bytes(&verifier_seed)
+            .verifying_key()
+            .to_bytes(),
+    )
+    .unwrap();
+    let now_ms = sandbox.worker.view_block().await.unwrap().timestamp() / 1_000_000;
+    sandbox
+        .owner
+        .call(sandbox.gate.id(), "set_verifier_keys")
+        .args_json(json!({
+            "current": current.to_string(),
+            "previous": sandbox.agent_public_key.to_string(),
+            "previous_valid_until_ms": now_ms + 86_400_000
+        }))
+        .deposit(NearToken::from_yoctonear(1))
+        .transact()
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap();
+    let original = sandbox.policy_and_agent().await;
+    sandbox
+        .gate
+        .deploy(&sandbox.candidate_wasm)
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap();
+    assert_eq!(sandbox.policy_and_agent().await, original);
+    let registry = sandbox.deploy_mock().await;
+    sandbox.enable(&registry).await;
+    let key = enclave_signer("round-trip");
+    let public_key = hex_encode(&key.verifying_key().to_bytes());
+    let record = sandbox.record(&key, 1).await;
+    assert!(sandbox.sync(&registry, &key, Some(record.clone())).await);
+    assert_eq!(sandbox.attestation().await["keys"][0], record);
+    sandbox
+        .assert_completed(&sandbox.request(Some(&key)).await, Some(&public_key))
+        .await;
+    let attestation = sandbox.attestation().await;
+    let upgraded = sandbox.policy_and_agent().await;
+    let burned: Value = sandbox
+        .gate
+        .view(sandbox.gate.id(), "get_verifier_keys")
+        .await
+        .unwrap()
+        .json()
+        .unwrap();
+    assert_eq!(
+        burned["current"],
+        hex_encode(&Sha256::digest(
+            b"siyab gate: attested mode, no operator verifier key"
+        ))
+    );
+    assert_eq!(burned["previous"], Value::Null);
+    let restored = sandbox
+        .owner
+        .call(sandbox.gate.id(), "set_verifier_keys")
+        .args_json(json!({
+            "current": sandbox.agent_public_key.to_string(),
+            "previous": null,
+            "previous_valid_until_ms": 0
+        }))
+        .deposit(NearToken::from_yoctonear(1))
+        .transact()
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap_err();
+    assert!(format!("{restored:?}").contains("REFUSED:attested_mode"));
+    sandbox
+        .assert_refused(&sandbox.request(None).await, "REFUSED:bad_signature")
+        .await;
+    sandbox
+        .gate
+        .deploy(&sandbox.previous_wasm)
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap();
+    assert_eq!(sandbox.policy_and_agent().await, upgraded);
+    let rollback_keys: Value = sandbox
+        .gate
+        .view(sandbox.gate.id(), "get_verifier_keys")
+        .await
+        .unwrap()
+        .json()
+        .unwrap();
+    assert_eq!(rollback_keys, burned);
+    sandbox
+        .assert_refused(&sandbox.request(None).await, "REFUSED:bad_signature")
+        .await;
+    sandbox
+        .assert_refused(&sandbox.request(Some(&key)).await, "REFUSED:bad_signature")
+        .await;
+    let mut previous_request = sandbox.request(None).await;
+    previous_request["key_id"] = json!("prev");
+    let previous_seed: [u8; 32] = Sha256::digest(b"gate test agent v1").into();
+    sign_request(
+        sandbox.gate.id(),
+        &mut previous_request,
+        &SigningKey::from_bytes(&previous_seed),
+    );
+    sandbox
+        .assert_refused(&previous_request, "REFUSED:bad_key_id")
+        .await;
+    sandbox
+        .gate
+        .deploy(&sandbox.candidate_wasm)
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap();
+    assert_eq!(sandbox.attestation().await, attestation);
+    assert_eq!(sandbox.policy_and_agent().await, upgraded);
+    sandbox
+        .assert_completed(&sandbox.request(Some(&key)).await, Some(&public_key))
+        .await;
+}
+
+#[tokio::test]
+async fn sandbox_attested_sync_refuses_ineligible_records_and_current_policy() {
+    let sandbox = Gate022Sandbox::new().await;
+    sandbox
+        .gate
+        .deploy(&sandbox.candidate_wasm)
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap();
+    let registry = sandbox.deploy_mock().await;
+    sandbox.enable(&registry).await;
+    for control in [
+        "missing",
+        "expired",
+        "wrong_platform",
+        "unapproved_measurement",
+        "pending_measurement",
+        "mismatched_public_key",
+        "extra_field",
+        "missing_field",
+        "wrong_tcb_status",
+        "lease_extended",
+    ] {
+        let key = enclave_signer(control);
+        let mut record = sandbox.record(&key, 1).await;
+        match control {
+            "expired" => {
+                let now_ms = record["registered_ms"].as_u64().unwrap();
+                record["issued_at_ms"] = json!(now_ms - 1000);
+                record["registered_ms"] = json!(now_ms - 500);
+                record["expires_ms"] = json!(now_ms - 1);
+                record["collateral_expires_ms"] = json!(now_ms - 1);
+            }
+            "wrong_platform" => record["ppid"] = json!("22".repeat(16)),
+            "unapproved_measurement" | "pending_measurement" => {
+                record = sandbox.record(&key, 0).await;
+                if control == "pending_measurement" {
+                    sandbox
+                        .owner
+                        .call(sandbox.gate.id(), "propose_measurement")
+                        .args_json(json!({
+                            "measurement_id": record["measurement_id"],
+                            "label": "pending sandbox measurement"
+                        }))
+                        .deposit(NearToken::from_yoctonear(1))
+                        .transact()
+                        .await
+                        .unwrap()
+                        .into_result()
+                        .unwrap();
+                    let view = sandbox.attestation().await;
+                    let proposed = view["measurements"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .find(|measurement| {
+                            measurement["measurement_id"] == record["measurement_id"]
+                        })
+                        .unwrap();
+                    assert!(
+                        proposed["active_from_ms"].as_u64().unwrap()
+                            >= record["registered_ms"].as_u64().unwrap() + 86_400_000
+                    );
+                }
+            }
+            "mismatched_public_key" => record["public_key"] = json!("ff".repeat(32)),
+            "extra_field" => record["untrusted_extra"] = json!(true),
+            "missing_field" => {
+                record.as_object_mut().unwrap().remove("aux");
+            }
+            "wrong_tcb_status" => record["tcb_status"] = json!("OutOfDate"),
+            "lease_extended" => {
+                record["expires_ms"] = json!(record["expires_ms"].as_u64().unwrap() + 1);
+            }
+            "missing" => {}
+            _ => unreachable!(),
+        }
+        let record = if control == "missing" {
+            None
+        } else {
+            Some(record)
+        };
+        assert!(!sandbox.sync(&registry, &key, record).await, "{control}");
+        assert_eq!(sandbox.attestation().await["keys"], json!([]), "{control}");
+        sandbox
+            .assert_refused(
+                &sandbox.request(Some(&key)).await,
+                "REFUSED:no_attested_verifier",
+            )
+            .await;
+    }
+
+    let denied_key = enclave_signer("locally-denied");
+    let denied_public_key = hex_encode(&denied_key.verifying_key().to_bytes());
+    assert!(
+        sandbox
+            .sync(
+                &registry,
+                &denied_key,
+                Some(sandbox.record(&denied_key, 1).await)
+            )
+            .await
+    );
+    sandbox
+        .assert_completed(
+            &sandbox.request(Some(&denied_key)).await,
+            Some(&denied_public_key),
+        )
+        .await;
+    sandbox
+        .owner
+        .call(sandbox.gate.id(), "deny_verifier_key")
+        .args_json(json!({"public_key": denied_public_key}))
+        .deposit(NearToken::from_yoctonear(1))
+        .transact()
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap();
+    assert_eq!(sandbox.attestation().await["keys"], json!([]));
+    assert!(
+        !sandbox
+            .sync(
+                &registry,
+                &denied_key,
+                Some(sandbox.record(&denied_key, 1).await)
+            )
+            .await
+    );
+    sandbox
+        .assert_refused(
+            &sandbox.request(Some(&denied_key)).await,
+            "REFUSED:no_attested_verifier",
+        )
+        .await;
+
+    let expired_key = enclave_signer("cached-expiry");
+    let mut expiring = sandbox.record(&expired_key, 1).await;
+    let expires_ms = expiring["registered_ms"].as_u64().unwrap() + 60_000;
+    expiring["expires_ms"] = json!(expires_ms);
+    expiring["collateral_expires_ms"] = json!(expires_ms);
+    assert!(sandbox.sync(&registry, &expired_key, Some(expiring)).await);
+    sandbox
+        .assert_completed(
+            &sandbox.request(Some(&expired_key)).await,
+            Some(&hex_encode(&expired_key.verifying_key().to_bytes())),
+        )
+        .await;
+    let mut now_ms = sandbox.worker.view_block().await.unwrap().timestamp() / 1_000_000;
+    for _ in 0..20 {
+        if now_ms >= expires_ms {
+            break;
+        }
+        sandbox.worker.fast_forward(400).await.unwrap();
+        now_ms = sandbox.worker.view_block().await.unwrap().timestamp() / 1_000_000;
+    }
+    assert!(now_ms >= expires_ms);
+    sandbox
+        .assert_refused(
+            &sandbox.request(Some(&expired_key)).await,
+            "REFUSED:no_attested_verifier",
+        )
+        .await;
+
+    let revoked_key = enclave_signer("locally-revoked-measurement");
+    assert!(
+        sandbox
+            .sync(
+                &registry,
+                &revoked_key,
+                Some(sandbox.record(&revoked_key, 1).await)
+            )
+            .await
+    );
+    sandbox
+        .owner
+        .call(sandbox.gate.id(), "revoke_measurement")
+        .args_json(json!({"measurement_id": attest_vectors()["measurements"][1]["measurement_id"]}))
+        .deposit(NearToken::from_yoctonear(1))
+        .transact()
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap();
+    assert_eq!(sandbox.attestation().await["keys"], json!([]));
+    assert!(
+        !sandbox
+            .sync(
+                &registry,
+                &revoked_key,
+                Some(sandbox.record(&revoked_key, 1).await)
+            )
+            .await
+    );
+    sandbox
+        .assert_refused(
+            &sandbox.request(Some(&revoked_key)).await,
+            "REFUSED:no_attested_verifier",
+        )
+        .await;
 }

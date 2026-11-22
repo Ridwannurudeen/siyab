@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "flatbelt2402.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "5nBb1YwhFcKjN1RR2ZWj9zp1eq6MkY5ZADTK7WABYJ72",
+      "block_height": 225687880,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 153966916508380,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8EcCXSg1Kv88TYz3M93nHbPaLcLAjAFm3DqRQHAetJBo"
+        },
+        {
+          "access_key": {
+            "nonce": 131646890022054,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Azu2rc1hd4iqhNKNmRVjw4fQVzLgMW9J4bwReBRc8QUz"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:44:26Z"
+}

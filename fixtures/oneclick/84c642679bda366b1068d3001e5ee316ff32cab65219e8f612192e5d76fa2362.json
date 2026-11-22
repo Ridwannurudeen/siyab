@@ -1,0 +1,11 @@
+{
+  "request": {
+    "method": "GET",
+    "params": null
+  },
+  "response": {
+    "data": null
+  },
+  "url": "https://api.nearblocks.io/v3/txns/11111111111111111111111111111111",
+  "fetched_at": "2026-11-21T20:34:35Z"
+}
