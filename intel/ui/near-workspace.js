@@ -67,13 +67,17 @@
   }
   function wallet() {
     const provider = window.near;
-    if (!provider?.isSender || typeof provider.signMessage !== "function") {
-      throw new Error("Open this page with Sender's NEP-413 signing interface enabled. This path never adds a key or sends a transaction.");
+    if ((!provider?.isSender && !provider?.isOkxWallet) || typeof provider.signMessage !== "function") {
+      throw new Error("Open this page with the NEP-413 signing interface in Sender or OKX Wallet enabled. This path never adds a key or sends a transaction.");
     }
     return async params => {
+      if (provider.isOkxWallet && !provider.getAccountId()) await provider.connect({});
       const result = await provider.signMessage(params);
-      if (result?.error || !result?.response) throw new Error("The wallet did not return a signed NEP-413 message. Approve the message in Sender and try again.");
-      const signed = result.response;
+      const signed = provider.isSender ? result?.response : result;
+      if (result?.error || !signed || typeof signed !== "object" || Array.isArray(signed)
+          || typeof signed.accountId !== "string" || typeof signed.publicKey !== "string" || typeof signed.signature !== "string") {
+        throw new Error("The wallet did not return a signed NEP-413 message. Approve the message in Sender or OKX Wallet and try again.");
+      }
       if (signed.state !== undefined && signed.state !== params.state) throw new Error("The wallet response does not match this signing request.");
       return signed;
     };
@@ -164,7 +168,7 @@
       const signed = await signMessage({message: challenge.message, recipient: challenge.recipient, nonce: bytes,
         callbackUrl: challenge.callbackUrl, state: challenge.state});
       if (current !== generation) return;
-      if (signed.accountId !== account) throw new Error("Choose the same account in Sender and in Siyab, then sign in again.");
+      if (signed.accountId !== account) throw new Error("Choose the same account in Siyab and in Sender or OKX Wallet, then sign in again.");
       const result = await request("verify", {challenge_id: challenge.challenge_id, accountId: signed.accountId,
         publicKey: signed.publicKey, signature: signed.signature, ...(signed.state === undefined ? {} : {state: signed.state})});
       if (current !== generation) return;

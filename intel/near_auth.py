@@ -268,9 +268,11 @@ class NearAuth:
                 key = self.client.call("query", params)
                 rpc.response_gate({"result": key}, "query", params)
         except rpc.RpcError as error:
-            if error.cause == "UNKNOWN_ACCESS_KEY":
+            missing_key = (error.cause == "UNKNOWN_ACCESS_KEY"
+                           or error.error == f"access key {public_key} does not exist while viewing")
+            if missing_key:
                 self._cache_invalid_key(row["account_id"], public_key)
-            if error.cause in ("UNKNOWN_ACCESS_KEY", "UNKNOWN_ACCOUNT"):
+            if missing_key or error.cause == "UNKNOWN_ACCOUNT":
                 raise WorkspaceError(401, "near_key_invalid", "This signing key is no longer on the claimed NEAR account.") from None
             raise WorkspaceError(503, "near_key_unavailable", "A current NEAR access key could not be checked.") from None
         except (rpc.HttpError, rpc.TransportError, rpc.RateLimited, rpc.MalformedResponse, OSError, ValueError):

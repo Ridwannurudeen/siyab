@@ -19,6 +19,30 @@ class NearWorkspaceBrowserTest(unittest.TestCase):
     def test_sign_in_reads_no_browser_workspace(self):
         self.run_scenario("sign-in-privacy")
 
+    def test_okx_sign_in_accepts_a_direct_signed_response(self):
+        self.run_scenario("okx-sign-in")
+
+    def test_okx_unlock_reads_sender_ciphertext_and_sender_reads_its_saved_copy(self):
+        self.run_scenario("okx-unlock")
+
+    def test_okx_connects_without_key_permissions_before_sign_in_or_unlock(self):
+        self.run_scenario("okx-connect")
+
+    def test_sender_keeps_its_wrapped_response_and_never_connects(self):
+        self.run_scenario("sender-shape")
+
+    def test_unknown_providers_are_refused_before_issuing_a_challenge(self):
+        self.run_scenario("unknown-provider")
+
+    def test_okx_bad_response_shapes_and_bindings_refuse_sign_in_and_unlock(self):
+        self.run_scenario("okx-validation")
+
+    def test_double_submit_is_ignored_during_challenge_connect_wallet_and_verify(self):
+        self.run_scenario("double-submit")
+
+    def test_double_unlock_is_ignored_during_both_wallet_approvals(self):
+        self.run_scenario("double-unlock")
+
     def test_explicit_save_sends_only_ciphertext(self):
         self.run_scenario("save-privacy")
 
@@ -121,7 +145,7 @@ class NearWorkspaceBrowserTest(unittest.TestCase):
     def test_panel_discloses_reset_loss_ip_and_revision_timing(self):
         panel = (Path(__file__).resolve().parent.parent / "intel/ui/near-workspace-panel.html").read_text(encoding="utf-8")
         for text in ("near-reset-form", "near-reset-confirmation", "near-reset", "permanently", "lost",
-                     "IP address", "revision", "timing", "0x", "five minutes"):
+                     "IP address", "revision", "timing", "0x", "five minutes", "Sender", "OKX Wallet"):
             with self.subTest(text=text):
                 self.assertIn(text, panel)
 

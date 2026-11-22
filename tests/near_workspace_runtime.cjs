@@ -25,9 +25,9 @@ async function until(predicate, message) {
   while (!predicate()) { if (Date.now() > deadline) throw new Error('Timed out: ' + message); await tick(); }
 }
 function environment(options = {}) {
-  const ids = {}, events = {}, requests = [], walletCalls = [], timers = new Map(), merges = [], writes = [], confirmations = [], cryptoPending = [];
+  const ids = {}, events = {}, requests = [], walletCalls = [], connectCalls = [], timers = new Map(), merges = [], writes = [], confirmations = [], cryptoPending = [];
   const storage = options.storage || new Map(), storageWrites = [];
-  let timer = 0, snapshotCalls = 0;
+  let timer = 0, snapshotCalls = 0, connectedAccount = options.disconnected ? null : account;
   const server = options.server || {vault: options.vault ? normal(options.vault) : null, revision: options.vaultRevision || (options.vault ? 1 : 0)};
   for (const id of ['near-workspace', ...['sign-in', 'controls', 'identity', 'login', 'account', 'unlock', 'save', 'restore', 'lock', 'logout', 'status', 'reset-form', 'reset-confirmation', 'reset'].map(id => 'near-' + id)]) ids[id] = new Element();
   ids['near-account'].value = account;
@@ -93,22 +93,33 @@ function environment(options = {}) {
   if (options.storageGetterDenied) Object.defineProperty(runtime, 'localStorage', {get() { throw new Error('Storage blocked'); }});
   vm.createContext(runtime);
   vm.runInContext(fs.readFileSync('intel/ui/workspace-vault.js', 'utf8'), runtime);
-  window.near = {isSender: !options.unsupported, async signMessage(request) {
+  window.near = {isSender: !options.unsupported && !options.okx, isOkxWallet: Boolean(options.okx), isOKExWallet: Boolean(options.okx),
+    getAccountId() { return connectedAccount; },
+    async connect(params) {
+      assert.equal(options.okx, true, 'Sender must never be asked to connect');
+      assert.equal(arguments.length, 1); assert.deepEqual(normal(params), {});
+      const record = {params: normal(params)}; connectCalls.push(record);
+      if (options.connectError) throw new Error('Wallet connection declined.');
+      if (options.holdConnect) return new Promise(resolve => { record.release = () => { connectedAccount = account; resolve({accountId: account}); }; });
+      connectedAccount = account;
+      return {accountId: account};
+    }, async signMessage(request) {
+    if (options.okx) assert.equal(connectedAccount, account, 'OKX must connect before signing');
     const index = walletCalls.length, record = {request: {...request, nonce: new Uint8Array(request.nonce)}}; walletCalls.push(record);
     const payload = options.signingRequest ? options.signingRequest(record.request, index) : record.request;
     const digest = await window.SiyabVault.nep413Digest(payload);
     const signed = {accountId: account, publicKey, signature: crypto.sign(null, digest, signingKey).toString('base64'), ...(request.state === undefined ? {} : {state: request.state}), ...options.walletPatch?.(index)};
     if (options.noisyVerification && index === 2) { const bytes = Buffer.from(signed.signature, 'base64'); bytes[0] ^= 1; signed.signature = bytes.toString('base64'); }
     record.signed = signed;
-    const response = options.walletResult ? options.walletResult(signed, index) : {response: signed};
+    const response = options.walletResult ? options.walletResult(signed, index) : options.okx ? signed : {response: signed};
     if (options.holdWallet?.(index)) return new Promise(resolve => { record.release = () => resolve(response); });
     return response;
   }};
   vm.runInContext(fs.readFileSync('intel/ui/near-workspace.js', 'utf8'), runtime);
-  return {options, window, requests, walletCalls, timers, merges, writes, confirmations, cryptoPending, session, challenge, context, storage, storageWrites,
+  return {options, window, requests, walletCalls, connectCalls, timers, merges, writes, confirmations, cryptoPending, session, challenge, context, storage, storageWrites,
     node: id => ids['near-' + id], snapshotCalls: () => snapshotCalls, stored: () => server.vault, server,
     start: () => events['document:DOMContentLoaded'](),
-    submit() { if (!ids['near-login'].disabled) ids['near-sign-in'].listeners.submit({preventDefault() {}}); },
+    submit() { ids['near-sign-in'].listeners.submit({preventDefault() {}}); },
     click(id) { return ids['near-' + id].disabled ? Promise.resolve(false) : ids['near-' + id].listeners.click(); },
     async reset() { ids['near-reset-form'].listeners.submit({preventDefault() {}}); await until(() => !ids['near-login'].disabled, 'reset idle'); },
     event(name, value = {}) { return events[name](value); },
@@ -139,12 +150,95 @@ function privateBoundary(env) {
 async function main() {
   const scenario = process.argv[2];
   if (scenario === 'emit-envelope') { console.log(JSON.stringify(await encryptedCopy())); return; }
-  if (scenario === 'sign-in-privacy') {
-    const env = environment(); await signedIn(env);
+  if (scenario === 'sign-in-privacy' || scenario === 'okx-sign-in') {
+    const env = environment({okx: scenario === 'okx-sign-in'}); await signedIn(env);
     assert.deepEqual(env.requests.map(request => [request.path, request.settings.method]), [['session', 'GET'], ['challenge', 'POST'], ['verify', 'POST'], ['vault', 'GET']]);
     assert.equal(env.walletCalls.length, 1); assert.equal(env.requests[2].body.signature, env.walletCalls[0].signed.signature);
+    assert.equal(env.connectCalls.length, 0); assert.equal(env.walletCalls[0].request.state, env.challenge.challenge_id);
+    assert.equal(env.walletCalls[0].request.callbackUrl, origin + '/workspace.html');
+    assert.ok(env.walletCalls[0].request.nonce instanceof Uint8Array); assert.equal(env.walletCalls[0].request.nonce.length, 32);
     assert.equal(env.snapshotCalls(), 0); assert.equal(env.merges.length, 0); assert.equal(env.writes.length, 0);
     assert.equal(env.node('save').disabled, true); privateBoundary(env);
+  } else if (scenario === 'okx-unlock') {
+    const env = environment({okx: true, vault: await encryptedCopy()}); await unlocked(env);
+    assert.equal(env.walletCalls.length, 3); assert.equal(env.connectCalls.length, 0);
+    assert.equal(env.walletCalls[1].signed.signature, env.walletCalls[2].signed.signature);
+    for (const call of env.walletCalls) assert.equal(call.request.callbackUrl, origin + '/workspace.html');
+    assert.equal(env.requests.length, 4); assert.equal(env.snapshotCalls(), 0); assert.equal(env.merges.length, 0);
+    await env.click('restore'); assert.deepEqual(env.merges, [fixture()]);
+    await env.click('save'); assert.equal(env.stored().vault_id, 'workspace:2'); privateBoundary(env);
+    const sender = environment({server: env.server}); await unlocked(sender); await sender.click('restore');
+    assert.deepEqual(sender.merges, [fixture()]); assert.equal(sender.connectCalls.length, 0); privateBoundary(sender);
+  } else if (scenario === 'okx-connect') {
+    for (const authenticated of [false, true]) {
+      const env = environment({okx: true, disconnected: true, authenticated});
+      if (authenticated) await env.start(); else await signedIn(env);
+      await env.click('unlock');
+      assert.equal(env.node('save').disabled, false, env.node('status').textContent);
+      assert.deepEqual(env.connectCalls.map(call => call.params), [{}]);
+      assert.equal(env.window.near.getAccountId(), account); assert.equal(env.walletCalls.length, authenticated ? 2 : 3);
+      assert.equal(env.requests.filter(request => request.path === 'verify').length, authenticated ? 0 : 1); privateBoundary(env);
+    }
+    const declined = environment({okx: true, disconnected: true, connectError: true}); await declined.start(); declined.submit(); await declined.idle();
+    assert.equal(declined.walletCalls.length, 0); assert.equal(declined.requests.filter(request => request.path === 'verify').length, 0);
+    assert.match(declined.node('status').textContent, /connection declined/); assert.equal(declined.node('save').disabled, true); privateBoundary(declined);
+  } else if (scenario === 'sender-shape') {
+    const env = environment({disconnected: true}); await unlocked(env);
+    assert.equal(env.walletCalls.length, 3); assert.equal(env.connectCalls.length, 0); privateBoundary(env);
+    const direct = environment({walletResult: signed => signed}); await direct.start(); direct.submit(); await direct.idle();
+    assert.equal(direct.requests.filter(request => request.path === 'verify').length, 0);
+    assert.match(direct.node('status').textContent, /signed NEP-413 message/); assert.equal(direct.node('save').disabled, true); privateBoundary(direct);
+  } else if (scenario === 'unknown-provider') {
+    for (const provider of [undefined, {}, {isOKExWallet: true}, {isSender: true, signMessage: null}, {isOkxWallet: true, signMessage: null}]) {
+      const env = environment({unsupported: true});
+      env.window.near = provider && {...env.window.near, ...provider};
+      await env.start(); env.submit(); await env.idle();
+      assert.equal(env.requests.length, 1); assert.equal(env.walletCalls.length, 0); assert.equal(env.connectCalls.length, 0);
+      assert.match(env.node('status').textContent, /Sender.*OKX Wallet/); assert.equal(env.node('save').disabled, true); privateBoundary(env);
+    }
+  } else if (scenario === 'okx-validation') {
+    const bad = [
+      signed => ({...signed, accountId: 'bob.near'}), signed => ({...signed, publicKey: null}), signed => ({...signed, signature: null}),
+      signed => ({...signed, state: 'wrong-state'}), () => ({error: 'declined'}), () => ({}), () => null, () => [], signed => ({response: signed})
+    ];
+    for (const walletResult of bad) {
+      const env = environment({okx: true, walletResult}); await env.start(); env.submit(); await env.idle();
+      assert.equal(env.requests.filter(request => request.path === 'verify').length, 0);
+      assert.equal(env.node('sign-in').hidden, false); assert.equal(env.node('save').disabled, true); privateBoundary(env);
+      const unlock = environment({okx: true, authenticated: true, walletResult}); await unlock.start(); await unlock.click('unlock');
+      assert.equal(unlock.node('save').disabled, true); assert.equal(unlock.requests.length, 2); privateBoundary(unlock);
+    }
+  } else if (scenario === 'double-submit') {
+    for (const okx of [false, true]) for (const stage of ['challenge', ...(okx ? ['connect'] : []), 'wallet', 'verify']) {
+      const env = environment({okx, disconnected: stage === 'connect', holdConnect: stage === 'connect',
+        hold: request => request.path === stage, holdWallet: index => stage === 'wallet' && index === 0});
+      await env.start(); env.submit(); env.submit();
+      await until(() => stage === 'connect' ? env.connectCalls[0]?.release : stage === 'wallet' ? env.walletCalls[0]?.release : env.requests.at(-1)?.path === stage, 'pending ' + stage);
+      assert.equal(env.node('login').disabled, true); assert.equal(env.node('account').disabled, true);
+      const count = env.requests.length; env.submit(); await tick(); await tick(); assert.equal(env.requests.length, count);
+      assert.equal(env.requests.filter(request => request.path === 'challenge').length, 1);
+      if (stage === 'connect') env.connectCalls[0].release();
+      else if (stage === 'wallet') env.walletCalls[0].release();
+      else env.requests.at(-1).reply(stage === 'challenge' ? env.challenge : env.session);
+      await env.idle();
+      assert.equal(env.node('sign-in').hidden, true, env.node('status').textContent);
+      assert.equal(env.walletCalls.length, 1); assert.equal(env.connectCalls.length, stage === 'connect' ? 1 : 0);
+      assert.equal(env.requests.filter(request => request.path === 'challenge').length, 1);
+      assert.equal(env.requests.filter(request => request.path === 'verify').length, 1); privateBoundary(env);
+    }
+  } else if (scenario === 'double-unlock') {
+    for (const okx of [false, true]) {
+      const env = environment({okx, holdWallet: index => index > 0}); await signedIn(env);
+      const unlocking = env.node('unlock').listeners.click();
+      for (const index of [1, 2]) {
+        await until(() => env.walletCalls[index]?.release, 'unlock approval ' + index);
+        assert.equal(env.node('unlock').disabled, true); assert.equal(env.node('login').disabled, true);
+        env.node('unlock').listeners.click(); env.submit(); await tick();
+        assert.equal(env.walletCalls.length, index + 1); assert.equal(env.requests.length, 4);
+        env.walletCalls[index].release();
+      }
+      await unlocking; assert.equal(env.node('save').disabled, false); assert.equal(env.walletCalls.length, 3); privateBoundary(env);
+    }
   } else if (scenario === 'save-privacy') {
     const env = environment(); await unlocked(env);
     assert.equal(env.walletCalls.length, 3); assert.equal(env.walletCalls[1].signed.signature, env.walletCalls[2].signed.signature);
@@ -450,4 +544,11 @@ async function main() {
     assert.equal(env.requests.at(-1).path, 'logout'); privateBoundary(env);
   } else throw new Error('Unknown scenario: ' + scenario);
 }
-main().catch(error => { console.error(error); process.exitCode = 1; });
+let finished = false;
+process.on('beforeExit', () => {
+  if (!finished) {
+    console.error('Scenario did not settle: ' + process.argv[2]);
+    process.exitCode = 1;
+  }
+});
+main().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => { finished = true; });

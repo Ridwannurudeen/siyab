@@ -256,6 +256,36 @@ class NearAuthTest(unittest.TestCase):
         self.auth.verify(self.response(self.issue()), self.binding)
         self.assertEqual(len(self.client.calls), 2)
 
+    def test_legacy_missing_key_result_is_invalid_and_cached_until_exact_expiry(self):
+        valid = self.client.result
+        result = {"block_hash": valid["block_hash"], "block_height": valid["block_height"],
+                  "error": f"access key {self.public} does not exist while viewing", "logs": []}
+        client = rpc.Client(rpc.MAINNET_RPC_URL, mode="off")
+        self.auth = near_auth.NearAuth(self.store, "https://siyab.xyz", client=client, clock=lambda: self.now)
+        with patch.object(client, "_exchange", return_value={"jsonrpc": "2.0", "id": "gate", "result": result}) as exchange:
+            self.refused(self.response(self.issue()), 401, "near_key_invalid")
+            self.auth = near_auth.NearAuth(self.store, "https://siyab.xyz", client=client, clock=lambda: self.now)
+            self.now += 59.999
+            self.refused(self.response(self.issue()), 401, "near_key_invalid")
+            self.assertEqual(exchange.call_count, 1)
+            self.now += .001
+            exchange.return_value = {"jsonrpc": "2.0", "id": "gate", "result": valid}
+            self.auth.verify(self.response(self.issue()), self.binding)
+            self.assertEqual(exchange.call_count, 2)
+
+    def test_other_legacy_key_errors_are_unavailable_and_not_cached(self):
+        valid = self.client.result
+        for error in (f"access key {self.public} does not exist while viewing extra",
+                      "access key ed25519:other does not exist while viewing", "unavailable", None):
+            self.now += 60
+            self.client.result = {"block_hash": valid["block_hash"], "block_height": valid["block_height"],
+                                  "error": error, "logs": []}
+            with self.subTest(error=error):
+                self.refused(self.response(self.issue()), 503, "near_key_unavailable")
+                self.client.result = valid
+                self.auth.verify(self.response(self.issue()), self.binding)
+        self.assertEqual(len(self.client.calls), 8)
+
     def test_confirmed_negative_cache_binds_account_and_public_key(self):
         self.client.error = rpc.RpcError({"cause": {"name": "UNKNOWN_ACCESS_KEY"}})
         self.refused(self.response(self.issue()), 401, "near_key_invalid")
