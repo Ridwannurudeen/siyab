@@ -82,6 +82,7 @@ class _ReadClient(rpc.Client):
 
 
 def run(args):
+    rules_version = 3
     try:
         accounts = _accounts(args.accounts)
         reports_account = os.environ.get("REPORTS_ACCOUNT_ID")
@@ -96,7 +97,7 @@ def run(args):
                 raise ValueError("use an output directory outside an existing published holdout")
         store = labels.load(args.labels)
         checkpoint = destination / "set.json"
-        identity = {"accounts": accounts, "rules_version": 3, "label_store_sha256": store.sha256,
+        identity = {"accounts": accounts, "rules_version": rules_version, "label_store_sha256": store.sha256,
                     "reports_account": reports_account}
         if checkpoint.is_file():
             document = json.loads(checkpoint.read_text(encoding="utf-8"))
@@ -138,7 +139,7 @@ def run(args):
                         "record" if read_mode == "record" and index < receivers.AGE_SUBJECTS else "replay",
                         kind="http", fixtures_dir=fixtures, reuse_existing=True)
                     result = receivers._judge(entry, store, client, nearblocks, now_ms, archival, reports_account,
-                                              rules_version=3)
+                                              rules_version=rules_version)
                     if refusals:
                         raise refusals[0]
                     missing = client.missing | archival.missing | nearblocks.missing
@@ -149,13 +150,13 @@ def run(args):
                             archival.missing.clear()
                             nearblocks.missing.clear()
                             pinned = receivers._pinned_judgement(entry, store, archival, nearblocks, block, now_ms,
-                                reports_account, rules_version=3)
+                                reports_account, rules_version=rules_version)
                             if refusals:
                                 raise refusals[0]
                             if pinned is not None:
                                 result = pinned
                                 missing = archival.missing | nearblocks.missing
-                answer = {**result, "rules_version": 3}
+                answer = {**result, "rules_version": rules_version}
                 unknown = {check["id"] for check in result["checks"] if check["status"] == "unknown"}
                 if result["verdict"] == "UNKNOWN" and any(unknown.intersection(checks) for checks in missing.values()):
                     answer["scoreable"] = False
@@ -165,7 +166,7 @@ def run(args):
             rpc.TransportError, OSError, ValueError) as error:
         print(f"stopped: {error}", file=sys.stderr)
         return 1
-    print(json.dumps({"rules_version": 3, "judged": len(verdicts),
+    print(json.dumps({"rules_version": rules_version, "judged": len(verdicts),
                       "verdicts": {verdict: verdicts.count(verdict) for verdict in ("ALLOW", "DENY", "UNKNOWN")}},
                      sort_keys=True))
     return 0
