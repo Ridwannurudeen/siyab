@@ -1,15 +1,25 @@
-// Reference guard for a NEAR wallet transfer flow, for the browser and Node 18+.
+// Reference guard for a NEAR wallet transfer flow.
 //
-// The adapter calls the hosted account check before the wallet signs anything and
+// The adapter calls hosted account and transfer checks before the wallet signs and
 // maps its answer to allow, ask or deny. It adds no detection logic of its own and
 // never treats an answer as permission to pay.
 
 const DEFAULT_BASE_URL = "https://siyab.xyz";
 const DEFAULT_TIMEOUT_MS = 8000;
-const ACCOUNT = /^[a-z0-9][a-z0-9._-]{0,62}[a-z0-9]$/;
+const ACCOUNT = /^[a-z0-9]+(?:[-_][a-z0-9]+)*(?:\.[a-z0-9]+(?:[-_][a-z0-9]+)*)*(?![\s\S])/;
+const RECIPIENT_FIELDS = new Set([
+  "receiver_id", "account_id", "beneficiary_id", "recipient", "recipient_id", "to", "new_owner_id", "owner_id",
+  "receiverId", "accountId", "beneficiaryId", "recipientId", "newOwnerId", "ownerId",
+  "receiver_ids", "account_ids", "beneficiary_ids", "recipients", "recipient_ids", "new_owner_ids", "owner_ids",
+  "receiverIds", "accountIds", "beneficiaryIds", "recipientIds", "newOwnerIds", "ownerIds",
+  "receiver", "receivers", "beneficiary", "beneficiaries", "destination", "destinations", "destination_id", "destinationId",
+  "destination_ids", "destinationIds", "payee", "payees", "payee_id", "payeeId", "payee_ids", "payeeIds",
+  "target", "targets", "target_id", "targetId", "target_ids", "targetIds", "new_owner", "newOwner", "owner", "owners",
+]);
+const INSTRUCTION_FIELDS = new Set(["msg", "payload", "args", "data", "message", "instructions"]);
 
 function accountOrNull(value) {
-  return typeof value === "string" && ACCOUNT.test(value) ? value : null;
+  return typeof value === "string" && value.length >= 2 && value.length <= 64 && ACCOUNT.test(value) ? value : null;
 }
 
 function strings(value) {
@@ -28,8 +38,8 @@ async function sha256Hex(text) {
 async function parseEvidence(answer) {
   if (!answer || typeof answer !== "object") return null;
   if (typeof answer.evidence !== "string" || typeof answer.evidence_hash !== "string") return null;
-  if (await sha256Hex(answer.evidence) !== answer.evidence_hash) return null;
   try {
+    if (await sha256Hex(answer.evidence) !== answer.evidence_hash) return null;
     const document = JSON.parse(answer.evidence);
     return document && typeof document === "object" && !Array.isArray(document) ? document : null;
   } catch (error) {
@@ -44,43 +54,42 @@ function outcomeOf(answer) {
   return ["ALLOW", "DENY", "ASK"].includes(value) ? value : null;
 }
 
-async function decideAccountCheck(answer, receiver) {
-  if (!accountOrNull(receiver)) {
-    return { decision: "ask", reasons: ["The receiver account is not a valid account id."] };
+async function decide(answer, subjectCheck) {
+  const document = await parseEvidence(answer);
+  const reasons = strings(document && document.reasons);
+  const checks = document && Array.isArray(document.checks) ? document.checks : [];
+  if (document && (document.verdict === "DENY" || checks.some(check => check && check.status === "signal"))) {
+    return { decision: "deny", reasons: reasons.length ? reasons : ["The evidence refused this transfer."] };
   }
   const outcome = outcomeOf(answer);
   if (!outcome) {
     return { decision: "ask", reasons: ["The check answer has no usable outcome."] };
   }
-  const topLevelReasons = strings(answer.reasons);
   if (outcome === "DENY") {
     // A denial blocks a payment, so it is honoured before any binding check.
     return {
       decision: "deny",
-      reasons: topLevelReasons.length > 0 ? topLevelReasons : ["The check refused this transfer."],
+      reasons: reasons.length > 0 ? reasons : ["The check refused this transfer."],
     };
   }
 
-  const document = await parseEvidence(answer);
   if (!document) {
     return { decision: "ask", reasons: ["The check answer could not be read."] };
   }
   const subject = document.subject;
-  if (!subject || subject.kind !== "account" || subject.account !== receiver) {
-    return { decision: "ask", reasons: ["The check answer is for a different account."] };
+  if (!subject || !subjectCheck(subject)) {
+    return { decision: "ask", reasons: ["The check answer is for a different subject."] };
   }
   const expected = outcome === "ASK" ? "UNKNOWN" : outcome;
   if (document.verdict !== expected) {
     return { decision: "ask", reasons: ["The check answer does not match its evidence."] };
   }
-  const reasons = strings(document.reasons);
-  const shown = reasons.length > 0 ? reasons : topLevelReasons;
+  const shown = reasons;
 
   if (outcome === "ASK") {
     return { decision: "ask", reasons: shown.length > 0 ? shown : ["The check did not clear this account."] };
   }
 
-  const checks = Array.isArray(document.checks) ? document.checks : [];
   if (checks.length === 0 || checks.some(check => !check || check.status !== "pass")) {
     return { decision: "ask", reasons: ["The check answer is incomplete."] };
   }
@@ -91,6 +100,20 @@ async function decideAccountCheck(answer, receiver) {
     return { decision: "ask", reasons: shown.length > 0 ? shown : ["The check needs a decision before sending."] };
   }
   return { decision: "allow", reasons: shown };
+}
+
+async function decideAccountCheck(answer, receiver) {
+  return decide(answer, subject => accountOrNull(receiver) && subject.kind === "account" && subject.account === receiver);
+}
+
+function validAmount(value) {
+  return typeof value === "string" && value.length <= 39 && /^[1-9][0-9]*(?![\s\S])/.test(value) && BigInt(value) <= (1n << 128n) - 1n;
+}
+
+async function decidePayment(answer, receiver, amount, token) {
+  return decide(answer, subject => accountOrNull(receiver) && (token === "near" || accountOrNull(token)) && validAmount(amount) &&
+    subject.kind === (token === "near" ? "near" : "ft") && subject.receiver === receiver && subject.amount === amount &&
+    subject.token === (token === "near" ? null : token) && subject.memo_sha256 === null);
 }
 
 function messageFor(decision, receiver) {
@@ -118,7 +141,12 @@ async function preflightAccountCheck(options) {
   const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
 
   try {
-    const response = await fetchImpl(baseUrl + "/live/account-check/" + encodeURIComponent(receiver), {
+    if (options.amount !== undefined && (!validAmount(options.amount) || (options.token !== "near" && !accountOrNull(options.token)))) {
+      return { decision: "ask", reasons: ["The token transfer fields are invalid."] };
+    }
+    const route = options.amount === undefined ? "/live/account-check/" + encodeURIComponent(receiver) :
+      "/live/verdict?" + new URLSearchParams({ receiver, amount: options.amount, token: options.token });
+    const response = await fetchImpl(baseUrl + route, {
       method: "GET",
       headers: { accept: "application/json" },
       signal: controller ? controller.signal : undefined,
@@ -127,7 +155,8 @@ async function preflightAccountCheck(options) {
       return { decision: "ask", reasons: ["The check is unavailable (HTTP " + response.status + ")."] };
     }
     const answer = await response.json();
-    return await decideAccountCheck(answer, receiver);
+    return options.amount === undefined ? await decideAccountCheck(answer, receiver) :
+      await decidePayment(answer, receiver, options.amount, options.token);
   } catch (error) {
     return { decision: "ask", reasons: ["The check could not be reached."] };
   } finally {
@@ -149,7 +178,9 @@ function refusal(message, code, decision) {
 async function guardTransfer(options) {
   const receiver = options.receiver;
   const check = options.check || preflightAccountCheck;
-  const decision = await check(options);
+  const result = await check(options);
+  const decision = { ...result, receiver, reasons: strings(result && result.reasons) };
+  if (decision.decision !== "allow" && decision.decision !== "deny") decision.decision = "ask";
   decision.message = messageFor(decision, receiver);
   if (decision.decision === "deny") {
     throw refusal(decision.message, "SIYAB_DENY", decision);
@@ -172,58 +203,136 @@ async function guardTransfer(options) {
 }
 
 function decodeArgs(args) {
-  if (!args) return null;
-  if (typeof args === "object" && !(args instanceof Uint8Array)) return args;
+  const record = value => value && typeof value === "object" &&
+    (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null) ? value : null;
+  if (record(args)) return args;
+  if (Array.isArray(args) || args instanceof ArrayBuffer) return null;
   let text = null;
   if (typeof args === "string") {
     try {
-      return JSON.parse(args);
+      return record(JSON.parse(args));
     } catch (error) {
       text = args;
     }
   } else if (args instanceof Uint8Array) {
-    text = new TextDecoder().decode(args);
+    if (!(args.buffer instanceof ArrayBuffer)) return null;
+    try {
+      text = new TextDecoder("utf-8", { fatal: true }).decode(args);
+    } catch (error) {
+      return null;
+    }
+    try {
+      return record(JSON.parse(text));
+    } catch (error) {
+      // Some callers supply base64 text in bytes.
+    }
   }
   if (typeof text !== "string") return null;
   try {
     const binary = typeof atob === "function" ? atob(text) : Buffer.from(text, "base64").toString("binary");
     const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
-    return JSON.parse(new TextDecoder().decode(bytes));
+    return record(JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)));
   } catch (error) {
     return null;
   }
 }
 
-// The real payee: the Transfer receiver, or receiver_id inside ft_transfer and
-// ft_transfer_call. Any other function call pays the contract it calls.
-function actionPayees(actions) {
-  const payees = [];
-  const add = value => {
-    const account = accountOrNull(value);
-    if (account && !payees.includes(account)) payees.push(account);
-  };
-  for (const action of Array.isArray(actions) ? actions : []) {
-    if (!action || typeof action !== "object") continue;
-    const type = String(action.type || action.action_type || action.action || "").toUpperCase();
-    const params = action.params || {};
-    if (type === "TRANSFER") {
-      add(params.receiverId ?? params.receiver_id ?? (action.transfer && action.transfer.receiver_id));
-    } else if (type === "FUNCTIONCALL") {
-      const method = params.methodName ?? params.method_name ?? action.method;
-      const contract = params.receiverId ?? params.receiver_id;
-      if (method === "ft_transfer" || method === "ft_transfer_call") {
-        const args = decodeArgs(params.args ?? action.args);
-        add(args && args.receiver_id);
-      } else {
-        add(contract);
+function recipientAccounts(value) {
+  const accounts = new Set();
+  const seen = [new Set(), new Set(), new Set(), new Set()];
+  const pending = [[value, false, false]];
+  let unreadable = false;
+  while (pending.length) {
+    const [item, recipient, instruction] = pending.pop();
+    if (typeof item === "string") {
+      if (recipient && accountOrNull(item)) { accounts.add(item); continue; }
+      if (recipient) unreadable = true;
+      try {
+        const nested = JSON.parse(item);
+        if (nested && typeof nested === "object") pending.push([nested, false, false]);
+        else if (instruction && item !== "") unreadable = true;
+      } catch (error) {
+        if (instruction && item !== "") unreadable = true;
       }
+    } else if (item && typeof item === "object") {
+      const visited = seen[(recipient ? 1 : 0) + (instruction ? 2 : 0)];
+      if (visited.has(item)) { unreadable = true; continue; }
+      visited.add(item);
+      if (Array.isArray(item)) {
+        for (let index = item.length - 1; index >= 0; index--) pending.push([item[index], recipient, instruction]);
+      } else {
+        if (recipient) unreadable = true;
+        const entries = Object.entries(item);
+        for (let index = entries.length - 1; index >= 0; index--) {
+          const [key, child] = entries[index];
+          pending.push([child, RECIPIENT_FIELDS.has(key), INSTRUCTION_FIELDS.has(key)]);
+        }
+      }
+    } else if (recipient || instruction) unreadable = true;
+  }
+  return { accounts: [...accounts], unreadable };
+}
+
+// Check the contract, each attached native amount and every named recipient.
+// Only the two FT methods have a supported transfer shape. No other method is
+// allowlisted as having no recipients, so its effects always need confirmation.
+function transactionChecks(transaction) {
+  if (!transaction || !accountOrNull(transaction.receiverId) || !Array.isArray(transaction.actions) || !transaction.actions.length) throw payeeError();
+  const checks = [{ receiver: transaction.receiverId }];
+  const unresolved = [];
+  for (const action of transaction.actions) {
+    if (!action || !action.params || Object.getPrototypeOf(action.params) !== Object.prototype) throw payeeError();
+    if (action.type !== "Transfer" && action.type !== "FunctionCall") throw payeeError();
+    const deposit = action.params.deposit;
+    if (deposit !== "0" && !validAmount(deposit)) throw payeeError();
+    if (deposit !== "0") checks.push({ receiver: transaction.receiverId, token: "near", amount: deposit });
+    if (action.type === "Transfer") {
+      continue;
+    }
+    const { methodName, args } = action.params;
+    if (typeof methodName !== "string" || !methodName.length ||
+        args instanceof Uint8Array && !(args.buffer instanceof ArrayBuffer)) throw payeeError();
+    const decoded = decodeArgs(args);
+    if (!decoded) {
+      unresolved.push("The function arguments could not be read, so its recipients are unknown.");
+      continue;
+    }
+    const recipients = recipientAccounts(decoded);
+    if (methodName === "ft_transfer" || methodName === "ft_transfer_call") {
+      if (!accountOrNull(decoded.receiver_id) || !validAmount(decoded.amount)) throw payeeError();
+      checks.push({ receiver: decoded.receiver_id, token: transaction.receiverId, amount: decoded.amount });
+    } else {
+      unresolved.push("The called method's recipients and effects are not fully checked.");
+    }
+    for (const receiver of recipients.accounts) {
+      if ((methodName === "ft_transfer" || methodName === "ft_transfer_call") && receiver === decoded.receiver_id) continue;
+      checks.push({ receiver });
+    }
+    if (recipients.unreadable) unresolved.push("A recipient or instruction field could not be read.");
+    if (methodName === "ft_transfer_call" || Object.prototype.hasOwnProperty.call(decoded, "msg")) {
+      if (decoded.msg === "") continue;
+      let message = null;
+      if (typeof decoded.msg === "string") {
+        try { message = JSON.parse(decoded.msg); } catch (error) { message = null; }
+      }
+      const onward = recipientAccounts(message);
+      if (message === null && accountOrNull(decoded.msg)) onward.accounts.push(decoded.msg);
+      for (const receiver of onward.accounts) {
+        if (!recipients.accounts.includes(receiver)) checks.push({ receiver });
+      }
+      unresolved.push("The transfer message can name onward recipients that are not all checked.");
     }
   }
-  return payees;
+  if (unresolved.length) checks.push({ receiver: transaction.receiverId, reasons: [...new Set(unresolved)] });
+  return checks;
+}
+
+function actionPayees(actions, receiverId) {
+  return [...new Set(transactionChecks({ actions, receiverId }).map(check => check.receiver))];
 }
 
 function payeeError() {
-  const error = new Error("No payee could be read from the actions. Refusing to sign.");
+  const error = new Error("The transaction has an unsupported signing path, action or unreadable payee. Refusing to sign.");
   error.name = "SiyabPayeeError";
   error.code = "SIYAB_PAYEE";
   return error;
@@ -236,30 +345,48 @@ function guardWallet(wallet, options = {}) {
   if (!wallet || typeof wallet.signAndSendTransaction !== "function") {
     throw new TypeError("A wallet with signAndSendTransaction is required.");
   }
-  const run = async payees => {
-    if (payees.length === 0) throw payeeError();
-    for (const payee of payees) {
-      await guardTransfer({ ...options, receiver: payee });
+  const run = async transactions => {
+    if (!Array.isArray(transactions) || !transactions.length) throw payeeError();
+    const checks = [];
+    for (const transaction of transactions) checks.push(...transactionChecks(transaction));
+    for (const check of checks) {
+      await guardTransfer({ ...options, amount: undefined, token: undefined, ...check,
+        ...(check.reasons ? { check: async () => ({ decision: "ask", reasons: check.reasons }) } : {}) });
     }
   };
-  return {
+  const guarded = {
+    async signIn(params) {
+      let permissions;
+      try { permissions = structuredClone(params); } catch (error) { throw payeeError(); }
+      if (!permissions || !accountOrNull(permissions.contractId) ||
+          permissions.methodNames !== undefined && (!Array.isArray(permissions.methodNames) ||
+            permissions.methodNames.some(method => typeof method !== "string" || !method.length))) throw payeeError();
+      await guardTransfer({ ...options, receiver: permissions.contractId, amount: undefined, token: undefined });
+      return wallet.signIn(permissions);
+    },
     async signAndSendTransaction(params) {
-      const payees = actionPayees(params && params.actions);
-      await run(payees);
-      return wallet.signAndSendTransaction(params);
+      let transaction;
+      try { transaction = structuredClone(params); } catch (error) { throw payeeError(); }
+      await run([transaction]);
+      return wallet.signAndSendTransaction(transaction);
     },
     async signAndSendTransactions(params) {
-      const transactions = (params && params.transactions) || [];
-      const payees = [];
-      for (const transaction of transactions) {
-        for (const payee of actionPayees(transaction && transaction.actions)) {
-          if (!payees.includes(payee)) payees.push(payee);
-        }
-      }
-      await run(payees);
-      return wallet.signAndSendTransactions(params);
+      let batch;
+      try { batch = structuredClone(params); } catch (error) { throw payeeError(); }
+      await run(batch && batch.transactions);
+      return wallet.signAndSendTransactions(batch);
     },
   };
+  return new Proxy(guarded, {
+    get(target, property) {
+      if (Object.prototype.hasOwnProperty.call(target, property)) return target[property];
+      if (typeof property === "string" && !["signIn", "signOut", "isSignedIn"].includes(property) && (/sign|delegate/i.test(property) || property === "verifyOwner")) {
+        return async () => { throw payeeError(); };
+      }
+      const value = Reflect.get(wallet, property, wallet);
+      return typeof value === "function" ? value.bind(wallet) : value;
+    },
+  });
 }
 
 export {
@@ -267,6 +394,7 @@ export {
   DEFAULT_TIMEOUT_MS,
   actionPayees,
   decideAccountCheck,
+  decidePayment,
   guardTransfer,
   guardWallet,
   messageFor,

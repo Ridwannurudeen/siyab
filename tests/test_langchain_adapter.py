@@ -1,8 +1,10 @@
+import hashlib
 import importlib.util
 import json
 import unittest
 import urllib.error
 from pathlib import Path
+from unittest.mock import patch
 
 from integrations.langchain.adapter import (
     ConfirmationRequired,
@@ -101,10 +103,145 @@ class RecordedAnswerTest(unittest.TestCase):
         broken["checks"][0]["status"] = "unknown"
         evidence = json.loads(broken["evidence"])
         evidence["checks"][0]["status"] = "unknown"
-        import hashlib
         broken["evidence"] = json.dumps(evidence)
         broken["evidence_hash"] = hashlib.sha256(broken["evidence"].encode()).hexdigest()
         self.assertEqual(decide_payment(broken, "intents.near", AMOUNT)["decision"], "ask")
+
+    def test_payment_requires_explicit_null_native_bindings(self):
+        for field in ("memo_sha256", "token"):
+            for value in (None, "0" * 64, "missing"):
+                with self.subTest(field=field, value=value):
+                    answer = load("verdict-allow.json")
+                    document = json.loads(answer["evidence"])
+                    if value == "missing":
+                        del document["subject"][field]
+                    else:
+                        document["subject"][field] = value
+                    answer["evidence"] = json.dumps(document)
+                    answer["evidence_hash"] = hashlib.sha256(answer["evidence"].encode()).hexdigest()
+                    self.assertEqual(decide_payment(answer, "intents.near", AMOUNT)["decision"],
+                                     "allow" if value is None else "ask")
+
+
+class FailClosedTest(unittest.TestCase):
+    def test_every_fixture_hash_matches(self):
+        for path in FIXTURES.glob("*.json"):
+            with self.subTest(fixture=path.name):
+                answer = load(path.name)
+                self.assertEqual(hashlib.sha256(answer["evidence"].encode("utf-8")).hexdigest(),
+                                 answer["evidence_hash"])
+
+    def test_hashed_denial_precedes_outcome_and_binding(self):
+        for outcome in ("ALLOW", "ASK", "MAYBE", None):
+            with self.subTest(outcome=outcome):
+                answer = dict(load("verdict-deny.json"), outcome=outcome)
+                self.assertEqual(decide_payment(answer, "other.near", "1")["decision"], "deny")
+
+    def test_any_hashed_signal_hard_denies(self):
+        answer = load("verdict-allow.json")
+        document = json.loads(answer["evidence"])
+        document["checks"][0]["status"] = "signal"
+        answer["evidence"] = json.dumps(document)
+        answer["evidence_hash"] = hashlib.sha256(answer["evidence"].encode()).hexdigest()
+        for outcome in ("ALLOW", "ASK", None):
+            with self.subTest(outcome=outcome):
+                self.assertEqual(decide_payment(dict(answer, outcome=outcome), "other.near", "1")
+                                 ["decision"], "deny")
+
+    def test_top_level_reasons_are_never_used(self):
+        for outcome in ("ALLOW", "DENY", "ASK"):
+            with self.subTest(outcome=outcome):
+                answer = load("verdict-allow.json")
+                document = json.loads(answer["evidence"])
+                document["verdict"] = "UNKNOWN" if outcome == "ASK" else outcome
+                document["reasons"] = []
+                answer.update(outcome=outcome, reasons=["Forged top level reason"], evidence=json.dumps(document))
+                answer["evidence_hash"] = hashlib.sha256(answer["evidence"].encode()).hexdigest()
+                self.assertNotIn("Forged", " ".join(decide_payment(answer, "intents.near", AMOUNT)["reasons"]))
+        decision = decide_payment({"outcome": "DENY", "reasons": ["Forged"]}, "a.near", "1")
+        self.assertNotIn("Forged", " ".join(decision["reasons"]))
+
+    def test_unencodable_evidence_becomes_ask(self):
+        answer = dict(load("verdict-allow.json"), evidence="\ud800")
+        self.assertEqual(preflight(receiver="intents.near", amount=AMOUNT,
+                                   opener=RecordingOpener(answer))["decision"], "ask")
+
+    def test_deeply_nested_evidence_cannot_downgrade_a_deny(self):
+        evidence = '{"verdict":"DENY","nested":' + '[' * 10000 + '0' + ']' * 10000 + '}'
+        answer = {"outcome": "DENY", "reasons": ["Forged"], "evidence": evidence,
+                  "evidence_hash": hashlib.sha256(evidence.encode()).hexdigest()}
+        decision = preflight(receiver="a.near", amount="1", opener=RecordingOpener(answer))
+        self.assertEqual(decision["decision"], "deny")
+        self.assertEqual(decision["reasons"], ["The check refused this transfer."])
+        sent, confirmations = [], []
+
+        def confirm(decision):
+            confirmations.append(decision)
+            return True
+
+        with self.assertRaises(PaymentRefused):
+            guard_payment(send=lambda: sent.append("sent"), receiver="a.near", amount="1",
+                          confirm=confirm, opener=RecordingOpener(answer))
+        self.assertEqual(sent, [])
+        self.assertEqual(confirmations, [])
+        self.assertEqual(preflight(receiver="a.near", amount="1",
+                                   opener=RecordingOpener(dict(answer, outcome="ALLOW")))["decision"], "ask")
+
+    def test_amounts_are_canonical_positive_u128_before_network(self):
+        opener = RecordingOpener(load("verdict-allow.json"))
+        for amount in ("1" * 5000, "0", "01", str(2**128), "\u0661", "1\n"):
+            with self.subTest(amount=amount[:40]):
+                self.assertEqual(preflight(receiver="intents.near", amount=amount, opener=opener)["decision"], "ask")
+                self.assertEqual(decide_payment(load("verdict-allow.json"), "intents.near", amount)["decision"], "ask")
+        self.assertEqual(opener.urls, [])
+
+    def test_valid_account_and_amount_boundaries_reach_the_network(self):
+        opener = RecordingOpener({"outcome": "ASK"})
+        for account in ("ab", "a" * 64, "a-b_c.near"):
+            for amount in ("1", str(2**128 - 1)):
+                preflight(receiver=account, amount=amount, opener=opener)
+        self.assertEqual(len(opener.urls), 6)
+
+    def test_invalid_account_separators_and_newlines_stop_before_network(self):
+        opener = RecordingOpener(load("verdict-allow.json"))
+        for account in ("a.near\n", "a..near", "a__near", "a-_near", "a._near", "a", "a" * 65):
+            with self.subTest(account=account):
+                self.assertEqual(preflight(receiver=account, amount="1", opener=opener)["decision"], "ask")
+                self.assertEqual(preflight(receiver="a.near", token=account, amount="1", opener=opener)
+                                 ["decision"], "ask")
+                self.assertEqual(decide_account_check(load("account-check-ask.json"), account)["decision"], "ask")
+        self.assertEqual(opener.urls, [])
+
+    def test_only_explicit_allow_skips_confirmation(self):
+        for decision in ({}, {"decision": "MAYBE"}, {"decision": None}, {"decision": "ALLOW"}):
+            with self.subTest(decision=decision), patch("integrations.langchain.adapter.preflight", return_value=decision):
+                called = []
+                with self.assertRaises(ConfirmationRequired):
+                    guard_payment(send=lambda: called.append("sent"), receiver="a.near", amount="1")
+                self.assertEqual(called, [])
+
+    def test_confirmation_gets_receiver_and_requires_literal_true(self):
+        for approval in (1, "yes", False, None, True):
+            with self.subTest(approval=approval), patch("integrations.langchain.adapter.preflight",
+                                                      return_value={"decision": "ask", "reasons": []}):
+                sent, decisions = [], []
+
+                def confirm(decision):
+                    decisions.append(decision)
+                    return approval
+
+                def send():
+                    sent.append("sent")
+                    return "sent"
+
+                if approval is True:
+                    self.assertEqual(guard_payment(send=send, receiver="a.near", amount="1", confirm=confirm), "sent")
+                    self.assertEqual(sent, ["sent"])
+                else:
+                    with self.assertRaises(ConfirmationRequired):
+                        guard_payment(send=send, receiver="a.near", amount="1", confirm=confirm)
+                    self.assertEqual(sent, [])
+                self.assertEqual(decisions[0]["receiver"], "a.near")
 
 
 class PreflightTest(unittest.TestCase):
@@ -161,6 +298,44 @@ class ToolResultTest(unittest.TestCase):
 
 
 class GuardTest(unittest.TestCase):
+    def test_account_only_allow_needs_confirmation(self):
+        sent = []
+        with patch("integrations.langchain.adapter.preflight",
+                   return_value={"decision": "allow", "reasons": []}):
+            with self.assertRaises(ConfirmationRequired):
+                guard_payment(send=lambda: sent.append("sent"), receiver="a.near", amount=None)
+        self.assertEqual(sent, [])
+
+    def test_account_only_allow_can_be_confirmed_once(self):
+        sent, confirmations = [], []
+
+        def confirm(decision):
+            confirmations.append(decision)
+            return True
+
+        with patch("integrations.langchain.adapter.preflight",
+                   return_value={"decision": "allow", "reasons": []}):
+            guard_payment(send=lambda: sent.append("sent"), receiver="a.near", amount=None, confirm=confirm)
+        self.assertEqual(sent, ["sent"])
+        self.assertEqual(len(confirmations), 1)
+        self.assertEqual(confirmations[0]["decision"], "ask")
+        self.assertEqual(confirmations[0]["receiver"], "a.near")
+        self.assertIn("amount", " ".join(confirmations[0]["reasons"]))
+
+    def test_account_only_deny_cannot_be_confirmed(self):
+        sent, confirmations = [], []
+
+        def confirm(decision):
+            confirmations.append(decision)
+            return True
+
+        with patch("integrations.langchain.adapter.preflight",
+                   return_value={"decision": "deny", "reasons": ["A signal."]}):
+            with self.assertRaises(PaymentRefused):
+                guard_payment(send=lambda: sent.append("sent"), receiver="a.near", amount=None, confirm=confirm)
+        self.assertEqual(sent, [])
+        self.assertEqual(confirmations, [])
+
     def test_deny_blocks_the_send(self):
         called = []
         with self.assertRaises(PaymentRefused):
@@ -170,15 +345,36 @@ class GuardTest(unittest.TestCase):
 
     def test_ask_needs_a_confirmation(self):
         called = []
-        ask = load("account-check-ask.json")
+        ask = load("verdict-ask.json")
         with self.assertRaises(ConfirmationRequired):
-            guard_payment(send=lambda: called.append("sent"), receiver="hello.near", amount="1",
+            guard_payment(send=lambda: called.append("sent"), receiver="aisthetic.near", amount="1",
                           opener=RecordingOpener(ask))
         self.assertEqual(called, [])
         with self.assertRaises(ConfirmationRequired):
-            guard_payment(send=lambda: called.append("sent"), receiver="hello.near", amount="1",
+            guard_payment(send=lambda: called.append("sent"), receiver="aisthetic.near", amount="1",
                           confirm=lambda decision: False, opener=RecordingOpener(ask))
         self.assertEqual(called, [])
+
+    def test_recorded_payment_ask_can_be_confirmed_once(self):
+        sent, confirmations = [], []
+
+        def confirm(decision):
+            confirmations.append(decision)
+            return True
+
+        def send():
+            sent.append("sent")
+            return "sent"
+
+        answer = load("verdict-ask.json")
+        self.assertEqual(decide_payment(answer, "aisthetic.near", "1")["decision"], "ask")
+        self.assertEqual(guard_payment(send=send, receiver="aisthetic.near", amount="1", confirm=confirm,
+                                       opener=RecordingOpener(answer)), "sent")
+        self.assertEqual(sent, ["sent"])
+        self.assertEqual(len(confirmations), 1)
+        self.assertEqual(confirmations[0]["receiver"], "aisthetic.near")
+        self.assertEqual(confirmations[0]["decision"], "ask")
+        self.assertIn("code_without_metadata", " ".join(confirmations[0]["reasons"]))
 
     def test_allow_sends(self):
         called = []
