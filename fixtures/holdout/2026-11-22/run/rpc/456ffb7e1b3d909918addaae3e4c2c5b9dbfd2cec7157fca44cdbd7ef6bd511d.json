@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 224477763,
+      "account_id": "abel1.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "9990214120745181158486016",
+      "block_hash": "W7C9BkHYDfqSimqygXy796idbEZi7SnXgnax6HyrD2P",
+      "block_height": 224477763,
+      "code_hash": "11111111111111111111111111111111",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 8382
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-22T09:39:37Z"
+}

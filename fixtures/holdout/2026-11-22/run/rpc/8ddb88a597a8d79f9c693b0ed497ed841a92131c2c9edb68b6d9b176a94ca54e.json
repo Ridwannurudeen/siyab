@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "elbruseclipse.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "8rmdHUHSxyJKF2XSxSHsxXbRGDN5KJvBrXetRpzyPJUU",
+      "block_height": 225687091,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 125731699020360,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:hTszGQi358xkSdQNntBuVqhFNo2PxrSpjuedPWf6vQ6"
+        },
+        {
+          "access_key": {
+            "nonce": 125731682000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:7Z27jFDTFuV2Y2yBu42YksFuPM9AhDLwaYtDvCFTEEih"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:37:00Z"
+}

@@ -1,0 +1,49 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "near-mpc-staking4all-01.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "FVDgKyTwht5KBHsmPx1wN1QZJmh8pgQFqTcyNnzEXgLq",
+      "block_height": 225687400,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 225687356000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:5WZpSFVA3rPgqs6F66pzbsGPUuuExBBtaQVKNqduSnnU"
+        },
+        {
+          "access_key": {
+            "nonce": 219795789000013,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Dpc86JjawhRahHt4bfER5BATaVRoZiaTr3NaAWgAjpHR"
+        },
+        {
+          "access_key": {
+            "nonce": 138349704000003,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Gk8v6nkYo1f5myj21Q6e8kpApJE7HV5jSbpxaJ1ebcHx"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:39:57Z"
+}

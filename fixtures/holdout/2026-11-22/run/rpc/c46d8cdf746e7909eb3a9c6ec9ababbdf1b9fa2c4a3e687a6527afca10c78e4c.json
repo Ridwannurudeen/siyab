@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "muztaghmystique.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "B9aRGyXXqrvnCxWCU75PXNEVHsf6JR4WmfEuCf6d8nsY",
+      "block_height": 225687502,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 124556914020920,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:A2fmsRh7uifDJT4ii5dUENV6gD39kYCr1vRs7bdvh1cw"
+        },
+        {
+          "access_key": {
+            "nonce": 124556900000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:CvaLieGqF7D4AK1yXkRdRTL3wisNEiUTA1C6E6RLAepg"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:40:52Z"
+}

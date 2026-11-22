@@ -1,0 +1,42 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "shishir02.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "9vgKbVVy5nnLB6ZXtREAJtvDkb7MjXQuHsJeZUk4Wnjp",
+      "block_height": 225687252,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 115475143000005,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meteor-points.near"
+              }
+            }
+          },
+          "public_key": "ed25519:7SnT7ECULJgfovpqJBpxrYhgLoiBTgnSDqZYSH1iNdvY"
+        },
+        {
+          "access_key": {
+            "nonce": 115475067004501,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:GQXsramd31SBtY4gRt7BwRmo92YUtdGzN4EUebnTzMcU"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:38:34Z"
+}

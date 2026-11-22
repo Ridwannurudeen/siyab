@@ -1,0 +1,43 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "amyreilly813.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "H9hHM4HGmvWTaSYZASojL8YtwkM3QesuBcHhdiejMgMh",
+      "block_height": 225687642,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 114864422032650,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4mQ9B1gtK9ucsRvDJDLosHii9DqPnEC9mVsYm4wxrX5h"
+        },
+        {
+          "access_key": {
+            "nonce": 55335958000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:EDn1SHcmbjN5HF7o1LcwvLEGnqAB8PtM6D2BhfmmKeTf"
+        },
+        {
+          "access_key": {
+            "nonce": 55335944000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:EXNnUH9CNhhG9ai7mdeiWaUyqFxhJhzfCkoraiEJYAhH"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:42:12Z"
+}

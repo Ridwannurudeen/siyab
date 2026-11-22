@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 224477494,
+      "account_id": "zerotest.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "40859754834324496599845880",
+      "block_hash": "6BKvGhiCEwtJhBBZ57HaYqDDLgeM71swixJShBpgLEBG",
+      "block_height": 224477494,
+      "code_hash": "11111111111111111111111111111111",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 12790
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-22T09:37:04Z"
+}

@@ -1,0 +1,43 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "sadreh.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "CpuP1SNyW4wi76WsrnuwcBdByikQHEaCfZc9FQkd59r8",
+      "block_height": 225687611,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 81716061000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4qqZUzEDvnQ7AzkNkEc7GGhJNXWLvSfoBV53WjnFCwts"
+        },
+        {
+          "access_key": {
+            "nonce": 75934965021102,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8iJjJzjgUzCbAarmZujRU7htGBVzMoQZR9T6fX2Fb1Ti"
+        },
+        {
+          "access_key": {
+            "nonce": 75934974000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Fg7bQ1DHTfLJHGPpHr1zVqa93Zrqh9HFJS4GRvkUGus3"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:41:55Z"
+}

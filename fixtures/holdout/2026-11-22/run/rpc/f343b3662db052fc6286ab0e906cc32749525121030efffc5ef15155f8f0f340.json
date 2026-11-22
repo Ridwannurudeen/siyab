@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 224477439,
+      "account_id": "fredrik1.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "9996918536291989058486015",
+      "block_hash": "8e9Vfe7jhWyobnX1qHshtRuojh12CfcKRfgZ7FX8VBLU",
+      "block_height": 224477439,
+      "code_hash": "11111111111111111111111111111111",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 8382
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-22T09:36:31Z"
+}

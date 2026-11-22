@@ -1,0 +1,30 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 224478225,
+      "account_id": "nnubik.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "error": {
+      "name": "HANDLER_ERROR",
+      "cause": {
+        "info": {
+          "block_hash": "8PMw4FUfUE5DEcKkNMAyKdTvuoHyvyigWxDatharFUZe",
+          "block_height": 224478225,
+          "requested_account_id": "nnubik.near"
+        },
+        "name": "UNKNOWN_ACCOUNT"
+      },
+      "code": -32000,
+      "message": "Server error",
+      "data": "account nnubik.near does not exist while viewing"
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-22T09:43:57Z"
+}

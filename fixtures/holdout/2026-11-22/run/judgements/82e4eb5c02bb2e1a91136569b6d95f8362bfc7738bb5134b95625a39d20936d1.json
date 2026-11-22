@@ -1,0 +1,104 @@
+{
+  "subject": "82e4eb5c02bb2e1a91136569b6d95f8362bfc7738bb5134b95625a39d20936d1",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "82e4eb5c02bb2e1a91136569b6d95f8362bfc7738bb5134b95625a39d20936d1",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "ALLOW",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "pass",
+      "detail": "82e4eb5c02bb2e1a91136569b6d95f8362bfc7738bb5134b95625a39d20936d1 exists",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "5a45753296b62fb4a23d7c3fe3860a40b37c60ed87e94cd514c96efd7cb4319b",
+        "fetched_at": "2026-11-22T09:42:13Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "pass",
+      "detail": "no denylist or incident label on 82e4eb5c02bb2e1a91136569b6d95f8362bfc7738bb5134b95625a39d20936d1",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "issuer_blacklist",
+      "status": "pass",
+      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "faabd0bcf76961a674a951f7f0fd54eb6f74c53d7ffe08c607e87b91fbf4ef8a",
+        "fetched_at": "2026-11-22T09:42:14Z"
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "pass",
+      "detail": "oldest access key nonce 66946935000027 from free.rpc.fastnear.com: existed by block 66946936 (2022-06-03T12:20:05Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
+      "source": {
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "947b3647690573bb61d91ba42b031779c013e4c75974a99df9a6e3b574883be9",
+        "fetched_at": "2026-11-22T09:42:16Z"
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "pass",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
+      "source": {
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "pass",
+      "detail": "contract code without contract_source_metadata; not a signal on its own",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "1d135b06f8ca1681d8e8d68af23478cfd2decda93bc066291061cd97d066b0fb",
+        "fetched_at": "2026-11-22T09:42:17Z"
+      }
+    }
+  ],
+  "reasons": [
+    "Every check ran and none found a signal.",
+    "Not on the owner's allowlist."
+  ],
+  "labels": [],
+  "observed": {
+    "block_height": 225687643,
+    "timestamp_ms": 1795340103342
+  },
+  "rules_version": 3
+}

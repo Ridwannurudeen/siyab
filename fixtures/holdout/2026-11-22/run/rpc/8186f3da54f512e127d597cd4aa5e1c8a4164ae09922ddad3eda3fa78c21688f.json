@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "mongoliamajesty.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "71uYfqVknqoz8TmUAo1YPpobX1r5yoHXXbHbcvCymDWg",
+      "block_height": 225687263,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 125732212000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:5c7AzKdmZEQaANyvDtKby5bf4GvjfXXoWKUj4wYkvJGL"
+        },
+        {
+          "access_key": {
+            "nonce": 125732242019830,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6UYwLzcuo57CEoyB3BGD6CCbWYPWqRhXQmNgMevgViM4"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:38:40Z"
+}

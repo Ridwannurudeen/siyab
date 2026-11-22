@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "chimborazocharm.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "DN2Gzc3bNJ53iTkHPSZr2SecyQ35TLmpdgnc6dz7vz2R",
+      "block_height": 225687270,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 123771381000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:BtfgGWJZ2gitE4zH63WqZfszE8T2r3Fjd7KCRx96qxUf"
+        },
+        {
+          "access_key": {
+            "nonce": 123771400021915,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:FaHXW2hapkRDyw671JwHVf1aEEv2KMMuM3LkXR36PWxn"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:38:43Z"
+}

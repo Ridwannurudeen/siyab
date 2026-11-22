@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "cinqueterre.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "Dag1Bq3UjRVPuHBno9ukbEBwpvsebXHLdaVLVMPasCfV",
+      "block_height": 225687061,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 122774703000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9cJoSyp8eUnawKTwTyVbWXHCnACVutkTZgBoXgfaki52"
+        },
+        {
+          "access_key": {
+            "nonce": 122774729022750,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:E9y17vkFBATxQjRhFxUv2YEfNhouaURknr6Vj5zoyhDM"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:36:42Z"
+}

@@ -1,0 +1,30 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "block_id": 224647657,
+      "account_id": "bingxsuperx.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "error": {
+      "name": "HANDLER_ERROR",
+      "cause": {
+        "info": {
+          "block_hash": "7JZd49wLv5t5QhAxPWv7Wzp5kZN3CdjxnUbd7Fyz114z",
+          "block_height": 224647657,
+          "requested_account_id": "bingxsuperx.near"
+        },
+        "name": "UNKNOWN_ACCOUNT"
+      },
+      "code": -32000,
+      "message": "Server error",
+      "data": "account bingxsuperx.near does not exist while viewing"
+    },
+    "id": "gate"
+  },
+  "url": "https://archival-rpc.mainnet.fastnear.com",
+  "fetched_at": "2026-11-22T09:39:52Z"
+}

@@ -1,0 +1,127 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "ekaterina1980.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "8Lz2AVhb1PYHbRWLcqUG9viu4PFdP2UDGL62B2qat7xz",
+      "block_height": 225687465,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 106477704000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "storage.herewallet.near"
+              }
+            }
+          },
+          "public_key": "ed25519:3qfVRxpSKQC9B1y4uotuCCVc7bmxcQrin9NUp5LJyBKZ"
+        },
+        {
+          "access_key": {
+            "nonce": 121146921000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "evm-bind.orderly-network.near"
+              }
+            }
+          },
+          "public_key": "ed25519:5vwQhveyyisH9xL9ANeqAGp4wHot4zQN3sX5GgkSsEdy"
+        },
+        {
+          "access_key": {
+            "nonce": 106451895000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "storage.herewallet.near"
+              }
+            }
+          },
+          "public_key": "ed25519:7T9jTZXMRKKCMEEWQ5GuqVwtp31mtcg2RYg7m8NAu6Ye"
+        },
+        {
+          "access_key": {
+            "nonce": 121147274000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "evm-bind.orderly-network.near"
+              }
+            }
+          },
+          "public_key": "ed25519:8L4D2XeaPHtXQa5BPek22SfzDiJgtefmATje38qXtjKY"
+        },
+        {
+          "access_key": {
+            "nonce": 106440442031015,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8j5EUbBmjm7vcW9bdY6bLzFSiuwx3tZKM5ESZDgtpLE2"
+        },
+        {
+          "access_key": {
+            "nonce": 106450196000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9CZY8qCMY3wbFji2yRMgtxTYd2fS9ea3zCTWbjbtSwd5"
+        },
+        {
+          "access_key": {
+            "nonce": 121146895000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "evm-bind.orderly-network.near"
+              }
+            }
+          },
+          "public_key": "ed25519:Bg1Nmuydq6zSAcp5UDNEq6EEaK7a9Tz3kXnZ6JHjKqed"
+        },
+        {
+          "access_key": {
+            "nonce": 106451779000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "storage.herewallet.near"
+              }
+            }
+          },
+          "public_key": "ed25519:E8bLKV5PFeL2i3B9SgDkkxAu4bvyYceAGLM4uNFf7PVy"
+        },
+        {
+          "access_key": {
+            "nonce": 106486483000001,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "249096215040178100000000",
+                "method_names": [],
+                "receiver_id": "storage.herewallet.near"
+              }
+            }
+          },
+          "public_key": "ed25519:Eqj83dBz2tJxkYGA3vtmEbtvSBhzwLPk57mYCUUsNiyA"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:40:32Z"
+}

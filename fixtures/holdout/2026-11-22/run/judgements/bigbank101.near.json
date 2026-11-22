@@ -1,0 +1,107 @@
+{
+  "subject": "bigbank101.near",
+  "as": "receiver",
+  "request": {
+    "kind": "near",
+    "token_id": null,
+    "receiver_id": "bigbank101.near",
+    "amount": "1000000000000000000000000",
+    "memo": null
+  },
+  "verdict": "DENY",
+  "checks": [
+    {
+      "id": "receiver_exists",
+      "status": "pass",
+      "detail": "bigbank101.near exists",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "34251f043504644286e22584b3f4c7f07c6d05a3721e3458cc980335e25d1e3d",
+        "fetched_at": "2026-11-22T09:42:18Z"
+      }
+    },
+    {
+      "id": "label_denylist",
+      "status": "signal",
+      "detail": "bigbank101.near carries the incident label \"receiver of the reported transfer EBE8wkaFvJR6pzvLY68dVt1hBXti7PMMfkZA7zFW1eqT from \\\"platohedro.near\\\" at block 55390139\" (assertion 81e728ef19d110c7379fdf70999c4a644d2465b22288bdc948b42053d202f37f); bigbank101.near carries the incident label \"reported collection account in the NEAR Wallet impersonation report\" (assertion 514d6da1140e558e09c1f0139c2c54eb5999fc7863694f6675dda815eedeb85b)",
+      "source": {
+        "provider": "label store",
+        "request_sha256": "1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "issuer_blacklist",
+      "status": "pass",
+      "detail": "usdt.tether-token.near get_blacklist_status answers \"Allowable\"; 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 is_blocklisted answers false",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "49e1062317d57c13df2d2696a6d6dd7ef95b1d20e6481478f5f5b13dc6fb970e",
+        "fetched_at": "2026-11-22T09:42:19Z"
+      }
+    },
+    {
+      "id": "memo_injection",
+      "status": "pass",
+      "detail": "no memo",
+      "source": {
+        "provider": "local patterns",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "account_age",
+      "status": "pass",
+      "detail": "oldest access key nonce 55389018000002 from free.rpc.fastnear.com: existed by block 55389019 (2021-12-17T18:17:45Z) from archival-rpc.mainnet.fastnear.com, at least 7 d old",
+      "source": {
+        "provider": "archival-rpc.mainnet.fastnear.com",
+        "request_sha256": "cd83881c917b3f16443c87612c9840ba273349ca71ab0bd5a7f137140d19e055",
+        "fetched_at": "2026-11-22T09:42:22Z"
+      }
+    },
+    {
+      "id": "dust_funded",
+      "status": "pass",
+      "detail": "creation deposit not read: a deposit is a signal only with lookalike or account_age",
+      "source": {
+        "provider": "nearblocks",
+        "request_sha256": null,
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "lookalike",
+      "status": "pass",
+      "detail": "no allowlisted name contained and no allowlisted or labelled NEAR account within the length scaled distance after confusable normalisation",
+      "source": {
+        "provider": "allowlist and label store",
+        "request_sha256": "1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8",
+        "fetched_at": null
+      }
+    },
+    {
+      "id": "code_without_metadata",
+      "status": "pass",
+      "detail": "no contract code",
+      "source": {
+        "provider": "free.rpc.fastnear.com",
+        "request_sha256": "34251f043504644286e22584b3f4c7f07c6d05a3721e3458cc980335e25d1e3d",
+        "fetched_at": "2026-11-22T09:42:18Z"
+      }
+    }
+  ],
+  "reasons": [
+    "Not on the owner's allowlist.",
+    "bigbank101.near carries the incident label \"receiver of the reported transfer EBE8wkaFvJR6pzvLY68dVt1hBXti7PMMfkZA7zFW1eqT from \\\"platohedro.near\\\" at block 55390139\" (assertion 81e728ef19d110c7379fdf70999c4a644d2465b22288bdc948b42053d202f37f); bigbank101.near carries the incident label \"reported collection account in the NEAR Wallet impersonation report\" (assertion 514d6da1140e558e09c1f0139c2c54eb5999fc7863694f6675dda815eedeb85b)."
+  ],
+  "labels": [
+    "81e728ef19d110c7379fdf70999c4a644d2465b22288bdc948b42053d202f37f",
+    "514d6da1140e558e09c1f0139c2c54eb5999fc7863694f6675dda815eedeb85b"
+  ],
+  "observed": {
+    "block_height": 225687652,
+    "timestamp_ms": 1795340103342
+  },
+  "rules_version": 3
+}

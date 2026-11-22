@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "pelicanpearl.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "ANYi85DszNBateH3fofL3LGa9LzA9QZzQo4ZapnAmYg3",
+      "block_height": 225687282,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 123107817000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6hA6w7VcDiDmYNLBLW22YUNryJdyKn4QyD3rME32mrsH"
+        },
+        {
+          "access_key": {
+            "nonce": 123107829022211,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:AoWFsN7wjyE3P9tS1LvyZ4382xdf6p9FwgQyuK1V7ZyS"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:38:50Z"
+}

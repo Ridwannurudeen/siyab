@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "aorakiascend.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "6MXenJWxmkhACMtEZcF2mUucFUNaTMLHbFeeVts275Nr",
+      "block_height": 225687209,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 124617717000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:B3uXAUGPy6ohuHBLkPVKWtw1J93wQAfzfJd7W4A5XBkU"
+        },
+        {
+          "access_key": {
+            "nonce": 124617742019670,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:FEQxMEEC4g2RmSB9oHmzEid1agHgJnDJvkh3KRJZNaoe"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:38:09Z"
+}

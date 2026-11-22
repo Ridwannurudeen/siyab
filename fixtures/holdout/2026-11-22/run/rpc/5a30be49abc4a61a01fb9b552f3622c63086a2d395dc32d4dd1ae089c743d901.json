@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "himalayanhorizon.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "Ga7n1PHxHgox9tq5tuZqLVb6wKVn4Uqq4CYvwZfV9XGG",
+      "block_height": 225687800,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 124559540000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:3bnnYczXuY2PGzTh6SmuwDKr9kimod6MfgPYvA2YstNa"
+        },
+        {
+          "access_key": {
+            "nonce": 124559554019852,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:GaaRQpqMrKZKhcJGJGTubCY3juCXXxBVt9JkKgE9ABTz"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:43:40Z"
+}

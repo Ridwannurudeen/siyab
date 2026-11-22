@@ -1,0 +1,82 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "longan0236.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "7nBJJ7NYLGqi1qya8vDo6nDPf7VKaRPrCEWQo7itaqyo",
+      "block_height": 225687325,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 39527719000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:yizuJuXwfyS1DeXhQgNibfmaUuXasaU8ck1TGxgPyZq"
+        },
+        {
+          "access_key": {
+            "nonce": 51152648000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "farm-nearcon.cheddar.near"
+              }
+            }
+          },
+          "public_key": "ed25519:6onox9ZJzTL3xGkVCsq2rteJGZnVPcbWPRhyPi7Y3h7Z"
+        },
+        {
+          "access_key": {
+            "nonce": 39527729000013,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8Vznr6K7amaJMJyhUQhWUs64LWVAwYaWSqbvcqaYbMQZ"
+        },
+        {
+          "access_key": {
+            "nonce": 114599340034120,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9LoJs1Mh3uH89bx3FNWgpBXAYcLRCpBjxPPL4iVdBLk4"
+        },
+        {
+          "access_key": {
+            "nonce": 46707620000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "skyward.near"
+              }
+            }
+          },
+          "public_key": "ed25519:AXJmLBH7WxTAb2kGT3dLPwQCA7yaugxo1C8hVHV97FFT"
+        },
+        {
+          "access_key": {
+            "nonce": 46707636000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "skyward.near"
+              }
+            }
+          },
+          "public_key": "ed25519:Dj4khMZoEEv56H4uvX6J7DkmfrdEqBXXctKSfo1jENMv"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:39:14Z"
+}

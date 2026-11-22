@@ -1,0 +1,699 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "svrn-01.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "7SQiWfZjjKCMvkpQSxeKX7cPsFVmeQvwCBnkRnS3Eb1d",
+      "block_height": 225686969,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 218837679000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:139GpdB3Eu2SKkaVHkBeAwo2UZ7D56EMDe9E5H72cauF"
+        },
+        {
+          "access_key": {
+            "nonce": 218837401000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:WohoW65eiogJk9bgBXc8J14zk7GiLMRGaXhiEqG29qj"
+        },
+        {
+          "access_key": {
+            "nonce": 218837436000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:p63F8ZBtBSTsVBUpCBbRsZ8EACKd2LLsEWfpZ6grUnf"
+        },
+        {
+          "access_key": {
+            "nonce": 218837280000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:2kQ7Zd37fV32XooNWvSfNJaoyyHdnE5g8cU3JdVF2qAp"
+        },
+        {
+          "access_key": {
+            "nonce": 218837639000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:2wWM3gAGngsdzTv2cwRb3xwAuZAsqmEGWPx8WYkMGgEw"
+        },
+        {
+          "access_key": {
+            "nonce": 218836972000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:358e2Z4fTvpPuACLdYkuKZAEfCEFNvWWbvPhBg7esGT5"
+        },
+        {
+          "access_key": {
+            "nonce": 218837526000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:3FRNBvddDZcWaCCSpyeYn4T1Wk32mKcWAJEZdac4cU8V"
+        },
+        {
+          "access_key": {
+            "nonce": 218837486000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:3kUr1meJ3YDMBrZVY9zXsLU3arBY7sEHtWCdz99Hhcez"
+        },
+        {
+          "access_key": {
+            "nonce": 218837729000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:41AQHe9qMXJUQcRkRFbDJknw4gJcG3jDeCGL4AuaTsun"
+        },
+        {
+          "access_key": {
+            "nonce": 218838063000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:4PZQznVzD3F72i53cbFxVYnDhaZtBmwgeqguimTETHsZ"
+        },
+        {
+          "access_key": {
+            "nonce": 218837536000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:4VXqwK3KPYu4SQ4DxaQdRM36PCkcm5K7r9cK92SjkvPE"
+        },
+        {
+          "access_key": {
+            "nonce": 218837719000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:4ZzNWSFL3G6xcMHmrdpmDCT2ci3ToxS2g4Lgy2jai1nQ"
+        },
+        {
+          "access_key": {
+            "nonce": 218837411000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:4ov85dPqyjhF1tUrmBFAFWE53A4M9huPMPUCr2c64983"
+        },
+        {
+          "access_key": {
+            "nonce": 218837566000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:4uNRbnSEcrgbruBPgpaBTnQLSq298Paj2BbQGsw855P5"
+        },
+        {
+          "access_key": {
+            "nonce": 218837311000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:52pQcddzWS6duvBhcsT8JDBxfsbetHxFUf5dRpBxhAhF"
+        },
+        {
+          "access_key": {
+            "nonce": 218837709000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:53sYZT4c1mWKbwfE1E8T77rtijJwVWGKFCP642bU4rqN"
+        },
+        {
+          "access_key": {
+            "nonce": 218837270000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:54YSPGhDddsStKUPEeXntPKVYSBwjs5VRqfEq1vKD98a"
+        },
+        {
+          "access_key": {
+            "nonce": 218837649000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:5HMCzpRNen4atMGHeELCwccPtVL5pbTRFsf2N9xdhF3S"
+        },
+        {
+          "access_key": {
+            "nonce": 218837260000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:5MWrEZ8swYdmvQpwbBW2oF5eaWLFrMrM5aqUAywF4yGB"
+        },
+        {
+          "access_key": {
+            "nonce": 218837596000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:5q2WP4HEKy7CEZ9iByq4Vc92BLv8S9mGbvp51gdkwmb2"
+        },
+        {
+          "access_key": {
+            "nonce": 199971322000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6AUFihn7YV49uFUsokkZVngFFRqATR3VnEeSuH2ErbET"
+        },
+        {
+          "access_key": {
+            "nonce": 218839894000015,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6aLniuXcHiT59jAwDfiJyxhNXR7Kf3Kdj3kP5hf2hBNB"
+        },
+        {
+          "access_key": {
+            "nonce": 218837699000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:72oeAA3dCEaf3YpYZR92GwL4Dt8SbPWJayqrffTRLtHf"
+        },
+        {
+          "access_key": {
+            "nonce": 218837321000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:7XGWKHuwaCb75JtyLdeGrDbNbazaoyfqEbuQsfMYzApU"
+        },
+        {
+          "access_key": {
+            "nonce": 218837381000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:7Z36H3kNNsjEHbP7sNS1jcEvASrRCehb3beYycH8GhgK"
+        },
+        {
+          "access_key": {
+            "nonce": 218837476000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:7xRp4c9C4uh41ysH5F2tgXdZ1XDWJep513WH3M53LFND"
+        },
+        {
+          "access_key": {
+            "nonce": 218837546000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:9cznJsYYtg8bWGhU1Umpo3A6BPGMtmFcW2HT7TWTzFki"
+        },
+        {
+          "access_key": {
+            "nonce": 218837290000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:9jzY6RSw7oAJ3PRwm4nMXw9E4meeJyLZJfnkDzwADhsS"
+        },
+        {
+          "access_key": {
+            "nonce": 218837466000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:9k9opHemMWj92ybpgbZFSDivQvs9aSVrhnpH2KtfdseU"
+        },
+        {
+          "access_key": {
+            "nonce": 218837361000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:9wE62cyfTpVA6pZB5LiYnE2r4o1aqfqV7YjXFTCCugrg"
+        },
+        {
+          "access_key": {
+            "nonce": 218837506000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:A9xJRd6nysi6j4RvFc7wyqTNDT8MWGKwWpUqxY6y27t1"
+        },
+        {
+          "access_key": {
+            "nonce": 218837608000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:AATQQkUGWiCrEarZ5xrtsxm9MndDGgK2AnNVBnfrjc1w"
+        },
+        {
+          "access_key": {
+            "nonce": 218837351000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:AWrWEPbziqzodH1SXQvQkowKM6dNireLuri7BXVWDwwx"
+        },
+        {
+          "access_key": {
+            "nonce": 218837659000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:AXbFXNBuEdXrXRfGAqgGCxb2S1ettKAHM4fau8fp641N"
+        },
+        {
+          "access_key": {
+            "nonce": 218837456000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:AgTCq5pAzK8mpwjmz29ikypzv2uur1B6GtLBtu8q1sMd"
+        },
+        {
+          "access_key": {
+            "nonce": 218837689000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:AxWFFje9CXDH7Xvr9KJ97mfghha6RNfBXJp8fXTuKeSA"
+        },
+        {
+          "access_key": {
+            "nonce": 218837341000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:AzMe4gjqgmgDBkBoDvS8vuw7imEdtFvuCxZLUQHpeQNX"
+        },
+        {
+          "access_key": {
+            "nonce": 218837629000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:BQeVokATTyLaApwMqgte1bkpZ78V1CZ7hUczVYrzizP3"
+        },
+        {
+          "access_key": {
+            "nonce": 218837496000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:DG1DM39frPjuP2zwt42SNVrRof6Z1VsKu7MStmafak9J"
+        },
+        {
+          "access_key": {
+            "nonce": 218837371000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:DPcEQPYSQ4ZJ71zJ45DKx9sWvyR7sT9eGDXdYhx9AR2i"
+        },
+        {
+          "access_key": {
+            "nonce": 218837576000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:DtFkUuqbSeTvDYobeWccnjtjQWWPJkxk8c9kXttUTCMP"
+        },
+        {
+          "access_key": {
+            "nonce": 218837391000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:E23CMEizjEvap1WpFGwA3YLJ9fGpCrKh2HBv5pMX9G9a"
+        },
+        {
+          "access_key": {
+            "nonce": 218837300000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:EmvyqGKEfb8Wb5E2rq2nKZs1CZ4eFqYdnFPnZrNZEJE8"
+        },
+        {
+          "access_key": {
+            "nonce": 218837331000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:F6iUQNLF8BayPAn89z1Lv9rvG7Bh8sJA5ZcnuCnjgnro"
+        },
+        {
+          "access_key": {
+            "nonce": 218837425000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:FPwNoV8e9UbiixMj8LuiXGXnrxBUa8Wctp62fLwbxZf9"
+        },
+        {
+          "access_key": {
+            "nonce": 218837447000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:FQvAhMeEwgQoFt2SeLHZziRgPBgUkkViCF1bdEVb5TJB"
+        },
+        {
+          "access_key": {
+            "nonce": 218837250000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:GS1AgVvswBTonLDtKgfRG1o2JMtrHxEvgtP6HEC7vhjJ"
+        },
+        {
+          "access_key": {
+            "nonce": 218837669000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:GU4NXkBaVw878n7oe4jFoqhCU5pQ5CKB4u8riZpZ1zmg"
+        },
+        {
+          "access_key": {
+            "nonce": 218837516000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:GbrTdNsJgVKMtcdGPBNJP6QonHnAWUsJa21Dih5igJtM"
+        },
+        {
+          "access_key": {
+            "nonce": 225686908000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:GdrMw9r1TSEQunU3XiCfH8JJ4LWueLWZe8QvtUbPfPnh"
+        },
+        {
+          "access_key": {
+            "nonce": 218837556000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:GhfVYtL2paYLofuGohYaesYMTUgBJtPhUhXz42bN2fUv"
+        },
+        {
+          "access_key": {
+            "nonce": 218837619000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:GsXSR8ZjAwSy4TEAusq3MTmLxsZzUYhuw8wfVndJfRoV"
+        },
+        {
+          "access_key": {
+            "nonce": 218837586000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:H6UMMWE3foargt6W1mWTUsawJA1t1mqzkdvDZkJw3YvM"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:35:49Z"
+}

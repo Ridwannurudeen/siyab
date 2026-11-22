@@ -1,0 +1,55 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "nansen-ai-mpc.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "6ibyMgJYGBLz4ND7cnu5KPdLyTuVaUBErF5c68M7FAGJ",
+      "block_height": 225687126,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 213978465000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:5SZ48gRWd6HfWQCevam7WQeWzd8TZpb4RNcQWX8HajEo"
+        },
+        {
+          "access_key": {
+            "nonce": 225686981000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:954gwT3w4Ba83P4boJy8aCh3AVCapyTLTUXoXBG4SwZg"
+        },
+        {
+          "access_key": {
+            "nonce": 213889533000026,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:EHyLSxFpM1UCizQ2CgdrFGDVS4w7YBQC56FcK29hyopb"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:37:22Z"
+}

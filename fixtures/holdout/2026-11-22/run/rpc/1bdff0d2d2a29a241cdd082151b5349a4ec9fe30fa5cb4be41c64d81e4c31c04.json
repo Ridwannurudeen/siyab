@@ -1,0 +1,43 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "ewellrau050.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "3kSemEAVwwqozQR6L7onrswhLdMeA6xnuSmRutg7VGv6",
+      "block_height": 225687258,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 54376096000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:549gRFJLnoXjg2WnNpYnQMmaQsAh7iBFB2TnSPHXjGgM"
+        },
+        {
+          "access_key": {
+            "nonce": 114726126034310,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:5SVfg2ij5VbsUKqzocHbY3bPBs2Agkc8tzEFtLrn5mB5"
+        },
+        {
+          "access_key": {
+            "nonce": 54376103000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:AVBA4bUj9YzHppgfdDvVDDRUhe93cxEWZgaV8zH4FAsF"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:38:37Z"
+}

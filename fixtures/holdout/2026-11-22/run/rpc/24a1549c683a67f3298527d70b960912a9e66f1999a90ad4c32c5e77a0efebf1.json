@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "smellslike.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "CsnXTW5Hycb3Mj34USNUWAUr8qtxww4vadtABq5Tbry5",
+      "block_height": 225687505,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 123853714020100,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9MRZFkhrdadfLqd5dB9ousz2cD5VRxNvJzVmakzVVoth"
+        },
+        {
+          "access_key": {
+            "nonce": 123853678000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Fb7b4nZ1mMo33PmkEysDZFhGoVMgMy7ySTDYtPAZa3mH"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:40:54Z"
+}

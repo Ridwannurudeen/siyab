@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "kanchenjungakiss.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "A4RCwGum1gPWh6fvNULUHeT9EGp1TQrSKTJUGAoMVGyX",
+      "block_height": 225687471,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 124618188020830,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8aPkierhss6gLKmkj7thtaQ46vAXNVMubRuma3WTgqdu"
+        },
+        {
+          "access_key": {
+            "nonce": 124618143000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:EFXKE7ij5fPG6LCEjL6nWFrxQv1juRupyQPTRyZSmR7v"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:40:35Z"
+}

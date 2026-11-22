@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "goldendune.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "5h6uDmanoywWYSxapyDpD2NzvDPe34u7CjjBtveNHjrJ",
+      "block_height": 225687532,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 121637649025515,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:HNB6WH25xPUNzWwweGXuw6vupqfdeA12zmZAoQoka2fV"
+        },
+        {
+          "access_key": {
+            "nonce": 121637583000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:HjxAa7zYKb2agtc5V4R7PDfuwxyDey7vUu5iuGrUMJCE"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:41:10Z"
+}

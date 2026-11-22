@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "tatratriumph.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "DoqsTrQCGcpFU9GbCyMj4ovsyGU9Vo87JLeaB1RJHs1M",
+      "block_height": 225687803,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 124620699019610,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:VcXbsBz4fo93HpH5FCLGou1PgcrSc9EkSXB4Q6pRb8C"
+        },
+        {
+          "access_key": {
+            "nonce": 124620641000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:3kqieiNcGPdNaJku5ySTJ7FZLofwrikc4mvmYqn6kz1u"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:43:41Z"
+}

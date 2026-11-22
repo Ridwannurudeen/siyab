@@ -147,6 +147,8 @@ Latency, payee off the allowlist: p50 2148 ms, p95 2765 ms over 20 verdict runs.
 
 <!-- counts:end -->
 
+The [22 November receiver holdout](docs/HOLDOUT.md) records its draw, results and limits.
+
 The feed line above is computed from the committed follower state. The live follower restarted on 14 Nov 2026, and the disclosed gap from height 224241250 to 224502861 is being backfilled; the feed page at [siyab.xyz](https://siyab.xyz) is the current source for the live feed.
 
 Update, 15 Nov 2026, after the submission deadline: that gap has since been walked by a backfill and merged into the live follower state as server data only, so the live feed page now shows a window from 9 Nov with 18 events, 17 of them unmeasured full_access_key_then_outflow observations on unlabelled accounts, not findings; key/outflow and fresh-account context was not carried across the join at height 224502862, the earlier gap from height 223457668 to 223819560 remains, and the committed counts line above is unchanged.

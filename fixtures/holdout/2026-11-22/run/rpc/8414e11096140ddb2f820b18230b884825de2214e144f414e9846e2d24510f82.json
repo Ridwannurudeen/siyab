@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "leya-liana.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "8F9mrZVTVP6gfd8gMEW9tBoKVMQWDKBLeHGYaf81xzLR",
+      "block_height": 225686922,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 166453953006450,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4B7HZYPYb4AUDSbYQYWbaxxbuoL6mnCjgEekHEoSJqcz"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:35:21Z"
+}

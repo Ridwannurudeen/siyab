@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "oahuoasis.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "AT6ra39k7CbANUR4aavpGtHvzeAhZpVwyvDiHMCZ29og",
+      "block_height": 225687543,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 121868437023500,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:5N129TpMx1nhMH91gZzENo2b3skE7cE1ersFmpJCUudX"
+        },
+        {
+          "access_key": {
+            "nonce": 121868412000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:GrcMeRVK9hN58kxbxvbf8DrD5UTCgHKv2zrzJWd5w33L"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:41:16Z"
+}

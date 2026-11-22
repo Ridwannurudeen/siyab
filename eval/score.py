@@ -8,6 +8,8 @@ service responses use request.receiver_id. Simple verdict files may name the
 account in subject, account, receiver_id or their file name. UNKNOWN counts as
 ASK. ALLOW, DENY and ASK keep their columns in every document shape; the service
 action does not change the decision being scored.
+An explicit scoreable false marks an answer NOT_JUDGED. An absent scoreable
+field preserves the recorded decision; a present field must be a boolean.
 
 Precision and recall are about DENY against the bad label. Every bad row is in
 the recall denominator, including ASK and rows without a verdict. ASK, missing
@@ -128,7 +130,10 @@ def load_verdicts(folder):
         except ValueError as error:
             errors.append(f"{path}: {error}")
             continue
-        outcome = outcome_of(answer)
+        if "scoreable" in answer and not isinstance(answer["scoreable"], bool):
+            errors.append(f"{path}: scoreable must be a boolean")
+            continue
+        outcome = "NOT_JUDGED" if answer.get("scoreable") is False else outcome_of(answer)
         if outcome is None:
             errors.append(f"{path}: no ALLOW, DENY or ASK outcome")
             continue

@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "shastaserenity.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "CNF1ZwrpX38XGrnpx4etfwVLMcBqFwpTgUdE77Mb1hpk",
+      "block_height": 225687866,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 123554304000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:ByTEJZF7yjbTbkfJo7WBPG2VQHhYXdbSUc8rSFzcViqd"
+        },
+        {
+          "access_key": {
+            "nonce": 123554319022255,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:EQRcLDYnpo4GYQ3oWMQcsGPnRkE25uyFx6owrSp8VnyC"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:44:18Z"
+}

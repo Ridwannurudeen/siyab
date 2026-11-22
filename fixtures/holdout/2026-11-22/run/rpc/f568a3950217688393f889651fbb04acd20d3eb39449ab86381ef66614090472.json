@@ -1,0 +1,42 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "hiwa.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "643NyrhfVbKsooWF5SL9WqPPEzVuVADZAvN8WFgE2yye",
+      "block_height": 225687572,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 108622056016478,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:AbEyQQTh7G5rMtmkKX4ZpsHyeA1xsw1WUPctt1BNEFbU"
+        },
+        {
+          "access_key": {
+            "nonce": 108622070000022,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "meteor-points.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BgqKj8Kyf31yh7ViHJR1qQ8okXUroH4T8fNmZrnZzqeS"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:41:33Z"
+}

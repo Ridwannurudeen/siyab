@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "giacmotrua.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "GTFywgLdBiyaHEsMUEUPnzQQvD7oNYGfULBoVsVTZgjC",
+      "block_height": 225687586,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 123945306019960,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:FAo2BNm5jUEtvYvodxEfApnFavifY71XimuBNqc3FrW9"
+        },
+        {
+          "access_key": {
+            "nonce": 123945286000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:GHLCtHN72GNAm6ygY63yutSoeNtTeHaw5TQZgYkSR5ZW"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:41:40Z"
+}

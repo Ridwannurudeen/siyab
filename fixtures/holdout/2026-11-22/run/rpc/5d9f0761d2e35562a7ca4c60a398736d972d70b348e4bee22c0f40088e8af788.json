@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "onetokenhub.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "CoUBKsYxpcpGMUYT11nc3mzEWRuEECrQHKZ3kEHGXDnK",
+      "block_height": 225687266,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 216936800004982,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9i72WUMgTdW4t6DbNHTpZFXxYPizRJ2c2eCDYAvN4ice"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:38:41Z"
+}

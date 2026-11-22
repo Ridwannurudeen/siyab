@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "fujifrost.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "3LaxoUn6ChsTqgPHU7f8aBjSJtNdpu34FH6KmZXiM44s",
+      "block_height": 225687842,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 123109804000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:L6KG1wtc26cDNT1bNDtPZv2XAFnFXRjUFqyYQdAysff"
+        },
+        {
+          "access_key": {
+            "nonce": 123109817022255,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:23mF7jjW3j1PgWdHbthhvgaSYBFYkVeZ7Xt16e3GwFqM"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:44:04Z"
+}

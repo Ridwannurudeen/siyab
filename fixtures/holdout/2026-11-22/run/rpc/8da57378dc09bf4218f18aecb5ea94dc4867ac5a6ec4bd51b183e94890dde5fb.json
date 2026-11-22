@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "whitehaven.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "48fhrcpShW1n6JLCvcQrwXjhM5MpKeA4T3NLQ9djbCc3",
+      "block_height": 225687769,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 121486785000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:73koR1CfUtXcbttSaTBWRJU5b89PqZShQ4GKv2bpPGM9"
+        },
+        {
+          "access_key": {
+            "nonce": 121486796022970,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8ivEdNJfavtZzCNT3ypgFG6eXbLfxLctbFHpRLutHjPQ"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:43:23Z"
+}

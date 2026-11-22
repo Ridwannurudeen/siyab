@@ -1,0 +1,43 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "dynamic-price-range-manager.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "GcYCFxL2eYmfHWM8YmSo7ocpogTmDLGdEtKqBeMKYbMt",
+      "block_height": 225687482,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 224901029000002,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:9gboL1yB5w8oEHWAeEcLaDnsm61birtRo9KWMHmoj6Cs"
+        },
+        {
+          "access_key": {
+            "nonce": 225204751000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:BUJZnJWy9eWc9S1HpXrbEzhjFBh3MwNtXqPMPbHyzndk"
+        },
+        {
+          "access_key": {
+            "nonce": 224903142007339,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:HnYAujg7GCj7jNbpE198aExeGuH85nwhpNSpfGFnyhsz"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:40:42Z"
+}

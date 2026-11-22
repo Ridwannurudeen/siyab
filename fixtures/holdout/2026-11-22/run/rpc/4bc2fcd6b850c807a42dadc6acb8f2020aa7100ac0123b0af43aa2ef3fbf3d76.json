@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_account",
+      "finality": "final",
+      "account_id": "1987b4e5a7bbc4db5b2f250e93b08de0bc162344dcced9465a160ed0f9b692e1"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "amount": "901695088987500000000000",
+      "block_hash": "DiZjh8QyE5ooWDpntbbdqQepFXUgTFzFiPQuCKqpg8nN",
+      "block_height": 225687407,
+      "code_hash": "11111111111111111111111111111111",
+      "locked": "0",
+      "storage_paid_at": 0,
+      "storage_usage": 1096
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:40:00Z"
+}

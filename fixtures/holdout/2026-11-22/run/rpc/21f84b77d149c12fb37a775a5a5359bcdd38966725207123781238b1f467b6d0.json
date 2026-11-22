@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "myrtlemirage.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "6pyHsdMFDFJ1yXd6mhiL1rURmayFo15ssQ93SijU8tiE",
+      "block_height": 225687620,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 121851613000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:5XEbFoP8Q1JEBimP7we56duttBbSY6gLgYdEGvY5GTWt"
+        },
+        {
+          "access_key": {
+            "nonce": 121851663022120,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8pqQPizFBoMoupKR26uZ4M9k1pfL4P6jzKGtw2wTtPLA"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:42:00Z"
+}

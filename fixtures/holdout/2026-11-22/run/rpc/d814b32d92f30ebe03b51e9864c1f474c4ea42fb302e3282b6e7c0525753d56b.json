@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "turquoisebay.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "3trZ3VRBt6ioyyT6a1AfAzXCh7gbPq5UXCECePNqizTY",
+      "block_height": 225687776,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 121640032000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:6Z6xkPEQQXhik9C8iPxaLv3D9ga9MDR7YwkG3FJzSU7k"
+        },
+        {
+          "access_key": {
+            "nonce": 121640080022105,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:AkysJ1zsD5XcwXu2SgAsiNHf4wcKHRWcA2p2BuiisM6h"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:43:27Z"
+}

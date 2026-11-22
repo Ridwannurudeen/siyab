@@ -245,18 +245,26 @@ def _age_unknown(result):
     return any(check["id"] == "account_age" and check["status"] == "unknown" for check in result["checks"])
 
 
-def top_judged_block(archival, judged_at_ms, discover=False):
+def top_judged_block(archival, judged_at_ms, discover=False, *, path=None):
     """{judged_at_ms, height, hash, timestamp_ns, next_height}: the last block whose time in ms is at or before
     judged_at_ms, proved by the next existing block, which is later and names it as prev_hash. It is read from
-    JUDGED_BLOCK_PATH and proved again on archival; when the file is absent, discover finds the block with the
+    path (JUDGED_BLOCK_PATH by default) and proved again on archival; when the file is absent, discover finds the block with the
     incident replay block search (gate/incident_replay.py:_resolve) and writes the file, and otherwise None is
     returned."""
+    path = JUDGED_BLOCK_PATH if path is None else Path(path)
     target_ns = judged_at_ms * 10**6 + 10**6 - 1
-    saved = json.loads(JUDGED_BLOCK_PATH.read_text(encoding="utf-8")) if JUDGED_BLOCK_PATH.is_file() else None
+    saved = None
+    if path.is_file():
+        saved = json.loads(path.read_text(encoding="utf-8"))
+        fields = ("judged_at_ms", "height", "timestamp_ns", "next_height")
+        if (not isinstance(saved, dict) or set(saved) != {*fields, "hash"}
+                or any(type(saved[field]) is not int or saved[field] < 0 for field in fields)
+                or not isinstance(saved["hash"], str)):
+            raise ValueError(f"{path.name} is malformed")
     if saved is None and not discover:
         return None
     if saved is not None and saved["judged_at_ms"] != judged_at_ms:
-        raise ValueError(f"{JUDGED_BLOCK_PATH.name} names another judged_at_ms")
+        raise ValueError(f"{path.name} names another judged_at_ms")
     height = incident_replay._resolve(archival, target_ns)["height"] if saved is None else saved["height"]
     header = archival.block_at(height)["header"]
     following = None
@@ -273,9 +281,9 @@ def top_judged_block(archival, judged_at_ms, discover=False):
     block = {"judged_at_ms": judged_at_ms, "height": height, "hash": header["hash"],
              "timestamp_ns": header["timestamp"], "next_height": following["height"]}
     if saved is None:
-        _write_json(JUDGED_BLOCK_PATH, block)
+        _write_json(path, block)
     elif block != saved:
-        raise ValueError(f"{JUDGED_BLOCK_PATH.name} does not match the archival blocks")
+        raise ValueError(f"{path.name} does not match the archival blocks")
     return block
 
 
@@ -292,7 +300,12 @@ def _pinned_judgement(entry, store, archival, nearblocks, block, now_ms, reports
 
 def _write_json(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes((json.dumps(value, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
+    data = (json.dumps(value, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+    temporary = incident_replay._prepare_bytes(path, data)
+    try:
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def receivers_rule():
@@ -438,20 +451,25 @@ def top_receiver_exclusions(store):
     return excluded
 
 
-def record_top_receiver_judgements(document, store, reports_account=None):
-    """Record missing RPC reads for the top set, using the existing age lookup limit, then for each subject whose
-    account_age is unknown the judged block (found and written once) and the reads pinned to it."""
+def _record_database(command):
     if not os.environ.get("FASTNEAR_API_KEY_FILE"):
-        raise ValueError("judge-top-receivers --record requires FASTNEAR_API_KEY_FILE")
+        raise ValueError(f"{command} --record requires FASTNEAR_API_KEY_FILE")
     configured = os.environ.get(budget.DATABASE_ENV)
     state = os.environ.get("FEED_STATE_DIR")
-    location_message = ("judge-top-receivers --record requires FEED_STATE_DIR or SIYAB_PROVIDER_BUDGET_DB "
+    location_message = (f"{command} --record requires FEED_STATE_DIR or SIYAB_PROVIDER_BUDGET_DB "
                         "outside the repository")
     if not configured and not state:
         raise ValueError(location_message)
     database = (Path(configured) if configured else Path(state) / budget.DATABASE_NAME).resolve()
     if database == ROOT or ROOT in database.parents:
         raise ValueError(location_message)
+    return database
+
+
+def record_top_receiver_judgements(document, store, reports_account=None):
+    """Record missing RPC reads for the top set, using the existing age lookup limit, then for each subject whose
+    account_age is unknown the judged block (found and written once) and the reads pinned to it."""
+    database = _record_database("judge-top-receivers")
     with budget.use_database(database), rpc.caller_class("recording") as refusals:
         headers = top_receivers.fastnear_headers()
         client = rpc.Client(rpc.MAINNET_RPC_URL, "record", fixtures_dir=RECEIVER_RPC_DIR,
@@ -929,6 +947,15 @@ def main(argv=None):
     top_judge = commands.add_parser("judge-top-receivers", help="judge the separate top receiver set")
     top_judge.add_argument("--record", action="store_true", help="record missing RPC reads before replay")
     top_judge.set_defaults(handler=_judge_top_receivers)
+    from intel import judge_accounts
+
+    accounts = commands.add_parser("judge-accounts", help="judge an unlabelled mainnet account file with rules v3")
+    accounts.add_argument("--accounts", type=Path, required=True, help="one account id per line, sorted by its sha256")
+    accounts.add_argument("--out", type=Path, required=True,
+                          help="resumable run outside the repository or under fixtures/holdout")
+    accounts.add_argument("--labels", type=Path, default=labels.STORE_PATH, help="label store for this run")
+    accounts.add_argument("--record", action="store_true", help="record missing reads before replay")
+    accounts.set_defaults(handler=judge_accounts.run)
     replay = commands.add_parser("replay-receivers", help="judge a recorded receiver set offline into a new directory")
     replay.add_argument("--set", choices=("ordinary", "top"), required=True)
     replay.add_argument("--rules-version", type=int, choices=rules.RULES_VERSIONS, default=1)

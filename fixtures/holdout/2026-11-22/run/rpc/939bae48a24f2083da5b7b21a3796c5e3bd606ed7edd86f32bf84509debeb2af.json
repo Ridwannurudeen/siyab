@@ -1,0 +1,55 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "astrostakers-mainnet.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "9AAejJxRLL5D6KAdHqWQ51dGLWR5Rsnsb7Hf9z15xEeW",
+      "block_height": 225687435,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 225687370000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:3WaocV9ryokGemNAdmcQbnu5nmm62sscj13vc4rnnsLu"
+        },
+        {
+          "access_key": {
+            "nonce": 211692211000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:8oBu4GiwtERhBxo6LAsdCYbj3JuytppXNs9dYgWZnr52"
+        },
+        {
+          "access_key": {
+            "nonce": 211419021000025,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:DZi3UN7TBWXg1r7EDnqmrzyR3N1BqsPSQn1HeeZPED3W"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:40:16Z"
+}

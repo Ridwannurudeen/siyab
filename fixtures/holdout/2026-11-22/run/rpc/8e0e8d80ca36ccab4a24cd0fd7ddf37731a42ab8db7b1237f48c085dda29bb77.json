@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "trolaiphocu.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "EfKgNQgUtFa7MTFCwbo4BUNcmTdnVUUWmFgyNqeUM7BL",
+      "block_height": 225686936,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 124266425000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:4L1DUGrgJ7xjbzL63Nb2oTN98gdktDEcKLdwqU9JcEsf"
+        },
+        {
+          "access_key": {
+            "nonce": 124266441020750,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:GLN2CHx3H2q1rdAsjjj5dXAYYkCMuRdTvZdhK6PxfSEg"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:35:29Z"
+}

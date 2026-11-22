@@ -1,0 +1,43 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "wilsonbrown3455.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "2X92jYLHZ5CMifigLs1m432wJA4eBvoBexVWoiuRN1bX",
+      "block_height": 225687479,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 54377906000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:5CbrFJzTRrUw2xhpd9PEKpuXF4czzymhsrF3zEZehZFR"
+        },
+        {
+          "access_key": {
+            "nonce": 114843336032760,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:AovPDq2rgiYv4Vp89NK62RaG3bVrp7JLAcXhMFov4eXy"
+        },
+        {
+          "access_key": {
+            "nonce": 54377912000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:E6oVTKm42DHfkHHu1M8RauBRFq5XB6jCf7Lvp2EMz83G"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:40:40Z"
+}

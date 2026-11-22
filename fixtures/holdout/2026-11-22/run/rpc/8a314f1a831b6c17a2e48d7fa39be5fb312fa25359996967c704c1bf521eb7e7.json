@@ -1,0 +1,42 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "poliag.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "FpQi5EMcCvoJUVpcfic7CqXUjJy44JyYp57yw2aoUGBq",
+      "block_height": 225687038,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 217491405001115,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:BqsMWKakcFHPZ6N7KYNiLMa4t4zx3FJhcJiFGdWQ34sC"
+        },
+        {
+          "access_key": {
+            "nonce": 219157660000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "grid.deltatrade.near"
+              }
+            }
+          },
+          "public_key": "ed25519:GcWyfEXyAjXQrvys3qddTGe82uTvSrbefz1pSS99vh8n"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:36:29Z"
+}

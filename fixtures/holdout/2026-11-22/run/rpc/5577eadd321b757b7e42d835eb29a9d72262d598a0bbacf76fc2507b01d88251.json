@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "navio.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "9pxDHcnFbJ49KFXXPXyhX8uME6voAZ6tDKnz19K4b6pS",
+      "block_height": 225687304,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 121538144023875,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:37mNQQN4xB5xLRWF2wWX4jxKxWLT9JXy92qEu4tHegdi"
+        },
+        {
+          "access_key": {
+            "nonce": 121538126000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:3DwFueywa1NsNCGvsQ6UZHeULfVwtwXmmufhgR2otHZa"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:39:03Z"
+}

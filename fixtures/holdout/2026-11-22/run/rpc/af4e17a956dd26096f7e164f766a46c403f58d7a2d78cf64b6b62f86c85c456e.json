@@ -1,0 +1,83 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "natsai-mpc.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "R5RgkXheXW9CRPNsQXVhdxZiFEwCKayx1TZpkppukPN",
+      "block_height": 225687677,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 209576590000032,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:2FwNAzSURBa57dtmgz3LkLQoRbmuGwYNHRvb9qTt5977"
+        },
+        {
+          "access_key": {
+            "nonce": 225410913000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "1000000000000000000000000",
+                "method_names": [
+                  "vote_update",
+                  "vote_code_hash",
+                  "vote_add_domains",
+                  "vote_new_parameters",
+                  "vote_cancel_keygen",
+                  "vote_cancel_resharing",
+                  "vote_add_launcher_hash",
+                  "vote_remove_launcher_hash",
+                  "vote_add_os_measurement",
+                  "vote_remove_os_measurement",
+                  "vote_tee_verifier_change",
+                  "vote_update_foreign_chain_providers",
+                  "vote_mpc_node_manifest_digest",
+                  "vote_contract_update"
+                ],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:BX2Xd239v1XQvSckjjYT2Y3a3QRhfajLwm8UqfKWeyEf"
+        },
+        {
+          "access_key": {
+            "nonce": 225687658000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:EBVzDPpx1mYG4K7D29erANMiqGRQRgHDgBwxn8syX8yA"
+        },
+        {
+          "access_key": {
+            "nonce": 209930197000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "v1.signer"
+              }
+            }
+          },
+          "public_key": "ed25519:HtrtAsyzSPHPRkM88uacfhS4HbJQ4c91FLaCsyS5xee6"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:42:32Z"
+}

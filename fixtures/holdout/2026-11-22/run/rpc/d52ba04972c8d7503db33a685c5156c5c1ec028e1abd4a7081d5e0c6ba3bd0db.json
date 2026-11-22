@@ -1,0 +1,70 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "dolbabob.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "7Ajfh5wi7Gp1HNoRx7jBKLa9pxy9hq9axZPTC4VSUN6M",
+      "block_height": 225687376,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 53456544000000,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:7TUBc1w37jVQvaAYpFTknP9kK7ENcKwrbMKz7CZH3a23"
+        },
+        {
+          "access_key": {
+            "nonce": 53342322000146,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:7TUT2MZ9kz831rK8gaCMrCjzLJbHeyysPk4V4sK8HMUh"
+        },
+        {
+          "access_key": {
+            "nonce": 59672328000003,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:8t5na4MqMoxHp3pCJiWqBzGNSFGtdbU1JDRDwsA4VQHy"
+        },
+        {
+          "access_key": {
+            "nonce": 65657727000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": "250000000000000000000000",
+                "method_names": [],
+                "receiver_id": "marketplace.paras.near"
+              }
+            }
+          },
+          "public_key": "ed25519:BcykBaRJUvMhCi2CZh8ZKwvHDMDuzt3Dcqm1qgEvADN6"
+        },
+        {
+          "access_key": {
+            "nonce": 59574521000002,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:CAz8z17Ab8MHDYZh1vdTuenoeZ2rMjZzs3CE5EW9ED4K"
+        },
+        {
+          "access_key": {
+            "nonce": 59789132000087,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:Eui9Fjg4u8AtFwXCP1tyCfGqvRGUC9rk2G5xawLieZWd"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:39:43Z"
+}

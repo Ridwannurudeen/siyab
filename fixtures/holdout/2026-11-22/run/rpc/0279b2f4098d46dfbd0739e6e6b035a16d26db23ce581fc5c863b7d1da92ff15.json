@@ -1,0 +1,31 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "derek1.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "error": {
+      "name": "HANDLER_ERROR",
+      "cause": {
+        "info": {
+          "block_hash": "BJY7Y9VpA7AJTkXvaJJPHNzSAfqyCuBptKubuyb1TgSd",
+          "block_height": 225686905,
+          "limit": 100,
+          "requested_account_id": "derek1.near"
+        },
+        "name": "TOO_MANY_ACCESS_KEYS"
+      },
+      "code": -32000,
+      "message": "Server error",
+      "data": "Account derek1.near has more than 100 access keys; use a paginated view_access_key_list request"
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:35:11Z"
+}

@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "query",
+    "params": {
+      "request_type": "view_access_key_list",
+      "finality": "final",
+      "account_id": "elbruselevation.near"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "result": {
+      "block_hash": "Hxg33HEaGBnn5JWGa8G9DwEHwo7GkTNqLYkrzeQkKg8Y",
+      "block_height": 225687279,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 123550928000001,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:AHnr2MVCJQxkkS2brZmDCntb7m1DtjPcVwtF4KVfxKV9"
+        },
+        {
+          "access_key": {
+            "nonce": 123551305022045,
+            "permission": "FullAccess"
+          },
+          "public_key": "ed25519:CN2xHPZEx2eFc83msPSDLr7T37ugLpnCmnNuVAF1rGsd"
+        }
+      ]
+    },
+    "id": "gate"
+  },
+  "url": "https://free.rpc.fastnear.com",
+  "fetched_at": "2026-11-22T09:38:49Z"
+}
