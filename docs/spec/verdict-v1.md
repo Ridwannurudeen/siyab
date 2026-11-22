@@ -26,7 +26,7 @@ GATEv1|<gate>|<agent_pk>|<kind>|<token>|<receiver>|<amount>|<memo>|<issued_ms>|<
 | 8 | `memo` | `-` when there is no memo; otherwise the sha256 of the memo's UTF-8 bytes as 64 lowercase hex. The empty memo is a memo and is hashed. | `gate/canon.py:59` |
 | 9 | `issued_ms` | milliseconds since the Unix epoch, an integer from 0 to 2^64 minus 1 in decimal without leading zeros | `gate/canon.py:72` |
 | 10 | `expires_ms` | the same form; not earlier than `issued_ms` | `gate/canon.py:98` |
-| 11 | `verdict_id` | 32 lowercase hex: 16 random bytes drawn for each signed ALLOW | `gate/verdict.py:109` |
+| 11 | `verdict_id` | 32 lowercase hex: 16 random bytes drawn for each signed ALLOW | `gate/verdict.py:112` |
 | 12 | `evidence_sha256` | 64 lowercase hex: the evidence hash (`evidence-v1.md`) | |
 | 13 | `key_id` | `cur` or `prev` | `gate/canon.py:24` |
 | 14 | `literal` | `ALLOW` | `gate/canon.py:22` |
@@ -50,7 +50,7 @@ The signature is pure Ed25519 (RFC 8032 section 5.1) over the 32 byte digest; it
 
 ## The Verdict object
 
-The service returns the signed verdict as a JSON object, and the agent passes it unchanged to the Gate's `request_transfer(request, verdict)` (`gate/verdict.py:108`, `contracts/gate/src/types.rs:96`):
+The service returns the signed verdict as a JSON object, and the agent passes it unchanged to the Gate's `request_transfer(request, verdict)` (`gate/verdict.py:111`, `contracts/gate/src/types.rs:96`):
 
 | Key | JSON type | Content |
 |---|---|---|
@@ -99,4 +99,4 @@ Vector 07 has one signature bit flipped (`expect_valid` false); vector 08 is sig
 
 - `gate/canon.py:117` `canonical_message`; `:84` field validation; `:132` `digest`; `:137` `parse_canonical`; `:314` `build_vectors`.
 - `contracts/gate/src/verdict.rs:22` the contract's message; `:53` the contract's checks; `contracts/gate/src/types.rs:86` and `:96` the argument shapes.
-- `gate/ed25519.py:183` the TEST seeds; `gate/verdict.py:106-109` when a verdict is signed.
+- `gate/ed25519.py:183` the TEST seeds; `gate/verdict.py:109-112` when a verdict is signed.

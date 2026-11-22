@@ -355,6 +355,9 @@ def handle(message, evidence_dir):
                 if name in CHECK_NAMES:
                     wording = {"ALLOW": "No flag found", "DENY": "Flagged", "ASK": "Not enough data"}
                     text = wording[result["outcome"]]
+                    if result["outcome"] == "ASK" and any(check["name"] == "account_age" and check["status"] == "signal"
+                                                         for check in result["checks"]):
+                        text = "New account, confirm first"
                     if name != "check_near_transaction" and (os.environ.get("GATE_FIXTURES_MODE") or "replay") == "replay":
                         block = result["freshness"]["block_height"]
                         text += (f". Recorded fixtures (replay), block {block if block is not None else 'unknown'}; "

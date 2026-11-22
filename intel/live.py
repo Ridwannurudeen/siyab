@@ -695,7 +695,9 @@ class LiveAPI:
     @staticmethod
     def _verdict_shape(verdict, checks, reasons, evidence_hash, freshness, latency_ms):
         statuses = {check["status"] for check in checks}
-        if "signal" in statuses or verdict == "DENY":
+        young_only = (verdict == "UNKNOWN"
+                      and {check["id"] for check in checks if check["status"] == "signal"} == {"account_age"})
+        if verdict == "DENY" or ("signal" in statuses and not young_only):
             outcome, action = "DENY", "refuse"
         elif "unknown" in statuses or verdict != "ALLOW":
             outcome, action = "ASK", "ask"

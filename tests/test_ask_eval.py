@@ -11,6 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest import mock
 
+from intel import __main__ as intel_main
 from scripts import ask_eval
 from tests.test_ask import SERVICE_VALUES, ServiceCase
 
@@ -46,6 +47,32 @@ class AskEvalTests(unittest.TestCase):
         items = [i for i in self.items if i["item"].startswith("unknown:")]
         self.assertEqual({i["item"].split(":")[1] for i in items}, {p.stem for p in files})
         self.assertTrue(all(i["projection"]["outcome"] == "ASK" for i in items))
+
+    def test_document_projection_preserves_young_version_three_confirmation(self):
+        source = next(path for path in sorted((ROOT / "fixtures/receivers/top/judgements").glob("*.json"))
+                      if {check["id"] for check in json.loads(path.read_text(encoding="utf-8"))["checks"]
+                          if check["status"] == "signal"} == {"account_age"})
+        ranking = json.loads((ROOT / "fixtures/receivers/top.json").read_text(encoding="utf-8"))
+        ranking["subjects"] = [entry for entry in ranking["subjects"] if entry["subject"] == source.stem]
+        store = ask_eval.labels.load()
+        with tempfile.TemporaryDirectory() as tmp:
+            judgement = intel_main.judge_receivers(ranking, store, tmp, pin_unknown_age=True, rules_version=3)[0]
+            path = Path(tmp) / "judgements" / (judgement["subject"] + ".json")
+            item = ask_eval.from_document(path, "judgement", store)
+        self.assertEqual(judgement["verdict"], "UNKNOWN")
+        self.assertEqual(item["verdict"]["outcome"], "ASK")
+        self.assertEqual(item["projection"]["outcome"], "ASK")
+        age = next(check for check in judgement["checks"] if check["id"] == "account_age")
+        self.assertEqual(age["status"], "signal")
+        self.assertIn({"name": "account_age", "status": "signal", "detail": age["detail"]},
+                      item["verdict"]["checks"])
+        projected_age = next(check for check in item["projection"]["items"] if check["id"] == "check.account_age")
+        self.assertEqual(projected_age["status"], "signal")
+        reason = (f'{judgement["subject"]} is younger than 7 days; no other signal was found '
+                  "among the checks that ran. The owner should confirm the receiver before paying.")
+        self.assertEqual(judgement["reasons"][0], reason)
+        self.assertEqual(item["verdict"]["reasons"][0], reason)
+        self.assertIn({"id": "reason.1", "text": reason}, item["projection"]["items"])
 
     def test_zero_check_evidence_document_answers_evidence_empty(self):
         path = next(p for p in sorted((ROOT / "fixtures/evidence").glob("*.json"))

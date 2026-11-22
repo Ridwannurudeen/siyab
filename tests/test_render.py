@@ -332,6 +332,56 @@ class AnalyticsPresentationTest(unittest.TestCase):
         self.assertNotIn('<span class="outcome ask">ASK</span>', page)
 
 
+class RulesVersionThreeRenderTest(unittest.TestCase):
+    def test_top_receivers_count_young_confirmation_alongside_unknown_checks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            judgements = Path(tmp) / "judgements"
+            judgements.mkdir()
+            young = {"subject": "young.near", "verdict": "UNKNOWN",
+                     "checks": [{"id": "account_age", "status": "signal"}]}
+            (judgements / "young.near.json").write_text(json.dumps(young), encoding="utf-8")
+            age_only = render.top_receivers_page(judgements, None)
+            self.assertIn("New account, confirm first: 1", re.findall(r"<li>([^<]+)</li>", age_only))
+            self.assertNotIn("None recorded.", re.findall(r"<li>([^<]+)</li>", age_only))
+            unresolved = {"subject": "young-unresolved.near", "verdict": "UNKNOWN", "checks": [
+                {"id": "account_age", "status": "signal"}, {"id": "dust_funded", "status": "unknown"}]}
+            (judgements / "young-unresolved.near.json").write_text(json.dumps(unresolved), encoding="utf-8")
+            combined = render.top_receivers_page(judgements, None)
+        self.assertEqual(re.findall(r"<li>([^<]+)</li>", combined),
+                         ["dust_funded: 1", "New account, confirm first: 2"])
+
+    def test_top_receivers_do_not_count_unavailable_age_as_young_confirmation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            judgement = {"subject": "age-unavailable.near", "verdict": "UNKNOWN",
+                         "checks": [{"id": "account_age", "status": "unknown"}]}
+            (Path(tmp) / "age-unavailable.near.json").write_text(json.dumps(judgement), encoding="utf-8")
+            document = render.top_receivers_page(tmp, None)
+        self.assertIn("<li>account_age: 1</li>", document)
+        self.assertNotIn("New account, confirm first", document)
+
+    def test_incident_replay_renders_young_unknown_as_warn_and_refuses_outcome_mismatch(self):
+        document = json.loads((ROOT / "intel/incidents/rhea.json").read_text(encoding="utf-8"))
+        run = json.loads((ROOT / "fixtures/replay/rhea/run.json").read_text(encoding="utf-8"))
+        entry = run["accounts"][0]
+        detail = "created 2 d ago, younger than 7 d"
+        for check in entry["checks"]:
+            check["status"] = "signal" if check["id"] == "account_age" else "pass"
+            check["detail"] = detail if check["id"] == "account_age" else "The check ran."
+        entry.update(verdict="UNKNOWN", outcome="ASK")
+        run["accounts"] = [entry]
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(render, "REPLAYS_DIR", Path(tmp)):
+            path = Path(tmp) / "rhea/run.json"
+            path.parent.mkdir()
+            path.write_text(json.dumps(run), encoding="utf-8")
+            rendered = render.incident_page(document, {})
+            self.assertIn('<span class="cell-label" aria-hidden="true">Outcome</span>WARN</td>', rendered)
+            self.assertIn("account_age signal: " + detail, rendered)
+            entry["outcome"] = "DENY"
+            path.write_text(json.dumps(run), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "incident replay outcome does not match its checks"):
+                render.incident_page(document, {})
+
+
 class RenderTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

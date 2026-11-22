@@ -76,6 +76,9 @@ def receiver_rows(root):
             unknown_causes.update(
                 check["id"] for check in judgement.get("checks", []) if check.get("status") == "unknown"
             )
+            if any(check["id"] == "account_age" and check.get("status") == "signal"
+                   for check in judgement.get("checks", [])):
+                unknown_causes["young_receiver_confirmation"] += 1
     if unknown_causes:
         for cause, count in sorted(unknown_causes.items()):
             rows.append((
