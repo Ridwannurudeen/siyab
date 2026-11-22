@@ -1,0 +1,21 @@
+[package]
+name = "attest-test-verifier"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+near-sdk = "=5.29.1"
+borsh = "1.6.1"
+tee-verifier-interface = { git = "https://github.com/near/mpc", tag = "3.18.0" }
+
+[profile.release]
+codegen-units = 1
+opt-level = "z"
+lto = true
+debug = false
+panic = "abort"
+overflow-checks = true
