@@ -10,6 +10,7 @@ import time
 from urllib.parse import urlsplit
 
 from gate import base58, canon, ed25519, rpc
+from intel import budget
 from intel.workspace import WorkspaceError, _random_token
 
 
@@ -19,7 +20,7 @@ MAX_CHALLENGES_PER_BUCKET = 8
 MAX_VERIFY_RPC_PER_BUCKET_HOUR = 8
 MAX_VERIFY_RPC_PER_BUCKET_DAY = 20
 MAX_VERIFY_RPC_PER_BUCKET_MINUTE = 3
-MAX_VERIFY_BUCKETS = 4096
+MAX_VERIFY_BUCKETS = 8192
 NEGATIVE_KEY_MS = 60 * 1000
 MAX_NEGATIVE_KEYS = 4096
 NEP413_TAG = 2**31 + 413
@@ -159,6 +160,23 @@ class NearAuth:
             if retry_after:
                 raise WorkspaceError(429, "near_verify_limit", "Too many NEAR key checks from this network. Try again later.",
                                      retry_after)
+            pools = (
+                (budget.DAY_S, day, daily["count"] if daily is not None else 0,
+                 connection.execute("SELECT COUNT(*),COALESCE(SUM(count),0)-COUNT(*) FROM near_auth_rpc_days WHERE day=?",
+                                    (day,)).fetchone()),
+                (budget.HOUR_S, hour, counter["count"] if counter is not None else 0,
+                 connection.execute("SELECT COUNT(*),COALESCE(SUM(count),0)-COUNT(*) FROM near_auth_rpc_buckets WHERE hour=?",
+                                    (hour,)).fetchone()),
+                (budget.MINUTE_S, minute, daily["minute_count"] if daily is not None and daily["minute"] == minute else 0,
+                 connection.execute("SELECT COUNT(*),COALESCE(SUM(minute_count),0)-COUNT(*) FROM near_auth_rpc_days WHERE day=? AND minute=?",
+                                    (day, minute)).fetchone()),
+            )
+            for limit, (span, window, previous, counts) in zip(budget.KEYLESS_CALLER_LIMITS["near_auth"]["fastnear_rpc"], pools):
+                share = limit // 4 if previous else limit * 3 // 4
+                if counts[1 if previous else 0] >= share:
+                    retry_after = max(retry_after, (window + 1) * span - now // 1000)
+            if retry_after:
+                raise WorkspaceError(503, "near_verify_capacity", "NEAR sign in is busy. Try again shortly.", retry_after)
             if daily is None:
                 count = connection.execute("SELECT COUNT(*) FROM near_auth_rpc_days").fetchone()[0]
                 if count >= MAX_VERIFY_BUCKETS:

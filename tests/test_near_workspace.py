@@ -7,9 +7,9 @@ from pathlib import Path
 
 @unittest.skipUnless(shutil.which("node"), "Node is unavailable")
 class NearWorkspaceBrowserTest(unittest.TestCase):
-    def run_scenario(self, scenario):
+    def run_scenario(self, scenario, *arguments):
         result = subprocess.run(
-            [shutil.which("node"), "tests/near_workspace_runtime.cjs", scenario],
+            [shutil.which("node"), "tests/near_workspace_runtime.cjs", scenario, *arguments],
             cwd=Path(__file__).resolve().parent.parent,
             capture_output=True, text=True, timeout=20,
         )
@@ -21,6 +21,24 @@ class NearWorkspaceBrowserTest(unittest.TestCase):
 
     def test_okx_sign_in_accepts_a_direct_signed_response(self):
         self.run_scenario("okx-sign-in")
+
+    def test_sign_in_and_vault_accept_a_client_two_seconds_behind(self):
+        self.run_scenario("clock-skew", "-2000")
+
+    def test_sign_in_and_vault_accept_a_client_two_seconds_ahead(self):
+        self.run_scenario("clock-skew", "2000")
+
+    def test_sign_in_and_vault_accept_a_client_ten_minutes_behind(self):
+        self.run_scenario("clock-skew", "-600000")
+
+    def test_sign_in_and_vault_accept_a_client_ten_minutes_ahead(self):
+        self.run_scenario("clock-skew", "600000")
+
+    def test_server_expired_challenge_refuses_every_client_clock_skew(self):
+        self.run_scenario("server-challenge-expiry")
+
+    def test_server_session_expiry_locks_every_client_clock_skew(self):
+        self.run_scenario("server-session-expiry")
 
     def test_okx_unlock_reads_sender_ciphertext_and_sender_reads_its_saved_copy(self):
         self.run_scenario("okx-unlock")

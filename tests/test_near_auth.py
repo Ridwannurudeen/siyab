@@ -8,7 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from gate import base58, ed25519, rpc
-from intel import near_auth
+from intel import budget, near_auth
 from intel.workspace import SQLiteWorkspaceStore, WorkspaceError
 
 
@@ -83,6 +83,121 @@ class NearAuthTest(unittest.TestCase):
         self.client.on_call = lambda: seen.append(rpc._CALLER_CLASS.get())
         self.auth.verify(self.response(self.issue()), self.binding)
         self.assertEqual(seen, ["near_auth"])
+
+    def test_twenty_five_rotating_key_networks_cannot_deny_a_new_client_for_the_day(self):
+        response = self.response(self.issue())
+        valid = self.client.result
+        self.auth.client = rpc.Client(rpc.MAINNET_RPC_URL, mode="off", clock=lambda: self.now)
+
+        def fetch(url, body, headers, record_http_errors=()):
+            key = body["params"]["public_key"]
+            result = valid if key == self.public else {
+                "block_height": valid["block_height"], "block_hash": valid["block_hash"],
+                "error": f"access key {key} does not exist while viewing", "logs": []}
+            return {"jsonrpc": "2.0", "id": body["id"], "result": result}
+
+        with patch.dict("os.environ", {budget.DATABASE_ENV: str(Path(self.directory.name) / "budget.sqlite3")}), \
+                patch.object(rpc, "_fetch", side_effect=fetch) as exchange, \
+                patch.object(near_auth, "_prime_order", return_value=True), patch.object(ed25519, "verify", return_value=True):
+            for version in (4, 6):
+                self.now = start = (int(self.now // 86400) + 1) * 86400
+                before = exchange.call_count
+                for attempt in range(20):
+                    self.now = start + attempt * 1200
+                    for network in range(25):
+                        address = f"192.0.2.{network + 1}" if version == 4 else f"2001:db8:{network + 1:x}:{attempt:x}::1"
+                        challenge = self.auth.issue("alice.near", self.binding, client_address=address)
+                        key = base58.encode_key(hashlib.sha256(f"{version}:{attempt}:{network}".encode()).digest())
+                        candidate = {**response, "challenge_id": challenge["challenge_id"], "state": challenge["state"], "publicKey": key}
+                        self.refused(candidate, 401, "near_key_invalid")
+                self.assertEqual(exchange.call_count - before, 500)
+                challenge = self.auth.issue("alice.near", self.binding, client_address="198.51.100.1")
+                self.assertEqual(self.auth.verify({**response, "challenge_id": challenge["challenge_id"],
+                                                  "state": challenge["state"]}, self.binding)["account_id"], "alice.near")
+                self.assertEqual(exchange.call_count - before, 501)
+
+    def test_twenty_five_networks_cannot_consume_the_newcomer_minute_reserve(self):
+        for version in (4, 6):
+            self.now = (int(self.now // 86400) + 1) * 86400
+            for attempt in range(3):
+                for network in range(25):
+                    address = f"192.0.2.{network + 1}" if version == 4 else f"2001:db8:{network + 1:x}:{attempt:x}::1"
+                    row = {"account_id": "alice.near", "client_bucket": near_auth._client_bucket(address)}
+                    if attempt == 0 or attempt == 1 or network < 5:
+                        self.auth._reserve_lookup(row, self.public)
+                    else:
+                        with self.assertRaises(WorkspaceError) as caught:
+                            self.auth._reserve_lookup(row, self.public)
+                        self.assertEqual(caught.exception.code, "near_verify_capacity")
+            self.auth = near_auth.NearAuth(SQLiteWorkspaceStore(self.store.path), "https://siyab.xyz",
+                                          client=self.client, clock=lambda: self.now)
+            self.auth._reserve_lookup({"account_id": "alice.near", "client_bucket": "198.51.100.1/32"}, self.public)
+            with self.store._connection() as connection:
+                self.assertEqual(connection.execute("SELECT SUM(count) FROM near_auth_rpc_days").fetchone()[0], 56)
+            self.now += 60
+            address = "192.0.2.1" if version == 4 else "2001:db8:1:ffff::1"
+            self.auth._reserve_lookup({"account_id": "alice.near", "client_bucket": near_auth._client_bucket(address)}, self.public)
+
+    def test_newcomer_hour_and_day_reserves_survive_restart_and_reopen_exactly(self):
+        for span, maximum in ((budget.DAY_S, 6144), (budget.HOUR_S, 768)):
+            self.now = (int(self.now // 86400) + 1) * 86400 + 7200
+            day, hour, minute = int(self.now // 86400), int(self.now // 3600), int(self.now // 60)
+            rows = [(f"198.18.{index // 256}.{index % 256}/32", day, 1, minute - 1, 1) for index in range(maximum - 1)]
+            with self.store._connection(write=True) as connection:
+                connection.execute("DELETE FROM near_auth_rpc_days")
+                connection.execute("DELETE FROM near_auth_rpc_buckets")
+                connection.executemany("INSERT INTO near_auth_rpc_days VALUES (?,?,?,?,?)", rows)
+                if span == budget.HOUR_S:
+                    connection.executemany("INSERT INTO near_auth_rpc_buckets VALUES (?,?,1)", [(row[0], hour) for row in rows])
+            self.auth = near_auth.NearAuth(SQLiteWorkspaceStore(self.store.path), "https://siyab.xyz",
+                                          client=self.client, clock=lambda: self.now)
+            self.auth._reserve_lookup({"account_id": "alice.near", "client_bucket": "198.51.100.1/32"}, self.public)
+            self.now = (int(self.now // span) + 1) * span - .001
+            row = {"account_id": "alice.near", "client_bucket": "198.51.100.2/32"}
+            with self.assertRaises(WorkspaceError) as caught:
+                self.auth._reserve_lookup(row, self.public)
+            self.assertEqual((caught.exception.code, caught.exception.retry_after), ("near_verify_capacity", 1))
+            with self.store._connection() as connection:
+                self.assertEqual(connection.execute("SELECT SUM(count) FROM near_auth_rpc_days").fetchone()[0], maximum)
+            self.now += .001
+            self.auth._reserve_lookup(row, self.public)
+
+    def test_newcomer_reserve_checks_all_windows_before_counting_and_reopens_exactly(self):
+        self.now = self.now // 60 * 60
+        for network in range(90):
+            self.auth._reserve_lookup({"account_id": "alice.near", "client_bucket": f"192.0.2.{network + 1}/32"}, self.public)
+        self.now += 59.999
+        row = {"account_id": "alice.near", "client_bucket": "198.51.100.1/32"}
+        with self.assertRaises(WorkspaceError) as caught:
+            self.auth._reserve_lookup(row, self.public)
+        self.assertEqual((caught.exception.code, caught.exception.retry_after), ("near_verify_capacity", 1))
+        with self.store._connection() as connection:
+            self.assertEqual(connection.execute("SELECT SUM(count) FROM near_auth_rpc_days").fetchone()[0], 90)
+            self.assertIsNone(connection.execute("SELECT 1 FROM near_auth_rpc_days WHERE client_bucket=?", (row["client_bucket"],)).fetchone())
+        self.now += .001
+        self.auth._reserve_lookup(row, self.public)
+
+    def test_concurrent_workers_cannot_exceed_the_newcomer_reserve(self):
+        for network in range(89):
+            self.auth._reserve_lookup({"account_id": "alice.near", "client_bucket": f"192.0.2.{network + 1}/32"}, self.public)
+        second = near_auth.NearAuth(SQLiteWorkspaceStore(self.store.path), "https://siyab.xyz",
+                                   client=self.client, clock=lambda: self.now)
+        barrier = threading.Barrier(2)
+
+        def reserve(candidate):
+            auth, address = candidate
+            barrier.wait(timeout=5)
+            try:
+                auth._reserve_lookup({"account_id": "alice.near", "client_bucket": address}, self.public)
+                return "reserved"
+            except WorkspaceError as error:
+                return error.code
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            results = list(executor.map(reserve, ((self.auth, "198.51.100.1/32"), (second, "198.51.100.2/32"))))
+        self.assertEqual(sorted(results), ["near_verify_capacity", "reserved"])
+        with self.store._connection() as connection:
+            self.assertEqual(connection.execute("SELECT SUM(count) FROM near_auth_rpc_days").fetchone()[0], 90)
 
     def test_three_ipv4_and_four_ipv6_buckets_cannot_spend_the_global_daily_rpc_cap(self):
         start = self.now // 86400 * 86400

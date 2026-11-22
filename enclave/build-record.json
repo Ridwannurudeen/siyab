@@ -1,17 +1,17 @@
 {
   "all_blob_hashes_verified": true,
-  "app_compose_image": "registry.example/siyab@sha256:d8e2b00502ec426695a5a771621f5d98846ddf8e8bee0a7fff787f01ebaf7543",
-  "app_compose_sha256": "79ec85c392ae659c946aa280be8f278f3104e006095672e1d5a2310df4f09ae7",
+  "app_compose_image": "registry.example/siyab@sha256:b3bcc3d69ed5cfad727661a7e8f7c80fb9b2c1ed88aafe371899b6d04cb47f7c",
+  "app_compose_sha256": "44776e2cd93dfbafd5a09ac94d809eb903cdf2357461f8a3f7833f0f16561a22",
   "buildkit_image": "moby/buildkit:v0.35.1@sha256:7583a0667093d941826bcd1d2878d6a360dfd08a82c93e6d6a6f6cce78801e12",
   "buildkit_version": "v0.35.1",
   "builds": [
     {
       "config": {
-        "digest": "sha256:c696663d54deb579373119b6c33c84e4ba203b8dff7869f53dc86bbc4048d56c",
+        "digest": "sha256:12afbd083d4c4d8738ec94d9fa8e4beb4bd293b44764d8f6aecb376c411f7ff8",
         "mediaType": "application/vnd.oci.image.config.v1+json",
         "size": 9789
       },
-      "index_sha256": "82e527393d1211c3bc72392bb1770524a09273880b49c1ea57375f7e5c88653f",
+      "index_sha256": "effc9a81d3d6aa4b50b3a7732b0a0dd79c4c8d72ea3ccc8ea6dcad4d05b7e3e0",
       "layers": [
         {
           "digest": "sha256:61320b01ae5e0798393ef25f2dc72faf43703e60ba089b07d7170acbabbf8f62",
@@ -77,9 +77,9 @@
           "annotations": {
             "buildkit/rewritten-timestamp": "1795304440"
           },
-          "digest": "sha256:0d77c9be9feb6dd646dc324a4c22a78645441fe695d0fe440a3606df29ed8cfc",
+          "digest": "sha256:6ebd45b75eea36d0cd7f03a5df2e02e7000bc74709f642cb45de453d58205932",
           "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
-          "size": 217135
+          "size": 217585
         },
         {
           "annotations": {
@@ -102,7 +102,7 @@
         "annotations": {
           "org.opencontainers.image.created": "2026-11-21T23:40:40Z"
         },
-        "digest": "sha256:d8e2b00502ec426695a5a771621f5d98846ddf8e8bee0a7fff787f01ebaf7543",
+        "digest": "sha256:b3bcc3d69ed5cfad727661a7e8f7c80fb9b2c1ed88aafe371899b6d04cb47f7c",
         "mediaType": "application/vnd.oci.image.manifest.v1+json",
         "platform": {
           "architecture": "amd64",
@@ -113,11 +113,11 @@
     },
     {
       "config": {
-        "digest": "sha256:c696663d54deb579373119b6c33c84e4ba203b8dff7869f53dc86bbc4048d56c",
+        "digest": "sha256:12afbd083d4c4d8738ec94d9fa8e4beb4bd293b44764d8f6aecb376c411f7ff8",
         "mediaType": "application/vnd.oci.image.config.v1+json",
         "size": 9789
       },
-      "index_sha256": "82e527393d1211c3bc72392bb1770524a09273880b49c1ea57375f7e5c88653f",
+      "index_sha256": "effc9a81d3d6aa4b50b3a7732b0a0dd79c4c8d72ea3ccc8ea6dcad4d05b7e3e0",
       "layers": [
         {
           "digest": "sha256:61320b01ae5e0798393ef25f2dc72faf43703e60ba089b07d7170acbabbf8f62",
@@ -183,9 +183,9 @@
           "annotations": {
             "buildkit/rewritten-timestamp": "1795304440"
           },
-          "digest": "sha256:0d77c9be9feb6dd646dc324a4c22a78645441fe695d0fe440a3606df29ed8cfc",
+          "digest": "sha256:6ebd45b75eea36d0cd7f03a5df2e02e7000bc74709f642cb45de453d58205932",
           "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
-          "size": 217135
+          "size": 217585
         },
         {
           "annotations": {
@@ -208,7 +208,7 @@
         "annotations": {
           "org.opencontainers.image.created": "2026-11-21T23:40:40Z"
         },
-        "digest": "sha256:d8e2b00502ec426695a5a771621f5d98846ddf8e8bee0a7fff787f01ebaf7543",
+        "digest": "sha256:b3bcc3d69ed5cfad727661a7e8f7c80fb9b2c1ed88aafe371899b6d04cb47f7c",
         "mediaType": "application/vnd.oci.image.manifest.v1+json",
         "platform": {
           "architecture": "amd64",
@@ -220,7 +220,7 @@
   ],
   "buildx_binary_sha256": "903090816da68f8bc1a2ff5346dd163a5adacfce4548d003c75df42cd47a9bf4",
   "buildx_version": "v0.39.1",
-  "context_sha256": "affb13a048bf4de4f2200150d6226939fc513f0d81c9ff0b98eab382fb39e2f5",
+  "context_sha256": "3572415242e45deceb580f0e4b5f03d2e7e279e6ef83070f686f5339cfaf81eb",
   "docker_engine": "29.1.3",
   "equal": true,
   "independent_builders": true,
@@ -246,7 +246,7 @@
     "gate/verdict.py": "fbd6120d04f46309851a34166c9053729e6fbd044a7cabb857657db305b82ca4",
     "intel/__init__.py": "9eb47042135e68af9cae47b129967ac77c1fe1a3b9115c24a454c2e79be4682c",
     "intel/alerts.py": "9286a8370b49f7936a97037abed49b861268d620b20c0b662957d89c16e894fe",
-    "intel/budget.py": "38d51a9ca8b41802188183d83691c646bd7aebaeb081740a5b7194c04d1e1f61",
+    "intel/budget.py": "4901a9e2a7d89d82935db8fd7cd9976a1d4aa9f62cdba4200413f14327154395",
     "intel/issuers.json": "ed58f7a6fc1a37b6cf3505c28d30c65c42168a266eaf66661934e0499075c762",
     "intel/labels.jsonl": "1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8",
     "intel/labels.py": "7b9717311eb606023fe62331d4013ec23d77d46e2447797f6d2c6c3d4b6efc5a",

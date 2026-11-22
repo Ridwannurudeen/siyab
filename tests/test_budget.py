@@ -75,18 +75,55 @@ class BudgetCase(unittest.TestCase):
 
 
 class BudgetWindowTest(BudgetCase):
-    def test_near_sign_in_has_independent_keyed_and_keyless_caps(self):
-        self.seed("keyed:anonymous:fastnear_rpc", budget.MINUTE_S, 120)
-        self.assertTrue(budget.reserve("fastnear_rpc", "near_auth", keyed=True, now=T0))
-        self.assertEqual(self.count("keyed:anonymous:fastnear_rpc", budget.MINUTE_S), 120)
-        self.assertEqual(self.count("keyed:near_auth:fastnear_rpc", budget.MINUTE_S), 1)
+    def test_near_sign_in_has_a_reserved_keyless_pool_even_when_other_pools_are_spent(self):
+        self.seed("pooled", budget.DAY_S, budget.POOLED_DAILY)
+        self.seed("keyless:*:fastnear_rpc", budget.DAY_S, 11808)
+        self.seed("keyless:*:fastnear_rpc", budget.HOUR_S, 976)
+        self.seed("keyless:general:fastnear_rpc", budget.DAY_S, 11808)
+        self.seed("keyless:general:fastnear_rpc", budget.HOUR_S, 976)
         for keyed in (True, False):
-            mode = "keyed" if keyed else "keyless"
             with self.subTest(keyed=keyed):
-                self.seed(f"{mode}:near_auth:fastnear_rpc", budget.MINUTE_S, 30)
+                self.assertFalse(budget.reserve("fastnear_rpc", "near_auth", keyed=keyed, now=T0))
+                self.seed("keyless:near_auth:fastnear_rpc", budget.MINUTE_S, 120)
                 self.assertRefused("fastnear_rpc", "near_auth", keyed, T0 + 1, 59)
-                self.assertEqual(self.count(f"{mode}:near_auth:fastnear_rpc", budget.MINUTE_S), 30)
-                self.assertEqual(budget.reserve("fastnear_rpc", "near_auth", keyed=keyed, now=T0 + 60), keyed)
+                self.assertEqual(self.count("keyless:near_auth:fastnear_rpc", budget.MINUTE_S), 120)
+                self.assertFalse(budget.reserve("fastnear_rpc", "near_auth", keyed=keyed, now=T0 + 60))
+                self.seed("keyless:near_auth:fastnear_rpc", budget.MINUTE_S, 0)
+        self.assertEqual(self.count("pooled", budget.DAY_S), budget.POOLED_DAILY)
+        self.assertEqual(self.count("keyed:near_auth:fastnear_rpc", budget.DAY_S), 0)
+
+    def test_sign_in_reservation_preserves_the_total_keyless_envelope(self):
+        auth = budget.KEYLESS_CALLER_LIMITS["near_auth"]["fastnear_rpc"]
+        general = budget.KEYLESS_GENERAL_LIMITS["fastnear_rpc"]
+        self.assertEqual(auth, (8192, 1024, 120))
+        self.assertEqual((auth[0] + general[0], auth[1] + general[1]), (20000, 2000))
+        for span, maximum in zip(budget.SPANS[:2], auth):
+            self.seed("keyless:near_auth:fastnear_rpc", span, maximum - 1)
+            self.assertFalse(budget.reserve("fastnear_rpc", "near_auth", keyed=True, now=T0))
+            self.assertRefused("fastnear_rpc", "near_auth", True, T0, 48600 if span == DAY else 1800)
+            self.seed("keyless:near_auth:fastnear_rpc", span, 0)
+        self.seed("keyless:general:fastnear_rpc", budget.DAY_S, general[0])
+        self.assertRefused("fastnear_rpc", "anonymous", False, T0, 48600)
+        self.assertFalse(budget.reserve("fastnear_rpc", "near_auth", keyed=False, now=T0))
+
+    def test_sign_in_pool_upgrade_preserves_prior_usage_and_the_hard_total_ceiling(self):
+        self.seed("keyless:*:fastnear_rpc", budget.DAY_S, 19999)
+        self.seed("keyless:near_auth:fastnear_rpc", budget.DAY_S, 499)
+        self.assertFalse(budget.reserve("fastnear_rpc", "near_auth", keyed=False, now=T0))
+        self.assertEqual(self.count("keyless:general:fastnear_rpc", budget.DAY_S), 19500)
+        self.assertRefused("fastnear_rpc", "near_auth", False, T0, 48600)
+        self.assertRefused("fastnear_rpc", "anonymous", False, T0, 48600)
+        self.assertFalse(budget.reserve("fastnear_rpc", "near_auth", keyed=False, now=T0 + 48600))
+
+    def test_sign_in_pool_general_share_survives_restart_without_recounting_auth(self):
+        self.seed("keyless:*:fastnear_rpc", budget.DAY_S, 11808 + 100)
+        self.seed("keyless:near_auth:fastnear_rpc", budget.DAY_S, 100)
+        self.assertFalse(budget.reserve("fastnear_rpc", "near_auth", keyed=False, now=T0))
+        self.assertEqual(self.count("keyless:general:fastnear_rpc", budget.DAY_S), 11808)
+        with budget.use_database(self.path):
+            self.assertFalse(budget.reserve("fastnear_rpc", "near_auth", keyed=False, now=T0))
+        self.assertEqual(self.count("keyless:general:fastnear_rpc", budget.DAY_S), 11808)
+        self.assertRefused("fastnear_rpc", "anonymous", False, T0, 48600)
 
     def test_the_anonymous_minute_ceiling_refuses_at_its_limit_counts_nothing_and_reopens_next_minute(self):
         for _ in range(120):
@@ -276,6 +313,17 @@ class MeteredClientTest(BudgetCase):
         self.assertEqual(self.count("pooled", budget.DAY_S), 3)
         self.client("https://rpc.example", headers=None).call("status", [])
         self.assertEqual(self.count("keyless:operator:other", budget.DAY_S), 1)
+
+    def test_sign_in_never_sends_a_provider_key_or_spends_credits(self):
+        self.seed("pooled", budget.DAY_S, budget.POOLED_DAILY)
+        self.seed("keyless:*:fastnear_rpc", budget.DAY_S, 11808)
+        self.seed("keyless:general:fastnear_rpc", budget.DAY_S, 11808)
+        with rpc.caller_class("near_auth"):
+            self.client().call("status", [])
+        self.assertEqual(len(self.sent), 1)
+        self.assertIsNone(self.sent[0].get_header("Authorization"))
+        self.assertEqual(self.count("keyless:near_auth:fastnear_rpc", budget.DAY_S), 1)
+        self.assertEqual(self.count("pooled", budget.DAY_S), budget.POOLED_DAILY)
 
     def test_replay_and_record_never_touch_the_budget_database(self):
         replayed = rpc.Client(rpc.MAINNET_RPC_URL, "replay", headers=KEY)

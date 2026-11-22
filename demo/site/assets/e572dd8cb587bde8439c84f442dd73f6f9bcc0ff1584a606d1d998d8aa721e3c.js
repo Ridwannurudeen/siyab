@@ -159,8 +159,7 @@
       if (challenge.recipient !== location.origin || challenge.callbackUrl !== location.origin + "/workspace.html"
           || challenge.account_id !== account || challenge.state !== challenge.challenge_id
           || typeof challenge.challenge_id !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(challenge.challenge_id)
-          || !Number.isSafeInteger(challenge.expires_at) || challenge.expires_at <= Date.now()
-          || challenge.expires_at > Date.now() + 300000 || challenge.message !== expectedMessage) {
+          || !Number.isSafeInteger(challenge.expires_at) || challenge.expires_at < 300000 || challenge.message !== expectedMessage) {
         throw new Error("The sign-in challenge does not match this origin or has expired. Start again.");
       }
       const bytes = Uint8Array.from(atob(challenge.nonce), character => character.charCodeAt(0));

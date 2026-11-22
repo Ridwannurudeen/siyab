@@ -32,8 +32,8 @@ function environment(options = {}) {
   for (const id of ['near-workspace', ...['sign-in', 'controls', 'identity', 'login', 'account', 'unlock', 'save', 'restore', 'lock', 'logout', 'status', 'reset-form', 'reset-confirmation', 'reset'].map(id => 'near-' + id)]) ids[id] = new Element();
   ids['near-account'].value = account;
   const context = {origin, accountId: account, publicKey};
-  const session = {authenticated: true, account_id: account, public_key: publicKey, csrf_token: 's'.repeat(43), expires_ms: Date.now() + 3600000};
-  const challenge = {challenge_id: 'c'.repeat(43), state: 'c'.repeat(43), account_id: account, nonce: Buffer.from(Array.from({length: 32}, (_, index) => index)).toString('base64'), recipient: origin, callbackUrl: origin + '/workspace.html', expires_at: Date.now() + 60000, ...options.challenge};
+  const session = {authenticated: true, account_id: account, public_key: publicKey, csrf_token: 's'.repeat(43), expires_ms: Date.now() + 3600000, ...options.session};
+  const challenge = {challenge_id: 'c'.repeat(43), state: 'c'.repeat(43), account_id: account, nonce: Buffer.from(Array.from({length: 32}, (_, index) => index)).toString('base64'), recipient: origin, callbackUrl: origin + '/workspace.html', expires_at: Date.now() + 300000, ...options.challenge};
   if (!Object.hasOwn(challenge, 'message')) challenge.message = authMessage(challenge);
   const document = {getElementById: id => ids[id] || null, addEventListener(name, callback) { events['document:' + name] = callback; }};
   const window = {addEventListener(name, callback) { events[name] = callback; }, SiyabBrowserWorkspace: {
@@ -49,6 +49,7 @@ function environment(options = {}) {
     return typeof target[name] === 'function' ? target[name].bind(target) : target[name];
   }});
   const runtime = {window, document, location: {origin}, URL, Uint8Array, ArrayBuffer, DataView, TextEncoder, TextDecoder, AbortController,
+    Date: class extends Date { static now() { return Date.now() + (options.clockSkew || 0); } },
     crypto: {subtle, getRandomValues: crypto.webcrypto.getRandomValues.bind(crypto.webcrypto)},
     atob: value => Buffer.from(value, 'base64').toString('binary'), btoa: value => Buffer.from(value, 'binary').toString('base64'),
     setTimeout(callback, delay) { const id = ++timer; timers.set(id, {callback, delay}); return id; }, clearTimeout(id) { timers.delete(id); },
@@ -70,6 +71,9 @@ function environment(options = {}) {
         if (path === 'session') record.reply(options.authenticated ? session : {authenticated: false});
         else if (path === 'challenge') record.reply(challenge, 201);
         else if (path === 'verify') {
+          if (challenge.expires_at <= Date.now()) {
+            record.reply({message: 'This NEAR sign in challenge is expired or belongs to another browser.'}, 401); return;
+          }
           const request = {message: challenge.message, recipient: challenge.recipient, nonce: new Uint8Array(Buffer.from(challenge.nonce, 'base64')), callbackUrl: challenge.callbackUrl};
           window.SiyabVault.nep413Digest(request).then(digest => {
             const accepted = body.accountId === account && body.publicKey === publicKey && crypto.verify(null, digest, crypto.createPublicKey(signingKey), Buffer.from(body.signature, 'base64'));
@@ -159,6 +163,40 @@ async function main() {
     assert.ok(env.walletCalls[0].request.nonce instanceof Uint8Array); assert.equal(env.walletCalls[0].request.nonce.length, 32);
     assert.equal(env.snapshotCalls(), 0); assert.equal(env.merges.length, 0); assert.equal(env.writes.length, 0);
     assert.equal(env.node('save').disabled, true); privateBoundary(env);
+  } else if (scenario === 'clock-skew') {
+    const clockSkew = Number(process.argv[3]);
+    assert.ok([-2000, 2000, -600000, 600000].includes(clockSkew));
+    for (const okx of [false, true]) {
+      const env = environment({okx, clockSkew, vault: await encryptedCopy()}); await unlocked(env);
+      assert.equal(env.requests.filter(request => request.path === 'verify').length, 1);
+      assert.equal(env.walletCalls[0].request.message, authMessage(env.challenge));
+      assert.equal(env.walletCalls[0].request.recipient, origin);
+      assert.equal(env.walletCalls[0].request.callbackUrl, origin + '/workspace.html');
+      assert.equal(env.walletCalls[0].request.state, env.challenge.challenge_id);
+      assert.deepEqual(Buffer.from(env.walletCalls[0].request.nonce), Buffer.from(env.challenge.nonce, 'base64'));
+      assert.equal(env.walletCalls.length, 3);
+      await env.click('restore'); assert.deepEqual(env.merges, [fixture()]);
+      await env.click('save'); assert.equal(env.stored().vault_id, 'workspace:2'); privateBoundary(env);
+    }
+  } else if (scenario === 'server-challenge-expiry') {
+    for (const clockSkew of [-2000, 2000, -600000, 600000]) for (const okx of [false, true]) {
+      const env = environment({okx, clockSkew, challenge: {expires_at: Date.now() - 1}});
+      await env.start(); env.submit(); await env.idle();
+      assert.equal(env.walletCalls.length, 1); assert.equal(env.requests.filter(request => request.path === 'verify').length, 1);
+      assert.equal(env.node('sign-in').hidden, false); assert.equal(env.node('unlock').disabled, true);
+      assert.equal(env.node('save').disabled, true); assert.match(env.node('status').textContent, /challenge is expired/);
+      assert.equal(env.snapshotCalls(), 0); assert.equal(env.merges.length, 0); assert.equal(env.writes.length, 0); privateBoundary(env);
+    }
+  } else if (scenario === 'server-session-expiry') {
+    for (const clockSkew of [-2000, 2000, -600000, 600000]) for (const okx of [false, true]) {
+      const env = environment({okx, clockSkew, authenticated: true, session: {expires_ms: Date.now() + 1000}, saveStatus: 401});
+      await env.start(); assert.equal(env.node('sign-in').hidden, true); await env.click('unlock');
+      assert.equal(env.node('save').disabled, false, env.node('status').textContent);
+      await env.click('save'); assert.equal(env.node('sign-in').hidden, false);
+      assert.equal(env.node('save').disabled, true); assert.equal(env.node('unlock').disabled, true);
+      assert.match(env.node('status').textContent, /Refresh the wallet session/);
+      assert.equal(env.walletCalls.length, 2); assert.equal(env.stored(), null); assert.equal(env.writes.length, 0); privateBoundary(env);
+    }
   } else if (scenario === 'okx-unlock') {
     const env = environment({okx: true, vault: await encryptedCopy()}); await unlocked(env);
     assert.equal(env.walletCalls.length, 3); assert.equal(env.connectCalls.length, 0);
@@ -261,7 +299,9 @@ async function main() {
     assert.equal(env.requests.length, 4); assert.equal(env.stored(), null); assert.equal(env.writes.length, 0);
     assert.equal(env.merges.length, 0); assert.equal(env.node('save').disabled, false); privateBoundary(env);
   } else if (scenario === 'challenge-validation') {
-    for (const challenge of [{recipient: 'https://other.example'}, {callbackUrl: origin + '/changed'}, {account_id: 'bob.near'}, {state: 'wrong'}, {expires_at: Date.now() - 1}, {nonce: Buffer.alloc(31).toString('base64')}, {nonce: Buffer.alloc(32).toString('base64') + '\n'}]) {
+    for (const challenge of [{recipient: 'https://other.example'}, {callbackUrl: origin + '/changed'}, {account_id: 'bob.near'}, {state: 'wrong'},
+      ...[undefined, '1730000000000', NaN, Infinity, Number.MAX_SAFE_INTEGER + 1, 0, 299999].map(expires_at => ({expires_at})),
+      {nonce: Buffer.alloc(31).toString('base64')}, {nonce: Buffer.alloc(32).toString('base64') + '\n'}]) {
       const env = environment({challenge}); await env.start(); env.submit(); await env.idle();
       assert.equal(env.walletCalls.length, 0); assert.equal(env.requests.filter(request => request.path === 'verify').length, 0);
       assert.equal(env.node('save').disabled, true); assert.equal(env.snapshotCalls(), 0); privateBoundary(env);
@@ -285,7 +325,6 @@ async function main() {
       challenge => { challenge.message += '\n'; },
       challenge => { challenge.message = null; },
       challenge => { delete challenge.message; },
-      challenge => { challenge.expires_at = Date.now() + 360000; challenge.message = authMessage(challenge); },
       challenge => { challenge.callbackUrl += '?unexpected=1'; },
       ...['c'.repeat(42), 'c'.repeat(44), 'c'.repeat(42) + '+', 'c'.repeat(42) + ' '].map(identifier => challenge => {
         challenge.challenge_id = identifier; challenge.state = identifier; challenge.message = authMessage(challenge);
