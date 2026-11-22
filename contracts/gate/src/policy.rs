@@ -27,7 +27,7 @@ fn validate_caps(caps: &[AssetCapInput]) {
 
 #[near]
 impl Gate {
-    fn assert_owner(&self) {
+    pub(crate) fn assert_owner(&self) {
         near_sdk::require!(
             env::predecessor_account_id() == self.owner_id,
             "REFUSED:not_owner"
@@ -167,6 +167,7 @@ impl Gate {
         previous_valid_until_ms: u64,
     ) {
         self.assert_owner();
+        near_sdk::require!(crate::attested::mode().is_none(), "REFUSED:attested_mode");
         self.verifier_current = Self::key_bytes(&current);
         self.verifier_previous =
             previous.map(|key| (Self::key_bytes(&key), previous_valid_until_ms));

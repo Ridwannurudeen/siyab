@@ -70,8 +70,8 @@ class CitationCheckerTest(unittest.TestCase):
 
     def test_threat_model_contract_symbols_have_checked_ranges(self):
         citations = (
-            ("on_transfer", "contracts/gate/src/lib.rs", "321-358", "293-309"),
-            ("withdraw", "contracts/gate/src/policy.rs", "231-244", "199-214"),
+            ("on_transfer", "contracts/gate/src/lib.rs", "348-385", "293-309"),
+            ("withdraw", "contracts/gate/src/policy.rs", "232-245", "199-214"),
             ("upheld_disputes_never_cap_further_disputes", "contracts/reports/src/lib.rs", "2339-2362", "2370-2405"),
         )
         document = (ROOT / "docs" / "THREAT-MODEL.md").read_text(encoding="utf-8")
