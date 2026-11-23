@@ -25,7 +25,7 @@ provider budget (intel/budget.py:reserve)
 for the provider class of its host and the caller class the entry point set with caller_class
 (operator when none is set). A spent budget raises BudgetExhausted, a RateLimited, without a request.
 The FastNEAR key (an Authorization header to a FastNEAR host) goes out only when reserve allows it:
-when no budget database is configured, or a key cooldown runs, the request goes out without it. A 403
+when no budget database is configured, or a key cooldown runs, the request goes out without it. A 402, 403
 or 429 answering a keyed request starts that cooldown (intel/budget.py:key_failure). The recording caller
 class stops when the budget refuses the key, including during cooldown, or HTTP 401, 402, 403 or 429 rejects it.
 Replay and other record callers never touch the budget database.

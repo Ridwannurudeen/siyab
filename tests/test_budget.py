@@ -75,6 +75,56 @@ class BudgetCase(unittest.TestCase):
 
 
 class BudgetWindowTest(BudgetCase):
+    def test_near_sign_in_has_a_reserved_keyless_pool_even_when_other_pools_are_spent(self):
+        self.seed("pooled", budget.DAY_S, budget.POOLED_DAILY)
+        self.seed("keyless:*:fastnear_rpc", budget.DAY_S, 11808)
+        self.seed("keyless:*:fastnear_rpc", budget.HOUR_S, 976)
+        self.seed("keyless:general:fastnear_rpc", budget.DAY_S, 11808)
+        self.seed("keyless:general:fastnear_rpc", budget.HOUR_S, 976)
+        for keyed in (True, False):
+            with self.subTest(keyed=keyed):
+                self.assertFalse(budget.reserve("fastnear_rpc", "near_auth", keyed=keyed, now=T0))
+                self.seed("keyless:near_auth:fastnear_rpc", budget.MINUTE_S, 120)
+                self.assertRefused("fastnear_rpc", "near_auth", keyed, T0 + 1, 59)
+                self.assertEqual(self.count("keyless:near_auth:fastnear_rpc", budget.MINUTE_S), 120)
+                self.assertFalse(budget.reserve("fastnear_rpc", "near_auth", keyed=keyed, now=T0 + 60))
+                self.seed("keyless:near_auth:fastnear_rpc", budget.MINUTE_S, 0)
+        self.assertEqual(self.count("pooled", budget.DAY_S), budget.POOLED_DAILY)
+        self.assertEqual(self.count("keyed:near_auth:fastnear_rpc", budget.DAY_S), 0)
+
+    def test_sign_in_reservation_preserves_the_total_keyless_envelope(self):
+        auth = budget.KEYLESS_CALLER_LIMITS["near_auth"]["fastnear_rpc"]
+        general = budget.KEYLESS_GENERAL_LIMITS["fastnear_rpc"]
+        self.assertEqual(auth, (8192, 1024, 120))
+        self.assertEqual((auth[0] + general[0], auth[1] + general[1]), (20000, 2000))
+        for span, maximum in zip(budget.SPANS[:2], auth):
+            self.seed("keyless:near_auth:fastnear_rpc", span, maximum - 1)
+            self.assertFalse(budget.reserve("fastnear_rpc", "near_auth", keyed=True, now=T0))
+            self.assertRefused("fastnear_rpc", "near_auth", True, T0, 48600 if span == DAY else 1800)
+            self.seed("keyless:near_auth:fastnear_rpc", span, 0)
+        self.seed("keyless:general:fastnear_rpc", budget.DAY_S, general[0])
+        self.assertRefused("fastnear_rpc", "anonymous", False, T0, 48600)
+        self.assertFalse(budget.reserve("fastnear_rpc", "near_auth", keyed=False, now=T0))
+
+    def test_sign_in_pool_upgrade_preserves_prior_usage_and_the_hard_total_ceiling(self):
+        self.seed("keyless:*:fastnear_rpc", budget.DAY_S, 19999)
+        self.seed("keyless:near_auth:fastnear_rpc", budget.DAY_S, 499)
+        self.assertFalse(budget.reserve("fastnear_rpc", "near_auth", keyed=False, now=T0))
+        self.assertEqual(self.count("keyless:general:fastnear_rpc", budget.DAY_S), 19500)
+        self.assertRefused("fastnear_rpc", "near_auth", False, T0, 48600)
+        self.assertRefused("fastnear_rpc", "anonymous", False, T0, 48600)
+        self.assertFalse(budget.reserve("fastnear_rpc", "near_auth", keyed=False, now=T0 + 48600))
+
+    def test_sign_in_pool_general_share_survives_restart_without_recounting_auth(self):
+        self.seed("keyless:*:fastnear_rpc", budget.DAY_S, 11808 + 100)
+        self.seed("keyless:near_auth:fastnear_rpc", budget.DAY_S, 100)
+        self.assertFalse(budget.reserve("fastnear_rpc", "near_auth", keyed=False, now=T0))
+        self.assertEqual(self.count("keyless:general:fastnear_rpc", budget.DAY_S), 11808)
+        with budget.use_database(self.path):
+            self.assertFalse(budget.reserve("fastnear_rpc", "near_auth", keyed=False, now=T0))
+        self.assertEqual(self.count("keyless:general:fastnear_rpc", budget.DAY_S), 11808)
+        self.assertRefused("fastnear_rpc", "anonymous", False, T0, 48600)
+
     def test_the_anonymous_minute_ceiling_refuses_at_its_limit_counts_nothing_and_reopens_next_minute(self):
         for _ in range(120):
             self.assertTrue(budget.reserve("fastnear_rpc", "anonymous", keyed=True, now=T0))
@@ -207,6 +257,20 @@ class BudgetWindowTest(BudgetCase):
         self.assertEqual(self.alerts(), ["key_cooldown", "key_cooldown"])
         self.assertIn("HTTP 429 from a keyed FastNEAR call", self.stderr.getvalue())
 
+    def test_a_402_starts_a_shared_cooldown_that_strips_the_key_and_expires(self):
+        self.assertTrue(budget.reserve("fastnear_rpc", "anonymous", keyed=True, now=T0))
+        budget.key_failure(402, T0)
+        self.assertFalse(budget.reserve("fastnear_archival", "watch", keyed=True,
+                                        now=T0 + budget.KEY_COOLDOWN_S - 1))
+        self.assertEqual(self.count("pooled", budget.DAY_S), 1)
+        self.assertEqual(self.count("keyless:watch:fastnear_archival", budget.DAY_S), 1)
+        self.assertTrue(budget.reserve("fastnear_archival", "watch", keyed=True, now=T0 + budget.KEY_COOLDOWN_S))
+        self.assertEqual(self.alerts(), ["key_cooldown"])
+        with closing(sqlite3.connect(self.path)) as connection:
+            self.assertEqual(connection.execute("SELECT until_ms,status FROM key_cooldown").fetchone(),
+                             (int((T0 + budget.KEY_COOLDOWN_S) * 1000), 402))
+        self.assertIn("HTTP 402 from a keyed FastNEAR call", self.stderr.getvalue())
+
     def test_without_a_database_nothing_is_counted_and_the_key_is_never_sent(self):
         with mock.patch.dict(os.environ):
             os.environ.pop(budget.DATABASE_ENV)
@@ -264,6 +328,17 @@ class MeteredClientTest(BudgetCase):
         self.client("https://rpc.example", headers=None).call("status", [])
         self.assertEqual(self.count("keyless:operator:other", budget.DAY_S), 1)
 
+    def test_sign_in_never_sends_a_provider_key_or_spends_credits(self):
+        self.seed("pooled", budget.DAY_S, budget.POOLED_DAILY)
+        self.seed("keyless:*:fastnear_rpc", budget.DAY_S, 11808)
+        self.seed("keyless:general:fastnear_rpc", budget.DAY_S, 11808)
+        with rpc.caller_class("near_auth"):
+            self.client().call("status", [])
+        self.assertEqual(len(self.sent), 1)
+        self.assertIsNone(self.sent[0].get_header("Authorization"))
+        self.assertEqual(self.count("keyless:near_auth:fastnear_rpc", budget.DAY_S), 1)
+        self.assertEqual(self.count("pooled", budget.DAY_S), budget.POOLED_DAILY)
+
     def test_replay_and_record_never_touch_the_budget_database(self):
         replayed = rpc.Client(rpc.MAINNET_RPC_URL, "replay", headers=KEY)
         with rpc.caller_class("anonymous"):
@@ -305,6 +380,30 @@ class MeteredClientTest(BudgetCase):
         with self.assertRaises(rpc.HttpError):
             self.client("https://rpc.example", headers=None).call("status", [])
         self.assertEqual(self.alerts(), ["key_cooldown", "key_cooldown"])
+
+    def test_a_keyed_402_starts_the_cooldown_and_the_next_rpc_request_is_keyless(self):
+        url = "https://rpc.mainnet.fastnear.com"
+        self.answers.append(urllib.error.HTTPError(url, 402, "Payment Required", {}, None))
+        with self.assertRaises(rpc.HttpError) as caught:
+            self.client(url).call("status", [])
+        self.assertEqual(caught.exception.status, 402)
+        self.assertEqual(self.sent[-1].get_header("Authorization"), "Bearer unit-only-token")
+        self.now[0] += 1
+        self.client(rpc.ARCHIVAL_RPC_URL, headers=dict(KEY, Accept="application/json")).call("status", [])
+        self.assertIsNone(self.sent[-1].get_header("Authorization"))
+        self.assertEqual(self.sent[-1].get_header("Accept"), "application/json")
+        self.assertEqual(self.count("pooled", budget.DAY_S), 1)
+        self.assertEqual(self.count("keyless:operator:fastnear_archival", budget.DAY_S), 1)
+        self.assertEqual(self.alerts(), ["key_cooldown"])
+        self.now[0] = T0 + budget.KEY_COOLDOWN_S
+        self.client(url).call("status", [])
+        self.assertEqual(self.sent[-1].get_header("Authorization"), "Bearer unit-only-token")
+        self.answers.append(urllib.error.HTTPError("https://rpc.example", 402, "Payment Required", {}, None))
+        with self.assertRaises(rpc.HttpError):
+            self.client("https://rpc.example").call("status", [])
+        self.client(url).call("status", [])
+        self.assertEqual(self.sent[-1].get_header("Authorization"), "Bearer unit-only-token")
+        self.assertEqual(self.alerts(), ["key_cooldown"])
 
     def test_a_rejected_key_logs_one_line_with_the_status_and_host_and_never_the_key(self):
         for status in (401, 402, 403):

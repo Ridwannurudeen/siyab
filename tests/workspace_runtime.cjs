@@ -162,6 +162,31 @@ async function main() {
     input.files = [{size: 10, text: () => new Promise(resolve => { finishAfterReset = resolve; })}];
     const resetting = input.emit("change"); env.nodes["reset-workspace"].emit("click");
     finishAfterReset(JSON.stringify(newer)); await resetting; assert.equal(env.api.state().cases.length, 0, "Reset cancels a pending import");
+  } else if (scenario === "encrypted-merge") {
+    const existing = {...blank(), cases: [{...fixture(), notes: "Existing browser notes"}], watchlist: ["alice.near"]};
+    const env = environment({state: existing});
+    const bridge = env.window.SiyabBrowserWorkspace;
+    const snapshot = bridge.snapshot(); snapshot.cases[0].notes = "Changed copy";
+    assert.equal(env.api.state().cases[0].notes, "Existing browser notes", "Snapshots cannot mutate browser state");
+    const incoming = {...blank(), alerts: true, cases: [{...fixture(), notes: "Incoming notes"}, {...fixture(), id: "case-new", title: "<script>New</script>"}], watchlist: ["alice.near", "bob.near"]};
+    bridge.merge(incoming);
+    assert.equal(env.api.state().cases.length, 2);
+    assert.equal(env.api.state().cases[0].notes, "Existing browser notes");
+    assert.equal(env.api.state().alerts, false, "Decrypted imports cannot enable monitoring");
+    assert.deepEqual([...env.api.state().watchlist], ["alice.near", "bob.near"]);
+    assert.equal(env.nodes["saved-cases"].querySelectorAll("script").length, 0);
+    assert.equal(JSON.parse(env.raw()).cases.length, 2);
+    const before = env.raw();
+    assert.throws(() => bridge.merge({...incoming, cases: [{...fixture(), url: "https://evil.example/"}]}), /valid/);
+    assert.equal(env.raw(), before);
+    const blocked = environment({raw: "{broken"});
+    assert.throws(() => blocked.window.SiyabBrowserWorkspace.snapshot(), /unreadable/);
+    assert.throws(() => blocked.window.SiyabBrowserWorkspace.merge(incoming), /unavailable/);
+    assert.equal(blocked.raw(), "{broken");
+    const quota = environment({state: existing, failWrite: true});
+    assert.throws(() => quota.window.SiyabBrowserWorkspace.merge(incoming), /could not save/);
+    assert.equal(quota.api.state().cases.length, 1);
+    assert.equal(JSON.parse(quota.raw()).cases.length, 1);
   } else throw new Error(`Unknown scenario ${scenario}`);
   console.log(`Workspace ${scenario}: passed`);
 }

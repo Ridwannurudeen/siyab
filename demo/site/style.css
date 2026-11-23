@@ -165,7 +165,7 @@ blockquote.data .data-id,q.data-identifier,#issuer-status td:nth-child(-n+2) q.d
 .cloud-workspace{margin:0 0 16px;border:1px solid rgb(var(--hairline));border-radius:var(--r-md);background:rgb(var(--ground-alt));min-width:0}
 .cloud-workspace>summary{padding:8px 12px;min-height:40px;font:600 var(--fs-panel-title) var(--font-display);cursor:pointer;color:rgb(var(--ink));letter-spacing:0}
 .cloud-workspace[open]>summary{border-bottom:1px solid rgb(var(--hairline))}
-#cloud-shell{padding:12px;min-width:0}
+#cloud-shell,#near-shell{padding:12px;min-width:0}
 #browser-workspace>h2{margin:0 0 8px}
 #browser-workspace>p{color:rgb(var(--secondary));font:400 var(--fs-body) var(--font-ui);margin:0 0 24px}
 .cloud-workspace p{max-width:35rem;line-height:22px}

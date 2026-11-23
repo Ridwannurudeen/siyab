@@ -17,8 +17,12 @@ day, hour and minute: every call by mode (keyed or keyless), caller class and pr
 of KEYED_LIMITS; the keyless ceilings of KEYLESS_LIMITS; the pooled count of every keyed call in a UTC day,
 refused at POOLED_DAILY for every caller class; and the cumulative count of keyed calls since the database
 began. Reaching ALERT_PERCENTS of POOLED_DAILY, or CUMULATIVE_ALERT, records a row in alerts and writes one
-stderr line. A 403 or 429 answering a keyed call (key_failure) starts KEY_COOLDOWN_S, shared by every process,
+stderr line. A 402, 403 or 429 answering a keyed call (key_failure) starts KEY_COOLDOWN_S, shared by every process,
 during which reserve sends no key.
+
+Sign in always goes keyless. Its reserved pool and the general keyless share fit within the unchanged total
+FastNEAR RPC envelope. Historical total and sign in counters seed the general share once per window, so an
+upgrade preserves spent calls. Prior usage can delay the reserved share until the existing window turns.
 """
 
 import math
@@ -41,11 +45,11 @@ POOLED_DAILY = 13000
 CUMULATIVE_ALERT = 300000
 ALERT_PERCENTS = (50, 80, 100)
 KEY_COOLDOWN_S = 15 * 60
-KEY_FAILURE_STATUSES = (403, 429)
+KEY_FAILURE_STATUSES = (402, 403, 429)
 # Retry-After for a call refused because the database could not be read.
 REFUSAL_RETRY_S = 60
 # backfill is the public backfill route: its calls count toward the anonymous budget as well as its own.
-CALLER_CLASSES = ("anonymous", "backfill", "team", "watch", "investigation", "feed", "operator", "recording")
+CALLER_CLASSES = ("anonymous", "backfill", "near_auth", "team", "watch", "investigation", "feed", "operator", "recording")
 PARENT_CLASSES = {"backfill": "anonymous"}
 # Keyed calls a caller class may make: provider class, or "*" for every provider class together, to
 # (per UTC day, per hour, per minute), None leaving that window open. A provider class a table leaves out gets
@@ -63,6 +67,8 @@ KEYED_LIMITS = {
 }
 # Keyless FastNEAR calls spend no credit; these politeness ceilings are shared by every caller class.
 KEYLESS_LIMITS = {"fastnear_rpc": (20000, 2000, None), "fastnear_archival": (3000, 300, None)}
+KEYLESS_CALLER_LIMITS = {"near_auth": {"fastnear_rpc": (8192, 1024, 120)}}
+KEYLESS_GENERAL_LIMITS = {"fastnear_rpc": (11808, 976, None)}
 PROVIDER_HOSTS = {
     "free.rpc.fastnear.com": "fastnear_rpc",
     "rpc.mainnet.fastnear.com": "fastnear_rpc",
@@ -146,6 +152,10 @@ def _counters(provider, caller, keyed):
                   if owner in KEYED_LIMITS]
     else:
         tables = [("keyless:*", KEYLESS_LIMITS)] if provider in KEYLESS_LIMITS else []
+        if caller in KEYLESS_CALLER_LIMITS:
+            tables.append((f"keyless:{caller}", KEYLESS_CALLER_LIMITS[caller]))
+        elif provider in KEYLESS_GENERAL_LIMITS:
+            tables.append(("keyless:general", KEYLESS_GENERAL_LIMITS))
     for prefix, table in tables:
         share = "*" if "*" in table else provider
         for span, limit in zip(SPANS, table.get(share, (0, 0, 0))):
@@ -166,12 +176,14 @@ def _alert(connection, kind, window, count, now, message):
 def reserve(provider, caller, *, keyed, now):
     """Count one call to provider class provider by caller class caller before it is sent, at wall time now.
 
-    Returns True when the call may carry the FastNEAR key: keyed is true, a database is configured and no key
-    cooldown runs. Raises Refused, counting nothing, when a window the call falls in is spent or the database
+    Returns True when the call may carry the FastNEAR key: keyed is true, the caller is not near_auth, a
+    database is configured and no key cooldown runs. Raises Refused, counting nothing, when a window is spent or the database
     cannot be opened or read. A keyed recording call also refuses during cooldown instead of going keyless."""
     path = database()
     if path is None:
         return False
+    if caller == "near_auth":
+        keyed = False
     lines = []
     try:
         with _transaction(path) as connection:
@@ -182,6 +194,19 @@ def reserve(provider, caller, *, keyed, now):
                     raise Refused("The provider budget refused the recording key during cooldown; retry later.",
                                   math.ceil(cooldown[0] / 1000 - now))
             counters = _counters(provider, caller, keyed)
+            if not keyed and provider in KEYLESS_GENERAL_LIMITS:
+                for span, limit in zip(SPANS, KEYLESS_GENERAL_LIMITS[provider]):
+                    if limit is None:
+                        continue
+                    window = int(now // span)
+                    total = connection.execute("SELECT count FROM counters WHERE counter=? AND window=?",
+                                               (f"keyless:*:{provider}", window)).fetchone()
+                    auth = connection.execute("SELECT count FROM counters WHERE counter=? AND window=?",
+                                              (f"keyless:near_auth:{provider}", window)).fetchone()
+                    connection.execute("INSERT OR IGNORE INTO counters VALUES(?,?,?,?)",
+                                       (f"keyless:general:{provider}", window,
+                                        max(0, (total[0] if total else 0) - (auth[0] if auth else 0)),
+                                        (window + 1) * span + RETENTION_S[span]))
             spent, retry_after = [], 1
             for (counter, span), limit in counters.items():
                 if limit is None:
@@ -229,7 +254,7 @@ def reserve(provider, caller, *, keyed, now):
 
 
 def key_failure(status, now):
-    """After HTTP status answered a keyed FastNEAR call at wall time now: a 403 or 429 starts the shared key
+    """After HTTP status answered a keyed FastNEAR call at wall time now: a 402, 403 or 429 starts the shared key
     cooldown and records an alert."""
     path = database()
     if status not in KEY_FAILURE_STATUSES or path is None:

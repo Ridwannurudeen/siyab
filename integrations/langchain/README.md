@@ -2,7 +2,7 @@
 
 A reference tool for a LangChain agent that checks a NEAR payment before it sends one. The tool calls the hosted check API, reads the answer and its evidence, and returns DENY, ASK or ALLOW text for the agent. `guard_payment` is the enforcement point: it refuses on deny and needs a confirmation for every decision other than an explicit allow bound to the payment amount. No detection logic is added here and no key is read.
 
-Reference code in our repository. Not reviewed, adopted or acknowledged by LangChain. No contact made as of 21 Nov. No LangChain package is imported unless you call `as_tool()`.
+Reference code in our repository. Not reviewed, adopted or acknowledged by LangChain. No contact made as of 21 Nov. No LangChain package is imported unless you call `as_tool()`. Hosted routes judge with rules version 1 (`intel/live.py:410-424,558-565`; `gate/account_check.py:148-149`; `gate/verdict.py:62-64`); the holdout in `docs/HOLDOUT.md:21` scores rules version 3, which no HTTP parameter selects (`intel/live.py:397-420`).
 
 ## The call
 

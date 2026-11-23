@@ -1,0 +1,500 @@
+{
+  "version": 1,
+  "sender": "siyabgate.near",
+  "amount": "100000000000000000000000",
+  "destination": "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near",
+  "recipient": "0x92E347b0D8003DB75AAA7483c800b2819796b8Cc",
+  "min_amount_out": "250000",
+  "verdict": "ALLOW",
+  "phase": "settled",
+  "deposit_hash": "CjAhksCvJW3NWoYkw8DbzaFpo6kzE9LnjJau7AWuFJn3",
+  "reason": "The original deposit and finalized destination receipt match the judged quote.",
+  "judgement": {
+    "verdict": "ALLOW",
+    "checks": [
+      {
+        "id": "quote_dry",
+        "status": "pass",
+        "detail": "dry quote answered: recipient 0x92E347b0D8003DB75AAA7483c800b2819796b8Cc, chain base, amountOut 296319; the echo adds no 1Click service fee",
+        "source": {
+          "provider": "1click.chaindefuser.com",
+          "request_sha256": "dc18e33070bd9a0af14e501dbedb6211d3f1f9352baede3d14c4b64ea19f66e3",
+          "fetched_at": "2026-11-22T16:26:00Z"
+        }
+      },
+      {
+        "id": "quote_age",
+        "status": "pass",
+        "detail": "quote age is 2960 ms, within 305000 ms, allowing 5000 ms clock skew",
+        "source": {
+          "provider": "1click.chaindefuser.com",
+          "request_sha256": "dc18e33070bd9a0af14e501dbedb6211d3f1f9352baede3d14c4b64ea19f66e3",
+          "fetched_at": "2026-11-22T16:26:00Z"
+        }
+      },
+      {
+        "id": "quote_deadline",
+        "status": "pass",
+        "detail": "the judged deadline \"2026-11-22T16:35:59Z\" is after 2026-11-22T16:26:02Z",
+        "source": {
+          "provider": "local rules",
+          "request_sha256": null,
+          "fetched_at": null
+        }
+      },
+      {
+        "id": "destination_supported",
+        "status": "pass",
+        "detail": "base, chain id 8453",
+        "source": {
+          "provider": "local rules",
+          "request_sha256": null,
+          "fetched_at": null
+        }
+      },
+      {
+        "id": "ofac_sanctioned",
+        "status": "pass",
+        "detail": "no address match using the normalized EVM address key across 1064 distinct addresses; list published 2026-11-06",
+        "source": {
+          "provider": "fixtures/sanctions/ofac-sdn-addresses-20261107T204417Z.json",
+          "request_sha256": "13957f5c1cbe37f573c99358c68226abb1cbb37a00c1718496d177331d0eb56e",
+          "fetched_at": "2026-11-07T20:44:17Z"
+        }
+      },
+      {
+        "id": "recipient_theft_label",
+        "status": "pass",
+        "detail": "GoPlus address_security lists none of the 13 theft labels; data_source \"\"; fetched 2026-11-22T16:26:01Z",
+        "source": {
+          "provider": "api.gopluslabs.io",
+          "request_sha256": "8874ffd375c08b7f0ba9b42d408fab20659ff33ce2ecbe987f6b936fda31ad38",
+          "fetched_at": "2026-11-22T16:26:01Z"
+        }
+      },
+      {
+        "id": "recipient_code",
+        "status": "pass",
+        "detail": "no contract code at 0x92E347b0D8003DB75AAA7483c800b2819796b8Cc on base; the firewall is not called",
+        "source": {
+          "provider": "mainnet.base.org",
+          "request_sha256": "a01fe3faab3cfc5bafd380e02af892cd6f5e2fd56ed14f3022d9879066e79c6c",
+          "fetched_at": "2026-11-22T16:26:02Z"
+        }
+      }
+    ],
+    "reasons": [
+      "Every check ran and none found a signal.",
+      "GoPlus lists no theft label for 0x92E347b0D8003DB75AAA7483c800b2819796b8Cc (GoPlus data_source \"\", fetched 2026-11-22T16:26:01Z)."
+    ],
+    "quote": {
+      "amountIn": "100000000000000000000000",
+      "amountInFormatted": "0.1",
+      "amountInUsd": "0.300000000000",
+      "minAmountIn": "100000000000000000000000",
+      "amountOut": "296319",
+      "amountOutFormatted": "0.296319",
+      "amountOutUsd": "0.296150394489",
+      "minAmountOut": "293355",
+      "timeEstimate": 24,
+      "refundFee": "0",
+      "withdrawFee": "2400"
+    },
+    "document": {
+      "version": "1",
+      "subject": {
+        "kind": "intents",
+        "origin_asset": "nep141:wrap.near",
+        "destination_asset": "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near",
+        "amount": "100000000000000000000000",
+        "recipient": "0x92E347b0D8003DB75AAA7483c800b2819796b8Cc",
+        "recipient_type": "DESTINATION_CHAIN",
+        "quote_request": {
+          "dry": true,
+          "swapType": "EXACT_INPUT",
+          "slippageTolerance": 100,
+          "originAsset": "nep141:wrap.near",
+          "depositType": "ORIGIN_CHAIN",
+          "destinationAsset": "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near",
+          "amount": "100000000000000000000000",
+          "refundTo": "siyabgate.near",
+          "refundType": "ORIGIN_CHAIN",
+          "recipient": "0x92E347b0D8003DB75AAA7483c800b2819796b8Cc",
+          "recipientType": "DESTINATION_CHAIN",
+          "deadline": "2026-11-22T16:35:59Z"
+        },
+        "quote": {
+          "correlation_id": "27da2cb4-dbeb-4d93-8da6-dfa3e4bfabf9",
+          "timestamp": "2026-11-22T16:25:59.502Z",
+          "amount_out": "296319",
+          "min_amount_out": "293355"
+        }
+      },
+      "checks": [
+        {
+          "id": "quote_dry",
+          "status": "pass",
+          "detail": "dry quote answered: recipient 0x92E347b0D8003DB75AAA7483c800b2819796b8Cc, chain base, amountOut 296319; the echo adds no 1Click service fee",
+          "source": {
+            "provider": "1click.chaindefuser.com",
+            "request_sha256": "dc18e33070bd9a0af14e501dbedb6211d3f1f9352baede3d14c4b64ea19f66e3",
+            "fetched_at": "2026-11-22T16:26:00Z"
+          }
+        },
+        {
+          "id": "quote_age",
+          "status": "pass",
+          "detail": "quote age is 2960 ms, within 305000 ms, allowing 5000 ms clock skew",
+          "source": {
+            "provider": "1click.chaindefuser.com",
+            "request_sha256": "dc18e33070bd9a0af14e501dbedb6211d3f1f9352baede3d14c4b64ea19f66e3",
+            "fetched_at": "2026-11-22T16:26:00Z"
+          }
+        },
+        {
+          "id": "quote_deadline",
+          "status": "pass",
+          "detail": "the judged deadline \"2026-11-22T16:35:59Z\" is after 2026-11-22T16:26:02Z",
+          "source": {
+            "provider": "local rules",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "destination_supported",
+          "status": "pass",
+          "detail": "base, chain id 8453",
+          "source": {
+            "provider": "local rules",
+            "request_sha256": null,
+            "fetched_at": null
+          }
+        },
+        {
+          "id": "ofac_sanctioned",
+          "status": "pass",
+          "detail": "no address match using the normalized EVM address key across 1064 distinct addresses; list published 2026-11-06",
+          "source": {
+            "provider": "fixtures/sanctions/ofac-sdn-addresses-20261107T204417Z.json",
+            "request_sha256": "13957f5c1cbe37f573c99358c68226abb1cbb37a00c1718496d177331d0eb56e",
+            "fetched_at": "2026-11-07T20:44:17Z"
+          }
+        },
+        {
+          "id": "recipient_theft_label",
+          "status": "pass",
+          "detail": "GoPlus address_security lists none of the 13 theft labels; data_source \"\"; fetched 2026-11-22T16:26:01Z",
+          "source": {
+            "provider": "api.gopluslabs.io",
+            "request_sha256": "8874ffd375c08b7f0ba9b42d408fab20659ff33ce2ecbe987f6b936fda31ad38",
+            "fetched_at": "2026-11-22T16:26:01Z"
+          }
+        },
+        {
+          "id": "recipient_code",
+          "status": "pass",
+          "detail": "no contract code at 0x92E347b0D8003DB75AAA7483c800b2819796b8Cc on base; the firewall is not called",
+          "source": {
+            "provider": "mainnet.base.org",
+            "request_sha256": "a01fe3faab3cfc5bafd380e02af892cd6f5e2fd56ed14f3022d9879066e79c6c",
+            "fetched_at": "2026-11-22T16:26:02Z"
+          }
+        }
+      ],
+      "labels": [],
+      "verdict": "ALLOW",
+      "reasons": [
+        "Every check ran and none found a signal.",
+        "GoPlus lists no theft label for 0x92E347b0D8003DB75AAA7483c800b2819796b8Cc (GoPlus data_source \"\", fetched 2026-11-22T16:26:01Z)."
+      ],
+      "observed": {
+        "block_height": null,
+        "timestamp_ms": 1795364762462
+      },
+      "issued_ms": null,
+      "expires_ms": null,
+      "verdict_id": null,
+      "latency_ms": null,
+      "kind": "intents"
+    },
+    "evidence_hash": "0b5388453e16d48d5dfaf825f2a22307a0e13286fd21bc4a8758108fb02a4984"
+  },
+  "quote_response": {
+    "quote": {
+      "amountIn": "100000000000000000000000",
+      "amountInFormatted": "0.1",
+      "amountInUsd": "0.300000000000",
+      "minAmountIn": "100000000000000000000000",
+      "amountOut": "296418",
+      "amountOutFormatted": "0.296418",
+      "amountOutUsd": "0.296249338158",
+      "minAmountOut": "293453",
+      "timeEstimate": 24,
+      "refundFee": "0",
+      "withdrawFee": "2400",
+      "deadline": "2026-11-25T16:35:59.000Z",
+      "timeWhenInactive": "2026-11-25T16:35:59.000Z",
+      "depositAddress": "0d0f1c01856b06fa0bccf18429d6b8354c8e01a65ec581c5ccf0731e2191fa4b"
+    },
+    "quoteRequest": {
+      "dry": false,
+      "depositMode": "SIMPLE",
+      "swapType": "EXACT_INPUT",
+      "slippageTolerance": 100,
+      "originAsset": "nep141:wrap.near",
+      "depositType": "ORIGIN_CHAIN",
+      "destinationAsset": "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near",
+      "amount": "100000000000000000000000",
+      "refundTo": "siyabgate.near",
+      "refundType": "ORIGIN_CHAIN",
+      "recipient": "0x92E347b0D8003DB75AAA7483c800b2819796b8Cc",
+      "recipientType": "DESTINATION_CHAIN",
+      "deadline": "2026-11-22T16:35:59.000Z",
+      "confidentiality": "public",
+      "quoteWaitingTimeMs": 0,
+      "insured": false,
+      "appFees": []
+    },
+    "timestamp": "2026-11-22T16:26:02.323Z",
+    "correlationId": "c53de378-3b04-414d-b908-62a4e1a663fe",
+    "signature_bytes": [
+      205,
+      0,
+      70,
+      33,
+      99,
+      123,
+      62,
+      81,
+      60,
+      35,
+      89,
+      208,
+      4,
+      21,
+      60,
+      6,
+      173,
+      20,
+      173,
+      91,
+      114,
+      33,
+      212,
+      131,
+      114,
+      49,
+      67,
+      126,
+      69,
+      126,
+      82,
+      126,
+      100,
+      118,
+      40,
+      92,
+      234,
+      8,
+      236,
+      219,
+      155,
+      76,
+      167,
+      53,
+      204,
+      114,
+      15,
+      118,
+      200,
+      51,
+      216,
+      237,
+      194,
+      135,
+      71,
+      100,
+      197,
+      115,
+      252,
+      10,
+      149,
+      119,
+      15,
+      10
+    ]
+  },
+  "storage_deposit": "1250000000000000000000",
+  "deposit_reference": {
+    "block_hash": "8aNHmRD4G7ApQEpejaKwyaekfzNpyKBvQvT5S7hkGbi6",
+    "block_height": 225729911,
+    "public_key": "ed25519:7TPhZL78c12nxfn4RSk6f8rd59f3AA1rsMD5JSk6rAmz",
+    "nonce": 224655480000008
+  },
+  "status": {
+    "status": "SUCCESS",
+    "updatedAt": "2026-11-22T16:26:48.000Z",
+    "correlationId": "deeaae59-71d0-4320-a767-d8daada29c67",
+    "swapDetails": {
+      "depositedAmount": "100000000000000000000000",
+      "depositedAmountUsd": "0.300000000000",
+      "depositedAmountFormatted": "0.1",
+      "intentHashes": [
+        "8Ui6cHtPzKdQavLtTQMicKfdgLVZiHNieJYqzdDJPQRq",
+        "hmye5fCZy5DxduwFd9zsMFVnA1yKeL9ApBSJSn8FLJq"
+      ],
+      "nearTxHashes": [
+        "Gmw45e5Uy8t1DHX62fS5FGHzFVMzRNFyMxqsCiCgmWhj",
+        "8KpQdzBbk7TEkG9bojMqgEbPM4zBxXfuXRU8CRavAAzR",
+        "26CUBaqzZuoRYRzz3H9da9mHB2J8AV786CxE2kK49BnM",
+        "hzt529eSn6DeTnuz7fx62xisaFQyvsYGKpXPwRZEcDK"
+      ],
+      "amountIn": "100000000000000000000000",
+      "amountInFormatted": "0.1",
+      "amountInUsd": "0.301000000000",
+      "amountOut": "296020",
+      "amountOutFormatted": "0.29602",
+      "amountOutUsd": "0.295863405420",
+      "slippage": 13,
+      "refundedAmount": "0",
+      "refundedAmountFormatted": "0",
+      "refundedAmountUsd": "0",
+      "refundReason": null,
+      "refundFee": "0",
+      "withdrawFee": "2400",
+      "originChainTxHashes": [
+        {
+          "hash": "CjAhksCvJW3NWoYkw8DbzaFpo6kzE9LnjJau7AWuFJn3",
+          "explorerUrl": ""
+        }
+      ],
+      "destinationChainTxHashes": [
+        {
+          "hash": "0xf22069c4828ba3b07c0b70cf7dd5291077f061bbe9d0e6e7bf7ec5c628038e77",
+          "explorerUrl": ""
+        }
+      ]
+    },
+    "quoteResponse": {
+      "timestamp": "2026-11-22T16:26:02.323Z",
+      "quoteRequest": {
+        "dry": false,
+        "swapType": "EXACT_INPUT",
+        "depositMode": "SIMPLE",
+        "slippageTolerance": 100,
+        "originAsset": "nep141:wrap.near",
+        "depositType": "ORIGIN_CHAIN",
+        "destinationAsset": "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near",
+        "amount": "100000000000000000000000",
+        "refundTo": "siyabgate.near",
+        "refundType": "ORIGIN_CHAIN",
+        "recipient": "0x92E347b0D8003DB75AAA7483c800b2819796b8Cc",
+        "recipientType": "DESTINATION_CHAIN",
+        "deadline": "2026-11-22T16:35:59.000Z",
+        "appFees": [],
+        "virtualChainRecipient": null,
+        "virtualChainRefundRecipient": null,
+        "referral": null,
+        "confidentiality": "public"
+      },
+      "quote": {
+        "amountIn": "100000000000000000000000",
+        "amountInFormatted": "0.1",
+        "amountInUsd": "0.300000000000",
+        "minAmountIn": "100000000000000000000000",
+        "amountOut": "296418",
+        "amountOutFormatted": "0.296418",
+        "amountOutUsd": "0.296249338158",
+        "minAmountOut": "293453",
+        "timeWhenInactive": "2026-11-25T16:35:59.000Z",
+        "depositAddress": "0d0f1c01856b06fa0bccf18429d6b8354c8e01a65ec581c5ccf0731e2191fa4b",
+        "deadline": "2026-11-25T16:35:59.000Z",
+        "timeEstimate": 24,
+        "refundFee": "0",
+        "withdrawFee": "2400"
+      },
+      "signature_bytes": [
+        205,
+        0,
+        70,
+        33,
+        99,
+        123,
+        62,
+        81,
+        60,
+        35,
+        89,
+        208,
+        4,
+        21,
+        60,
+        6,
+        173,
+        20,
+        173,
+        91,
+        114,
+        33,
+        212,
+        131,
+        114,
+        49,
+        67,
+        126,
+        69,
+        126,
+        82,
+        126,
+        100,
+        118,
+        40,
+        92,
+        234,
+        8,
+        236,
+        219,
+        155,
+        76,
+        167,
+        53,
+        204,
+        114,
+        15,
+        118,
+        200,
+        51,
+        216,
+        237,
+        194,
+        135,
+        71,
+        100,
+        197,
+        115,
+        252,
+        10,
+        149,
+        119,
+        15,
+        10
+      ]
+    }
+  },
+  "settlement": {
+    "recipient": "0x92E347b0D8003DB75AAA7483c800b2819796b8Cc",
+    "asset": "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near",
+    "amount": "296020",
+    "receipts": [
+      {
+        "transaction_hash": "0xf22069c4828ba3b07c0b70cf7dd5291077f061bbe9d0e6e7bf7ec5c628038e77",
+        "block_hash": "0x64ab3448d779ca55df5fef584bdc1050e7570af8f0fc784a6929ed2ac968742a",
+        "block_number": 60872158,
+        "block_timestamp": 1795364807
+      }
+    ],
+    "rpc": "https://mainnet.base.org"
+  },
+  "encoding_note": "The owner supplied the final settled report. Public 1Click quote signatures are losslessly represented as signature_bytes. Local override_reports paths are omitted when present; all other report fields are unchanged."
+}

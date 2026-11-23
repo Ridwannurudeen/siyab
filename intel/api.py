@@ -442,8 +442,8 @@ def make_server(host, port, site=None, store=None, live_routes=None, workspace_r
                 if len(lengths) != 1 or re.fullmatch(r"0|[1-9][0-9]{0,9}", lengths[0]) is None:
                     return refuse(400, "invalid_framing", "Send one unambiguous Content-Length.")
                 length = int(lengths[0])
-                if length > 32768:
-                    return refuse(413, "body_too_large", "Workspace request exceeds 32 KiB.")
+                if length > workspace_routes.body_limit(path, self.headers):
+                    return refuse(413, "body_too_large", "Workspace request exceeds its byte limit.")
                 deadline = time.monotonic() + WORKSPACE_BODY_TIMEOUT_S
                 if isinstance(self.rfile, io.BufferedReader) and isinstance(self.rfile.raw, _DeadlineReader):
                     self.rfile.raw.deadline = min(self.rfile.raw.deadline, deadline)

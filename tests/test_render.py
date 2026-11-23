@@ -403,7 +403,7 @@ class RenderTest(unittest.TestCase):
 
     def assert_local_script_assets(self, page):
         expected = {}
-        for name in ("number-format", "graphs", "workspace", "investigate", "cloud-workspace", "enrichment", "portfolio", "investigation-jobs", "delivery", "landing", "index"):
+        for name in ("number-format", "graphs", "workspace", "investigate", "cloud-workspace", "enrichment", "portfolio", "workspace-vault", "near-workspace", "investigation-jobs", "delivery", "landing", "index"):
             source = (ROOT / f"intel/ui/{name}.js").read_text(encoding="utf-8").encode("utf-8")
             digest = hashlib.sha256(source)
             expected[f"/assets/{digest.hexdigest()}.js"] = (name, source, "sha256-" + base64.b64encode(digest.digest()).decode("ascii"))
@@ -427,6 +427,7 @@ class RenderTest(unittest.TestCase):
         self.assertEqual(found.count("landing"), 1 if 'class="landing-page"' in page else 0)
         self.assertEqual(found.count("index"), 1 if 'class="landing-page"' in page else 0)
         for name, mount in (("enrichment", "entity-enrichment"), ("portfolio", "account-portfolio"),
+                            ("workspace-vault", "near-workspace"), ("near-workspace", "near-workspace"),
                             ("investigation-jobs", "investigation-jobs"), ("delivery", "team-delivery")):
             self.assertEqual(found.count(name), 1 if f'id="{mount}"' in page else 0)
 
@@ -597,7 +598,7 @@ class RenderTest(unittest.TestCase):
         for path in (ROOT / "intel/flows").glob("*.json"):
             count = len(json.loads(path.read_text(encoding="utf-8"))["hops"])
             expected.extend(f"flows/{path.stem}.page-{number}.html" for number in range(2, (count + 49) // 50 + 1))
-        for name in ("number-format", "graphs", "workspace", "investigate", "cloud-workspace", "enrichment", "portfolio", "investigation-jobs", "delivery", "landing", "index"):
+        for name in ("number-format", "graphs", "workspace", "investigate", "cloud-workspace", "enrichment", "portfolio", "workspace-vault", "near-workspace", "investigation-jobs", "delivery", "landing", "index"):
             source = (ROOT / f"intel/ui/{name}.js").read_text(encoding="utf-8").encode("utf-8")
             expected.append(f"assets/{hashlib.sha256(source).hexdigest()}.js")
         expected.extend(f"brand/{source.name}" for source in (ROOT / "intel/ui/brand").iterdir() if source.is_file())

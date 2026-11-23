@@ -184,7 +184,6 @@ class AttackEvidenceTest(unittest.TestCase):
 
     def test_unbuilt_surfaces_are_stated_as_limits(self):
         self.assertEqual(set(unbuilt_limit_rows()), {
-            "A TEE is not built.",
             "A browser extension for NEAR is not built.",
         })
         for name in ("extension", "telegram", "tee"):

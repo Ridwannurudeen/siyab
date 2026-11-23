@@ -1,0 +1,14 @@
+{
+ "challenge": {
+  "message": "Sign in to Siyab. This request does not authorize a transaction or payment.\nAccount: 124a8b6b9221fef4fdce3c3e2d3472d77a96cb8c916f98b7d73ee59149bfd54c\nOrigin: http://127.0.0.1:8793\nChallenge: EglftP7kb4ZtJ4JBzv3wfzGg9XOWzNzIFrmuLQi-dt4\nIssued at: 1795362394709\nExpires at: 1795362694709",
+  "nonce": "7WRthUNKvr2n2/T24IircTTU/vHiVlPq95+huBvsXHs=",
+  "recipient": "http://127.0.0.1:8793",
+  "callbackUrl": "http://127.0.0.1:8793/workspace.html",
+  "state": "EglftP7kb4ZtJ4JBzv3wfzGg9XOWzNzIFrmuLQi-dt4"
+ },
+ "verify": {
+  "accountId": "124a8b6b9221fef4fdce3c3e2d3472d77a96cb8c916f98b7d73ee59149bfd54c",
+  "publicKey": "ed25519:2EQGSU2Hm2dsrn5e4mXYJSpB5dyVGTstVY1L1KsNz3zb",
+  "signature": "Ge++hyByLNmpgmgUMqtbIRbG5zdFF1hRsqqaDRbO6Z3qa0Ygj+CjCfvHWpuk6HtDRdRBeFbkt1ehrwwkCCG6Cw=="
+ }
+}

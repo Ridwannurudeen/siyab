@@ -1,10 +1,10 @@
 # Attestation registry build
 
-Source commit: TBD after independent review and orchestrator commit
+Source commit: TBD
 
 Deployed: not deployed
 
-22 November 2026. This record covers a reproducible working tree snapshot above base c4899e190ec8acea202f38793d04b384112a48b3. It does not attribute the new contract to that base commit. `res/attest.source.sha256` pins all six build input files. No commit, public deployment or transaction was made.
+22 November 2026. This record covers a reproducible working tree snapshot above base c4899e190ec8acea202f38793d04b384112a48b3. It does not attribute the new contract to that base commit. `res/attest.source.sha256` pins all six build input files. No commit, public deployment or transaction was made during that build. The source merged to main at 64c55270a82fe468dee7b8a1001e7c50a17c3a4b on 22 Nov 2026. All six inputs match that tree. The reproducible release build is not yet promoted to `res/`.
 
 Two isolated Docker builds, with independent empty external target directories and networking disabled, produced identical optimized wasm bytes. `cmp` returned zero. Both builds compiled every dependency afresh. Both outputs used the same source mount path `/workspace` and target mount path `/target`. Use fresh target directories when repeating the recipe so cached artifacts cannot conceal a changed build input.
 

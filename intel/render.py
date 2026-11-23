@@ -3,7 +3,11 @@
 No framework or third-party script; shared local content-hashed scripts and one stylesheet, style.css.
 The
 pages: index.html (the landing page), explore.html (the recorded investigation workspace, a search box whose inline script filters
-search.json in the browser, the counts block of scripts/counts.py, the links), search.json (one entry
+search.json in the browser, the counts block of scripts/counts.py, the links),
+investigate.html (live account reads), workspace.html (Sign in with NEAR through the Sender or OKX
+Wallet signing interface, the encrypted workspace, the shared workspace and browser workspace panels),
+top-receivers.html (aggregate verdicts of the committed top receiver judgements), records/index.html
+and records/<id>.html (published incident records), search.json (one entry
 per subject with a current row and per registry entity of intel/entities.jsonl, each with the path of
 its page relative to the site root), feed.html
 (the recorded window or, in follow mode, the follower's lines, then the events),
@@ -526,6 +530,19 @@ def explore_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEI
         f'<article class="proof-card"><h3>{esc(title)}</h3><p class="muted">Testnet record</p>'
         f'<p>{esc(description)}</p><span class="mono">{esc(path)}</span></article>'
         for title, description, path in proofs)
+    mainnet_proofs = (
+        ("Gate run, 15 Nov", "A labelled collector was refused as REFUSED:no_verdict with nothing spent, and a signed ALLOW paid 0.01 NEAR to an allowlisted payee. The Gate is paused and its agent key revoked.",
+         "fixtures/runs/gate-mainnet-20261115.txt"),
+        ("1Click settlement, 22 Nov", "The owner sent 0.1 wNEAR from siyabgate.near with its own key, outside the paused Gate. The Base recipient was judged ALLOW and 296020 base units of USDC arrived. The run ended ALLOW, settled.",
+         "fixtures/runs/oneclick-mainnet-20261122.txt"),
+    )
+    mainnet_cards = "".join(
+        f'<article class="proof-card"><h3>{esc(title)}</h3><p class="muted">Mainnet record</p>'
+        f'<p>{esc(description)}</p><span class="mono">{esc(path)}</span></article>'
+        for title, description, path in mainnet_proofs)
+    holdout_dir = ROOT / "fixtures/holdout/2026-11-22"
+    holdout = json.loads((holdout_dir / "score.json").read_text(encoding="utf-8"))
+    absent = json.loads((holdout_dir / "score-excluding-labelled.json").read_text(encoding="utf-8"))["excluding_label_store"]["report"]
     incident_links = " ".join(
         f'<a class="button" href="incidents/{esc(document["id"])}.html">{esc(document["title"])}</a>'
         for document in incidents)
@@ -539,7 +556,7 @@ def explore_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEI
         f'<a class="button" href="entities/{name}.html">{esc(title)}</a>'
         for name, title, _ in ENTITY_SETS)
     top_state = "Aggregate counts are published." if top_summary else "Scan in progress, not yet published."
-    top_counts = (f'<p class="muted">{top_summary["total"]} judged: {top_summary["verdicts"]["ALLOW"]} ALLOW, '
+    top_counts = (f'<p class="muted">Rules version 1: {top_summary["total"]} judged: {top_summary["verdicts"]["ALLOW"]} ALLOW, '
                   f'{top_summary["verdicts"]["DENY"]} DENY, {top_summary["verdicts"]["UNKNOWN"]} UNKNOWN.</p>'
                   if top_summary else "")
     body = (
@@ -586,6 +603,8 @@ def explore_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEI
         '<div id="tool-intent-result" class="results" aria-live="polite"></div></section></section>'
         '<section aria-labelledby="proof-title"><h2 id="proof-title">Proven on testnet</h2><p class="muted">Committed run logs</p>'
         f'<div class="proof-grid">{proof_cards}</div></section>'
+        '<section aria-labelledby="mainnet-proof-title"><h2 id="mainnet-proof-title">Recorded on mainnet</h2><p class="muted">Committed run logs</p>'
+        f'<div class="proof-grid">{mainnet_cards}</div></section>'
         '<section aria-labelledby="reports-title"><h2 id="reports-title">Reports with evidence</h2><p class="muted">Community reports</p>'
         '<div class="report-tools"><article class="panel"><h3>Recent reports</h3><div id="recent-reports" class="report-list" '
         'aria-live="polite"></div></article><article class="panel"><h3>Look up a subject</h3>'
@@ -598,6 +617,15 @@ def explore_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEI
         '<section aria-labelledby="receivers-title"><div class="section-head"><div>'
         f'<h2 id="receivers-title">Top receivers</h2><p class="muted">Mainnet judgement set</p><p class="muted">{esc(top_state)}</p>{top_counts}</div>'
         '<a class="button" href="top-receivers.html">Open aggregate results</a></div></section>'
+        '<section aria-labelledby="holdout-title"><h2 id="holdout-title">Receiver holdout</h2><p class="muted">Recorded 22 Nov 2026, rules version 3</p>'
+        f'<p>The recorded run refused {holdout["matrix"]["bad"]["DENY"]} of {holdout["counts"]["bad"]} accounts labelled bad. '
+        f'It refused {holdout["matrix"]["bad"]["DENY"] - absent["matrix"]["bad"]["DENY"]} accounts already in the label store '
+        f'and {absent["matrix"]["bad"]["DENY"]} of the {absent["counts"]["bad"]} bad accounts absent from it. '
+        f'Among {holdout["counts"]["good"]} presumed good accounts it refused {holdout["matrix"]["good"]["DENY"]} '
+        f'and asked for confirmation on {holdout["matrix"]["good"]["ASK"]}.</p>'
+        '<p class="muted">This describes a selected sample, not all NEAR accounts. A good label means presumed good, not verified clean. No transfer was executed.</p>'
+        '<span class="mono">docs/HOLDOUT.md</span> <span class="mono">fixtures/holdout/2026-11-22/score.json</span> '
+        '<span class="mono">fixtures/holdout/2026-11-22/score-excluding-labelled.json</span></section>'
         '<section aria-labelledby="explore-title"><h2 id="explore-title">Explore</h2><p class="muted">Committed intelligence</p>'
         '<div class="explore-grid">'
         '<article class="explore-card"><h3>Feed</h3><p>Recorded blocks and events.</p><a href="feed.html">Open feed</a></article>'
@@ -609,12 +637,17 @@ def explore_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEI
         f'<article class="explore-card"><h3>Clusters</h3><p>Account links with their source and confidence.</p>{cluster_links}</article>'
         f'<article class="explore-card"><h3>Entities</h3><p>Registry entities and label sets.</p>{entity_links}</article>'
         '<article class="explore-card"><h3>Issuers</h3><p>Issuer status reads and action history.</p>'
-        '<a href="issuers.html">Open issuer records</a></article></div>'
+        '<a href="issuers.html">Open issuer records</a></article>'
+        '<article class="explore-card"><h3>Check adapters</h3><p>Reference guards for NEAR Wallet Selector and LangChain. They call the hosted checks, stop on DENY and ask for confirmation on anything but an explicit ALLOW. Not reviewed or adopted by either project.</p>'
+        '<span class="mono">integrations/wallet-selector/</span> <span class="mono">integrations/langchain/</span></article>'
+        '<article class="explore-card"><h3>Encrypted workspace</h3><p>Sign in with NEAR through the Sender or OKX Wallet signing interface, then unlock an encrypted copy in this browser.</p>'
+        '<a href="workspace.html">Open workspace</a></article></div>'
         '<div class="coverage"><details><summary>Committed data counts</summary><p>' + esc(COUNTS_OF) + '</p>'
         f'<div class="card">{counts}</div><p class="muted">Every count is read from committed files by '
         '<code>scripts/counts.py</code>.</p></details></div></section>'
         '<section class="limits" aria-labelledby="limits-title"><h2 id="limits-title">What these reads mean</h2><p class="muted">Scope and limits</p>'
         '<ul><li>The Gate and Reports contracts shown here run on testnet. Live verdict, scan and swap checks read mainnet.</li>'
+        '<li>The reproducible enclave build, the attestation registry contract and Gate 0.3.0 source are in the repository and not deployed. No hosted verdict is signed inside an enclave. Chain signature support derives addresses and reads the signer only; it signs nothing.</li>'
         '<li>9 Nov recorded demonstration: three team moderators, with two approvals to accept a report. Recorded threshold run: <span class="mono">fixtures/runs/reports-threshold-demo-20261109.txt</span>.</li>'
         f'<li>Label store size: {label_count["assertions"]:,} assertion{"" if label_count["assertions"] == 1 else "s"} over {label_count["subjects"]:,} subject{"" if label_count["subjects"] == 1 else "s"}.</li>'
         '<li>Live API checks are read only, rate limited and never sign.</li></ul>'
@@ -693,7 +726,7 @@ def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVE
         '<div id="landing-check-record"><div class="landing-check-heading">'
         f'<h2 id="landing-check-title" class="verdict {esc(judgement["verdict"].lower())}">{esc(judgement["verdict"])}</h2>'
         f'<q class="data" title="{esc(recorded_subject)}">{esc(short_subject)}</q></div>'
-        f'<p class="landing-note">Recorded {esc(recorded_at)}. Unsigned receiver judgement for {esc(_display_amount(judgement["request"]["amount"], 4, decimals=24))} NEAR.</p>'
+        f'<p class="landing-note">Recorded {esc(recorded_at)}. Unsigned receiver judgement for {esc(_display_amount(judgement["request"]["amount"], 4, decimals=24))} NEAR under rules version 1, the default.</p>'
         '<ul class="landing-check-reasons">'
         f'<li>{data_text(incident.label)} {incident_source}</li>'
         f'<li>{data_text(issuer.label)} {esc(urlsplit(issuer.source["rpc"]).hostname)}</li>'
@@ -750,7 +783,10 @@ def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVE
         ("Clusters", "/clusters/rhea.html", "Account links with their source and confidence. Each edge names its heuristic and provenance."),
         ("Feed", "/feed.html", "Follow finalized mainnet blocks, with the source block behind each event."),
         ("Issuers", "/issuers.html", "Issuer status reads and action history."),
-        ("Organisations", "/entities/organisations.html", "Accounts from on chain registries, with a source on each assertion.")))
+        ("Organisations", "/entities/organisations.html", "Accounts from on chain registries, with a source on each assertion."),
+        ("Workspace", "/workspace.html", "Sign in with NEAR through Sender or OKX Wallet to keep an encrypted copy of your investigations, notes and watchlist."),
+        ("Payment checks", "/explore.html#tools", "Check a receiver, an account's keys or a swap destination before paying."),
+        ("Top receivers", "/top-receivers.html", "Aggregate verdicts for the recorded mainnet receiver ranking.")))
     body = (
         '<div class="landing"><section class="landing-hero" aria-labelledby="landing-title">'
         f'{network}<div class="landing-hero-copy"><div class="page-head"><p class="landing-label">(01)  SIYAB</p>'
@@ -803,6 +839,9 @@ def index_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEIVE
         '(code_hash 5EmM2UQRYcvaNvJX6jfcgtNS7Mm8ZPjZhwK1J8bMXrcu): a labelled collector request was refused as REFUSED:no_verdict '
         'with nothing spent, and a signed ALLOW paid 0.01 NEAR to an allowlisted payee. The Gate was then paused and the agent revoked. '
         'No Gate is in service on mainnet; siyabgate.near is paused with its agent key revoked. This run is outside the hackathon-submission tag. '
+        'On 22 Nov 2026 the owner funded one 1Click settlement from siyabgate.near with an ordinary wallet transaction, outside the paused Gate: '
+        '0.1 wNEAR to a Base address judged ALLOW, settled as 296020 base units of Base USDC at Base block 60872158. '
+        'Run record: <span class="mono">fixtures/runs/oneclick-mainnet-20261122.txt</span>. '
         'Run record: <span class="mono">fixtures/runs/gate-mainnet-20261115.txt</span>; '
         'offline checks: <span class="mono">tests/test_mainnet_run.py</span>.</li>'
         '<li>Inferred attributions remain hypotheses and never add a subject to the refusal set.</li>'
@@ -870,6 +909,10 @@ def top_receivers_page(judgements_dir=TOP_RECEIVERS_JUDGEMENTS_DIR, ranking_path
             "Logs from uncatalogued contracts count toward distinct payers.</p>"
             f'<p>Judged {summary["total"]}: {summary["verdicts"]["ALLOW"]} ALLOW, '
             f'{summary["verdicts"]["DENY"]} DENY, {summary["verdicts"]["UNKNOWN"]} UNKNOWN.</p>'
+            '<p>These judgements used rules version 1, the default. A replay of the committed top set under rules version 3 '
+            'asks the owner to confirm receivers younger than 7 days when account_age is their only signal. '
+            'It gives 850 ALLOW, 1 DENY and 139 UNKNOWN. '
+            'The committed files were not rewritten.</p>'
             '<div class="receiver-breakdown"><section class="receiver-panel"><h2>UNKNOWN causes</h2><p>Counts overlap.</p><ul>' + causes + "</ul></section>"
             '<section class="receiver-panel"><h2>DENY split</h2>'
             f'<p>New account (account_age signal only): {summary["deny_new_account"]}.</p>'
@@ -2053,7 +2096,8 @@ def _cloud_workspace_panel():
 def workspace_page():
     body = ('<div class="workspace-page-head page-head"><div><h1>Workspace</h1></div>'
             '<a class="button primary" href="/explore.html">Start investigation</a></div>'
-            + _cloud_workspace_panel() +
+            + (ROOT / "intel/ui/near-workspace-panel.html").read_text(encoding="utf-8") +
+            _cloud_workspace_panel() +
             (ROOT / "intel/ui/investigation-jobs-panel.html").read_text(encoding="utf-8") +
             (ROOT / "intel/ui/delivery-panel.html").read_text(encoding="utf-8") +
             '<section id="browser-workspace"><h2>In this browser</h2><p>Saved in this browser. Export a backup to move your work between devices.</p>'
@@ -2075,6 +2119,8 @@ def workspace_page():
             '<label>Import workspace JSON<input id="import-workspace" type="file" accept="application/json,.json"></label>'
             '<button id="reset-workspace" type="button">Reset local workspace</button></div></section>'
             '<noscript><p>JavaScript is needed to save investigations, export tables and manage browser alerts. Recorded accounts and evidence remain available through the navigation.</p></noscript></section>')
+    body += _script_tag((ROOT / "intel/ui/workspace-vault.js").read_text(encoding="utf-8"))
+    body += _script_tag((ROOT / "intel/ui/near-workspace.js").read_text(encoding="utf-8"))
     body += _script_tag((ROOT / "intel/ui/investigation-jobs.js").read_text(encoding="utf-8"))
     body += _script_tag((ROOT / "intel/ui/delivery.js").read_text(encoding="utf-8"))
     return page("Workspace", body)
@@ -2133,7 +2179,7 @@ def render(out_dir, store=None, incidents_dir=INCIDENTS_DIR, flows_dir=trace.FLO
         path.write_text(encoded, encoding="utf-8", newline="\n")
     script_paths = []
     (out / "assets").mkdir(exist_ok=True)
-    for name in ("landing.js", "index.js", "number-format.js", "graphs.js", "workspace.js", "investigate.js", "cloud-workspace.js", "enrichment.js", "portfolio.js", "investigation-jobs.js", "delivery.js"):
+    for name in ("landing.js", "index.js", "number-format.js", "graphs.js", "workspace.js", "investigate.js", "cloud-workspace.js", "enrichment.js", "portfolio.js", "workspace-vault.js", "near-workspace.js", "investigation-jobs.js", "delivery.js"):
         script = (ROOT / "intel/ui" / name).read_text(encoding="utf-8")
         script_path, _ = _script_asset(script)
         (out / script_path.lstrip("/")).write_text(script, encoding="utf-8", newline="\n")
