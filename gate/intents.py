@@ -43,10 +43,12 @@ quote's signature is checked only when the caller supplies quote_verifier.
 """
 
 import hashlib
+import http.client
 import json
 import math
 import re
 import time
+import urllib.error
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -177,6 +179,25 @@ def _why(error):
 def _quoted(text):
     """A third party string as quoted data, never as Siyab's own words."""
     return json.dumps(text, ensure_ascii=False)
+
+
+def _dry_quote_why(error):
+    reason = _why(error)
+    cause = error.__cause__
+    if not isinstance(error, rpc.HttpError) or not isinstance(cause, urllib.error.HTTPError):
+        return reason
+    try:
+        rpc.check_request_deadline()
+        body = cause.read(65536)
+        rpc.check_request_deadline()
+        answer = json.loads(body)
+        message = answer.get("message") if isinstance(answer, dict) else None
+        if isinstance(message, str):
+            _encodable(message, "1Click error message")
+            return f"{reason}, 1Click says {_quoted(message[:200])}"
+    except (OSError, ValueError, RecursionError, http.client.HTTPException):
+        return reason
+    return reason
 
 
 def _encodable(answer, name):
@@ -540,7 +561,7 @@ def judge_quote(origin_asset, destination_asset, amount, recipient, recipient_ty
         check, quote, binding = _quote_check(response, asked, chain, dict(quote_client.last_source))
         checks.append(check)
     except UNAVAILABLE as error:
-        checks.append(evidence.check("quote_dry", "unknown", f"could not get a dry quote: {_why(error)}",
+        checks.append(evidence.check("quote_dry", "unknown", f"could not get a dry quote: {_dry_quote_why(error)}",
                                      dict(quote_client.last_source)))
     quote_source = dict(quote_client.last_source)
 

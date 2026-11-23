@@ -25,9 +25,12 @@ class LandingMotionTest(unittest.TestCase):
         parser.feed(cls.page)
         cls.text = html.unescape(" ".join(parser.parts))
 
-    def test_landing_has_its_own_frame_and_navigation(self):
+    def test_landing_uses_the_shared_frame_and_navigation(self):
         self.assertRegex(self.page, r'<body[^>]*class="[^"]*landing-page')
         self.assertNotRegex(self.page, r'<aside[^>]*class="[^"]*(?:app-sidebar|sidebar)')
+        shared = render.page("Siyab", "")
+        self.assertEqual(re.search(r'<header.*?</header>', self.page, re.S).group(0),
+                         re.search(r'<header.*?</header>', shared, re.S).group(0))
         for label in ("Explore", "Account lookup", "Incidents", "Verify", "Menu"):
             self.assertIn(label, self.page)
         for href in ("/explore.html", "/investigate.html", "/verify.html"):
@@ -288,16 +291,25 @@ class LandingMotionBrowserTest(unittest.TestCase):
                     menu = page.locator("#mobile-navigation > summary")
                     if menu.is_visible():
                         menu.click()
-                    for label, path in (("Explore", "/explore.html"), ("Account lookup", "/investigate.html"), ("Incidents", "/explore.html#incidents"), ("Verify", "/verify.html")):
-                        links = page.locator("header a").filter(has_text=re.compile("^" + label + "$"))
-                        visible = [link for link in links.all() if link.is_visible()]
-                        self.assertTrue(visible, label)
-                        self.assertTrue(all(link.evaluate("node => new URL(node.href).pathname + new URL(node.href).hash") == path for link in visible))
-                        target, _, anchor = path.partition("#")
-                        document = self.out / target.lstrip("/")
-                        self.assertTrue(document.is_file())
-                        if anchor:
-                            self.assertIn('id="' + anchor + '"', document.read_text(encoding="utf-8"))
+                    for group, destinations in (
+                            (None, (("Home", "/index.html"), ("Explore", "/explore.html"),
+                                    ("Account lookup", "/investigate.html"), ("Trace", "/flows/rhea-collector.html"),
+                                    ("Feed", "/feed.html"), ("Workspace", "/workspace.html"))),
+                            ("Explore", (("Incidents", "/explore.html#incidents"),)),
+                            ("Tools", (("Payment checks", "/explore.html#tools"), ("Verify", "/verify.html")))):
+                        if group and not menu.is_visible():
+                            page.locator("header .app-menu > summary").filter(
+                                has_text=re.compile(f"^{group}$")).click()
+                        for label, path in destinations:
+                            links = page.locator("header a").filter(has_text=re.compile("^" + label + "$"))
+                            visible = [link for link in links.all() if link.is_visible()]
+                            self.assertTrue(visible, label)
+                            self.assertTrue(all(link.evaluate("node => new URL(node.href).pathname + new URL(node.href).hash") == path for link in visible))
+                            target, _, anchor = path.partition("#")
+                            document = self.out / target.lstrip("/")
+                            self.assertTrue(document.is_file())
+                            if anchor:
+                                self.assertIn('id="' + anchor + '"', document.read_text(encoding="utf-8"))
                     if width <= 390:
                         small = page.locator("header a,header button,header summary,main a,main input,main button,main summary").evaluate_all("nodes => nodes.filter(node => node.checkVisibility()).filter(node => {const r=node.getBoundingClientRect();return r.width<44 || r.height<44}).map(node=>node.outerHTML)")
                         self.assertEqual(small, [])

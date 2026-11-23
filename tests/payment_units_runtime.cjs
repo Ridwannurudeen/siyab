@@ -95,6 +95,29 @@ async function main() {
       assert.match(text(panel), /amount|NEAR|base units/i, "Invalid amounts need actionable feedback");
       assert.doesNotMatch(text(panel), /Reading the live/);
     }
+  } else if (scenario === "intent") {
+    for (const [amount, expected] of [["1", "1000000000000000000000000"], ["0.1", "100000000000000000000000"],
+      ["0.000000000000000000000001", "1"], ["1.000000000000000000000001", "1000000000000000000000001"],
+      [" 2.50 ", "2500000000000000000000000"], ["1000000", "1000000000000000000000000000000"],
+      ["340282366920938.463463374607431768211455", "340282366920938463463374607431768211455"]]) {
+      const env = setup(); await flush();
+      env.nodes["tool-intent-form"].values = {destination_asset: "nep141:usdt.tether-token.near", recipient: "alice.near", amount};
+      await env.nodes["tool-intent-form"].emit("submit");
+      const path = env.paths.find(path => path.startsWith("/live/intents?"));
+      assert.ok(path, `Swap destination check must send a request for ${amount} NEAR`);
+      const params = new URLSearchParams(path.split("?")[1]);
+      assert.equal(params.get("amount"), expected, "Swap amounts use exact yocto base units");
+      assert.equal(params.get("destination_asset"), "nep141:usdt.tether-token.near");
+      assert.equal(params.get("recipient"), "alice.near");
+    }
+    for (const amount of ["", "0", "0.0", "-1", "+1", "1e3", "01", "0.0000000000000000000000001", "1.1234567890123456789012345", "340282366920938.463463374607431768211456", "340282366920939", "1,000", "Infinity", "NaN"]) {
+      const env = setup(); await flush();
+      env.nodes["tool-intent-form"].values = {destination_asset: "nep141:wrap.near", recipient: "alice.near", amount};
+      await env.nodes["tool-intent-form"].emit("submit");
+      assert.equal(env.paths.some(path => path.startsWith("/live/intents?")), false, `Invalid swap amount ${amount} must not be sent`);
+      assert.match(text(env.nodes["tool-intent-result"]), /amount|NEAR|base units/i);
+      assert.doesNotMatch(text(env.nodes["tool-intent-result"]), /Reading the live/);
+    }
   } else if (scenario === "tokens") {
     const labels = setup();
     assert.equal(labels.nodes["tool-amount-label"].textContent, "Amount in NEAR");

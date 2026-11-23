@@ -490,7 +490,7 @@ document.getElementById("tool-scan-form").addEventListener("submit", async event
 });
 addVerdictForm("tool-intent-form", "tool-intent-result", values => {
   const params = new URLSearchParams({destination_asset: values.get("destination_asset"),
-    recipient: values.get("recipient"), amount: values.get("amount")});
+    recipient: values.get("recipient"), amount: paymentAmount(values.get("amount"), "near")});
   return `/live/intents?${params}`;
 }, true);
 

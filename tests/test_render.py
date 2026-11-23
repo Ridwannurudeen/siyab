@@ -894,7 +894,7 @@ class RenderTest(unittest.TestCase):
         self.assertIn("&lt;0.01", [share for _, share in shares])
 
     def test_landing_theme_toggle_follows_the_shared_header_order(self):
-        rule = re.search(r"\.landing-page \.theme-toggle\{([^}]*)\}", render.STYLE).group(1)
+        rule = re.search(r"(?m)^\.theme-toggle\{([^}]*)\}", render.STYLE).group(1)
         self.assertNotIn("order:", rule)
 
     def test_account_amount_and_short_asset_id_are_separated(self):
