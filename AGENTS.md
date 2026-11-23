@@ -78,8 +78,8 @@ Python variables:
 - `GATE_KEEP_EVIDENCE`: set to `1` to retain evidence directories after process exit.
 - `AGENT_PUB`: agent public key used by the MCP live verdict and testnet registration scripts.
 - `FEED_STATE_DIR`: feed state directory; defaults to `intel/feed`.
-- `FASTNEAR_API_KEY_FILE`: path to an external provider key file for account, portfolio and scanner reads; sent only with a provider budget database. The feed follower never reads or sends it.
-- `SIYAB_PROVIDER_BUDGET_DB`: external provider budget database path; otherwise service entry points use their state directory.
+- `FASTNEAR_API_KEY_FILE`: path to an external provider key file for account, portfolio and scanner reads; sent only with a provider budget database. The feed follower sends it only for metered neardata block reads under caller class `feed`, at most 120,000 a UTC day, and goes keyless over that cap, during the key cooldown or after a keyed 401, 402, 403 or 429.
+- `SIYAB_PROVIDER_BUDGET_DB`: external provider budget database path; otherwise service entry points use their state directory. The hosted siyab units and the feed share `/var/lib/shieldbot-near/siyab/provider-budget.sqlite3`.
 - `SIYAB_VERDICT_NEARBLOCKS`: set to `1` to enable the hosted verdict and live account check account-age fallback; disabled by default. The live account check honors `NEAR_ARCHIVAL_RPC_URL` and uses `NEARBLOCKS_API_URL` only when this fallback is enabled; otherwise it does not read NearBlocks.
 - `SIYAB_TELEGRAM_TOKEN_FILE`: path to the dedicated Siyab Telegram bot token file outside the repository; missing credentials leave delivery unconfigured.
 - `SIYAB_TELEGRAM_CHECKS`: set to `1`, with `SIYAB_CHECKS=1`, to have the delivery worker answer account, token and transaction checks in private Telegram chats; off by default.
