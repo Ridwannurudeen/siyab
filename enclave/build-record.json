@@ -1,17 +1,17 @@
 {
   "all_blob_hashes_verified": true,
-  "app_compose_image": "registry.example/siyab@sha256:b3bcc3d69ed5cfad727661a7e8f7c80fb9b2c1ed88aafe371899b6d04cb47f7c",
-  "app_compose_sha256": "44776e2cd93dfbafd5a09ac94d809eb903cdf2357461f8a3f7833f0f16561a22",
+  "app_compose_image": "registry.example/siyab@sha256:6a1ef07ba339bb855fc09d41e38882ac32706f6bca59bdd8576c0cc57b387ad4",
+  "app_compose_sha256": "542c9bac331eed7fb50fc19bfee1d25d99be47a0ea9d33307edefa4ded73ebc5",
   "buildkit_image": "moby/buildkit:v0.35.1@sha256:7583a0667093d941826bcd1d2878d6a360dfd08a82c93e6d6a6f6cce78801e12",
   "buildkit_version": "v0.35.1",
   "builds": [
     {
       "config": {
-        "digest": "sha256:12afbd083d4c4d8738ec94d9fa8e4beb4bd293b44764d8f6aecb376c411f7ff8",
+        "digest": "sha256:a0f99a694534bb4d62fad94c6923551f8a7dd0695605e76a11c1e1185ad5119f",
         "mediaType": "application/vnd.oci.image.config.v1+json",
         "size": 9789
       },
-      "index_sha256": "effc9a81d3d6aa4b50b3a7732b0a0dd79c4c8d72ea3ccc8ea6dcad4d05b7e3e0",
+      "index_sha256": "5671f09d11072d069b38e376eb551640940c3e027e3a3b57ad73da68267a9f9f",
       "layers": [
         {
           "digest": "sha256:61320b01ae5e0798393ef25f2dc72faf43703e60ba089b07d7170acbabbf8f62",
@@ -69,17 +69,17 @@
           "annotations": {
             "buildkit/rewritten-timestamp": "1795304440"
           },
-          "digest": "sha256:453206e67fbd8403c8c129ac8b4a6461b7bf132d6177166fdcb8e532cc03b290",
+          "digest": "sha256:137d8f6bffa08f1ed0428539294907dc1dae1f98d33c23fb9c17add9303aff1c",
           "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
-          "size": 53954
+          "size": 53955
         },
         {
           "annotations": {
             "buildkit/rewritten-timestamp": "1795304440"
           },
-          "digest": "sha256:6ebd45b75eea36d0cd7f03a5df2e02e7000bc74709f642cb45de453d58205932",
+          "digest": "sha256:3bd54e2cff209019556094daed69adc28b511fab0df05373d91c4313f9e82058",
           "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
-          "size": 217585
+          "size": 217590
         },
         {
           "annotations": {
@@ -102,7 +102,7 @@
         "annotations": {
           "org.opencontainers.image.created": "2026-11-21T23:40:40Z"
         },
-        "digest": "sha256:b3bcc3d69ed5cfad727661a7e8f7c80fb9b2c1ed88aafe371899b6d04cb47f7c",
+        "digest": "sha256:6a1ef07ba339bb855fc09d41e38882ac32706f6bca59bdd8576c0cc57b387ad4",
         "mediaType": "application/vnd.oci.image.manifest.v1+json",
         "platform": {
           "architecture": "amd64",
@@ -113,11 +113,11 @@
     },
     {
       "config": {
-        "digest": "sha256:12afbd083d4c4d8738ec94d9fa8e4beb4bd293b44764d8f6aecb376c411f7ff8",
+        "digest": "sha256:a0f99a694534bb4d62fad94c6923551f8a7dd0695605e76a11c1e1185ad5119f",
         "mediaType": "application/vnd.oci.image.config.v1+json",
         "size": 9789
       },
-      "index_sha256": "effc9a81d3d6aa4b50b3a7732b0a0dd79c4c8d72ea3ccc8ea6dcad4d05b7e3e0",
+      "index_sha256": "5671f09d11072d069b38e376eb551640940c3e027e3a3b57ad73da68267a9f9f",
       "layers": [
         {
           "digest": "sha256:61320b01ae5e0798393ef25f2dc72faf43703e60ba089b07d7170acbabbf8f62",
@@ -175,17 +175,17 @@
           "annotations": {
             "buildkit/rewritten-timestamp": "1795304440"
           },
-          "digest": "sha256:453206e67fbd8403c8c129ac8b4a6461b7bf132d6177166fdcb8e532cc03b290",
+          "digest": "sha256:137d8f6bffa08f1ed0428539294907dc1dae1f98d33c23fb9c17add9303aff1c",
           "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
-          "size": 53954
+          "size": 53955
         },
         {
           "annotations": {
             "buildkit/rewritten-timestamp": "1795304440"
           },
-          "digest": "sha256:6ebd45b75eea36d0cd7f03a5df2e02e7000bc74709f642cb45de453d58205932",
+          "digest": "sha256:3bd54e2cff209019556094daed69adc28b511fab0df05373d91c4313f9e82058",
           "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
-          "size": 217585
+          "size": 217590
         },
         {
           "annotations": {
@@ -208,7 +208,7 @@
         "annotations": {
           "org.opencontainers.image.created": "2026-11-21T23:40:40Z"
         },
-        "digest": "sha256:b3bcc3d69ed5cfad727661a7e8f7c80fb9b2c1ed88aafe371899b6d04cb47f7c",
+        "digest": "sha256:6a1ef07ba339bb855fc09d41e38882ac32706f6bca59bdd8576c0cc57b387ad4",
         "mediaType": "application/vnd.oci.image.manifest.v1+json",
         "platform": {
           "architecture": "amd64",
@@ -220,7 +220,7 @@
   ],
   "buildx_binary_sha256": "903090816da68f8bc1a2ff5346dd163a5adacfce4548d003c75df42cd47a9bf4",
   "buildx_version": "v0.39.1",
-  "context_sha256": "3572415242e45deceb580f0e4b5f03d2e7e279e6ef83070f686f5339cfaf81eb",
+  "context_sha256": "b9eb974b995032200273690c9a922ca0d4bccdc779c972caf13ebed00541f299",
   "docker_engine": "29.1.3",
   "equal": true,
   "independent_builders": true,
@@ -240,13 +240,13 @@
     "gate/ed25519.py": "eabeb19c90a3e9b1cc3f57bea39f2e16eeb15ff3ce69daac77e87f62b5d3de8f",
     "gate/evidence.py": "542c1763a2349a1c57bfe2ab1f9f86bce0d864f62eeb16e0a7e88b0140ba1343",
     "gate/freshness.py": "c4db3521d7e4293315dd99f24664934867db85b21a2123246ae64d5aa9fab8a9",
-    "gate/rpc.py": "5ad6f742444d22480837ee92c99a5a2edb66c474a02d5f9cb832575b30281dda",
+    "gate/rpc.py": "35009ecb760ef577aff69427c27d25489e79f3ae2c0cd93098ef6a295c4f2e39",
     "gate/rules.py": "8a10d4ccef537eab88d08dcd2c6eebb2703313f79660a852b23583a15b40cccc",
     "gate/signer.py": "8e47f84fa4b3630cb53907069c613cf953e56b292cbbcde58934dd7f9b7c2e32",
     "gate/verdict.py": "fbd6120d04f46309851a34166c9053729e6fbd044a7cabb857657db305b82ca4",
     "intel/__init__.py": "9eb47042135e68af9cae47b129967ac77c1fe1a3b9115c24a454c2e79be4682c",
     "intel/alerts.py": "9286a8370b49f7936a97037abed49b861268d620b20c0b662957d89c16e894fe",
-    "intel/budget.py": "4901a9e2a7d89d82935db8fd7cd9976a1d4aa9f62cdba4200413f14327154395",
+    "intel/budget.py": "fe131b7eb88a11391915de35b648b0b11dc64261572a534fc9eb493a54afcb80",
     "intel/issuers.json": "ed58f7a6fc1a37b6cf3505c28d30c65c42168a266eaf66661934e0499075c762",
     "intel/labels.jsonl": "1f3b865366bf94d85dc107e0c34dda35c79eb3d8c682087cc92167ff4a77ecc8",
     "intel/labels.py": "7b9717311eb606023fe62331d4013ec23d77d46e2447797f6d2c6c3d4b6efc5a",
@@ -257,7 +257,7 @@
   "no_cache": true,
   "platform": "linux/amd64",
   "provenance": false,
-  "recorded_date": "2026-11-22",
+  "recorded_date": "2026-11-23",
   "registry": "attest.siyab.near",
   "rewrite_timestamp": true,
   "sbom": false,

@@ -1,6 +1,7 @@
 import base64
 import concurrent.futures
 import hashlib
+import json
 import tempfile
 import threading
 import unittest
@@ -33,6 +34,22 @@ class AccessKeyRPC:
 
 
 class NEP413VectorTest(unittest.TestCase):
+    def test_okx_signature_verifies_only_with_the_exact_callback(self):
+        path = Path(__file__).resolve().parents[1] / "fixtures" / "near-auth" / "okx-callback-20261122.json"
+        capture = json.loads(path.read_text(encoding="utf-8"))
+        challenge, response = capture["challenge"], capture["verify"]
+        nonce = base64.b64decode(challenge["nonce"], validate=True)
+        public = base58.decode_key(response["publicKey"])
+        signature = base64.b64decode(response["signature"], validate=True)
+        callback = challenge["recipient"] + "/workspace.html"
+        self.assertEqual(challenge["callbackUrl"], callback)
+        payload = near_auth.serialize_payload(challenge["message"], nonce, challenge["recipient"], callback)
+        self.assertTrue(ed25519.verify(public, hashlib.sha256(payload).digest(), signature))
+        for changed in (None, challenge["recipient"] + "/index.html", callback + "/"):
+            with self.subTest(callback=changed):
+                payload = near_auth.serialize_payload(challenge["message"], nonce, challenge["recipient"], changed)
+                self.assertFalse(ed25519.verify(public, hashlib.sha256(payload).digest(), signature))
+
     def test_spec_example_exact_borsh_with_callback(self):
         expected = (b"\x9d\x01\x00\x80\x02\x00\x00\x00hi" + bytes(range(32))
                     + b"\x09\x00\x00\x00myapp.com\x01\x12\x00\x00\x00myapp.com/callback")

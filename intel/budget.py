@@ -17,7 +17,7 @@ day, hour and minute: every call by mode (keyed or keyless), caller class and pr
 of KEYED_LIMITS; the keyless ceilings of KEYLESS_LIMITS; the pooled count of every keyed call in a UTC day,
 refused at POOLED_DAILY for every caller class; and the cumulative count of keyed calls since the database
 began. Reaching ALERT_PERCENTS of POOLED_DAILY, or CUMULATIVE_ALERT, records a row in alerts and writes one
-stderr line. A 403 or 429 answering a keyed call (key_failure) starts KEY_COOLDOWN_S, shared by every process,
+stderr line. A 402, 403 or 429 answering a keyed call (key_failure) starts KEY_COOLDOWN_S, shared by every process,
 during which reserve sends no key.
 
 Sign in always goes keyless. Its reserved pool and the general keyless share fit within the unchanged total
@@ -45,7 +45,7 @@ POOLED_DAILY = 13000
 CUMULATIVE_ALERT = 300000
 ALERT_PERCENTS = (50, 80, 100)
 KEY_COOLDOWN_S = 15 * 60
-KEY_FAILURE_STATUSES = (403, 429)
+KEY_FAILURE_STATUSES = (402, 403, 429)
 # Retry-After for a call refused because the database could not be read.
 REFUSAL_RETRY_S = 60
 # backfill is the public backfill route: its calls count toward the anonymous budget as well as its own.
@@ -254,7 +254,7 @@ def reserve(provider, caller, *, keyed, now):
 
 
 def key_failure(status, now):
-    """After HTTP status answered a keyed FastNEAR call at wall time now: a 403 or 429 starts the shared key
+    """After HTTP status answered a keyed FastNEAR call at wall time now: a 402, 403 or 429 starts the shared key
     cooldown and records an alert."""
     path = database()
     if status not in KEY_FAILURE_STATUSES or path is None:

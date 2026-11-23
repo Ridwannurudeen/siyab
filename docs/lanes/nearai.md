@@ -262,9 +262,9 @@ New evidence from this fix round: `fixtures/nearai/crosscheck-results.json` and 
 
 ## Round 2 documentation and owner actions
 
-The Anthropic trial paragraph at `README.md:82` uses `python -m gate injected-model --provider anthropic` and cites `gate/injected_model.py:19-24,215-217,325-388`. Round 4 also uses that explicit provider command at `JUDGES.md:91`, correct on main and after merge. `README.md:84` already uses the explicit `--provider nearai` command and remains unchanged. The round 2 replacement at `AGENTS.md:88` documents provider selection and the external Anthropic credential, NEAR AI credential, live flag and reviewed policy. Other AGENTS installation and model lines are outside the permitted replacement and remain untouched.
+The Anthropic trial paragraph at `README.md:84` uses `python -m gate injected-model --provider anthropic` and cites `gate/injected_model.py:19-24,215-217,325-388`. Round 4 also uses that explicit provider command at `JUDGES.md:91`, correct on main and after merge. `README.md:86` already uses the explicit `--provider nearai` command and remains unchanged. The round 2 replacement at `AGENTS.md:88` documents provider selection and the external Anthropic credential, NEAR AI credential, live flag and reviewed policy. Other AGENTS installation and model lines are outside the permitted replacement and remain untouched.
 
-The orchestrator has corrected the NEAR AI citations at `README.md:84` and `JUDGES.md:93` to `gate/injected_model.py:25-32,215-217,325-388`. No citation correction remains pending. Round 3 leaves README and JUDGES line 93 untouched. JUDGES is outside the scanner's default root-document inventory.
+The orchestrator has corrected the NEAR AI citations at `README.md:86` and `JUDGES.md:93` to `gate/injected_model.py:25-32,215-217,325-388`. No citation correction remains pending. Round 3 leaves README and JUDGES line 93 untouched. JUDGES is outside the scanner's default root-document inventory.
 
 The owner does not need to switch providers now. After independent review, enrollment, complete-fleet verification and the switch-over checks above, the owner can set the external policy and API key file paths, `SIYAB_ASK_PROVIDER=nearai`, `SIYAB_NEARAI_LIVE=1`, `SIYAB_ASK=1`, and a matching `SIYAB_ASK_MODEL` on the existing hosted service. A separately authorized paid evaluation can then use:
 
@@ -310,7 +310,7 @@ This round changes only `gate/nearai.py`, `tests/test_nearai.py`, `JUDGES.md` li
 
 ## Round 4 bounded recovery and validation
 
-The CLI defaults to Anthropic again, matching the inspected `origin/main` command. Both documented provider commands are explicit. `JUDGES.md:91` now uses `--provider anthropic`; `README.md:82-84` already used the correct explicit providers and was preserved. A new regression pins the bare CLI's actual replay output bytes, in addition to checking dispatch for the default and both explicit providers. The two selected CLI regressions failed before the fix.
+The CLI defaults to Anthropic again, matching the inspected `origin/main` command. Both documented provider commands are explicit. `JUDGES.md:91` now uses `--provider anthropic`; `README.md:84-86` already used the correct explicit providers and was preserved. A new regression pins the bare CLI's actual replay output bytes, in addition to checking dispatch for the default and both explicit providers. The two selected CLI regressions failed before the fix.
 
 A broken runtime now receives one cross-thread stop request. Its thread owns final cleanup and loop closure if the verifier later unblocks. Cancellation and client close share a five-second cooperative deadline. The caller does not wait for that cleanup. A reentrant runtime lock serializes submission, broken marking and the list of broken runtimes, including shutdown's nested submission. Further submissions to an already broken runtime close the unused coroutine and raise the existing timeout error. Healthy shutdown still propagates close failures; already broken shutdown skips client close entirely.
 

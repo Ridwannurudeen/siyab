@@ -27,7 +27,7 @@ sha256: ba2551dc...7f8b7705
 code_hash: DXdqac6HBiXtZVCrJjdGjDEFfzcFF7EEDza8h8rU5UCC
 ```
 
-This checks that the committed Wasm bytes match the checked-in checksums and recorded hashes. Gate 0.2.2 in `res/gate.wasm` matches the recorded 9 Nov testnet deployment; `res/previous/gate.wasm` is the 0.2.1 rollback (`fixtures/runs/gate-022-deploy-20261109.txt`). This check does not rebuild from source or establish which code is currently deployed. To reproduce a build, use the source commit and recipe in the corresponding `res/BUILD-*.md`, from that contract crate, with `CARGO_TARGET_DIR` unset:
+This checks that the committed Wasm bytes match the checked-in checksums and recorded hashes. Gate 0.2.2 in `res/gate.wasm` matches the recorded 9 Nov testnet deployment; `res/previous/gate.wasm` is the 0.2.1 rollback (`fixtures/runs/gate-022-deploy-20261109.txt`). This check does not rebuild from source or establish which code is currently deployed. Gate source is 0.3.0 and has no committed artifact; `res/gate.wasm` remains the 0.2.2 build (`contracts/gate/Cargo.toml:3`; `res/BUILD-gate.md:5-9`; `docs/lanes/gate-030.md:91-93`). `res/BUILD-attest.md:3-9` records the attestation registry with no `res/attest.wasm`. The enclave image recipe and its pinned input hashes are in `enclave/BUILD.md:3-41` and `enclave/build-record.json`; rebuilding it needs Docker and network access. To reproduce a build, use the source commit and recipe in the corresponding `res/BUILD-*.md`, from that contract crate, with `CARGO_TARGET_DIR` unset:
 
 ```sh needs-docker
 cargo near build reproducible-wasm

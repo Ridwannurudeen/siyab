@@ -257,6 +257,20 @@ class BudgetWindowTest(BudgetCase):
         self.assertEqual(self.alerts(), ["key_cooldown", "key_cooldown"])
         self.assertIn("HTTP 429 from a keyed FastNEAR call", self.stderr.getvalue())
 
+    def test_a_402_starts_a_shared_cooldown_that_strips_the_key_and_expires(self):
+        self.assertTrue(budget.reserve("fastnear_rpc", "anonymous", keyed=True, now=T0))
+        budget.key_failure(402, T0)
+        self.assertFalse(budget.reserve("fastnear_archival", "watch", keyed=True,
+                                        now=T0 + budget.KEY_COOLDOWN_S - 1))
+        self.assertEqual(self.count("pooled", budget.DAY_S), 1)
+        self.assertEqual(self.count("keyless:watch:fastnear_archival", budget.DAY_S), 1)
+        self.assertTrue(budget.reserve("fastnear_archival", "watch", keyed=True, now=T0 + budget.KEY_COOLDOWN_S))
+        self.assertEqual(self.alerts(), ["key_cooldown"])
+        with closing(sqlite3.connect(self.path)) as connection:
+            self.assertEqual(connection.execute("SELECT until_ms,status FROM key_cooldown").fetchone(),
+                             (int((T0 + budget.KEY_COOLDOWN_S) * 1000), 402))
+        self.assertIn("HTTP 402 from a keyed FastNEAR call", self.stderr.getvalue())
+
     def test_without_a_database_nothing_is_counted_and_the_key_is_never_sent(self):
         with mock.patch.dict(os.environ):
             os.environ.pop(budget.DATABASE_ENV)
@@ -366,6 +380,30 @@ class MeteredClientTest(BudgetCase):
         with self.assertRaises(rpc.HttpError):
             self.client("https://rpc.example", headers=None).call("status", [])
         self.assertEqual(self.alerts(), ["key_cooldown", "key_cooldown"])
+
+    def test_a_keyed_402_starts_the_cooldown_and_the_next_rpc_request_is_keyless(self):
+        url = "https://rpc.mainnet.fastnear.com"
+        self.answers.append(urllib.error.HTTPError(url, 402, "Payment Required", {}, None))
+        with self.assertRaises(rpc.HttpError) as caught:
+            self.client(url).call("status", [])
+        self.assertEqual(caught.exception.status, 402)
+        self.assertEqual(self.sent[-1].get_header("Authorization"), "Bearer unit-only-token")
+        self.now[0] += 1
+        self.client(rpc.ARCHIVAL_RPC_URL, headers=dict(KEY, Accept="application/json")).call("status", [])
+        self.assertIsNone(self.sent[-1].get_header("Authorization"))
+        self.assertEqual(self.sent[-1].get_header("Accept"), "application/json")
+        self.assertEqual(self.count("pooled", budget.DAY_S), 1)
+        self.assertEqual(self.count("keyless:operator:fastnear_archival", budget.DAY_S), 1)
+        self.assertEqual(self.alerts(), ["key_cooldown"])
+        self.now[0] = T0 + budget.KEY_COOLDOWN_S
+        self.client(url).call("status", [])
+        self.assertEqual(self.sent[-1].get_header("Authorization"), "Bearer unit-only-token")
+        self.answers.append(urllib.error.HTTPError("https://rpc.example", 402, "Payment Required", {}, None))
+        with self.assertRaises(rpc.HttpError):
+            self.client("https://rpc.example").call("status", [])
+        self.client(url).call("status", [])
+        self.assertEqual(self.sent[-1].get_header("Authorization"), "Bearer unit-only-token")
+        self.assertEqual(self.alerts(), ["key_cooldown"])
 
     def test_a_rejected_key_logs_one_line_with_the_status_and_host_and_never_the_key(self):
         for status in (401, 402, 403):

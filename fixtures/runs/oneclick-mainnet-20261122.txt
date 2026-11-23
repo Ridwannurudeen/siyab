@@ -1,0 +1,22 @@
+Siyab 1Click settlement mainnet run, 22 Nov 2026 (UTC)
+
+Summary of the owner's external intents-settle report, retained as fixtures/oneclick/run-20261122/report.json. This is a recorded run, not a new network check or a verbatim terminal transcript.
+
+Command: python -m gate intents-settle --deposit; repo commit 43f5b2523 (owner-reported run commit; the report has no commit field)
+Sender and refund account: siyabgate.near. The deposit was signed with its single FullAccess key as an ordinary wallet transaction to wrap.near; the Gate contract was not called. Signing key: ed25519:7TPhZL78c12nxfn4RSk6f8rd59f3AA1rsMD5JSk6rAmz
+Key-file lifecycle reported by the owner: the same FullAccess key signed the 15 Nov owner calls and the 22 Nov deposit. For each run the owner derives a temporary key file from the recovery phrase at a hidden prompt. The key file was deleted after each run; the FullAccess key was not removed. The 15 Nov record's "deleted" refers to the key file.
+Route: EXACT_INPUT nep141:wrap.near to Base USDC (nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near), recipient 0x92E347b0D8003DB75AAA7483c800b2819796b8Cc
+Amount: 100000000000000000000000 wNEAR base units (0.1 wNEAR); owner floor min_amount_out 250000
+Recipient judgement: ALLOW, evidence 0b5388453e16d48d5dfaf825f2a22307a0e13286fd21bc4a8758108fb02a4984 (unsigned local result)
+Allocated quote: depositAddress 0d0f1c01856b06fa0bccf18429d6b8354c8e01a65ec581c5ccf0731e2191fa4b, amountOut 296418, minAmountOut 293453, withdrawFee 2400; both the allocated quote and nested status quote signatures verify against MANAGER_PUBLIC_KEY
+
+1 deposit  tx CjAhksCvJW3NWoYkw8DbzaFpo6kzE9LnjJau7AWuFJn3
+2 settlement  Base tx 0xf22069c4828ba3b07c0b70cf7dd5291077f061bbe9d0e6e7bf7ec5c628038e77, block 60872158
+  status SUCCESS; originChainTxHashes names the deposit; swapDetails.amountOut 296020; swapDetails.withdrawFee 2400
+  finalized USDC Transfer credit: 296020 base units (0.29602 USDC), equal to swapDetails.amountOut
+  run ended verdict ALLOW, phase settled
+
+Output reading: The credit equals actual amountOut and not amountOut minus withdrawFee, so this run supports the net reading of amountOut. Actual and quoted withdrawFee are both 2400. One run is one observation, not a guarantee for other routes.
+Gate state: the owner reports that siyabgate.near remains paused with its agent key revoked; this ordinary wallet run did not change it. The preceding paused and revoked readbacks are in fixtures/runs/gate-mainnet-20261115.txt:35-40.
+Offline checks: python -m unittest tests.test_oneclick_mainnet_run -v
+The checks bind the retained quote signatures and judgement, original deposit identity, SUCCESS status and settlement summary. The report retains receipt summaries, not raw Base receipts or block responses, so these checks do not replay destination_receipt or re-query transaction outcomes or current chain state.

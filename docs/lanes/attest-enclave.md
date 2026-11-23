@@ -2,7 +2,7 @@
 
 22 November 2026. T2 on `feat/attest-enclave` at `213ed0503`, rebased onto main `6dc9bc89e`. The original T0 base `c4899e190` still supplies the fixed build epoch. The frozen interface is `docs/spec/attest-v1.md`. The design's older registration shape is not used. Changes stay uncommitted for the orchestrator's independent review.
 
-The current build record was regenerated on the NEP-413 branch at `8393b2c3a` with its uncommitted predeploy review fixes after the budget input changed. Current build artifacts and validation are recorded in `docs/lanes/nep413-enclave-build.md`. The earlier NEP-413 proof and T2 validation remain historical and are preserved separately.
+23 November 2026: the current build record and validation after the FastNEAR 402 fix are in [fastnear-402.md](fastnear-402.md). The build digests, artifacts, validation and references to current builds below preserve the historical 22 November NEP-413 and T2 proofs. The NEP-413 proof is recorded in `docs/lanes/nep413-enclave-build.md`; its 22 November build record is retained at `.codex/k402-enclave-repro/previous-enclave-build-record.json`.
 
 ## Implemented
 

@@ -62,7 +62,7 @@ PY
 
 Do not substitute a cached build for this comparison. Equal measurement ids from identical measurement inputs establish formula determinism. They do not establish image reproducibility. The lane's actual local build and test results are recorded in `docs/lanes/attest-enclave.md`.
 
-For the current NEP-413 predeploy comparison, the same build invocation selected distinct private builders with `--builder siyab-nep413-predeploy-one-20261122` and `--builder siyab-nep413-predeploy-two-20261122`, respectively. Each was created with the `docker-container` driver, the BuildKit image digest recorded in `enclave/build-record.json`, `cpu-quota=200000`, `cpu-period=100000` and `restart-policy=no`. Its private `buildkitd.toml` set `[worker.oci]` and `max-parallelism = 2`. The Docker CLI used the blank configuration at `--config .codex/nep413-predeploy-enclave-repro/docker-config` and endpoint `unix:///var/run/docker.sock`. The frozen context, OCI archives and build logs are in `.codex/nep413-predeploy-enclave-repro`. The verified Buildx binary is retained in that configuration's `cli-plugins` directory. Do not change or reuse another lane's builder.
+For the current 23 November FastNEAR 402 comparison, the same build invocation selected distinct private builders with `--builder siyab-k402-one-20261123` and `--builder siyab-k402-two-20261123`, respectively. Each was created with the `docker-container` driver, the BuildKit image digest recorded in `enclave/build-record.json`, `cpu-quota=200000`, `cpu-period=100000` and `restart-policy=no`. Its private `buildkitd.toml` set `[worker.oci]` and `max-parallelism = 2`. The Docker CLI used the blank configuration at `--config .codex/k402-enclave-repro/docker-config` and endpoint `unix:///var/run/docker.sock`. The frozen context, OCI archives and build logs are in `.codex/k402-enclave-repro`. The verified Buildx binary is retained in that configuration's `cli-plugins` directory. Do not change or reuse another lane's builder.
 
 ## Measured manifest
 
@@ -84,7 +84,29 @@ Port 8080 is direct HTTP. TLS does not terminate inside this image; the attestat
 
 First use an owner approved hello-world CVM to dump `Info` and `GetQuote`, confirm the guest API version, socket permissions and Intel TDX platform, and verify the quote offline with dcap-qvl before authorizing Siyab spending. No real CVM, registry transaction, signer domain, image publication or paid model call is part of these build commands. Keep every real step under the owner's separate control. The legacy v0 `GetQuote` used here returns TDX only; GCP verification also needs its vTPM evidence, so this path cannot establish the full GCP platform claim.
 
-## Local proof on 22 November 2026
+## Local proof on 23 November 2026
+
+The current FastNEAR 402 build record and complete validation are in [fastnear-402.md](../docs/lanes/fastnear-402.md). Two uncached builds in separate private builders completed in 127.343 and 453.297 seconds. Both produced manifest prefix `6a1ef07ba339`, config prefix `a0f99a694534` and OCI index byte hash prefix `5671f09d1107`, with all 12 layer descriptors and all 14 blobs matched and verified. The frozen 26 file context hash prefix is `b9eb974b9950`. The changed image inputs are `intel/budget.py`, prefix `fe131b7eb88a`, and `gate/rpc.py`, prefix `35009ecb760e`. Full hashes are in `enclave/build-record.json`.
+
+Both compose outputs were the same 826 UTF-8 bytes with LF endings, SHA256 prefix `542c9bac331e`, retained at `.codex/k402-enclave-repro/app-compose.json`. The example image repository remains `registry.example/siyab`; no image was published or deployment measurement approved. The earlier second-builder attempt stopped on a pinned wheel download timeout. Its logs remain under `failed-two`; the successful retry used a recreated empty builder.
+
+The exact image is loaded as `siyab-k402-enc:final-20261123`. Its offline runtime smoke passed in 1.922 seconds and verified uid and gid 65532, the baked configuration and all 25 copied input hashes. All six build tests passed in 0.297 seconds with zero skips, failures or errors. Both checks disabled external networking. Exact commands, logs and verification results remain under `.codex/k402-enclave-repro`. Both private builders and their cache volumes were removed and their absence verified. Earlier images and proof artifacts were preserved.
+
+```sh
+docker run --rm --network none --read-only \
+  --tmpfs /tmp:rw,noexec,nosuid,nodev,size=64m,mode=1777 \
+  --cap-drop ALL --security-opt no-new-privileges --ulimit core=0 \
+  --mount "type=bind,src=$PWD,dst=/work,readonly" --workdir /work \
+  --env TEMP=/tmp --env TMP=/tmp --env TMPDIR=/tmp \
+  --entrypoint python siyab-k402-enc:final-20261123 -E -s -B \
+  -m unittest tests.test_enclave_build -v
+```
+
+To reload the current image, use `docker load --input .codex/k402-enclave-repro/one.tar` and tag its returned image id as `siyab-k402-enc:final-20261123`. Its manifest matches the current `enclave/build-record.json`.
+
+## Historical local proof on 22 November 2026
+
+This section preserves the 22 November proof. Its references to current source, artifacts, validation and `enclave/build-record.json` describe that historical build; the record is retained at `.codex/k402-enclave-repro/previous-enclave-build-record.json`.
 
 Two NEP-413 predeploy uncached builds completed sequentially in separate BuildKit containers with separate cache volumes on `feat/nep413-workspace` at `8393b2c3a` with the uncommitted review fixes. The current production source and Dockerfile were unchanged during both builds. Both consumed the same frozen 26 file USTAR context, fixed build arguments, Buildx v0.39.1 and the digest pinned amd64 BuildKit v0.35.1 image. The retained project local Buildx binary was copied into a separate private configuration and rechecked against a fresh copy of its official release SHA256. A new blank project local Docker configuration selected the local Unix Docker daemon through WSL root. Neither the user's Docker configuration nor any existing builder was changed. Each builder had a two CPU quota and worker parallelism two. The build commands took 51.266 and 35.781 seconds.
 

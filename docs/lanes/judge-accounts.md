@@ -131,8 +131,8 @@ or minute cap, and it also shares the 13,000 keyed request daily pool.
 Fixtures cost no reservations. Exhausted budget, an unreadable budget database
 or key cooldown stops the run even if the rules catch the original refusal.
 There is no fallback to keyless FastNEAR reads. Keyed HTTP 401, 402, 403 and
-429 stop immediately; 403 and 429 also start the existing 15 minute cooldown.
-Error output contains status codes, never the provider token.
+429 stop immediately; 402, 403 and 429 also start the existing shared 15 minute cooldown.
+FastNEAR returns HTTP 402 with `quota_exceeded` when credit is used up ([pricing](https://docs.fastnear.com/pricing)). Error output contains status codes, never the provider token.
 
 Only the first 80 accounts in FILE's required hash order may record new
 NearBlocks age evidence. This eligibility is independent of labels.

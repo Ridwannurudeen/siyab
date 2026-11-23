@@ -40,9 +40,12 @@ COPY = (
     "Follow finalized mainnet blocks, with the source block behind each event.",
     "Issuer status reads and action history.",
     "Accounts from on chain registries, with a source on each assertion.",
+    "Sign in with NEAR through Sender or OKX Wallet to keep an encrypted copy of your investigations, notes and watchlist.",
+    "Check a receiver, an account's keys or a swap destination before paying.",
+    "Aggregate verdicts for the recorded mainnet receiver ranking.",
     "What these reads mean.",
     "Payment destination intelligence, without transaction or calldata simulation.",
-    "The Gate demonstrations run on testnet. After the deadline, on 15 Nov 2026, siyabgate.near hosted a one-off mainnet Gate run (code_hash 5EmM2UQRYcvaNvJX6jfcgtNS7Mm8ZPjZhwK1J8bMXrcu): a labelled collector request was refused as REFUSED:no_verdict with nothing spent, and a signed ALLOW paid 0.01 NEAR to an allowlisted payee. The Gate was then paused and the agent revoked. No Gate is in service on mainnet; siyabgate.near is paused with its agent key revoked. This run is outside the hackathon-submission tag.",
+    "The Gate demonstrations run on testnet. After the deadline, on 15 Nov 2026, siyabgate.near hosted a one-off mainnet Gate run (code_hash 5EmM2UQRYcvaNvJX6jfcgtNS7Mm8ZPjZhwK1J8bMXrcu): a labelled collector request was refused as REFUSED:no_verdict with nothing spent, and a signed ALLOW paid 0.01 NEAR to an allowlisted payee. The Gate was then paused and the agent revoked. No Gate is in service on mainnet; siyabgate.near is paused with its agent key revoked. This run is outside the hackathon-submission tag. On 22 Nov 2026 the owner funded one 1Click settlement from siyabgate.near with an ordinary wallet transaction, outside the paused Gate: 0.1 wNEAR to a Base address judged ALLOW, settled as 296020 base units of Base USDC at Base block 60872158.",
     "Inferred attributions remain hypotheses and never add a subject to the refusal set.",
     "Live API checks are read only and never sign.", "Unknown never passes.",
     "Every label has a source. Every verdict has evidence. Unknown never passes.",
@@ -148,7 +151,7 @@ class LandingTest(unittest.TestCase):
         with mock.patch.object(Path, "read_text", read):
             page = render.index_page(render._incidents(), render._flows(), render._clusters(), labels.load())
         panel = page.split('id="landing-check"', 1)[1].split('</article>', 1)[0]
-        self.assertIn("Unsigned receiver judgement for 1.25 NEAR.", panel)
+        self.assertIn("Unsigned receiver judgement for 1.25 NEAR under rules version 1, the default.", panel)
 
     def test_recorded_check_links_only_https_incidents_and_keeps_rpc_as_text(self):
         store = labels.load()
@@ -238,8 +241,60 @@ class LandingTest(unittest.TestCase):
         main = re.search(r'<main[^>]*>\n(.*?)\n</main>', page, re.S).group(1)
         main = re.sub(r'<article class="analytics-panel"><div class="analytics-panel-head"><h2>Label store provenance</h2>.*?</article>', '', main, flags=re.S)
         main = main.replace('/index.html', '/explore.html')
-        expected = "c4b515e3a5461fadabf6a4c0e4765a1e" + "abe9101032e55090a84265aab0b0835f"
+        expected = "78f352ecf64bfbc68ca96009027a788a0e" + "2510f1c6754feec4a763457c47d93e"
         self.assertEqual(hashlib.sha256(main.encode("utf-8")).hexdigest(), expected)
+
+    def test_explore_names_mainnet_records_adapters_and_undeployed_sources(self):
+        page = render.explore_page(render._incidents(), render._flows(), render._clusters(), labels.load())
+        for text in ("Recorded on mainnet", "Gate run, 15 Nov", "1Click settlement, 22 Nov",
+                     "REFUSED:no_verdict", "296020 base units of USDC", "Mainnet record",
+                     "Check adapters", "Not reviewed or adopted by either project.", "Encrypted workspace",
+                     "Gate 0.3.0 source", "not deployed", "No hosted verdict is signed inside an enclave.",
+                     "Chain signature support derives addresses and reads the signer only; it signs nothing.",
+                     "Rules version 1: 990 judged: 850 ALLOW, 138 DENY, 2 UNKNOWN."):
+            with self.subTest(text=text):
+                self.assertTrue(text in page, text)
+        for path in ("fixtures/runs/gate-mainnet-20261115.txt", "fixtures/runs/oneclick-mainnet-20261122.txt",
+                     "integrations/wallet-selector/", "integrations/langchain/"):
+            self.assertIn('<span class="mono">' + path + '</span>', page)
+
+    def test_explore_holdout_counts_come_from_both_committed_scores(self):
+        directory = render.ROOT / "fixtures/holdout/2026-11-22"
+        score_path, excluded_path = directory / "score.json", directory / "score-excluding-labelled.json"
+        score = json.loads(score_path.read_text(encoding="utf-8"))
+        excluded = json.loads(excluded_path.read_text(encoding="utf-8"))
+        original = Path.read_text
+        for changed in (False, True):
+            with self.subTest(changed=changed):
+                if changed:
+                    score["counts"].update(bad=40, good=220)
+                    score["matrix"]["bad"]["DENY"] = 11
+                    score["matrix"]["good"].update(DENY=2, ASK=8)
+                    excluded["excluding_label_store"]["report"]["counts"]["bad"] = 31
+                    excluded["excluding_label_store"]["report"]["matrix"]["bad"]["DENY"] = 2
+                def read(candidate, *args, **kwargs):
+                    if candidate == score_path:
+                        return json.dumps(score)
+                    if candidate == excluded_path:
+                        return json.dumps(excluded)
+                    return original(candidate, *args, **kwargs)
+                with mock.patch.object(Path, "read_text", read):
+                    page = render.explore_page(render._incidents(), render._flows(), render._clusters(), labels.load())
+                holdout = page.split('aria-labelledby="holdout-title"', 1)[1].split('</section>', 1)[0]
+                absent = excluded["excluding_label_store"]["report"]
+                self.assertIn(f'The recorded run refused {score["matrix"]["bad"]["DENY"]} of {score["counts"]["bad"]} accounts labelled bad.', holdout)
+                self.assertIn(f'It refused {score["matrix"]["bad"]["DENY"] - absent["matrix"]["bad"]["DENY"]} accounts already in the label store and {absent["matrix"]["bad"]["DENY"]} of the {absent["counts"]["bad"]} bad accounts absent from it.', holdout)
+                self.assertIn(f'Among {score["counts"]["good"]} presumed good accounts it refused {score["matrix"]["good"]["DENY"]} and asked for confirmation on {score["matrix"]["good"]["ASK"]}.', holdout)
+                for text in ("selected sample, not all NEAR accounts", "presumed good, not verified clean", "No transfer was executed.",
+                             "docs/HOLDOUT.md", "fixtures/holdout/2026-11-22/score.json", "fixtures/holdout/2026-11-22/score-excluding-labelled.json"):
+                    self.assertIn(text, holdout)
+
+    def test_top_receivers_distinguishes_recorded_version_from_replay(self):
+        page = render.top_receivers_page()
+        self.assertIn("These judgements used rules version 1, the default.", page)
+        self.assertIn("A replay of the committed top set under rules version 3 asks the owner to confirm receivers younger than 7 days when account_age is their only signal.", page)
+        self.assertIn("It gives 850 ALLOW, 1 DENY and 139 UNKNOWN.", page)
+        self.assertIn("The committed files were not rewritten.", page)
 
 
 class LandingBrowserTest(unittest.TestCase):

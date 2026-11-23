@@ -1,6 +1,6 @@
 # Registry interface
 
-The registry records the latest verdict for a NEAR account and label assertions keyed by assertion hash. The recorder account submits records; anyone can call the views. UNKNOWN is the zero value, so a subject without a record does not read as allowed.
+The registry records the latest verdict for a NEAR account and label assertions keyed by assertion hash. The recorder account submits records; anyone can call the views. UNKNOWN is the zero value, so a subject without a record does not read as allowed. This verdict registry is separate from the attestation registry in `contracts/attest`, which records enclave keys only after NEAR's TDX verifier accepts their quote (`contracts/attest/src/registry.rs:80-134,138-193`; `docs/spec/attest-v1.md:105-132`); the attestation registry is not deployed (`res/BUILD-attest.md:5`).
 
 `new(owner_id, recorder_id)` sets the owner and recorder accounts and initializes the empty registry. The registry account pays storage for its records. With 3 NEAR available for storage, expect about 700 to 1000 records; actual capacity varies with subject and verdict ID lengths.
 

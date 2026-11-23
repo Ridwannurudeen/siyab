@@ -1,6 +1,6 @@
 # NEP-413 enclave build record
 
-22 November 2026. Branch `feat/nep413-workspace` at `8393b2c3a` with the uncommitted predeploy review fixes. The current two build comparison includes the final sign-in budget source, SHA256 prefix `4901a9e2a7d8`. The earlier proof and its test results are preserved below as history.
+23 November 2026: the current build record and validation after the FastNEAR 402 fix are in [fastnear-402.md](fastnear-402.md). The rest of this document preserves the 22 November 2026 NEP-413 proof on `feat/nep413-workspace` at `8393b2c3a` with the uncommitted predeploy review fixes and sign-in budget source prefix `4901a9e2a7d8`. Its references to current artifacts, validation and `enclave/build-record.json` describe that historical proof; the 22 November record is retained at `.codex/k402-enclave-repro/previous-enclave-build-record.json`.
 
 ## Current predeploy build
 
