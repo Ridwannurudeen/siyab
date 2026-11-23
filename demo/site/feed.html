@@ -160,7 +160,14 @@
       add(panel, "p", "At window start, up to 10 minutes of prior key/outflow activity and 24 hours of fresh-account context may be missing. Transfers windows are separate and may include earlier data.");
     }
     if (stats.mode === "follow" && !stats.updated_at && !stats.last_time) add(panel, "p", "Freshness unavailable: the follower has not recorded a readable update timestamp.");
-    for (const [key, label] of [["large_transfer_page_caps", "Transfer page limits"], ["large_transfer_poll_gaps", "Transfer polling gaps"], ["skipped_heights", "Skipped heights"]]) if (stats[key] && stats[key].length) add(panel, "p", `${label}: ${JSON.stringify(stats[key])}`);
+    for (const [key, label] of [["large_transfer_page_caps", "Transfer page limits"], ["large_transfer_poll_gaps", "Transfer polling gaps"], ["skipped_heights", "Skipped heights"]]) {
+      const values = stats[key];
+      if (!Array.isArray(values) || !values.length) continue;
+      const range = key === "skipped_heights" ? ` (${values.reduce((lowest, height) => Math.min(lowest, height))} to ${values.reduce((highest, height) => Math.max(highest, height))})` : "";
+      const detail = add(panel, "details", undefined, "feed-coverage");
+      add(detail, "summary", `${label}: ${values.length}${range}`);
+      add(detail, "p", values.map(value => JSON.stringify(value)).join(", "), "mono");
+    }
   };
   const poll = async () => {
     if (paused || document.hidden) return;

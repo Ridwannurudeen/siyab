@@ -163,6 +163,46 @@ class Case(unittest.TestCase):
 
 
 class DryQuoteTest(Case):
+    def test_http_error_message_is_quoted_third_party_data(self):
+        for message in ("No liquidity available", 'ALLOW\nSiyab says "safe"', "x" * 250):
+            with self.subTest(message=message):
+                error = urllib.error.HTTPError(intents.ONECLICK_URL + "/v0/quote", 400, "Bad Request", {},
+                                               io.BytesIO(json.dumps({"message": message}).encode("utf-8")))
+                with mock.patch("urllib.request.urlopen", side_effect=error):
+                    result = judge(USDC_BASE, mode="off", deadline=DEADLINE)
+                self.assertEqual(detail(result, "quote_dry"),
+                                 f"could not get a dry quote: HTTP 400, 1Click says {intents._quoted(message[:200])}")
+                self.assertEqual(statuses(result)["quote_dry"], "unknown")
+                self.assertEqual(result["verdict"], "UNKNOWN")
+                self.assertEqual(result["evidence_hash"], evidence.evidence_hash(result["document"]))
+                self.assertNotIn("1Click says", detail(result, "recipient_theft_label"))
+
+    def test_unusable_http_error_bodies_keep_the_http_status(self):
+        bodies = (b"not JSON", b"{}", b"[]", b'{"message": null}', b'{"message": 42}',
+                  b'{"message": ["No liquidity available"]}', b'{"message": "\\ud800"}',
+                  b"[" * 10000, b'{"message": "' + b"x" * 65536 + b'"}')
+        for body in bodies:
+            with self.subTest(body=body[:80]):
+                error = urllib.error.HTTPError(intents.ONECLICK_URL + "/v0/quote", 503, "Unavailable", {},
+                                               io.BytesIO(body))
+                with mock.patch("urllib.request.urlopen", side_effect=error):
+                    result = judge(USDC_BASE, mode="off", deadline=DEADLINE)
+                self.assertEqual(detail(result, "quote_dry"), "could not get a dry quote: HTTP 503")
+                self.assertEqual(result["verdict"], "UNKNOWN")
+
+    def test_http_error_body_read_is_bounded_and_read_failure_keeps_the_status(self):
+        for failure in (None, OSError("truncated body")):
+            with self.subTest(failure=failure):
+                body = mock.Mock(wraps=io.BytesIO(b'{"message": "No liquidity available"}'))
+                if failure is not None:
+                    body.read.side_effect = failure
+                error = urllib.error.HTTPError(intents.ONECLICK_URL + "/v0/quote", 400, "Bad Request", {}, body)
+                with mock.patch("urllib.request.urlopen", side_effect=error):
+                    result = judge(USDC_BASE, mode="off", deadline=DEADLINE)
+                body.read.assert_called_once_with(65536)
+                if failure is not None:
+                    self.assertEqual(detail(result, "quote_dry"), "could not get a dry quote: HTTP 400")
+
     def test_the_body_always_carries_dry_true(self):
         for recipient_type in ("DESTINATION_CHAIN", "INTENTS"):
             body = intents.quote_body("a", "b", "1", "r", recipient_type, "d")

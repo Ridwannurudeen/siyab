@@ -7,7 +7,7 @@ from pathlib import Path
 class PaymentUnitsTest(unittest.TestCase):
     @unittest.skipUnless(shutil.which("node"), "Node is unavailable")
     def test_payment_form_unit_boundaries(self):
-        for scenario in ("native", "invalid", "tokens", "race", "required"):
+        for scenario in ("native", "invalid", "intent", "tokens", "race", "required"):
             with self.subTest(scenario=scenario):
                 result = subprocess.run([shutil.which("node"), "tests/payment_units_runtime.cjs", scenario],
                                         cwd=Path(__file__).resolve().parent.parent,

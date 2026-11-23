@@ -1,20 +1,23 @@
 import hashlib
 import html
+import importlib.util
 import json
+import re
 import shutil
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
+from urllib.parse import urlsplit
 
-from intel import api, feed, records, render
+from intel import api, feed, labels, records, render
 
 
 class FeedVerificationRuntimeTest(unittest.TestCase):
     @unittest.skipUnless(shutil.which("node"), "Node is unavailable")
     def test_feed_and_verification_state_boundaries(self):
-        for scenario in ("feed-future", "feed-not-run", "feed-fresh-status", "feed-freshness", "feed-filter", "feed-acceptance", "feed-invalid", "verify-explicit", "verify-stale",
+        for scenario in ("feed-future", "feed-not-run", "feed-fresh-status", "feed-freshness", "feed-coverage", "feed-filter", "feed-acceptance", "feed-invalid", "verify-explicit", "verify-stale",
                          "verify-timeout", "verify-body-timeout", "verify-invalid"):
             with self.subTest(scenario=scenario):
                 result = subprocess.run([shutil.which("node"), "tests/feed_verify_runtime.cjs", scenario],
@@ -22,8 +25,75 @@ class FeedVerificationRuntimeTest(unittest.TestCase):
                                         cwd=render.ROOT, timeout=15)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    @unittest.skipUnless(shutil.which("node"), "Node is unavailable")
+    def test_feed_and_explore_render_compact_coverage_disclosures(self):
+        for page in (render.feed_page(), render.explore_page([], [], [], labels.load())):
+            with self.subTest(title=page.split("<title>", 1)[1].split("</title>", 1)[0]):
+                scripts = [script for script in re.findall(r"<script>(.*?)</script>", page, re.DOTALL)
+                           if 'const panel = document.getElementById("feed-health")' in script]
+                self.assertEqual(len(scripts), 1)
+                result = subprocess.run([shutil.which("node"), "tests/feed_verify_runtime.cjs", "feed-coverage-render"],
+                                        input=scripts[0], text=True, capture_output=True,
+                                        cwd=render.ROOT, timeout=15)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertIn('<link rel="stylesheet" href="/style.css">', page)
+                self.assertIn(".feed-panel #feed-health .feed-coverage{grid-column:1/-1;min-width:0}", render.STYLE)
+
 
 class FeedWorkspaceTest(unittest.TestCase):
+    def test_nine_digit_height_summaries_fit_on_phone_and_values_reflow(self):
+        if not importlib.util.find_spec("playwright"):
+            self.skipTest("Browser package is not importable")
+        from playwright.sync_api import Error, sync_playwright
+
+        runtime = sync_playwright().start()
+        self.addCleanup(runtime.stop)
+        try:
+            browser = runtime.chromium.launch(headless=True)
+        except (Error, OSError) as error:
+            self.skipTest("Browser cannot launch: " + str(error))
+        self.addCleanup(browser.close)
+        heights = [*range(225875399, 225874999, -1), 225874999, 225875000]
+        pages = {"/feed.html": render.feed_page(), "/explore.html": render.explore_page([], [], [], labels.load())}
+        assets = {}
+        for path in (render.ROOT / "intel/ui").glob("*.js"):
+            source = path.read_text(encoding="utf-8")
+            assets[render._script_asset(source)[0]] = source
+        fonts = {"/fonts/" + path.name: path for path in (render.ROOT / "intel/ui/fonts").iterdir()}
+
+        def local_route(route):
+            path = urlsplit(route.request.url).path
+            if path in pages:
+                route.fulfill(body=pages[path], content_type="text/html")
+            elif path == "/style.css":
+                route.fulfill(body=render.STYLE, content_type="text/css")
+            elif path in assets:
+                route.fulfill(body=assets[path], content_type="application/javascript")
+            elif path in fonts:
+                route.fulfill(path=str(fonts[path]))
+            elif path == "/feed":
+                route.fulfill(json={"events": [], "event_ids": [], "follower": "running", "stats": {"skipped_heights": heights}})
+            else:
+                route.abort()
+
+        with browser.new_context(reduced_motion="reduce") as context:
+            context.route("**/*", local_route)
+            page = context.new_page()
+            for width in (375, 1440):
+                page.set_viewport_size({"width": width, "height": 900})
+                for path in pages:
+                    with self.subTest(width=width, page=path):
+                        page.goto("http://siyab.local" + path, wait_until="networkidle")
+                        page.evaluate("document.fonts.ready")
+                        detail = page.locator("#feed-health .feed-coverage")
+                        summary = detail.locator("summary")
+                        self.assertEqual(summary.inner_text(), "Skipped heights: 402 (225874999 to 225875399)")
+                        self.assertEqual(summary.bounding_box()["height"], 44)
+                        self.assertFalse(detail.locator("p").is_visible())
+                        summary.click()
+                        self.assertEqual(detail.locator("p").inner_text(), ", ".join(str(height) for height in heights))
+                        self.assertLessEqual(page.evaluate("document.documentElement.scrollWidth"), width)
+
     def test_events_are_readable_records_without_invented_counterparties(self):
         event = {"signal": "full_access_key_then_outflow", "subject": "agent.near", "detail": "Recorded outflow",
                  "destination": "implicit", "amount_yocto": "1000000000000000000000000",

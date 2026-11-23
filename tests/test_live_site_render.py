@@ -12,6 +12,25 @@ from tests.test_render import make_row
 
 
 class LiveSiteRenderTest(unittest.TestCase):
+    def test_landing_uses_the_shared_desktop_and_mobile_header_navigation(self):
+        landing = render.index_page([], render._flows(), [], labels.load())
+        explore = render.explore_page([], [], [], labels.load())
+        header = lambda page: page.split("<header", 1)[1].split("</header>", 1)[0].replace(' aria-current="page"', "")
+        self.assertEqual(header(landing), header(explore))
+        self.assertNotIn("landing-navigation", landing)
+        self.assertNotIn("landing-navigation", render.STYLE)
+        self.assertNotIn(".landing-page .mobile-navigation", render.STYLE)
+        self.assertIn('<section class="landing-hero"', landing)
+        self.assertIn('id="landing-account"', landing)
+
+    def test_swap_amount_is_labelled_as_near_and_accepts_decimals(self):
+        page = render.explore_page([], [], [], labels.load())
+        form = page.split('id="tool-intent-form"', 1)[1].split("</form>", 1)[0]
+        self.assertIn('<label for="intent-amount">Amount in NEAR (sent as wNEAR)', form)
+        amount = re.search(r'<input id="intent-amount"[^>]+>', form).group()
+        self.assertIn('inputmode="decimal"', amount)
+        self.assertNotIn("Amount in base units", form)
+
     def test_landing_preview_describes_lookup_destination(self):
         page = render.index_page([], render._flows(), [], labels.load())
         self.assertEqual(page.count("Shown on the lookup page after you investigate an account."), 4)

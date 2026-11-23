@@ -204,10 +204,6 @@ def page(title, body, depth=0, rooted=False, *, record=False, landing=False):
                   + "".join(f'<details class="app-menu"><summary>{label}</summary>'
                             f'<nav class="app-menu-panel" aria-label="{label}">{items(links)}</nav></details>'
                             for label, links in (("Explore", secondary), ("Tools", tools))))
-    landing_nav = ('<nav class="landing-navigation" aria-label="Primary">'
-                   + ''.join(f'<a href="{up}{href}">{label}</a>' for href, label in
-                             (("explore.html", "Explore"), ("investigate.html", "Account lookup"),
-                              ("explore.html#incidents", "Incidents"), ("verify.html", "Verify"))) + '</nav>') if landing else ''
     shell = (ROOT / "intel/ui/shell.js").read_text(encoding="utf-8")
     workspace_script = (ROOT / "intel/ui/workspace.js").read_text(encoding="utf-8")
     cloud_script = (ROOT / "intel/ui/cloud-workspace.js").read_text(encoding="utf-8")
@@ -235,12 +231,7 @@ def page(title, body, depth=0, rooted=False, *, record=False, landing=False):
                 f'<meta name="twitter:image" content="{SITE_ORIGIN}/brand/social.png">\n'
                 '<link rel="icon" type="image/svg+xml" href="/brand/favicon.svg"><link rel="alternate icon" href="/favicon.ico">\n')
     theme_script = "<script>try{var t=localStorage.getItem('siyab-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>\n"
-    mobile_landing_nav = landing_nav.replace('aria-label="Primary"', 'aria-label="Mobile primary"', 1)
-    frame = (f'<header class="app-topbar"><a class="site-brand" href="{up}index.html">{BRAND_MARK}<span>Siyab</span></a>'
-             f'{landing_nav}<div class="header-actions">{search}</div>'
-             f'<details class="mobile-navigation" id="mobile-navigation"><summary>Menu</summary>'
-             f'<div class="mobile-navigation-panel">{mobile_landing_nav}</div></details></header>' if landing else
-             f'<header class="app-topbar app-header"><a class="site-brand" href="{up}index.html">{BRAND_MARK}<span>Siyab</span></a>'
+    frame = (f'<header class="app-topbar app-header"><a class="site-brand" href="{up}index.html">{BRAND_MARK}<span>Siyab</span></a>'
              f'{header_nav}<div class="header-actions">{search}</div>'
              f'<details class="mobile-navigation" id="mobile-navigation"><summary>Menu</summary><div class="mobile-navigation-panel">{nav}</div></details>'
              '</header>')
@@ -598,8 +589,8 @@ def explore_page(incidents, flows, clusters, store, top_judgements_dir=TOP_RECEI
         '<form class="tool-form" id="tool-intent-form"><label for="destination-asset">Destination asset ID'
         '<input id="destination-asset" name="destination_asset" type="text" required></label>'
         '<label for="intent-recipient">Recipient address<input id="intent-recipient" name="recipient" type="text" required></label>'
-        '<label for="intent-amount">Amount in base units<input id="intent-amount" name="amount" type="text" '
-        'inputmode="numeric" required></label><button class="primary" type="submit">Check destination</button></form>'
+        '<label for="intent-amount">Amount in NEAR (sent as wNEAR)<input id="intent-amount" name="amount" type="text" '
+        'inputmode="decimal" required></label><button class="primary" type="submit">Check destination</button></form>'
         '<div id="tool-intent-result" class="results" aria-live="polite"></div></section></section>'
         '<section aria-labelledby="proof-title"><h2 id="proof-title">Proven on testnet</h2><p class="muted">Committed run logs</p>'
         f'<div class="proof-grid">{proof_cards}</div></section>'

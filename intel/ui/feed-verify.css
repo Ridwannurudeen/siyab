@@ -1,6 +1,9 @@
 .feed-panel{min-width:0;margin-block:16px}
 .feed-panel #feed-health{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,max-content));gap:12px 32px;min-height:112px}
 .feed-panel #feed-health p{margin:0;max-width:35rem}
+.feed-panel #feed-health .feed-coverage{grid-column:1/-1;min-width:0}
+.feed-coverage>summary{min-height:44px;padding-block:var(--s2);cursor:pointer;font:400 var(--fs-data) var(--font-ui)}
+.feed-panel #feed-health .feed-coverage>p{max-width:none;white-space:normal;overflow-wrap:anywhere}
 .feed-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:12px;border-top:1px solid rgb(var(--hairline))}
 .feed-actions>span{flex:1 1 240px;color:rgb(var(--secondary));font:400 var(--fs-data) var(--font-ui)}
 .feed-actions button[aria-pressed="true"]{border-color:rgb(var(--caution));color:rgb(var(--caution))}

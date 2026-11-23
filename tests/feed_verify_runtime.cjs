@@ -42,7 +42,7 @@ const record = hash => ({verdict: 'Allow', evidence_hash: hash, observed_block: 
 const rpc = value => ({result: {result: Array.from(Buffer.from(JSON.stringify(value)))}});
 async function main() {
   const scenario = process.argv[2], verify = scenario.startsWith('verify-');
-  const script = verify ? fs.readFileSync(0, 'utf8') : fs.readFileSync('intel/ui/feed.js', 'utf8');
+  const script = verify || scenario === 'feed-coverage-render' ? fs.readFileSync(0, 'utf8') : fs.readFileSync('intel/ui/feed.js', 'utf8');
   const env = environment(script, scenario === 'verify-stale');
   if (verify) {
     env.nodes.registry.value = 'registry.example.testnet'; env.nodes.subject.value = 'vendor.testnet'; env.nodes.hash.value = 'a'.repeat(64);
@@ -73,6 +73,32 @@ async function main() {
     assert.match(text(env.nodes['feed-health']), /STALE/);
     assert.match(text(env.nodes['feed-update-status']), /Read succeeded. The follower data it returned is 2 min old/);
     env.nodes['feed-pause'].emit('click'); assert.match(text(env.nodes['feed-update-status']), /paused/);
+  } else if (scenario === 'feed-coverage' || scenario === 'feed-coverage-render') {
+    const stats = {
+      large_transfer_page_caps: [{subject: 'alice.near', page: 5}, {subject: '<img src=x onerror=alert(1)>', page: 10}],
+      large_transfer_poll_gaps: [{from: 1, to: 3, error: 'x'.repeat(500)}, {from: 4, to: 6}],
+      skipped_heights: [...Array.from({length: 400}, (_, index) => 10399 - index), 9999, 10000],
+    };
+    const original = JSON.stringify(stats);
+    await env.reply(0, {...response([], []), stats: {...response([], []).stats, ...stats}});
+    const details = env.nodes['feed-health'].querySelectorAll('details');
+    assert.equal(details.length, 3);
+    const summaries = ['Transfer page limits: 2', 'Transfer polling gaps: 2', 'Skipped heights: 402 (9999 to 10399)'];
+    for (const [index, values] of Object.values(stats).entries()) {
+      const detail = details[index];
+      assert.equal(detail.className, 'feed-coverage');
+      assert.equal(detail.getAttribute('open'), null, 'Full lists start collapsed');
+      assert.equal(detail.querySelectorAll('summary')[0].textContent, summaries[index]);
+      assert.equal(detail.querySelectorAll('p')[0].textContent, values.map(value => JSON.stringify(value)).join(', '), 'All values, including duplicates, retain their order');
+      assert.equal(detail.querySelectorAll('img').length, 0, 'Provider values remain inert text');
+    }
+    assert.equal(JSON.stringify(stats), original, 'Summarizing must not mutate the feed response');
+    env.run(30000);
+    await env.reply(1, {...response([], []), stats: {...response([], []).stats, skipped_heights: [42]}});
+    assert.equal(env.nodes['feed-health'].querySelectorAll('summary')[0].textContent, 'Skipped heights: 1 (42 to 42)');
+    env.run(30000);
+    await env.reply(2, {...response([], []), stats: {...response([], []).stats, skipped_heights: [], large_transfer_page_caps: [], large_transfer_poll_gaps: []}});
+    assert.equal(env.nodes['feed-health'].querySelectorAll('details').length, 0);
   } else if (scenario === 'feed-filter') {
     const raw = 'full access key ed25519:abc added to agent.near; transfer of 1000000000000000000000000 yoctoNEAR to x.near within 452158 ms';
     const a = signal('full_access_key_then_outflow', {destination: 'implicit', amount_yocto: '1000000000000000000000000', detail: raw});
