@@ -849,16 +849,19 @@ class PrefetchFollowTest(unittest.TestCase):
                     prefetch_follow.main(["--max-blocks", "1", "--stop-height", "1", flag, "0"])
             self.assertEqual(caught.exception.code, 2)
 
-    def test_make_client_matches_follow(self):
-        with mock.patch.object(rpc, "Client", wraps=rpc.Client) as clients:
-            feed.follow(
-                store=Store(), state_path=self.state_dir / "state.json", max_blocks=0,
-            )
-            follow_call = clients.call_args_list[0]
-            clients.reset_mock()
+    def test_make_client_is_keyless_and_explicitly_off(self):
+        with (
+            mock.patch.dict(os.environ, {
+                "FASTNEAR_API_KEY_FILE": str(Path(self.temp.name) / "provider.txt"),
+                "GATE_FIXTURES_MODE": "replay",
+            }),
+            mock.patch.object(Path, "read_text", side_effect=AssertionError("the key was read")) as reads,
+        ):
             client = prefetch_follow.make_client()
-        self.assertEqual(clients.call_args, follow_call)
-        self.assertEqual(follow_call, mock.call(feed.NEARDATA_URL, "off", kind="http"))
+        reads.assert_not_called()
+        self.assertEqual(client.url, feed.NEARDATA_URL)
+        self.assertEqual(client.mode, "off")
+        self.assertEqual(client.kind, "http")
         self.assertEqual(client.headers, {})
 
     def test_sleep_skips_intervals_and_keeps_final_wait(self):

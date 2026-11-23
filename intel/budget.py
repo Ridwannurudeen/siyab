@@ -14,11 +14,12 @@ out, so the key is spent only where it is counted. A database that cannot be ope
 
 A keyed call is one that carries the FastNEAR key to a FastNEAR host (FASTNEAR_CLASSES). Counters, each per UTC
 day, hour and minute: every call by mode (keyed or keyless), caller class and provider class; the keyed limits
-of KEYED_LIMITS; the keyless ceilings of KEYLESS_LIMITS; the pooled count of every keyed call in a UTC day,
-refused at POOLED_DAILY for every caller class; and the cumulative count of keyed calls since the database
-began. Reaching ALERT_PERCENTS of POOLED_DAILY, or CUMULATIVE_ALERT, records a row in alerts and writes one
-stderr line. A 402, 403 or 429 answering a keyed call (key_failure) starts KEY_COOLDOWN_S, shared by every process,
-during which reserve sends no key.
+of KEYED_LIMITS; the keyless ceilings of KEYLESS_LIMITS; the pooled count of keyed calls other than feed in a
+UTC day, refused at POOLED_DAILY; and the cumulative count of every keyed call since the database began. Feed
+has its own 120,000 daily keyed cap, so its calls leave the ordinary 13,000 pool available and a spent ordinary
+pool leaves the feed allowance available. Reaching ALERT_PERCENTS of either daily cap, or CUMULATIVE_ALERT,
+records a row in alerts and writes one stderr line. A 402, 403 or 429 answering a keyed call (key_failure)
+starts KEY_COOLDOWN_S, shared by every process, during which reserve sends no key.
 
 Sign in always goes keyless. Its reserved pool and the general keyless share fit within the unchanged total
 FastNEAR RPC envelope. Historical total and sign in counters seed the general share once per window, so an
@@ -61,7 +62,7 @@ KEYED_LIMITS = {
     "team": {"*": (1500, 250, None)},
     "watch": {"*": (3000, 125, None)},
     "investigation": {"*": (1500, 250, None)},
-    "feed": {"*": (0, 0, None)},
+    "feed": {"*": (120000, None, None)},
     "operator": {"*": (1500, None, None)},
     "recording": {"*": (3000, None, None)},
 }
@@ -162,7 +163,8 @@ def _counters(provider, caller, keyed):
             if limit is not None:
                 counters[(f"{prefix}:{share}", span)] = limit
     if keyed:
-        counters[("pooled", DAY_S)] = POOLED_DAILY
+        if caller != "feed":
+            counters[("pooled", DAY_S)] = POOLED_DAILY
         counters[("cumulative", 0)] = None
     return counters
 
@@ -178,7 +180,8 @@ def reserve(provider, caller, *, keyed, now):
 
     Returns True when the call may carry the FastNEAR key: keyed is true, the caller is not near_auth, a
     database is configured and no key cooldown runs. Raises Refused, counting nothing, when a window is spent or the database
-    cannot be opened or read. A keyed recording call also refuses during cooldown instead of going keyless."""
+    cannot be opened or read. Keyed feed and recording calls also refuse during cooldown; the follower paces
+    and reserves its keyless retry separately."""
     path = database()
     if path is None:
         return False
@@ -190,8 +193,8 @@ def reserve(provider, caller, *, keyed, now):
             if keyed:
                 cooldown = connection.execute("SELECT until_ms FROM key_cooldown WHERE singleton=1").fetchone()
                 keyed = cooldown is None or cooldown[0] <= int(now * 1000)
-                if not keyed and caller == "recording":
-                    raise Refused("The provider budget refused the recording key during cooldown; retry later.",
+                if not keyed and caller in ("feed", "recording"):
+                    raise Refused(f"The provider budget refused the {caller} key during cooldown; retry later.",
                                   math.ceil(cooldown[0] / 1000 - now))
             counters = _counters(provider, caller, keyed)
             if not keyed and provider in KEYLESS_GENERAL_LIMITS:
@@ -228,16 +231,19 @@ def reserve(provider, caller, *, keyed, now):
                                    "SET count=count+1", (counter, window, expires))
             if keyed:
                 day = int(now // DAY_S)
-                pooled = connection.execute("SELECT count FROM counters WHERE counter='pooled' AND window=?",
-                                            (day,)).fetchone()[0]
+                counter, limit, name = (("keyed:feed:*", KEYED_LIMITS["feed"]["*"][0], "feed")
+                                        if caller == "feed" else ("pooled", POOLED_DAILY, "pooled"))
+                count = connection.execute("SELECT count FROM counters WHERE counter=? AND window=?",
+                                           (counter, day)).fetchone()[0]
                 total = connection.execute("SELECT count FROM counters WHERE counter='cumulative' AND window=0"
                                            ).fetchone()[0]
                 date = datetime.fromtimestamp(now, UTC).strftime("%Y-%m-%d")
+                calls = "keyed FastNEAR feed calls" if caller == "feed" else "keyed FastNEAR calls"
                 for percent in ALERT_PERCENTS:
-                    if pooled == POOLED_DAILY * percent // 100:
-                        lines += _alert(connection, f"pooled_{percent}", day, pooled, now,
-                                        f"{pooled} keyed FastNEAR calls on UTC day {date}, {percent} percent of "
-                                        f"the pooled cap of {POOLED_DAILY}.")
+                    if count == limit * percent // 100:
+                        lines += _alert(connection, f"{name}_{percent}", day, count, now,
+                                        f"{count} {calls} on UTC day {date}, {percent} percent of "
+                                        f"the {name} cap of {limit}.")
                 if total == CUMULATIVE_ALERT:
                     lines += _alert(connection, f"cumulative_{CUMULATIVE_ALERT}", 0, total, now,
                                     f"{total} keyed FastNEAR calls since the counter started.")

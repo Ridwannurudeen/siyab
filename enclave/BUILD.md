@@ -60,9 +60,9 @@ assert digests[0] == digests[1], "independent image manifests differ"
 PY
 ```
 
-Do not substitute a cached build for this comparison. Equal measurement ids from identical measurement inputs establish formula determinism. They do not establish image reproducibility. The lane's actual local build and test results are recorded in `docs/lanes/attest-enclave.md`.
+Do not substitute a cached build for this comparison. Equal measurement ids from identical measurement inputs establish formula determinism. They do not establish image reproducibility. The current keyed feed build and test results are recorded in `docs/lanes/feed-keyed-cap.md`.
 
-For the current 23 November FastNEAR 402 comparison, the same build invocation selected distinct private builders with `--builder siyab-k402-one-20261123` and `--builder siyab-k402-two-20261123`, respectively. Each was created with the `docker-container` driver, the BuildKit image digest recorded in `enclave/build-record.json`, `cpu-quota=200000`, `cpu-period=100000` and `restart-policy=no`. Its private `buildkitd.toml` set `[worker.oci]` and `max-parallelism = 2`. The Docker CLI used the blank configuration at `--config .codex/k402-enclave-repro/docker-config` and endpoint `unix:///var/run/docker.sock`. The frozen context, OCI archives and build logs are in `.codex/k402-enclave-repro`. The verified Buildx binary is retained in that configuration's `cli-plugins` directory. Do not change or reuse another lane's builder.
+For the current 23 November keyed feed cap comparison, the same build invocation selected distinct private builders with `--builder siyab-feedcap-r2-one-20261123` and `--builder siyab-feedcap-r2-two-20261123`, respectively. Each was created with the `docker-container` driver, the BuildKit image digest recorded in `enclave/build-record.json`, `cpu-quota=200000`, `cpu-period=100000` and `restart-policy=no`. Its private `buildkitd.toml` set `[worker.oci]` and `max-parallelism = 2`. The Docker CLI used the blank configuration at `--config .codex/feedcap-enclave-repro/r2/docker-config` and endpoint `unix:///var/run/docker.sock`. The frozen context, OCI archives and build logs are in `.codex/feedcap-enclave-repro/r2`. The verified Buildx binary is retained in that configuration's `cli-plugins` directory. Do not change or reuse another lane's builder.
 
 ## Measured manifest
 
@@ -86,7 +86,37 @@ First use an owner approved hello-world CVM to dump `Info` and `GetQuote`, confi
 
 ## Local proof on 23 November 2026
 
-The current FastNEAR 402 build record and complete validation are in [fastnear-402.md](../docs/lanes/fastnear-402.md). Two uncached builds in separate private builders completed in 127.343 and 453.297 seconds. Both produced manifest prefix `6a1ef07ba339`, config prefix `a0f99a694534` and OCI index byte hash prefix `5671f09d1107`, with all 12 layer descriptors and all 14 blobs matched and verified. The frozen 26 file context hash prefix is `b9eb974b9950`. The changed image inputs are `intel/budget.py`, prefix `fe131b7eb88a`, and `gate/rpc.py`, prefix `35009ecb760e`. Full hashes are in `enclave/build-record.json`.
+The current keyed feed cap build record and complete lane validation are in [feed-keyed-cap.md](../docs/lanes/feed-keyed-cap.md). Only `intel/budget.py` changed among the 26 image inputs, to SHA256 prefix `22e504bb6e04`. The feed module is not an image input. The Dockerfile, dependencies, fixed build arguments and all other copied inputs are unchanged.
+
+Two uncached builds ran sequentially through WSL Ubuntu 24.04 root in fresh private BuildKit containers with distinct empty cache volumes. They completed in 31.797 and 31.000 seconds. Both used Docker 29.1.3, Buildx v0.39.1 and digest pinned BuildKit v0.35.1, Linux amd64, `SOURCE_DATE_EPOCH=1795304440`, timestamp rewriting and disabled provenance and SBOM. A fresh official release checksum verified the copied project local Buildx binary. Existing Docker configurations and builders were preserved.
+
+Both OCI index byte hashes, manifest and config descriptors and all 12 layer descriptors matched. All 14 blobs per archive matched their descriptor hashes and sizes, with no unreferenced blob. The manifest prefix is `aa7d5f9d1007`, config `a276cda44af5`, index `f2a6ccf46c6a` and frozen context `cda7b8d44e1b`. The sorted 26 file USTAR context uses mode 0644 and the fixed epoch. Independent recreation from the current source bytes produced the same context bytes. All source hashes matched after each build and after runtime checks. Full hashes and reproducibility settings are in `enclave/build-record.json`.
+
+The existing compose CLI produced identical 826 byte UTF-8 outputs twice with LF endings, SHA256 prefix `191d0354a0b1`, retained at `.codex/feedcap-enclave-repro/r2/app-compose.json`. It still uses the example repository `registry.example/siyab`. No image was published and no CVM or complete deployment measurement was created.
+
+All six host build tests passed in 0.325 seconds with TEMP and TMP at `C:\t\feedcap`. All six image build tests passed in 0.396 seconds with networking disabled, a read only source mount and ephemeral `/tmp`. The separate baked runtime smoke passed in 0.860 seconds without a source mount or network. It verified uid and gid 65532, fixed configuration, dependency imports, absent shells and relay, registry refusal and all 25 copied input hashes. It also verified the 120,000 daily keyed feed cap, the unchanged 13,000 ordinary pool, shared cumulative accounting and the feed's exclusion from the ordinary pool. An ephemeral SQLite database exercised HTTP 402 cooldown, refusal of a keyed feed reservation during cooldown, a separately reserved keyless read and restored keyed eligibility at exact expiry. Both test runs had zero skips, failures or errors.
+
+Exact commands, logs, source hashes, builder inspections, OCI verification, context recreation and test results remain under `.codex/feedcap-enclave-repro/r2`. Both private builders and their cache volumes were removed and their absence verified. The local image is `siyab-feedcap-r2-enc:final-20261123`. Prior images and artifacts were preserved.
+
+```sh
+docker run --rm --network none --read-only \
+  --tmpfs /tmp:rw,noexec,nosuid,nodev,size=64m,mode=1777 \
+  --cap-drop ALL --security-opt no-new-privileges --ulimit core=0 \
+  --mount "type=bind,src=$PWD,dst=/work,readonly" --workdir /work \
+  --env TEMP=/tmp --env TMP=/tmp --env TMPDIR=/tmp \
+  --entrypoint python siyab-feedcap-r2-enc:final-20261123 -E -s -B \
+  -m unittest tests.test_enclave_build -v
+```
+
+To reload the current image, use `docker load --input .codex/feedcap-enclave-repro/r2/one.tar` and tag its returned image id as `siyab-feedcap-r2-enc:final-20261123`. Its manifest matches the current `enclave/build-record.json`.
+
+The earlier keyed feed comparison before the cooldown timing repair remains under `.codex/feedcap-enclave-repro`, with manifest prefix `56ce52694b1d`. Its record is retained at `.codex/feedcap-enclave-repro/r2/previous-enclave-build-record.json`. That comparison is historical.
+
+## Historical FastNEAR 402 proof on 23 November 2026
+
+This section preserves the earlier FastNEAR 402 proof in [fastnear-402.md](../docs/lanes/fastnear-402.md). Its build record is retained at `.codex/feedcap-enclave-repro/previous-enclave-build-record.json`; the `.codex/k402-enclave-repro` artifacts remain in the earlier worktree.
+
+Two uncached builds in separate private builders completed in 127.343 and 453.297 seconds. Both produced manifest prefix `6a1ef07ba339`, config prefix `a0f99a694534` and OCI index byte hash prefix `5671f09d1107`, with all 12 layer descriptors and all 14 blobs matched and verified. The frozen 26 file context hash prefix is `b9eb974b9950`. The changed image inputs were `intel/budget.py`, prefix `fe131b7eb88a`, and `gate/rpc.py`, prefix `35009ecb760e`. Full hashes are in the retained record.
 
 Both compose outputs were the same 826 UTF-8 bytes with LF endings, SHA256 prefix `542c9bac331e`, retained at `.codex/k402-enclave-repro/app-compose.json`. The example image repository remains `registry.example/siyab`; no image was published or deployment measurement approved. The earlier second-builder attempt stopped on a pinned wheel download timeout. Its logs remain under `failed-two`; the successful retry used a recreated empty builder.
 
@@ -102,7 +132,7 @@ docker run --rm --network none --read-only \
   -m unittest tests.test_enclave_build -v
 ```
 
-To reload the current image, use `docker load --input .codex/k402-enclave-repro/one.tar` and tag its returned image id as `siyab-k402-enc:final-20261123`. Its manifest matches the current `enclave/build-record.json`.
+To reload that earlier image from its worktree, use `docker load --input .codex/k402-enclave-repro/one.tar` and tag its returned image id as `siyab-k402-enc:final-20261123`. Its manifest matches the retained earlier build record.
 
 ## Historical local proof on 22 November 2026
 

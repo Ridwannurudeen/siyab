@@ -143,15 +143,17 @@ class BudgetWindowTest(BudgetCase):
         self.assertRefused("fastnear_index", "anonymous", True, T0, 48600)
         self.assertTrue(budget.reserve("fastnear_index", "anonymous", keyed=True, now=T0 + 48600))
 
-    def test_the_pooled_cap_refuses_every_caller_class_and_reopens_the_next_utc_day(self):
+    def test_the_pooled_cap_refuses_non_feed_caller_classes_and_reopens_the_next_utc_day(self):
         self.seed("pooled", budget.DAY_S, budget.POOLED_DAILY)
         for caller in budget.CALLER_CLASSES:
+            if caller == "feed":
+                continue
             with self.subTest(caller=caller):
                 self.assertRefused("fastnear_index", caller, True, T0, 48600)
         self.assertFalse(budget.reserve("fastnear_rpc", "operator", keyed=False, now=T0))
         self.assertTrue(budget.reserve("fastnear_index", "operator", keyed=True, now=T0 + 48600))
 
-    def test_each_worker_and_team_class_has_its_own_keyed_budget_and_the_feed_has_none(self):
+    def test_each_worker_team_and_feed_class_has_its_own_keyed_budget(self):
         self.seed("keyed:watch:*", budget.DAY_S, 3000)
         self.assertRefused("fastnear_index", "watch", True, T0, 48600)
         self.assertTrue(budget.reserve("fastnear_index", "investigation", keyed=True, now=T0))
@@ -161,7 +163,7 @@ class BudgetWindowTest(BudgetCase):
         self.assertRefused("fastnear_rpc", "investigation", True, T0, 1800)
         self.seed("keyed:team:*", budget.DAY_S, 1500)
         self.assertRefused("fastnear_archival", "team", True, T0, 48600)
-        self.assertRefused("neardata", "feed", True, T0, 48600)
+        self.assertTrue(budget.reserve("neardata", "feed", keyed=True, now=T0))
         self.assertRefused("neardata", "anonymous", True, T0, 48600)
         self.assertFalse(budget.reserve("neardata", "feed", keyed=False, now=T0))
         self.seed("pooled", budget.DAY_S, budget.POOLED_DAILY - 1)
@@ -288,6 +290,99 @@ class BudgetWindowTest(BudgetCase):
     def test_an_unreadable_database_refuses_the_call(self):
         self.path.mkdir(parents=True)
         error = self.assertRefused("fastnear_rpc", "operator", False, T0, budget.REFUSAL_RETRY_S)
+        self.assertIn("could not be read", str(error))
+
+
+class FeedBudgetTest(BudgetCase):
+    def test_feed_has_a_120000_daily_cap_across_providers_and_reopens_at_midnight(self):
+        self.seed("keyed:feed:*", budget.DAY_S, 119999)
+        self.assertTrue(budget.reserve("neardata", "feed", keyed=True, now=T0))
+        self.assertRefused("fastnear_index", "feed", True, T0, 48600)
+        self.assertEqual(budget.KEYED_LIMITS["feed"], {"*": (120000, None, None)})
+        self.assertEqual(self.count("keyed:feed:*", budget.DAY_S), 120000)
+        self.assertEqual(self.count("keyed:feed:neardata", budget.DAY_S), 1)
+        self.assertEqual(self.count("keyed:feed:fastnear_index", budget.DAY_S), 0)
+        self.assertEqual(self.count("cumulative", 0), 1)
+        self.assertEqual(self.count("pooled", budget.DAY_S), 0)
+        self.assertTrue(budget.reserve("neardata", "feed", keyed=True, now=T0 + 48600))
+        self.assertEqual(self.count("keyed:feed:*", budget.DAY_S, T0 + 48600), 1)
+
+    def test_a_spent_ordinary_pool_preserves_the_feed_allowance(self):
+        self.seed("pooled", budget.DAY_S, budget.POOLED_DAILY)
+        self.assertTrue(budget.reserve("neardata", "feed", keyed=True, now=T0))
+        self.assertEqual(self.count("pooled", budget.DAY_S), 13000)
+        self.assertEqual(self.count("keyed:feed:*", budget.DAY_S), 1)
+        self.assertRefused("fastnear_rpc", "operator", True, T0, 48600)
+
+    def test_a_spent_feed_pool_preserves_the_ordinary_allowance(self):
+        self.seed("keyed:feed:*", budget.DAY_S, 120000)
+        self.assertTrue(budget.reserve("fastnear_rpc", "operator", keyed=True, now=T0))
+        self.assertRefused("neardata", "feed", True, T0, 48600)
+        self.assertEqual(self.count("keyed:feed:*", budget.DAY_S), 120000)
+        self.assertEqual(self.count("pooled", budget.DAY_S), 1)
+        self.assertFalse(budget.reserve("neardata", "feed", keyed=False, now=T0))
+        self.assertEqual(self.count("keyless:feed:neardata", budget.DAY_S), 1)
+
+    def test_feed_calls_share_the_cumulative_counter_and_alert(self):
+        self.seed("cumulative", 0, budget.CUMULATIVE_ALERT - 1)
+        self.assertTrue(budget.reserve("neardata", "feed", keyed=True, now=T0))
+        self.assertTrue(budget.reserve("fastnear_rpc", "operator", keyed=True, now=T0))
+        self.assertEqual(self.count("cumulative", 0), budget.CUMULATIVE_ALERT + 1)
+        self.assertEqual(self.count("pooled", budget.DAY_S), 1)
+        self.assertEqual(self.alerts(), ["cumulative_300000"])
+
+    def test_feed_threshold_alerts_are_written_once_per_utc_day(self):
+        for now in (T0, T0 + DAY):
+            for percent in budget.ALERT_PERCENTS:
+                for _ in range(2):
+                    self.seed("keyed:feed:*", budget.DAY_S, 120000 * percent // 100 - 1, now)
+                    with budget.use_database(self.path):
+                        self.assertTrue(budget.reserve("neardata", "feed", keyed=True, now=now))
+            self.assertRefused("neardata", "feed", True, now, 48600)
+        self.assertEqual(self.alerts(), ["feed_50", "feed_80", "feed_100"] * 2)
+        lines = [line for line in self.stderr.getvalue().splitlines()
+                 if line.startswith("provider budget alert:")]
+        self.assertEqual(len(lines), 6)
+        self.assertIn("60000 keyed FastNEAR feed calls on UTC day 2026-11-12, 50 percent of the feed cap of 120000",
+                      lines[0])
+        self.assertIn("96000 keyed FastNEAR feed calls", lines[1])
+        self.assertIn("120000 keyed FastNEAR feed calls", lines[2])
+        self.assertIn("UTC day 2026-11-13", lines[3])
+
+    def test_two_processes_cannot_overshoot_the_shared_feed_cap(self):
+        self.seed("keyed:feed:*", budget.DAY_S, 119850)
+        script = ("import sys\nfrom intel import budget\nreserved = 0\nfor _ in range(200):\n"
+                  "    try:\n        budget.reserve('neardata', 'feed', keyed=True, now=float(sys.argv[1]))\n"
+                  "    except budget.Refused:\n        continue\n    reserved += 1\nprint(reserved)\n")
+        workers = [subprocess.Popen([sys.executable, "-c", script, repr(T0)], cwd=ROOT, stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE, text=True) for _ in range(2)]
+        reserved = []
+        for worker in workers:
+            out, err = worker.communicate(timeout=300)
+            self.assertEqual(worker.returncode, 0, err)
+            reserved.append(int(out))
+        self.assertEqual(sum(reserved), 150)
+        self.assertEqual(self.count("keyed:feed:*", budget.DAY_S), 120000)
+        self.assertEqual(self.count("keyed:feed:neardata", budget.DAY_S), 150)
+        self.assertEqual(self.count("cumulative", 0), 150)
+        self.assertEqual(self.count("pooled", budget.DAY_S), 0)
+        self.assertEqual(self.alerts().count("feed_100"), 1)
+
+    def test_feed_uses_the_shared_cooldown_and_returns_keyed_after_expiry(self):
+        self.assertTrue(budget.reserve("neardata", "feed", keyed=True, now=T0))
+        budget.key_failure(402, T0)
+        self.assertRefused("neardata", "feed", True, T0 + 1, budget.KEY_COOLDOWN_S - 1)
+        self.assertFalse(budget.reserve("neardata", "feed", keyed=False, now=T0 + 1))
+        self.assertFalse(budget.reserve("fastnear_rpc", "operator", keyed=True, now=T0 + 1))
+        self.assertEqual(self.count("keyed:feed:*", budget.DAY_S), 1)
+        self.assertEqual(self.count("keyless:feed:neardata", budget.DAY_S), 1)
+        self.assertEqual(self.count("cumulative", 0), 1)
+        self.assertTrue(budget.reserve("neardata", "feed", keyed=True, now=T0 + budget.KEY_COOLDOWN_S))
+        self.assertEqual(self.count("keyed:feed:*", budget.DAY_S), 2)
+
+    def test_an_unreadable_database_refuses_keyed_feed_reservations(self):
+        self.path.mkdir(parents=True)
+        error = self.assertRefused("neardata", "feed", True, T0, budget.REFUSAL_RETRY_S)
         self.assertIn("could not be read", str(error))
 
 

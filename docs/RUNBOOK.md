@@ -272,7 +272,33 @@ When: provider credit must stop being spent. Unset `FASTNEAR_API_KEY_FILE` in `/
 sudo systemctl restart siyab-api.service
 ```
 
-Every reader falls back to keyless requests when the variable is unset. Running readers retain their configuration, so also restart `siyab-history.service`, `siyab-investigation.service` and `siyab-delivery.service` if running; these units load the same override. The feed follower loads only the base file and must remain keyless. Keyless throttling or failed reads still mean unavailable or unknown, never a favorable verdict. This changes no contract state. Restore the variable only in the provider override and restart the same readers to undo. A metered keyed FastNEAR HTTP 402, 403 or 429 starts a shared 15 minute key cooldown; subsequent ordinary metered reads go keyless until it ends, while recording stops and never falls back to keyless reads. FastNEAR returns HTTP 402 with `quota_exceeded` when credit is used up ([pricing](https://docs.fastnear.com/pricing)).
+Every reader falls back to keyless requests when the variable is unset. Running readers retain their configuration, so also restart `siyab-history.service`, `siyab-investigation.service` and `siyab-delivery.service` if running; these units load the same override. The feed has its own key path in a systemd drop-in. Disable it with a later drop-in, clearing any old ExecStart wrapper that sets the key again:
+
+```sh
+sudo install -d /etc/systemd/system/shieldbot-near-feed.service.d
+sudo tee /etc/systemd/system/shieldbot-near-feed.service.d/99-credit-off.conf >/dev/null <<'EOF'
+[Service]
+UnsetEnvironment=FASTNEAR_API_KEY_FILE
+ExecStart=
+ExecStart=/usr/bin/python3 -m intel feed --follow
+EOF
+sudo systemctl daemon-reload
+sudo systemctl restart shieldbot-near-feed.service
+```
+
+Keyless throttling or failed reads still mean unavailable or unknown, never a favorable verdict. This changes no contract state. Restore the variable only in the provider override for the Siyab readers and the feed's dedicated drop-in, remove `99-credit-off.conf`, reload systemd and restart the same readers to undo. A metered keyed FastNEAR HTTP 402, 403 or 429 starts a shared 15 minute key cooldown; subsequent ordinary metered reads go keyless until it ends, while recording stops and never falls back to keyless reads. FastNEAR returns HTTP 402 with `quota_exceeded` when credit is used up ([pricing](https://docs.fastnear.com/pricing)).
+
+## Capped keyed block feed
+
+The follower can send the key named by `FASTNEAR_API_KEY_FILE` for its neardata block reads only after reserving a call in `intel/budget.py` under caller class `feed`. Its cap is 120,000 keyed calls per UTC day with no hourly or minute cap (`intel/budget.py:KEYED_LIMITS`). An absent key, spent cap or active shared cooldown makes that request keyless. Keyed HTTP 401, 402, 403 or 429 retries the same read without the key; 402, 403 and 429 start the shared 15 minute cooldown. Budget eligibility is checked on each later read, so the key returns when the UTC day resets or the cooldown ends, provided the cap still has room. A keyless 429 retains the existing backoff and retries that height. None of these switches advances the height cursor or treats a failed read as a block.
+
+The feed has its own daily pool and does not spend the ordinary 13,000 keyed-call daily pool. Both pools live in the same SQLite database; every keyed call still adds to the shared cumulative count and uses the shared cooldown. Together their daily limits allow at most 133,000 keyed calls. The feed records `feed_50`, `feed_80` and `feed_100` alerts in the existing `alerts` table at 60,000, 96,000 and 120,000 keyed reservations, once per threshold per UTC day, and writes stderr lines. Ordinary pool alerts and the 300,000 cumulative alert are unchanged. The installed `/usr/local/bin/siyab-fastnear-check` must read these new alert kinds; its source is not in this checkout, so the operator must inspect it and update any hardcoded alert-kind filter before relying on the timer for feed alerts (`docs/lanes/feed-keyed-cap.md`).
+
+Request starts are paced at least 0.1 seconds apart when keyed and 0.4 seconds apart when keyless (`intel/feed.py:FOLLOW_INTERVAL_KEYED_S`, `intel/feed.py:FOLLOW_INTERVAL_S`). Successful response time counts toward the interval. The final block body is reused at its height, and the tip wait remains one second, keeping a follower at the tip near one request per height. The separate Transfers API poll stays keyless. Existing state fields, first-seen coverage, event evidence and restart cursor are retained.
+
+The feed and Siyab readers must share `SIYAB_PROVIDER_BUDGET_DB=/var/lib/shieldbot-near/siyab/provider-budget.sqlite3`. Keep `FEED_STATE_DIR=/var/lib/shieldbot-near/feed`; changing the code directory must not reset or move the state. The feed unit's existing `ReadWritePaths=/var/lib/shieldbot-near` already covers both directories. Configure the key path as environment data in the feed drop-in, not an `/usr/bin/env` ExecStart wrapper, so the credit kill switch works. The 23 Nov host configuration supplied by the operator still runs the old feed from `/opt/shieldbot-near`; release review must also move the feed's WorkingDirectory to the reviewed `/opt/siyab` release. Local deployment instructions are in the lane's uncommitted deploy notes.
+
+The operator's 23 Nov VPS measurements found about 14 heights a minute keyless against about 66 new blocks a minute, with the second consecutive keyless neardata request answered 429; keyed the follower walked about 195 heights a minute. At the tip it needs roughly 80,000 to 86,000 requests a day. These are supplied host observations, not provider guarantees. They explain the 120,000 daily keyed allowance and the need to retain keyless progress when credit or access is unavailable. FastNEAR documents Bearer authentication for neardata and invalid-key 403 before redirect helpers ([neardata](https://docs.fastnear.com/neardata)); exhausted credit is 402 and rate limiting is 429 ([pricing](https://docs.fastnear.com/pricing)).
 
 ## Public reverse proxy
 
