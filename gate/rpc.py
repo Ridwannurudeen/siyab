@@ -28,7 +28,6 @@ The FastNEAR key (an Authorization header to a FastNEAR host) goes out only when
 when no budget database is configured, or a key cooldown runs, the request goes out without it. A 402, 403
 or 429 answering a keyed request starts that cooldown (intel/budget.py:key_failure). The recording caller
 class stops when the budget refuses the key, including during cooldown, or HTTP 401, 402, 403 or 429 rejects it.
-The feed caller class is also refused a key during cooldown; the follower then reserves a keyless retry itself.
 Replay and other record callers never touch the budget database.
 """
 
