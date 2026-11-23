@@ -1,13 +1,20 @@
 name: ci
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
 
 jobs:
-  offline:
+  unit-tests:
+    name: unit-tests (Python ${{ matrix.python-version }}, shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.11", "3.12"]
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -15,39 +22,39 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Hygiene check
-        run: python scripts/check_hygiene.py --all
       - name: Unit tests
+        env:
+          SIYAB_SMOKE_SKIP_SUITE: "1"
+        run: python scripts/test_shards.py --shard ${{ matrix.shard }} --shards 4
+
+  offline:
+    needs: [unit-tests, hygiene]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - name: Require all unit shards and offline checks
+        env:
+          UNIT_RESULT: ${{ needs.unit-tests.result }}
+          HYGIENE_RESULT: ${{ needs.hygiene.result }}
         run: |
-          if [ -d tests ]; then
-            python -m unittest discover -s tests -v
-          fi
-      - name: Offline demo
+          test "$UNIT_RESULT" = success
+          test "$HYGIENE_RESULT" = success
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Verify each shard completed successfully
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
-          if [ -f gate/demo.py ]; then
-            python -m gate demo --offline
-          fi
-      - name: Gate code hash
-        run: |
-          if [ -f res/gate.wasm ]; then
-            python -m gate codehash res/gate.wasm
-          fi
-      - name: Gate wasm exports
-        run: |
-          if [ -f res/gate.wasm ]; then
-            python -m gate wasm-exports res/gate.wasm
-          fi
-      - name: Registry wasm exports
-        run: |
-          if [ -f res/registry.wasm ]; then
-            python -m gate wasm-exports res/registry.wasm
-          fi
-      - name: Verify registry fixtures
-        run: |
-          if [ -f res/gate.wasm ]; then
-            python -m gate verify fixtures/registry/sample-allow.json fixtures/registry/sample-allow-evidence.json
-            python -m gate verify fixtures/registry/testnet-vendor.json fixtures/evidence/7e77187d*.json
-          fi
+          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?filter=latest&per_page=100" | python scripts/test_shards.py --check-jobs
 
   rust-unit:
     runs-on: ubuntu-latest
@@ -176,6 +183,32 @@ jobs:
           python-version: "3.12"
       - name: Repository hygiene
         run: python scripts/check_hygiene.py --all
+      - name: Offline demo
+        run: |
+          if [ -f gate/demo.py ]; then
+            python -m gate demo --offline
+          fi
+      - name: Gate code hash
+        run: |
+          if [ -f res/gate.wasm ]; then
+            python -m gate codehash res/gate.wasm
+          fi
+      - name: Gate wasm exports
+        run: |
+          if [ -f res/gate.wasm ]; then
+            python -m gate wasm-exports res/gate.wasm
+          fi
+      - name: Registry wasm exports
+        run: |
+          if [ -f res/registry.wasm ]; then
+            python -m gate wasm-exports res/registry.wasm
+          fi
+      - name: Verify registry fixtures
+        run: |
+          if [ -f res/gate.wasm ]; then
+            python -m gate verify fixtures/registry/sample-allow.json fixtures/registry/sample-allow-evidence.json
+            python -m gate verify fixtures/registry/testnet-vendor.json fixtures/evidence/7e77187d*.json
+          fi
       - name: Private key history scan
         shell: bash
         run: |

@@ -75,6 +75,7 @@ class LimitedClient:
         self.limiter = limiter
         self.stop_event = stop_event
         self.count = count
+        self.requests = 0
 
     def get(self, path):
         if self.stop_event.is_set():
@@ -83,6 +84,7 @@ class LimitedClient:
         if self.stop_event.is_set():
             raise Stopped
         self.count()
+        self.requests += 1
         with rpc.request_deadline(REQUEST_DEADLINE_S):
             return self.client.get(path)
 
@@ -147,13 +149,13 @@ class PrefetchFetcher(feed.Fetcher):
                     self._limited(), sleep=self._wait, max_requests=None
                 )
             fetcher = self.local.fetcher
-            before = fetcher.requests
+            before = fetcher.client.requests
             try:
                 answer = fetcher.get(f"{BLOCK_PREFIX}{height}")
             except Exception as error:
-                future.set_result((fetcher.requests - before, None, error))
+                future.set_result((fetcher.client.requests - before, None, error))
             else:
-                future.set_result((fetcher.requests - before, answer, None))
+                future.set_result((fetcher.client.requests - before, answer, None))
 
     def _submit(self, height):
         future = Future()
@@ -175,10 +177,11 @@ class PrefetchFetcher(feed.Fetcher):
                 self.next_height = self.final + 1
                 self.walked += 1
             direct = feed.Fetcher(self.client, sleep=self._wait, max_requests=None)
+            before = self.client.requests
             try:
                 answer = direct.get(path)
             finally:
-                self.requests += direct.requests
+                self.requests += self.client.requests - before
             if path == FINAL_PATH:
                 self.final = answer["block"]["header"]["height"]
             return answer
