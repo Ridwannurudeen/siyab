@@ -4,7 +4,7 @@ This lane reconciles the merged documentation plan with the current source and t
 
 ## Release scope
 
-The hosted wording, "since 22 Nov 2026", describes the owner's release target after this branch merges and the hosted checkout serving main is deployed that day. It is not a deployment performed or observed by this lane. The enclave, attestation registry and Gate 0.3.0 remain undeployed; the committed testnet Gate artifact is 0.2.2, and the owner reports that the mainnet Gate remains paused with its agent key revoked (`res/BUILD-attest.md:5`; `res/BUILD-gate.md:7,13`; `fixtures/runs/oneclick-mainnet-20261122.txt:20`).
+The hosted wording, "from the 23 Nov 2026 deploy", describes the owner's release target: this branch merges and the hosted checkout serving main is deployed that day. It is not a deployment performed or observed by this lane. The enclave, attestation registry and Gate 0.3.0 remain undeployed; the committed testnet Gate artifact is 0.2.2, and the owner reports that the mainnet Gate remains paused with its agent key revoked (`res/BUILD-attest.md:5`; `res/BUILD-gate.md:7,13`; `fixtures/runs/oneclick-mainnet-20261122.txt:20`).
 
 The 22 Nov settlement is an account transaction outside that Gate. The retained report ends ALLOW and settled, with 296020 Base USDC base units credited at block 60872158. Both quoted and actual withdrawal fees are 2400, so equality with actual amountOut supports the net reading for this run. The retained report contains receipt summaries, not the raw destination receipts and blocks needed to replay destination_receipt (`fixtures/runs/oneclick-mainnet-20261122.txt:5-22`; `tests/test_oneclick_mainnet_run.py:21-70`).
 
@@ -110,7 +110,7 @@ The identifiers below follow the section numbers in the merged plan. Unnumbered 
 |---|---|---|
 | Owner question 1 | Done | Same FullAccess key on both dates, temporary file reconstructed at a hidden prompt and deleted after each run (`fixtures/runs/oneclick-mainnet-20261122.txt:6-7`; `docs/KEYS.md:3`). |
 | Owner question 2 | Done | Final report, both 2400 fees, actual credit and owner supplied run commit retained (`fixtures/runs/oneclick-mainnet-20261122.txt:5-22`). |
-| Owner question 3 | Done | Requested since 22 Nov 2026 release wording, qualified as the owner's rollout target (`README.md:31`). |
+| Owner question 3 | Done | Requested from the 23 Nov 2026 deploy release wording, qualified as the owner's rollout target (`README.md:31`). |
 | Owner question 4 | Done | Supplied OKX capture retained and verified offline (`tests/test_near_auth.py:37-51`). |
 | Prerequisite run summary | Done | Full transaction hash and report values, without secret forms (`fixtures/runs/oneclick-mainnet-20261122.txt:1-22`). |
 | Prerequisite report copy | Done | Final ALLOW and settled snapshot, lossless signature_bytes, unchanged judgement document (`fixtures/oneclick/run-20261122/report.json:8-10,103,261,417,485-499`). |
@@ -184,7 +184,7 @@ The identifiers below follow the section numbers in the merged plan. Unnumbered 
 | LOG adapters and holdout | Done | Selected measurement (`docs/LOG.md:109`). |
 | LOG NEP-413 | Done | Exact OKX callback and outstanding wallet checks (`docs/LOG.md:110`). |
 | LOG funded settlement | Done | Owner run and paused Gate (`docs/LOG.md:111`). |
-| LOG hosted release wording | Done | Owner-requested since 22 Nov target; rollout not observed (`docs/LOG.md:112`). |
+| LOG hosted release wording | Done | Owner-requested 23 Nov deploy target; rollout not observed (`docs/LOG.md:112`). |
 | WORKSPACES 1 | Done | Browser remains default and uploads remain explicit (`docs/WORKSPACES.md:9`). |
 | WORKSPACES 2 | Done | Sign-in, unlock, metadata, recovery and team boundaries (`docs/WORKSPACES.md:15-21`). |
 | RUNBOOK 1 | Done | Attested upgrade prerequisites and paused mainnet (`docs/RUNBOOK.md:9`). |

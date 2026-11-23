@@ -1,6 +1,6 @@
 # FastNEAR exhausted credit cooldown
 
-23 November 2026. Changes remain uncommitted on `feat/nep413-workspace`.
+23 November 2026, on `feat/nep413-workspace` (PR #14).
 The existing uncommitted documentation sync is preserved.
 
 ## Change
