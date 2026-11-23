@@ -4,6 +4,7 @@ import copy
 import hashlib
 import json
 import os
+import signal
 import socket
 import tempfile
 import threading
@@ -155,6 +156,46 @@ class RuntimeTests(unittest.TestCase):
         broken.start()
         self.addCleanup(broken.stop)
         self.addCleanup(nearai._close_runtime)
+
+    def test_loop_creation_and_close_belong_to_the_runtime_thread(self):
+        created, closed = [], []
+        new_event_loop = asyncio.new_event_loop
+
+        def create():
+            created.append(threading.get_ident())
+            loop = new_event_loop()
+            close = loop.close
+
+            def close_on_thread():
+                closed.append(threading.get_ident())
+                close()
+
+            loop.close = close_on_thread
+            return loop
+
+        with patch.object(nearai.asyncio, "new_event_loop", side_effect=create):
+            runtime = nearai._get_runtime()
+            runtime.run(asyncio.sleep(0), timeout=2)
+            nearai._close_runtime()
+        self.assertFalse(runtime.thread.is_alive())
+        self.assertTrue(runtime.loop.is_closed())
+        self.assertEqual(created, [runtime.thread.ident])
+        self.assertEqual(closed, created)
+
+    def test_broken_runtime_does_not_replace_the_process_wakeup_descriptor(self):
+        with patch.object(signal, "set_wakeup_fd", wraps=signal.set_wakeup_fd) as wakeup:
+            runtime, release, _ = self.blocked_runtime()
+            release.set()
+            runtime.thread.join(timeout=2)
+            self.assertFalse(runtime.thread.is_alive())
+            self.assertTrue(runtime.loop.is_closed())
+        wakeup.assert_not_called()
+
+    def test_loop_creation_failure_reaches_the_caller(self):
+        with patch.object(nearai.asyncio, "new_event_loop", side_effect=OSError("loop unavailable")):
+            with self.assertRaisesRegex(OSError, "^loop unavailable$"):
+                nearai._get_runtime()
+        self.assertIsNone(nearai._runtime)
 
     def blocked_runtime(self):
         runtime = nearai._get_runtime()

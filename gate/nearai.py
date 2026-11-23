@@ -12,6 +12,7 @@ import re
 import secrets
 import sys
 import threading
+from concurrent.futures import Future
 from urllib.parse import urlencode
 
 API_BASE_URL = "https://cloud-api.near.ai/v1"
@@ -272,13 +273,20 @@ def _check_signers(models):
 
 class _Runtime:
     def __init__(self):
-        self.loop = asyncio.new_event_loop()
         self.clients = {}
         self.broken = False
-        self.thread = threading.Thread(target=self._run, name="nearai", daemon=True)
+        ready = Future()
+        self.thread = threading.Thread(target=self._run, args=(ready,), name="nearai", daemon=True)
         self.thread.start()
+        ready.result()
 
-    def _run(self):
+    def _run(self, ready):
+        try:
+            self.loop = asyncio.new_event_loop()
+        except BaseException as error:
+            ready.set_exception(error)
+            return
+        ready.set_result(None)
         try:
             self.loop.run_forever()
         finally:

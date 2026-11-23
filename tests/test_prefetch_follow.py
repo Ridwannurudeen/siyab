@@ -7,6 +7,8 @@ import io
 import json
 import os
 import signal
+import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -21,6 +23,41 @@ from scripts import prefetch_follow
 
 def _no_network(*args, **kwargs):
     raise AssertionError("a test tried a network request")
+
+
+def _isolated_sigint(test):
+    system_root = os.environ.get("SYSTEMROOT")
+
+    @functools.wraps(test)
+    def run(self):
+        # Real signals must not share another test's handler or asyncio wakeup socket.
+        probe = (
+            "import io, sys, tempfile, unittest\n"
+            "sys.path[:0] = sys.argv[1:3]\n"
+            "from test_prefetch_follow import PrefetchFollowTest\n"
+            "tempfile.gettempdir()\n"
+            "name = sys.argv[3]\n"
+            "setattr(PrefetchFollowTest, name, getattr(PrefetchFollowTest, name).__wrapped__)\n"
+            "output = io.StringIO()\n"
+            "result = unittest.TextTestRunner(stream=output).run(PrefetchFollowTest(name))\n"
+            "if not result.wasSuccessful():\n"
+            "    sys.stderr.write(output.getvalue())\n"
+            "sys.exit(not result.wasSuccessful())\n"
+        )
+        environment = {"GATE_FIXTURES_MODE": "off", "TEMP": tempfile.gettempdir(),
+                       "TMP": tempfile.gettempdir()}
+        if system_root is not None:
+            environment["SYSTEMROOT"] = system_root
+        result = subprocess.run(
+            [sys.executable, "-I", "-B", "-c", probe, str(Path(__file__).resolve().parent),
+             str(Path(__file__).resolve().parent.parent), test.__name__],
+            capture_output=True, text=True, timeout=30, env=environment,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(result.stderr, "")
+
+    return run
 
 
 REAL_FETCH = rpc._fetch
@@ -416,31 +453,94 @@ class PrefetchFollowTest(unittest.TestCase):
             fetcher.close()
         self.assertEqual(server.block_heights(), [])
 
+    def test_stopped_direct_read_counts_only_started_requests(self):
+        for during_acquire in (False, True):
+            with self.subTest(during_acquire=during_acquire):
+                server = Server(START + 200)
+                limiter = mock.Mock()
+                fetcher = _prefetch(server, START + 100, limiter=limiter)
+                if during_acquire:
+                    limiter.acquire.side_effect = fetcher.stop_event.set
+                else:
+                    fetcher.stop_event.set()
+                try:
+                    with self.assertRaises(prefetch_follow.Stopped):
+                        fetcher.get(prefetch_follow.FINAL_PATH)
+                finally:
+                    fetcher.close()
+                    for thread in fetcher.threads:
+                        thread.join(timeout=2)
+                        self.assertFalse(thread.is_alive())
+                self.assertEqual(limiter.acquire.call_count, int(during_acquire))
+                self.assertEqual(server.log, [])
+                self.assertEqual(fetcher.requests, 0)
+                self.assertEqual(fetcher.unused_requests(), 0)
+
+    @_isolated_sigint
     def test_sigint_during_an_active_download(self):
         release = threading.Event()
-        self.addCleanup(release.set)
+        active = threading.Event()
+        waiting = threading.Condition()
+        sigint_at, download = [], []
 
         def blocked(height):
-            signal.raise_signal(signal.SIGINT)
-            if not release.wait(3):
-                raise rpc.HttpError(500, "rescue")
+            download.append(threading.current_thread())
+            with waiting:
+                active.set()
+                if not waiting.wait_for(release.is_set, timeout=3):
+                    raise rpc.HttpError(500, "rescue")
+
+        def interrupt():
+            active.wait()
+            with waiting:
+                if not release.is_set():
+                    sigint_at.append(time.monotonic())
+                    signal.raise_signal(signal.SIGINT)
 
         server = Server(START + 200, missing=None, throttled=None, persistent={START + 4})
         server.on_persistent = blocked
         fetcher_class = functools.partial(
             prefetch_follow.PrefetchFetcher, window=1, backoff_wait=0.05
         )
-        began = time.monotonic()
-        code, out, err = self._main(
-            ["--max-blocks", "100", "--stop-height", str(START + 50)],
-            server=server,
-            fetcher_class=fetcher_class,
-        )
-        self.assertEqual((code, err), (0, ""))
-        self.assertLess(time.monotonic() - began, 2.5)
-        self.assertEqual(
-            out.splitlines()[0], f"followed 4 heights to height {START + 3}, lag 197 blocks"
-        )
+        previous = signal.getsignal(signal.SIGINT)
+        threads = set(threading.enumerate())
+        sender = threading.Thread(target=interrupt, daemon=True)
+        sender.start()
+        try:
+            code, out, err = self._main(
+                ["--max-blocks", "100", "--stop-height", str(START + 50)],
+                server=server,
+                fetcher_class=fetcher_class,
+            )
+            returned_at = time.monotonic()
+            self.assertEqual((code, err), (0, ""))
+            self.assertEqual(len(sigint_at), 1)
+            self.assertLess(returned_at - sigint_at[0], 2.5)
+            self.assertFalse(release.is_set())
+            self.assertEqual(len(download), 1)
+            self.assertTrue(download[0].is_alive())
+            self.assertEqual(signal.getsignal(signal.SIGINT), previous)
+            self.assertEqual(
+                out,
+                f"followed 4 heights to height {START + 3}, lag 197 blocks\n"
+                "prefetch: 1 speculative requests not used\n",
+            )
+            self.assertEqual(server.block_heights(), list(range(START, START + 5)))
+            state = _state(self.state_dir)
+            self.assertEqual(
+                (state["last_height"], state["requests"], state["lag_blocks"]),
+                (START + 3, 5, 197),
+            )
+        finally:
+            with waiting:
+                release.set()
+                active.set()
+                waiting.notify_all()
+            for thread in set(threading.enumerate()) - threads:
+                thread.join(timeout=2)
+                self.assertFalse(thread.is_alive())
+        self.assertFalse(sender.is_alive())
+        self.assertEqual(_state(self.state_dir), state)
 
     def test_request_deadline_abandons_a_trickling_response(self):
         client = rpc.Client(feed.NEARDATA_URL, "off", kind="http")
@@ -487,6 +587,7 @@ class PrefetchFollowTest(unittest.TestCase):
         time.sleep(0.6)
         self.assertEqual(len(server.block_heights()), settled)
 
+    @_isolated_sigint
     def test_sigint_stops_after_the_height_in_hand(self):
         sigint_at = []
 
@@ -502,18 +603,115 @@ class PrefetchFollowTest(unittest.TestCase):
         fetcher_class = functools.partial(
             prefetch_follow.PrefetchFetcher, window=1, backoff_wait=0.05
         )
-        began = time.monotonic()
-        code, out, err = self._main(
-            ["--max-blocks", "100", "--stop-height", str(START + 50)],
-            server=server,
-            fetcher_class=fetcher_class,
-        )
-        self.assertEqual((code, err), (0, ""))
-        self.assertLess(time.monotonic() - began, 3)
-        self.assertEqual(
-            out.splitlines()[0], f"followed 4 heights to height {START + 3}, lag 197 blocks"
-        )
-        self.assertEqual(_state(self.state_dir)["last_height"], START + 3)
+        previous = signal.getsignal(signal.SIGINT)
+        threads = set(threading.enumerate())
+        try:
+            code, out, err = self._main(
+                ["--max-blocks", "100", "--stop-height", str(START + 50)],
+                server=server,
+                fetcher_class=fetcher_class,
+            )
+            returned_at = time.monotonic()
+            self.assertEqual((code, err), (0, ""))
+            self.assertEqual(len(sigint_at), 1)
+            self.assertLess(returned_at - sigint_at[0], 3)
+            self.assertEqual(signal.getsignal(signal.SIGINT), previous)
+            self.assertRegex(
+                out,
+                rf"\Afollowed 4 heights to height {START + 3}, lag 197 blocks\n"
+                r"prefetch: [0-9]+ speculative requests not used\n\Z",
+            )
+            state = _state(self.state_dir)
+            self.assertEqual(
+                (state["last_height"], state["requests"], state["lag_blocks"]),
+                (START + 3, 5, 197),
+            )
+        finally:
+            for thread in set(threading.enumerate()) - threads:
+                thread.join(timeout=2)
+                self.assertFalse(thread.is_alive())
+        self.assertEqual(_state(self.state_dir), state)
+        heights = server.block_heights()
+        self.assertEqual(heights[:4], list(range(START, START + 4)))
+        self.assertEqual(set(heights[4:]), {START + 4})
+        # A stopped retry may finish before the caller observes the stop event.
+        unused = int(out.splitlines()[1].split()[1])
+        self.assertIn(unused, (0, len(heights) - 4))
+
+    @_isolated_sigint
+    def test_sigint_with_a_completed_retry_future(self):
+        real_wait = prefetch_follow.wait
+        stopped = []
+
+        def completed_wait(futures, timeout):
+            while not futures[0].done():
+                time.sleep(0.01)
+            if isinstance(futures[0].result()[2], prefetch_follow.Stopped):
+                stopped.append(futures[0])
+            return real_wait(futures, timeout=timeout)
+
+        with mock.patch.object(prefetch_follow, "wait", side_effect=completed_wait):
+            self.test_sigint_stops_after_the_height_in_hand.__wrapped__(self)
+        self.assertEqual(len(stopped), 1)
+
+    @_isolated_sigint
+    def test_sigint_during_a_retry_limiter_wait(self):
+        real_raise = signal.raise_signal
+        real_signal = signal.signal
+        real_acquire = prefetch_follow.Limiter.acquire
+        previous = signal.getsignal(signal.SIGINT)
+        retry_entered, release_retry = threading.Event(), threading.Event()
+        handled, cancelled = threading.Event(), threading.Event()
+        acquisitions, senders = [], []
+
+        def acquire(limiter):
+            acquisitions.append(None)
+            if len(acquisitions) == 7:
+                retry_entered.set()
+                release_retry.wait()
+            else:
+                real_acquire(limiter)
+
+        def install(signum, handler):
+            if signum == signal.SIGINT and callable(handler) and handler is not previous:
+                def observed(signum, frame):
+                    handler(signum, frame)
+                    handled.set()
+
+                return real_signal(signum, observed)
+            return real_signal(signum, handler)
+
+        def defer_signal(signum):
+            def send():
+                retry_entered.wait()
+                if cancelled.is_set():
+                    return
+                real_raise(signum)
+                handled.wait()
+                release_retry.set()
+
+            sender = threading.Thread(target=send, daemon=True)
+            senders.append(sender)
+            sender.start()
+
+        try:
+            with (
+                mock.patch.object(prefetch_follow.Limiter, "acquire", new=acquire),
+                mock.patch.object(signal, "signal", side_effect=install),
+                mock.patch.object(signal, "raise_signal", side_effect=defer_signal),
+            ):
+                self.test_sigint_with_a_completed_retry_future.__wrapped__(self)
+            self.assertEqual(len(acquisitions), 7)
+            self.assertEqual(len(senders), 1)
+            self.assertTrue(handled.is_set())
+        finally:
+            cancelled.set()
+            release_retry.set()
+            retry_entered.set()
+            handled.set()
+            for sender in senders:
+                sender.join(timeout=2)
+                self.assertFalse(sender.is_alive())
 
     def test_request_path_errors_never_print_the_header(self):
         def factory():

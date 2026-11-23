@@ -7,6 +7,11 @@ Each step prints one line, "<n>. <step>: PASS (<what it saw>)" or "<n>. <step>: 
 last line is "<passed> of 9 PASS". The exit code is 0 only when all nine pass. It needs Python alone and
 runs the same on Windows and POSIX: no shell, no glob, no sha256sum.
 
+CI sets SIYAB_SMOKE_SKIP_SUITE=1 because its unit-test shards already run the full suite. Only step 2
+is skipped, reported as "suite: skipped, run by the CI unit-test step"; the other eight steps still
+run and must pass. The summary then reads "8 of 8 PASS (1 skipped)". Unset or any other value keeps all
+nine steps, including the suite.
+
 Read only: the network is refused inside this process (urllib.request.urlopen raises), and while the
 steps run this process sets GATE_FIXTURES_MODE=replay and points TMPDIR, TEMP and TMP at its temporary
 directory, so the in process steps and the subprocesses they start replay too; every step that runs a
@@ -226,13 +231,17 @@ STEPS = (
 def main():
     os.chdir(ROOT)
     sys.dont_write_bytecode = True
-    tempdir, passed = tempfile.tempdir, 0
+    tempdir, passed, skipped = tempfile.tempdir, 0, 0
     with (tempfile.TemporaryDirectory(prefix="siyab-smoke-") as tmp,
           mock.patch("urllib.request.urlopen", side_effect=_refuse),
           mock.patch.dict(os.environ, {"GATE_FIXTURES_MODE": "replay", "TMPDIR": tmp, "TEMP": tmp, "TMP": tmp})):
         tempfile.tempdir = tmp
         try:
             for number, (title, step) in enumerate(STEPS, start=1):
+                if step is suite and os.environ.get("SIYAB_SMOKE_SKIP_SUITE") == "1":
+                    skipped += 1
+                    print(f"{number}. suite: skipped, run by the CI unit-test step", flush=True)
+                    continue
                 try:
                     detail = step(Path(tmp))
                 except Exception as error:  # noqa: BLE001 (any error a step raises is the FAIL of that step)
@@ -243,8 +252,10 @@ def main():
                     print(f"{number}. {title}: PASS ({detail})", flush=True)
         finally:
             tempfile.tempdir = tempdir
-    print(f"{passed} of {len(STEPS)} PASS")
-    return 0 if passed == len(STEPS) else 1
+    total = len(STEPS) - skipped
+    suffix = f" ({skipped} skipped)" if skipped else ""
+    print(f"{passed} of {total} PASS{suffix}")
+    return 0 if passed == total else 1
 
 
 if __name__ == "__main__":

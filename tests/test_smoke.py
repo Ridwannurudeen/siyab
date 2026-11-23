@@ -35,6 +35,70 @@ def snapshot(root):
 
 
 class SmokeTest(unittest.TestCase):
+    def test_ci_skips_only_the_nested_suite(self):
+        smoke = load_smoke()
+        called = []
+        nested = mock.Mock(return_value="suite ran")
+        steps = [(title, nested if step is smoke.suite else
+                  lambda work, title=title: called.append(title) or "fine")
+                 for title, step in smoke.STEPS]
+        stdout = io.StringIO()
+        with (mock.patch.dict(os.environ, {"SIYAB_SMOKE_SKIP_SUITE": "1"}),
+              mock.patch.object(smoke, "STEPS", steps),
+              mock.patch.object(smoke, "suite", nested),
+              contextlib.redirect_stdout(stdout)):
+            code = smoke.main()
+        nested.assert_not_called()
+        self.assertEqual(code, 0)
+        self.assertEqual(called, [title for title, step in steps if step is not nested])
+        self.assertEqual(len(called), 8)
+        lines = stdout.getvalue().splitlines()
+        self.assertEqual(lines[1], "2. suite: skipped, run by the CI unit-test step")
+        self.assertEqual(lines[-1], "8 of 8 PASS (1 skipped)")
+
+    def test_ci_skip_does_not_hide_another_step_failure(self):
+        smoke = load_smoke()
+
+        def broken(work):
+            raise smoke.StepFailed("the evidence hash differs from the record")
+
+        nested = mock.Mock(return_value="suite ran")
+        steps = [(title, nested if step is smoke.suite else lambda work: "fine")
+                 for title, step in smoke.STEPS]
+        steps[4] = (steps[4][0], broken)
+        stdout = io.StringIO()
+        with (mock.patch.dict(os.environ, {"SIYAB_SMOKE_SKIP_SUITE": "1"}),
+              mock.patch.object(smoke, "STEPS", steps),
+              mock.patch.object(smoke, "suite", nested),
+              contextlib.redirect_stdout(stdout)):
+            code = smoke.main()
+        self.assertEqual(code, 1)
+        self.assertIn("5. python -m gate verify: FAIL the evidence hash differs from the record",
+                      stdout.getvalue())
+        self.assertEqual(stdout.getvalue().splitlines()[-1], "7 of 8 PASS (1 skipped)")
+
+    def test_only_one_enables_the_suite_skip(self):
+        smoke = load_smoke()
+        for value in (None, "", "0", "true"):
+            with self.subTest(value=value):
+                nested = mock.Mock(return_value="suite ran")
+                steps = [(title, nested if step is smoke.suite else lambda work: "fine")
+                         for title, step in smoke.STEPS]
+                stdout = io.StringIO()
+                with (mock.patch.dict(os.environ),
+                      mock.patch.object(smoke, "suite", nested),
+                      mock.patch.object(smoke, "STEPS", steps),
+                      contextlib.redirect_stdout(stdout)):
+                    if value is None:
+                        os.environ.pop("SIYAB_SMOKE_SKIP_SUITE", None)
+                    else:
+                        os.environ["SIYAB_SMOKE_SKIP_SUITE"] = value
+                    code = smoke.main()
+                nested.assert_called_once()
+                self.assertEqual(code, 0)
+                self.assertEqual(stdout.getvalue().splitlines()[-1], "9 of 9 PASS")
+                self.assertNotIn("skipped", stdout.getvalue())
+
     def test_mcp_step_accepts_the_listed_tools_with_checks_disabled(self):
         from mcp import server
 
@@ -47,6 +111,7 @@ class SmokeTest(unittest.TestCase):
                              "siyab 0.1.0, tools " + ", ".join(tool["name"] for tool in server.TOOLS))
 
     def test_smoke_runs_nine_steps_read_only_and_leaves_the_tree_unchanged(self):
+        skip_suite = os.environ.get("SIYAB_SMOKE_SKIP_SUITE") == "1"
         before = snapshot(ROOT)
         with tempfile.TemporaryDirectory() as tmp:
             env = {**os.environ, "TMPDIR": tmp, "TEMP": tmp, "TMP": tmp}
@@ -55,11 +120,16 @@ class SmokeTest(unittest.TestCase):
             left_behind = os.listdir(tmp)
         stdout = process.stdout.decode("utf-8", "replace")
         self.assertEqual(process.returncode, 0, stdout + process.stderr.decode("utf-8", "replace"))
+        self.assertEqual(process.stderr, b"")
         lines = stdout.splitlines()
         self.assertEqual([line.split(".", 1)[0] for line in lines if ": PASS (" in line],
-                         [str(number) for number in range(1, 10)])
+                         [str(number) for number in range(1, 10) if not (skip_suite and number == 2)])
         self.assertNotIn(": FAIL ", stdout)
-        self.assertEqual(lines[-1], "9 of 9 PASS")
+        if skip_suite:
+            self.assertEqual(lines[1], "2. suite: skipped, run by the CI unit-test step")
+        else:
+            self.assertNotIn("suite: skipped", stdout)
+        self.assertEqual(lines[-1], "8 of 8 PASS (1 skipped)" if skip_suite else "9 of 9 PASS")
         self.assertEqual(left_behind, [])
         self.assertEqual(snapshot(ROOT), before)
 
