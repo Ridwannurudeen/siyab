@@ -17,15 +17,19 @@ the final height's block from that read, so the walk fetches no block twice; whi
 waits at the final height, each read downloads the final block again. Once a walk reaches the
 final height, and whenever a read finds no height past the last one, it sleeps 1 s before it reads
 the final block again, so a follower that keeps up makes about one neardata request a height. It
-stops on SIGINT or after --max-blocks heights, a skipped height included. It has no request budget
-and backs off 10 s on a 429 as above. The
-follower never sends the FastNEAR key, whatever FASTNEAR_API_KEY_FILE names: keyed, it would poll
-every FOLLOW_INTERVAL_KEYED_S (0.1 s), about 150,000 keyed reads a day, enough to empty the shared
-key's credit in days, and its feed caller class has no keyed budget (intel/budget.py:KEYED_LIMITS).
-Its neardata requests (the final block and the blocks) are keyless, as in record mode, and between
-their starts it leaves FOLLOW_INTERVAL_S (0.4 s, so at most 150 a minute), the pace neardata allows
-keyless requests from the shared host the follower runs on. FOLLOW_INTERVAL_KEYED_S stays the pace of
-the operator's keyed top receivers scan (intel/top_receivers.py). No reduced block is
+stops on SIGINT or after --max-blocks heights, a skipped height included. It has no total request
+budget and backs off 10 s on a 429 as above. With FASTNEAR_API_KEY_FILE set, the follower sends the
+key only through the shared provider budget, as caller class feed: at most 120,000 keyed reads per
+UTC day, with no hour or minute cap. This allowance is separate from the ordinary 13,000 pooled
+cap; both share cumulative accounting and the 900 s key cooldown. At the cap or during cooldown,
+the same walk continues keylessly. A keyed 401, 402, 403 or 429 retries the same path keylessly;
+402, 403 and 429 start the shared cooldown. Each new attempt checks the budget again, so a new UTC
+day or expired cooldown restores keyed reads. The budget database is SIYAB_PROVIDER_BUDGET_DB,
+else provider-budget.sqlite3 beside state.json. Keyed starts are at least FOLLOW_INTERVAL_KEYED_S
+(0.1 s) apart; keyless starts leave FOLLOW_INTERVAL_S (0.4 s), including fallback attempts.
+The lead's 23 Nov 2026 VPS measurements found about 14 heights a minute keylessly against about
+66 new blocks a minute, and about 195 heights a minute keyed. Keeping up needs roughly 80,000
+to 86,000 reads a day. Keyless fallback can lag; it never advances past an unread height. No reduced block is
 written per height: a block that raised an event is written as
 <state dir>/event-blocks/<height>.json, the block_fixture its events' source names. A finalized
 height neardata answers with null or a 404 holds no block, as in record mode: the follower adds
@@ -88,7 +92,7 @@ The signals, each written as an evidence document under <state dir>/events/<sha2
 
 The transfer poll runs in follow mode only, from the follower's loop both while it walks heights
 and while it waits at the final height, every POLL_S (600 s), sooner after a 429 as below. It
-polls keylessly, like the block walk. Each poll asks POST
+polls keylessly, independently of the block walk's keyed allowance. Each poll asks POST
 https://transfers.main.fastnear.com/v0/transfers for each subject, FOLLOW_INTERVAL_S apart
 (direction sender, min_usd_amount 1000, ignore_system true, limit 100, from_timestamp_ms the last
 complete window's end, to_timestamp_ms frozen at this window's start, which the API treats as exclusive, so no
@@ -123,7 +127,7 @@ from email.utils import parsedate_to_datetime
 from pathlib import Path
 
 from gate import evidence, rpc, rules, wasm
-from intel import alerts, first_seen, labels
+from intel import alerts, budget, first_seen, labels
 
 ROOT = Path(__file__).resolve().parent.parent
 NEARDATA_URL = "https://mainnet.neardata.xyz"
@@ -449,6 +453,8 @@ class Fetcher:
 
     def get(self, path):
         consecutive_429s = 0
+        if isinstance(self.client, _FollowClient):
+            self.client.keyless = False
         while True:
             if self.max_requests is not None and self.requests >= self.max_requests:
                 raise FeedError(f"the neardata budget of {self.max_requests} requests is used up")
@@ -456,6 +462,11 @@ class Fetcher:
             try:
                 return self.client.get(path)
             except rpc.HttpError as error:
+                if (isinstance(self.client, _FollowClient) and self.client.keyed
+                        and error.status in (401, 402, 403, 429)):
+                    self.client.keyless = True
+                    if error.status != 429:
+                        continue
                 if error.status != 429:
                     raise
                 consecutive_429s += 1
@@ -472,6 +483,58 @@ class Fetcher:
 
     def final_height(self):
         return self.final_block()["block"]["header"]["height"]
+
+
+class _FollowClient(rpc.Client):
+    """Meter, pace and count each actual neardata attempt, including a keyless retry."""
+
+    def __init__(self, state, clock, sleep):
+        headers = {}
+        key_file = os.environ.get("FASTNEAR_API_KEY_FILE")
+        if key_file:
+            try:
+                key = Path(key_file).read_text(encoding="utf-8").strip()
+            except (OSError, UnicodeDecodeError):
+                raise FeedError("the file FASTNEAR_API_KEY_FILE names cannot be read") from None
+            if not key or "\r" in key or "\n" in key:
+                raise FeedError("the file FASTNEAR_API_KEY_FILE names is invalid")
+            headers = {"Authorization": "Bearer " + key}
+        super().__init__(NEARDATA_URL, "off", kind="http", headers=headers, clock=clock, sleep=sleep)
+        self.state = state
+        self.keyed = False
+        self.keyless = False
+        self.last_request = None
+
+    def _metered(self, host):
+        interval = FOLLOW_INTERVAL_KEYED_S if self.keyed and not self.keyless else FOLLOW_INTERVAL_S
+        if self.last_request is not None:
+            self.sleep(max(0, interval - (self.clock() - self.last_request)))
+        original = self.headers
+        try:
+            if self.keyless:
+                self.headers = {}
+            paced_keyless = False
+            while True:
+                try:
+                    headers, self.keyed = super()._metered(host)
+                    break
+                except rpc.BudgetExhausted:
+                    if not self.headers:
+                        raise
+                    wait = (max(0, FOLLOW_INTERVAL_S - (self.clock() - self.last_request))
+                            if self.last_request is not None else 0)
+                    if wait > 0 and not paced_keyless:
+                        self.sleep(wait)
+                        paced_keyless = True
+                    else:
+                        self.headers = {}
+        finally:
+            self.headers = original
+            self.keyless = False
+        self.last_request = self.clock()
+        _request_day(self.state, self.clock)
+        self.state["requests"] += 1
+        return headers, self.keyed
 
 
 def _request_day(state, clock):
@@ -622,7 +685,6 @@ def run(start, count, record, store=None, blocks_dir=BLOCKS_DIR, state_path=STAT
 def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=None, event_blocks_dir=None,
            max_blocks=None, sleep=time.sleep, clock=time.time, stopped=lambda: False):
     """Follow finalized heights, retaining only event blocks and the moving state."""
-    fetcher = fetcher or Fetcher(rpc.Client(NEARDATA_URL, "off", kind="http"), max_requests=None)
     state_dir = Path(os.environ.get("FEED_STATE_DIR", FEED_DIR))
     state_path = Path(state_path) if state_path is not None else state_dir / "state.json"
     events_dir = Path(events_dir) if events_dir is not None else state_dir / "events"
@@ -634,6 +696,9 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
     state.setdefault("requests", 0)
     state.setdefault("transfer_requests", 0)
     state.setdefault("request_day", datetime.fromtimestamp(clock(), UTC).strftime("%Y-%m-%d"))
+    managed = fetcher is None
+    if managed:
+        fetcher = Fetcher(_FollowClient(state, clock, sleep), sleep=sleep, max_requests=None)
     for signal in SIGNALS:
         state["events"].setdefault(signal, 0)
     context = Context(store or labels.load())
@@ -644,16 +709,18 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
     last_request = None
     stamped = False
     while not stopped() and (max_blocks is None or walked < max_blocks):
-        if last_request is not None:
+        if last_request is not None and not managed:
             sleep(max(0, FOLLOW_INTERVAL_S - (clock() - last_request)))
         poll_transfers(transfers_client, state, state_path, context, events_dir, clock, pending_transfers, stamp=stamped)
         _request_day(state, clock)
         requests_before = fetcher.requests
         request_started = clock()
-        final_block = fetcher.final_block()
+        with budget.use_database(state_path.parent / budget.DATABASE_NAME), rpc.caller_class("feed"):
+            final_block = fetcher.final_block()
         final_height = final_block["block"]["header"]["height"]
         used = fetcher.requests - requests_before
-        state["requests"] += used
+        if not managed:
+            state["requests"] += used
         last_request = request_started if used == 1 else clock()
         next_height = state["last_height"] + 1 if state["last_height"] is not None else (
             start if start is not None else final_height)
@@ -667,7 +734,7 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
             sleep(1)
             continue
         while next_height <= final_height and not stopped() and (max_blocks is None or walked < max_blocks):
-            if last_request is not None and next_height < final_height:
+            if last_request is not None and next_height < final_height and not managed:
                 sleep(max(0, FOLLOW_INTERVAL_S - (clock() - last_request)))
             poll_transfers(transfers_client, state, state_path, context, events_dir, clock, pending_transfers, stamp=stamped)
             _request_day(state, clock)
@@ -678,14 +745,16 @@ def follow(start=None, fetcher=None, store=None, state_path=None, events_dir=Non
                 requests_before = fetcher.requests
                 request_started = clock()
                 try:
-                    raw = fetcher.get(f"/v0/block/{next_height}")
+                    with budget.use_database(state_path.parent / budget.DATABASE_NAME), rpc.caller_class("feed"):
+                        raw = fetcher.get(f"/v0/block/{next_height}")
                 except rpc.HttpError as error:
                     if error.status != 404:
                         raise
                     raw = None
                     covered = False
                 used = fetcher.requests - requests_before
-                state["requests"] += used
+                if not managed:
+                    state["requests"] += used
                 last_request = request_started if used == 1 else clock()
             block = None
             if raw is None:

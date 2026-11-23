@@ -1059,7 +1059,7 @@ class FollowModeTest(unittest.TestCase):
         self.assertEqual(state["transfer_requests"], 1)
         self.assertNotIn("headers", client.call_args.kwargs)
 
-    def test_a_key_file_never_reaches_neardata_transfers_or_any_file(self):
+    def test_a_key_reaches_only_metered_neardata_and_never_transfers_or_any_file(self):
         import os
 
         synthetic = json.loads((BLOCKS / "synthetic-code-hash.json").read_text(encoding="utf-8"))
@@ -1076,6 +1076,7 @@ class FollowModeTest(unittest.TestCase):
         for keyed in (True, False):
             requests.clear()
             with self.subTest(keyed=keyed), tempfile.TemporaryDirectory() as tmp, \
+                    mock.patch.dict(os.environ, {}, clear=True), \
                     mock.patch("urllib.request.urlopen", side_effect=answer), \
                     mock.patch("intel.feed.reduce_block", return_value=synthetic):
                 root = Path(tmp)
@@ -1092,7 +1093,9 @@ class FollowModeTest(unittest.TestCase):
                 self.assertEqual([r.full_url for r in neardata],
                                  [feed.NEARDATA_URL + "/v0/last_block/final", feed.NEARDATA_URL + "/v0/block/1"])
                 self.assertGreater(len(requests), len(neardata))
-                self.assertEqual({r.get_header("Authorization") for r in requests}, {None})
+                self.assertEqual({r.get_header("Authorization") for r in neardata},
+                                 {"Bearer literal-test-key" if keyed else None})
+                self.assertTrue(all(r.get_header("Authorization") is None for r in requests if r not in neardata))
                 self.assertEqual((walked, state["events"]["code_hash_matches_incident"]), (1, 1))
                 written = [path for path in root.rglob("*") if path.is_file() and path != key_file]
                 self.assertTrue(any(path.parent.name == "event-blocks" for path in written))
@@ -1135,26 +1138,27 @@ class FollowModeTest(unittest.TestCase):
         self.assertIn(feed.FOLLOW_INTERVAL_S, fake.sleeps)
 
     def test_follow_retries_429_past_the_request_budget(self):
-        class Throttled:
-            def __init__(self):
-                self.calls = 0
+        import urllib.error
 
-            def get(self, path):
-                self.calls += 1
-                if self.calls <= feed.MAX_REQUESTS:
-                    raise rpc.HttpError(429, path)
-                return raw_block(1, [])
+        calls = []
 
-        client = Throttled()
+        def answer(request, timeout):
+            if request.full_url.startswith(feed.TRANSFERS_URL):
+                return http_reply(b'{"transfers": [], "resume_token": null}')
+            calls.append(request)
+            if len(calls) <= feed.MAX_REQUESTS:
+                raise urllib.error.HTTPError(request.full_url, 429, "Too Many Requests", {}, None)
+            return http_reply(json.dumps(raw_block(1, [])).encode("utf-8"))
+
         with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {}, clear=True), \
-                mock.patch("intel.feed.rpc.Client", side_effect=lambda url, *a, **k:
-                           client if url == feed.NEARDATA_URL else TransfersStub()), \
+                mock.patch("urllib.request.urlopen", side_effect=answer), \
                 mock.patch.object(feed, "BACKOFF_S", 0):
             root = Path(tmp)
             state, walked = feed.follow(start=1, state_path=root / "state.json", events_dir=root / "events",
                                         event_blocks_dir=root / "event-blocks", max_blocks=1,
                                         sleep=lambda _: None, clock=lambda: T0)
-        self.assertEqual((walked, state["last_height"], client.calls), (1, 1, feed.MAX_REQUESTS + 1))
+        self.assertEqual((walked, state["last_height"], len(calls)), (1, 1, feed.MAX_REQUESTS + 1))
+        self.assertEqual(state["requests"], len(calls))
 
     def paced_log(self, end, keyed):
         """The neardata gets, Transfers posts and sleeps of a follow over heights 1 to end, in order, with

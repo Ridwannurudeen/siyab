@@ -637,7 +637,7 @@ Static pages: `demo/site/`, written by `python -m intel render` from the committ
 
 ### Changes after the 14 Nov 23:59 UTC deadline
 
-The judged state is the tag `hackathon-submission`. Changes on 15, 21, 22 and 23 Nov 2026, after the deadline (`docs/LOG.md:81-115`):
+The judged state is the tag `hackathon-submission`. Changes on 15, 21, 22 and 23 Nov 2026, after the deadline (`docs/LOG.md:81-116`):
 
 - Verdict rules: corrected global contract detection and request-only source arguments. An account whose access key list RPC refuses as `TOO_MANY_ACCESS_KEYS` is dated by archival `view_account`, and the account check pages through such a list for full access keys (`gate/account_check.py:_paged_full_access`). Rules version 2 (`gate/freshness.py`: code_changed_recently, label_stale) is added behind `rules_version` and stays off; version 1, the default, judged the committed ordinary and top receiver sets. The separate 22 November holdout uses version 3 (`docs/HOLDOUT.md:21`). Five top receiver judgements were re-recorded with these reads, among them `user.intear.near`, now ALLOW.
 - Account age: added the bounded archival boundary search, which dates an unresolved account at adjacent header-linked blocks around the 7-day cutoff (`gate/rules.py:_boundary_age`), and the re-judgement of top receivers left UNKNOWN on account_age with every read pinned to the judged block (`fixtures/receivers/top/judged-block.json`, `intel/__main__.py:_pinned_judgement`); the 990 top receivers moved from 270 ALLOW, 1 DENY and 719 UNKNOWN in `hackathon-submission`, through 831 ALLOW, 19 DENY and 140 UNKNOWN after the keyed archival reads (commit `7f624c8ac`), to 850 ALLOW, 138 DENY and 2 UNKNOWN.
@@ -660,6 +660,7 @@ The judged state is the tag `hackathon-submission`. Changes on 15, 21, 22 and 23
 - FastNEAR credit: an HTTP 402 for exhausted credit now starts the same 15 minute key cooldown as 403 and 429, so ordinary metered reads go keyless while recording stops (`intel/budget.py:KEY_FAILURE_STATUSES`; `docs/LOG.md:113`).
 - CI: the unit suite runs as four module shards per Python version, a pull request push starts one workflow, and the smoke check skips only its nested copy of the suite in CI; the flaky SIGINT prefetch test was fixed (`scripts/test_shards.py`; `.github/workflows/ci.yml`; `docs/lanes/ci-speed.md`).
 - Site: the feed coverage lists open as collapsed counts, the swap destination check takes an amount in NEAR and shows 1Click's own error message, and the landing uses the shared header (`intel/ui/feed.js`; `gate/intents.py:_dry_quote_why`; `docs/lanes/site-fixes.md`).
+- Block feed: the follower sends the FastNEAR key again, metered as caller class `feed` with its own cap of 120,000 keyed reads per UTC day, and falls back to keyless reads over the cap, during the key cooldown or after a refused key, without skipping a height (`intel/feed.py:_FollowClient`; `intel/budget.py:KEYED_LIMITS`; `docs/lanes/feed-keyed-cap.md`).
 
 The diff: https://github.com/Ridwannurudeen/siyab/compare/hackathon-submission...main.
 
